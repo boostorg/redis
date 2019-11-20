@@ -7,6 +7,7 @@
 CPPFLAGS += -std=c++17 -g
 CPPFLAGS += -I/opt/boost_1_71_0/include
 CPPFLAGS += -I/opt/aedis-1.0.0
+CPPFLAGS += -DBOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
 
 examples: % : %.o
 	$(CXX) -o $@ $^ $(CPPFLAGS) -lfmt -lpthread
