@@ -14,6 +14,7 @@
 #include <vector>
 #include <string>
 #include <cstdio>
+#include <utility>
 #include <cstdlib>
 #include <cstring>
 #include <numeric>
@@ -54,7 +55,7 @@ std::string make_bulky_item(std::string const& param)
 }
 
 inline
-std::string make_cmd_header(int size)
+std::string make_header(int size)
 {
    return "*" + std::to_string(size) + "\r\n";
 }
@@ -66,37 +67,67 @@ struct accumulator {
       return a;
    }
 
-   template <class T>
-   auto operator()(std::string a, T b) const
+   auto operator()(std::string a, int b) const
    {
       a += make_bulky_item(std::to_string(b));
       return a;
    }
+
+   auto operator()(std::string a, std::pair<std::string, std::string> b) const
+   {
+      a += make_bulky_item(b.first);
+      a += make_bulky_item(b.second);
+      return a;
+   }
+
+   auto operator()(std::string a, std::pair<int, std::string> b) const
+   {
+      a += make_bulky_item(std::to_string(b.first));
+      a += make_bulky_item(b.second);
+      return a;
+   }
 };
-
-template <class Iter>
-auto assemble(char const* cmd, Iter begin, Iter end)
-{
-   auto const d = std::distance(begin, end);
-
-   auto payload = make_cmd_header(d + 1)
-                + make_bulky_item(cmd);
-
-   return std::accumulate(begin , end, std::move(payload), accumulator{});
-}
 
 inline
 auto assemble(char const* cmd)
 {
-   std::initializer_list<std::string> arg;
-   return assemble(cmd, std::begin(arg), std::end(arg));
+   return make_header(1) + make_bulky_item(cmd);
+}
+
+template <class Iter>
+auto assemble( char const* cmd
+             , std::initializer_list<std::string const> key
+             , Iter begin
+             , Iter end
+             , int size = 1)
+{
+   auto const d1 =
+      std::distance( std::cbegin(key)
+                   , std::cend(key));
+
+   auto const d2 = std::distance(begin, end);
+
+   auto a = make_header(1 + d1 + size * d2)
+          + make_bulky_item(cmd);
+
+   auto b =
+      std::accumulate( std::cbegin(key)
+                     , std::cend(key)
+                     , std::move(a)
+                     , accumulator{});
+
+   return
+      std::accumulate( begin
+                     , end
+                     , std::move(b)
+                     , accumulator{});
 }
 
 inline
-auto assemble(char const* cmd, std::string const& str)
+auto assemble(char const* cmd, std::string const& key)
 {
-   auto arg = {str};
-   return assemble(cmd, std::begin(arg), std::end(arg));
+   std::initializer_list<std::string> dummy;
+   return assemble(cmd, {key}, std::cbegin(dummy), std::cend(dummy));
 }
 
 // Converts a decimal number in ascii format to integer.
@@ -235,17 +266,7 @@ auto async_read_resp( AsyncStream& s
 template <class Iter>
 auto rpush(std::string const& key, Iter begin, Iter end)
 {
-   auto const d = std::distance(begin, end);
-
-   auto payload = resp::make_cmd_header(2 + d)
-                + resp::make_bulky_item("RPUSH")
-                + resp::make_bulky_item(key);
-
-   auto cmd_str = std::accumulate( begin
-                                 , end
-                                 , std::move(payload)
-                                 , resp::accumulator{});
-   return cmd_str;
+   return resp::assemble("RPUSH", {key}, begin, end);
 }
 
 template <class T, class Allocator>
@@ -272,23 +293,19 @@ auto rpush( std::string const& key
 template <class Iter>
 auto lpush(std::string const& key, Iter begin, Iter end)
 {
-   auto const d = std::distance(begin, end);
-
-   auto payload = resp::make_cmd_header(2 + d)
-                + resp::make_bulky_item("LPUSH")
-                + resp::make_bulky_item(key);
-
-   auto cmd_str = std::accumulate( begin
-                                 , end
-                                 , std::move(payload)
-                                 , resp::accumulator{});
-   return cmd_str;
+   return resp::assemble("LPUSH", {key}, begin, end);
 }
 
 inline
 auto multi()
 {
    return resp::assemble("MULTI");
+}
+
+inline
+auto ping()
+{
+   return resp::assemble("PING");
 }
 
 inline
@@ -330,27 +347,42 @@ auto get(std::string const& key)
 inline
 auto publish(std::string const& key, std::string const& msg)
 {
-   auto par = {key, msg};
-   return resp::assemble("PUBLISH", std::begin(par), std::end(par));
+   auto par = {msg};
+   return resp::assemble("PUBLISH", {key}, std::begin(par), std::end(par));
 }
 
 inline
-auto set(std::initializer_list<std::string const> const& args)
+auto set( std::string const& key
+        , std::initializer_list<std::string const> const& args)
 {
-   return resp::assemble("SET", std::begin(args), std::end(args));
+   return resp::assemble("SET", {key}, std::begin(args), std::end(args));
 }
 
 inline
-auto hset(std::initializer_list<std::string const> const& l)
+auto hset( std::string const& key
+         , std::initializer_list<std::string const> const& l)
 {
-   return resp::assemble("HSET", std::begin(l), std::end(l));
+   return resp::assemble("HSET", {key}, std::begin(l), std::end(l));
+}
+
+template <class Key, class T, class Compare, class Allocator>
+auto hset( std::string const& key
+         , std::map<Key, T, Compare, Allocator> const& m)
+{
+   return resp::assemble("HSET", {key}, std::begin(m), std::end(m), 2);
+}
+
+inline
+auto hvals(std::string const& key)
+{
+   return resp::assemble("HVALS", {key});
 }
 
 inline
 auto hget(std::string const& key, std::string const& field)
 {
-   auto par = {key, field};
-   return resp::assemble("HGET", std::begin(par), std::end(par));
+   auto par = {field};
+   return resp::assemble("HGET", {key}, std::begin(par), std::end(par));
 }
 
 inline
@@ -358,33 +390,36 @@ auto hmget( std::string const& key
           , std::string const& field1
           , std::string const& field2)
 {
-   auto par = {key, field1, field2};
-   return resp::assemble("HMGET", std::begin(par), std::end(par));
+   auto par = {field1, field2};
+   return resp::assemble("HMGET", {key}, std::cbegin(par), std::cend(par));
 }
 
 inline
 auto expire(std::string const& key, int secs)
 {
-   auto par = {key, std::to_string(secs)};
-   return resp::assemble("EXPIRE", std::begin(par), std::end(par));
+   auto par = {std::to_string(secs)};
+   return resp::assemble("EXPIRE", {key}, std::begin(par), std::end(par));
 }
 
 inline
 auto zadd(std::string const& key, int score, std::string const& value)
 {
-   auto par = {key, std::to_string(score), value};
-   return resp::assemble("ZADD", std::begin(par), std::end(par));
+   auto par = {std::to_string(score), value};
+   return resp::assemble("ZADD", {key}, std::cbegin(par), std::cend(par));
+}
+
+template <class Key, class T, class Compare, class Allocator>
+auto zadd( std::initializer_list<std::string const> key
+         , std::map<Key, T, Compare, Allocator> const& m)
+{
+   return resp::assemble("ZADD", key, std::cbegin(m), std::cend(m), 2);
 }
 
 inline
-auto zrange(std::string const& key, int min, int max)
+auto zrange(std::string const& key, int min = 0, int max = -1)
 {
-   auto par = { key
-              , std::to_string(min)
-              , std::to_string(max)
-              };
-
-   return resp::assemble("zrange", std::begin(par), std::end(par));
+   auto par = { std::to_string(min), std::to_string(max) };
+   return resp::assemble("ZRANGE", {key}, std::begin(par), std::end(par));
 }
 
 inline
@@ -394,46 +429,35 @@ auto zrangebyscore(std::string const& key, int min, int max)
    if (max != -1)
       max_str = std::to_string(max);
 
-   auto par = { key
-              , std::to_string(min)
-              , max_str
-              //, std::string {"withscores"}
-              };
-
-   return resp::assemble("zrangebyscore", std::begin(par), std::end(par));
+   auto par = { std::to_string(min) , max_str };
+   return resp::assemble("zrangebyscore", {key}, std::begin(par), std::end(par));
 }
 
 inline
 auto zremrangebyscore(std::string const& key, int score)
 {
    auto const s = std::to_string(score);
-   auto par = {key, s, s};
-   return resp::assemble("ZREMRANGEBYSCORE", std::begin(par), std::end(par));
+   auto par = {s, s};
+   return resp::assemble("ZREMRANGEBYSCORE", {key}, std::begin(par), std::end(par));
 }
 
 inline
 auto lrange(std::string const& key, int min = 0, int max = -1)
 {
-   auto par = { key
-              , std::to_string(min)
-              , std::to_string(max)
-              };
-
-   return resp::assemble("lrange", std::begin(par), std::end(par));
+   auto par = { std::to_string(min) , std::to_string(max) };
+   return resp::assemble("lrange", {key}, std::begin(par), std::end(par));
 }
 
 inline
 auto del(std::string const& key)
 {
-   auto par = {key};
-   return resp::assemble("del", std::begin(par), std::end(par));
+   return resp::assemble("del", key);
 }
 
 inline
 auto llen(std::string const& key)
 {
-   auto par = {key};
-   return resp::assemble("llen", std::begin(par), std::end(par));
+   return resp::assemble("llen", key);
 }
 
 namespace log
