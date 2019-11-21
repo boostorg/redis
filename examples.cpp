@@ -12,45 +12,45 @@ using namespace aedis;
 void send(std::string cmd)
 {
    net::io_context ioc;
-   session ss {ioc};
+   session s {ioc};
 
-   ss.send(std::move(cmd));
+   s.send(std::move(cmd));
 
-   ss.run();
+   s.run();
    ioc.run();
 }
 
 int main(int argc, char* argv[])
 {
-   std::list<std::string> b
+   std::list<std::string> a
    {"one" ,"two", "three"};
 
-   std::set<std::string> c
+   std::set<std::string> b
    {"a" ,"b", "c"};
 
-   std::map<std::string, std::string> d
+   std::map<std::string, std::string> c
    { {{"Name"},      {"Marcelo"}} 
    , {{"Education"}, {"Physics"}}
    , {{"Job"},       {"Programmer"}}};
 
-   std::map<int, std::string> e
+   std::map<int, std::string> d
    { {1, {"foo"}} 
    , {2, {"bar"}}
    , {3, {"foobar"}}
    };
 
    auto s = ping()
+          + rpush("a", a)
+          + lrange("a")
+          + del("a")
+          + multi()
           + rpush("b", b)
           + lrange("b")
           + del("b")
-          + multi()
-          + rpush("c", c)
-          + lrange("c")
-          + del("c")
-          + hset("d", d)
-          + hvals("d")
-          + zadd({"e"}, e)
-          + zrange("e")
+          + hset("c", c)
+          + hvals("c")
+          + zadd({"d"}, d)
+          + zrange("d")
           + zrangebyscore("foo", 2, -1)
           + set("f", {"39"})
           + incr("f")

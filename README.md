@@ -1,24 +1,24 @@
 # Aedis
 Aedis is a redis client designed with the following in mind
 
-* Simplicity and Minimalist
+* Simplicity and Minimalism
 * No overhead abstractions
-* Optimal use of Asio
+* Optimal use of Boost.Asio
 * Async
 
 # Example
 
 Talking to a redis server is as simple as
 
-```
+```cpp
 void foo()
 {
    net::io_context ioc;
-   session ss {ioc};
+   session s {ioc};
 
-   ss.send(ping());
+   s.send(ping());
 
-   ss.run();
+   s.run();
    ioc.run();
 }
 ```
@@ -26,38 +26,38 @@ void foo()
 Composition of commands is trivial and there is support for some stl
 containers
 
-```
+```cpp
 void foo()
 {
-   std::list<std::string> b
+   std::list<std::string> a
    {"one" ,"two", "three"};
 
-   std::set<std::string> c
+   std::set<std::string> b
    {"a" ,"b", "c"};
 
-   std::map<std::string, std::string> d
+   std::map<std::string, std::string> c
    { {{"Name"},      {"Marcelo"}} 
    , {{"Education"}, {"Physics"}}
    , {{"Job"},       {"Programmer"}}};
 
-   std::map<int, std::string> e
+   std::map<int, std::string> d
    { {1, {"foo"}} 
    , {2, {"bar"}}
    , {3, {"foobar"}}
    };
 
    auto s = ping()
+          + rpush("a", a)
+          + lrange("a")
+          + del("a")
+          + multi()
           + rpush("b", b)
           + lrange("b")
           + del("b")
-          + multi()
-          + rpush("c", c)
-          + lrange("c")
-          + del("c")
-          + hset("d", d)
-          + hvals("d")
-          + zadd({"e"}, e)
-          + zrange("e")
+          + hset("c", c)
+          + hvals("c")
+          + zadd({"d"}, d)
+          + zrange("d")
           + zrangebyscore("foo", 2, -1)
           + set("f", {"39"})
           + incr("f")
@@ -66,13 +66,7 @@ void foo()
           + publish("g", "A message")
           + exec();
 
-   net::io_context ioc;
-   session ss {ioc};
-
-   ss.send(std::move(s));
-
-   ss.run();
-   ioc.run();
+  send(std::move(s));
 }
 ```
 
