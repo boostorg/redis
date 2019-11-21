@@ -11,12 +11,12 @@ Aedis is a redis client designed with the following in mind
 Talking to a redis server is as simple as
 
 ```cpp
-void foo()
+void send(std::string cmd)
 {
    net::io_context ioc;
    session s {ioc};
 
-   s.send(ping());
+   s.send(cmd);
 
    s.run();
    ioc.run();
