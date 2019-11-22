@@ -142,35 +142,30 @@ std::size_t get_length(char const* p)
    return len;
 }
 
-template <class AsyncStream, class Handler>
-struct read_resp_op {
-   AsyncStream& stream_;
-   Handler handler_;
+struct read_op {
+   tcp::socket& socket_;
    resp::buffer* buffer_ = nullptr;
-   int start_ = 0;
+   int start_ = 1;
    int counter_ = 1;
    bool bulky_read_ = false;
 
-   read_resp_op( AsyncStream& stream
-               , resp::buffer* buffer
-               , Handler handler)
-   : stream_(stream)
-   , handler_(std::move(handler))
-   , buffer_(buffer)
-   { }
-
-   void operator()( boost::system::error_code const& ec, std::size_t n
-                  , int start = 0)
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code const& ec = {}
+                  , std::size_t n = 0)
    {
-      switch (start_ = start) {
+      switch (start_) {
          for (;;) {
             case 1:
-            net::async_read_until( stream_, net::dynamic_buffer(buffer_->data)
-                                 , "\r\n", std::move(*this));
+            start_ = 0;
+            net::async_read_until( socket_
+                                 , net::dynamic_buffer(buffer_->data)
+                                 , "\r\n"
+                                 , std::move(self));
             return; default:
 
             if (ec || n < 3) {
-               handler_(ec);
+               self.complete(ec);
                return;
             }
 
@@ -216,7 +211,7 @@ struct read_resp_op {
             buffer_->data.erase(0, n);
 
             if (counter_ == 0) {
-               handler_(boost::system::error_code{});
+               self.complete(boost::system::error_code{});
                return;
             }
 
@@ -226,39 +221,13 @@ struct read_resp_op {
    }
 };
 
-template < class AsyncReadStream
-         , class ReadHandler
-         >
-inline bool
-asio_handler_is_continuation( read_resp_op< AsyncReadStream
-                                          , ReadHandler
-                                          >* this_handler)
+template <class CompletionToken>
+auto async_read(tcp::socket& s, resp::buffer* buffer, CompletionToken&& token)
 {
-   return this_handler->start_ == 0 ? true
-      : boost_asio_handler_cont_helpers::is_continuation(
-            this_handler->handler_);
-}
-
-template <class AsyncStream, class CompletionToken>
-auto async_read_resp( AsyncStream& s
-                    , resp::buffer* buffer
-                    , CompletionToken&& handler)
-{
-   using read_handler_signature = void (boost::system::error_code const&);
-
-   net::async_completion< CompletionToken
-                        , read_handler_signature
-                        > init {handler};
-
-   using handler_type = 
-      read_resp_op< AsyncStream
-                  , BOOST_ASIO_HANDLER_TYPE( CompletionToken
-                                           , read_handler_signature)
-                  >;
-
-   handler_type {s, buffer, init.completion_handler}({}, 0, 1);
-
-   return init.result.get();
+   return net::async_compose
+      < CompletionToken
+      , void(boost::system::error_code)
+      >(read_op {s, buffer}, token, s);
 }
 
 }
@@ -306,6 +275,12 @@ inline
 auto ping()
 {
    return resp::assemble("PING");
+}
+
+inline
+auto flushall()
+{
+   return resp::assemble("FLUSHALL");
 }
 
 inline
@@ -516,8 +491,8 @@ public:
 private:
    std::string id_;
    config cfg_;
-   net::ip::tcp::resolver resolver_;
-   net::ip::tcp::socket socket_;
+   ip::tcp::resolver resolver_;
+   tcp::socket socket_;
 
    // This variable will be removed after the redis sentinel implementation. 
    net::steady_timer timer_;
@@ -553,7 +528,7 @@ private:
       auto handler = [this](auto const& ec)
          { on_resp(ec); };
 
-      resp::async_read_resp(socket_, &buffer_, handler);
+      resp::async_read(socket_, &buffer_, std::move(handler));
    }
 
    void on_resolve( boost::system::error_code const& ec

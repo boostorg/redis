@@ -1,14 +1,16 @@
 # Aedis
+
 Aedis is a redis client designed with the following in mind
 
-* Simplicity and Minimalism
+* Seamless integration with async code
+* Based on Boost.Asio
+* Speed as a result of simplicity
 * No overhead abstractions
-* Optimal use of Boost.Asio
-* Async
+* Easy and intuitive as clients for other languages
 
 # Example
 
-Talking to a redis server is as simple as
+Sending a command to a redis server is as simple as
 
 ```cpp
 void send(std::string cmd)
@@ -23,8 +25,8 @@ void send(std::string cmd)
 }
 ```
 
-Composition of commands is trivial and there is support for some stl
-containers
+Commands can be generated easily and there is support for STL
+containers when it makes sense
 
 ```cpp
 void foo()
@@ -70,9 +72,6 @@ void foo()
 }
 ```
 
-NOTE: Not all commands are implemented yet. Since this client was
-writen for my own use I implement new functionality on demand.
-
 # Features
 
 * Pubsub
@@ -86,7 +85,7 @@ The main missing features at the moment are
 
 I will implement those on demand.
 
-# Intallation
+# Installation
 
 Aedis is header only. You only have to include `aedis.hpp` in your
 project. Further dependencies are 

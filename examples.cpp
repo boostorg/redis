@@ -40,6 +40,7 @@ int main(int argc, char* argv[])
    };
 
    auto s = ping()
+          + flushall()
           + rpush("a", a)
           + lrange("a")
           + del("a")
