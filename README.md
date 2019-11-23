@@ -104,7 +104,7 @@ Support for redis sentinel is still not implemented.
 
 # Callbacks
 
-It is possible to set three callbacks as shown in the example bellow
+It is possible to set some callbacks as shown in the example bellow
 
 ```cpp
 void example3()
