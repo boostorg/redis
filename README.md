@@ -29,7 +29,7 @@ Commands can be generated easily and there is support for STL
 containers when it makes sense
 
 ```cpp
-void foo()
+void example1()
 {
    std::list<std::string> a
    {"one" ,"two", "three"};
@@ -72,11 +72,71 @@ void foo()
 }
 ```
 
-# Features
+The following example shows how to specify the configuration options
 
-* Pubsub
-* Pipeline
-* Reconnection on connection lost.
+```cpp
+void example2()
+{
+   net::io_context ioc;
+
+   session::config cfg
+   { "127.0.0.1" // host
+   , "6379" // port
+   , 256 // Max pipeline size
+   , std::chrono::milliseconds {500} // Connection retry
+   , {} // Sentinel addresses
+   , log::level::info
+   };
+
+   session s {ioc, cfg, "id"};
+
+   s.send(ping());
+
+   s.run();
+   ioc.run();
+}
+```
+The maximum pipeline size above refers to the blocks of commands sent
+via the `session::send` function and not to the individual commands.
+Logging is made using `std::clog`. The string `"id"` passed as third
+argument to the session is prefixed to each log message.
+Support for redis sentinel is still not implemented.
+
+# Callbacks
+
+It is possible to set three callbacks as shown in the example bellow
+
+```cpp
+void example3()
+{
+   net::io_context ioc;
+   session s {ioc};
+
+   s.set_on_conn_handler([]() {
+      std::cout << "Connected" << std::endl;
+   });
+
+   s.set_msg_handler([](auto ec, auto res) {
+      if (ec) {
+         std::cerr << "Error: " << ec.message() << std::endl;
+         return;
+      }
+
+      std::copy( std::cbegin(res)
+               , std::cend(res)
+               , std::ostream_iterator<std::string>(std::cout, " "));
+
+      std::cout << std::endl;
+   });
+
+   s.send(ping());
+
+   s.run();
+   ioc.run();
+}
+```
+
+# Missing features
 
 The main missing features at the moment are
 

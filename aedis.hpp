@@ -464,9 +464,6 @@ class session {
 public:
    using on_conn_handler_type = std::function<void()>;
 
-   using on_disconnect_handler_type =
-      std::function<void(boost::system::error_code const&)>;
-
    using msg_handler_type =
       std::function<void( boost::system::error_code const&
                         , std::vector<std::string>)>;
@@ -519,7 +516,6 @@ private:
 
 
    on_conn_handler_type conn_handler_ = [](){};
-   on_disconnect_handler_type disconn_handler_ = [](auto const&){};
 
    void start_reading_resp()
    {
@@ -705,9 +701,6 @@ public:
 
    void set_on_conn_handler(on_conn_handler_type handler)
       { conn_handler_ = std::move(handler);};
-
-   void set_on_disconnect_handler(on_disconnect_handler_type handler)
-      { disconn_handler_ = std::move(handler);};
 
    void set_msg_handler(msg_handler_type handler)
       { msg_handler_ = std::move(handler);};

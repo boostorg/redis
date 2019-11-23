@@ -20,7 +20,7 @@ void send(std::string cmd)
    ioc.run();
 }
 
-int main(int argc, char* argv[])
+void example1()
 {
    std::list<std::string> a
    {"one" ,"two", "three"};
@@ -61,5 +61,60 @@ int main(int argc, char* argv[])
           + exec();
 
   send(std::move(s));
+}
+
+void example2()
+{
+   net::io_context ioc;
+
+   session::config cfg
+   { "127.0.0.1" // host
+   , "6379" // port
+   , 256 // Max pipeline size
+   , std::chrono::milliseconds {500} // Connection retry
+   , {} // Sentinel addresses
+   , log::level::info
+   };
+
+   session s {ioc, cfg, "id"};
+
+   s.send(ping());
+
+   s.run();
+   ioc.run();
+}
+
+void example3()
+{
+   net::io_context ioc;
+   session s {ioc};
+
+   s.set_on_conn_handler([]() {
+      std::cout << "Connected" << std::endl;
+   });
+
+   s.set_msg_handler([](auto ec, auto res) {
+      if (ec) {
+         std::cerr << "Error: " << ec.message() << std::endl;
+      }
+
+      std::copy( std::cbegin(res)
+               , std::cend(res)
+               , std::ostream_iterator<std::string>(std::cout, " "));
+
+      std::cout << std::endl;
+   });
+
+   s.send(ping());
+
+   s.run();
+   ioc.run();
+}
+
+int main(int argc, char* argv[])
+{
+   example1();
+   //example2();
+   //example3();
 }
 
