@@ -58,7 +58,13 @@ void example1()
           + get("f")
           + expire("f", 10)
           + publish("g", "A message")
-          + exec();
+          + exec()
+	  + set("h", {"h"})
+	  + append("h", "h")
+	  + get("h")
+	  + auth("password")
+	  + bitcount("h")
+	  ;
 
   send(std::move(s));
 }

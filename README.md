@@ -3,10 +3,19 @@
 Aedis is a redis client designed with the following in mind
 
 * Seamless integration with async code
-* Based on Boost.Asio
+* Based on Boost.Asio and the Networking TS
 * Speed as a result of simplicity
 * No overhead abstractions
 * Easy and intuitive as clients for other languages
+
+This library is header only. You only have to include `aedis.hpp` in your
+project. Current dendencies are
+
+* Boost.Asio
+* libfmt
+
+As of C++23 this library will have no external dependencies (assuming the
+Networking TS gets finally merged in to the standard).
 
 # Example
 
@@ -45,8 +54,7 @@ void example1()
    std::map<int, std::string> d
    { {1, {"foo"}} 
    , {2, {"bar"}}
-   , {3, {"foobar"}}
-   };
+   , {3, {"foobar"}}};
 
    auto s = ping()
           + rpush("a", a)
@@ -144,12 +152,4 @@ The main missing features at the moment are
 * Cluster
 
 I will implement those on demand.
-
-# Installation
-
-Aedis is header only. You only have to include `aedis.hpp` in your
-project. Further dependencies are 
-
-* Boost.Asio
-* libfmt
 

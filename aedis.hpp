@@ -232,6 +232,43 @@ auto async_read(tcp::socket& s, resp::buffer* buffer, CompletionToken&& token)
 
 }
 
+inline
+auto append(std::string const& key, std::string const& msg)
+{
+   auto par = {msg};
+   return resp::assemble("APPEND", {key}, std::cbegin(par), std::cend(par));
+}
+
+inline
+auto auth(std::string const& pwd)
+{
+   return resp::assemble("AUTH", pwd);
+}
+
+inline
+auto bgrewriteaof()
+{
+   return resp::assemble("BGREWRITEAOF");
+}
+
+inline
+auto bgsave()
+{
+   return resp::assemble("BGSAVE");
+}
+
+inline
+auto bitcount(std::string const& key, int start = 0, int end = -1)
+{
+   auto par = {std::to_string(start), std::to_string(end)};
+
+   return 
+      resp::assemble( "BITCOUNT"
+                    , {key}
+                    , std::cbegin(par)
+                    , std::cend(par));
+}
+
 template <class Iter>
 auto rpush(std::string const& key, Iter begin, Iter end)
 {
@@ -323,28 +360,28 @@ inline
 auto publish(std::string const& key, std::string const& msg)
 {
    auto par = {msg};
-   return resp::assemble("PUBLISH", {key}, std::begin(par), std::end(par));
+   return resp::assemble("PUBLISH", {key}, std::cbegin(par), std::cend(par));
 }
 
 inline
 auto set( std::string const& key
         , std::initializer_list<std::string const> const& args)
 {
-   return resp::assemble("SET", {key}, std::begin(args), std::end(args));
+   return resp::assemble("SET", {key}, std::cbegin(args), std::cend(args));
 }
 
 inline
 auto hset( std::string const& key
          , std::initializer_list<std::string const> const& l)
 {
-   return resp::assemble("HSET", {key}, std::begin(l), std::end(l));
+   return resp::assemble("HSET", {key}, std::cbegin(l), std::cend(l));
 }
 
 template <class Key, class T, class Compare, class Allocator>
 auto hset( std::string const& key
          , std::map<Key, T, Compare, Allocator> const& m)
 {
-   return resp::assemble("HSET", {key}, std::begin(m), std::end(m), 2);
+   return resp::assemble("HSET", {key}, std::cbegin(m), std::cend(m), 2);
 }
 
 inline
@@ -357,7 +394,7 @@ inline
 auto hget(std::string const& key, std::string const& field)
 {
    auto par = {field};
-   return resp::assemble("HGET", {key}, std::begin(par), std::end(par));
+   return resp::assemble("HGET", {key}, std::cbegin(par), std::cend(par));
 }
 
 inline
@@ -373,7 +410,7 @@ inline
 auto expire(std::string const& key, int secs)
 {
    auto par = {std::to_string(secs)};
-   return resp::assemble("EXPIRE", {key}, std::begin(par), std::end(par));
+   return resp::assemble("EXPIRE", {key}, std::cbegin(par), std::cend(par));
 }
 
 inline
@@ -394,7 +431,7 @@ inline
 auto zrange(std::string const& key, int min = 0, int max = -1)
 {
    auto par = { std::to_string(min), std::to_string(max) };
-   return resp::assemble("ZRANGE", {key}, std::begin(par), std::end(par));
+   return resp::assemble("ZRANGE", {key}, std::cbegin(par), std::cend(par));
 }
 
 inline
@@ -405,7 +442,7 @@ auto zrangebyscore(std::string const& key, int min, int max)
       max_str = std::to_string(max);
 
    auto par = { std::to_string(min) , max_str };
-   return resp::assemble("zrangebyscore", {key}, std::begin(par), std::end(par));
+   return resp::assemble("zrangebyscore", {key}, std::cbegin(par), std::cend(par));
 }
 
 inline
@@ -413,14 +450,14 @@ auto zremrangebyscore(std::string const& key, int score)
 {
    auto const s = std::to_string(score);
    auto par = {s, s};
-   return resp::assemble("ZREMRANGEBYSCORE", {key}, std::begin(par), std::end(par));
+   return resp::assemble("ZREMRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
 }
 
 inline
 auto lrange(std::string const& key, int min = 0, int max = -1)
 {
    auto par = { std::to_string(min) , std::to_string(max) };
-   return resp::assemble("lrange", {key}, std::begin(par), std::end(par));
+   return resp::assemble("lrange", {key}, std::cbegin(par), std::cend(par));
 }
 
 inline
@@ -496,6 +533,7 @@ private:
    resp::buffer buffer_;
    std::queue<std::string> msg_queue_;
    int pipeline_counter_ = 0;
+   long long pipeline_id_ = 0;
 
    msg_handler_type msg_handler_ = [this](auto ec, auto const& res)
    {
@@ -705,19 +743,19 @@ public:
    void set_msg_handler(msg_handler_type handler)
       { msg_handler_ = std::move(handler);};
 
-   void send(std::string msg)
+   auto send(std::string msg)
    {
       auto const max_pp_size_reached =
          pipeline_counter_ >= cfg_.max_pipeline_size;
 
-      if (max_pp_size_reached) {
+      if (max_pp_size_reached)
          pipeline_counter_ = 0;
-      }
 
       auto const is_empty = std::empty(msg_queue_);
 
       if (is_empty || std::size(msg_queue_) == 1 || max_pp_size_reached) {
          msg_queue_.push(std::move(msg));
+	 ++pipeline_id_;
       } else {
          msg_queue_.back() += msg; // Uses pipeline.
          ++pipeline_counter_;
@@ -725,6 +763,8 @@ public:
 
       if (is_empty && socket_.is_open())
          do_write();
+
+      return pipeline_id_;
    }
 
    void close()
