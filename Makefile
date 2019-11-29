@@ -8,10 +8,17 @@ CPPFLAGS += -std=c++17 -g
 CPPFLAGS += -I/opt/boost_1_71_0/include
 CPPFLAGS += -DBOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
 
+all: examples
+
+Makefile.dep:
+	-$(CXX) -MM ./*.cpp > $@
+
+-include Makefile.dep
+
 examples: % : %.o
 	$(CXX) -o $@ $^ $(CPPFLAGS) -lfmt -lpthread
 
 .PHONY: clean
 clean:
-	rm -f examples examples.o
+	rm -f examples examples.o Makefile.dep
 

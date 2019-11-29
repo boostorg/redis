@@ -20,6 +20,58 @@ void send(std::string cmd)
    ioc.run();
 }
 
+void rpush_ex()
+{
+   std::array<std::string, 3> a
+   {"a1", "a2", "a3"};
+
+   std::vector<std::string> b
+   {"b1" ,"b2", "b3"};
+
+   std::list<std::string> c
+   {"c1" ,"c2", "c3"};
+
+   std::set<std::string> d
+   {"d1" ,"d2", "d3"};
+
+   std::deque<std::string> e
+   {"e1" ,"e2", "e3"};
+
+   std::forward_list<std::string> f
+   {"f1" ,"f2", "f3"};
+
+   std::multiset<std::string> g
+   {"g1" ,"g2", "g3"};
+
+   std::unordered_set<std::string> h
+   {"h1" ,"h2", "h3"};
+
+   std::unordered_set<std::string> i
+   {"i1" ,"i2", "i3"};
+
+   auto s = flushall()
+          + rpush("a", a)
+          + lrange("a")
+          + rpush("b", b)
+          + lrange("b")
+          + rpush("c", c)
+          + lrange("c")
+          + rpush("d", d)
+          + lrange("d")
+          + rpush("e", e)
+          + lrange("e")
+          + rpush("f", f)
+          + lrange("f")
+          + rpush("g", g)
+          + lrange("g")
+          + rpush("h", h)
+          + lrange("h")
+          + rpush("i", i)
+          + lrange("i")
+	  ;
+
+  send(std::move(s));
+}
 void example1()
 {
    std::list<std::string> a
@@ -40,6 +92,7 @@ void example1()
    };
 
    auto s = ping()
+          + role()
           + flushall()
           + rpush("a", a)
           + lrange("a")
@@ -74,11 +127,12 @@ void example2()
    net::io_context ioc;
 
    session::config cfg
-   { "127.0.0.1" // host
-   , "6379" // port
+   { { "127.0.0.1", "26377"
+     , "127.0.0.1", "26378"
+     , "127.0.0.1", "26379"} // Sentinel addresses
+   , "mymaster" // Instance name
+   , "master" // Instance role
    , 256 // Max pipeline size
-   , std::chrono::milliseconds {500} // Connection retry
-   , {} // Sentinel addresses
    , log::level::info
    };
 
@@ -119,8 +173,9 @@ void example3()
 
 int main(int argc, char* argv[])
 {
-   example1();
-   //example2();
+   //example1();
+   example2();
    //example3();
+   //rpush_ex();
 }
 

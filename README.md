@@ -4,9 +4,8 @@ Aedis is a redis client designed with the following in mind
 
 * Seamless integration with async code
 * Based on Boost.Asio and the Networking TS
-* Speed as a result of simplicity
-* No overhead abstractions
 * Easy and intuitive as clients for other languages
+* Speed as a result of simplicity
 
 This library is header only. You only have to include `aedis.hpp` in your
 project. Current dendencies are
@@ -112,7 +111,7 @@ Support for redis sentinel is still not implemented.
 
 # Callbacks
 
-It is possible to set some callbacks as shown in the example bellow
+The example below shows how to specify the connection and message callbacks
 
 ```cpp
 void example3()
