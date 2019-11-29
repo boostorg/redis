@@ -50,6 +50,14 @@ void rpush_ex()
    {"i1" ,"i2", "i3"};
 
    auto s = flushall()
+          + role()
+          + role()
+          + ping()
+          + role()
+          + ping()
+          + role()
+          + ping()
+          + role()
           + rpush("a", a)
           + lrange("a")
           + rpush("b", b)
@@ -72,6 +80,7 @@ void rpush_ex()
 
   send(std::move(s));
 }
+
 void example1()
 {
    std::list<std::string> a
@@ -97,7 +106,7 @@ void example1()
           + rpush("a", a)
           + lrange("a")
           + del("a")
-          + multi()
+          //+ multi()
           + rpush("b", b)
           + lrange("b")
           + del("b")
@@ -138,7 +147,7 @@ void example2()
 
    session s {ioc, cfg, "id"};
 
-   s.send(ping());
+   s.send(role());
 
    s.run();
    ioc.run();
@@ -174,8 +183,8 @@ void example3()
 int main(int argc, char* argv[])
 {
    //example1();
-   example2();
+   //example2();
    //example3();
-   //rpush_ex();
+   rpush_ex();
 }
 

@@ -151,39 +151,41 @@ std::size_t get_length(char const* p)
    return len;
 }
 
+// The parser supports up to 5 levels of nested structures. The first
+// element in the sizes stack is a sentinel and must be different from
+// 1.
 struct read_op {
-   tcp::socket& socket_;
+   tcp::socket& socket;
    resp::buffer* buffer_ = nullptr;
-   int start_ = 1;
-   int counter_ = 1;
-   bool bulky_read_ = false;
+   int start = 1;
+   int depth = 0;
+   int sizes[6] = {2, 1, 1, 1, 1, 1};
+   bool bulky = false;
 
    template <class Self>
    void operator()( Self& self
                   , boost::system::error_code const& ec = {}
                   , std::size_t n = 0)
    {
-      switch (start_) {
+      switch (start) {
          for (;;) {
             case 1:
-            start_ = 0;
-            net::async_read_until( socket_
+            start = 0;
+            net::async_read_until( socket
                                  , net::dynamic_buffer(buffer_->data)
                                  , "\r\n"
                                  , std::move(self));
             return; default:
 
-            if (ec || n < 3) {
-               self.complete(ec);
-               return;
-            }
+            if (ec || n < 3)
+               return self.complete(ec);
 
             auto str_flag = false;
-            if (bulky_read_) {
+            if (bulky) {
                buffer_->res.push_back(buffer_->data.substr(0, n - 2));
-               --counter_;
+               --sizes[depth];
             } else {
-               if (counter_ != 0) {
+               if (sizes[depth] != 0) {
                   switch (buffer_->data.front()) {
                      case '$':
                      {
@@ -191,7 +193,7 @@ struct read_op {
                         // but find a way to report nil.
                         if (buffer_->data.compare(1, 2, "-1") == 0) {
                            buffer_->res.push_back({});
-                           --counter_;
+                           --sizes[depth];
                         } else {
                            str_flag = true;
                         }
@@ -202,13 +204,12 @@ struct read_op {
                      case ':':
                      {
                         buffer_->res.push_back(buffer_->data.substr(1, n - 3));
-                        --counter_;
+                        --sizes[depth];
                      }
                      break;
                      case '*':
                      {
-                        //assert(counter_ == 1);
-                        counter_ = get_length(buffer_->data.data() + 1);
+                        sizes[++depth] = get_length(buffer_->data.data() + 1);
                      }
                      break;
                      default:
@@ -219,12 +220,13 @@ struct read_op {
 
             buffer_->data.erase(0, n);
 
-            if (counter_ == 0) {
-               self.complete(boost::system::error_code{});
-               return;
-            }
+            while (sizes[depth] == 0)
+               --sizes[--depth];
 
-            bulky_read_ = str_flag;
+            if (depth == 0 && !str_flag)
+               return self.complete({});
+
+            bulky = str_flag;
          }
       }
    }
