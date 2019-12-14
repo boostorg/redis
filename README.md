@@ -87,17 +87,18 @@ void example2()
    net::io_context ioc;
 
    session::config cfg
-   { "127.0.0.1" // host
-   , "6379" // port
+   { { "127.0.0.1", "26377"
+     , "127.0.0.1", "26378"
+     , "127.0.0.1", "26379"} // Sentinel addresses
+   , "mymaster" // Instance name
+   , "master" // Instance role
    , 256 // Max pipeline size
-   , std::chrono::milliseconds {500} // Connection retry
-   , {} // Sentinel addresses
    , log::level::info
    };
 
    session s {ioc, cfg, "id"};
 
-   s.send(ping());
+   s.send(role());
 
    s.run();
    ioc.run();
