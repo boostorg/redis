@@ -8,13 +8,9 @@ Aedis is a redis client designed with the following in mind
 * Speed as a result of simplicity
 
 This library is header only. You only have to include `aedis.hpp` in your
-project. Current dendencies are
-
-* Boost.Asio
-* libfmt
-
-As of C++23 this library will have no external dependencies (assuming the
-Networking TS gets finally merged in to the standard).
+project. Current dendencies are `Boost.Asio` and `libfmt`.  As of C++23
+this library will have no external dependencies (assuming the Networking TS
+gets finally merged in to the standard).
 
 # Example
 
