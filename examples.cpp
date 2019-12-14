@@ -106,11 +106,12 @@ void example1()
           + rpush("a", a)
           + lrange("a")
           + del("a")
-          //+ multi()
+          + multi()
           + rpush("b", b)
           + lrange("b")
           + del("b")
           + hset("c", c)
+          + hmget("c", {"Name", "Education", "Job"})
           + hvals("c")
           + zadd({"d"}, d)
           + zrange("d")
@@ -182,9 +183,9 @@ void example3()
 
 int main(int argc, char* argv[])
 {
-   //example1();
+   example1();
    //example2();
    //example3();
-   rpush_ex();
+   //rpush_ex();
 }
 
