@@ -181,11 +181,23 @@ void example3()
    ioc.run();
 }
 
+void send_ping()
+{
+   net::io_context ioc;
+   session s {ioc};
+
+   s.send(ping());
+
+   s.run();
+   ioc.run();
+}
+
 int main(int argc, char* argv[])
 {
-   example1();
+   //example1();
    //example2();
    //example3();
    //rpush_ex();
+   send_ping();
 }
 

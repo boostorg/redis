@@ -17,12 +17,12 @@ gets finally merged in to the standard).
 Sending a command to a redis server is as simple as
 
 ```cpp
-void send(std::string cmd)
+void send_ping()
 {
    net::io_context ioc;
    session s {ioc};
 
-   s.send(cmd);
+   s.send(ping());
 
    s.run();
    ioc.run();
@@ -104,7 +104,6 @@ The maximum pipeline size above refers to the blocks of commands sent
 via the `session::send` function and not to the individual commands.
 Logging is made using `std::clog`. The string `"id"` passed as third
 argument to the session is prefixed to each log message.
-Support for redis sentinel is still not implemented.
 
 # Callbacks
 
@@ -142,10 +141,6 @@ void example3()
 
 # Missing features
 
-The main missing features at the moment are
-
-* Sentinel
-* Cluster
-
-I will implement those on demand.
+At the moment the main missing feature is support for redis cluster which I
+may implement in the future if I need it.
 
