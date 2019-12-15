@@ -954,7 +954,6 @@ public:
    auto send(std::string msg)
    {
       assert(!std::empty(msg));
-      assert(!disable_reconnect_);
 
       auto const max_pp_size_reached =
          pipeline_size_ >= cfg_.max_pipeline_size;
