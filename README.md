@@ -70,7 +70,9 @@ void example1()
           + get("f")
           + expire("f", 10)
           + publish("g", "A message")
-          + exec();
+          + exec()
+          + quit()
+          ;
 
    net::io_context ioc;
    session ss {ioc};
