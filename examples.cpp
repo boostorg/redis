@@ -15,6 +15,7 @@ void send(std::string cmd)
    session s {ioc};
 
    s.send(std::move(cmd));
+   s.disable_reconnect();
 
    s.run();
    ioc.run();
@@ -76,9 +77,17 @@ void rpush_ex()
           + lrange("h")
           + rpush("i", i)
           + lrange("i")
+          + quit()
 	  ;
 
-  send(std::move(s));
+   net::io_context ioc;
+   session ss {ioc};
+
+   ss.send(std::move(s));
+   ss.disable_reconnect();
+
+   ss.run();
+   ioc.run();
 }
 
 void example1()
@@ -127,9 +136,17 @@ void example1()
 	  + get("h")
 	  + auth("password")
 	  + bitcount("h")
+	  + quit()
 	  ;
 
-  send(std::move(s));
+   net::io_context ioc;
+   session ss {ioc};
+
+   ss.send(std::move(s));
+   ss.disable_reconnect();
+
+   ss.run();
+   ioc.run();
 }
 
 void example2()
@@ -146,11 +163,12 @@ void example2()
    , log::level::info
    };
 
-   session s {ioc, cfg, "id"};
+   session ss {ioc, cfg, "id"};
 
-   s.send(role());
+   ss.send(role() + quit());
+   ss.disable_reconnect();
 
-   s.run();
+   ss.run();
    ioc.run();
 }
 
@@ -175,7 +193,8 @@ void example3()
       std::cout << std::endl;
    });
 
-   s.send(ping());
+   s.send(ping() + quit());
+   s.disable_reconnect();
 
    s.run();
    ioc.run();
@@ -186,7 +205,8 @@ void send_ping()
    net::io_context ioc;
    session s {ioc};
 
-   s.send(ping());
+   s.send(ping() + quit());
+   s.disable_reconnect();
 
    s.run();
    ioc.run();
@@ -194,10 +214,10 @@ void send_ping()
 
 int main(int argc, char* argv[])
 {
-   //example1();
-   //example2();
-   //example3();
-   //rpush_ex();
+   example1();
+   example2();
+   example3();
+   rpush_ex();
    send_ping();
 }
 

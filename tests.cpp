@@ -113,8 +113,10 @@ void rpush_lrange()
          check_size(res, 1, prefix);
          check_string(res.front(), "PONG", prefix);
 
-         if (i == size - 1)
-            ss.close();
+         if (i == size - 1) {
+            ss.send(quit());
+            ss.disable_reconnect();
+         }
       }
       }
       ++i;

@@ -22,7 +22,8 @@ void send_ping()
    net::io_context ioc;
    session s {ioc};
 
-   s.send(ping());
+   s.send(ping() + quit());
+   s.disable_reconnect();
 
    s.run();
    ioc.run();
@@ -71,7 +72,14 @@ void example1()
           + publish("g", "A message")
           + exec();
 
-  send(std::move(s));
+   net::io_context ioc;
+   session ss {ioc};
+
+   ss.send(std::move(s));
+   ss.disable_reconnect();
+
+   ss.run();
+   ioc.run();
 }
 ```
 
@@ -92,11 +100,12 @@ void example2()
    , log::level::info
    };
 
-   session s {ioc, cfg, "id"};
+   session ss {ioc, cfg, "id"};
 
-   s.send(role());
+   ss.send(role() + quit());
+   ss.disable_reconnect();
 
-   s.run();
+   ss.run();
    ioc.run();
 }
 ```
@@ -132,7 +141,8 @@ void example3()
       std::cout << std::endl;
    });
 
-   s.send(ping());
+   s.send(ping() + quit());
+   s.disable_reconnect();
 
    s.run();
    ioc.run();
