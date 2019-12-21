@@ -212,6 +212,18 @@ void send_ping()
    ioc.run();
 }
 
+void psubscribe_ex()
+{
+   net::io_context ioc;
+   session s {ioc};
+
+   s.send(psubscribe({"__keyevent@0__:rpush"}));
+   s.disable_reconnect();
+
+   s.run();
+   ioc.run();
+}
+
 int main(int argc, char* argv[])
 {
    example1();
@@ -219,5 +231,6 @@ int main(int argc, char* argv[])
    example3();
    rpush_ex();
    send_ping();
+   psubscribe_ex();
 }
 

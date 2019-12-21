@@ -419,6 +419,18 @@ auto subscribe(std::string const& key)
 }
 
 inline
+auto psubscribe(std::initializer_list<std::string> l)
+{
+   std::initializer_list<std::string> dummy;
+
+   return resp::assemble(
+      "PSUBSCRIBE",
+      l,
+      std::cbegin(dummy),
+      std::cend(dummy));
+}
+
+inline
 auto unsubscribe(std::string const& key)
 {
    return resp::assemble("UNSUBSCRIBE", key);
