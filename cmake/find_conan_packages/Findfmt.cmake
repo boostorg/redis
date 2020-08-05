@@ -1,0 +1,7 @@
+if(NOT "${CONAN_FMT_ROOT}" STREQUAL "")
+	set(fmt_FOUND TRUE)
+	add_library(fmt::fmt INTERFACE IMPORTED)
+	target_link_libraries(fmt::fmt INTERFACE CONAN_PKG::fmt)
+else()
+	set(fmt_FOUND FALSE)
+endif()
