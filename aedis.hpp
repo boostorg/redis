@@ -471,6 +471,34 @@ auto hset( std::string const& key
 }
 
 inline
+auto hincrby(std::string const& key, std::string const& field, int by)
+{
+   auto par = {field, std::to_string(by)};
+   return resp::assemble("HINCRBY", {key}, std::cbegin(par), std::cend(par));
+}
+
+inline
+auto hkeys(std::string const& key)
+{
+   std::initializer_list<std::string> par;
+   return resp::assemble("HKEYS", {key}, std::cbegin(par), std::cend(par));
+}
+
+inline
+auto hlen(std::string const& key)
+{
+   std::initializer_list<std::string> par;
+   return resp::assemble("HLEN", {key});
+}
+
+inline
+auto hgetall(std::string const& key)
+{
+   std::initializer_list<std::string> par;
+   return resp::assemble("HGETALL", {key});
+}
+
+inline
 auto hvals(std::string const& key)
 {
    return resp::assemble("HVALS", {key});

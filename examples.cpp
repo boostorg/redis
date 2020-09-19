@@ -101,7 +101,8 @@ void example1()
    std::map<std::string, std::string> c
    { {{"Name"},      {"Marcelo"}} 
    , {{"Education"}, {"Physics"}}
-   , {{"Job"},       {"Programmer"}}};
+   , {{"Job"},       {"Programmer"}}
+   };
 
    std::map<int, std::string> d
    { {1, {"foo"}} 
@@ -120,8 +121,11 @@ void example1()
           + lrange("b")
           + del("b")
           + hset("c", c)
+          + hincrby("c", "Age", 40)
           + hmget("c", {"Name", "Education", "Job"})
           + hvals("c")
+          + hlen("c")
+          + hgetall("c")
           + zadd({"d"}, d)
           + zrange("d")
           + zrangebyscore("foo", 2, -1)

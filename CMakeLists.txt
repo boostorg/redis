@@ -14,7 +14,7 @@ if(AEDIS_USE_CONAN)
 	list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/find_conan_packages")
 endif()
 
-find_package(Boost 1.71 REQUIRED COMPONENTS system)
+find_package(Boost 1.74 REQUIRED COMPONENTS system)
 find_package(fmt 7.0 REQUIRED)
 
 add_library(aedis INTERFACE)
