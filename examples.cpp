@@ -12,7 +12,7 @@ using namespace aedis;
 void send(std::string cmd)
 {
    net::io_context ioc;
-   session s {ioc};
+   session<tcp::socket> s {ioc};
 
    s.send(std::move(cmd));
    s.disable_reconnect();
@@ -81,7 +81,7 @@ void rpush_ex()
 	  ;
 
    net::io_context ioc;
-   session ss {ioc};
+   session<tcp::socket> ss {ioc};
 
    ss.send(std::move(s));
    ss.disable_reconnect();
@@ -144,7 +144,7 @@ void example1()
 	  ;
 
    net::io_context ioc;
-   session ss {ioc};
+   session<tcp::socket> ss {ioc};
 
    ss.send(std::move(s));
    ss.disable_reconnect();
@@ -157,7 +157,7 @@ void example2()
 {
    net::io_context ioc;
 
-   session::config cfg
+   session<tcp::socket>::config cfg
    { { "127.0.0.1", "26377"
      , "127.0.0.1", "26378"
      , "127.0.0.1", "26379"} // Sentinel addresses
@@ -167,7 +167,7 @@ void example2()
    , log::level::info
    };
 
-   session ss {ioc, cfg, "id"};
+   session<tcp::socket> ss {ioc, cfg, "id"};
 
    ss.send(role() + quit());
    ss.disable_reconnect();
@@ -179,7 +179,7 @@ void example2()
 void example3()
 {
    net::io_context ioc;
-   session s {ioc};
+   session<tcp::socket> s {ioc};
 
    s.set_on_conn_handler([]() {
       std::cout << "Connected" << std::endl;
@@ -207,7 +207,7 @@ void example3()
 void send_ping()
 {
    net::io_context ioc;
-   session s {ioc};
+   session<tcp::socket> s {ioc};
 
    s.send(ping() + quit());
    s.disable_reconnect();
@@ -219,7 +219,7 @@ void send_ping()
 void psubscribe_ex()
 {
    net::io_context ioc;
-   session s {ioc};
+   session<tcp::socket> s {ioc};
 
    s.send(psubscribe({"__keyevent@0__:rpush"}));
    s.disable_reconnect();

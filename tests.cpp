@@ -54,7 +54,7 @@ void check_equal(
 
 void rpush_lrange()
 {
-   session::config cfg
+   session<tcp::socket>::config cfg
    { {"127.0.0.1", "26379"}
    , "mymaster"
    , "master"
@@ -63,7 +63,7 @@ void rpush_lrange()
    };
 
    net::io_context ioc;
-   session ss {ioc, cfg};
+   session<tcp::socket> ss {ioc, cfg};
 
    std::array<std::string, 3> a
    {"a1", "a2", "a3"};
