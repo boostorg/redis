@@ -157,12 +157,17 @@ void example2()
 {
    net::io_context ioc;
 
-   session<tcp::socket>::config cfg
-   { { "127.0.0.1", "26377"
-     , "127.0.0.1", "26378"
-     , "127.0.0.1", "26379"} // Sentinel addresses
+   session<tcp::socket>::sentinel_config scfg
+   {{ "127.0.0.1", "26377"
+    , "127.0.0.1", "26378"
+    , "127.0.0.1", "26379"
+    }
    , "mymaster" // Instance name
    , "master" // Instance role
+   };
+
+   session<tcp::socket>::config cfg
+   { scfg // Sentinel addresses
    , 256 // Max pipeline size
    , log::level::info
    };

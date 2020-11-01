@@ -151,11 +151,26 @@ std::size_t get_length(char const* p)
    return len;
 }
 
+void print_command_raw(std::string const& data, int n)
+{
+  for (int i = 0; i < n; ++i) {
+    if (data[i] == '\n') {
+      std::cout << "\\n";
+      continue;
+    }
+    if (data[i] == '\r') {
+      std::cout << "\\r";
+      continue;
+    }
+    std::cout << data[i];
+  }
+}
+
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
 // 1.
 template <class AsyncReadStream>
-struct read_op {
+struct parse_op {
    AsyncReadStream& socket;
    resp::buffer* buffer_ = nullptr;
    int start = 1;
@@ -219,13 +234,17 @@ struct read_op {
                }
             }
 
+            
+            //print_command_raw(buffer_->data, n);
             buffer_->data.erase(0, n);
 
             while (sizes[depth] == 0)
                --sizes[--depth];
 
-            if (depth == 0 && !str_flag)
+            if (depth == 0 && !str_flag) {
+               //std::cout << std::endl;
                return self.complete({});
+            }
 
             bulky = str_flag;
          }
@@ -244,7 +263,7 @@ auto async_read(
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(read_op<AsyncReadStream> {stream, buffer},
+      >(parse_op<AsyncReadStream> {stream, buffer},
         token,
         stream);
 }
@@ -628,6 +647,14 @@ struct instance {
 
 template <class AsyncReadStream>
 class sentinel_op {
+public:
+  struct config {
+     // A list of redis sentinels e.g. ip1 port1 ip2 port2 ...
+     std::vector<std::string> sentinels {"127.0.0.1", "26379"};
+     std::string name {"mymaster"};
+     std::string role {"master"};
+  };
+
 private:
    enum class op_state
    { starting
@@ -718,14 +745,14 @@ public:
       std::function<void( boost::system::error_code const&
                         , std::vector<std::string>)>;
 
-  struct config {
-     // A list of redis sentinels e.g. ip1 port1 ip2 port2 ...
-     std::vector<std::string> sentinels {"127.0.0.1", "26379"};
-     std::string name {"mymaster"};
-     std::string role {"master"};
+   using sentinel_config = typename sentinel_op<AsyncReadStream>::config;
+
+   struct config {
+     using sentinel_config = typename sentinel_op<AsyncReadStream>::config;
+     sentinel_config sentinel;
      int max_pipeline_size {256};
      log::level log_filter {log::level::debug};
-  };
+   };
 
 private:
    struct queue_item {
@@ -736,7 +763,7 @@ private:
    std::string id_;
    config cfg_;
    ip::tcp::resolver resolver_;
-   AsyncReadStream socket_;
+   AsyncReadStream stream_;
 
    net::steady_timer timer_;
    resp::buffer buffer_;
@@ -774,7 +801,7 @@ private:
       auto f = [this](auto const& ec)
          { on_resp(ec); };
 
-      resp::async_read(socket_, &buffer_, std::move(f));
+      resp::async_read(stream_, &buffer_, std::move(f));
    }
 
    void
@@ -818,7 +845,7 @@ private:
       auto f = [this](auto ec, auto iter)
          { on_connect(ec, iter); };
 
-      net::async_connect(socket_, res, f);
+      net::async_connect(stream_, res, f);
    }
 
    void on_connect( boost::system::error_code ec
@@ -928,7 +955,7 @@ private:
       assert(!std::empty(msg_queue_));
       assert(!std::empty(msg_queue_.front().payload));
 
-      net::async_write( socket_
+      net::async_write( stream_
                       , net::buffer(msg_queue_.front().payload)
                       , f);
       msg_queue_.front().sent = true;
@@ -937,7 +964,7 @@ private:
    void close(char const* msg)
    {
       boost::system::error_code ec;
-      socket_.close(ec);
+      stream_.close(ec);
       if (ec) {
          log::write( cfg_.log_filter
                    , log::level::warning
@@ -961,7 +988,7 @@ private:
 
          // Ask the next sentinel only if we did not try them all yet.
          ++sentinel_idx_;
-         if ((2 * sentinel_idx_) == std::size(cfg_.sentinels)) {
+         if ((2 * sentinel_idx_) == std::size(cfg_.sentinel.sentinels)) {
             log::write( cfg_.log_filter
                       , log::level::warning
                       , "{0}/No sentinel knows the redis instance address."
@@ -979,8 +1006,8 @@ private:
       // https://redis.io/topics/sentinel-clients
       if (sentinel_idx_ != 0) {
          auto const r = sentinel_idx_;
-         std::swap(cfg_.sentinels[0], cfg_.sentinels[2 * r]);
-         std::swap(cfg_.sentinels[1], cfg_.sentinels[2 * r + 1]);
+         std::swap(cfg_.sentinel.sentinels[0], cfg_.sentinel.sentinels[2 * r]);
+         std::swap(cfg_.sentinel.sentinels[1], cfg_.sentinel.sentinels[2 * r + 1]);
          sentinel_idx_ = 0;
       }
 
@@ -993,8 +1020,8 @@ private:
       auto g = [this](auto ec)
          { on_instance(instance_.host, instance_.port, ec); };
 
-      instance_.name = cfg_.name;
-      async_get_instance(socket_, &instance_, std::move(g));
+      instance_.name = cfg_.sentinel.name;
+      async_get_instance(stream_, &instance_, std::move(g));
    }
 
 public:
@@ -1004,7 +1031,7 @@ public:
    : id_(id)
    , cfg_ {std::move(cfg)}
    , resolver_ {ioc} 
-   , socket_ {ioc}
+   , stream_ {ioc}
    , timer_ {ioc, std::chrono::steady_clock::time_point::max()}
    {
       if (cfg_.max_pipeline_size < 1)
@@ -1042,7 +1069,7 @@ public:
          ++pipeline_size_;
       }
 
-      if (is_empty && socket_.is_open())
+      if (is_empty && stream_.is_open())
          do_write();
 
       return pipeline_id_;
@@ -1050,7 +1077,7 @@ public:
 
    void run()
    {
-      auto const n = std::size(cfg_.sentinels);
+      auto const n = std::size(cfg_.sentinel.sentinels);
 
       if (n == 0 || (n % 2 != 0)) {
          log::write( cfg_.log_filter
@@ -1064,8 +1091,8 @@ public:
 
       boost::system::error_code ec;
       auto res = resolver_
-         .resolve( cfg_.sentinels[2 * r]
-                 , cfg_.sentinels[2 * r + 1]
+         .resolve( cfg_.sentinel.sentinels[2 * r]
+                 , cfg_.sentinel.sentinels[2 * r + 1]
                  , ec);
 
       if (ec) {
@@ -1078,9 +1105,9 @@ public:
       }
 
       auto f = [this](auto ec, auto iter)
-      { on_sentinel_conn(ec, iter); };
+        { on_sentinel_conn(ec, iter); };
 
-      net::async_connect(socket_, res, f);
+      net::async_connect(stream_, res, f);
    }
 
    void disable_reconnect()

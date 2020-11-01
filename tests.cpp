@@ -54,10 +54,17 @@ void check_equal(
 
 void rpush_lrange()
 {
+   session<tcp::socket>::sentinel_config scfg
+   {{ "127.0.0.1", "26377"
+    , "127.0.0.1", "26378"
+    , "127.0.0.1", "26379"
+    }
+   , "mymaster" // Instance name
+   , "master" // Instance role
+   };
+
    session<tcp::socket>::config cfg
-   { {"127.0.0.1", "26379"}
-   , "mymaster"
-   , "master"
+   { scfg
    , 4
    , log::level::info
    };
@@ -128,8 +135,95 @@ void rpush_lrange()
    ioc.run();
 }
 
+struct initiate_async_receive {
+  using executor_type = net::system_executor;
+
+  std::string const& payload;
+
+  executor_type get_executor() noexcept
+    { return net::system_executor(); }
+
+  template <
+    class ReadHandler,
+    class MutableBufferSequence>
+  void operator()(ReadHandler&& handler,
+      MutableBufferSequence const& buffers) const
+  {
+    boost::system::error_code ec;
+    if (std::size(buffers) == 0) {
+      handler(ec, 0);
+      return;
+    }
+
+    assert(std::size(buffers) != 0);
+    auto begin = boost::asio::buffer_sequence_begin(buffers);
+    assert(std::size(payload) <= std::size(*begin));
+    char* p = static_cast<char*>(begin->data());
+    std::copy(std::begin(payload), std::end(payload), p);
+    handler(ec, std::size(payload));
+  }
+};
+
+struct test_stream {
+   std::string const& payload;
+
+   using executor_type = net::system_executor;
+
+   template<
+      class MutableBufferSequence,
+      class ReadHandler =
+          net::default_completion_token_t<executor_type>
+    >
+    void async_read_some(
+        MutableBufferSequence const& buffers,
+        ReadHandler&& handler)
+    {
+      return net::async_initiate<ReadHandler,
+        void (boost::system::error_code, std::size_t)>(
+          initiate_async_receive{payload}, handler, buffers);
+    }
+
+    executor_type get_executor() noexcept
+      { return net::system_executor(); }
+};
+
+struct test_handler {
+   void operator()(boost::system::error_code ec) const
+   {
+      if (ec)
+         std::cout << ec.message() << std::endl;
+   }
+};
+
+void print(std::vector<std::string> const& v)
+{
+   for (auto const& o : v)
+     std::cout << o << " ";
+   std::cout << std::endl;
+}
+
 int main(int argc, char* argv[])
 {
    rpush_lrange();
+
+   // Redis answer - Expected vector.
+   std::vector<std::pair<std::string, std::vector<std::string>>> payloads
+   { {{"+OK\r\n"},                                         {"OK"}}
+   , {{":3\r\n"},                                          {"3"}}
+   , {{"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"}, {"one", "two", "three"}}
+   , {{"$2\r\nhh\r\n"},                                    {"hh"}}
+   , {{"-Error\r\n"},                                      {"Error"}}
+   };
+
+   for (auto const& e : payloads) {
+     test_stream ts {e.first};
+     resp::buffer buffer;
+     async_read(ts, &buffer, test_handler {});
+     if (e.second != buffer.res)
+       std::cout << "Error" << std::endl;
+     else
+       std::cout << "Success: Offline tests." << std::endl;
+   }
+
 }
 
