@@ -151,6 +151,13 @@ std::size_t get_length(char const* p)
    return len;
 }
 
+void print(std::vector<std::string> const& v)
+{
+   for (auto const& o : v)
+     std::cout << o << " ";
+   std::cout << std::endl;
+}
+
 void print_command_raw(std::string const& data, int n)
 {
   for (int i = 0; i < n; ++i) {
@@ -254,11 +261,14 @@ struct parse_op {
 
 template <
    class AsyncReadStream,
-   class CompletionToken>
+   class CompletionToken =
+      net::default_completion_token_t<typename AsyncReadStream::executor_type>
+   >
 auto async_read(
    AsyncReadStream& stream,
    resp::buffer* buffer,
-   CompletionToken&& token)
+   CompletionToken&& token =
+      net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
    return net::async_compose
       < CompletionToken

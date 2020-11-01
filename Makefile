@@ -6,9 +6,9 @@
 
 CPPFLAGS += -std=c++17 -g
 CPPFLAGS += -I/opt/boost_1_74_0/include
-CPPFLAGS += -D BOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
-CPPFLAGS += -D BOOST_ASIO_NO_DEPRECATED 
-CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS 
+#CPPFLAGS += -D BOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
+#CPPFLAGS += -D BOOST_ASIO_NO_DEPRECATED 
+#CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS 
 
 all: examples tests
 
@@ -20,10 +20,13 @@ Makefile.dep:
 examples: % : %.o
 	$(CXX) -o $@ $^ $(CPPFLAGS) -lfmt -lpthread
 
+coroutine: coroutine.cpp
+	g++ -std=c++20 -g -I/opt/boost_1_74_0/include -fcoroutines -pthread coroutine.cpp
+
 tests: % : %.o
 	$(CXX) -o $@ $^ $(CPPFLAGS) -lfmt -lpthread
 
 .PHONY: clean
 clean:
-	rm -f examples examples.o tests tests.o Makefile.dep
+	rm -f coroutine.o coroutine examples examples.o tests tests.o Makefile.dep
 

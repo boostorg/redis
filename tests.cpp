@@ -195,13 +195,6 @@ struct test_handler {
    }
 };
 
-void print(std::vector<std::string> const& v)
-{
-   for (auto const& o : v)
-     std::cout << o << " ";
-   std::cout << std::endl;
-}
-
 int main(int argc, char* argv[])
 {
    rpush_lrange();
