@@ -3,39 +3,70 @@
 Aedis is a redis client designed with the following in mind
 
 * Seamless integration with async code
-* Based on Boost.Asio and the Networking TS
-* Easy and intuitive as clients for other languages
+* Easy and intuitive
 * Speed as a result of simplicity
 
-This library is header only. You only have to include `aedis.hpp` in your
-project. Current dendencies are `Boost.Asio` and `libfmt`.  As of C++23
-this library will have no external dependencies (assuming the Networking TS
-gets finally merged in to the standard).
+To use this library include `aedis.hpp` in your project. Current dendencies are
+`Boost.Asio` and `libfmt`. As of C++23 this library will have no external dependencies.
 
 # Example
 
-Sending a command to a redis server is as simple as
+The examples below will use coroutines as it makes the code simpler,
+however callbacks and futures are also supported.
 
 ```cpp
-void send_ping()
+awaitable<void> example1(tcp::resolver::results_type const& r)
 {
-   net::io_context ioc;
-   session s {ioc};
+   tcp_socket socket {co_await this_coro::executor};
 
-   s.send(ping() + quit());
-   s.disable_reconnect();
+   co_await async_connect(socket, r);
 
-   s.run();
-   ioc.run();
+   auto cmd = ping();
+   co_await async_write(socket, buffer(cmd));
+
+   resp::buffer buffer;
+   co_await resp::async_read(socket, &buffer);
+
+   resp::print(buffer.res);
 }
 ```
 
-Commands can be generated easily and there is support for STL
-containers when it makes sense
+Command pipelines can be generated very easily
 
 ```cpp
-void example1()
+awaitable<void> example2(tcp::resolver::results_type const& r)
 {
+   tcp_socket socket {co_await this_coro::executor};
+
+   co_await async_connect(socket, r);
+
+   auto cmd = multi()
+            + ping()
+            + incr("age")
+            + exec()
+	    + quit()
+	    ;
+
+   co_await async_write(socket, buffer(cmd));
+
+   resp::buffer buffer;
+   for (;;) {
+      co_await resp::async_read(socket, &buffer);
+      resp::print(buffer.res);
+      buffer.res.clear();
+   }
+}
+```
+
+STL containers are also suported
+
+```cpp
+awaitable<void> example3(tcp::resolver::results_type const& r)
+{
+   tcp_socket socket {co_await this_coro::executor};
+
+   co_await async_connect(socket, r);
+
    std::list<std::string> a
    {"one" ,"two", "three"};
 
@@ -45,114 +76,52 @@ void example1()
    std::map<std::string, std::string> c
    { {{"Name"},      {"Marcelo"}} 
    , {{"Education"}, {"Physics"}}
-   , {{"Job"},       {"Programmer"}}};
+   , {{"Job"},       {"Programmer"}}
+   };
 
    std::map<int, std::string> d
    { {1, {"foo"}} 
    , {2, {"bar"}}
-   , {3, {"foobar"}}};
-
-   auto s = ping()
-          + rpush("a", a)
-          + lrange("a")
-          + del("a")
-          + multi()
-          + rpush("b", b)
-          + lrange("b")
-          + del("b")
-          + hset("c", c)
-          + hvals("c")
-          + zadd({"d"}, d)
-          + zrange("d")
-          + zrangebyscore("foo", 2, -1)
-          + set("f", {"39"})
-          + incr("f")
-          + get("f")
-          + expire("f", 10)
-          + publish("g", "A message")
-          + exec()
-          + quit()
-          ;
-
-   net::io_context ioc;
-   session ss {ioc};
-
-   ss.send(std::move(s));
-   ss.disable_reconnect();
-
-   ss.run();
-   ioc.run();
-}
-```
-
-The following example shows how to specify the configuration options
-
-```cpp
-void example2()
-{
-   net::io_context ioc;
-
-   session::config cfg
-   { { "127.0.0.1", "26377"
-     , "127.0.0.1", "26378"
-     , "127.0.0.1", "26379"} // Sentinel addresses
-   , "mymaster" // Instance name
-   , "master" // Instance role
-   , 256 // Max pipeline size
-   , log::level::info
+   , {3, {"foobar"}}
    };
 
-   session ss {ioc, cfg, "id"};
+   auto cmd =
+            + rpush("a", a)
+            + lrange("a")
+            + del("a")
+            + multi()
+            + rpush("b", b)
+            + lrange("b")
+            + del("b")
+            + hset("c", c)
+            + hincrby("c", "Age", 40)
+            + hmget("c", {"Name", "Education", "Job"})
+            + hvals("c")
+            + hlen("c")
+            + hgetall("c")
+            + zadd({"d"}, d)
+            + zrange("d")
+            + zrangebyscore("foo", 2, -1)
+            + set("f", {"39"})
+            + incr("f")
+            + get("f")
+            + expire("f", 10)
+            + publish("g", "A message")
+            + exec()
+	    + set("h", {"h"})
+	    + append("h", "h")
+	    + get("h")
+	    + quit()
+	    ;
 
-   ss.send(role() + quit());
-   ss.disable_reconnect();
+   co_await async_write(socket, buffer(cmd));
 
-   ss.run();
-   ioc.run();
+   resp::buffer buffer;
+   for (;;) {
+      co_await resp::async_read(socket, &buffer);
+      resp::print(buffer.res);
+      buffer.res.clear();
+   }
 }
 ```
-The maximum pipeline size above refers to the blocks of commands sent
-via the `session::send` function and not to the individual commands.
-Logging is made using `std::clog`. The string `"id"` passed as third
-argument to the session is prefixed to each log message.
-
-# Callbacks
-
-The example below shows how to specify the connection and message callbacks
-
-```cpp
-void example3()
-{
-   net::io_context ioc;
-   session s {ioc};
-
-   s.set_on_conn_handler([]() {
-      std::cout << "Connected" << std::endl;
-   });
-
-   s.set_msg_handler([](auto ec, auto res) {
-      if (ec) {
-         std::cerr << "Error: " << ec.message() << std::endl;
-         return;
-      }
-
-      std::copy( std::cbegin(res)
-               , std::cend(res)
-               , std::ostream_iterator<std::string>(std::cout, " "));
-
-      std::cout << std::endl;
-   });
-
-   s.send(ping() + quit());
-   s.disable_reconnect();
-
-   s.run();
-   ioc.run();
-}
-```
-
-# Missing features
-
-At the moment the main missing feature is support for redis cluster which I
-may implement in the future if I need it.
 
