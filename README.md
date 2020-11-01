@@ -31,7 +31,7 @@ awaitable<void> example1(tcp::resolver::results_type const& r)
 }
 ```
 
-Command pipelines can be generated very easily
+Command pipelines can be generated easily
 
 ```cpp
 awaitable<void> example2(tcp::resolver::results_type const& r)
@@ -85,8 +85,7 @@ awaitable<void> example3(tcp::resolver::results_type const& r)
    , {3, {"foobar"}}
    };
 
-   auto cmd =
-            + rpush("a", a)
+   auto cmd = rpush("a", a)
             + lrange("a")
             + del("a")
             + multi()
