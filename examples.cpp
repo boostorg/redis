@@ -1,97 +1,68 @@
-/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 - 2020 Marcelo Zimbres Silva (mzimbres at gmail dot com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <boost/asio.hpp>
+
 #include "aedis.hpp"
 
+namespace net = aedis::net;
+using tcp = net::ip::tcp;
+using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
+
+namespace this_coro = net::this_coro;
+
+using namespace net;
 using namespace aedis;
 
-void send(std::string cmd)
+awaitable<void> example1(tcp::resolver::results_type const& r)
 {
-   net::io_context ioc;
-   session<tcp::socket> s {ioc};
+   tcp_socket socket {co_await this_coro::executor};
 
-   s.send(std::move(cmd));
-   s.disable_reconnect();
+   co_await async_connect(socket, r);
 
-   s.run();
-   ioc.run();
+   auto cmd = ping();
+   co_await async_write(socket, buffer(cmd));
+
+   resp::buffer buffer;
+   resp::response res;
+   co_await resp::async_read(socket, buffer, res);
+
+   resp::print(res.res);
 }
 
-void rpush_ex()
+awaitable<void> example2(tcp::resolver::results_type const& r)
 {
-   std::array<std::string, 3> a
-   {"a1", "a2", "a3"};
+   tcp_socket socket {co_await this_coro::executor};
 
-   std::vector<std::string> b
-   {"b1" ,"b2", "b3"};
+   co_await async_connect(socket, r);
 
-   std::list<std::string> c
-   {"c1" ,"c2", "c3"};
+   auto cmd = multi()
+            + ping()
+            + incr("age")
+            + exec()
+	    + quit()
+	    ;
 
-   std::set<std::string> d
-   {"d1" ,"d2", "d3"};
+   co_await async_write(socket, buffer(cmd));
 
-   std::deque<std::string> e
-   {"e1" ,"e2", "e3"};
-
-   std::forward_list<std::string> f
-   {"f1" ,"f2", "f3"};
-
-   std::multiset<std::string> g
-   {"g1" ,"g2", "g3"};
-
-   std::unordered_set<std::string> h
-   {"h1" ,"h2", "h3"};
-
-   std::unordered_set<std::string> i
-   {"i1" ,"i2", "i3"};
-
-   auto s = flushall()
-          + role()
-          + role()
-          + ping()
-          + role()
-          + ping()
-          + role()
-          + ping()
-          + role()
-          + rpush("a", a)
-          + lrange("a")
-          + rpush("b", b)
-          + lrange("b")
-          + rpush("c", c)
-          + lrange("c")
-          + rpush("d", d)
-          + lrange("d")
-          + rpush("e", e)
-          + lrange("e")
-          + rpush("f", f)
-          + lrange("f")
-          + rpush("g", g)
-          + lrange("g")
-          + rpush("h", h)
-          + lrange("h")
-          + rpush("i", i)
-          + lrange("i")
-          + quit()
-	  ;
-
-   net::io_context ioc;
-   session<tcp::socket> ss {ioc};
-
-   ss.send(std::move(s));
-   ss.disable_reconnect();
-
-   ss.run();
-   ioc.run();
+   resp::buffer buffer;
+   for (;;) {
+      resp::response res;
+      co_await resp::async_read(socket, buffer, res);
+      resp::print(res.res);
+   }
 }
 
-void example1()
+awaitable<void> example3(tcp::resolver::results_type const& r)
 {
+   tcp_socket socket {co_await this_coro::executor};
+
+   co_await async_connect(socket, r);
+
    std::list<std::string> a
    {"one" ,"two", "three"};
 
@@ -110,136 +81,76 @@ void example1()
    , {3, {"foobar"}}
    };
 
-   auto s = ping()
-          + role()
-          + flushall()
-          + rpush("a", a)
-          + lrange("a")
-          + del("a")
-          + multi()
-          + rpush("b", b)
-          + lrange("b")
-          + del("b")
-          + hset("c", c)
-          + hincrby("c", "Age", 40)
-          + hmget("c", {"Name", "Education", "Job"})
-          + hvals("c")
-          + hlen("c")
-          + hgetall("c")
-          + zadd({"d"}, d)
-          + zrange("d")
-          + zrangebyscore("foo", 2, -1)
-          + set("f", {"39"})
-          + incr("f")
-          + get("f")
-          + expire("f", 10)
-          + publish("g", "A message")
-          + exec()
-	  + set("h", {"h"})
-	  + append("h", "h")
-	  + get("h")
-	  + auth("password")
-	  + bitcount("h")
-	  + quit()
-	  ;
+   auto cmd = ping()
+            + role()
+            + flushall()
+            + rpush("a", a)
+            + lrange("a")
+            + del("a")
+            + multi()
+            + rpush("b", b)
+            + lrange("b")
+            + del("b")
+            + hset("c", c)
+            + hincrby("c", "Age", 40)
+            + hmget("c", {"Name", "Education", "Job"})
+            + hvals("c")
+            + hlen("c")
+            + hgetall("c")
+            + zadd({"d"}, d)
+            + zrange("d")
+            + zrangebyscore("foo", 2, -1)
+            + set("f", {"39"})
+            + incr("f")
+            + get("f")
+            + expire("f", 10)
+            + publish("g", "A message")
+            + exec()
+	    + set("h", {"h"})
+	    + append("h", "h")
+	    + get("h")
+	    + auth("password")
+	    + bitcount("h")
+	    + quit()
+	    ;
 
-   net::io_context ioc;
-   session<tcp::socket> ss {ioc};
+   co_await async_write(socket, buffer(cmd));
 
-   ss.send(std::move(s));
-   ss.disable_reconnect();
-
-   ss.run();
-   ioc.run();
+   resp::buffer buffer;
+   for (;;) {
+      resp::response res;
+      co_await resp::async_read(socket, buffer, res);
+      resp::print(res.res);
+   }
 }
 
-void example2()
+awaitable<void> example4(tcp::resolver::results_type const& r)
 {
-   net::io_context ioc;
+   tcp_socket socket {co_await this_coro::executor};
 
-   session<tcp::socket>::sentinel_config scfg
-   {{ "127.0.0.1", "26377"
-    , "127.0.0.1", "26378"
-    , "127.0.0.1", "26379"
-    }
-   , "mymaster" // Instance name
-   , "master" // Instance role
-   };
+   co_await async_connect(socket, r);
 
-   session<tcp::socket>::config cfg
-   { scfg // Sentinel addresses
-   , 256 // Max pipeline size
-   , log::level::info
-   };
-
-   session<tcp::socket> ss {ioc, cfg, "id"};
-
-   ss.send(role() + quit());
-   ss.disable_reconnect();
-
-   ss.run();
-   ioc.run();
+   auto cmd = subscribe("channel");
+   co_await async_write(socket, buffer(cmd));
+   resp::buffer buffer;
+   for (;;) {
+      resp::response res;
+      co_await resp::async_read(socket, buffer, res);
+      resp::print(res.res);
+   }
 }
 
-void example3()
+int main()
 {
-   net::io_context ioc;
-   session<tcp::socket> s {ioc};
+   io_context ioc {1};
+   tcp::resolver res(ioc.get_executor());
+   auto const r = res.resolve("127.0.0.1", "6379");
 
-   s.set_on_conn_handler([]() {
-      std::cout << "Connected" << std::endl;
-   });
+   co_spawn(ioc, example1(r), detached);
+   co_spawn(ioc, example2(r), detached);
+   co_spawn(ioc, example3(r), detached);
+   co_spawn(ioc, example4(r), detached);
 
-   s.set_msg_handler([](auto ec, auto res) {
-      if (ec) {
-         std::cerr << "Error: " << ec.message() << std::endl;
-      }
-
-      std::copy( std::cbegin(res)
-               , std::cend(res)
-               , std::ostream_iterator<std::string>(std::cout, " "));
-
-      std::cout << std::endl;
-   });
-
-   s.send(ping() + quit());
-   s.disable_reconnect();
-
-   s.run();
    ioc.run();
-}
-
-void send_ping()
-{
-   net::io_context ioc;
-   session<tcp::socket> s {ioc};
-
-   s.send(ping() + quit());
-   s.disable_reconnect();
-
-   s.run();
-   ioc.run();
-}
-
-void psubscribe_ex()
-{
-   net::io_context ioc;
-   session<tcp::socket> s {ioc};
-
-   s.send(psubscribe({"__keyevent@0__:rpush"}));
-   s.disable_reconnect();
-
-   s.run();
-   ioc.run();
-}
-
-int main(int argc, char* argv[])
-{
-   example1();
-   example2();
-   example3();
-   rpush_ex();
-   send_ping();
-   psubscribe_ex();
 }
 

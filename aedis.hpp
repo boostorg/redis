@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 - 2020 Marcelo Zimbres Silva (mzimbres at gmail dot com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <functional>
 #include <type_traits>
+#include <string_view>
 #include <forward_list>
 #include <unordered_set>
 
@@ -41,15 +42,19 @@ using tcp = ip::tcp;
 namespace resp
 {
 
-struct buffer {
-   std::string data;
+using buffer = std::string;
+
+struct response {
    std::vector<std::string> res;
 
+   void add(std::string_view s)
+      { res.emplace_back(s.data(), std::size(s)); }
+
    void clear()
-   {
-      data.clear();
-      res.clear();
-   }
+      { res.clear(); }
+
+   auto size()
+      { return std::size(res); }
 };
 
 inline
@@ -179,7 +184,8 @@ void print_command_raw(std::string const& data, int n)
 template <class AsyncReadStream>
 struct parse_op {
    AsyncReadStream& socket;
-   resp::buffer* buffer_ = nullptr;
+   resp::buffer* buf = nullptr;
+   resp::response* res = nullptr;
    int start = 1;
    int depth = 0;
    int sizes[6] = {2, 1, 1, 1, 1, 1};
@@ -195,7 +201,7 @@ struct parse_op {
             case 1:
             start = 0;
             net::async_read_until( socket
-                                 , net::dynamic_buffer(buffer_->data)
+                                 , net::dynamic_buffer(*buf)
                                  , "\r\n"
                                  , std::move(self));
             return; default:
@@ -205,36 +211,33 @@ struct parse_op {
 
             auto str_flag = false;
             if (bulky) {
-               buffer_->res.push_back(buffer_->data.substr(0, n - 2));
+               res->add({&buf->front(), n - 2});
                --sizes[depth];
             } else {
                if (sizes[depth] != 0) {
-                  switch (buffer_->data.front()) {
+                  switch (buf->front()) {
                      case '$':
                      {
                         // We may want to consider not pushing in the vector
                         // but find a way to report nil.
-                        if (buffer_->data.compare(1, 2, "-1") == 0) {
-                           buffer_->res.push_back({});
+                        if (buf->compare(1, 2, "-1") == 0) {
+                           res->add({});
                            --sizes[depth];
                         } else {
                            str_flag = true;
                         }
-                     }
-                     break;
+                     } break;
                      case '+':
                      case '-':
                      case ':':
                      {
-                        buffer_->res.push_back(buffer_->data.substr(1, n - 3));
+                        res->add({&(*buf)[1], n - 3});
                         --sizes[depth];
-                     }
-                     break;
+                     } break;
                      case '*':
                      {
-                        sizes[++depth] = get_length(buffer_->data.data() + 1);
-                     }
-                     break;
+                        sizes[++depth] = get_length(buf->data() + 1);
+                     } break;
                      default:
                         assert(false);
                   }
@@ -242,8 +245,8 @@ struct parse_op {
             }
 
             
-            //print_command_raw(buffer_->data, n);
-            buffer_->data.erase(0, n);
+            //print_command_raw(*buf, n);
+            buf->erase(0, n);
 
             while (sizes[depth] == 0)
                --sizes[--depth];
@@ -266,14 +269,15 @@ template <
    >
 auto async_read(
    AsyncReadStream& stream,
-   resp::buffer* buffer,
+   resp::buffer& buffer,
+   resp::response& res,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(parse_op<AsyncReadStream> {stream, buffer},
+      >(parse_op<AsyncReadStream> {stream, &buffer, &res},
         token,
         stream);
 }
@@ -655,6 +659,122 @@ struct instance {
    std::string name;
 };
 
+// Still on development.
+template <class AsyncReadStream>
+class sentinel_op2 {
+public:
+  struct config {
+     // A list of redis sentinels e.g. ip1 port1 ip2 port2 ...
+     std::vector<std::string> sentinels {"127.0.0.1", "26379"};
+     std::string name {"mymaster"};
+     std::string role {"master"};
+  };
+
+private:
+   enum class op_state
+   { on_connect
+   , on_write
+   , on_read
+   };
+
+   struct impl {
+      AsyncReadStream stream;
+      resp::buffer buffer;
+      resp::response res;
+      instance* inst;
+      op_state opstate {op_state::on_connect};
+      std::string cmd;
+      config cfg;
+      ip::tcp::resolver resv;
+
+      impl(config c, instance* i)
+      : inst(i)
+      , cfg(c)
+      {}
+   };
+
+   std::shared_ptr<impl> impl_;
+
+public:
+   sentinel_op2(config cfg, instance* inst)
+   : impl_(std::make_shared<impl>(cfg, inst))
+   {
+      auto const n = std::size(cfg.sentinels);
+      if (n == 0 || (n % 2 != 0))
+	 throw std::runtime_error("sentinel_op2: wrong size.");
+   }
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      switch (impl_->opstate) {
+      case op_state::on_connect:
+      {
+	 auto const n = std::size(impl_->cfg.sentinels) / 2;
+	 unsigned i = 0;
+
+	 for (i = 0; i < n; ++i) {
+	    auto const res = impl_->resv
+	       .resolve( impl_->cfg.sentinels[2 * i + 0]
+		       , impl_->cfg.sentinels[2 * i + 1]
+		       , ec);
+	    if (ec)
+	       return self.complete(ec);
+
+	    net::connect(impl_->stream, res, ec);
+	    if (!ec)
+	       break;
+
+	    if (ec && ((2 * (i + 1)) == std::size(impl_->cfg.sentinels)))
+	       return self.complete(ec);
+	 }
+
+	 // The redis documentation recommends to put the first
+	 // sentinel that replies in the start of the list. See
+	 // https://redis.io/topics/sentinel-clients
+	 //
+	 // TODO: The sentinel that responded has to be returned to
+	 // the user so he can do what the doc describes above.
+	 // Example
+	 //
+	 //   std::swap(cfg.sentinels[0], cfg.sentinels[2 * i + 0]);
+	 //   std::swap(cfg.sentinels[1], cfg.sentinels[2 * i + 1]);
+
+         impl_->cmd = sentinel("get-master-addr-by-name", impl_->inst->name);
+         impl_->opstate = op_state::on_write;
+         net::async_write( impl_->stream
+                         , net::buffer(impl_->cmd)
+                         , std::move(self));
+      } break;
+      case op_state::on_write:
+      {
+         if (ec)
+            return self.complete(ec);
+
+         impl_->opstate = op_state::on_read;
+
+         resp::async_read(
+	    impl_->stream,
+	    impl_->buffer,
+	    impl_->res,
+	    std::move(self));
+
+      } break;
+      case op_state::on_read:
+      {
+         auto n = std::size(impl_->res.res);
+         if (n > 1) {
+            impl_->inst->host = impl_->res.res[0];
+            impl_->inst->port = impl_->res.res[1];
+         }
+         self.complete(ec);
+      } break;
+      default: { }
+      }
+   }
+};
 template <class AsyncReadStream>
 class sentinel_op {
 public:
@@ -675,6 +795,7 @@ private:
    struct impl {
       AsyncReadStream& stream;
       resp::buffer buffer;
+      resp::response res;
       instance* inst;
       op_state opstate {op_state::starting};
       std::string cmd;
@@ -715,15 +836,20 @@ public:
             return self.complete(ec);
 
          impl_->opstate = op_state::waiting;
-         resp::async_read(impl_->stream, &impl_->buffer, std::move(self));
+
+         resp::async_read(
+	    impl_->stream,
+	    impl_->buffer,
+	    impl_->res,
+	    std::move(self));
 
       } break;
       case op_state::waiting:
       {
-         auto n = std::size(impl_->buffer.res);
+         auto n = std::size(impl_->res.res);
          if (n > 1) {
-            impl_->inst->host = impl_->buffer.res[0];
-            impl_->inst->port = impl_->buffer.res[1];
+            impl_->inst->host = impl_->res.res[0];
+            impl_->inst->port = impl_->res.res[1];
          }
          self.complete(ec);
       } break;
@@ -777,6 +903,7 @@ private:
 
    net::steady_timer timer_;
    resp::buffer buffer_;
+   resp::response res_;
    std::queue<queue_item> msg_queue_;
    int pipeline_size_ = 0;
    long long pipeline_id_ = 0;
@@ -806,12 +933,16 @@ private:
 
    void do_read_resp()
    {
-      buffer_.res.clear();
+      res_.clear();
 
       auto f = [this](auto const& ec)
          { on_resp(ec); };
 
-      resp::async_read(stream_, &buffer_, std::move(f));
+      resp::async_read(
+	 stream_,
+	 buffer_,
+	 res_,
+	 std::move(f));
    }
 
    void
@@ -820,6 +951,7 @@ private:
               , boost::system::error_code ec)
    {
       buffer_.clear();
+      res_.clear();
 
       if (ec) {
          log::write( cfg_.log_filter
@@ -925,7 +1057,7 @@ private:
          return;
       }
 
-      msg_handler_(ec, std::move(buffer_.res));
+      msg_handler_(ec, std::move(res_.res));
 
       do_read_resp();
 

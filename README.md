@@ -1,18 +1,17 @@
 # Aedis
 
-Aedis is a redis client designed with the following in mind
+Aedis is a redis client designed for
 
 * Seamless integration with async code
-* Easy and intuitive
-* Speed as a result of simplicity
+* Easy and intuitive usage
 
 To use this library include `aedis.hpp` in your project. Current dendencies are
 `Boost.Asio` and `libfmt`. As of C++23 this library will have no external dependencies.
 
 # Example
 
-The examples below will use coroutines as it makes the code simpler,
-however callbacks and futures are also supported.
+The examples below will use coroutines, callbacks and futures are
+supported as well.
 
 ```cpp
 awaitable<void> example1(tcp::resolver::results_type const& r)
@@ -25,9 +24,10 @@ awaitable<void> example1(tcp::resolver::results_type const& r)
    co_await async_write(socket, buffer(cmd));
 
    resp::buffer buffer;
-   co_await resp::async_read(socket, &buffer);
+   resp::response res;
+   co_await resp::async_read(socket, buffer, res);
 
-   resp::print(buffer.res);
+   resp::print(res.res);
 }
 ```
 
@@ -51,9 +51,9 @@ awaitable<void> example2(tcp::resolver::results_type const& r)
 
    resp::buffer buffer;
    for (;;) {
-      co_await resp::async_read(socket, &buffer);
-      resp::print(buffer.res);
-      buffer.res.clear();
+      resp::response res;
+      co_await resp::async_read(socket, buffer, res);
+      resp::print(res.res);
    }
 }
 ```
@@ -85,7 +85,10 @@ awaitable<void> example3(tcp::resolver::results_type const& r)
    , {3, {"foobar"}}
    };
 
-   auto cmd = rpush("a", a)
+   auto cmd = ping()
+            + role()
+            + flushall()
+            + rpush("a", a)
             + lrange("a")
             + del("a")
             + multi()
@@ -110,6 +113,8 @@ awaitable<void> example3(tcp::resolver::results_type const& r)
 	    + set("h", {"h"})
 	    + append("h", "h")
 	    + get("h")
+	    + auth("password")
+	    + bitcount("h")
 	    + quit()
 	    ;
 
@@ -117,9 +122,9 @@ awaitable<void> example3(tcp::resolver::results_type const& r)
 
    resp::buffer buffer;
    for (;;) {
-      co_await resp::async_read(socket, &buffer);
-      resp::print(buffer.res);
-      buffer.res.clear();
+      resp::response res;
+      co_await resp::async_read(socket, buffer, res);
+      resp::print(res.res);
    }
 }
 ```

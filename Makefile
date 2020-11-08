@@ -1,14 +1,18 @@
-# Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+# Copyright (c) 2019 - 2020 Marcelo Zimbres Silva (mzimbres at gmail dot com)
 # 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-CPPFLAGS += -std=c++17 -g
+CPPFLAGS =
+CPPFLAGS +=  -g
 CPPFLAGS += -I/opt/boost_1_74_0/include
-#CPPFLAGS += -D BOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
-#CPPFLAGS += -D BOOST_ASIO_NO_DEPRECATED 
-#CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS 
+CPPFLAGS += -D BOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
+CPPFLAGS += -D BOOST_ASIO_NO_DEPRECATED 
+CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS 
+
+LDFLAGS += -pthread
+LDFLAGS += -lfmt
 
 all: examples tests
 
@@ -17,16 +21,13 @@ Makefile.dep:
 
 -include Makefile.dep
 
-examples: % : %.o
-	$(CXX) -o $@ $^ $(CPPFLAGS) -lfmt -lpthread
+examples: examples.cpp
+	$(CXX) -o $@ $^ -std=c++20 $(CPPFLAGS) $(LDFLAGS) -fcoroutines
 
-coroutine: coroutine.cpp
-	g++ -std=c++20 -g -I/opt/boost_1_74_0/include -fcoroutines -pthread coroutine.cpp
-
-tests: % : %.o
-	$(CXX) -o $@ $^ $(CPPFLAGS) -lfmt -lpthread
+tests: % : tests.cpp
+	$(CXX) -o $@ $^ -std=c++17 $(CPPFLAGS) $(LDFLAGS)
 
 .PHONY: clean
 clean:
-	rm -f coroutine.o coroutine examples examples.o tests tests.o Makefile.dep
+	rm -f examples examples.o tests tests.o Makefile.dep
 

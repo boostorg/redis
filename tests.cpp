@@ -195,6 +195,18 @@ struct test_handler {
    }
 };
 
+void send(std::string cmd)
+{
+   net::io_context ioc;
+   session<tcp::socket> s {ioc};
+
+   s.send(std::move(cmd));
+   s.disable_reconnect();
+
+   s.run();
+   ioc.run();
+}
+
 int main(int argc, char* argv[])
 {
    rpush_lrange();
@@ -211,12 +223,14 @@ int main(int argc, char* argv[])
    for (auto const& e : payloads) {
      test_stream ts {e.first};
      resp::buffer buffer;
-     async_read(ts, &buffer, test_handler {});
-     if (e.second != buffer.res)
+     resp::response res;
+     async_read(ts, buffer, res, test_handler {});
+     if (e.second != res.res)
        std::cout << "Error" << std::endl;
      else
        std::cout << "Success: Offline tests." << std::endl;
    }
 
+   send(ping());
 }
 
