@@ -21,7 +21,7 @@ add_library(aedis INTERFACE)
 add_library(aedis::aedis ALIAS aedis)
 
 target_link_libraries(aedis INTERFACE fmt::fmt Boost::system)
-target_compile_features(aedis INTERFACE cxx_std_17)
+target_compile_features(aedis INTERFACE cxx_std_20)
 
 target_include_directories(aedis INTERFACE
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
