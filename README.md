@@ -2,25 +2,37 @@
 
 Aedis is a redis client designed for
 
-* Seamless integration with async code
-* Easy and intuitive usage
+* Seamless integration with async code.
+* Easy and intuitive usage.
 
 To use this library include `aedis.hpp` in your project. Current dendencies are
 `Boost.Asio` and `libfmt`. As of C++23 this library will have no external dependencies.
 
-# Example
+# Examples
 
 The examples below will use coroutines, callbacks and futures are
 supported as well.
 
-```cpp
-awaitable<void> example1(tcp::resolver::results_type const& r)
-{
-   tcp_socket socket {co_await this_coro::executor};
+## Ping
 
+This is the simplest example possible. 
+
+1. Connect to the redis server in the localhost
+1. Send a ping command
+1. Parse the output use it and leave.
+
+```cpp
+awaitable<void> example1()
+{
+   auto ex = co_await this_coro::executor;
+
+   tcp::resolver resv(ex);
+   auto const r = resv.resolve("127.0.0.1", "6379");
+
+   tcp_socket socket {ex};
    co_await async_connect(socket, r);
 
-   auto cmd = ping();
+   auto cmd = ping() + quit();
    co_await async_write(socket, buffer(cmd));
 
    resp::buffer buffer;
@@ -31,12 +43,20 @@ awaitable<void> example1(tcp::resolver::results_type const& r)
 }
 ```
 
-Command pipelines can be generated easily
+## Pipeline
+
+Same as above but with a more complex command. We have to keep reading
+from the socket untill all commands responses have been parsed.
 
 ```cpp
-awaitable<void> example2(tcp::resolver::results_type const& r)
+awaitable<void> example2()
 {
-   tcp_socket socket {co_await this_coro::executor};
+   auto ex = co_await this_coro::executor;
+
+   tcp::resolver resv(ex);
+   auto const r = resv.resolve("127.0.0.1", "6379");
+
+   tcp_socket socket {ex};
 
    co_await async_connect(socket, r);
 
@@ -58,13 +78,20 @@ awaitable<void> example2(tcp::resolver::results_type const& r)
 }
 ```
 
-STL containers are also suported
+## STL containers
+
+Some commands and data structures in redis can be mapped in STL
+containers. The example below shows some of them
 
 ```cpp
-awaitable<void> example3(tcp::resolver::results_type const& r)
+awaitable<void> example3()
 {
-   tcp_socket socket {co_await this_coro::executor};
+   auto ex = co_await this_coro::executor;
 
+   tcp::resolver resv(ex);
+   auto const r = resv.resolve("127.0.0.1", "6379");
+
+   tcp_socket socket {ex};
    co_await async_connect(socket, r);
 
    std::list<std::string> a
@@ -85,13 +112,9 @@ awaitable<void> example3(tcp::resolver::results_type const& r)
    , {3, {"foobar"}}
    };
 
-   auto cmd = ping()
-            + role()
-            + flushall()
-            + rpush("a", a)
+   auto cmd = rpush("a", a)
             + lrange("a")
             + del("a")
-            + multi()
             + rpush("b", b)
             + lrange("b")
             + del("b")
@@ -103,18 +126,6 @@ awaitable<void> example3(tcp::resolver::results_type const& r)
             + hgetall("c")
             + zadd({"d"}, d)
             + zrange("d")
-            + zrangebyscore("foo", 2, -1)
-            + set("f", {"39"})
-            + incr("f")
-            + get("f")
-            + expire("f", 10)
-            + publish("g", "A message")
-            + exec()
-	    + set("h", {"h"})
-	    + append("h", "h")
-	    + get("h")
-	    + auth("password")
-	    + bitcount("h")
 	    + quit()
 	    ;
 

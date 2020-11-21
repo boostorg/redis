@@ -58,46 +58,47 @@ struct response {
 };
 
 inline
-std::string make_bulky_item(std::string const& param)
+void make_bulky_item(std::string& to, std::string const& param)
 {
-   auto const s = std::size(param);
-   return "$"
-        + std::to_string(s)
-        + "\r\n"
-        + param
-        + "\r\n";
+   to += "$";
+   to += std::to_string(std::size(param));
+   to += "\r\n";
+   to += param;
+   to += "\r\n";
 }
 
 inline
-std::string make_header(int size)
+void make_header(std::string& to, int size)
 {
-   return "*" + std::to_string(size) + "\r\n";
+   to += "*";
+   to += std::to_string(size);
+   to += "\r\n";
 }
 
 struct accumulator {
    auto operator()(std::string a, std::string b) const
    {
-      a += make_bulky_item(b);
+      make_bulky_item(a, b);
       return a;
    }
 
    auto operator()(std::string a, int b) const
    {
-      a += make_bulky_item(std::to_string(b));
+      make_bulky_item(a, std::to_string(b));
       return a;
    }
 
    auto operator()(std::string a, std::pair<std::string, std::string> b) const
    {
-      a += make_bulky_item(b.first);
-      a += make_bulky_item(b.second);
+      make_bulky_item(a, b.first);
+      make_bulky_item(a, b.second);
       return a;
    }
 
    auto operator()(std::string a, std::pair<int, std::string> b) const
    {
-      a += make_bulky_item(std::to_string(b.first));
-      a += make_bulky_item(b.second);
+      make_bulky_item(a, std::to_string(b.first));
+      make_bulky_item(a, b.second);
       return a;
    }
 };
@@ -105,7 +106,10 @@ struct accumulator {
 inline
 auto assemble(char const* cmd)
 {
-   return make_header(1) + make_bulky_item(cmd);
+   std::string ret;
+   make_header(ret, 1);
+   make_bulky_item(ret, cmd);
+   return ret;
 }
 
 template <class Iter>
@@ -121,8 +125,9 @@ auto assemble( char const* cmd
 
    auto const d2 = std::distance(begin, end);
 
-   auto a = make_header(1 + d1 + size * d2)
-          + make_bulky_item(cmd);
+   std::string a;
+   make_header(a, 1 + d1 + size * d2);
+   make_bulky_item(a, cmd);
 
    auto b =
       std::accumulate( std::cbegin(key)
