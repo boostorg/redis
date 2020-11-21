@@ -140,6 +140,20 @@ awaitable<void> example4()
    }
 }
 
+awaitable<void> example5()
+{
+   tcp_socket socket {co_await this_coro::executor};
+
+   sentinel_op2<tcp_socket>::config cfg
+   { {"127.0.0.1", "26379"}
+   , {"mymaster"} 
+   , {"master"}
+   };
+
+   instance inst;
+   co_await async_get_instance2(socket, cfg, inst);
+}
+
 int main()
 {
    io_context ioc {1};
@@ -147,7 +161,7 @@ int main()
    co_spawn(ioc, example2(), detached);
    co_spawn(ioc, example3(), detached);
    co_spawn(ioc, example4(), detached);
-
+   co_spawn(ioc, example5(), detached);
    ioc.run();
 }
 

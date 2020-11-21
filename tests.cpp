@@ -207,10 +207,33 @@ void send(std::string cmd)
    ioc.run();
 }
 
-int main(int argc, char* argv[])
+void test5()
 {
-   rpush_lrange();
+   net::io_context ioc {1};
+   tcp::socket socket {ioc};
 
+   sentinel_op2<tcp::socket>::config cfg
+   { {"127.0.0.1", "26377", "127.0.0.1", "26378", "127.0.0.1", "26379"}
+   , {"mymaster"} 
+   , {"master"}
+   };
+
+   instance inst;
+   auto f = [&](auto ec)
+   {
+     instance expected {"127.0.0.1", "6379", "mymaster"};
+     if (inst == expected)
+       std::cout << "Success: async_get_instance2" << std::endl;
+     else
+       std::cout << "Error: async_get_instance2" << std::endl;
+   };
+
+   async_get_instance2(socket, cfg, inst, f);
+   ioc.run();
+}
+
+void offline()
+{
    // Redis answer - Expected vector.
    std::vector<std::pair<std::string, std::vector<std::string>>> payloads
    { {{"+OK\r\n"},                                         {"OK"}}
@@ -230,7 +253,13 @@ int main(int argc, char* argv[])
      else
        std::cout << "Success: Offline tests." << std::endl;
    }
+}
 
+int main(int argc, char* argv[])
+{
+   rpush_lrange();
+   test5();
+   offline();
    send(ping());
 }
 
