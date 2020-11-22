@@ -28,8 +28,11 @@ awaitable<void> example1()
    tcp_socket socket {ex};
    co_await async_connect(socket, r);
 
-   auto cmd = ping() + quit();
-   co_await async_write(socket, buffer(cmd));
+   resp::pipeline pl;
+   pl.ping();
+   pl.quit();
+
+   co_await async_write(socket, buffer(pl.payload));
 
    resp::buffer buffer;
    resp::response res;
@@ -48,14 +51,14 @@ awaitable<void> example2()
    tcp_socket socket {ex};
    co_await async_connect(socket, r);
 
-   auto cmd = multi()
-            + ping()
-            + incr("age")
-            + exec()
-	    + quit()
-	    ;
+   resp::pipeline pl;
+   pl.multi();
+   pl.ping();
+   pl.incr("age");
+   pl.exec();
+   pl.quit();
 
-   co_await async_write(socket, buffer(cmd));
+   co_await async_write(socket, buffer(pl.payload));
 
    resp::buffer buffer;
    for (;;) {
@@ -154,6 +157,35 @@ awaitable<void> example5()
    co_await async_get_instance2(socket, cfg, inst);
 }
 
+awaitable<void> example6()
+{
+   auto ex = co_await this_coro::executor;
+
+   tcp::resolver resv(ex);
+   auto const r = resv.resolve("127.0.0.1", "6379");
+
+   tcp_socket socket {ex};
+   co_await async_connect(socket, r);
+
+   std::list<int> a
+      {1, 2, 3};
+
+   auto cmd = rpush("list", a)
+            + lrange("list")
+            + del("list")
+	    + quit()
+	    ;
+
+   co_await async_write(socket, buffer(cmd));
+
+   resp::buffer buffer;
+   for (;;) {
+      resp::response res;
+      co_await resp::async_read(socket, buffer, res);
+      resp::print(res.res);
+   }
+}
+
 int main()
 {
    io_context ioc {1};
@@ -162,6 +194,7 @@ int main()
    co_spawn(ioc, example3(), detached);
    co_spawn(ioc, example4(), detached);
    co_spawn(ioc, example5(), detached);
+   co_spawn(ioc, example6(), detached);
    ioc.run();
 }
 
