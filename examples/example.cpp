@@ -17,7 +17,7 @@ namespace this_coro = net::this_coro;
 using namespace net;
 using namespace aedis;
 
-awaitable<void> example1()
+net::awaitable<void> example1()
 {
    auto ex = co_await this_coro::executor;
 
@@ -58,7 +58,7 @@ awaitable<void> example1()
    }
 }
 
-awaitable<void> example2()
+net::awaitable<void> example2()
 {
    auto ex = co_await this_coro::executor;
 
@@ -80,7 +80,7 @@ awaitable<void> example2()
    }
 }
 
-awaitable<void> example3()
+net::awaitable<void> example3()
 {
    tcp_socket socket {co_await this_coro::executor};
 
