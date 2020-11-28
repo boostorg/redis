@@ -302,433 +302,225 @@ public:
       { resp::assemble(payload, "EXEC"); }
    void incr(std::string const& key)
       { resp::assemble(payload, "INCR", key); }
+   auto auth(std::string const& pwd)
+     { resp::assemble(payload, "AUTH", pwd); }
+   auto bgrewriteaof()
+     { resp::assemble(payload, "BGREWRITEAOF"); }
+   auto role()
+     { resp::assemble(payload, "ROLE"); }
+   auto bgsave()
+     { resp::assemble(payload, "BGSAVE"); }
+   auto flushall()
+     { resp::assemble(payload, "FLUSHALL"); }
+   auto lpop(std::string const& key)
+     { resp::assemble(payload, "LPOP", key); }
+   auto subscribe(std::string const& key)
+     { resp::assemble(payload, "SUBSCRIBE", key); }
+   auto unsubscribe(std::string const& key)
+     { resp::assemble(payload, "UNSUBSCRIBE", key); }
+   auto get(std::string const& key)
+     { resp::assemble(payload, "GET", key); }
+   void hello(std::string const& key)
+      { resp::assemble(payload, "HELLO", key); }
+   
+   auto sentinel(std::string const& arg, std::string const& name)
+   {
+      auto par = {name};
+      resp::assemble(payload, "SENTINEL", {arg}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto append(std::string const& key, std::string const& msg)
+   {
+      auto par = {msg};
+      resp::assemble(payload, "APPEND", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto bitcount(std::string const& key, int start = 0, int end = -1)
+   {
+      auto par = {std::to_string(start), std::to_string(end)};
+      resp::assemble( payload
+   	            , "BITCOUNT"
+   		    , {key}
+   		    , std::cbegin(par)
+   		    , std::cend(par));
+   }
+   
+   template <class Iter>
+   auto rpush(std::string const& key, Iter begin, Iter end)
+     { resp::assemble(payload, "RPUSH", {key}, begin, end); }
+   
+   template <class T>
+   auto rpush( std::string const& key
+             , std::initializer_list<T> v)
+     { return rpush(key, std::cbegin(v), std::cend(v)); } 
+
+   template <class T, class Allocator>
+   auto rpush( std::string const& key
+             , std::vector<T, Allocator> const& v)
+     { return rpush(key, std::cbegin(v), std::cend(v)); }
+   
+   template <class T, class Allocator>
+   auto rpush( std::string const& key
+             , std::deque<T, Allocator> const& v)
+     { return rpush(key, std::cbegin(v), std::cend(v)); } 
+
+   template <class T, std::size_t N>
+   auto rpush( std::string const& key
+             , std::array<T, N> const& a)
+     { return rpush(key, std::cbegin(a), std::cend(a)); }
+   
+   template <class T, class Allocator>
+   auto rpush( std::string const& key
+             , std::list<T, Allocator> const& l)
+     { return rpush(key, std::cbegin(l), std::cend(l)); }
+   
+   template <class T, class Allocator>
+   auto rpush( std::string const& key
+             , std::forward_list<T, Allocator> const& l)
+     { return rpush(key, std::cbegin(l), std::cend(l)); }
+   
+   template <class T, class Compare, class Allocator>
+   auto rpush( std::string const& key
+             , std::set<T, Compare, Allocator> const& s)
+     { return rpush(key, std::cbegin(s), std::cend(s)); }
+   
+   template <class T, class Compare, class Allocator>
+   auto rpush( std::string const& key
+             , std::multiset<T, Compare, Allocator> const& s)
+     { return rpush(key, std::cbegin(s), std::cend(s)); }
+   
+   template <class T, class Hash, class KeyEqual, class Allocator>
+   auto rpush( std::string const& key
+             , std::unordered_set< T, Hash, KeyEqual, Allocator
+                                 > const& s)
+     { return rpush(key, std::cbegin(s), std::cend(s)); }
+   
+   template <class T, class Hash, class KeyEqual, class Allocator>
+   auto rpush( std::string const& key
+             , std::unordered_multiset< T, Hash, KeyEqual, Allocator
+                                      > const& s)
+     { return rpush(key, std::cbegin(s), std::cend(s)); }
+   
+   template <class Iter>
+   auto lpush(std::string const& key, Iter begin, Iter end)
+     { resp::assemble(payload, "LPUSH", {key}, begin, end); }
+   
+   auto psubscribe(std::initializer_list<std::string> l)
+   {
+      std::initializer_list<std::string> dummy;
+      resp::assemble(payload, "PSUBSCRIBE", l, std::cbegin(dummy), std::cend(dummy));
+   }
+   
+   auto publish(std::string const& key, std::string const& msg)
+   {
+      auto par = {msg};
+      resp::assemble(payload, "PUBLISH", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto set( std::string const& key , std::initializer_list<std::string> args)
+     { resp::assemble(payload, "SET", {key}, std::cbegin(args), std::cend(args)); }
+
+   auto hset( std::string const& key, std::initializer_list<std::string> l)
+     { resp::assemble(payload, "HSET", {key}, std::cbegin(l), std::cend(l)); }
+
+   template <class Key, class T, class Compare, class Allocator>
+   auto hset( std::string const& key, std::map<Key, T, Compare, Allocator> const& m)
+     { resp::assemble(payload, "HSET", {key}, std::cbegin(m), std::cend(m), 2); }
+   
+   auto hincrby(std::string const& key, std::string const& field, int by)
+   {
+      auto par = {field, std::to_string(by)};
+      resp::assemble(payload, "HINCRBY", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto hkeys(std::string const& key)
+   {
+      auto par = {""};
+      resp::assemble(payload, "HKEYS", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto hlen(std::string const& key)
+     { resp::assemble(payload, "HLEN", {key}); }
+   auto hgetall(std::string const& key)
+     { resp::assemble(payload, "HGETALL", {key}); }
+   auto hvals(std::string const& key)
+     { resp::assemble(payload, "HVALS", {key}); }
+   
+   auto hget(std::string const& key, std::string const& field)
+   {
+      auto par = {field};
+      resp::assemble(payload, "HGET", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto hmget( std::string const& key
+             , std::initializer_list<std::string> fields)
+   {
+      resp::assemble( payload
+   	         , "HMGET"
+   		 , {key}
+   		 , std::cbegin(fields)
+   		 , std::cend(fields));
+   }
+   
+   auto expire(std::string const& key, int secs)
+   {
+      auto par = {std::to_string(secs)};
+      resp::assemble(payload, "EXPIRE", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto zadd(std::string const& key, int score, std::string const& value)
+   {
+      auto par = {std::to_string(score), value};
+      resp::assemble(payload, "ZADD", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   template <class Key, class T, class Compare, class Allocator>
+   auto zadd( std::initializer_list<std::string> key
+            , std::map<Key, T, Compare, Allocator> const& m)
+     { resp::assemble(payload, "ZADD", key, std::cbegin(m), std::cend(m), 2); }
+   
+   auto zrange(std::string const& key, int min = 0, int max = -1)
+   {
+      auto par = {std::to_string(min), std::to_string(max)};
+      resp::assemble(payload, "ZRANGE", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto zrangebyscore(std::string const& key, int min, int max)
+   {
+      auto max_str = std::string {"inf"};
+      if (max != -1)
+         max_str = std::to_string(max);
+   
+      auto par = {std::to_string(min) , max_str};
+      resp::assemble(payload, "zrangebyscore", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto zremrangebyscore(std::string const& key, int score)
+   {
+      auto const s = std::to_string(score);
+      auto par = {s, s};
+      resp::assemble(payload, "ZREMRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto lrange(std::string const& key, int min = 0, int max = -1)
+   {
+      auto par = { std::to_string(min) , std::to_string(max) };
+      resp::assemble(payload, "LRANGE", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto ltrim(std::string const& key, int min = 0, int max = -1)
+   {
+      auto par = { std::to_string(min) , std::to_string(max) };
+      resp::assemble(payload, "LTRIM", {key}, std::cbegin(par), std::cend(par));
+   }
+   
+   auto del(std::string const& key)
+     { resp::assemble(payload, "DEL", key); }
+   
+   auto llen(std::string const& key)
+     { resp::assemble(payload, "LLEN", key); }
 };
 
-}
-
-inline
-auto sentinel(std::string const& arg, std::string const& name)
-{
-   std::string ret;
-   auto par = {name};
-   resp::assemble(ret, "SENTINEL", {arg}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto append(std::string const& key, std::string const& msg)
-{
-   std::string ret;
-   auto par = {msg};
-   resp::assemble(ret, "APPEND", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto auth(std::string const& pwd)
-{
-   std::string ret;
-   resp::assemble(ret, "AUTH", pwd);
-   return ret;
-}
-
-inline
-auto bgrewriteaof()
-{
-   std::string ret;
-   resp::assemble(ret, "BGREWRITEAOF");
-   return ret;
-}
-
-inline
-auto role()
-{
-   std::string ret;
-   resp::assemble(ret, "ROLE");
-   return ret;
-}
-
-inline
-auto bgsave()
-{
-   std::string ret;
-   resp::assemble(ret, "BGSAVE");
-   return ret;
-}
-
-inline
-auto bitcount(std::string const& key, int start = 0, int end = -1)
-{
-   std::string ret;
-   auto par = {std::to_string(start), std::to_string(end)};
-   resp::assemble( ret
-	         , "BITCOUNT"
-		 , {key}
-		 , std::cbegin(par)
-		 , std::cend(par));
-   return ret;
-}
-
-template <class Iter>
-auto rpush(std::string const& key, Iter begin, Iter end)
-{
-   std::string ret;
-   resp::assemble(ret, "RPUSH", {key}, begin, end);
-   return ret;
-}
-
-template <class T, class Allocator>
-auto rpush( std::string const& key
-          , std::vector<T, Allocator> const& v)
-{
-   return rpush(key, std::cbegin(v), std::cend(v));
-}
-
-template <class T, class Allocator>
-auto rpush( std::string const& key
-          , std::deque<T, Allocator> const& v)
-{
-   return rpush(key, std::cbegin(v), std::cend(v));
-}
-
-template <class T, std::size_t N>
-auto rpush( std::string const& key
-          , std::array<T, N> const& a)
-{
-   return rpush(key, std::cbegin(a), std::cend(a));
-}
-
-template <class T, class Allocator>
-auto rpush( std::string const& key
-          , std::list<T, Allocator> const& l)
-{
-   return rpush(key, std::cbegin(l), std::cend(l));
-}
-
-template <class T, class Allocator>
-auto rpush( std::string const& key
-          , std::forward_list<T, Allocator> const& l)
-{
-   return rpush(key, std::cbegin(l), std::cend(l));
-}
-
-template <class T, class Compare, class Allocator>
-auto rpush( std::string const& key
-          , std::set<T, Compare, Allocator> const& s)
-{
-   return rpush(key, std::cbegin(s), std::cend(s));
-}
-
-template <class T, class Compare, class Allocator>
-auto rpush( std::string const& key
-          , std::multiset<T, Compare, Allocator> const& s)
-{
-   return rpush(key, std::cbegin(s), std::cend(s));
-}
-
-template <class T, class Hash, class KeyEqual, class Allocator>
-auto rpush( std::string const& key
-          , std::unordered_set< T, Hash, KeyEqual, Allocator
-                              > const& s)
-{
-   return rpush(key, std::cbegin(s), std::cend(s));
-}
-
-template <class T, class Hash, class KeyEqual, class Allocator>
-auto rpush( std::string const& key
-          , std::unordered_multiset< T, Hash, KeyEqual, Allocator
-                                   > const& s)
-{
-   return rpush(key, std::cbegin(s), std::cend(s));
-}
-
-template <class Iter>
-auto lpush(std::string const& key, Iter begin, Iter end)
-{
-   std::string ret;
-   resp::assemble(ret, "LPUSH", {key}, begin, end);
-   return ret;
-}
-
-inline
-auto quit()
-{
-   std::string ret;
-   resp::assemble(ret, "QUIT");
-   return ret;
-}
-
-inline
-auto multi()
-{
-   std::string ret;
-   resp::assemble(ret, "MULTI");
-   return ret;
-}
-
-inline
-auto ping()
-{
-   std::string ret;
-   resp::assemble(ret, "PING");
-   return ret;
-}
-
-inline
-auto flushall()
-{
-   std::string ret;
-   resp::assemble(ret, "FLUSHALL");
-   return ret;
-}
-
-inline
-auto exec()
-{
-   std::string ret;
-   resp::assemble(ret, "EXEC");
-   return ret;
-}
-
-inline
-auto incr(std::string const& key)
-{
-   std::string ret;
-   resp::assemble(ret, "INCR", key);
-   return ret;
-}
-
-inline
-auto lpop(std::string const& key)
-{
-   std::string ret;
-   resp::assemble(ret, "LPOP", key);
-   return ret;
-}
-
-inline
-auto subscribe(std::string const& key)
-{
-   std::string ret;
-   resp::assemble(ret, "SUBSCRIBE", key);
-   return ret;
-}
-
-inline
-auto psubscribe(std::initializer_list<std::string> l)
-{
-   std::initializer_list<std::string> dummy;
-
-   std::string ret;
-   resp::assemble(
-      ret,
-      "PSUBSCRIBE",
-      l,
-      std::cbegin(dummy),
-      std::cend(dummy));
-   return ret;
-}
-
-inline
-auto unsubscribe(std::string const& key)
-{
-   std::string ret;
-   resp::assemble(ret, "UNSUBSCRIBE", key);
-   return ret;
-}
-
-inline
-auto get(std::string const& key)
-{
-   std::string ret;
-   resp::assemble(ret, "GET", key);
-   return ret;
-}
-
-inline
-auto publish(std::string const& key, std::string const& msg)
-{
-   auto par = {msg};
-   std::string ret;
-   resp::assemble(ret, "PUBLISH", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto set( std::string const& key
-        , std::initializer_list<std::string> args)
-{
-   std::string ret;
-   resp::assemble(ret, "SET", {key}, std::cbegin(args), std::cend(args));
-   return ret;
-}
-
-inline
-auto hset( std::string const& key
-         , std::initializer_list<std::string> l)
-{
-   std::string ret;
-   resp::assemble(ret, "HSET", {key}, std::cbegin(l), std::cend(l));
-   return ret;
-}
-
-template <class Key, class T, class Compare, class Allocator>
-auto hset( std::string const& key
-         , std::map<Key, T, Compare, Allocator> const& m)
-{
-   std::string ret;
-   resp::assemble(ret, "HSET", {key}, std::cbegin(m), std::cend(m), 2);
-   return ret;
-}
-
-inline
-auto hincrby(std::string const& key, std::string const& field, int by)
-{
-   auto par = {field, std::to_string(by)};
-   std::string ret;
-   resp::assemble(ret, "HINCRBY", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto hkeys(std::string const& key)
-{
-   std::initializer_list<std::string> par;
-   std::string ret;
-   resp::assemble(ret, "HKEYS", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto hlen(std::string const& key)
-{
-   std::initializer_list<std::string> par;
-   std::string ret;
-   resp::assemble(ret, "HLEN", {key});
-   return ret;
-}
-
-inline
-auto hgetall(std::string const& key)
-{
-   std::initializer_list<std::string> par;
-   std::string ret;
-   resp::assemble(ret, "HGETALL", {key});
-   return ret;
-}
-
-inline
-auto hvals(std::string const& key)
-{
-   std::string ret;
-   resp::assemble(ret, "HVALS", {key});
-   return ret;
-}
-
-inline
-auto hget(std::string const& key, std::string const& field)
-{
-   auto par = {field};
-   std::string ret;
-   resp::assemble(ret, "HGET", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto hmget( std::string const& key
-          , std::initializer_list<std::string> fields)
-{
-   std::string ret;
-   resp::assemble( ret
-	         , "HMGET"
-		 , {key}
-		 , std::cbegin(fields)
-		 , std::cend(fields));
-   return ret;
-}
-
-inline
-auto expire(std::string const& key, int secs)
-{
-   auto par = {std::to_string(secs)};
-   std::string ret;
-   resp::assemble(ret, "EXPIRE", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto zadd(std::string const& key, int score, std::string const& value)
-{
-   auto par = {std::to_string(score), value};
-   std::string ret;
-   resp::assemble(ret, "ZADD", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-template <class Key, class T, class Compare, class Allocator>
-auto zadd( std::initializer_list<std::string> key
-         , std::map<Key, T, Compare, Allocator> const& m)
-{
-   std::string ret;
-   resp::assemble(ret, "ZADD", key, std::cbegin(m), std::cend(m), 2);
-   return ret;
-}
-
-inline
-auto zrange(std::string const& key, int min = 0, int max = -1)
-{
-   auto par = { std::to_string(min), std::to_string(max) };
-   std::string ret;
-   resp::assemble(ret, "ZRANGE", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto zrangebyscore(std::string const& key, int min, int max)
-{
-   auto max_str = std::string {"inf"};
-   if (max != -1)
-      max_str = std::to_string(max);
-
-   auto par = { std::to_string(min) , max_str };
-   std::string ret;
-   resp::assemble(ret, "zrangebyscore", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto zremrangebyscore(std::string const& key, int score)
-{
-   auto const s = std::to_string(score);
-   auto par = {s, s};
-   std::string ret;
-   resp::assemble(ret, "ZREMRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto lrange(std::string const& key, int min = 0, int max = -1)
-{
-   auto par = { std::to_string(min) , std::to_string(max) };
-   std::string ret;
-   resp::assemble(ret, "lrange", {key}, std::cbegin(par), std::cend(par));
-   return ret;
-}
-
-inline
-auto del(std::string const& key)
-{
-   std::string ret;
-   resp::assemble(ret, "del", key);
-   return ret;
-}
-
-inline
-auto llen(std::string const& key)
-{
-   std::string ret;
-   resp::assemble(ret, "llen", key);
-   return ret;
 }
 
 namespace log
@@ -855,8 +647,10 @@ public:
 	 //   std::swap(cfg.sentinels[0], cfg.sentinels[2 * i + 0]);
 	 //   std::swap(cfg.sentinels[1], cfg.sentinels[2 * i + 1]);
 
+         resp::pipeline p;
+         p.sentinel("get-master-addr-by-name", impl_->inst->name);
          impl_->inst->name = impl_->cfg.name;
-         impl_->cmd = sentinel("get-master-addr-by-name", impl_->inst->name);
+         impl_->cmd = p.payload;
          impl_->opstate = op_state::on_write;
          net::async_write( impl_->stream
                          , net::buffer(impl_->cmd)

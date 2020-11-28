@@ -7,132 +7,117 @@
 
 #include "aedis.hpp"
 
+namespace net = aedis::net;
+using tcp = net::ip::tcp;
+using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
+
+namespace this_coro = net::this_coro;
+
+using namespace net;
 using namespace aedis;
 
-void check_size(
-   std::vector<std::string> const& v,
-   unsigned s,
-   std::string msg)
-{
-   if (std::size(v) != s)
-      throw std::runtime_error(msg);
-
-   msg += "size ok.";
-   std::cout << msg << std::endl;
-}
-
-void check_string(
-   std::string const& a,
-   std::string const& b,
-   std::string msg)
-{
-   if (a != b)
-      throw std::runtime_error(msg);
-
-   msg += "string ok.";
-   std::cout << msg << std::endl;
-}
-
-template <class Iter1, class Iter2>
 void check_equal(
-   Iter1 begin1,
-   Iter1 end1,
-   Iter2 begin2,
-   std::string msg)
+   std::vector<std::string> const& a,
+   std::vector<std::string> const& b)
 {
    auto const r =
-      std::equal( begin1
-                , end1
-                , begin2);
+      std::equal( std::cbegin(a)
+                , std::cend(a)
+                , std::cbegin(b));
 
-   if (!r)
-      throw std::runtime_error(msg);
-
-   msg += "equal ok.";
-   std::cout << msg << std::endl;
+   if (r)
+     std::cout << "Success" << std::endl;
+   else
+     std::cout << "Error" << std::endl;
 }
 
-void rpush_lrange()
+awaitable<void> test1()
 {
-   session<tcp::socket>::sentinel_config scfg
-   {{ "127.0.0.1", "26377"
-    , "127.0.0.1", "26378"
-    , "127.0.0.1", "26379"
-    }
-   , "mymaster" // Instance name
-   , "master" // Instance role
-   };
+   auto ex = co_await this_coro::executor;
 
-   session<tcp::socket>::config cfg
-   { scfg
-   , 4
-   , log::level::info
-   };
+   tcp::resolver resv(ex);
+   auto const rr = resv.resolve("127.0.0.1", "6379");
 
-   net::io_context ioc;
-   session<tcp::socket> ss {ioc, cfg};
+   tcp_socket socket {ex};
+   co_await async_connect(socket, rr);
 
-   std::array<std::string, 3> a
-   {"a1", "a2", "a3"};
+   std::vector<std::vector<std::string>> r;
+   resp::pipeline p;
 
-   auto s = flushall()
-          + rpush("a", a)
-          + lrange("a")
-          + ping();
+   p.flushall();
+   r.push_back({"OK"});
 
-   auto const cycle = 4;
-   auto const repeat = 32;
+   p.ping();
+   r.push_back({"PONG"});
 
-   for (auto i = 0; i < repeat; ++i)
-      ss.send(s);
+   p.rpush("a", std::list<std::string>{"1" ,"2", "3"});
+   r.push_back({"3"});
 
-   auto const size = repeat * cycle;
-   auto handler = [&, size, i = 0](auto ec, auto res) mutable
-   {
-      if (ec) {
-         std::cerr << "Error: " << ec.message() << std::endl;
-         return;
-      }
+   p.rpush("a", std::vector<std::string>{"4" ,"5", "6"});
+   r.push_back({"6"});
 
-      std::string const prefix = "Test: ";
+   p.rpush("a", std::set<std::string>{"7" ,"8", "9"});
+   r.push_back({"9"});
 
-      auto const f = i % cycle;
-      switch (f) {
-      case 0:
-      {
-         check_size(res, 1, prefix);
-         check_string(res.front(), "OK", prefix);
-      } break;
-      case 1:
-      {
-         check_size(res, 1, prefix);
-         check_string(res.front(), "3", prefix);
-      } break;
-      case 2:
-      {
-         check_equal( std::cbegin(res)
-                    , std::cend(res)
-                    , std::cbegin(a)
-                    , prefix);
-      } break;
-      case 3:
-      {
-         check_size(res, 1, prefix);
-         check_string(res.front(), "PONG", prefix);
+   p.rpush("a", std::initializer_list<std::string>{"10" ,"11", "12"});
+   r.push_back({"12"});
 
-         if (i == size - 1) {
-            ss.send(quit());
-            ss.disable_reconnect();
-         }
-      }
-      }
-      ++i;
-   };
+   p.lrange("a");
+   r.push_back({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"});
 
-   ss.set_msg_handler(handler);
+   p.lrange("a", 4, -5);
+   r.push_back({"5", "6", "7", "8"});
 
-   ss.run();
-   ioc.run();
+   p.ltrim("a", 4, -5);
+   r.push_back({"OK"});
+
+   p.lpop("a");
+   r.push_back({"5"});
+
+   p.lpop("a");
+   r.push_back({"6"});
+
+   p.quit();
+   r.push_back({"OK"});
+
+   co_await async_write(socket, buffer(p.payload));
+
+   resp::buffer buffer;
+   for (auto const& o : r) {
+     resp::response res;
+     co_await resp::async_read(socket, buffer, res);
+     check_equal(res.res, o);
+   }
+}
+
+awaitable<void> resp3()
+{
+   auto ex = co_await this_coro::executor;
+
+   tcp::resolver resv(ex);
+   auto const rr = resv.resolve("127.0.0.1", "6379");
+
+   tcp_socket socket {ex};
+   co_await async_connect(socket, rr);
+
+   std::vector<std::vector<std::string>> r;
+   resp::pipeline p;
+
+   p.hello("3");
+   r.push_back({"OK"});
+
+   p.quit();
+   r.push_back({"OK"});
+
+   co_await async_write(socket, buffer(p.payload));
+
+   resp::buffer buffer;
+   for (auto const& o : r) {
+     resp::response res;
+     co_await resp::async_read(socket, buffer, res);
+     resp::print(res.res);
+     check_equal(res.res, o);
+   }
 }
 
 struct initiate_async_receive {
@@ -207,31 +192,6 @@ void send(std::string cmd)
    ioc.run();
 }
 
-void test5()
-{
-   net::io_context ioc {1};
-   tcp::socket socket {ioc};
-
-   sentinel_op2<tcp::socket>::config cfg
-   { {"127.0.0.1", "26377", "127.0.0.1", "26378", "127.0.0.1", "26379"}
-   , {"mymaster"} 
-   , {"master"}
-   };
-
-   instance inst;
-   auto f = [&](auto ec)
-   {
-     instance expected {"127.0.0.1", "6379", "mymaster"};
-     if (inst == expected)
-       std::cout << "Success: async_get_instance2" << std::endl;
-     else
-       std::cout << "Error: async_get_instance2" << std::endl;
-   };
-
-   async_get_instance2(socket, cfg, inst, f);
-   ioc.run();
-}
-
 void offline()
 {
    // Redis answer - Expected vector.
@@ -257,9 +217,11 @@ void offline()
 
 int main(int argc, char* argv[])
 {
-   rpush_lrange();
-   test5();
+   //send(ping());
    offline();
-   send(ping());
+   io_context ioc {1};
+   co_spawn(ioc, test1(), detached);
+   //co_spawn(ioc, resp3(), detached);
+   ioc.run();
 }
 

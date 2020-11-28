@@ -4,8 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
+
 CPPFLAGS =
 CPPFLAGS +=  -g
+CPPFLAGS +=  -std=c++20
+CPPFLAGS +=  -fcoroutines
 CPPFLAGS += -I/opt/boost_1_74_0/include
 CPPFLAGS += -D BOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
 CPPFLAGS += -D BOOST_ASIO_NO_DEPRECATED 
@@ -22,10 +26,10 @@ Makefile.dep:
 -include Makefile.dep
 
 examples: examples.cpp
-	$(CXX) -o $@ $^ -std=c++20 $(CPPFLAGS) $(LDFLAGS) -fcoroutines
+	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
 
 tests: % : tests.cpp
-	$(CXX) -o $@ $^ -std=c++17 $(CPPFLAGS) $(LDFLAGS)
+	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
 
 .PHONY: clean
 clean:

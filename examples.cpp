@@ -28,17 +28,35 @@ awaitable<void> example1()
    tcp_socket socket {ex};
    co_await async_connect(socket, r);
 
-   resp::pipeline pl;
-   pl.ping();
-   pl.quit();
+   std::list<std::string> list
+   {"one" ,"two", "three"};
 
-   co_await async_write(socket, buffer(pl.payload));
+   std::map<std::string, std::string> map
+   { {{"Name"},      {"Marcelo"}} 
+   , {{"Education"}, {"Physics"}}
+   , {{"Job"},       {"Programmer"}}
+   };
+
+   resp::pipeline p;
+   p.rpush("list", list);
+   p.lrange("list");
+   p.del("list");
+   p.hset("map", map);
+   p.hincrby("map", "Age", 40);
+   p.hmget("map", {"Name", "Education", "Job"});
+   p.hvals("map");
+   p.hlen("map");
+   p.hgetall("map");
+   p.quit();
+
+   co_await async_write(socket, buffer(p.payload));
 
    resp::buffer buffer;
-   resp::response res;
-   co_await resp::async_read(socket, buffer, res);
-
-   resp::print(res.res);
+   for (;;) {
+      resp::response res;
+      co_await resp::async_read(socket, buffer, res);
+      resp::print(res.res);
+   }
 }
 
 awaitable<void> example2()
@@ -51,15 +69,10 @@ awaitable<void> example2()
    tcp_socket socket {ex};
    co_await async_connect(socket, r);
 
-   resp::pipeline pl;
-   pl.multi();
-   pl.ping();
-   pl.incr("age");
-   pl.exec();
-   pl.quit();
+   resp::pipeline p;
+   p.subscribe("channel");
 
-   co_await async_write(socket, buffer(pl.payload));
-
+   co_await async_write(socket, buffer(p.payload));
    resp::buffer buffer;
    for (;;) {
       resp::response res;
@@ -69,81 +82,6 @@ awaitable<void> example2()
 }
 
 awaitable<void> example3()
-{
-   auto ex = co_await this_coro::executor;
-
-   tcp::resolver resv(ex);
-   auto const r = resv.resolve("127.0.0.1", "6379");
-
-   tcp_socket socket {ex};
-   co_await async_connect(socket, r);
-
-   std::list<std::string> a
-   {"one" ,"two", "three"};
-
-   std::set<std::string> b
-   {"a" ,"b", "c"};
-
-   std::map<std::string, std::string> c
-   { {{"Name"},      {"Marcelo"}} 
-   , {{"Education"}, {"Physics"}}
-   , {{"Job"},       {"Programmer"}}
-   };
-
-   std::map<int, std::string> d
-   { {1, {"foo"}} 
-   , {2, {"bar"}}
-   , {3, {"foobar"}}
-   };
-
-   auto cmd = rpush("a", a)
-            + lrange("a")
-            + del("a")
-            + rpush("b", b)
-            + lrange("b")
-            + del("b")
-            + hset("c", c)
-            + hincrby("c", "Age", 40)
-            + hmget("c", {"Name", "Education", "Job"})
-            + hvals("c")
-            + hlen("c")
-            + hgetall("c")
-            + zadd({"d"}, d)
-            + zrange("d")
-	    + quit()
-	    ;
-
-   co_await async_write(socket, buffer(cmd));
-
-   resp::buffer buffer;
-   for (;;) {
-      resp::response res;
-      co_await resp::async_read(socket, buffer, res);
-      resp::print(res.res);
-   }
-}
-
-awaitable<void> example4()
-{
-   auto ex = co_await this_coro::executor;
-
-   tcp::resolver resv(ex);
-   auto const r = resv.resolve("127.0.0.1", "6379");
-
-   tcp_socket socket {ex};
-   co_await async_connect(socket, r);
-
-   auto cmd = subscribe("channel");
-   co_await async_write(socket, buffer(cmd));
-   resp::buffer buffer;
-   for (;;) {
-      resp::response res;
-      co_await resp::async_read(socket, buffer, res);
-      resp::print(res.res);
-   }
-}
-
-awaitable<void> example5()
 {
    tcp_socket socket {co_await this_coro::executor};
 
@@ -157,44 +95,12 @@ awaitable<void> example5()
    co_await async_get_instance2(socket, cfg, inst);
 }
 
-awaitable<void> example6()
-{
-   auto ex = co_await this_coro::executor;
-
-   tcp::resolver resv(ex);
-   auto const r = resv.resolve("127.0.0.1", "6379");
-
-   tcp_socket socket {ex};
-   co_await async_connect(socket, r);
-
-   std::list<int> a
-      {1, 2, 3};
-
-   auto cmd = rpush("list", a)
-            + lrange("list")
-            + del("list")
-	    + quit()
-	    ;
-
-   co_await async_write(socket, buffer(cmd));
-
-   resp::buffer buffer;
-   for (;;) {
-      resp::response res;
-      co_await resp::async_read(socket, buffer, res);
-      resp::print(res.res);
-   }
-}
-
 int main()
 {
    io_context ioc {1};
    co_spawn(ioc, example1(), detached);
    co_spawn(ioc, example2(), detached);
    co_spawn(ioc, example3(), detached);
-   co_spawn(ioc, example4(), detached);
-   co_spawn(ioc, example5(), detached);
-   co_spawn(ioc, example6(), detached);
    ioc.run();
 }
 
