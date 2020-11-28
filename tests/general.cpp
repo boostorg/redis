@@ -5,7 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include "aedis.hpp"
+#include <aedis/aedis.hpp>
 
 namespace net = aedis::net;
 using tcp = net::ip::tcp;

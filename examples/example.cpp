@@ -6,8 +6,7 @@
  */
 
 #include <boost/asio.hpp>
-
-#include "aedis.hpp"
+#include <aedis/aedis.hpp>
 
 namespace net = aedis::net;
 using tcp = net::ip::tcp;

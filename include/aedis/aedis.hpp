@@ -29,9 +29,6 @@
 
 #include <boost/asio.hpp>
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-
 namespace aedis
 {
 
@@ -543,7 +540,7 @@ void write(level filter, level ll, char const* fmt, Args const& ... args)
    if (ll > filter)
       return;
 
-   std::clog << fmt::format(fmt, args...) << std::endl;
+   //std::clog << std::format(fmt, args...) << std::endl;
 }
 
 }

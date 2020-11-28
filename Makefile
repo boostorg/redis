@@ -4,34 +4,38 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
+#CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
 
 CPPFLAGS =
 CPPFLAGS +=  -g
 CPPFLAGS +=  -std=c++20
 CPPFLAGS +=  -fcoroutines
 CPPFLAGS += -I/opt/boost_1_74_0/include
+CPPFLAGS += -I./include
 CPPFLAGS += -D BOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
 CPPFLAGS += -D BOOST_ASIO_NO_DEPRECATED 
 CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS 
 
 LDFLAGS += -pthread
-LDFLAGS += -lfmt
 
-all: examples tests
+all: example general
 
 Makefile.dep:
-	-$(CXX) -MM ./*.cpp > $@
+	-$(CXX) -MM ./examples/*.cpp ./tests/*.cpp> $@
 
 -include Makefile.dep
 
-examples: examples.cpp
+example: examples/example.cpp
 	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
 
-tests: % : tests.cpp
+general: % : tests/general.cpp
 	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
+
+.PHONY: check
+check: general
+	./general
 
 .PHONY: clean
 clean:
-	rm -f examples examples.o tests tests.o Makefile.dep
+	rm -f example example.o general general.o Makefile.dep
 
