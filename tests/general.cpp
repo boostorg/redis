@@ -130,18 +130,6 @@ struct test_handler {
    }
 };
 
-void send(std::string cmd)
-{
-   net::io_context ioc;
-   session<tcp::socket> s {ioc};
-
-   s.send(std::move(cmd));
-   s.disable_reconnect();
-
-   s.run();
-   ioc.run();
-}
-
 net::awaitable<void> offline()
 {
    // Redis answer - Expected vector.
@@ -167,7 +155,6 @@ net::awaitable<void> offline()
 
 int main(int argc, char* argv[])
 {
-   //send(ping());
    net::io_context ioc {1};
    co_spawn(ioc, offline(), net::detached);
    co_spawn(ioc, test1(), net::detached);

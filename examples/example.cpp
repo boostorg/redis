@@ -27,9 +27,6 @@ net::awaitable<void> example1()
    tcp_socket socket {ex};
    co_await async_connect(socket, r);
 
-   std::list<std::string> list
-   {"one" ,"two", "three"};
-
    std::map<std::string, std::string> map
    { {{"Name"},      {"Marcelo"}} 
    , {{"Education"}, {"Physics"}}
@@ -37,15 +34,9 @@ net::awaitable<void> example1()
    };
 
    resp::pipeline p;
-   p.rpush("list", list);
-   p.lrange("list");
-   p.del("list");
    p.hset("map", map);
    p.hincrby("map", "Age", 40);
    p.hmget("map", {"Name", "Education", "Job"});
-   p.hvals("map");
-   p.hlen("map");
-   p.hgetall("map");
    p.quit();
 
    co_await async_write(socket, buffer(p.payload));
