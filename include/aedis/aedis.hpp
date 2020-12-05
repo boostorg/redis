@@ -50,7 +50,7 @@ struct response {
    void clear()
       { res.clear(); }
 
-   auto size()
+   auto size() const noexcept
       { return std::size(res); }
 };
 
@@ -149,7 +149,7 @@ void assemble(std::string& ret, char const* cmd, std::string const& key)
 
 // Converts a decimal number in ascii format to integer.
 inline
-std::size_t get_length(char const* p)
+std::size_t make_length(char const* p)
 {
    std::size_t len = 0;
    while (*p != '\r') {
@@ -194,6 +194,97 @@ struct parse_op {
    int sizes[6] = {2, 1, 1, 1, 1, 1}; // Streaming will require a bigger integer.
    bool bulky = false;
 
+   void on_array(int m = 1)
+   {
+      auto const l = make_length(buf->data() + 1);
+      if (l == 0) {
+	 --sizes[depth];
+      } else {
+	 sizes[++depth] = m * l;
+      }
+   }
+
+   void on_push()
+      { on_array(1); }
+
+   void on_set()
+      { on_array(1); }
+
+   void on_map()
+      { on_array(2); }
+
+   void on_attribute()
+      { on_array(2); }
+
+   void on_null()
+   {
+      res->add();
+      --sizes[depth];
+   }
+
+   void on_simple_string(std::size_t n)
+   {
+      res->add({&(*buf)[1], n - 3});
+      --sizes[depth];
+   }
+
+   void on_simple_error(std::size_t n)
+      { on_simple_string(n); }
+
+   void on_number(std::size_t n)
+      { on_simple_string(n); }
+
+   void on_double(std::size_t n)
+      { on_simple_string(n); }
+
+   void on_boolean(std::size_t n)
+      { on_simple_string(n); }
+
+   void on_big_number(std::size_t n)
+      { on_simple_string(n); }
+
+   auto on_blob_error()
+   {
+      if (buf->compare(1, 2, "-1") == 0 || buf->compare(1, 1, "0") == 0) {
+	 res->add();
+	 --sizes[depth];
+	 return false;
+      }
+
+      return true;
+   }
+
+   auto on_verbatim_string()
+   {
+      // Throw if size is less than 4?
+      return on_blob_error();
+   }
+
+   auto on_blob_string()
+   {
+      if (buf->compare(1, 1, "?") == 0) {
+	 sizes[++depth] = std::numeric_limits<int>::max();
+	 return false;
+      }
+
+      return on_blob_error();
+   }
+
+   auto on_stream_string_size()
+   {
+      if (buf->compare(1, 1, "0") == 0) {
+	 sizes[depth] = 0;
+	 return false;
+      }
+      return true;
+   }
+
+   void on_blob_string_payload(std::size_t n)
+   {
+      res->add({&buf->front(), n - 2});
+      --sizes[depth];
+   }
+
    template <class Self>
    void operator()( Self& self
                   , boost::system::error_code ec = {}
@@ -212,72 +303,28 @@ struct parse_op {
             if (ec || n < 3)
                return self.complete(ec);
 
-            auto str_flag = false;
+            auto next = false;
             if (bulky) {
-               res->add({&buf->front(), n - 2});
-               --sizes[depth];
+	       on_blob_string_payload(n);
             } else {
                if (sizes[depth] != 0) {
                   switch (buf->front()) {
-                     case '!':
-		     case '=': // Throw if size is less than 4?
-                     case '$':
-                     {
-			if (buf->compare(1, 1, "?") == 0) {
-			   // Only meant for $
-			   sizes[++depth] = std::numeric_limits<int>::max();
-			} else {
-			   if (buf->compare(1, 2, "-1") == 0 || buf->compare(1, 1, "0")== 0) {
-			      res->add();
-			      --sizes[depth];
-			   } else {
-			      str_flag = true;
-			   }
-			}
-                     } break;
-                     case '+':
-                     case '-':
-                     case ':':
-                     case ',':
-                     case '#':
-                     case '(':
-                     {
-                        res->add({&(*buf)[1], n - 3});
-                        --sizes[depth];
-                     } break;
-                     case '_':
-                     {
-                        res->add({});
-                        --sizes[depth];
-                     } break;
-                     case '>':
-                     case '~':
-                     case '*':
-                     {
-			auto l = get_length(buf->data() + 1);
-			if (l == 0) {
-			   --sizes[depth];
-			} else {
-			   sizes[++depth] = l;
-			}
-                     } break;
-                     case '|':
-                     case '%':
-                     {
-			auto l = get_length(buf->data() + 1);
-			if (l == 0) {
-			   --sizes[depth];
-			} else {
-			   sizes[++depth] = 2 * l;
-			}
-                     } break;
-                     case ';':
-		     {
-			if (buf->compare(1, 1, "0") == 0)
-			   sizes[depth] = 0;
-			else
-			   str_flag = true;
-		     } break;
+                     case '!': next = on_blob_error(); break;
+		     case '=': next = on_verbatim_string(); break; 
+                     case '$': next = on_blob_string(); break;
+                     case '-': on_simple_error(n); break;
+                     case ':': on_number(n); break;
+                     case ',': on_double(n); break;
+                     case '#': on_boolean(n); break;
+                     case '(': on_big_number(n); break;
+                     case '+': on_simple_string(n); break;
+                     case '_': on_null(); break;
+                     case '>': on_push(); break;
+                     case '~': on_set(); break;
+                     case '*': on_array(); break;
+                     case '|': on_attribute(); break;
+                     case '%': on_map(); break;
+                     case ';': next = on_stream_string_size(); break;
                      default:
                         assert(false);
                   }
@@ -290,12 +337,12 @@ struct parse_op {
             while (sizes[depth] == 0)
                --sizes[--depth];
 
-            if (depth == 0 && !str_flag) {
+            if (depth == 0 && !next) {
                //std::cout << std::endl;
                return self.complete({});
             }
 
-            bulky = str_flag;
+            bulky = next;
          }
       }
    }
