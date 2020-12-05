@@ -134,11 +134,30 @@ net::awaitable<void> offline()
 {
    // Redis answer - Expected vector.
    std::vector<std::pair<std::string, std::vector<std::string>>> payloads
-   { {{"+OK\r\n"},                                         {"OK"}}
-   , {{":3\r\n"},                                          {"3"}}
-   , {{"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"}, {"one", "two", "three"}}
-   , {{"$2\r\nhh\r\n"},                                    {"hh"}}
-   , {{"-Error\r\n"},                                      {"Error"}}
+   { {{"+OK\r\n"},                                           {"OK"}}
+   , {{":3\r\n"},                                            {"3"}}
+   , {{"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"},   {"one", "two", "three"}}
+   , {{"*0\r\n"},                                            {}}
+   , {{"$2\r\nhh\r\n"},                                      {"hh"}}
+   , {{"$0\r\n"},                                            {""}}
+   , {{"-Error\r\n"},                                        {"Error"}}
+   , {{",1.23\r\n"},                                         {"1.23"}}
+   , {{",inf\r\n"},                                          {"inf"}}
+   , {{",-inf\r\n"},                                         {"-inf"}}
+   , {{"#f\r\n"},                                            {"f"}}
+   , {{"#t\r\n"},                                            {"t"}}
+   , {{"!21\r\nSYNTAX invalid syntax\r\n"},                  {"SYNTAX invalid syntax"}}
+   , {{"!0\r\n"},                                            {""}}
+   , {{"=15\r\ntxt:Some string\r\n"},                        {"txt:Some string"}}
+   , {{"(3492890328409238509324850943850943825024385\r\n"},  {"3492890328409238509324850943850943825024385"}}
+   , {{"~5\r\n+orange\r\n+apple\r\n#t\r\n:100\r\n:999\r\n"}, {"orange", "apple", "t", "100", "999"}}
+   , {{"~0\r\n"},                                            {}}
+   , {{"%7\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n6.0.9\r\n$5\r\nproto\r\n:3\r\n$2\r\nid\r\n:203\r\n$4\r\nmode\r\n$10\r\nstandalone\r\n$4\r\nrole\r\n$6\r\nmaster\r\n$7\r\nmodules\r\n*0\r\n"}, {"server", "redis", "version", "6.0.9", "proto", "3", "id", "203", "mode", "standalone", "role", "master", "modules"}}
+   , {{"%0\r\n"}, {}}
+   , {{"|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"}, {"key-popularity", "a", "0.1923", "b", "0.0012"}}
+   , {{">4\r\n+pubsub\r\n+message\r\n+foo\r\n+bar\r\n"}, {"pubsub", "message", "foo", "bar"}}
+   , {{">0\r\n"}, {}}
+   , {{"$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"}, {"Hell", "o wor", "d"}}
    };
 
    resp::buffer buffer;
@@ -146,10 +165,13 @@ net::awaitable<void> offline()
       test_tcp_socket ts {e.first};
       resp::response res;
       co_await resp::async_read(ts, buffer, res);
-      if (e.second != res.res)
-        std::cout << "Error" << std::endl;
-      else
+      if (e.second != res.res) {
+        std::cout
+	   << "Error: " << std::size(e.second)
+	   << " " << std::size(res.res) << std::endl;
+      } else {
         std::cout << "Success: Offline tests." << std::endl;
+      }
    }
 }
 
@@ -158,7 +180,7 @@ int main(int argc, char* argv[])
    net::io_context ioc {1};
    co_spawn(ioc, offline(), net::detached);
    co_spawn(ioc, test1(), net::detached);
-   //co_spawn(ioc, resp3(), detached);
+   //co_spawn(ioc, resp3(), net::detached);
    ioc.run();
 }
 

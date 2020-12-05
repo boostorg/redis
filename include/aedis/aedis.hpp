@@ -44,7 +44,7 @@ using buffer = std::string;
 struct response {
    std::vector<std::string> res;
 
-   void add(std::string_view s)
+   void add(std::string_view s = {})
       { res.emplace_back(s.data(), std::size(s)); }
 
    void clear()
@@ -191,12 +191,12 @@ struct parse_op {
    resp::response* res = nullptr;
    int start = 1;
    int depth = 0;
-   int sizes[6] = {2, 1, 1, 1, 1, 1};
+   int sizes[6] = {2, 1, 1, 1, 1, 1}; // Streaming will require a bigger integer.
    bool bulky = false;
 
    template <class Self>
    void operator()( Self& self
-                  , boost::system::error_code const& ec = {}
+                  , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
       switch (start) {
@@ -219,35 +219,71 @@ struct parse_op {
             } else {
                if (sizes[depth] != 0) {
                   switch (buf->front()) {
+                     case '!':
+		     case '=': // Throw if size is less than 4?
                      case '$':
                      {
-                        // We may want to consider not pushing in the vector
-                        // but find a way to report nil.
-                        if (buf->compare(1, 2, "-1") == 0) {
-                           res->add({});
-                           --sizes[depth];
-                        } else {
-                           str_flag = true;
-                        }
+			if (buf->compare(1, 1, "?") == 0) {
+			   // Only meant for $
+			   sizes[++depth] = std::numeric_limits<int>::max();
+			} else {
+			   if (buf->compare(1, 2, "-1") == 0 || buf->compare(1, 1, "0")== 0) {
+			      res->add();
+			      --sizes[depth];
+			   } else {
+			      str_flag = true;
+			   }
+			}
                      } break;
                      case '+':
                      case '-':
                      case ':':
+                     case ',':
+                     case '#':
+                     case '(':
                      {
                         res->add({&(*buf)[1], n - 3});
                         --sizes[depth];
                      } break;
+                     case '_':
+                     {
+                        res->add({});
+                        --sizes[depth];
+                     } break;
+                     case '>':
+                     case '~':
                      case '*':
                      {
-                        sizes[++depth] = get_length(buf->data() + 1);
+			auto l = get_length(buf->data() + 1);
+			if (l == 0) {
+			   --sizes[depth];
+			} else {
+			   sizes[++depth] = l;
+			}
                      } break;
+                     case '|':
+                     case '%':
+                     {
+			auto l = get_length(buf->data() + 1);
+			if (l == 0) {
+			   --sizes[depth];
+			} else {
+			   sizes[++depth] = 2 * l;
+			}
+                     } break;
+                     case ';':
+		     {
+			if (buf->compare(1, 1, "0") == 0)
+			   sizes[depth] = 0;
+			else
+			   str_flag = true;
+		     } break;
                      default:
                         assert(false);
                   }
                }
             }
 
-            
             //print_command_raw(*buf, n);
             buf->erase(0, n);
 

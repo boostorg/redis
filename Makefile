@@ -7,7 +7,7 @@
 #CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
 
 CPPFLAGS =
-CPPFLAGS +=  -g
+CPPFLAGS +=  -g -O0
 CPPFLAGS +=  -std=c++20
 CPPFLAGS +=  -fcoroutines
 CPPFLAGS += -I/opt/boost_1_74_0/include
