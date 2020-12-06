@@ -20,7 +20,8 @@ using namespace aedis;
 
 void check_equal(
    std::vector<std::string> const& a,
-   std::vector<std::string> const& b)
+   std::vector<std::string> const& b,
+   std::string const& msg = "")
 {
    auto const r =
       std::equal( std::cbegin(a)
@@ -28,12 +29,12 @@ void check_equal(
                 , std::cbegin(b));
 
    if (r)
-     std::cout << "Success" << std::endl;
+     std::cout << "Success: " << msg << std::endl;
    else
-     std::cout << "Error" << std::endl;
+     std::cout << "Error: " << msg << std::endl;
 }
 
-net::awaitable<void> test1()
+net::awaitable<void> test1(int version)
 {
    auto ex = co_await this_coro::executor;
 
@@ -43,44 +44,49 @@ net::awaitable<void> test1()
    tcp_socket socket {ex};
    co_await async_connect(socket, rr);
 
-   std::vector<std::vector<std::string>> r;
+   std::vector<std::pair<std::vector<std::string>, std::string>> r;
    resp::pipeline p;
+
+   if (version == 3) {
+      p.hello("3");
+      r.push_back({{"server", "redis", "version", "6.0.9", "proto", "3", "id", "203", "mode", "standalone", "role", "master", "modules"}, "hello"});
+   }
 
    p.flushall();
-   r.push_back({"OK"});
+   r.push_back({{"OK"}, "flushall"});
 
    p.ping();
-   r.push_back({"PONG"});
+   r.push_back({{"PONG"}, "ping"});
 
    p.rpush("a", std::list<std::string>{"1" ,"2", "3"});
-   r.push_back({"3"});
+   r.push_back({{"3"}, "rpush (std::list)"});
 
    p.rpush("a", std::vector<std::string>{"4" ,"5", "6"});
-   r.push_back({"6"});
+   r.push_back({{"6"}, "rpush (std::vector)"});
 
    p.rpush("a", std::set<std::string>{"7" ,"8", "9"});
-   r.push_back({"9"});
+   r.push_back({{"9"}, "rpush (std::set)"});
 
    p.rpush("a", std::initializer_list<std::string>{"10" ,"11", "12"});
-   r.push_back({"12"});
+   r.push_back({{"12"}, "rpush (std::initializer_list)"});
 
    p.lrange("a");
-   r.push_back({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"});
+   r.push_back({{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"}, "lrange"});
 
    p.lrange("a", 4, -5);
-   r.push_back({"5", "6", "7", "8"});
+   r.push_back({{"5", "6", "7", "8"}, "lrange"});
 
    p.ltrim("a", 4, -5);
-   r.push_back({"OK"});
+   r.push_back({{"OK"}, "ltrim"});
 
    p.lpop("a");
-   r.push_back({"5"});
+   r.push_back({{"5"}, "lpop"});
 
    p.lpop("a");
-   r.push_back({"6"});
+   r.push_back({{"6"}, "lpop"});
 
    p.quit();
-   r.push_back({"OK"});
+   r.push_back({{"OK"}, "quit"});
 
    co_await async_write(socket, net::buffer(p.payload));
 
@@ -88,37 +94,7 @@ net::awaitable<void> test1()
    for (auto const& o : r) {
      resp::response res;
      co_await resp::async_read(socket, buffer, res);
-     check_equal(res.res, o);
-   }
-}
-
-net::awaitable<void> resp3()
-{
-   auto ex = co_await this_coro::executor;
-
-   tcp::resolver resv(ex);
-   auto const rr = resv.resolve("127.0.0.1", "6379");
-
-   tcp_socket socket {ex};
-   co_await async_connect(socket, rr);
-
-   std::vector<std::vector<std::string>> r;
-   resp::pipeline p;
-
-   p.hello("3");
-   r.push_back({"OK"});
-
-   p.quit();
-   r.push_back({"OK"});
-
-   co_await async_write(socket, net::buffer(p.payload));
-
-   resp::buffer buffer;
-   for (auto const& o : r) {
-     resp::response res;
-     co_await resp::async_read(socket, buffer, res);
-     resp::print(res.res);
-     check_equal(res.res, o);
+     check_equal(res.res, o.first, o.second);
    }
 }
 
@@ -179,8 +155,8 @@ int main(int argc, char* argv[])
 {
    net::io_context ioc {1};
    co_spawn(ioc, offline(), net::detached);
-   co_spawn(ioc, test1(), net::detached);
-   //co_spawn(ioc, resp3(), net::detached);
+   co_spawn(ioc, test1(2), net::detached);
+   co_spawn(ioc, test1(3), net::detached);
    ioc.run();
 }
 
