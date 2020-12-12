@@ -45,7 +45,7 @@ net::awaitable<void> example1()
    for (;;) {
       resp::response res;
       co_await resp::async_read(socket, buffer, res);
-      resp::print(res.res);
+      resp::print(res.result);
    }
 }
 
@@ -67,36 +67,12 @@ net::awaitable<void> example2()
    for (;;) {
       resp::response res;
       co_await resp::async_read(socket, buffer, res);
-      resp::print(res.res);
+      resp::print(res.result);
    }
-}
-
-void example4()
-{
-   io_context ioc {1};
-   auto ex = ioc.get_executor();
-   tcp::resolver resv(ex);
-   auto const r = resv.resolve("127.0.0.1", "6379");
-
-   tcp::socket socket {ex};
-   net::connect(socket, r);
-
-   resp::pipeline p;
-   p.ping();
-
-   net::write(socket, buffer(p.payload));
-
-   resp::buffer buffer;
-   resp::response res;
-   boost::system::error_code ec;
-   resp::read(socket, buffer, res, ec);
-   resp::print(res.res);
-   ioc.run();
 }
 
 int main()
 {
-   example4();
    io_context ioc {1};
    co_spawn(ioc, example1(), detached);
    co_spawn(ioc, example2(), detached);

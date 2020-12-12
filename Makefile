@@ -18,14 +18,17 @@ CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS
 
 LDFLAGS += -pthread
 
-all: example general
+all: sync async general
 
 Makefile.dep:
 	-$(CXX) -MM -I./include ./examples/*.cpp ./tests/*.cpp > $@
 
 -include Makefile.dep
 
-example: examples/example.cpp
+async: examples/async.cpp
+	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
+
+sync: examples/sync.cpp
 	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
 
 general: % : tests/general.cpp
@@ -37,5 +40,5 @@ check: general
 
 .PHONY: clean
 clean:
-	rm -f example example.o general general.o Makefile.dep
+	rm -f sync sync.o async async.o general general.o Makefile.dep
 

@@ -41,16 +41,18 @@ namespace resp
 
 using buffer = std::string;
 
-struct response {
+// General purpose response. Copies the string reponses in the result
+// vector.
+struct response_vector {
 private:
    void add(std::string_view s = {})
-      { res.emplace_back(s.data(), std::size(s)); }
+      { result.emplace_back(s.data(), std::size(s)); }
 
 public:
-   std::vector<std::string> res;
+   std::vector<std::string> result;
 
-   void clear() { res.clear(); }
-   auto size() const noexcept { return std::size(res); }
+   void clear() { result.clear(); }
+   auto size() const noexcept { return std::size(result); }
 
    void select_array(int n) { }
    void select_push(int n) { }
@@ -71,9 +73,11 @@ public:
    void on_streamed_string_part(std::string_view s = {}) { add(s); }
 };
 
+using response = response_vector;
+
 // Converts a decimal number in ascii format to an integer.
 inline
-std::size_t make_length(char const* p)
+std::size_t length(char const* p)
 {
    std::size_t len = 0;
    while (*p != '\r') {
@@ -124,7 +128,7 @@ private:
 
    auto on_array_impl(char const* data, int m = 1)
    {
-      auto const l = make_length(data + 1);
+      auto const l = length(data + 1);
       if (l == 0) {
 	 --sizes_[depth_];
 	 return l;
@@ -199,7 +203,7 @@ private:
 
    auto on_blob_error_impl(char const* data, bulk b)
    {
-      auto const l = make_length(data + 1);
+      auto const l = length(data + 1);
       if (l == -1 || l == 0) {
 	 on_bulk(b);
 	 return bulk::none;
@@ -355,9 +359,9 @@ public:
    }
 };
 
-template <class AsyncReadStream >
+template <class SyncReadStream>
 auto read(
-   AsyncReadStream& stream,
+   SyncReadStream& stream,
    resp::buffer& buf,
    resp::response& res,
    boost::system::error_code& ec)
@@ -376,7 +380,7 @@ start:
 	 auto const l = p.bulk_length();
 	 if (s < (l + 2)) {
 	    buf.resize(l + 2);
-	    n = net::read(stream, net::buffer(buf.data() + s, l + 2 - s), net::transfer_all());
+	    n = net::read(stream, net::buffer(buf.data() + s, l + 2 - s));
 	    if (ec || n < 2)
 	       return n;
 	 }
@@ -386,6 +390,22 @@ start:
 
       buf.erase(0, n);
    } while (!p.done());
+
+   return n;
+}
+
+template<class SyncReadStream>
+std::size_t
+read(
+   SyncReadStream& stream,
+   resp::buffer& buf,
+   resp::response& res)
+{
+   boost::system::error_code ec;
+   auto const n = read(stream, buf, res, ec);
+
+   if (ec)
+       BOOST_THROW_EXCEPTION(boost::system::system_error{ec});
 
    return n;
 }

@@ -94,7 +94,7 @@ net::awaitable<void> test_list(int version)
    for (auto const& o : r) {
      resp::response res;
      co_await resp::async_read(socket, buffer, res);
-     check_equal(res.res, o.first, o.second);
+     check_equal(res.result, o.first, o.second);
    }
 }
 
@@ -159,7 +159,7 @@ net::awaitable<void> test_set(int version)
    for (auto const& o : r) {
      resp::response res;
      co_await resp::async_read(socket, buffer, res);
-     check_equal(res.res, o.first, o.second);
+     check_equal(res.result, o.first, o.second);
    }
 }
 
@@ -218,10 +218,10 @@ net::awaitable<void> offline()
       test_tcp_socket ts {e.first};
       resp::response res;
       co_await resp::async_read(ts, buffer, res);
-      if (e.second != res.res) {
+      if (e.second != res.result) {
         std::cout
 	   << "Error: " << std::size(e.second)
-	   << " " << std::size(res.res) << std::endl;
+	   << " " << std::size(res.result) << std::endl;
       } else {
         std::cout << "Success: Offline tests." << std::endl;
       }

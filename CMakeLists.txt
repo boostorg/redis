@@ -33,7 +33,7 @@ target_include_directories(aedis INTERFACE
 )
 
 if(AEDIS_BUILD_EXAMPLES)
-	add_executable(example examples/example.cpp)
+	add_executable(example examples/async.cpp)
 	target_link_libraries(example PRIVATE aedis::aedis)
 endif()
 
