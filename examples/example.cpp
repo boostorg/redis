@@ -71,26 +71,35 @@ net::awaitable<void> example2()
    }
 }
 
-net::awaitable<void> example3()
+void example4()
 {
-   tcp_socket socket {co_await this_coro::executor};
+   io_context ioc {1};
+   auto ex = ioc.get_executor();
+   tcp::resolver resv(ex);
+   auto const r = resv.resolve("127.0.0.1", "6379");
 
-   sentinel_op2<tcp_socket>::config cfg
-   { {"127.0.0.1", "26379"}
-   , {"mymaster"} 
-   , {"master"}
-   };
+   tcp::socket socket {ex};
+   net::connect(socket, r);
 
-   instance inst;
-   co_await async_get_instance2(socket, cfg, inst);
+   resp::pipeline p;
+   p.ping();
+
+   net::write(socket, buffer(p.payload));
+
+   resp::buffer buffer;
+   resp::response res;
+   boost::system::error_code ec;
+   resp::read(socket, buffer, res, ec);
+   resp::print(res.res);
+   ioc.run();
 }
 
 int main()
 {
+   example4();
    io_context ioc {1};
    co_spawn(ioc, example1(), detached);
    co_spawn(ioc, example2(), detached);
-   co_spawn(ioc, example3(), detached);
    ioc.run();
 }
 

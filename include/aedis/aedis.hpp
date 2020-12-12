@@ -270,7 +270,7 @@ public:
       return n;
    }
 
-   auto complete() const noexcept
+   auto done() const noexcept
      { return depth_ == 0 && bulk_ == bulk::none; }
 
    auto bulk() const noexcept
@@ -317,48 +317,78 @@ public:
                return;
             }
 
-            // On a bulk read we can't read until delimiter since the payload
-            // may contain the delimiter itself so we have to read the whole
-            // chunk. However if the bulk blob is small enough it may be already
-            // on the buffer buf_ we read last time. If it is, there is not need
-            // of initiating another async op otherwise we have to read the
-            // missing bytes.
+	    // On a bulk read we can't read until delimiter since the
+	    // payload may contain the delimiter itself so we have to
+	    // read the whole chunk. However if the bulk blob is small
+	    // enough it may be already on the buffer buf_ we read
+	    // last time. If it is, there is no need of initiating
+	    // another async op otherwise we have to read the
+	    // missing bytes.
             if (std::ssize(*buf_) < (parser_.bulk_length() + 2)) {
                start_ = 0;
-               // This is not compiling.
-               //net::async_read(
-               //   stream_,
-               //   net::dynamic_buffer(*buf_),
-               //   std::move(self));
-
-               auto const size = std::ssize(*buf_);
-               auto const read_size = parser_.bulk_length() + 2 - std::ssize(*buf_);
-               buf_->resize(parser_.bulk_length() + 2);
+	       auto const s = std::ssize(*buf_);
+	       auto const l = parser_.bulk_length();
+               buf_->resize(l + 2);
                net::async_read(
                   stream_,
-                  net::buffer(buf_->data() + size, read_size),
+                  net::buffer(buf_->data() + s, l + 2 - s),
                   net::transfer_all(),
                   std::move(self));
                return;
             }
 
             default:
+	    {
+	       // The condition below is wrong. it must be n < 3 for case 1 
+	       // and n < 2 for the async_read.
+	       if (ec || n < 3)
+		  return self.complete(ec);
 
-            if (ec || n < 3)
-               return self.complete(ec);
+	       n = parser_.advance(buf_->data(), n);
 
-            n = parser_.advance(buf_->data(), n);
-
-            //print_command_raw(*buf_, n);
-            buf_->erase(0, n);
-            if (parser_.complete()) {
-               //std::cout << std::endl;
-               return self.complete({});
-            }
+	       buf_->erase(0, n);
+	       if (parser_.done())
+		  return self.complete({});
+	    }
          }
       }
    }
 };
+
+template <class AsyncReadStream >
+auto read(
+   AsyncReadStream& stream,
+   resp::buffer& buf,
+   resp::response& res,
+   boost::system::error_code& ec)
+{
+   parser p {&res};
+   std::size_t n = 0;
+   goto start;
+   do {
+      if (p.bulk() == parser::bulk::none) {
+start:
+	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
+	 if (ec || n < 3)
+	    return n;
+      } else {
+	 auto const s = std::ssize(buf);
+	 auto const l = p.bulk_length();
+	 if (s < (l + 2)) {
+	    buf.resize(l + 2);
+	    n = net::read(stream, net::buffer(buf.data() + s, l + 2 - s), net::transfer_all());
+	    if (ec || n < 2)
+	       return n;
+	 }
+      }
+
+      n = p.advance(buf.data(), n);
+
+      buf.erase(0, n);
+   } while (!p.done());
+
+   return n;
+}
 
 template <
    class AsyncReadStream,
