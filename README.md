@@ -68,13 +68,13 @@ void sync_example2()
       resp::print(res.result);
    }
 }
+```
 
 In this example we add more commands to the pipeline, they will be all
 sent together to redis improving performance. Second we keep reading
 until the socket is closed by redis after it receives the quit
 command.
 
-```
 ### Async
 
 The sync examples above are good as introduction and can be also used
