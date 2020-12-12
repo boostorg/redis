@@ -12,7 +12,8 @@ namespace aedis {
 struct initiate_async_receive {
    using executor_type = aedis::net::system_executor;
 
-   std::string& payload;
+   std::string::const_iterator pbegin;
+   std::string::const_iterator pend;
 
    executor_type get_executor() noexcept
       { return aedis::net::system_executor(); }
@@ -22,7 +23,7 @@ struct initiate_async_receive {
       class MutableBufferSequence>
    void operator()(
       ReadHandler&& handler,
-      MutableBufferSequence const& buffers) const
+      MutableBufferSequence const& buffers)
    {
       boost::system::error_code ec;
       if (std::size(buffers) == 0) {
@@ -31,10 +32,20 @@ struct initiate_async_receive {
       }
 
       auto begin = boost::asio::buffer_sequence_begin(buffers);
-      assert(std::size(payload) <= std::size(*begin));
-      char* p = static_cast<char*>(begin->data());
-      std::copy(std::begin(payload), std::end(payload), p);
-      handler(ec, std::size(payload));
+      auto end = boost::asio::buffer_sequence_end(buffers);
+      //std::cout << "Buffers size: " << std::size(buffers) << std::endl;
+
+      std::size_t transferred = 0;
+      while (begin != end) {
+        //std::cout << "Buffer size: " << std::ssize(*begin) << std::endl;
+        auto const min = std::min(std::ssize(*begin), pend - pbegin);
+        std::copy(pbegin, pbegin + min, static_cast<char*>(begin->data()));
+        std::advance(pbegin, min);
+        transferred += min;
+        ++begin;
+      }
+
+      handler(ec, transferred);
    }
 };
 
@@ -55,7 +66,9 @@ struct test_stream {
     {
       return aedis::net::async_initiate<ReadHandler,
         void (boost::system::error_code, std::size_t)>(
-          initiate_async_receive{payload}, handler, buffers);
+          initiate_async_receive
+          {std::cbegin(payload), std::cend(payload)},
+           handler, buffers);
     }
 
     executor_type get_executor() noexcept

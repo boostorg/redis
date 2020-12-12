@@ -34,7 +34,7 @@ void check_equal(
      std::cout << "Error: " << msg << std::endl;
 }
 
-net::awaitable<void> test1(int version)
+net::awaitable<void> test_list(int version)
 {
    auto ex = co_await this_coro::executor;
 
@@ -98,6 +98,71 @@ net::awaitable<void> test1(int version)
    }
 }
 
+net::awaitable<void> test_set(int version)
+{
+   auto ex = co_await this_coro::executor;
+
+   tcp::resolver resv(ex);
+   auto const rr = resv.resolve("127.0.0.1", "6379");
+
+   tcp_socket socket {ex};
+   co_await async_connect(socket, rr);
+
+   std::vector<std::pair<std::vector<std::string>, std::string>> r;
+   resp::pipeline p;
+
+   if (version == 3) {
+      p.hello("3");
+      r.push_back({{"server", "redis", "version", "6.0.9", "proto", "3", "id", "203", "mode", "standalone", "role", "master", "modules"}, "hello"});
+   }
+
+   p.flushall();
+   r.push_back({{"OK"}, "flushall"});
+
+   { // Tests whether the parser can handle payloads that contain the separator.
+     std::string test_bulk(10000, 'a');
+     test_bulk[30] = '\r';
+     test_bulk[31] = '\n';
+
+     p.set("s", {test_bulk});
+     r.push_back({{"OK"}, "set"});
+
+     p.get("s");
+     r.push_back({{test_bulk}, "get"});
+   }
+
+   {
+     std::string test_bulk = "aaaaa";
+
+     p.set("s", {test_bulk});
+     r.push_back({{"OK"}, "set"});
+
+     p.get("s");
+     r.push_back({{test_bulk}, "get"});
+   }
+
+   { // Empty
+
+     p.set("s", {""});
+     r.push_back({{"OK"}, "set"});
+
+     p.get("s");
+     r.push_back({{""}, "get"});
+   }
+
+   p.quit();
+   r.push_back({{"OK"}, "quit"});
+
+   co_await async_write(socket, net::buffer(p.payload));
+
+   resp::buffer buffer;
+   for (auto const& o : r) {
+     resp::response res;
+     co_await resp::async_read(socket, buffer, res);
+     check_equal(res.res, o.first, o.second);
+   }
+}
+
 struct test_handler {
    void operator()(boost::system::error_code ec) const
    {
@@ -108,6 +173,15 @@ struct test_handler {
 
 net::awaitable<void> offline()
 {
+   std::string test_bulk(10000, 'a');
+
+   std::string bulk;
+   bulk += "$";
+   bulk += std::to_string(std::size(test_bulk));
+   bulk += "\r\n";
+   bulk += test_bulk;
+   bulk += "\r\n";
+
    // Redis answer - Expected vector.
    std::vector<std::pair<std::string, std::vector<std::string>>> payloads
    { {{"+OK\r\n"},                                           {"OK"}}
@@ -115,6 +189,7 @@ net::awaitable<void> offline()
    , {{"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"},   {"one", "two", "three"}}
    , {{"*0\r\n"},                                            {}}
    , {{"$2\r\nhh\r\n"},                                      {"hh"}}
+   , {{"$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"},         {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}}
    , {{"$0\r\n"},                                            {""}}
    , {{"-Error\r\n"},                                        {"Error"}}
    , {{",1.23\r\n"},                                         {"1.23"}}
@@ -134,6 +209,8 @@ net::awaitable<void> offline()
    , {{">4\r\n+pubsub\r\n+message\r\n+foo\r\n+bar\r\n"}, {"pubsub", "message", "foo", "bar"}}
    , {{">0\r\n"}, {}}
    , {{"$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"}, {"Hell", "o wor", "d"}}
+   , {{"$?\r\n;0\r\n"}, {}}
+   //, {{bulk}, {test_bulk}}
    };
 
    resp::buffer buffer;
@@ -155,8 +232,10 @@ int main(int argc, char* argv[])
 {
    net::io_context ioc {1};
    co_spawn(ioc, offline(), net::detached);
-   co_spawn(ioc, test1(2), net::detached);
-   co_spawn(ioc, test1(3), net::detached);
+   co_spawn(ioc, test_list(2), net::detached);
+   co_spawn(ioc, test_list(3), net::detached);
+   co_spawn(ioc, test_set(2), net::detached);
+   co_spawn(ioc, test_set(3), net::detached);
    ioc.run();
 }
 

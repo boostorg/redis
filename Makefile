@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
+CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
 
 CPPFLAGS =
 CPPFLAGS +=  -g -O0
@@ -21,7 +21,7 @@ LDFLAGS += -pthread
 all: example general
 
 Makefile.dep:
-	-$(CXX) -MM ./examples/*.cpp ./tests/*.cpp> $@
+	-$(CXX) -MM -I./include ./examples/*.cpp ./tests/*.cpp > $@
 
 -include Makefile.dep
 

@@ -51,22 +51,24 @@ public:
 
    void clear() { res.clear(); }
    auto size() const noexcept { return std::size(res); }
-   void array(int n) { }
-   void push(int n) { }
-   void set(int n) { }
-   void map(int n) { }
-   void attribute(int n) { }
-   void simple_string(std::string_view s) { add(s); }
-   void simple_error(std::string_view s) { add(s); }
-   void number(std::string_view s) { add(s); }
+
+   void select_array(int n) { }
+   void select_push(int n) { }
+   void select_set(int n) { }
+   void select_map(int n) { }
+   void select_attribute(int n) { }
+
+   void on_simple_string(std::string_view s) { add(s); }
+   void on_simple_error(std::string_view s) { add(s); }
+   void on_number(std::string_view s) { add(s); }
    void on_double(std::string_view s) { add(s); }
    void on_bool(std::string_view s) { add(s); }
-   void big_number(std::string_view s) { add(s); }
-   void null() { add(); }
-   void blob_error(std::string_view s = {}) { add(s); }
-   void verbatim_string(std::string_view s = {}) { add(s); }
-   void blob_string(std::string_view s = {}) { add(s); }
-   void streamed_string_part(std::string_view s = {}) { add(s); }
+   void on_big_number(std::string_view s) { add(s); }
+   void on_null() { add(); }
+   void on_blob_error(std::string_view s = {}) { add(s); }
+   void on_verbatim_string(std::string_view s = {}) { add(s); }
+   void on_blob_string(std::string_view s = {}) { add(s); }
+   void on_streamed_string_part(std::string_view s = {}) { add(s); }
 };
 
 // Converts a decimal number in ascii format to an integer.
@@ -103,11 +105,8 @@ void print_command_raw(std::string const& data, int n)
   }
 }
 
-// The parser supports up to 5 levels of nested structures. The first
-// element in the sizes stack is a sentinel and must be different from
-// 1.
-template <class AsyncReadStream>
-struct parse_op {
+class parser {
+public:
    enum class bulk
    { blob_error
    , verbatim_string 
@@ -116,176 +115,246 @@ struct parse_op {
    , none
    };
 
-   AsyncReadStream& socket;
-   resp::buffer* buf = nullptr;
-   resp::response* res = nullptr;
-   int start = 1;
-   int depth = 0;
-   int sizes[6] = {2, 1, 1, 1, 1, 1}; // Streaming will require a bigger integer.
+private:
+   resp::response* res_ = nullptr;
+   int depth_ = 0;
+   int sizes_[6] = {2, 1, 1, 1, 1, 1}; // Streaming will require a bigger integer.
    bulk bulk_ = bulk::none;
+   int bulk_length_ = std::numeric_limits<int>::max();
 
-   auto on_array_impl(int m = 1)
+   auto on_array_impl(char const* data, int m = 1)
    {
-      auto const l = make_length(buf->data() + 1);
+      auto const l = make_length(data + 1);
       if (l == 0) {
-	 --sizes[depth];
+	 --sizes_[depth_];
 	 return l;
       }
 
       auto const size = m * l;
-      sizes[++depth] = size;
+      sizes_[++depth_] = size;
       return size;
    }
 
-   void on_array()
-      { res->array(on_array_impl(1)); }
+   void on_array(char const* data)
+      { res_->select_array(on_array_impl(data, 1)); }
 
-   void on_push()
-      { res->push(on_array_impl(1)); }
+   void on_push(char const* data)
+      { res_->select_push(on_array_impl(data, 1)); }
 
-   void on_set()
-      { res->set(on_array_impl(1)); }
+   void on_set(char const* data)
+      { res_->select_set(on_array_impl(data, 1)); }
 
-   void on_map()
-      { res->map(on_array_impl(2)); }
+   void on_map(char const* data)
+      { res_->select_map(on_array_impl(data, 2)); }
 
-   void on_attribute()
-      { res->attribute(on_array_impl(2)); }
+   void on_attribute(char const* data)
+      { res_->select_attribute(on_array_impl(data, 2)); }
 
    void on_null()
-      { res->null(); --sizes[depth]; }
+      { res_->on_null(); --sizes_[depth_]; }
 
-   auto handle_simple_string(std::size_t n)
+   auto handle_simple_string(char const* data, std::size_t n)
    {
-      --sizes[depth];
-      return std::string_view {&(*buf)[1], n - 3};
+      --sizes_[depth_];
+      return std::string_view {data + 1, n - 3};
    }
 
-   void on_simple_string(std::size_t n)
-      { res->simple_string(handle_simple_string(n)); }
+   void on_simple_string(char const* data, std::size_t n)
+      { res_->on_simple_string(handle_simple_string(data, n)); }
 
-   void on_simple_error(std::size_t n)
-      { res->simple_error(handle_simple_string(n)); }
+   void on_simple_error(char const* data, std::size_t n)
+      { res_->on_simple_error(handle_simple_string(data, n)); }
 
-   void on_number(std::size_t n)
-      { res->number(handle_simple_string(n)); }
+   void on_number(char const* data, std::size_t n)
+      { res_->on_number(handle_simple_string(data, n)); }
 
-   void on_double(std::size_t n)
-      { res->on_double(handle_simple_string(n)); }
+   void on_double(char const* data, std::size_t n)
+      { res_->on_double(handle_simple_string(data, n)); }
 
-   void on_boolean(std::size_t n)
-      { res->on_bool(handle_simple_string(n)); }
+   void on_boolean(char const* data, std::size_t n)
+      { res_->on_bool(handle_simple_string(data, n)); }
 
-   void on_big_number(std::size_t n)
-      { res->big_number(handle_simple_string(n)); }
+   void on_big_number(char const* data, std::size_t n)
+      { res_->on_big_number(handle_simple_string(data, n)); }
 
    void on_bulk(bulk b, std::string_view s = {})
    {
       switch (b) {
-	 case bulk::blob_error: res->blob_error(s); break;
-	 case bulk::verbatim_string: res->verbatim_string(s); break;
-	 case bulk::blob_string: res->blob_string(s); break;
-	 case bulk::streamed_string_part: res->streamed_string_part(s); break;
+	 case bulk::blob_error: res_->on_blob_error(s); break;
+	 case bulk::verbatim_string: res_->on_verbatim_string(s); break;
+	 case bulk::blob_string: res_->on_blob_string(s); break;
+	 case bulk::streamed_string_part:
+         {
+           if (std::empty(s)) {
+              sizes_[depth_] = 1;
+           } else {
+              res_->on_streamed_string_part(s);
+           }
+         } break;
 	 default: assert(false);
       }
 
-      --sizes[depth];
+      --sizes_[depth_];
    }
 
-   auto on_blob_error_impl(bulk b)
+   auto on_blob_error_impl(char const* data, bulk b)
    {
-      if (buf->compare(1, 2, "-1") == 0 || buf->compare(1, 1, "0") == 0) {
+      auto const l = make_length(data + 1);
+      if (l == -1 || l == 0) {
 	 on_bulk(b);
 	 return bulk::none;
       }
 
+      bulk_length_ = l;
       return b;
    }
 
-   auto on_blob_error()
-      { return on_blob_error_impl(bulk::blob_error); }
+   auto on_streamed_string_size(char const* data)
+      { return on_blob_error_impl(data, bulk::streamed_string_part); }
 
-   auto on_verbatim_string()
-      { return on_blob_error_impl(bulk::verbatim_string); }
+   auto on_blob_error(char const* data)
+      { return on_blob_error_impl(data, bulk::blob_error); }
 
-   auto on_blob_string()
+   auto on_verbatim_string(char const* data)
+      { return on_blob_error_impl(data, bulk::verbatim_string); }
+
+   auto on_blob_string(char const* data)
    {
-      if (buf->compare(1, 1, "?") == 0) {
-	 sizes[++depth] = std::numeric_limits<int>::max();
+      if (*(data + 1) == '?') {
+	 sizes_[++depth_] = std::numeric_limits<int>::max();
 	 return bulk::none;
       }
 
-      return on_blob_error_impl(bulk::blob_string);
+      return on_blob_error_impl(data, bulk::blob_string);
    }
 
-   auto on_streamed_string_size()
+public:
+   parser(resp::response* res)
+   : res_ {res}
+   {}
+
+   std::size_t advance(char const* data, std::size_t n)
    {
-      if (buf->compare(1, 1, "0") == 0) {
-	 sizes[depth] = 0;
-	 return bulk::none;
+      auto next = bulk::none;
+      if (bulk_ != bulk::none) {
+         n = bulk_length_ + 2;
+         on_bulk(bulk_, {data, (std::size_t)bulk_length_});
+      } else {
+         if (sizes_[depth_] != 0) {
+            switch (*data) {
+               case '!': next = on_blob_error(data); break;
+               case '=': next = on_verbatim_string(data); break; 
+               case '$': next = on_blob_string(data); break;
+               case ';': next = on_streamed_string_size(data); break;
+               case '-': on_simple_error(data, n); break;
+               case ':': on_number(data, n); break;
+               case ',': on_double(data, n); break;
+               case '#': on_boolean(data, n); break;
+               case '(': on_big_number(data, n); break;
+               case '+': on_simple_string(data, n); break;
+               case '_': on_null(); break;
+               case '>': on_push(data); break;
+               case '~': on_set(data); break;
+               case '*': on_array(data); break;
+               case '|': on_attribute(data); break;
+               case '%': on_map(data); break;
+               default: assert(false);
+            }
+         }
       }
-
-      return bulk::streamed_string_part;
+      
+      while (sizes_[depth_] == 0)
+         --sizes_[--depth_];
+      
+      bulk_ = next;
+      return n;
    }
+
+   auto complete() const noexcept
+     { return depth_ == 0 && bulk_ == bulk::none; }
+
+   auto bulk() const noexcept
+     { return bulk_; }
+
+   auto bulk_length() const noexcept
+     { return bulk_length_; }
+};
+
+// The parser supports up to 5 levels of nested structures. The first
+// element in the sizes stack is a sentinel and must be different from
+// 1.
+template <class AsyncReadStream>
+class parse_op {
+private:
+   AsyncReadStream& stream_;
+   resp::buffer* buf_ = nullptr;
+   parser parser_;
+   int start_ = 1;
+
+public:
+   parse_op(AsyncReadStream& stream, resp::buffer* buf, resp::response* res)
+   : stream_ {stream}
+   , buf_ {buf}
+   , parser_ {res}
+   { }
 
    template <class Self>
    void operator()( Self& self
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
-      switch (start) {
+      switch (start_) {
          for (;;) {
-            case 1:
-            start = 0;
-            net::async_read_until( socket
-                                 , net::dynamic_buffer(*buf)
-                                 , "\r\n"
-                                 , std::move(self));
-            return; default:
+            if (parser_.bulk() == parser::bulk::none) {
+               case 1:
+               start_ = 0;
+               net::async_read_until(
+                  stream_,
+                  net::dynamic_buffer(*buf_),
+                  "\r\n",
+                  std::move(self));
+
+               return;
+            }
+
+            // On a bulk read we can't read until delimiter since the payload
+            // may contain the delimiter itself so we have to read the whole
+            // chunk. However if the bulk blob is small enough it may be already
+            // on the buffer buf_ we read last time. If it is, there is not need
+            // of initiating another async op otherwise we have to read the
+            // missing bytes.
+            if (std::ssize(*buf_) < (parser_.bulk_length() + 2)) {
+               start_ = 0;
+               // This is not compiling.
+               //net::async_read(
+               //   stream_,
+               //   net::dynamic_buffer(*buf_),
+               //   std::move(self));
+
+               auto const size = std::ssize(*buf_);
+               auto const read_size = parser_.bulk_length() + 2 - std::ssize(*buf_);
+               buf_->resize(parser_.bulk_length() + 2);
+               net::async_read(
+                  stream_,
+                  net::buffer(buf_->data() + size, read_size),
+                  net::transfer_all(),
+                  std::move(self));
+               return;
+            }
+
+            default:
 
             if (ec || n < 3)
                return self.complete(ec);
 
-            auto next = bulk::none;
-            if (bulk_ != bulk::none) {
-	       on_bulk(bulk_, {&buf->front(), n - 2});
-            } else {
-               if (sizes[depth] != 0) {
-                  switch (buf->front()) {
-                     case '!': next = on_blob_error(); break;
-		     case '=': next = on_verbatim_string(); break; 
-                     case '$': next = on_blob_string(); break;
-                     case '-': on_simple_error(n); break;
-                     case ':': on_number(n); break;
-                     case ',': on_double(n); break;
-                     case '#': on_boolean(n); break;
-                     case '(': on_big_number(n); break;
-                     case '+': on_simple_string(n); break;
-                     case '_': on_null(); break;
-                     case '>': on_push(); break;
-                     case '~': on_set(); break;
-                     case '*': on_array(); break;
-                     case '|': on_attribute(); break;
-                     case '%': on_map(); break;
-                     case ';': next = on_streamed_string_size(); break;
-                     default:
-                        assert(false);
-                  }
-               }
-            }
+            n = parser_.advance(buf_->data(), n);
 
-            //print_command_raw(*buf, n);
-            buf->erase(0, n);
-
-            while (sizes[depth] == 0)
-               --sizes[--depth];
-
-            if (depth == 0 && next == bulk::none) {
+            //print_command_raw(*buf_, n);
+            buf_->erase(0, n);
+            if (parser_.complete()) {
                //std::cout << std::endl;
                return self.complete({});
             }
-
-            bulk_ = next;
          }
       }
    }
