@@ -10,8 +10,6 @@
 #include <set>
 #include <list>
 #include <array>
-#include <deque>
-#include <queue>
 #include <vector>
 #include <string>
 #include <cstdio>
@@ -24,12 +22,25 @@
 #include <functional>
 #include <type_traits>
 #include <string_view>
-#include <forward_list>
-#include <unordered_set>
 #include <charconv>
 
 #include <boost/asio.hpp>
 
+template <class Iter>
+void print(Iter begin, Iter end)
+{
+   for (; begin != end; ++begin)
+     std::cout << *begin << " ";
+   std::cout << std::endl;
+}
+
+template <class Range>
+void print(Range const& v)
+{
+   using std::cbegin;
+   using std::cend;
+   print(cbegin(v), cend(v));
+}
 namespace aedis
 {
 
@@ -63,38 +74,43 @@ struct response_throw {
 };
 
 template <class T>
-T to_number(std::string_view s)
+std::enable_if<std::is_integral<T>::value, void>::type
+from_string_view(std::string_view s, T& n)
 {
-   T n;
-   auto r = std::from_chars(s.data(),
-			    s.data() + s.size(),
-			    n);
-
+   auto r = std::from_chars(s.data(), s.data() + s.size(), n);
    if (r.ec == std::errc::invalid_argument)
-      throw std::runtime_error("Unable to convert");
-
-   return n;
+      throw std::runtime_error("from_chars: Unable to convert");
 }
 
-template <class T>
-struct converter {
-   template <class U = std::enable_if<std::is_integral<T>::value, T>::type>
-   static T apply(std::string_view s, U = {})
-      { return to_number<T>(s); }
-};
-
-template <>
-struct converter<std::string> {
-   static std::string apply(std::string_view s)
-      { return std::string {s}; }
-};
+void from_string_view(std::string_view s, std::string& r)
+   { r = s; }
 
 template <class T, class Allocator = std::allocator<T>>
 struct response_list : response_throw {
    std::list<T, Allocator> result;
    void select_array(int n) override { }
    void on_blob_string(std::string_view s) override
-      { result.push_back(converter<T>::apply(s)); }
+   {
+      T r;
+      from_string_view(s, r);
+      result.push_back(std::move(r));
+   }
+};
+
+template<
+   class Key,
+   class Compare = std::less<Key>,
+   class Allocator = std::allocator<Key>>
+struct response_set : response_throw {
+   std::set<Key, Compare, Allocator> result;
+   void select_array(int n) override { }
+   void select_set(int n) override { }
+   void on_blob_string(std::string_view s) override
+   {
+      Key r;
+      from_string_view(s, r);
+      result.insert(std::end(result), std::move(r));
+   }
 };
 
 // General purpose response. Copies the string reponses in the result
@@ -141,22 +157,6 @@ std::size_t length(char const* p)
        p++;
    }
    return len;
-}
-
-template <class T>
-void print(std::vector<T> const& v)
-{
-   for (auto const& o : v)
-     std::cout << o << " ";
-   std::cout << std::endl;
-}
-
-template <class T>
-void print(std::list<T> const& v)
-{
-   for (auto const& o : v)
-     std::cout << o << " ";
-   std::cout << std::endl;
 }
 
 void print_command_raw(std::string const& data, int n)
@@ -434,10 +434,8 @@ auto read(
 {
    parser<Response> p {&res};
    std::size_t n = 0;
-   goto start;
    do {
       if (p.bulk() == parser<Response>::bulk::none) {
-start:
 	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
 	 if (ec || n < 3)
 	    return n;
@@ -656,52 +654,13 @@ public:
              , std::initializer_list<T> v)
      { return rpush(key, std::cbegin(v), std::cend(v)); } 
 
-   template <class T, class Allocator>
-   auto rpush( std::string const& key
-             , std::vector<T, Allocator> const& v)
-     { return rpush(key, std::cbegin(v), std::cend(v)); }
-   
-   template <class T, class Allocator>
-   auto rpush( std::string const& key
-             , std::deque<T, Allocator> const& v)
-     { return rpush(key, std::cbegin(v), std::cend(v)); } 
-
-   template <class T, std::size_t N>
-   auto rpush( std::string const& key
-             , std::array<T, N> const& a)
-     { return rpush(key, std::cbegin(a), std::cend(a)); }
-   
-   template <class T, class Allocator>
-   auto rpush( std::string const& key
-             , std::list<T, Allocator> const& l)
-     { return rpush(key, std::cbegin(l), std::cend(l)); }
-   
-   template <class T, class Allocator>
-   auto rpush( std::string const& key
-             , std::forward_list<T, Allocator> const& l)
-     { return rpush(key, std::cbegin(l), std::cend(l)); }
-   
-   template <class T, class Compare, class Allocator>
-   auto rpush( std::string const& key
-             , std::set<T, Compare, Allocator> const& s)
-     { return rpush(key, std::cbegin(s), std::cend(s)); }
-   
-   template <class T, class Compare, class Allocator>
-   auto rpush( std::string const& key
-             , std::multiset<T, Compare, Allocator> const& s)
-     { return rpush(key, std::cbegin(s), std::cend(s)); }
-   
-   template <class T, class Hash, class KeyEqual, class Allocator>
-   auto rpush( std::string const& key
-             , std::unordered_set< T, Hash, KeyEqual, Allocator
-                                 > const& s)
-     { return rpush(key, std::cbegin(s), std::cend(s)); }
-   
-   template <class T, class Hash, class KeyEqual, class Allocator>
-   auto rpush( std::string const& key
-             , std::unordered_multiset< T, Hash, KeyEqual, Allocator
-                                      > const& s)
-     { return rpush(key, std::cbegin(s), std::cend(s)); }
+   template <class Range>
+   void rpush(std::string const& key, Range const& v)
+   {
+      using std::cbegin;
+      using std::cend;
+      rpush(key, cbegin(v), cend(v));
+   }
    
    template <class Iter>
    auto lpush(std::string const& key, Iter begin, Iter end)
@@ -821,6 +780,18 @@ public:
    
    auto llen(std::string const& key)
      { resp::assemble(payload, "LLEN", key); }
+
+   template <class Iter>
+   void sadd(std::string const& key, Iter begin, Iter end)
+     { resp::assemble(payload, "SADD", {key}, begin, end); }
+
+   template <class Range>
+   void sadd(std::string const& key, Range const& r)
+   {
+      using std::cbegin;
+      using std::cend;
+      sadd(key, cbegin(r), cend(r));
+   }
 };
 
 }

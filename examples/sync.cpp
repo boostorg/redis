@@ -29,7 +29,7 @@ void sync_example1()
    resp::buffer buffer;
    resp::response res;
    resp::read(socket, buffer, res);
-   resp::print(res.result);
+   print(res.result);
 }
 
 void sync_example2()
@@ -59,7 +59,7 @@ void sync_example2()
 	 std::cerr << ec.message() << std::endl;
 	 break;
       }
-      resp::print(res.result);
+      print(res.result);
    }
 }
 

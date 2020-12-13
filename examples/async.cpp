@@ -45,7 +45,7 @@ net::awaitable<void> example1()
    for (;;) {
       resp::response res;
       co_await resp::async_read(socket, buffer, res);
-      resp::print(res.result);
+      print(res.result);
    }
 }
 
@@ -67,7 +67,7 @@ net::awaitable<void> example2()
    for (;;) {
       resp::response res;
       co_await resp::async_read(socket, buffer, res);
-      resp::print(res.result);
+      print(res.result);
    }
 }
 
@@ -84,6 +84,7 @@ net::awaitable<void> example3()
    resp::pipeline p;
    p.flushall();
    p.rpush("key", {1, 2, 3});
+   p.sadd("set", std::set<int>{1, 2, 3});
    p.lrange("key");
    p.lrange("key");
    p.lrange("key");
@@ -95,25 +96,31 @@ net::awaitable<void> example3()
    resp::response res1;
    co_await resp::async_read(socket, buffer, res1);
    co_await resp::async_read(socket, buffer, res1);
+   co_await resp::async_read(socket, buffer, res1);
 
    resp::response_list<int> res2;
    co_await resp::async_read(socket, buffer, res2);
-   resp::print(res2.result);
+   print(res2.result);
 
    resp::response_list<long long> res3;
    co_await resp::async_read(socket, buffer, res3);
-   resp::print(res3.result);
+   print(res3.result);
 
-   resp::response_list<std::string> res4;
-   co_await resp::async_read(socket, buffer, res4);
-   resp::print(res4.result);
+   resp::response_list<std::string> res5;
+   co_await resp::async_read(socket, buffer, res5);
+   print(res5.result);
+
+   std::cout << "aaa" << std::endl;
+   resp::response_set<int> res6;
+   co_await resp::async_read(socket, buffer, res6);
+   print(res6.result);
 }
 
 int main()
 {
    io_context ioc {1};
-   //co_spawn(ioc, example1(), detached);
-   //co_spawn(ioc, example2(), detached);
+   co_spawn(ioc, example1(), detached);
+   co_spawn(ioc, example2(), detached);
    co_spawn(ioc, example3(), detached);
    ioc.run();
 }
