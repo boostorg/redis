@@ -71,11 +71,50 @@ net::awaitable<void> example2()
    }
 }
 
+net::awaitable<void> example3()
+{
+   auto ex = co_await this_coro::executor;
+
+   tcp::resolver resv(ex);
+   auto const r = resv.resolve("127.0.0.1", "6379");
+
+   tcp_socket socket {ex};
+   co_await async_connect(socket, r);
+
+   resp::pipeline p;
+   p.flushall();
+   p.rpush("key", {1, 2, 3});
+   p.lrange("key");
+   p.lrange("key");
+   p.lrange("key");
+
+   co_await async_write(socket, buffer(p.payload));
+
+   resp::buffer buffer;
+
+   resp::response res1;
+   co_await resp::async_read(socket, buffer, res1);
+   co_await resp::async_read(socket, buffer, res1);
+
+   resp::response_list<int> res2;
+   co_await resp::async_read(socket, buffer, res2);
+   resp::print(res2.result);
+
+   resp::response_list<long long> res3;
+   co_await resp::async_read(socket, buffer, res3);
+   resp::print(res3.result);
+
+   resp::response_list<std::string> res4;
+   co_await resp::async_read(socket, buffer, res4);
+   resp::print(res4.result);
+}
+
 int main()
 {
    io_context ioc {1};
-   co_spawn(ioc, example1(), detached);
-   co_spawn(ioc, example2(), detached);
+   //co_spawn(ioc, example1(), detached);
+   //co_spawn(ioc, example2(), detached);
+   co_spawn(ioc, example3(), detached);
    ioc.run();
 }
 
