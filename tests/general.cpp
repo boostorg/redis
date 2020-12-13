@@ -92,7 +92,7 @@ net::awaitable<void> test_list(int version)
 
    resp::buffer buffer;
    for (auto const& o : r) {
-     resp::response res;
+     resp::response_vector<std::string> res;
      co_await resp::async_read(socket, buffer, res);
      check_equal(res.result, o.first, o.second);
    }
@@ -157,7 +157,7 @@ net::awaitable<void> test_set(int version)
 
    resp::buffer buffer;
    for (auto const& o : r) {
-     resp::response res;
+     resp::response_vector<std::string> res;
      co_await resp::async_read(socket, buffer, res);
      check_equal(res.result, o.first, o.second);
    }
@@ -216,7 +216,7 @@ net::awaitable<void> offline()
    resp::buffer buffer;
    for (auto const& e : payloads) {
       test_tcp_socket ts {e.first};
-      resp::response res;
+      resp::response_vector<std::string> res;
       co_await resp::async_read(ts, buffer, res);
       if (e.second != res.result) {
         std::cout

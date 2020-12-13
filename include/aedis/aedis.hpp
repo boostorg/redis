@@ -97,6 +97,25 @@ struct response_list : response_throw {
    }
 };
 
+template <class T>
+struct response_int : response_throw {
+   T result;
+   void on_number(std::string_view s) override
+      { from_string_view(s, result); }
+};
+
+template<
+   class CharT,
+   class Traits = std::char_traits<CharT>,
+   class Allocator = std::allocator<CharT>>
+struct response_basic_string : response_throw {
+   std::basic_string<CharT, Traits, Allocator> result;
+   void on_simple_string(std::string_view s)
+      { from_string_view(s, result); }
+};
+
+using response_string = response_basic_string<char>;
+
 template<
    class Key,
    class Compare = std::less<Key>,
@@ -113,39 +132,40 @@ struct response_set : response_throw {
    }
 };
 
-// General purpose response. Copies the string reponses in the result
-// vector.
-struct response_vector {
+template <class T>
+struct response_vector : response_throw {
 private:
    void add(std::string_view s = {})
-      { result.emplace_back(s.data(), std::size(s)); }
+   {
+      T r;
+      from_string_view(s, r);
+      result.emplace_back(std::move(r));
+   }
 
 public:
-   std::vector<std::string> result;
+   std::vector<T> result;
 
    void clear() { result.clear(); }
    auto size() const noexcept { return std::size(result); }
 
-   void select_array(int n) { }
-   void select_push(int n) { }
-   void select_set(int n) { }
-   void select_map(int n) { }
-   void select_attribute(int n) { }
+   void select_array(int n) override { }
+   void select_push(int n) override { }
+   void select_set(int n) override { }
+   void select_map(int n) override { }
+   void select_attribute(int n) override { }
 
-   void on_simple_string(std::string_view s) { add(s); }
-   void on_simple_error(std::string_view s) { add(s); }
-   void on_number(std::string_view s) { add(s); }
-   void on_double(std::string_view s) { add(s); }
-   void on_bool(std::string_view s) { add(s); }
-   void on_big_number(std::string_view s) { add(s); }
-   void on_null() { add(); }
-   void on_blob_error(std::string_view s = {}) { add(s); }
-   void on_verbatim_string(std::string_view s = {}) { add(s); }
-   void on_blob_string(std::string_view s = {}) { add(s); }
-   void on_streamed_string_part(std::string_view s = {}) { add(s); }
+   void on_simple_string(std::string_view s) override { add(s); }
+   void on_simple_error(std::string_view s) override { add(s); }
+   void on_number(std::string_view s) override { add(s); }
+   void on_double(std::string_view s) override { add(s); }
+   void on_bool(std::string_view s) override { add(s); }
+   void on_big_number(std::string_view s) override { add(s); }
+   void on_null() override { add(); }
+   void on_blob_error(std::string_view s = {}) override { add(s); }
+   void on_verbatim_string(std::string_view s = {}) override { add(s); }
+   void on_blob_string(std::string_view s = {}) override { add(s); }
+   void on_streamed_string_part(std::string_view s = {}) override { add(s); }
 };
-
-using response = response_vector;
 
 // Converts a decimal number in ascii format to an integer.
 inline
@@ -668,7 +688,7 @@ public:
    
    auto psubscribe(std::initializer_list<std::string> l)
    {
-      std::initializer_list<std::string> dummy;
+      std::initializer_list<std::string> dummy = {};
       resp::assemble(payload, "PSUBSCRIBE", l, std::cbegin(dummy), std::cend(dummy));
    }
    
@@ -753,7 +773,7 @@ public:
          max_str = std::to_string(max);
    
       auto par = {std::to_string(min) , max_str};
-      resp::assemble(payload, "zrangebyscore", {key}, std::cbegin(par), std::cend(par));
+      resp::assemble(payload, "ZRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
    }
    
    auto zremrangebyscore(std::string const& key, int score)
@@ -792,6 +812,15 @@ public:
       using std::cend;
       sadd(key, cbegin(r), cend(r));
    }
+
+   auto smembers(std::string const& key)
+     { resp::assemble(payload, "SMEMBERS", key); }
+
+   auto scard(std::string const& key)
+     { resp::assemble(payload, "SCARD", key); }
+
+   auto scard(std::string const& key, std::initializer_list<std::string> l)
+     { resp::assemble(payload, "SDIFF", {key}, std::cbegin(l), std::cend(l)); }
 };
 
 }

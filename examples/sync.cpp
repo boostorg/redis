@@ -27,7 +27,7 @@ void sync_example1()
    net::write(socket, buffer(p.payload));
 
    resp::buffer buffer;
-   resp::response res;
+   resp::response_vector<std::string> res;
    resp::read(socket, buffer, res);
    print(res.result);
 }
@@ -53,7 +53,7 @@ void sync_example2()
    resp::buffer buffer;
    for (;;) {
       boost::system::error_code ec;
-      resp::response res;
+      resp::response_vector<std::string> res;
       resp::read(socket, buffer, res, ec);
       if (ec) {
 	 std::cerr << ec.message() << std::endl;

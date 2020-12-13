@@ -43,7 +43,7 @@ net::awaitable<void> example1()
 
    resp::buffer buffer;
    for (;;) {
-      resp::response res;
+      resp::response_vector<std::string> res;
       co_await resp::async_read(socket, buffer, res);
       print(res.result);
    }
@@ -65,7 +65,7 @@ net::awaitable<void> example2()
    co_await async_write(socket, buffer(p.payload));
    resp::buffer buffer;
    for (;;) {
-      resp::response res;
+      resp::response_vector<std::string> res;
       co_await resp::async_read(socket, buffer, res);
       print(res.result);
    }
@@ -84,36 +84,65 @@ net::awaitable<void> example3()
    resp::pipeline p;
    p.flushall();
    p.rpush("key", {1, 2, 3});
-   p.sadd("set", std::set<int>{1, 2, 3});
+   p.sadd("set", std::set<int>{3, 4, 5});
    p.lrange("key");
    p.lrange("key");
    p.lrange("key");
+   p.smembers("set");
+   p.scard("set");
+   p.quit();
 
    co_await async_write(socket, buffer(p.payload));
 
    resp::buffer buffer;
 
-   resp::response res1;
-   co_await resp::async_read(socket, buffer, res1);
-   co_await resp::async_read(socket, buffer, res1);
-   co_await resp::async_read(socket, buffer, res1);
+   {  // flushall
+      resp::response_string res;
+      co_await resp::async_read(socket, buffer, res);
+      std::cout << res.result << std::endl;
+   }
 
-   resp::response_list<int> res2;
-   co_await resp::async_read(socket, buffer, res2);
-   print(res2.result);
+   {  // rpush
+      resp::response_int<long> res;
+      co_await resp::async_read(socket, buffer, res);
+      std::cout << res.result << std::endl;
+   }
 
-   resp::response_list<long long> res3;
-   co_await resp::async_read(socket, buffer, res3);
-   print(res3.result);
+   {  // sadd
+      resp::response_int<long> res;
+      co_await resp::async_read(socket, buffer, res);
+      std::cout << res.result << std::endl;
+   }
 
-   resp::response_list<std::string> res5;
-   co_await resp::async_read(socket, buffer, res5);
-   print(res5.result);
+   {  // lrange
+      resp::response_list<int> res;
+      co_await resp::async_read(socket, buffer, res);
+      print(res.result);
+   }
 
-   std::cout << "aaa" << std::endl;
-   resp::response_set<int> res6;
-   co_await resp::async_read(socket, buffer, res6);
-   print(res6.result);
+   {  // lrange
+      resp::response_list<long long> res;
+      co_await resp::async_read(socket, buffer, res);
+      print(res.result);
+   }
+
+   {  // lrange
+      resp::response_list<std::string> res;
+      co_await resp::async_read(socket, buffer, res);
+      print(res.result);
+   }
+
+   {  // smembers
+      resp::response_set<int> res;
+      co_await resp::async_read(socket, buffer, res);
+      print(res.result);
+   }
+
+   {  // sdiff
+      //resp::response_array<int> res;
+      //co_await resp::async_read(socket, buffer, res);
+      //std::cout << res.result << std::endl;
+   }
 }
 
 int main()
