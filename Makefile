@@ -18,21 +18,36 @@ CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS
 
 LDFLAGS += -pthread
 
-all: sync async general
+examples =
+examples += sync_basic
+examples += sync_responses
+examples += sync_events
+examples += async_basic
+examples += async_reconnect
+examples += async
+
+tests =
+tests += general
+
+remove =
+remove += $(examples)
+remove += $(tests)
+remove += $(addsuffix .o, $(examples))
+remove += $(addsuffix .o, $(tests))
+remove += Makefile.dep
+
+all: general $(examples)
 
 Makefile.dep:
 	-$(CXX) -MM -I./include ./examples/*.cpp ./tests/*.cpp > $@
 
 -include Makefile.dep
 
-async: examples/async.cpp
-	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
+$(examples): % : examples/%.cpp
+	$(CXX) -o $@ $< $(CPPFLAGS) $(LDFLAGS)
 
-sync: examples/sync.cpp
-	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
-
-general: % : tests/general.cpp
-	$(CXX) -o $@ $^ $(CPPFLAGS) $(LDFLAGS)
+$(tests): % : tests/%.cpp
+	$(CXX) -o $@ $< $(CPPFLAGS) $(LDFLAGS)
 
 .PHONY: check
 check: general
@@ -40,5 +55,5 @@ check: general
 
 .PHONY: clean
 clean:
-	rm -f sync sync.o async async.o general general.o Makefile.dep
+	rm -f $(remove)
 

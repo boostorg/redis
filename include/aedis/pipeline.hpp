@@ -292,14 +292,13 @@ public:
       events.push(e);
    }
 
-   // TODO: Remove this, use ranges instead.
-   template <class Key, class T, class Compare, class Allocator>
+   template <class Range>
    auto
-   hset(std::string const& key,
-	std::map<Key, T, Compare, Allocator> const& m,
-        Event e = Event::ignore)
+   hset(std::string const& key, Range const& r, Event e = Event::ignore)
    {
-      resp::assemble(payload, "HSET", {key}, std::cbegin(m), std::cend(m), 2);
+      using std::cbegin;
+      using std::cend;
+      resp::assemble(payload, "HSET", {key}, std::cbegin(r), std::cend(r), 2);
       events.push(e);
    }
    
@@ -377,14 +376,13 @@ public:
       events.push(e);
    }
    
-   // TODO: Remove this overload and use ranges.
-   template <class Key, class T, class Compare, class Allocator>
+   template <class Range>
    auto
    zadd(std::initializer_list<std::string> key,
-	std::map<Key, T, Compare, Allocator> const& m,
+	Range const& r,
 	Event e = Event::ignore)
    {
-      resp::assemble(payload, "ZADD", key, std::cbegin(m), std::cend(m), 2);
+      resp::assemble(payload, "ZADD", key, std::cbegin(r), std::cend(r), 2);
       events.push(e);
    }
    

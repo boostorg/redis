@@ -1,89 +1,161 @@
 # Aedis
 
-Aedis is a redis client designed for seamless integration with async code while
-providing a easy and intuitive interface.  To use this library include
-`aedis.hpp` in your project.
+Aedis is a low level redis client designed for scalability while
+providing and to provide an easy and intuitive interface.
 
-## Tutoria and examples
+## Tutorial
 
-Below we show how to use the library focused in sync and async code.
+We begin with sync events below and jump to async code thereafter.
 
 ### Sync
 
-```cpp
-void sync_example1()
-{
-   io_context ioc {1};
-
-   tcp::resolver resv(ioc);
-   tcp::socket socket {ioc};
-   net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-
-   resp::pipeline p;
-   p.ping();
-
-   net::write(socket, buffer(p.payload));
-
-   resp::buffer buffer;
-   resp::response res;
-   resp::read(socket, buffer, res);
-
-   // res.result contains the response as std::vector<std::string>.
-}
-```
-
-The example above is overly simple. In real world cases it is
-necessary, for many reasons to keep reading from the socket, for
-example to detect the connection has been lost or to be able to deal
-with redis unsolicited events. A more realistic example therefore is
+Synchronous code are clear by themselves
 
 ```cpp
-void sync_example2()
+int main()
 {
-   io_context ioc {1};
+   try {
+      io_context ioc {1};
 
-   tcp::resolver resv(ioc);
-   tcp::socket socket {ioc};
-   net::connect(socket, resv.resolve("127.0.0.1", "6379"));
+      tcp::resolver resv(ioc);
+      tcp::socket socket {ioc};
+      net::connect(socket, resv.resolve("127.0.0.1", "6379"));
 
-   resp::pipeline p;
-   p.multi();
-   p.ping();
-   p.set("Name", {"Marcelo"});
-   p.incr("Age");
-   p.exec();
-   p.quit();
+      resp::pipeline p;
+      p.set("Password", {"12345"});
+      p.quit();
 
-   net::write(socket, buffer(p.payload));
+      net::write(socket, buffer(p.payload));
 
-   resp::buffer buffer;
-   for (;;) {
-      boost::system::error_code ec;
-      resp::response res;
-      resp::read(socket, buffer, res, ec);
-      if (ec) {
-	 std::cerr << ec.message() << std::endl;
-	 break;
+      std::string buffer;
+      for (;;) {
+	 resp::response_string res;
+	 resp::read(socket, buffer, res);
+	 std::cout << res.result << std::endl;
       }
-      resp::print(res.result);
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
    }
 }
 ```
 
-In this example we add more commands to the pipeline, they will be all
-sent together to redis improving performance. Second we keep reading
-until the socket is closed by redis after it receives the quit
-command.
+We keep reading from the socket until it is closed as a result of the
+quit command. The commands are sent in a pipeline to redis, which
+greatly improves performance. Notice also we parse the result in the
+buffer resp::reponse_string. This is overly simplistic for most apps.
+Typically we will want to parse each response in an appropriate
+data structure.
+
+#### Response buffer
+
+Aedis comes with general purpose response that are suitable to parse
+directly in C++ built-in data types and containers or on your own. For
+example
+
+```cpp
+int main()
+{
+   try {
+      ... // Like before
+      std::string buffer;
+
+      resp::response_int<int> list_size; // Parses into an int
+      resp::read(socket, buffer, list_size);
+      std::cout << list_size.result << std::endl;
+
+      resp::response_list<int> list; // Parses into a std::list<int>
+      resp::read(socket, buffer, list);
+      print(list.result);
+
+      resp::response_string ok; // Parses into a std::string
+      resp::read(socket, buffer, ok);
+      std::cout << ok.result << std::endl;
+
+      resp::response noop;
+      resp::read(socket, buffer, noop);
+
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
+   }
+}
+```
+
+Other response types are available also. Structure the code like in
+the example above is usually not feasible as the commands send are
+determined dynamically, for that case we have events.
+
+#### Events
+
+To use events, first defined the an enum, for example
+
+```cpp
+enum class myevents
+{ ignore
+, list
+, set
+};
+```
+
+With that you can switch on the appropriate response type easily
+
+```cpp
+int main()
+{
+   try {
+      io_context ioc {1};
+
+      tcp::resolver resv(ioc);
+      tcp::socket socket {ioc};
+      net::connect(socket, resv.resolve("127.0.0.1", "6379"));
+
+      resp::pipeline<myevents> p;
+      p.rpush("list", {1, 2, 3});
+      p.lrange("list", 0, -1, myevents::list);
+      p.sadd("set", std::set<int>{3, 4, 5});
+      p.smembers("set", myevents::set);
+      p.quit();
+
+      net::write(socket, buffer(p.payload));
+
+      std::string buffer;
+      for (;;) {
+	 switch (p.events.front()) {
+	 case myevents::list:
+	 {
+	    resp::response_list<int> res;
+	    resp::read(socket, buffer, res);
+	    print(res.result);
+	 } break;
+	 case myevents::set:
+	 {
+	    resp::response_set<int> res;
+	    resp::read(socket, buffer, res);
+	    print(res.result);
+	 } break;
+	 default:
+	 {
+	    resp::response res;
+	    resp::read(socket, buffer, res);
+	 }
+	 }
+	 p.events.pop();
+      }
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
+   }
+}
+```
 
 ### Async
 
-The sync examples above are good as introduction and can be also used
-in production. However to don't scale, this is specially problematic
-on backends. Fourtunately in C++20 it became trivial to convert the 
-sync into asyn code. The example below shows an example.
+The sync examples above are good as introduction and can be also
+useful in production. However, sync code doesn't scale well, this is
+specially problematic on backends. Fortunately in C++20 it became
+trivial to convert sync into asyn code. The example below shows
+the async version of our first sync example.
 
 ```cpp
-net::awaitable<void> async_example1()
+net::awaitable<void> example1()
 {
    auto ex = co_await this_coro::executor;
 
@@ -93,31 +165,22 @@ net::awaitable<void> async_example1()
    tcp_socket socket {ex};
    co_await async_connect(socket, r);
 
-   std::map<std::string, std::string> map
-   { {{"Name"},      {"Marcelo"}} 
-   , {{"Education"}, {"Physics"}}
-   , {{"Job"},       {"Programmer"}}
-   };
-
    resp::pipeline p;
-   p.hset("map", map);
-   p.hincrby("map", "Age", 40);
-   p.hmget("map", {"Name", "Education", "Job"});
+   p.set("Password", {"12345"});
    p.quit();
 
    co_await async_write(socket, buffer(p.payload));
 
-   resp::buffer buffer;
+   std::string buffer;
    for (;;) {
-      resp::response res;
+      resp::response_string res;
       co_await resp::async_read(socket, buffer, res);
-      resp::print(res.res);
+      std::cout << res.result << std::endl;
    }
 }
 ```
 
-Though short the example above ilustrates many important points
+Basically, we only have to replace read with async_read and use the
+co_await keyword.
 
-* STL containers are suported when appropriate.
-* Commands are sent to redis in pipeline to improve performance.
-
+## Sentinel support

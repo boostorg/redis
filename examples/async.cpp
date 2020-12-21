@@ -41,7 +41,7 @@ net::awaitable<void> example1()
 
    co_await async_write(socket, buffer(p.payload));
 
-   resp::buffer buffer;
+   std::string buffer;
    for (;;) {
       resp::response_vector<std::string> res;
       co_await resp::async_read(socket, buffer, res);
@@ -63,7 +63,7 @@ net::awaitable<void> example2()
    p.subscribe("channel");
 
    co_await async_write(socket, buffer(p.payload));
-   resp::buffer buffer;
+   std::string buffer;
    for (;;) {
       resp::response_vector<std::string> res;
       co_await resp::async_read(socket, buffer, res);
@@ -94,7 +94,7 @@ net::awaitable<void> example3()
 
    co_await async_write(socket, buffer(p.payload));
 
-   resp::buffer buffer;
+   std::string buffer;
 
    {  // flushall
       resp::response_string res;
