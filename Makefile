@@ -24,6 +24,7 @@ examples += sync_responses
 examples += sync_events
 examples += async_basic
 examples += async_reconnect
+examples += async_own_struct
 examples += async
 
 tests =

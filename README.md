@@ -15,16 +15,14 @@ Synchronous code are clear by themselves
 int main()
 {
    try {
-      io_context ioc {1};
-
-      tcp::resolver resv(ioc);
-      tcp::socket socket {ioc};
-      net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-
       resp::pipeline p;
       p.set("Password", {"12345"});
       p.quit();
 
+      io_context ioc {1};
+      tcp::resolver resv(ioc);
+      tcp::socket socket {ioc};
+      net::connect(socket, resv.resolve("127.0.0.1", "6379"));
       net::write(socket, buffer(p.payload));
 
       std::string buffer;
@@ -48,9 +46,9 @@ data structure.
 
 #### Response buffer
 
-Aedis comes with general purpose response that are suitable to parse
-directly in C++ built-in data types and containers or on your own. For
-example
+Aedis comes with general purpose response buffers that are suitable to
+parse directly in C++ built-in data types and containers or on your
+own. For example
 
 ```cpp
 int main()
@@ -86,7 +84,10 @@ determined dynamically, for that case we have events.
 
 #### Events
 
-To use events, first defined the an enum, for example
+Most times, that events that are added to the pipeline are decided
+dynamically and we are not interested in the response for some of
+them. To deal with this we support events. To use them, define an
+enum class like the one below
 
 ```cpp
 enum class myevents
@@ -96,18 +97,14 @@ enum class myevents
 };
 ```
 
-With that you can switch on the appropriate response type easily
+Pass it as argument to the pipeline class as below and use the
+appropriate enum field as the last argument to every command in the
+pipeline you want to use the result
 
 ```cpp
 int main()
 {
    try {
-      io_context ioc {1};
-
-      tcp::resolver resv(ioc);
-      tcp::socket socket {ioc};
-      net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-
       resp::pipeline<myevents> p;
       p.rpush("list", {1, 2, 3});
       p.lrange("list", 0, -1, myevents::list);
@@ -115,6 +112,10 @@ int main()
       p.smembers("set", myevents::set);
       p.quit();
 
+      io_context ioc {1};
+      tcp::resolver resv(ioc);
+      tcp::socket socket {ioc};
+      net::connect(socket, resv.resolve("127.0.0.1", "6379"));
       net::write(socket, buffer(p.payload));
 
       std::string buffer;
@@ -183,4 +184,50 @@ net::awaitable<void> example1()
 Basically, we only have to replace read with async_read and use the
 co_await keyword.
 
-## Sentinel support
+## Reconnecting and Sentinel support
+
+On some occasions we will want to reconnet to redis server after a
+disconnect. This can happen for a couple of reasons, for example, the
+redis-server may crash and be restarted by systemd.
+
+### Simple reconnet
+
+It is trivial to implement a reconnect using a coroutine
+
+```cpp
+net::awaitable<void> example1()
+{
+   auto ex = co_await this_coro::executor;
+   for (;;) {
+      try {
+	 resp::pipeline p;
+	 p.set("Password", {"12345"});
+	 p.quit();
+
+	 tcp::resolver resv(ex);
+	 auto const r = resv.resolve("127.0.0.1", "6379");
+	 tcp_socket socket {ex};
+	 co_await async_connect(socket, r);
+	 co_await async_write(socket, buffer(p.payload));
+
+	 std::string buffer;
+	 for (;;) {
+	    resp::response_string res;
+	    co_await resp::async_read(socket, buffer, res);
+	    std::cout << res.result << std::endl;
+	 }
+      } catch (std::exception const& e) {
+	 std::cerr << "Error: " << e.what() << std::endl;
+	 stimer timer(ex);
+	 timer.expires_after(std::chrono::seconds{2});
+	 co_await timer.async_wait();
+      }
+   }
+}
+```
+
+For many usecases this is often enough. A more sophisticated reconnect
+strategy however is to use a redis-sentinel.
+
+### Sentinel
+

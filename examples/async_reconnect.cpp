@@ -40,6 +40,7 @@ net::awaitable<void> example1()
 	    std::cout << res.result << std::endl;
 	 }
       } catch (std::exception const& e) {
+	 std::cerr << "Error: " << e.what() << std::endl;
 	 stimer timer(ex);
 	 timer.expires_after(std::chrono::seconds{2});
 	 co_await timer.async_wait();

@@ -103,13 +103,13 @@ net::awaitable<void> example3()
    }
 
    {  // rpush
-      resp::response_int<long> res;
+      resp::response_number<long> res;
       co_await resp::async_read(socket, buffer, res);
       std::cout << res.result << std::endl;
    }
 
    {  // sadd
-      resp::response_int<long> res;
+      resp::response_number<long> res;
       co_await resp::async_read(socket, buffer, res);
       std::cout << res.result << std::endl;
    }

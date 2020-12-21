@@ -27,7 +27,7 @@ int main()
       net::write(socket, buffer(p.payload));
 
       std::string buffer;
-      resp::response_int<int> list_size;
+      resp::response_number<int> list_size;
       resp::read(socket, buffer, list_size);
       std::cout << list_size.result << std::endl;
 

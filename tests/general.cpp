@@ -18,148 +18,160 @@ namespace this_coro = net::this_coro;
 
 using namespace aedis;
 
-void check_equal(
-   std::vector<std::string> const& a,
-   std::vector<std::string> const& b,
-   std::string const& msg = "")
+template <class T>
+void check_equal(T const& a, T const& b, std::string const& msg = "")
 {
-   auto const r =
-      std::equal( std::cbegin(a)
-                , std::cend(a)
-                , std::cbegin(b));
-
-   if (r)
+   if (a == b)
      std::cout << "Success: " << msg << std::endl;
    else
      std::cout << "Error: " << msg << std::endl;
 }
 
-net::awaitable<void> test_list(int version)
+net::awaitable<void> test_list()
 {
-   auto ex = co_await this_coro::executor;
+   std::list<int> list {1 ,2, 3, 4, 5, 6};
 
+   resp::pipeline p;
+   p.hello("3");
+   p.flushall();
+   p.rpush("a", list);
+   p.lrange("a");
+   p.lrange("a", 2, -2);
+   p.ltrim("a", 2, -2);
+   p.lpop("a");
+   p.quit();
+
+   auto ex = co_await this_coro::executor;
    tcp::resolver resv(ex);
    auto const rr = resv.resolve("127.0.0.1", "6379");
-
    tcp_socket socket {ex};
    co_await async_connect(socket, rr);
+   co_await async_write(socket, net::buffer(p.payload));
+   std::string buffer;
 
-   std::vector<std::pair<std::vector<std::string>, std::string>> r;
-   resp::pipeline p;
-
-   if (version == 3) {
-      p.hello("3");
-      r.push_back({{"server", "redis", "version", "6.0.9", "proto", "3", "id", "203", "mode", "standalone", "role", "master", "modules"}, "hello"});
+   {  // hello
+      resp::response res;
+      co_await resp::async_read(socket, buffer, res);
    }
 
-   p.flushall();
-   r.push_back({{"OK"}, "flushall"});
+   {  // flushall
+      resp::response_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, std::string {"OK"}, "flushall");
+   }
 
-   p.ping();
-   r.push_back({{"PONG"}, "ping"});
+   {  // rpush
+      resp::response_number<int> res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, 6, "rpush");
+   }
 
-   p.rpush("a", std::list<std::string>{"1" ,"2", "3"});
-   r.push_back({{"3"}, "rpush (std::list)"});
+   {  // lrange
+      resp::response_list<int> res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, list, "lrange-1");
+   }
 
-   p.rpush("a", std::vector<std::string>{"4" ,"5", "6"});
-   r.push_back({{"6"}, "rpush (std::vector)"});
+   {  // lrange
+      resp::response_list<int> res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, std::list<int>{3, 4, 5}, "lrange-2");
+   }
 
-   p.rpush("a", std::set<std::string>{"7" ,"8", "9"});
-   r.push_back({{"9"}, "rpush (std::set)"});
+   {  // ltrim
+      resp::response_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, std::string {"OK"}, "ltrim");
+   }
 
-   p.rpush("a", std::initializer_list<std::string>{"10" ,"11", "12"});
-   r.push_back({{"12"}, "rpush (std::initializer_list)"});
+   {  // lpop. Why a blob string instead of a number?
+      resp::response_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, std::string{"3"}, "lpop");
+   }
 
-   p.lrange("a");
-   r.push_back({{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"}, "lrange"});
-
-   p.lrange("a", 4, -5);
-   r.push_back({{"5", "6", "7", "8"}, "lrange"});
-
-   p.ltrim("a", 4, -5);
-   r.push_back({{"OK"}, "ltrim"});
-
-   p.lpop("a");
-   r.push_back({{"5"}, "lpop"});
-
-   p.lpop("a");
-   r.push_back({{"6"}, "lpop"});
-
-   p.quit();
-   r.push_back({{"OK"}, "quit"});
-
-   co_await async_write(socket, net::buffer(p.payload));
-
-   std::string buffer;
-   for (auto const& o : r) {
-     resp::response_vector<std::string> res;
-     co_await resp::async_read(socket, buffer, res);
-     check_equal(res.result, o.first, o.second);
+   {  // quit
+      resp::response_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, std::string {"OK"}, "quit");
    }
 }
 
-net::awaitable<void> test_set(int version)
+net::awaitable<void> test_set()
 {
-   auto ex = co_await this_coro::executor;
+   // Tests whether the parser can handle payloads that contain the separator.
+   std::string test_bulk1(10000, 'a');
+   test_bulk1[30] = '\r';
+   test_bulk1[31] = '\n';
 
+   std::string test_bulk2 = "aaaaa";
+
+   auto ex = co_await this_coro::executor;
    tcp::resolver resv(ex);
    auto const rr = resv.resolve("127.0.0.1", "6379");
-
    tcp_socket socket {ex};
    co_await async_connect(socket, rr);
 
-   std::vector<std::pair<std::vector<std::string>, std::string>> r;
    resp::pipeline p;
-
-   if (version == 3) {
-      p.hello("3");
-      r.push_back({{"server", "redis", "version", "6.0.9", "proto", "3", "id", "203", "mode", "standalone", "role", "master", "modules"}, "hello"});
-   }
-
+   p.hello("3");
    p.flushall();
-   r.push_back({{"OK"}, "flushall"});
-
-   { // Tests whether the parser can handle payloads that contain the separator.
-     std::string test_bulk(10000, 'a');
-     test_bulk[30] = '\r';
-     test_bulk[31] = '\n';
-
-     p.set("s", {test_bulk});
-     r.push_back({{"OK"}, "set"});
-
-     p.get("s");
-     r.push_back({{test_bulk}, "get"});
-   }
-
-   {
-     std::string test_bulk = "aaaaa";
-
-     p.set("s", {test_bulk});
-     r.push_back({{"OK"}, "set"});
-
-     p.get("s");
-     r.push_back({{test_bulk}, "get"});
-   }
-
-   { // Empty
-
-     p.set("s", {""});
-     r.push_back({{"OK"}, "set"});
-
-     p.get("s");
-     r.push_back({{""}, "get"});
-   }
-
+   p.set("s", {test_bulk1});
+   p.get("s");
+   p.set("s", {test_bulk2});
+   p.get("s");
+   p.set("s", {""});
+   p.get("s");
    p.quit();
-   r.push_back({{"OK"}, "quit"});
 
    co_await async_write(socket, net::buffer(p.payload));
 
    std::string buffer;
-   for (auto const& o : r) {
-     resp::response_vector<std::string> res;
-     co_await resp::async_read(socket, buffer, res);
-     check_equal(res.result, o.first, o.second);
+   {  // hello, flushall
+      resp::response res;
+      co_await resp::async_read(socket, buffer, res);
+      co_await resp::async_read(socket, buffer, res);
+   }
+
+   {  // set
+      resp::response_simple_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, std::string {"OK"}, "set1");
+   }
+
+   {  // get
+      resp::response_blob_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, test_bulk1, "get1");
+   }
+
+   {  // set
+      resp::response_simple_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, std::string {"OK"}, "set1");
+   }
+
+   {  // get
+      resp::response_blob_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, test_bulk2, "get2");
+   }
+
+   {  // set
+      resp::response_simple_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, std::string {"OK"}, "set3");
+   }
+
+   {  // get
+      resp::response_blob_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result,  std::string {}, "get3");
+   }
+
+   {  // quit
+      resp::response_simple_string res;
+      co_await resp::async_read(socket, buffer, res);
+      check_equal(res.result, std::string {"OK"}, "quit");
    }
 }
 
@@ -232,10 +244,8 @@ int main(int argc, char* argv[])
 {
    net::io_context ioc {1};
    co_spawn(ioc, offline(), net::detached);
-   co_spawn(ioc, test_list(2), net::detached);
-   co_spawn(ioc, test_list(3), net::detached);
-   co_spawn(ioc, test_set(2), net::detached);
-   co_spawn(ioc, test_set(3), net::detached);
+   co_spawn(ioc, test_list(), net::detached);
+   co_spawn(ioc, test_set(), net::detached);
    ioc.run();
 }
 
