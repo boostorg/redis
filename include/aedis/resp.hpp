@@ -34,9 +34,9 @@ namespace resp
 
 // Converts a decimal number in ascii format to an integer.
 inline
-std::size_t length(char const* p)
+long long length(char const* p)
 {
-   std::size_t len = 0;
+   long long len = 0;
    while (*p != '\r') {
        len = (10 * len) + (*p - '0');
        p++;

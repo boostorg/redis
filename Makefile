@@ -1,15 +1,11 @@
-# Copyright (c) 2019 - 2020 Marcelo Zimbres Silva (mzimbres at gmail dot com)
-# 
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
 
 CPPFLAGS =
-CPPFLAGS +=  -g -O0
-CPPFLAGS +=  -std=c++20
-CPPFLAGS +=  -fcoroutines
+CPPFLAGS += -g
+CPPFLAGS += -O0
+CPPFLAGS += -std=c++20 -Wall #-Werror
+CPPFLAGS += -fcoroutines
 CPPFLAGS += -I/opt/boost_1_74_0/include
 CPPFLAGS += -I./include
 CPPFLAGS += -D BOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
@@ -25,7 +21,7 @@ examples += sync_events
 examples += async_basic
 examples += async_reconnect
 examples += async_own_struct
-examples += async
+examples += async_all_hashes
 
 tests =
 tests += general

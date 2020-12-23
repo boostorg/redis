@@ -55,7 +55,7 @@ net::awaitable<void> example1()
 
    std::string buffer;
    for (;;) {
-      resp::response_vector<std::string> res;
+      resp::response_array<std::string> res;
       co_await resp::async_read(socket, buffer, res);
       print(res.result);
    }

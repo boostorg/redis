@@ -202,6 +202,12 @@ public:
       events.push(e);
    }
 
+   auto keys(std::string const& pattern, Event e = Event::ignore)
+   {
+      resp::assemble(payload, "KEYS", pattern);
+      events.push(e);
+   }
+
    void hello(std::string const& key, Event e = Event::ignore)
    {
       resp::assemble(payload, "HELLO", key);

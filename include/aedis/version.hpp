@@ -1,3 +1,4 @@
+
 /* Copyright (c) 2019 - 2020 Marcelo Zimbres Silva (mzimbres at gmail dot com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -5,9 +6,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#define AEDIS_VERSION 1
 
-#include <aedis/resp.hpp>
-#include <aedis/pipeline.hpp>
-#include <aedis/response.hpp>
-#include <aedis/version.hpp>
