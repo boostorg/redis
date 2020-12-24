@@ -44,22 +44,22 @@ long long length(char const* p)
    return len;
 }
 
+enum class bulk_type
+{ blob_error
+, verbatim_string 
+, blob_string
+, streamed_string_part
+, none
+};
+
 template <class Response>
 class parser {
 public:
-   enum class bulk
-   { blob_error
-   , verbatim_string 
-   , blob_string
-   , streamed_string_part
-   , none
-   };
-
 private:
    Response* res_ = nullptr;
    int depth_ = 0;
    int sizes_[6] = {2, 1, 1, 1, 1, 1}; // Streaming will require a bigger integer.
-   bulk bulk_ = bulk::none;
+   bulk_type bulk_ = bulk_type::none;
    int bulk_length_ = std::numeric_limits<int>::max();
 
    auto on_array_impl(char const* data, int m = 1)
@@ -91,7 +91,10 @@ private:
       { res_->select_attribute(on_array_impl(data, 2)); }
 
    void on_null()
-      { res_->on_null(); --sizes_[depth_]; }
+   {
+      res_->on_null();
+      --sizes_[depth_];
+   }
 
    auto handle_simple_string(char const* data, std::size_t n)
    {
@@ -117,13 +120,13 @@ private:
    void on_big_number(char const* data, std::size_t n)
       { res_->on_big_number(handle_simple_string(data, n)); }
 
-   void on_bulk(bulk b, std::string_view s = {})
+   void on_bulk(bulk_type b, std::string_view s = {})
    {
       switch (b) {
-	 case bulk::blob_error: res_->on_blob_error(s); break;
-	 case bulk::verbatim_string: res_->on_verbatim_string(s); break;
-	 case bulk::blob_string: res_->on_blob_string(s); break;
-	 case bulk::streamed_string_part:
+	 case bulk_type::blob_error: res_->on_blob_error(s); break;
+	 case bulk_type::verbatim_string: res_->on_verbatim_string(s); break;
+	 case bulk_type::blob_string: res_->on_blob_string(s); break;
+	 case bulk_type::streamed_string_part:
          {
            if (std::empty(s)) {
               sizes_[depth_] = 1;
@@ -137,35 +140,29 @@ private:
       --sizes_[depth_];
    }
 
-   auto on_blob_error_impl(char const* data, bulk b)
+   auto on_blob_error_impl(char const* data, bulk_type b)
    {
-      auto const l = length(data + 1);
-      if (l == -1 || l == 0) {
-	 on_bulk(b);
-	 return bulk::none;
-      }
-
-      bulk_length_ = l;
+      bulk_length_ = length(data + 1);
       return b;
    }
 
    auto on_streamed_string_size(char const* data)
-      { return on_blob_error_impl(data, bulk::streamed_string_part); }
+      { return on_blob_error_impl(data, bulk_type::streamed_string_part); }
 
    auto on_blob_error(char const* data)
-      { return on_blob_error_impl(data, bulk::blob_error); }
+      { return on_blob_error_impl(data, bulk_type::blob_error); }
 
    auto on_verbatim_string(char const* data)
-      { return on_blob_error_impl(data, bulk::verbatim_string); }
+      { return on_blob_error_impl(data, bulk_type::verbatim_string); }
 
    auto on_blob_string(char const* data)
    {
       if (*(data + 1) == '?') {
 	 sizes_[++depth_] = std::numeric_limits<int>::max();
-	 return bulk::none;
+	 return bulk_type::none;
       }
 
-      return on_blob_error_impl(data, bulk::blob_string);
+      return on_blob_error_impl(data, bulk_type::blob_string);
    }
 
 public:
@@ -175,8 +172,8 @@ public:
 
    std::size_t advance(char const* data, std::size_t n)
    {
-      auto next = bulk::none;
-      if (bulk_ != bulk::none) {
+      auto next = bulk_type::none;
+      if (bulk_ != bulk_type::none) {
          n = bulk_length_ + 2;
          on_bulk(bulk_, {data, (std::size_t)bulk_length_});
       } else {
@@ -200,7 +197,8 @@ public:
                case '%': on_map(data); break;
                default: assert(false);
             }
-         }
+         } else {
+	 }
       }
       
       while (sizes_[depth_] == 0)
@@ -211,7 +209,7 @@ public:
    }
 
    auto done() const noexcept
-     { return depth_ == 0 && bulk_ == bulk::none; }
+     { return depth_ == 0 && bulk_ == bulk_type::none; }
 
    auto bulk() const noexcept
      { return bulk_; }
@@ -263,7 +261,7 @@ public:
    {
       switch (start_) {
          for (;;) {
-            if (parser_.bulk() == parser<Response>::bulk::none) {
+            if (parser_.bulk() == bulk_type::none) {
                case 1:
                start_ = 0;
                net::async_read_until(
@@ -286,10 +284,11 @@ public:
                start_ = 0;
 	       auto const s = std::ssize(*buf_);
 	       auto const l = parser_.bulk_length();
+	       auto const to_read = static_cast<std::size_t>(l + 2 - s);
                buf_->resize(l + 2);
                net::async_read(
                   stream_,
-                  net::buffer(buf_->data() + s, l + 2 - s),
+                  net::buffer(buf_->data() + s, to_read),
                   net::transfer_all(),
                   std::move(self));
                return;
@@ -297,13 +296,10 @@ public:
 
             default:
 	    {
-	       // The condition below is wrong. it must be n < 3 for case 1 
-	       // and n < 2 for the async_read.
-	       if (ec || n < 3)
+	       if (ec)
 		  return self.complete(ec);
 
 	       n = parser_.advance(buf_->data(), n);
-
 	       buf_->erase(0, n);
 	       if (parser_.done())
 		  return self.complete({});
@@ -326,7 +322,7 @@ auto read(
    parser<Response> p {&res};
    std::size_t n = 0;
    do {
-      if (p.bulk() == parser<Response>::bulk::none) {
+      if (p.bulk() == bulk_type::none) {
 	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
 	 if (ec || n < 3)
 	    return n;
@@ -335,14 +331,15 @@ auto read(
 	 auto const l = p.bulk_length();
 	 if (s < (l + 2)) {
 	    buf.resize(l + 2);
-	    n = net::read(stream, net::buffer(buf.data() + s, l + 2 - s));
-	    if (ec || n < 2)
+	    auto const to_read = static_cast<std::size_t>(l + 2 - s);
+	    n = net::read(stream, net::buffer(buf.data() + s, to_read));
+	    assert(n >= to_read);
+	    if (ec)
 	       return n;
 	 }
       }
 
       n = p.advance(buf.data(), n);
-
       buf.erase(0, n);
    } while (!p.done());
 

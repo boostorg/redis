@@ -55,7 +55,7 @@ net::awaitable<void> test_list()
    }
 
    {  // flushall
-      resp::response_string res;
+      resp::response_simple_string res;
       co_await resp::async_read(socket, buffer, res);
       check_equal(res.result, {"OK"}, "flushall");
    }
@@ -79,19 +79,19 @@ net::awaitable<void> test_list()
    }
 
    {  // ltrim
-      resp::response_string res;
+      resp::response_simple_string res;
       co_await resp::async_read(socket, buffer, res);
       check_equal(res.result, {"OK"}, "ltrim");
    }
 
    {  // lpop. Why a blob string instead of a number?
-      resp::response_string res;
+      resp::response_blob_string res;
       co_await resp::async_read(socket, buffer, res);
       check_equal(res.result, {"3"}, "lpop");
    }
 
    {  // quit
-      resp::response_string res;
+      resp::response_simple_string res;
       co_await resp::async_read(socket, buffer, res);
       check_equal(res.result, {"OK"}, "quit");
    }
@@ -204,7 +204,7 @@ net::awaitable<void> offline()
    , "*0\r\n"
    , "$2\r\nhh\r\n"
    , "$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"
-   , "$0\r\n"
+   , "$0\r\n\r\n"
    , "-Error\r\n"
    , ",1.23\r\n"
    , ",inf\r\n"

@@ -32,7 +32,7 @@ net::awaitable<void> example1()
 
    std::string buffer;
    for (;;) {
-      resp::response_string res;
+      resp::response_simple_string res;
       co_await resp::async_read(socket, buffer, res);
       std::cout << res.result << std::endl;
    }

@@ -35,7 +35,7 @@ int main()
       resp::read(socket, buffer, list);
       print(list.result);
 
-      resp::response_string ok;
+      resp::response_simple_string ok;
       resp::read(socket, buffer, ok);
       std::cout << ok.result << std::endl;
 

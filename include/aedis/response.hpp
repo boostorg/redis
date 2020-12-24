@@ -68,9 +68,27 @@ private:
    error err_ = error::none;
    bool is_null_ = false;
    std::string err_msg_;
+   bool is_attr_ = false;
+
+protected:
+   virtual void on_simple_string_impl(std::string_view s)
+      { throw std::runtime_error("on_simple_string_impl: Has not been overridden."); }
+   virtual void on_number_impl(std::string_view s)
+      { throw std::runtime_error("on_number_impl: Has not been overridden."); }
+   virtual void on_double_impl(std::string_view s)
+      { throw std::runtime_error("on_double_impl: Has not been overridden."); }
+   virtual void on_bool_impl(std::string_view s)
+      { throw std::runtime_error("on_bool_impl: Has not been overridden."); }
+   virtual void on_big_number_impl(std::string_view s)
+      { throw std::runtime_error("on_big_number_impl: Has not been overridden."); }
+   virtual void on_verbatim_string_impl(std::string_view s = {})
+      { throw std::runtime_error("on_verbatim_string_impl: Has not been overridden."); }
+   virtual void on_blob_string_impl(std::string_view s = {})
+      { throw std::runtime_error("on_blob_string_impl: Has not been overridden."); }
 
 public:
-   // Error is dealt with in the base class.
+   std::vector<std::string> attribute;
+
    auto get_error() const noexcept {return err_;}
    auto const& message() const noexcept {return err_msg_;}
 
@@ -88,21 +106,86 @@ public:
 
    void on_null() {is_null_ = true; }
 
+   void select_attribute(int n) { is_attr_ = true; }
+
    // Function derived classes can overwrite.
    virtual void select_push(int n) { throw std::runtime_error("select_push: Has not been overridden."); }
-   virtual void select_attribute(int n) { throw std::runtime_error("select_attribute: Has not been overridden."); }
-
    virtual void select_array(int n) { throw std::runtime_error("select_array: Has not been overridden."); }
    virtual void select_set(int n) { throw std::runtime_error("select_set: Has not been overridden."); }
    virtual void select_map(int n) { throw std::runtime_error("select_map: Has not been overridden."); }
 
-   virtual void on_simple_string(std::string_view s) { throw std::runtime_error("on_simple_string: Has not been overridden."); }
-   virtual void on_number(std::string_view s) { throw std::runtime_error("on_number: Has not been overridden."); }
-   virtual void on_double(std::string_view s) { throw std::runtime_error("on_double: Has not been overridden."); }
-   virtual void on_bool(std::string_view s) { throw std::runtime_error("on_bool: Has not been overridden."); }
-   virtual void on_big_number(std::string_view s) { throw std::runtime_error("on_big_number: Has not been overridden."); }
-   virtual void on_verbatim_string(std::string_view s = {}) { throw std::runtime_error("on_verbatim_string: Has not been overridden."); }
-   virtual void on_blob_string(std::string_view s = {}) { throw std::runtime_error("on_blob_string: Has not been overridden."); }
+   void on_simple_string(std::string_view s)
+   {
+      if (is_attr_) {
+	 //attribute.push_back(s);
+	 return;
+      }
+
+      on_simple_string_impl(s);
+   }
+
+   void on_number(std::string_view s)
+   {
+      if (is_attr_) {
+	 //attribute.push_back(s);
+	 return;
+      }
+
+      on_number_impl(s);
+   }
+
+   void on_double(std::string_view s)
+   {
+      if (is_attr_) {
+	 //attribute.push_back(s);
+	 return;
+      }
+
+      on_double_impl(s);
+   }
+
+   void on_bool(std::string_view s)
+   {
+      if (is_attr_) {
+	 //attribute.push_back(s);
+	 return;
+      }
+
+      on_bool_impl(s);
+   }
+
+   void on_big_number(std::string_view s)
+   {
+      if (is_attr_) {
+	 //attribute.push_back(s);
+	 return;
+      }
+
+      on_big_number_impl(s);
+   }
+
+   void on_verbatim_string(std::string_view s = {})
+   {
+      if (is_attr_) {
+	 //attribute.push_back(s);
+	 return;
+      }
+
+      on_verbatim_string_impl(s);
+   }
+
+   void on_blob_string(std::string_view s = {})
+   {
+      if (is_attr_) {
+	 //attribute.push_back(s);
+	 return;
+      }
+
+      on_blob_string_impl(s);
+   }
+
+   // At the moment, I don't see any reason for why we should support
+   // attributes and pushes and push types.
    virtual void on_streamed_string_part(std::string_view s = {}) { throw std::runtime_error("on_streamed_string_part: Has not been overridden."); }
    virtual ~response_base() {}
 };
@@ -120,45 +203,40 @@ void from_string_view(std::string_view s, std::string& r)
    { r = s; }
 
 template <class T>
-struct response_number : response_base {
+class response_number : public response_base {
    static_assert(std::is_integral<T>::value);
+private:
+   void on_number_impl(std::string_view s) override
+      { from_string_view(s, result); }
+
+public:
    T result;
-   void on_number(std::string_view s) override
-      { from_string_view(s, result); }
-};
-
-template<
-   class CharT,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>>
-struct response_basic_string : response_base {
-   std::basic_string<CharT, Traits, Allocator> result;
-
-   void on_simple_string(std::string_view s) override { from_string_view(s, result); }
-   void on_verbatim_string(std::string_view s) override { from_string_view(s, result); }
-   void on_blob_string(std::string_view s) override { from_string_view(s, result); }
-};
-
-using response_string = response_basic_string<char>;
-
-template<
-   class CharT = char,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>>
-struct response_blob_string : response_base {
-   std::basic_string<CharT, Traits, Allocator> result;
-   void on_blob_string(std::string_view s) override
-      { from_string_view(s, result); }
 };
 
 template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>>
-struct response_simple_string : response_base {
-   std::basic_string<CharT, Traits, Allocator> result;
-   void on_simple_string(std::string_view s) override
+class response_blob_string : public response_base {
+private:
+   void on_blob_string_impl(std::string_view s) override
       { from_string_view(s, result); }
+
+public:
+   std::basic_string<CharT, Traits, Allocator> result;
+};
+
+template<
+   class CharT = char,
+   class Traits = std::char_traits<CharT>,
+   class Allocator = std::allocator<CharT>>
+class response_simple_string : public response_base {
+private:
+   void on_simple_string_impl(std::string_view s) override
+      { from_string_view(s, result); }
+
+public:
+   std::basic_string<CharT, Traits, Allocator> result;
 };
 
 // Big number use strings at the moment as the underlying storage.
@@ -166,10 +244,13 @@ template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>>
-struct response_big_number : response_base {
-   std::basic_string<CharT, Traits, Allocator> result;
-   void on_big_number(std::string_view s) override
+class response_big_number : public response_base {
+private:
+   void on_big_number_impl(std::string_view s) override
       { from_string_view(s, result); }
+
+public:
+   std::basic_string<CharT, Traits, Allocator> result;
 };
 
 // TODO: Use a double instead of string.
@@ -177,34 +258,42 @@ template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>>
-struct response_double : response_base {
-   std::basic_string<CharT, Traits, Allocator> result;
-   void on_double(std::string_view s) override
+class response_double : public response_base {
+private:
+   void on_double_impl(std::string_view s) override
       { from_string_view(s, result); }
+
+public:
+   std::basic_string<CharT, Traits, Allocator> result;
 };
 
 template <
    class T,
    class Allocator = std::allocator<T>>
-struct response_list : response_base {
-   std::list<T, Allocator> result;
-   void select_array(int n) override { }
-   void on_blob_string(std::string_view s) override
+class response_list : public response_base {
+private:
+   void on_blob_string_impl(std::string_view s) override
    {
       T r;
       from_string_view(s, r);
       result.push_back(std::move(r));
    }
+
+public:
+   void select_array(int n) override { }
+   std::list<T, Allocator> result;
 };
 
 template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>>
-struct response_verbatim_string : response_base {
-   std::basic_string<CharT, Traits, Allocator> result;
-   void on_verbatim_string(std::string_view s) override
+class response_verbatim_string : public response_base {
+private:
+   void on_verbatim_string_impl(std::string_view s) override
       { from_string_view(s, result); }
+public:
+   std::basic_string<CharT, Traits, Allocator> result;
 };
 
 template<
@@ -230,16 +319,17 @@ private:
       result.insert(std::end(result), std::move(r));
    }
 
+   void on_simple_string_impl(std::string_view s) override { add(s); }
+   void on_blob_string_impl(std::string_view s) override { add(s); }
+
 public:
    std::set<Key, Compare, Allocator> result;
    void select_set(int n) override { }
-   void on_blob_string(std::string_view s) override { add(s); }
-   void on_simple_string(std::string_view s) override { add(s); }
 };
 
-struct response_bool : response_base {
-   bool result;
-   void on_bool(std::string_view s) override
+class response_bool : public response_base {
+private:
+   void on_bool_impl(std::string_view s) override
    {
       if (std::ssize(s) != 1) {
 	 // We can't hadle an error in redis.
@@ -248,26 +338,32 @@ struct response_bool : response_base {
 
       result = s[0] == 't';
    }
+
+public:
+   bool result;
 };
 
 template<
    class Key,
    class Compare = std::less<Key>,
    class Allocator = std::allocator<Key>>
-struct response_unordered_set : response_base {
-   std::set<Key, Compare, Allocator> result;
-   void select_array(int n) override { }
-   void select_set(int n) override { }
-   void on_blob_string(std::string_view s) override
+class response_unordered_set : public response_base {
+private:
+   void on_blob_string_impl(std::string_view s) override
    {
       Key r;
       from_string_view(s, r);
       result.insert(std::end(result), std::move(r));
    }
+
+public:
+   std::set<Key, Compare, Allocator> result;
+   void select_array(int n) override { }
+   void select_set(int n) override { }
 };
 
 template <class T, class Allocator = std::allocator<T>>
-struct response_array : response_base {
+class response_array : public response_base {
 private:
    void add(std::string_view s = {})
    {
@@ -275,6 +371,14 @@ private:
       from_string_view(s, r);
       result.emplace_back(std::move(r));
    }
+
+   void on_simple_string_impl(std::string_view s) override { add(s); }
+   void on_number_impl(std::string_view s) override { add(s); }
+   void on_double_impl(std::string_view s) override { add(s); }
+   void on_bool_impl(std::string_view s) override { add(s); }
+   void on_big_number_impl(std::string_view s) override { add(s); }
+   void on_verbatim_string_impl(std::string_view s = {}) override { add(s); }
+   void on_blob_string_impl(std::string_view s = {}) override { add(s); }
 
 public:
    std::vector<T, Allocator> result;
@@ -286,15 +390,7 @@ public:
    void select_push(int n) override { }
    void select_set(int n) override { }
    void select_map(int n) override { }
-   void select_attribute(int n) override { }
 
-   void on_simple_string(std::string_view s) override { add(s); }
-   void on_number(std::string_view s) override { add(s); }
-   void on_double(std::string_view s) override { add(s); }
-   void on_bool(std::string_view s) override { add(s); }
-   void on_big_number(std::string_view s) override { add(s); }
-   void on_verbatim_string(std::string_view s = {}) override { add(s); }
-   void on_blob_string(std::string_view s = {}) override { add(s); }
    void on_streamed_string_part(std::string_view s = {}) override { add(s); }
 };
 

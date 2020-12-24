@@ -27,7 +27,7 @@ int main()
 
       std::string buffer;
       for (;;) {
-	 resp::response_string res;
+	 resp::response_simple_string res;
 	 resp::read(socket, buffer, res);
 	 std::cout << res.result << std::endl;
       }

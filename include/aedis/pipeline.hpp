@@ -289,15 +289,16 @@ public:
       resp::assemble(payload, "SET", {key}, std::cbegin(args), std::cend(args));
    }
 
-   auto
-   hset(std::string const& key,
-	std::initializer_list<std::string> l,
-        Event e = Event::ignore)
-   {
-      resp::assemble(payload, "HSET", {key}, std::cbegin(l), std::cend(l));
-      events.push(e);
-   }
+   //auto
+   //hset(std::string const& key,
+   //     std::initializer_list<std::string> l,
+   //     Event e = Event::ignore)
+   //{
+   //   resp::assemble(payload, "HSET", {key}, std::cbegin(l), std::cend(l));
+   //   events.push(e);
+   //}
 
+   // TODO: Find a way to assert the value type is a pair.
    template <class Range>
    auto
    hset(std::string const& key, Range const& r, Event e = Event::ignore)
