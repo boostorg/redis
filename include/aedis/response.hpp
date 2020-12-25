@@ -34,6 +34,19 @@ void print(Range const& v)
 
 namespace aedis { namespace resp {
 
+template <class T>
+std::enable_if<std::is_integral<T>::value, void>::type
+from_string_view(std::string_view s, T& n)
+{
+   auto r = std::from_chars(s.data(), s.data() + s.size(), n);
+   if (r.ec == std::errc::invalid_argument)
+      throw std::runtime_error("from_chars: Unable to convert");
+}
+
+void from_string_view(std::string_view s, std::string& r)
+   { r = s; }
+
+// The interface required from all response types.
 struct response_noop {
    void select_array(int n) {}
    void select_push(int n) {}
@@ -53,6 +66,22 @@ struct response_noop {
    void on_blob_string(std::string_view s = {}) {}
    void on_streamed_string_part(std::string_view s = {}) {}
    ~response_noop() {}
+};
+
+class response_attribute {
+private:
+   void add(std::string_view s)
+      { value.push_back(std::string {s}); }
+public:
+   void on_simple_string(std::string_view s) {add(s);}
+   void on_number(std::string_view s) {add(s);}
+   void on_double(std::string_view s) {add(s);}
+   void on_bool(std::string_view s) {add(s);}
+   void on_big_number(std::string_view s) {add(s);}
+   void on_verbatim_string(std::string_view s) {add(s);}
+   void on_blob_string(std::string_view s) {add(s);}
+
+   std::vector<std::string> value;
 };
 
 using response = response_noop;
@@ -87,7 +116,7 @@ protected:
       { throw std::runtime_error("on_blob_string_impl: Has not been overridden."); }
 
 public:
-   std::vector<std::string> attribute;
+   response_attribute attribute;
 
    auto get_error() const noexcept {return err_;}
    auto const& message() const noexcept {return err_msg_;}
@@ -117,7 +146,7 @@ public:
    void on_simple_string(std::string_view s)
    {
       if (is_attr_) {
-	 //attribute.push_back(s);
+	 attribute.on_simple_string(s);
 	 return;
       }
 
@@ -127,7 +156,7 @@ public:
    void on_number(std::string_view s)
    {
       if (is_attr_) {
-	 //attribute.push_back(s);
+	 attribute.on_number(s);
 	 return;
       }
 
@@ -137,7 +166,7 @@ public:
    void on_double(std::string_view s)
    {
       if (is_attr_) {
-	 //attribute.push_back(s);
+	 attribute.on_double(s);
 	 return;
       }
 
@@ -147,7 +176,7 @@ public:
    void on_bool(std::string_view s)
    {
       if (is_attr_) {
-	 //attribute.push_back(s);
+	 attribute.on_bool(s);
 	 return;
       }
 
@@ -157,7 +186,7 @@ public:
    void on_big_number(std::string_view s)
    {
       if (is_attr_) {
-	 //attribute.push_back(s);
+	 attribute.on_big_number(s);
 	 return;
       }
 
@@ -167,7 +196,7 @@ public:
    void on_verbatim_string(std::string_view s = {})
    {
       if (is_attr_) {
-	 //attribute.push_back(s);
+	 attribute.on_verbatim_string(s);
 	 return;
       }
 
@@ -177,30 +206,16 @@ public:
    void on_blob_string(std::string_view s = {})
    {
       if (is_attr_) {
-	 //attribute.push_back(s);
+	 attribute.on_blob_string(s);
 	 return;
       }
 
       on_blob_string_impl(s);
    }
 
-   // At the moment, I don't see any reason for why we should support
-   // attributes and pushes and push types.
    virtual void on_streamed_string_part(std::string_view s = {}) { throw std::runtime_error("on_streamed_string_part: Has not been overridden."); }
    virtual ~response_base() {}
 };
-
-template <class T>
-std::enable_if<std::is_integral<T>::value, void>::type
-from_string_view(std::string_view s, T& n)
-{
-   auto r = std::from_chars(s.data(), s.data() + s.size(), n);
-   if (r.ec == std::errc::invalid_argument)
-      throw std::runtime_error("from_chars: Unable to convert");
-}
-
-void from_string_view(std::string_view s, std::string& r)
-   { r = s; }
 
 template <class T>
 class response_number : public response_base {
