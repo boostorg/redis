@@ -141,7 +141,13 @@ public:
    virtual void select_push(int n) { throw std::runtime_error("select_push: Has not been overridden."); }
    virtual void select_array(int n) { throw std::runtime_error("select_array: Has not been overridden."); }
    virtual void select_set(int n) { throw std::runtime_error("select_set: Has not been overridden."); }
-   virtual void select_map(int n) { throw std::runtime_error("select_map: Has not been overridden."); }
+
+   virtual void select_map(int n)
+   {
+      // Can't throw exception here if we want to deal with
+      // attributes.
+      //throw std::runtime_error("select_map: Has not been overridden.");
+   }
 
    void on_simple_string(std::string_view s)
    {

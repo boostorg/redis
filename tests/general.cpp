@@ -183,10 +183,57 @@ struct test_handler {
    }
 };
 
+net::awaitable<void> simple_string()
+{
+   {  // Small string
+      std::string buffer;
+      std::string cmd {"+OK\r\n"};
+      test_tcp_socket ts {cmd};
+      resp::response_simple_string res;
+      co_await resp::async_read(ts, buffer, res);
+      check_equal(res.result, {"OK"}, "simple_string (small)");
+      check_equal(res.attribute.value, {}, "simple_string (empty attribute)");
+   }
+
+   {  // empty
+      std::string buffer;
+      std::string cmd {"+\r\n"};
+      test_tcp_socket ts {cmd};
+      resp::response_simple_string res;
+      co_await resp::async_read(ts, buffer, res);
+      check_equal(res.result, {}, "simple_string (empty)");
+      check_equal(res.attribute.value, {}, "simple_string (empty attribute)");
+   }
+   {  // Large String (Failing because of my test stream)
+      std::string buffer;
+      std::string str(10000, 'a');
+      std::string cmd;
+      cmd += '+';
+      cmd += str;
+      cmd += "\r\n";
+      test_tcp_socket ts {cmd};
+      resp::response_simple_string res;
+      co_await resp::async_read(ts, buffer, res);
+      check_equal(res.result, str, "simple_string (large)");
+      check_equal(res.attribute.value, {}, "simple_string (empty attribute)");
+   }
+
+   {  // Small string with attribute.
+      std::string buffer;
+      std::string cmd {"|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"};
+      cmd += "+OK\r\n";
+      test_tcp_socket ts {cmd};
+      resp::response_simple_string res;
+      co_await resp::async_read(ts, buffer, res);
+      check_equal(res.result, {"OK"}, "simple_string (small)");
+      check_equal(res.attribute.value, {""}, "simple_string (empty attribute)");
+   }
+}
+
 net::awaitable<void> offline()
 {
    // TODO: Use Beast test_stream and instantiate the test socket only
-   // once. Pass commands in a pipeline.
+   // once.
 
    std::string test_bulk(10000, 'a');
 
@@ -421,6 +468,7 @@ net::awaitable<void> offline()
 int main(int argc, char* argv[])
 {
    net::io_context ioc {1};
+   co_spawn(ioc, simple_string(), net::detached);
    co_spawn(ioc, offline(), net::detached);
    co_spawn(ioc, test_list(), net::detached);
    co_spawn(ioc, test_set(), net::detached);

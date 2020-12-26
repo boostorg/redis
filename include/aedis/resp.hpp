@@ -56,11 +56,26 @@ template <class Response>
 class parser {
 public:
 private:
-   Response* res_ = nullptr;
-   int depth_ = 0;
-   int sizes_[6] = {2, 1, 1, 1, 1, 1}; // Streaming will require a bigger integer.
-   bulk_type bulk_ = bulk_type::none;
-   int bulk_length_ = std::numeric_limits<int>::max();
+   Response* res_;
+   int depth_;
+   int sizes_[6]; // Streaming will require a bigger integer.
+   bulk_type bulk_;
+   int bulk_length_;
+
+   void init(Response* res)
+   {
+      res_ = res;
+      depth_ = 0;
+      sizes_[0] = 2;
+      sizes_[1] = 1;
+      sizes_[2] = 1;
+      sizes_[3] = 1;
+      sizes_[4] = 1;
+      sizes_[5] = 1;
+      sizes_[6] = 1;
+      bulk_ = bulk_type::none;
+      bulk_length_ = std::numeric_limits<int>::max();
+   }
 
    auto on_array_impl(char const* data, int m = 1)
    {
@@ -167,8 +182,7 @@ private:
 
 public:
    parser(Response* res)
-   : res_ {res}
-   {}
+   { init(res); }
 
    std::size_t advance(char const* data, std::size_t n)
    {
