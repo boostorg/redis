@@ -22,6 +22,8 @@ examples += async_basic
 examples += async_reconnect
 examples += async_own_struct
 examples += async_all_hashes
+examples += async_responses
+examples += async_events
 
 tests =
 tests += general

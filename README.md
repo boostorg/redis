@@ -1,15 +1,17 @@
 # Aedis
 
-Aedis is a low level redis client designed for scalability while
-providing and to provide an easy and intuitive interface.
+Aedis is a low level redis client designed for scalability and to
+provide an easy and intuitive interface. All protocol features are
+supported (to the best of my knowledge), some of them are
+
+* Command pipelines (essential for performance).
+* TLS: Automatically supported since aedis uses ASIO's `AsyncReadStream`.
+* ASIO asynchronous model where futures, callbacks and coroutines are
+  supported.
 
 ## Tutorial
 
-We begin with sync events below and jump to async code thereafter.
-
-### Sync
-
-Synchronous code are clear by themselves
+Let us begin with a synchronous example 
 
 ```cpp
 int main()
@@ -27,7 +29,7 @@ int main()
 
       std::string buffer;
       for (;;) {
-	 resp::response_string res;
+	 resp::response_simple_string res;
 	 resp::read(socket, buffer, res);
 	 std::cout << res.result << std::endl;
       }
@@ -37,40 +39,98 @@ int main()
 }
 ```
 
-We keep reading from the socket until it is closed as a result of the
-quit command. The commands are sent in a pipeline to redis, which
-greatly improves performance. Notice also we parse the result in the
-buffer resp::reponse_string. This is overly simplistic for most apps.
-Typically we will want to parse each response in an appropriate
-data structure.
+The important things to notice above are
 
-#### Response buffer
+* We keep reading from the socket until it is closed by the redis
+  server (as requested by the quit command).
 
-Aedis comes with general purpose response buffers that are suitable to
-parse directly in C++ built-in data types and containers or on your
-own. For example
+* The commands are composed with the `pipeline` class.
+
+* The response is parsed in an appropriate buffer `response_simple_string`.
+
+Converting the example above to use coroutines is trivial
 
 ```cpp
-int main()
+net::awaitable<void> example1()
+{
+   resp::pipeline p;
+   p.set("Password", {"12345"});
+   p.quit();
+
+   auto ex = co_await this_coro::executor;
+   tcp::resolver resv(ex);
+   auto const r = resv.resolve("127.0.0.1", "6379");
+   tcp_socket socket {ex};
+   co_await async_connect(socket, r);
+   co_await async_write(socket, buffer(p.payload));
+
+   std::string buffer;
+   for (;;) {
+      resp::response_simple_string res;
+      co_await resp::async_read(socket, buffer, res);
+      std::cout << res.result << std::endl;
+   }
+}
+```
+
+From now on we will use coroutines in the tutorial as this is how most
+people should communicating to the redis server usually.
+
+### Response buffer
+
+To communicate efficiently with redis it is necessary to understand
+the possible response types. RESP3 spcifies the following data types
+
+1. simple string
+1. simple error
+1. number
+1. double
+1. bool
+1. big number
+1. null
+1. blob error
+1. verbatim string
+1. blob string
+1. streamed string part
+
+These data types can come in different aggregate types
+
+1. array
+1. push
+1. set
+1. map
+1. attribute
+
+Aedis provides appropriate response types for each of the data and
+aggregate types. For example
+
+```cpp
+net::awaitable<void> example()
 {
    try {
-      ... // Like before
+      resp::pipeline p;
+      p.rpush("list", {1, 2, 3});
+      p.lrange("list");
+      p.quit();
+
+      auto ex = co_await this_coro::executor;
+      tcp::resolver resv(ex);
+      tcp_socket socket {ex};
+      co_await net::async_connect(socket, resv.resolve("127.0.0.1", "6379"));
+      co_await net::async_write(socket, net::buffer(p.payload));
+
       std::string buffer;
+      resp::response_number<int> list_size;
+      co_await resp::async_read(socket, buffer, list_size);
 
-      resp::response_int<int> list_size; // Parses into an int
-      resp::read(socket, buffer, list_size);
-      std::cout << list_size.result << std::endl;
+      resp::response_list<int> list;
+      co_await resp::async_read(socket, buffer, list);
 
-      resp::response_list<int> list; // Parses into a std::list<int>
-      resp::read(socket, buffer, list);
-      print(list.result);
-
-      resp::response_string ok; // Parses into a std::string
-      resp::read(socket, buffer, ok);
-      std::cout << ok.result << std::endl;
+      resp::response_simple_string ok;
+      co_await resp::async_read(socket, buffer, ok);
 
       resp::response noop;
-      resp::read(socket, buffer, noop);
+      co_await resp::async_read(socket, buffer, noop);
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
@@ -78,16 +138,13 @@ int main()
 }
 ```
 
-Other response types are available also. Structure the code like in
-the example above is usually not feasible as the commands send are
-determined dynamically, for that case we have events.
+Usually the commands that are sent to redis are determined dynamically
+so it is not possible to structure the code like above, to deal with
+that it we support events.
 
 #### Events
 
-Most times, that events that are added to the pipeline are decided
-dynamically and we are not interested in the response for some of
-them. To deal with this we support events. To use them, define an
-enum class like the one below
+To use events, define an enum class like the one below
 
 ```cpp
 enum class myevents
@@ -97,12 +154,10 @@ enum class myevents
 };
 ```
 
-Pass it as argument to the pipeline class as below and use the
-appropriate enum field as the last argument to every command in the
-pipeline you want to use the result
+and pass it as argument to the pipeline commands as below
 
 ```cpp
-int main()
+net::awaitable<void> example()
 {
    try {
       resp::pipeline<myevents> p;
@@ -112,11 +167,11 @@ int main()
       p.smembers("set", myevents::set);
       p.quit();
 
-      io_context ioc {1};
-      tcp::resolver resv(ioc);
-      tcp::socket socket {ioc};
-      net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-      net::write(socket, buffer(p.payload));
+      auto ex = co_await this_coro::executor;
+      tcp::resolver resv(ex);
+      tcp_socket socket {ex};
+      co_await net::async_connect(socket, resv.resolve("127.0.0.1", "6379"));
+      co_await net::async_write(socket, buffer(p.payload));
 
       std::string buffer;
       for (;;) {
@@ -124,19 +179,19 @@ int main()
 	 case myevents::list:
 	 {
 	    resp::response_list<int> res;
-	    resp::read(socket, buffer, res);
+	    co_await resp::async_read(socket, buffer, res);
 	    print(res.result);
 	 } break;
 	 case myevents::set:
 	 {
 	    resp::response_set<int> res;
-	    resp::read(socket, buffer, res);
+	    co_await resp::async_read(socket, buffer, res);
 	    print(res.result);
 	 } break;
 	 default:
 	 {
 	    resp::response res;
-	    resp::read(socket, buffer, res);
+	    co_await resp::async_read(socket, buffer, res);
 	 }
 	 }
 	 p.events.pop();
@@ -147,48 +202,13 @@ int main()
 }
 ```
 
-### Async
-
-The sync examples above are good as introduction and can be also
-useful in production. However, sync code doesn't scale well, this is
-specially problematic on backends. Fortunately in C++20 it became
-trivial to convert sync into asyn code. The example below shows
-the async version of our first sync example.
-
-```cpp
-net::awaitable<void> example1()
-{
-   auto ex = co_await this_coro::executor;
-
-   tcp::resolver resv(ex);
-   auto const r = resv.resolve("127.0.0.1", "6379");
-
-   tcp_socket socket {ex};
-   co_await async_connect(socket, r);
-
-   resp::pipeline p;
-   p.set("Password", {"12345"});
-   p.quit();
-
-   co_await async_write(socket, buffer(p.payload));
-
-   std::string buffer;
-   for (;;) {
-      resp::response_string res;
-      co_await resp::async_read(socket, buffer, res);
-      std::cout << res.result << std::endl;
-   }
-}
-```
-
-Basically, we only have to replace read with async_read and use the
-co_await keyword.
-
 ## Reconnecting and Sentinel support
 
-On some occasions we will want to reconnet to redis server after a
-disconnect. This can happen for a couple of reasons, for example, the
-redis-server may crash and be restarted by systemd.
+In production we need a reconnect mechanism, some of the reasons are
+
+1. The server has crashed and has been restarted by systemd.
+1. All connection have been killed by the admin.
+1. A failover operation has started.
 
 ### Simple reconnet
 

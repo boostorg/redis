@@ -215,8 +215,10 @@ public:
 	 }
       }
       
-      while (sizes_[depth_] == 0)
+      while (sizes_[depth_] == 0) {
+	 res_->pop();
          --sizes_[--depth_];
+      }
       
       bulk_ = next;
       return n;

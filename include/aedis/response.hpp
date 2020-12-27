@@ -48,6 +48,7 @@ void from_string_view(std::string_view s, std::string& r)
 
 // The interface required from all response types.
 struct response_noop {
+   void pop() {}
    void select_array(int n) {}
    void select_push(int n) {}
    void select_set(int n) {}
@@ -92,12 +93,23 @@ enum class error
 , none
 };
 
+enum class aggregate_type
+{ attribute
+, push
+, array
+, set
+, map
+, none
+};
+
 class response_base {
 private:
    error err_ = error::none;
    bool is_null_ = false;
    std::string err_msg_;
-   bool is_attr_ = false;
+
+   // The first element is the sentinel.
+   std::vector<aggregate_type> aggregates_ {aggregate_type::attribute};
 
 protected:
    virtual void on_simple_string_impl(std::string_view s)
@@ -114,12 +126,23 @@ protected:
       { throw std::runtime_error("on_verbatim_string_impl: Has not been overridden."); }
    virtual void on_blob_string_impl(std::string_view s = {})
       { throw std::runtime_error("on_blob_string_impl: Has not been overridden."); }
+   virtual void select_push_impl(int n)
+      { throw std::runtime_error("select_push_impl: Has not been overridden."); }
+   virtual void select_array_impl(int n)
+      { throw std::runtime_error("select_array_impl: Has not been overridden."); }
+   virtual void select_set_impl(int n)
+      { throw std::runtime_error("select_set_impl: Has not been overridden."); }
+   virtual void select_map_impl(int n)
+      { throw std::runtime_error("select_map_impl: Has not been overridden."); }
 
 public:
    response_attribute attribute;
 
    auto get_error() const noexcept {return err_;}
    auto const& message() const noexcept {return err_msg_;}
+
+   void pop()
+      { aggregates_.pop_back(); }
 
    void on_simple_error(std::string_view s)
    {
@@ -135,23 +158,43 @@ public:
 
    void on_null() {is_null_ = true; }
 
-   void select_attribute(int n) { is_attr_ = true; }
-
-   // Function derived classes can overwrite.
-   virtual void select_push(int n) { throw std::runtime_error("select_push: Has not been overridden."); }
-   virtual void select_array(int n) { throw std::runtime_error("select_array: Has not been overridden."); }
-   virtual void select_set(int n) { throw std::runtime_error("select_set: Has not been overridden."); }
-
-   virtual void select_map(int n)
+   auto is_attribute() const noexcept
    {
-      // Can't throw exception here if we want to deal with
-      // attributes.
-      //throw std::runtime_error("select_map: Has not been overridden.");
+      auto i = std::ssize(aggregates_) - 1;
+      while (aggregates_[i] != aggregate_type::attribute)
+	 --i;
+
+      return i != 0;
+   }
+
+   void select_attribute(int n)
+   {
+      aggregates_.push_back(aggregate_type::attribute);
+   }
+
+   void select_push(int n)
+   {
+      aggregates_.push_back(aggregate_type::push);
+   }
+
+   void select_array(int n)
+   {
+      aggregates_.push_back(aggregate_type::array);
+   }
+
+   void select_set(int n)
+   {
+      aggregates_.push_back(aggregate_type::set);
+   }
+
+   void select_map(int n)
+   {
+      aggregates_.push_back(aggregate_type::map);
    }
 
    void on_simple_string(std::string_view s)
    {
-      if (is_attr_) {
+      if (is_attribute()) {
 	 attribute.on_simple_string(s);
 	 return;
       }
@@ -161,7 +204,7 @@ public:
 
    void on_number(std::string_view s)
    {
-      if (is_attr_) {
+      if (is_attribute()) {
 	 attribute.on_number(s);
 	 return;
       }
@@ -171,7 +214,7 @@ public:
 
    void on_double(std::string_view s)
    {
-      if (is_attr_) {
+      if (is_attribute()) {
 	 attribute.on_double(s);
 	 return;
       }
@@ -181,7 +224,7 @@ public:
 
    void on_bool(std::string_view s)
    {
-      if (is_attr_) {
+      if (is_attribute()) {
 	 attribute.on_bool(s);
 	 return;
       }
@@ -191,7 +234,7 @@ public:
 
    void on_big_number(std::string_view s)
    {
-      if (is_attr_) {
+      if (is_attribute()) {
 	 attribute.on_big_number(s);
 	 return;
       }
@@ -201,7 +244,7 @@ public:
 
    void on_verbatim_string(std::string_view s = {})
    {
-      if (is_attr_) {
+      if (is_attribute()) {
 	 attribute.on_verbatim_string(s);
 	 return;
       }
@@ -211,7 +254,7 @@ public:
 
    void on_blob_string(std::string_view s = {})
    {
-      if (is_attr_) {
+      if (is_attribute()) {
 	 attribute.on_blob_string(s);
 	 return;
       }
@@ -300,8 +343,9 @@ private:
       result.push_back(std::move(r));
    }
 
+   void select_array_impl(int n) override { }
+
 public:
-   void select_array(int n) override { }
    std::list<T, Allocator> result;
 };
 
@@ -342,10 +386,10 @@ private:
 
    void on_simple_string_impl(std::string_view s) override { add(s); }
    void on_blob_string_impl(std::string_view s) override { add(s); }
+   void select_set_impl(int n) override { }
 
 public:
    std::set<Key, Compare, Allocator> result;
-   void select_set(int n) override { }
 };
 
 class response_bool : public response_base {
@@ -377,10 +421,11 @@ private:
       result.insert(std::end(result), std::move(r));
    }
 
+   void select_array_impl(int n) override { }
+   void select_set_impl(int n) override { }
+
 public:
    std::set<Key, Compare, Allocator> result;
-   void select_array(int n) override { }
-   void select_set(int n) override { }
 };
 
 template <class T, class Allocator = std::allocator<T>>
@@ -400,17 +445,16 @@ private:
    void on_big_number_impl(std::string_view s) override { add(s); }
    void on_verbatim_string_impl(std::string_view s = {}) override { add(s); }
    void on_blob_string_impl(std::string_view s = {}) override { add(s); }
+   void select_push_impl(int n) override { }
+   void select_array_impl(int n) override { }
+   void select_set_impl(int n) override { }
+   void select_map_impl(int n) override { }
 
 public:
    std::vector<T, Allocator> result;
 
    void clear() { result.clear(); }
    auto size() const noexcept { return std::size(result); }
-
-   void select_array(int n) override { }
-   void select_push(int n) override { }
-   void select_set(int n) override { }
-   void select_map(int n) override { }
 
    void on_streamed_string_part(std::string_view s = {}) override { add(s); }
 };
