@@ -16,8 +16,7 @@ int main()
 {
    try {
       resp::pipeline p;
-      p.set("Password", {"12345"});
-      p.quit();
+      p.subscribe("channel");
 
       io_context ioc {1};
       tcp::resolver resv(ioc);
@@ -27,9 +26,9 @@ int main()
 
       std::string buffer;
       for (;;) {
-	 resp::response_simple_string res;
+	 resp::response_array<std::string> res;
 	 resp::read(socket, buffer, res);
-	 std::cout << res.result << std::endl;
+	 print(res.result);
       }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

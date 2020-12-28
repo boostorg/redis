@@ -1,3 +1,10 @@
+pkg_name = aedis
+pkg_version = 1.0.0
+pkg_revision = 1
+tarball_name = $(pkg_name)-$(pkg_version)-$(pkg_revision)
+tarball_dir = $(pkg_name)-$(pkg_version)
+prefix = /opt/$(tarball_name)
+incdir = $(prefix)/include/$(pkg_name)
 
 #CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
 
@@ -34,8 +41,9 @@ remove += $(tests)
 remove += $(addsuffix .o, $(examples))
 remove += $(addsuffix .o, $(tests))
 remove += Makefile.dep
+remove += $(tarball_name).tar.gz
 
-all: general $(examples)
+all: $(tests) $(examples)
 
 Makefile.dep:
 	-$(CXX) -MM -I./include ./examples/*.cpp ./tests/*.cpp > $@
@@ -49,10 +57,23 @@ $(tests): % : tests/%.cpp
 	$(CXX) -o $@ $< $(CPPFLAGS) $(LDFLAGS)
 
 .PHONY: check
-check: general
+check: $(tests)
 	./general
+
+.PHONY: install
+install:
+	install --mode=444 -D include/aedis/* --target-directory $(incdir)
+
+uninstall:
+	rm -rf $(incdir)
 
 .PHONY: clean
 clean:
 	rm -f $(remove)
+
+$(tarball_name).tar.gz:
+	git archive --format=tar.gz --prefix=$(tarball_dir)/ HEAD > $(tarball_name).tar.gz
+
+.PHONY: dist
+dist: $(tarball_name).tar.gz
 
