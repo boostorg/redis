@@ -9,6 +9,7 @@
 
 #include <set>
 #include <list>
+#include <array>
 #include <vector>
 #include <string>
 #include <numeric>
@@ -69,22 +70,6 @@ struct response_noop {
    ~response_noop() {}
 };
 
-class response_attribute {
-private:
-   void add(std::string_view s)
-      { value.push_back(std::string {s}); }
-public:
-   void on_simple_string(std::string_view s) {add(s);}
-   void on_number(std::string_view s) {add(s);}
-   void on_double(std::string_view s) {add(s);}
-   void on_bool(std::string_view s) {add(s);}
-   void on_big_number(std::string_view s) {add(s);}
-   void on_verbatim_string(std::string_view s) {add(s);}
-   void on_blob_string(std::string_view s) {add(s);}
-
-   std::vector<std::string> value;
-};
-
 using response = response_noop;
 
 enum class error
@@ -126,8 +111,6 @@ protected:
       { throw std::runtime_error("on_verbatim_string_impl: Has not been overridden."); }
    virtual void on_blob_string_impl(std::string_view s = {})
       { throw std::runtime_error("on_blob_string_impl: Has not been overridden."); }
-   virtual void select_push_impl(int n)
-      { throw std::runtime_error("select_push_impl: Has not been overridden."); }
    virtual void select_array_impl(int n)
       { throw std::runtime_error("select_array_impl: Has not been overridden."); }
    virtual void select_set_impl(int n)
@@ -136,8 +119,6 @@ protected:
       { throw std::runtime_error("select_map_impl: Has not been overridden."); }
 
 public:
-   response_attribute attribute;
-
    auto get_error() const noexcept {return err_;}
    auto const& message() const noexcept {return err_msg_;}
 
@@ -170,11 +151,13 @@ public:
    void select_attribute(int n)
    {
       aggregates_.push_back(aggregate_type::attribute);
+      throw std::runtime_error("select_attribute: Has not been overridden.");
    }
 
    void select_push(int n)
    {
       aggregates_.push_back(aggregate_type::push);
+      throw std::runtime_error("select_push: Has not been overridden.");
    }
 
    void select_array(int n)
@@ -194,71 +177,36 @@ public:
 
    void on_simple_string(std::string_view s)
    {
-      if (is_attribute()) {
-	 attribute.on_simple_string(s);
-	 return;
-      }
-
       on_simple_string_impl(s);
    }
 
    void on_number(std::string_view s)
    {
-      if (is_attribute()) {
-	 attribute.on_number(s);
-	 return;
-      }
-
       on_number_impl(s);
    }
 
    void on_double(std::string_view s)
    {
-      if (is_attribute()) {
-	 attribute.on_double(s);
-	 return;
-      }
-
       on_double_impl(s);
    }
 
    void on_bool(std::string_view s)
    {
-      if (is_attribute()) {
-	 attribute.on_bool(s);
-	 return;
-      }
-
       on_bool_impl(s);
    }
 
    void on_big_number(std::string_view s)
    {
-      if (is_attribute()) {
-	 attribute.on_big_number(s);
-	 return;
-      }
-
       on_big_number_impl(s);
    }
 
    void on_verbatim_string(std::string_view s = {})
    {
-      if (is_attribute()) {
-	 attribute.on_verbatim_string(s);
-	 return;
-      }
-
       on_verbatim_string_impl(s);
    }
 
    void on_blob_string(std::string_view s = {})
    {
-      if (is_attribute()) {
-	 attribute.on_blob_string(s);
-	 return;
-      }
-
       on_blob_string_impl(s);
    }
 
@@ -445,7 +393,6 @@ private:
    void on_big_number_impl(std::string_view s) override { add(s); }
    void on_verbatim_string_impl(std::string_view s = {}) override { add(s); }
    void on_blob_string_impl(std::string_view s = {}) override { add(s); }
-   void select_push_impl(int n) override { }
    void select_array_impl(int n) override { }
    void select_set_impl(int n) override { }
    void select_map_impl(int n) override { }
@@ -464,6 +411,17 @@ using response_flat_map = response_array<T, Allocator>;
 
 template <class T, class Allocator = std::allocator<T>>
 using response_flat_set = response_array<T, Allocator>;
+
+class response_publish : public response_base {
+private:
+   int i = 0;
+   void on_blob_string_impl(std::string_view s) override
+      { from_string_view(s, result[i++]); }
+
+public:
+
+   std::array<std::string, 3> result;
+};
 
 } // resp
 } // aedis

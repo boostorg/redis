@@ -31,6 +31,7 @@ examples += async_own_struct
 examples += async_all_hashes
 examples += async_responses
 examples += async_events
+examples += async_pubsub
 
 tests =
 tests += general

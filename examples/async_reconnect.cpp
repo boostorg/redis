@@ -41,8 +41,7 @@ net::awaitable<void> example1()
 	 }
       } catch (std::exception const& e) {
 	 std::cerr << "Error: " << e.what() << std::endl;
-	 stimer timer(ex);
-	 timer.expires_after(std::chrono::seconds{2});
+	 stimer timer(ex, std::chrono::seconds{2});
 	 co_await timer.async_wait();
       }
    }
