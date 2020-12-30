@@ -21,7 +21,7 @@ enum class myevents
 int main()
 {
    try {
-      resp::pipeline<myevents> p;
+      resp::request<myevents> p;
       p.rpush("list", {1, 2, 3});
       p.lrange("list", 0, -1, myevents::list);
       p.sadd("set", std::set<int>{3, 4, 5});
@@ -51,7 +51,7 @@ int main()
 	 } break;
 	 default:
 	 {
-	    resp::response res;
+	    resp::response_ignore res;
 	    resp::read(socket, buffer, res);
 	 }
 	 }

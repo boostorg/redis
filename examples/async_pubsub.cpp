@@ -29,10 +29,10 @@ net::awaitable<void> publisher()
 
       std::string buffer;
       for (;;) {
-	 resp::pipeline p;
+	 resp::request p;
 	 p.publish("channel", "12345");
 	 co_await async_write(socket, net::buffer(p.payload));
-	 resp::response res;
+	 resp::response_ignore res;
 	 co_await resp::async_read(socket, buffer, res);
 	 stimer timer(ex);
 	 timer.expires_after(std::chrono::seconds{2});
@@ -47,7 +47,7 @@ net::awaitable<void> subscriber()
 {
    auto ex = co_await this_coro::executor;
    try {
-      resp::pipeline p;
+      resp::request p;
       p.subscribe("channel");
 
       tcp::resolver resv(ex);
@@ -59,7 +59,7 @@ net::awaitable<void> subscriber()
       std::string buffer;
 
       // Reads the answer to the subscribe.
-      resp::response res;
+      resp::response_ignore res;
       co_await resp::async_read(socket, buffer, res);
 
       // Reads published messages.

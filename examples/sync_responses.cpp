@@ -15,7 +15,7 @@ using namespace aedis;
 int main()
 {
    try {
-      resp::pipeline p;
+      resp::request p;
       p.rpush("list", {1, 2, 3});
       p.lrange("list");
       p.quit();
@@ -39,7 +39,7 @@ int main()
       resp::read(socket, buffer, ok);
       std::cout << ok.result << std::endl;
 
-      resp::response noop;
+      resp::response_ignore noop;
       resp::read(socket, buffer, noop);
 
    } catch (std::exception const& e) {

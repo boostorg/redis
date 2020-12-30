@@ -179,7 +179,7 @@ enum class command
 enum class event {ignore};
 
 template <class Event = event>
-struct pipeline {
+struct request {
    std::string payload;
    std::queue<std::pair<command, Event>> events;
 

@@ -25,7 +25,7 @@ enum class myevents
 net::awaitable<void> example()
 {
    try {
-      resp::pipeline<myevents> p;
+      resp::request<myevents> p;
       p.rpush("list", {1, 2, 3});
       p.lrange("list", 0, -1, myevents::list);
       p.sadd("set", std::set<int>{3, 4, 5});
@@ -55,7 +55,7 @@ net::awaitable<void> example()
 	 } break;
 	 default:
 	 {
-	    resp::response res;
+	    resp::response_ignore res;
 	    co_await resp::async_read(socket, buffer, res);
 	 }
 	 }

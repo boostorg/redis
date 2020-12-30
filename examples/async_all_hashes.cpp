@@ -48,7 +48,7 @@ auto make_hset_arg(foo const& p)
 net::awaitable<void> create_hashes()
 {
    std::vector<foo> posts(20000);
-   resp::pipeline p;
+   resp::request p;
    p.flushall();
    for (auto i = 0; i < std::ssize(posts); ++i) {
       std::string const name = "posts:" + std::to_string(i);
@@ -64,14 +64,14 @@ net::awaitable<void> create_hashes()
    co_await async_write(socket, buffer(p.payload));
 
    std::string buffer;
-   resp::response res;
+   resp::response_ignore res;
    for (;;)
       co_await resp::async_read(socket, buffer, res);
 }
 
 net::awaitable<void> read_hashes_coro()
 {
-   resp::pipeline p;
+   resp::request p;
    p.keys("posts:*");
 
    auto ex = co_await this_coro::executor;
@@ -87,8 +87,8 @@ net::awaitable<void> read_hashes_coro()
    co_await resp::async_read(socket, buffer, keys);
    //print(keys.result);
 
-   // Generates the pipeline to retrieve all hashes.
-   resp::pipeline pv;
+   // Generates the request to retrieve all hashes.
+   resp::request pv;
    for (auto const& o : keys.result)
       pv.hvals(o);
    pv.quit();
@@ -101,13 +101,13 @@ net::awaitable<void> read_hashes_coro()
       //print(value.result);
    }
 
-   resp::response quit;
+   resp::response_ignore quit;
    co_await resp::async_read(socket, buffer, quit);
 }
 
 void read_hashes(net::io_context& ioc)
 {
-   resp::pipeline p;
+   resp::request p;
    p.keys("posts:*");
 
    tcp::resolver resv(ioc);
@@ -121,8 +121,8 @@ void read_hashes(net::io_context& ioc)
    resp::response_array<std::string> keys;
    resp::read(socket, buffer, keys);
 
-   // Generates the pipeline to retrieve all hashes.
-   resp::pipeline pv;
+   // Generates the request to retrieve all hashes.
+   resp::request pv;
    for (auto const& o : keys.result)
       pv.hvals(o);
    pv.quit();
@@ -134,7 +134,7 @@ void read_hashes(net::io_context& ioc)
       resp::read(socket, buffer, value);
    }
 
-   resp::response quit;
+   resp::response_ignore quit;
    resp::read(socket, buffer, quit);
 }
 

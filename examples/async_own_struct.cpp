@@ -40,7 +40,7 @@ net::awaitable<void> example1()
    , {"Marcelo", 10, 20, 10}
    };
 
-   resp::pipeline p;
+   resp::request p;
    p.flushall();
    p.rpush("kabuff", users);
    p.lrange("kabuff");

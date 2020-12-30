@@ -21,7 +21,7 @@ using namespace aedis;
 net::awaitable<void> example()
 {
    try {
-      resp::pipeline p;
+      resp::request p;
       p.rpush("list", {1, 2, 3});
       p.lrange("list");
       p.quit();
@@ -45,7 +45,7 @@ net::awaitable<void> example()
       co_await resp::async_read(socket, buffer, ok);
       std::cout << ok.result << std::endl;
 
-      resp::response noop;
+      resp::response_ignore noop;
       co_await resp::async_read(socket, buffer, noop);
 
    } catch (std::exception const& e) {

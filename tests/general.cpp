@@ -34,7 +34,7 @@ net::awaitable<void> test_list()
 {
    std::list<int> list {1 ,2, 3, 4, 5, 6};
 
-   resp::pipeline p;
+   resp::request p;
    p.hello("3");
    p.flushall();
    p.rpush("a", list);
@@ -53,7 +53,7 @@ net::awaitable<void> test_list()
    std::string buffer;
 
    {  // hello
-      resp::response res;
+      resp::response_ignore res;
       co_await resp::async_read(socket, buffer, res);
    }
 
@@ -115,7 +115,7 @@ net::awaitable<void> test_set()
    tcp_socket socket {ex};
    co_await async_connect(socket, rr);
 
-   resp::pipeline p;
+   resp::request p;
    p.hello("3");
    p.flushall();
    p.set("s", {test_bulk1});
@@ -130,7 +130,7 @@ net::awaitable<void> test_set()
 
    std::string buffer;
    {  // hello, flushall
-      resp::response res;
+      resp::response_ignore res;
       co_await resp::async_read(socket, buffer, res);
       co_await resp::async_read(socket, buffer, res);
    }

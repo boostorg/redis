@@ -15,7 +15,7 @@ using namespace aedis;
 int main()
 {
    try {
-      resp::pipeline p;
+      resp::request p;
       p.set("Password", {"12345"});
       p.quit();
 

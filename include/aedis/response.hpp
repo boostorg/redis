@@ -48,7 +48,7 @@ void from_string_view(std::string_view s, std::string& r)
    { r = s; }
 
 // The interface required from all response types.
-struct response_noop {
+struct response_ignore {
    void pop() {}
    void select_array(int n) {}
    void select_push(int n) {}
@@ -67,10 +67,8 @@ struct response_noop {
    void on_verbatim_string(std::string_view s = {}) {}
    void on_blob_string(std::string_view s = {}) {}
    void on_streamed_string_part(std::string_view s = {}) {}
-   ~response_noop() {}
+   ~response_ignore() {}
 };
-
-using response = response_noop;
 
 enum class error
 { simple_error

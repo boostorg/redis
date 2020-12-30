@@ -23,7 +23,7 @@ net::awaitable<void> example1()
    auto ex = co_await this_coro::executor;
    for (;;) {
       try {
-	 resp::pipeline p;
+	 resp::request p;
 	 p.set("Password", {"12345"});
 	 p.quit();
 

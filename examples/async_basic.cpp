@@ -19,7 +19,7 @@ using namespace aedis;
 
 net::awaitable<void> example1()
 {
-   resp::pipeline p;
+   resp::request p;
    p.set("Password", {"12345"});
    p.quit();
 
