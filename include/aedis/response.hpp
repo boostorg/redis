@@ -412,7 +412,8 @@ using response_flat_map = response_array<T, Allocator>;
 template <class T, class Allocator = std::allocator<T>>
 using response_flat_set = response_array<T, Allocator>;
 
-class response_publish : public response_base {
+template <class T, std::size_t N>
+class response_static_array : public response_base {
 private:
    int i = 0;
    void on_blob_string_impl(std::string_view s) override
@@ -420,7 +421,7 @@ private:
 
 public:
 
-   std::array<std::string, 3> result;
+   std::array<T, N> result;
 };
 
 } // resp

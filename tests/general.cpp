@@ -9,6 +9,9 @@
 
 #include "test_stream.hpp"
 
+// TODO: Use Beast test_stream and instantiate the test socket only
+// once.
+
 namespace net = aedis::net;
 using tcp = net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
@@ -191,7 +194,7 @@ net::awaitable<void> simple_string()
       test_tcp_socket ts {cmd};
       resp::response_simple_string res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, {"OK"}, "simple_string (small)");
+      check_equal(res.result, {"OK"}, "simple_string");
       //check_equal(res.attribute.value, {}, "simple_string (empty attribute)");
    }
 
@@ -220,43 +223,59 @@ net::awaitable<void> simple_string()
    //}
 }
 
-net::awaitable<void> offline()
+net::awaitable<void> number()
 {
-   // TODO: Use Beast test_stream and instantiate the test socket only
-   // once.
-
-   std::string test_bulk(10000, 'a');
-
-   std::string bulk;
-   bulk += "$";
-   bulk += std::to_string(std::size(test_bulk));
-   bulk += "\r\n";
-   bulk += test_bulk;
-   bulk += "\r\n";
-
    std::string buffer;
-   {
-      std::string cmd {"+OK\r\n"};
+   {  // int
+      std::string cmd {":-3\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_simple_string res;
+      resp::response_number<int> res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, {"OK"}, "simple_string");
+      check_equal(res.result, -3, "number (int)");
    }
 
-   {
+   {  // unsigned
       std::string cmd {":3\r\n"};
       test_tcp_socket ts {cmd};
       resp::response_number<int> res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, 3, "number");
+      check_equal(res.result, 3, "number (unsigned)");
    }
 
-   {
+   {  // std::size_t
+      std::string cmd {":1111111\r\n"};
+      test_tcp_socket ts {cmd};
+      resp::response_number<int> res;
+      co_await resp::async_read(ts, buffer, res);
+      check_equal(res.result, 1111111, "number (std::size_t)");
+   }
+}
+
+net::awaitable<void> array()
+{
+   std::string buffer;
+   {  // Dynamic
       std::string cmd {"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"};
       test_tcp_socket ts {cmd};
       resp::response_array<std::string> res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, {"one", "two", "three"}, "array");
+      check_equal(res.result, {"one", "two", "three"}, "array (dynamic)");
+   }
+
+   {  // Static
+      std::string cmd {"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"};
+      test_tcp_socket ts {cmd};
+      resp::response_static_array<std::string, 3> res;
+      co_await resp::async_read(ts, buffer, res);
+      check_equal(res.result, {"one", "two", "three"}, "array (static)");
+   }
+
+   {  // Static int
+      std::string cmd {"*3\r\n$1\r\n1\r\n$1\r\n2\r\n$1\r\n3\r\n"};
+      test_tcp_socket ts {cmd};
+      resp::response_static_array<int, 3> res;
+      co_await resp::async_read(ts, buffer, res);
+      check_equal(res.result, {1, 2, 3}, "array (int)");
    }
 
    {
@@ -264,9 +283,13 @@ net::awaitable<void> offline()
       test_tcp_socket ts {cmd};
       resp::response_array<std::string> res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, {}, "array (size 0)");
+      check_equal(res.result, {}, "array (empty)");
    }
+}
 
+net::awaitable<void> blob_string()
+{
+   std::string buffer;
    {
       std::string cmd {"$2\r\nhh\r\n"};
       test_tcp_socket ts {cmd};
@@ -290,16 +313,24 @@ net::awaitable<void> offline()
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {}, "blob_string (size 0)");
    }
+}
 
+net::awaitable<void> simple_error()
+{
+   std::string buffer;
    {
       std::string cmd {"-Error\r\n"};
       test_tcp_socket ts {cmd};
       resp::response_base res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.message(), {"Error"}, "simple_error (message)");
-      check_equal(res.get_error(), resp::error::simple_error, "simple_error (enum)");
+      check_equal(res.get_error(), resp::error::simple_error, "simple_error");
    }
+}
 
+net::awaitable<void> floating_point()
+{
+   std::string buffer;
    {
       std::string cmd {",1.23\r\n"};
       test_tcp_socket ts {cmd};
@@ -324,6 +355,11 @@ net::awaitable<void> offline()
       check_equal(res.result, {"-inf"}, "double (-inf)");
    }
 
+}
+
+net::awaitable<void> boolean()
+{
+   std::string buffer;
    {
       std::string cmd {"#f\r\n"};
       test_tcp_socket ts {cmd};
@@ -339,7 +375,11 @@ net::awaitable<void> offline()
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, true, "bool (true)");
    }
+}
 
+net::awaitable<void> blob_error()
+{
+   std::string buffer;
    {
       std::string cmd {"!21\r\nSYNTAX invalid syntax\r\n"};
       test_tcp_socket ts {cmd};
@@ -357,7 +397,11 @@ net::awaitable<void> offline()
       check_equal(res.message(), {}, "blob_error (empty message)");
       check_equal(res.get_error(), resp::error::blob_error, "blob_error (enum)");
    }
+}
 
+net::awaitable<void> verbatim_string()
+{
+   std::string buffer;
    {
       std::string cmd {"=15\r\ntxt:Some string\r\n"};
       test_tcp_socket ts {cmd};
@@ -367,13 +411,17 @@ net::awaitable<void> offline()
    }
 
    {
-      std::string cmd {"(3492890328409238509324850943850943825024385\r\n"};
+      std::string cmd {"=0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_big_number res;
+      resp::response_verbatim_string res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, {"3492890328409238509324850943850943825024385"}, "big number");
+      check_equal(res.result, {}, "verbatim_string (empty)");
    }
+}
 
+net::awaitable<void> set()
+{
+   std::string buffer;
    {
       std::string cmd {"~5\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n"};
       test_tcp_socket ts {cmd};
@@ -397,15 +445,11 @@ net::awaitable<void> offline()
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {}, "set (empty)");
    }
+}
 
-   //{
-   //   std::string cmd {"|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"};
-   //   test_tcp_socket ts {cmd};
-   //   resp::response_array<std::string> res;
-   //   co_await resp::async_read(ts, buffer, res);
-   //   check_equal(res.result, {"key-popularity", "a", "0.1923", "b", "0.0012"}, "attribute");
-   //}
-
+net::awaitable<void> map()
+{
+   std::string buffer;
    {
       std::string cmd {"%7\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n6.0.9\r\n$5\r\nproto\r\n:3\r\n$2\r\nid\r\n:203\r\n$4\r\nmode\r\n$10\r\nstandalone\r\n$4\r\nrole\r\n$6\r\nmaster\r\n$7\r\nmodules\r\n*0\r\n"};
       test_tcp_socket ts {cmd};
@@ -421,23 +465,11 @@ net::awaitable<void> offline()
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {}, "map (flat - empty)");
    }
+}
 
-   //{
-   //   std::string cmd {">4\r\n+pubsub\r\n+message\r\n+foo\r\n+bar\r\n"};
-   //   test_tcp_socket ts {cmd};
-   //   resp::response_array<std::string> res;
-   //   co_await resp::async_read(ts, buffer, res);
-   //   check_equal(res.result, {"pubsub", "message", "foo", "bar"}, "push type");
-   //}
-
-   //{
-   //   std::string cmd {">0\r\n"};
-   //   test_tcp_socket ts {cmd};
-   //   resp::response_array<std::string> res;
-   //   co_await resp::async_read(ts, buffer, res);
-   //   check_equal(res.result, {}, "push type (empty)");
-   //}
-
+net::awaitable<void> streamed_string()
+{
+   std::string buffer;
    {
       std::string cmd {"$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
@@ -455,11 +487,48 @@ net::awaitable<void> offline()
    }
 }
 
+net::awaitable<void> offline()
+{
+   std::string buffer;
+   //{
+   //   std::string cmd {"|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"};
+   //   test_tcp_socket ts {cmd};
+   //   resp::response_array<std::string> res;
+   //   co_await resp::async_read(ts, buffer, res);
+   //   check_equal(res.result, {"key-popularity", "a", "0.1923", "b", "0.0012"}, "attribute");
+   //}
+
+   //{
+   //   std::string cmd {">4\r\n+pubsub\r\n+message\r\n+foo\r\n+bar\r\n"};
+   //   test_tcp_socket ts {cmd};
+   //   resp::response_array<std::string> res;
+   //   co_await resp::async_read(ts, buffer, res);
+   //   check_equal(res.result, {"pubsub", "message", "foo", "bar"}, "push type");
+   //}
+
+   //{
+   //   std::string cmd {">0\r\n"};
+   //   test_tcp_socket ts {cmd};
+   //   resp::response_array<std::string> res;
+   //   co_await resp::async_read(ts, buffer, res);
+   //   check_equal(res.result, {}, "push type (empty)");
+   //}
+}
+
 int main(int argc, char* argv[])
 {
    net::io_context ioc {1};
    co_spawn(ioc, simple_string(), net::detached);
-   co_spawn(ioc, offline(), net::detached);
+   co_spawn(ioc, number(), net::detached);
+   co_spawn(ioc, array(), net::detached);
+   co_spawn(ioc, blob_string(), net::detached);
+   co_spawn(ioc, simple_error(), net::detached);
+   co_spawn(ioc, floating_point(), net::detached);
+   co_spawn(ioc, boolean(), net::detached);
+   co_spawn(ioc, blob_error(), net::detached);
+   co_spawn(ioc, verbatim_string(), net::detached);
+   co_spawn(ioc, set(), net::detached);
+   co_spawn(ioc, map(), net::detached);
    co_spawn(ioc, test_list(), net::detached);
    co_spawn(ioc, test_set(), net::detached);
    ioc.run();

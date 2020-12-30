@@ -40,7 +40,7 @@ net::awaitable<void> example()
 
       std::string buffer;
       for (;;) {
-	 switch (p.events.front()) {
+	 switch (p.events.front().second) {
 	 case myevents::list:
 	 {
 	    resp::response_list<int> res;

@@ -64,7 +64,7 @@ net::awaitable<void> subscriber()
 
       // Reads published messages.
       for (;;) {
-	 resp::response_publish res;
+	 resp::response_static_array<std::string, 3> res;
 	 co_await resp::async_read(socket, buffer, res);
 	 print(res.result);
       }
