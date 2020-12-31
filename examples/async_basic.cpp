@@ -9,39 +9,58 @@
 #include <aedis/aedis.hpp>
 
 namespace net = aedis::net;
-using tcp = net::ip::tcp;
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
-
 namespace this_coro = net::this_coro;
-
-using namespace net;
 using namespace aedis;
+using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
 
 net::awaitable<void> example1()
 {
-   resp::request p;
-   p.set("Password", {"12345"});
-   p.quit();
+   try {
+      resp::request req;
+      req.hello();
+      req.set("Password", {"12345"});
+      req.get("Password");
+      req.quit();
 
-   auto ex = co_await this_coro::executor;
-   tcp::resolver resv(ex);
-   auto const r = resv.resolve("127.0.0.1", "6379");
-   tcp_socket socket {ex};
-   co_await async_connect(socket, r);
-   co_await async_write(socket, buffer(p.payload));
+      auto ex = co_await this_coro::executor;
+      tcp::resolver resv(ex);
+      auto const r = resv.resolve("127.0.0.1", "6379");
+      tcp_socket socket {ex};
+      co_await async_connect(socket, r);
+      co_await async_write(socket, net::buffer(req.payload));
 
-   std::string buffer;
-   for (;;) {
-      resp::response_simple_string res;
-      co_await resp::async_read(socket, buffer, res);
-      std::cout << res.result << std::endl;
+      std::string buffer;
+      for (;;) {
+	 switch (req.events.front().first) {
+	    case resp::command::hello:
+	    {
+	       resp::response_flat_map<std::string> res;
+	       co_await resp::async_read(socket, buffer, res);
+	       print(res.result);
+	    } break;
+	    case resp::command::get:
+	    {
+	       resp::response_blob_string res;
+	       co_await resp::async_read(socket, buffer, res);
+	       std::cout << "get: " << res.result << std::endl;
+	    } break;
+	    default:
+	    {
+	       resp::response_ignore res;
+	       co_await resp::async_read(socket, buffer, res);
+	    }
+	 }
+	 req.events.pop();
+      }
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
    }
 }
 
 int main()
 {
-   io_context ioc {1};
-   co_spawn(ioc, example1(), detached);
+   net::io_context ioc {1};
+   net::co_spawn(ioc, example1(), net::detached);
    ioc.run();
 }
 

@@ -9,14 +9,11 @@
 #include <aedis/aedis.hpp>
 
 namespace net = aedis::net;
+namespace this_coro = net::this_coro;
+using namespace aedis;
 using tcp = net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
-
-namespace this_coro = net::this_coro;
-
-using namespace net;
-using namespace aedis;
 
 net::awaitable<void> example1()
 {
@@ -24,23 +21,21 @@ net::awaitable<void> example1()
    for (;;) {
       try {
 	 resp::request p;
-	 p.set("Password", {"12345"});
 	 p.quit();
 
 	 tcp::resolver resv(ex);
 	 auto const r = resv.resolve("127.0.0.1", "6379");
 	 tcp_socket socket {ex};
 	 co_await async_connect(socket, r);
-	 co_await async_write(socket, buffer(p.payload));
+	 co_await async_write(socket, net::buffer(p.payload));
 
 	 std::string buffer;
 	 for (;;) {
-	    resp::response_simple_string res;
+	    resp::response_ignore res;
 	    co_await resp::async_read(socket, buffer, res);
-	    std::cout << res.result << std::endl;
 	 }
       } catch (std::exception const& e) {
-	 std::cerr << "Error: " << e.what() << std::endl;
+	 std::cerr << "Trying to reconnect ..." << std::endl;
 	 stimer timer(ex, std::chrono::seconds{2});
 	 co_await timer.async_wait();
       }
@@ -49,8 +44,8 @@ net::awaitable<void> example1()
 
 int main()
 {
-   io_context ioc {1};
-   co_spawn(ioc, example1(), detached);
+   net::io_context ioc {1};
+   co_spawn(ioc, example1(), net::detached);
    ioc.run();
 }
 

@@ -22,6 +22,7 @@ net::awaitable<void> example()
 {
    try {
       resp::request p;
+      p.hello();
       p.rpush("list", {1, 2, 3});
       p.lrange("list");
       p.quit();
@@ -33,6 +34,9 @@ net::awaitable<void> example()
       co_await net::async_write(socket, net::buffer(p.payload));
 
       std::string buffer;
+      resp::response_ignore hello;
+      co_await resp::async_read(socket, buffer, hello);
+
       resp::response_number<int> list_size;
       co_await resp::async_read(socket, buffer, list_size);
       std::cout << list_size.result << std::endl;

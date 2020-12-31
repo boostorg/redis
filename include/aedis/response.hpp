@@ -418,7 +418,6 @@ private:
       { from_string_view(s, result[i++]); }
 
 public:
-
    std::array<T, N> result;
 };
 

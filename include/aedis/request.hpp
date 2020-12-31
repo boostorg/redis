@@ -179,7 +179,9 @@ enum class command
 enum class event {ignore};
 
 template <class Event = event>
-struct request {
+class request {
+private:
+public:
    std::string payload;
    std::queue<std::pair<command, Event>> events;
 
@@ -294,10 +296,10 @@ public:
 
    void
    hello(
-      std::string_view key,
+      std::string_view version = "3",
       Event e = Event::ignore)
    {
-      resp::assemble(payload, "HELLO", key);
+      resp::assemble(payload, "HELLO", version);
       events.push({command::hello, e});
    }
    

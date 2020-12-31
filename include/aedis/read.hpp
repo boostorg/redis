@@ -20,17 +20,7 @@
 #include <string_view>
 #include <charconv>
 
-#include <boost/asio.hpp>
-
-namespace aedis
-{
-
-namespace net = boost::asio;
-namespace ip = net::ip;
-using tcp = ip::tcp;
-
-namespace resp
-{
+namespace aedis { namespace resp {
 
 // Converts a decimal number in ascii format to an integer.
 inline

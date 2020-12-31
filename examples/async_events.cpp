@@ -8,18 +8,15 @@
 #include <aedis/aedis.hpp>
 
 namespace net = aedis::net;
+namespace this_coro = net::this_coro;
+using namespace aedis;
 using tcp = net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
 
-namespace this_coro = net::this_coro;
-
-using namespace net;
-using namespace aedis;
-
 enum class myevents
 { ignore
-, list
-, set
+, interesting1
+, interesting2
 };
 
 net::awaitable<void> example()
@@ -27,37 +24,37 @@ net::awaitable<void> example()
    try {
       resp::request<myevents> p;
       p.rpush("list", {1, 2, 3});
-      p.lrange("list", 0, -1, myevents::list);
+      p.lrange("list", 0, -1, myevents::interesting1);
       p.sadd("set", std::set<int>{3, 4, 5});
-      p.smembers("set", myevents::set);
+      p.smembers("set", myevents::interesting2);
       p.quit();
 
       auto ex = co_await this_coro::executor;
       tcp::resolver resv(ex);
       tcp_socket socket {ex};
       co_await net::async_connect(socket, resv.resolve("127.0.0.1", "6379"));
-      co_await net::async_write(socket, buffer(p.payload));
+      co_await net::async_write(socket, net::buffer(p.payload));
 
       std::string buffer;
       for (;;) {
 	 switch (p.events.front().second) {
-	 case myevents::list:
-	 {
-	    resp::response_list<int> res;
-	    co_await resp::async_read(socket, buffer, res);
-	    print(res.result);
-	 } break;
-	 case myevents::set:
-	 {
-	    resp::response_set<int> res;
-	    co_await resp::async_read(socket, buffer, res);
-	    print(res.result);
-	 } break;
-	 default:
-	 {
-	    resp::response_ignore res;
-	    co_await resp::async_read(socket, buffer, res);
-	 }
+	    case myevents::interesting1:
+	    {
+	       resp::response_list<int> res;
+	       co_await resp::async_read(socket, buffer, res);
+	       print(res.result);
+	    } break;
+	    case myevents::interesting2:
+	    {
+	       resp::response_set<int> res;
+	       co_await resp::async_read(socket, buffer, res);
+	       print(res.result);
+	    } break;
+	    default:
+	    {
+	       resp::response_ignore res;
+	       co_await resp::async_read(socket, buffer, res);
+	    }
 	 }
 	 p.events.pop();
       }
@@ -68,8 +65,8 @@ net::awaitable<void> example()
 
 int main()
 {
-   io_context ioc {1};
-   co_spawn(ioc, example(), detached);
+   net::io_context ioc {1};
+   co_spawn(ioc, example(), net::detached);
    ioc.run();
 }
 

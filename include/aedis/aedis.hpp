@@ -7,6 +7,14 @@
 
 #pragma once
 
+#include <boost/asio.hpp>
+
+namespace aedis {
+namespace net = boost::asio;
+namespace ip = net::ip;
+using tcp = ip::tcp;
+}
+
 #include <aedis/read.hpp>
 #include <aedis/request.hpp>
 #include <aedis/response.hpp>

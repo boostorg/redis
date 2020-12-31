@@ -16,6 +16,7 @@ int main()
 {
    try {
       resp::request p;
+      p.hello();
       p.rpush("list", {1, 2, 3});
       p.lrange("list");
       p.quit();
@@ -27,6 +28,10 @@ int main()
       net::write(socket, buffer(p.payload));
 
       std::string buffer;
+
+      resp::response_ignore hello;
+      resp::read(socket, buffer, hello);
+
       resp::response_number<int> list_size;
       resp::read(socket, buffer, list_size);
       std::cout << list_size.result << std::endl;

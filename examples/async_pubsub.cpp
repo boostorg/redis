@@ -30,9 +30,11 @@ net::awaitable<void> publisher()
       std::string buffer;
       for (;;) {
 	 resp::request p;
+	 p.hello();
 	 p.publish("channel", "12345");
 	 co_await async_write(socket, net::buffer(p.payload));
 	 resp::response_ignore res;
+	 co_await resp::async_read(socket, buffer, res);
 	 co_await resp::async_read(socket, buffer, res);
 	 stimer timer(ex);
 	 timer.expires_after(std::chrono::seconds{2});

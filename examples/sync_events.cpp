@@ -14,18 +14,19 @@ using namespace aedis;
 
 enum class myevents
 { ignore
-, list
-, set
+, interesting1
+, interesting2
 };
 
 int main()
 {
    try {
       resp::request<myevents> p;
+      p.hello();
       p.rpush("list", {1, 2, 3});
-      p.lrange("list", 0, -1, myevents::list);
+      p.lrange("list", 0, -1, myevents::interesting1);
       p.sadd("set", std::set<int>{3, 4, 5});
-      p.smembers("set", myevents::set);
+      p.smembers("set", myevents::interesting2);
       p.quit();
 
       io_context ioc {1};
@@ -37,23 +38,23 @@ int main()
       std::string buffer;
       for (;;) {
 	 switch (p.events.front().second) {
-	 case myevents::list:
-	 {
-	    resp::response_list<int> res;
-	    resp::read(socket, buffer, res);
-	    print(res.result);
-	 } break;
-	 case myevents::set:
-	 {
-	    resp::response_set<int> res;
-	    resp::read(socket, buffer, res);
-	    print(res.result);
-	 } break;
-	 default:
-	 {
-	    resp::response_ignore res;
-	    resp::read(socket, buffer, res);
-	 }
+	    case myevents::interesting1:
+	    {
+	       resp::response_list<int> res;
+	       resp::read(socket, buffer, res);
+	       print(res.result);
+	    } break;
+	    case myevents::interesting2:
+	    {
+	       resp::response_set<int> res;
+	       resp::read(socket, buffer, res);
+	       print(res.result);
+	    } break;
+	    default:
+	    {
+	       resp::response_ignore res;
+	       resp::read(socket, buffer, res);
+	    }
 	 }
 	 p.events.pop();
       }
