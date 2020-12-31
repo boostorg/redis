@@ -9,14 +9,12 @@
 #include <aedis/aedis.hpp>
 
 namespace net = aedis::net;
+namespace this_coro = net::this_coro;
+
+using namespace aedis;
 using tcp = net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
-
-namespace this_coro = net::this_coro;
-
-using namespace net;
-using namespace aedis;
 
 net::awaitable<void> publisher()
 {
@@ -29,10 +27,10 @@ net::awaitable<void> publisher()
 
       std::string buffer;
       for (;;) {
-	 resp::request p;
-	 p.hello();
-	 p.publish("channel", "12345");
-	 co_await async_write(socket, net::buffer(p.payload));
+	 resp::request req;
+	 req.hello();
+	 req.publish("channel", "12345");
+	 co_await async_write(socket, req);
 	 resp::response_ignore res;
 	 co_await resp::async_read(socket, buffer, res);
 	 co_await resp::async_read(socket, buffer, res);
@@ -49,14 +47,14 @@ net::awaitable<void> subscriber()
 {
    auto ex = co_await this_coro::executor;
    try {
-      resp::request p;
-      p.subscribe("channel");
+      resp::request req;
+      req.subscribe("channel");
 
       tcp::resolver resv(ex);
       auto const r = resv.resolve("127.0.0.1", "6379");
       tcp_socket socket {ex};
       co_await async_connect(socket, r);
-      co_await async_write(socket, buffer(p.payload));
+      co_await async_write(socket, req);
 
       std::string buffer;
 
@@ -77,9 +75,9 @@ net::awaitable<void> subscriber()
 
 int main()
 {
-   io_context ioc {1};
-   co_spawn(ioc, publisher(), detached);
-   co_spawn(ioc, subscriber(), detached);
+   net::io_context ioc {1};
+   co_spawn(ioc, publisher(), net::detached);
+   co_spawn(ioc, subscriber(), net::detached);
    ioc.run();
 }
 

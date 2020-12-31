@@ -27,7 +27,7 @@ net::awaitable<void> example1()
       auto const r = resv.resolve("127.0.0.1", "6379");
       tcp_socket socket {ex};
       co_await async_connect(socket, r);
-      co_await async_write(socket, net::buffer(req.payload));
+      co_await async_write(socket, req);
 
       std::string buffer;
       for (;;) {

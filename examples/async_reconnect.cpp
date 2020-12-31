@@ -20,14 +20,14 @@ net::awaitable<void> example1()
    auto ex = co_await this_coro::executor;
    for (;;) {
       try {
-	 resp::request p;
-	 p.quit();
+	 resp::request req;
+	 req.quit();
 
 	 tcp::resolver resv(ex);
 	 auto const r = resv.resolve("127.0.0.1", "6379");
 	 tcp_socket socket {ex};
 	 co_await async_connect(socket, r);
-	 co_await async_write(socket, net::buffer(p.payload));
+	 co_await async_write(socket, req);
 
 	 std::string buffer;
 	 for (;;) {

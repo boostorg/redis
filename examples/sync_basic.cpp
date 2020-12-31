@@ -23,7 +23,7 @@ int main()
       tcp::resolver resv(ioc);
       tcp::socket socket {ioc};
       net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-      net::write(socket, net::buffer(req.payload));
+      resp::write(socket, req);
 
       std::string buffer;
       for (;;) {

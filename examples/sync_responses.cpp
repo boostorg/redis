@@ -15,17 +15,17 @@ using namespace aedis;
 int main()
 {
    try {
-      resp::request p;
-      p.hello();
-      p.rpush("list", {1, 2, 3});
-      p.lrange("list");
-      p.quit();
+      resp::request req;
+      req.hello();
+      req.rpush("list", {1, 2, 3});
+      req.lrange("list");
+      req.quit();
 
       io_context ioc {1};
       tcp::resolver resv(ioc);
       tcp::socket socket {ioc};
       net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-      net::write(socket, buffer(p.payload));
+      resp::write(socket, req);
 
       std::string buffer;
 

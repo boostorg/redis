@@ -21,23 +21,23 @@ enum class myevents
 int main()
 {
    try {
-      resp::request<myevents> p;
-      p.hello();
-      p.rpush("list", {1, 2, 3});
-      p.lrange("list", 0, -1, myevents::interesting1);
-      p.sadd("set", std::set<int>{3, 4, 5});
-      p.smembers("set", myevents::interesting2);
-      p.quit();
+      resp::request<myevents> req;
+      req.hello();
+      req.rpush("list", {1, 2, 3});
+      req.lrange("list", 0, -1, myevents::interesting1);
+      req.sadd("set", std::set<int>{3, 4, 5});
+      req.smembers("set", myevents::interesting2);
+      req.quit();
 
       io_context ioc {1};
       tcp::resolver resv(ioc);
       tcp::socket socket {ioc};
       net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-      net::write(socket, buffer(p.payload));
+      resp::write(socket, req);
 
       std::string buffer;
       for (;;) {
-	 switch (p.events.front().second) {
+	 switch (req.events.front().second) {
 	    case myevents::interesting1:
 	    {
 	       resp::response_list<int> res;
@@ -56,7 +56,7 @@ int main()
 	       resp::read(socket, buffer, res);
 	    }
 	 }
-	 p.events.pop();
+	 req.events.pop();
       }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

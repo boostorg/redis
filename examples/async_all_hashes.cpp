@@ -48,20 +48,20 @@ auto make_hset_arg(foo const& p)
 net::awaitable<void> create_hashes()
 {
    std::vector<foo> posts(20000);
-   resp::request p;
-   p.flushall();
+   resp::request req;
+   req.flushall();
    for (auto i = 0; i < std::ssize(posts); ++i) {
       std::string const name = "posts:" + std::to_string(i);
-      p.hset(name, make_hset_arg(posts[i]));
+      req.hset(name, make_hset_arg(posts[i]));
    }
-   p.quit();
+   req.quit();
 
    auto ex = co_await this_coro::executor;
    tcp::resolver resv(ex);
    auto const r = resv.resolve("127.0.0.1", "6379");
    tcp_socket socket {ex};
    co_await async_connect(socket, r);
-   co_await async_write(socket, buffer(p.payload));
+   co_await async_write(socket, req);
 
    std::string buffer;
    resp::response_ignore res;
@@ -71,15 +71,15 @@ net::awaitable<void> create_hashes()
 
 net::awaitable<void> read_hashes_coro()
 {
-   resp::request p;
-   p.keys("posts:*");
+   resp::request req;
+   req.keys("posts:*");
 
    auto ex = co_await this_coro::executor;
    tcp::resolver resv(ex);
    auto const r = resv.resolve("127.0.0.1", "6379");
    tcp_socket socket {ex};
    co_await async_connect(socket, r);
-   co_await async_write(socket, net::buffer(p.payload));
+   co_await async_write(socket, req);
 
    std::string buffer;
 
@@ -107,14 +107,14 @@ net::awaitable<void> read_hashes_coro()
 
 void read_hashes(net::io_context& ioc)
 {
-   resp::request p;
-   p.keys("posts:*");
+   resp::request req;
+   req.keys("posts:*");
 
    tcp::resolver resv(ioc);
    auto const r = resv.resolve("127.0.0.1", "6379");
    tcp::socket socket {ioc};
    net::connect(socket, r);
-   net::write(socket, net::buffer(p.payload));
+   resp::write(socket, req);
 
    std::string buffer;
 
@@ -127,7 +127,7 @@ void read_hashes(net::io_context& ioc)
       pv.hvals(o);
    pv.quit();
 
-   net::write(socket, net::buffer(pv.payload));
+   write(socket, pv);
 
    for (auto const& key : keys.result) {
       resp::response_array<std::string> value;

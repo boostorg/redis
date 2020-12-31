@@ -36,7 +36,7 @@ int main()
       tcp::resolver resv(ioc);
       tcp::socket socket {ioc};
       net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-      net::write(socket, net::buffer(req.payload));
+      resp::write(socket, req);
 
       std::string buffer;
       for (;;) {
@@ -45,13 +45,11 @@ int main()
 	    {
 	       resp::response_flat_map<std::string> res;
 	       resp::read(socket, buffer, res);
-	       print(res.result);
 	    } break;
 	    case resp::command::get:
 	    {
 	       resp::response_blob_string res;
 	       resp::read(socket, buffer, res);
-	       std::cout << "get: " << res.result << std::endl;
 	    } break;
 	    default:
 	    {
@@ -127,22 +125,22 @@ and pass it as argument to the request as follows
 net::awaitable<void> example()
 {
    try {
-      resp::request<myevents> p;
-      p.rpush("list", {1, 2, 3});
-      p.lrange("list", 0, -1, myevents::interesting1);
-      p.sadd("set", std::set<int>{3, 4, 5});
-      p.smembers("set", myevents::interesting2);
-      p.quit();
+      resp::request<myevents> req;
+      req.rpush("list", {1, 2, 3});
+      req.lrange("list", 0, -1, myevents::interesting1);
+      req.sadd("set", std::set<int>{3, 4, 5});
+      req.smembers("set", myevents::interesting2);
+      req.quit();
 
       auto ex = co_await this_coro::executor;
       tcp::resolver resv(ex);
       tcp_socket socket {ex};
       co_await net::async_connect(socket, resv.resolve("127.0.0.1", "6379"));
-      co_await net::async_write(socket, net::buffer(p.payload));
+      co_await resp::async_write(socket, req);
 
       std::string buffer;
       for (;;) {
-	 switch (p.events.front().second) {
+	 switch (req.events.front().second) {
 	    case myevents::interesting1:
 	    {
 	       resp::response_list<int> res;
@@ -161,7 +159,7 @@ net::awaitable<void> example()
 	       co_await resp::async_read(socket, buffer, res);
 	    }
 	 }
-	 p.events.pop();
+	 req.events.pop();
       }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
@@ -187,14 +185,14 @@ net::awaitable<void> example1()
    auto ex = co_await this_coro::executor;
    for (;;) {
       try {
-	 resp::request p;
-	 p.quit();
+	 resp::request req;
+	 req.quit();
 
 	 tcp::resolver resv(ex);
 	 auto const r = resv.resolve("127.0.0.1", "6379");
 	 tcp_socket socket {ex};
 	 co_await async_connect(socket, r);
-	 co_await async_write(socket, net::buffer(p.payload));
+	 co_await async_write(socket, req);
 
 	 std::string buffer;
 	 for (;;) {

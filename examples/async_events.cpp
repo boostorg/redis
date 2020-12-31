@@ -22,22 +22,22 @@ enum class myevents
 net::awaitable<void> example()
 {
    try {
-      resp::request<myevents> p;
-      p.rpush("list", {1, 2, 3});
-      p.lrange("list", 0, -1, myevents::interesting1);
-      p.sadd("set", std::set<int>{3, 4, 5});
-      p.smembers("set", myevents::interesting2);
-      p.quit();
+      resp::request<myevents> req;
+      req.rpush("list", {1, 2, 3});
+      req.lrange("list", 0, -1, myevents::interesting1);
+      req.sadd("set", std::set<int>{3, 4, 5});
+      req.smembers("set", myevents::interesting2);
+      req.quit();
 
       auto ex = co_await this_coro::executor;
       tcp::resolver resv(ex);
       tcp_socket socket {ex};
       co_await net::async_connect(socket, resv.resolve("127.0.0.1", "6379"));
-      co_await net::async_write(socket, net::buffer(p.payload));
+      co_await resp::async_write(socket, req);
 
       std::string buffer;
       for (;;) {
-	 switch (p.events.front().second) {
+	 switch (req.events.front().second) {
 	    case myevents::interesting1:
 	    {
 	       resp::response_list<int> res;
@@ -56,7 +56,7 @@ net::awaitable<void> example()
 	       co_await resp::async_read(socket, buffer, res);
 	    }
 	 }
-	 p.events.pop();
+	 req.events.pop();
       }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
