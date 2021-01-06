@@ -4,23 +4,39 @@ Aedis is a low level redis client designed for scalability and to
 provide an easy and intuitive interface. Some of the supported
 features are
 
-* RESP3: The new redis protocol.
-* STL containers.
-* Command pipelines (essential for performance).
-* TLS.
+* TLS, RESP3 and STL containers
+* Pipelines (essential for performance).
 * Coroutines, futures and callbacks.
 
-At the moment the biggest missing parts are
-
-* Attribute data type: Its specification is incomplete in my opinion
-  and I found no meaningful way to test them as Redis itself doesn't
-  seem to be usign them.
-* Push type: I still did not manage to generate the notifications so I
-  can test my implementation.
+At the moment the biggest missing parts is the Attribute data type as
+its specification seems to be incomplete and I found no way to test
+them.
 
 ## Tutorial
 
-A simple example is enough to show many of the aedis features 
+Sending a command to a redis server is as simple as
+
+```cpp
+   resp::request req;
+   req.hello();
+   req.set("Password", {"12345"});
+   req.get("Password");
+   req.quit();
+
+   co_await resp::async_write(socket, req);
+```
+
+where `socket` is a tcp socket. Whereas reading looks like the
+following
+```cpp
+   resp::response_set<int> res;
+   co_await resp::async_read(socket, buffer, res);
+```
+
+Where the response type above depends on which command is being
+expected.
+
+A complete synchronous example can be seem bellow
 
 ```cpp
 int main()
@@ -64,47 +80,29 @@ int main()
    }
 }
 ```
-
 The important things to notice above are
 
-* The `hello` command is included in the request as required by RESP3.
+* After connecting RESP3 requires the `hello` comand to be sent.
 * Many commands are sent in the same request, the so called pipeline.
-* We keep reading from the socket until it is closed by the redis
-  server as requested in the quit command.
-* The response is parsed in an appropriate buffer. The `hello` command in a map and
-  the get into a string.
+* Keep reading from the socket until it is closed by the redis server
+  as requested by `quit`.
+* The response is parsed in an appropriate buffer.
 
 It is trivial to rewrite the example above to use coroutines, see
-`examples/async_basic.cpp`. From now on we will use coroutines in the
-tutorial as this is how most people should communicating to the redis
-server usually.
+`examples/async_basic.cpp`. From now on we will use themas this is how
+most people will be writting async servers in C++.
 
 ### Response buffer
 
 To communicate efficiently with redis it is necessary to understand
 the possible response types. RESP3 spcifies the following data types
+`simple string`, `Simple error`, `number`, `double`, `bool`, `big
+number`, `null`, `blob error`, `verbatim string`, `blob string`,
+`streamed string part`.
 
-1. Simple string
-1. Simple error
-1. Number
-1. Double
-1. Bool
-1. Big number
-1. Null
-1. Blob error
-1. Verbatim string
-1. Blob string
-1. Streamed string part
-
-These data types can come in different aggregate types
-
-1. Array
-1. Push
-1. Set
-1. Map
-1. Attribute
-
-Aedis provides appropriate response types for each of them.
+These data types may come in different aggregate types `array`,
+`push`, `set`, `map`, `attribute`. Aedis provides appropriate response
+types for each of them.
 
 ### Events
 
@@ -115,10 +113,11 @@ specify your own events
 ```cpp
 enum class myevents
 { ignore
-, list
-, set
+, interesting1
+, interesting2
 };
 ```
+
 and pass it as argument to the request as follows
 
 ```cpp

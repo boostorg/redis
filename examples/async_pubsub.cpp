@@ -8,6 +8,10 @@
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 
+/* Implements a coroutine that writes commands in interval and one the
+ * reads the commands.
+ */
+
 namespace net = aedis::net;
 namespace this_coro = net::this_coro;
 
@@ -16,26 +20,25 @@ using tcp = net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 
-net::awaitable<void> publisher()
+net::awaitable<void> publisher(tcp_socket& socket)
 {
    auto ex = co_await this_coro::executor;
    try {
-      tcp::resolver resv(ex);
-      auto const r = resv.resolve("127.0.0.1", "6379");
-      tcp_socket socket {ex};
-      co_await async_connect(socket, r);
+      resp::request req;
+      req.hello();
+      req.subscribe("channel");
+      req.subscribe("__keyspace@0__:user:*");
 
       std::string buffer;
-      for (;;) {
-	 resp::request req;
-	 req.hello();
-	 req.publish("channel", "12345");
+      for (auto i = 0;; ++i) {
+	 req.ping();
+         req.rpush("user:Marcelo", {i});
+	 req.publish("channel", "Some message");
+
 	 co_await async_write(socket, req);
-	 resp::response_ignore res;
-	 co_await resp::async_read(socket, buffer, res);
-	 co_await resp::async_read(socket, buffer, res);
-	 stimer timer(ex);
-	 timer.expires_after(std::chrono::seconds{2});
+	 req.clear();
+
+	 stimer timer(ex, std::chrono::seconds{2});
 	 co_await timer.async_wait();
       }
    } catch (std::exception const& e) {
@@ -47,26 +50,20 @@ net::awaitable<void> subscriber()
 {
    auto ex = co_await this_coro::executor;
    try {
-      resp::request req;
-      req.subscribe("channel");
-
       tcp::resolver resv(ex);
       auto const r = resv.resolve("127.0.0.1", "6379");
       tcp_socket socket {ex};
       co_await async_connect(socket, r);
-      co_await async_write(socket, req);
+      co_spawn(ex, publisher(socket), net::detached);
 
       std::string buffer;
-
-      // Reads the answer to the subscribe.
-      resp::response_ignore res;
-      co_await resp::async_read(socket, buffer, res);
-
-      // Reads published messages.
       for (;;) {
-	 resp::response_static_array<std::string, 3> res;
+	 resp::response_array<std::string> res;
 	 co_await resp::async_read(socket, buffer, res);
-	 print(res.result);
+	 if (res.is_push())
+	    print(res.push().value, "Push");
+	 else
+	    print(res.result, "Message");
       }
    } catch (std::exception const& e) {
       std::cout << e.what() << std::endl;
@@ -76,7 +73,6 @@ net::awaitable<void> subscriber()
 int main()
 {
    net::io_context ioc {1};
-   co_spawn(ioc, publisher(), net::detached);
    co_spawn(ioc, subscriber(), net::detached);
    ioc.run();
 }

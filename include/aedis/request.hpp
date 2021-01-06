@@ -179,14 +179,21 @@ enum class command
 
 enum class event {ignore};
 
+// TODO: Make the write functions friend of this class and make the
+// payload private.
 template <class Event = event>
 class request {
-private:
 public:
    std::string payload;
    std::queue<std::pair<command, Event>> events;
 
 public:
+   void clear()
+   {
+      payload.clear();
+      events = {};
+   }
+
    void ping(Event e = Event::ignore)
    {
       resp::assemble(payload, "PING");
