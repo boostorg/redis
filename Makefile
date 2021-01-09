@@ -3,7 +3,7 @@ pkg_version = 1.0.0
 pkg_revision = 1
 tarball_name = $(pkg_name)-$(pkg_version)-$(pkg_revision)
 tarball_dir = $(pkg_name)-$(pkg_version)
-prefix = /opt/$(tarball_name)
+prefix = /opt/$(pkg_name)-$(pkg_version)
 incdir = $(prefix)/include/$(pkg_name)
 
 #CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
