@@ -23,12 +23,9 @@ LDFLAGS += -pthread
 
 examples =
 examples += sync_basic
-examples += sync_responses
-examples += sync_events
 examples += async_basic
 examples += async_reconnect
 examples += async_all_hashes
-examples += async_responses
 examples += async_events
 examples += async_pubsub
 

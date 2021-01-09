@@ -1,20 +1,20 @@
 # Aedis
 
-Aedis is a low level redis client designed for scalability and to
-provide an easy and intuitive interface. Some of the supported
-features are
+Aedis is a low level redis client designed for scalability and
+performance while providing an easy and intuitive interface. Some of
+the supported features are
 
-* TLS, RESP3 and STL containers
+* TLS, RESP3 and STL containers.
 * Pipelines (essential for performance).
 * Coroutines, futures and callbacks.
 
-At the moment the biggest missing parts is the Attribute data type as
+At the moment the biggest missing part is the Attribute data type as
 its specification seems to be incomplete and I found no way to test
 them.
 
 ## Tutorial
 
-Sending a command to a redis server is as simple as
+Sending a command to a redis server is done as follows
 
 ```cpp
    resp::request req;
@@ -26,55 +26,56 @@ Sending a command to a redis server is as simple as
    co_await resp::async_write(socket, req);
 ```
 
-where `socket` is a tcp socket. Whereas reading looks like the
-following
+where `socket` is a tcp socket. Reading on the other hand looks like
+the following
+
 ```cpp
    resp::response_set<int> res;
    co_await resp::async_read(socket, buffer, res);
 ```
 
-Where the response type above depends on which command is being
-expected.
+The response type above depends on which command is being expected.
+This library also offers the synchronous functions to parse `RESP`, in
+this tutorial however we will focus in async code.
 
-A complete synchronous example can be seem bellow
+A complete example can be seem bellow
 
 ```cpp
-int main()
+net::awaitable<void> example()
 {
    try {
-      resp::request req;
-      req.hello();
-      req.set("Password", {"12345"});
-      req.get("Password");
-      req.quit();
+      auto ex = co_await this_coro::executor;
 
-      net::io_context ioc {1};
-      tcp::resolver resv(ioc);
-      tcp::socket socket {ioc};
-      net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-      resp::write(socket, req);
+      resp::request p;
+      p.hello();
+      p.rpush("list", {1, 2, 3});
+      p.lrange("list");
+      p.quit();
+
+      tcp::resolver resv(ex);
+      tcp_socket socket {ex};
+      co_await net::async_connect(socket, resv.resolve("127.0.0.1", "6379"));
+      co_await net::async_write(socket, net::buffer(p.payload));
 
       std::string buffer;
-      for (;;) {
-	 switch (req.events.front().first) {
-	    case resp::command::hello:
-	    {
-	       resp::response_flat_map<std::string> res;
-	       resp::read(socket, buffer, res);
-	    } break;
-	    case resp::command::get:
-	    {
-	       resp::response_blob_string res;
-	       resp::read(socket, buffer, res);
-	    } break;
-	    default:
-	    {
-	       resp::response_ignore res;
-	       resp::read(socket, buffer, res);
-	    }
-	 }
-	 req.events.pop();
-      }
+      resp::response_flat_map<std::string> hello;
+      co_await resp::async_read(socket, buffer, hello);
+
+      resp::response_number<int> rpush;
+      co_await resp::async_read(socket, buffer, rpush);
+      std::cout << rpush.result << std::endl;
+
+      resp::response_list<int> lrange;
+      co_await resp::async_read(socket, buffer, lrange);
+      print(lrange.result);
+
+      resp::response_simple_string quit;
+      co_await resp::async_read(socket, buffer, quit);
+      std::cout << quit.result << std::endl;
+
+      resp::response_ignore eof;
+      co_await resp::async_read(socket, buffer, eof);
+
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }
@@ -82,33 +83,28 @@ int main()
 ```
 The important things to notice above are
 
-* After connecting RESP3 requires the `hello` comand to be sent.
+* After connecting RESP3 requires the `hello` command to be sent.
 * Many commands are sent in the same request, the so called pipeline.
 * Keep reading from the socket until it is closed by the redis server
   as requested by `quit`.
-* The response is parsed in an appropriate buffer.
-
-It is trivial to rewrite the example above to use coroutines, see
-`examples/async_basic.cpp`. From now on we will use themas this is how
-most people will be writting async servers in C++.
+* The response is parsed directly in a buffer that is suitable to the
+  application.
 
 ### Response buffer
 
 To communicate efficiently with redis it is necessary to understand
-the possible response types. RESP3 spcifies the following data types
+the possible response types. RESP3 specifies the following data types
 `simple string`, `Simple error`, `number`, `double`, `bool`, `big
 number`, `null`, `blob error`, `verbatim string`, `blob string`,
-`streamed string part`.
-
-These data types may come in different aggregate types `array`,
-`push`, `set`, `map`, `attribute`. Aedis provides appropriate response
-types for each of them.
+`streamed string part`.  These data types may come in different
+aggregate types `array`, `push`, `set`, `map`, `attribute`. Aedis
+provides appropriate response types for each of them.
 
 ### Events
 
 The request type used above keeps a `std::queue` of commands in the
-order they are expected to arrive. In addition to that you can
-specify your own events
+order they are expected to arrive. In addition to that you can specify
+your own events
 
 ```cpp
 enum class myevents

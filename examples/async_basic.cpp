@@ -5,53 +5,54 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 
 namespace net = aedis::net;
-namespace this_coro = net::this_coro;
-using namespace aedis;
+
+namespace net = aedis::net;
+using tcp = net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
 
-net::awaitable<void> example1()
+namespace this_coro = net::this_coro;
+
+using namespace net;
+using namespace aedis;
+
+net::awaitable<void> example()
 {
    try {
-      resp::request req;
-      req.hello();
-      req.set("Password", {"12345"});
-      req.get("Password");
-      req.quit();
-
       auto ex = co_await this_coro::executor;
+
+      resp::request p;
+      p.hello();
+      p.rpush("list", {1, 2, 3});
+      p.lrange("list");
+      p.quit();
+
       tcp::resolver resv(ex);
-      auto const r = resv.resolve("127.0.0.1", "6379");
       tcp_socket socket {ex};
-      co_await async_connect(socket, r);
-      co_await async_write(socket, req);
+      co_await net::async_connect(socket, resv.resolve("127.0.0.1", "6379"));
+      co_await net::async_write(socket, net::buffer(p.payload));
 
       std::string buffer;
-      for (;;) {
-	 switch (req.events.front().first) {
-	    case resp::command::hello:
-	    {
-	       resp::response_flat_map<std::string> res;
-	       co_await resp::async_read(socket, buffer, res);
-	       print(res.result);
-	    } break;
-	    case resp::command::get:
-	    {
-	       resp::response_blob_string res;
-	       co_await resp::async_read(socket, buffer, res);
-	       std::cout << "get: " << res.result << std::endl;
-	    } break;
-	    default:
-	    {
-	       resp::response_ignore res;
-	       co_await resp::async_read(socket, buffer, res);
-	    }
-	 }
-	 req.events.pop();
-      }
+      resp::response_flat_map<std::string> hello;
+      co_await resp::async_read(socket, buffer, hello);
+
+      resp::response_number<int> rpush;
+      co_await resp::async_read(socket, buffer, rpush);
+      std::cout << rpush.result << std::endl;
+
+      resp::response_list<int> lrange;
+      co_await resp::async_read(socket, buffer, lrange);
+      print(lrange.result);
+
+      resp::response_simple_string quit;
+      co_await resp::async_read(socket, buffer, quit);
+      std::cout << quit.result << std::endl;
+
+      resp::response_ignore eof;
+      co_await resp::async_read(socket, buffer, eof);
+
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }
@@ -59,8 +60,8 @@ net::awaitable<void> example1()
 
 int main()
 {
-   net::io_context ioc {1};
-   net::co_spawn(ioc, example1(), net::detached);
+   io_context ioc {1};
+   co_spawn(ioc, example(), detached);
    ioc.run();
 }
 

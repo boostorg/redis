@@ -136,6 +136,7 @@ enum class command
 , bgrewriteaof
 , bgsave
 , bitcount
+, client
 , del
 , exec
 , expire
@@ -676,6 +677,15 @@ public:
    {
       resp::assemble(payload, "SDIFF", {key}, std::cbegin(l), std::cend(l));
       events.push({command::scard, e});
+   }
+
+   auto
+   client(
+      std::string_view parameters,
+      Event e = Event::ignore)
+   {
+      resp::assemble(payload, "CLIENT", {parameters});
+      events.push({command::client, e});
    }
 };
 
