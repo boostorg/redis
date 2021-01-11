@@ -141,7 +141,7 @@ enum class command
 , exec
 , expire
 , flushall
-, get
+, get // 10
 , hello
 , hget
 , hgetall
@@ -151,7 +151,7 @@ enum class command
 , hmget
 , hset
 , hvals
-, incr
+, incr // 20
 , keys
 , llen
 , lpop
@@ -161,7 +161,7 @@ enum class command
 , multi
 , ping
 , psubscribe
-, publish
+, publish // 30
 , quit
 , role
 , rpush
@@ -171,12 +171,67 @@ enum class command
 , set
 , smembers
 , subscribe
-, unsubscribe
+, unsubscribe // 40
 , zadd
 , zrange
 , zrangebyscore
 , zremrangebyscore
 };
+
+#define EXPAND_COMMAND_CASE(x) case command::x: return #x
+
+inline
+auto const* to_string(command c)
+{
+   switch (c) {
+      EXPAND_COMMAND_CASE(append);
+      EXPAND_COMMAND_CASE(auth);
+      EXPAND_COMMAND_CASE(bgrewriteaof);
+      EXPAND_COMMAND_CASE(bgsave);
+      EXPAND_COMMAND_CASE(bitcount);
+      EXPAND_COMMAND_CASE(client);
+      EXPAND_COMMAND_CASE(del);
+      EXPAND_COMMAND_CASE(exec);
+      EXPAND_COMMAND_CASE(expire);
+      EXPAND_COMMAND_CASE(flushall);
+      EXPAND_COMMAND_CASE(get);
+      EXPAND_COMMAND_CASE(hello);
+      EXPAND_COMMAND_CASE(hget);
+      EXPAND_COMMAND_CASE(hgetall);
+      EXPAND_COMMAND_CASE(hincrby);
+      EXPAND_COMMAND_CASE(hkeys);
+      EXPAND_COMMAND_CASE(hlen);
+      EXPAND_COMMAND_CASE(hmget);
+      EXPAND_COMMAND_CASE(hset);
+      EXPAND_COMMAND_CASE(hvals);
+      EXPAND_COMMAND_CASE(incr);
+      EXPAND_COMMAND_CASE(keys);
+      EXPAND_COMMAND_CASE(llen);
+      EXPAND_COMMAND_CASE(lpop);
+      EXPAND_COMMAND_CASE(lpush);
+      EXPAND_COMMAND_CASE(lrange);
+      EXPAND_COMMAND_CASE(ltrim);
+      EXPAND_COMMAND_CASE(multi);
+      EXPAND_COMMAND_CASE(ping);
+      EXPAND_COMMAND_CASE(psubscribe);
+      EXPAND_COMMAND_CASE(publish);
+      EXPAND_COMMAND_CASE(quit);
+      EXPAND_COMMAND_CASE(role);
+      EXPAND_COMMAND_CASE(rpush);
+      EXPAND_COMMAND_CASE(sadd);
+      EXPAND_COMMAND_CASE(scard);
+      EXPAND_COMMAND_CASE(sentinel);
+      EXPAND_COMMAND_CASE(set);
+      EXPAND_COMMAND_CASE(smembers);
+      EXPAND_COMMAND_CASE(subscribe);
+      EXPAND_COMMAND_CASE(unsubscribe);
+      EXPAND_COMMAND_CASE(zadd);
+      EXPAND_COMMAND_CASE(zrange);
+      EXPAND_COMMAND_CASE(zrangebyscore);
+      EXPAND_COMMAND_CASE(zremrangebyscore);
+      default: assert(false);
+   }
+}
 
 enum class event {ignore};
 
@@ -189,6 +244,7 @@ public:
    std::queue<std::pair<command, Event>> events;
 
 public:
+   bool empty() const noexcept { return std::empty(payload); };
    void clear()
    {
       payload.clear();
@@ -273,7 +329,8 @@ public:
       Event e = Event::ignore)
    {
       resp::assemble(payload, "SUBSCRIBE", key);
-      events.push({command::subscribe, e});
+      // It looks like in resp3 there is not response for subscribe. 
+      //events.push({command::subscribe, e});
    }
 
    void
@@ -531,7 +588,8 @@ public:
       std::string_view value,
       Event e = Event::ignore)
    {
-      auto par = {std::to_string(score), value};
+      std::initializer_list<std::string_view> par =
+	 {std::to_string(score), value};
       resp::assemble(payload, "ZADD", {key}, std::cbegin(par), std::cend(par));
       events.push({command::zadd, e});
    }

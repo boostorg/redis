@@ -24,9 +24,11 @@ net::awaitable<void> example()
       auto ex = co_await this_coro::executor;
 
       resp::request p;
+      p.multi();
       p.hello();
       p.rpush("list", {1, 2, 3});
       p.lrange("list");
+      p.exec();
       p.quit();
 
       tcp::resolver resv(ex);
@@ -35,24 +37,11 @@ net::awaitable<void> example()
       co_await net::async_write(socket, net::buffer(p.payload));
 
       std::string buffer;
-      resp::response_flat_map<std::string> hello;
-      co_await resp::async_read(socket, buffer, hello);
-
-      resp::response_number<int> rpush;
-      co_await resp::async_read(socket, buffer, rpush);
-      std::cout << rpush.result << std::endl;
-
-      resp::response_list<int> lrange;
-      co_await resp::async_read(socket, buffer, lrange);
-      print(lrange.result);
-
-      resp::response_simple_string quit;
-      co_await resp::async_read(socket, buffer, quit);
-      std::cout << quit.result << std::endl;
-
-      resp::response_ignore eof;
-      co_await resp::async_read(socket, buffer, eof);
-
+      for (;;) {
+	 resp::response_array<std::string> hello;
+	 co_await resp::async_read(socket, buffer, hello);
+	 print(hello.result);
+      }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }

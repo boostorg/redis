@@ -321,11 +321,9 @@ net::awaitable<void> simple_error()
    {
       std::string cmd {"-Error\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_base res;
+      resp::response_simple_string res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.error_message(), {"Error"}, "simple_error (message)");
-      check_equal(res.is_error(), true, "is_error");
-      check_equal(res.get_error(), resp::error::simple_error, "simple_error");
+      check_equal(res.result, {"Error"}, "simple_error (message)");
    }
 }
 
@@ -384,19 +382,17 @@ net::awaitable<void> blob_error()
    {
       std::string cmd {"!21\r\nSYNTAX invalid syntax\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_base res;
+      resp::response_blob_string res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.error_message(), {"SYNTAX invalid syntax"}, "blob_error (message)");
-      check_equal(res.get_error(), resp::error::blob_error, "blob_error (enum)");
+      check_equal(res.result, {"SYNTAX invalid syntax"}, "blob_error (message)");
    }
 
    {
       std::string cmd {"!0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_base res;
+      resp::response_blob_string res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.error_message(), {}, "blob_error (empty message)");
-      check_equal(res.get_error(), resp::error::blob_error, "blob_error (enum)");
+      check_equal(res.result, {}, "blob_error (empty message)");
    }
 }
 
