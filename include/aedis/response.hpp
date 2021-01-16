@@ -78,27 +78,34 @@ class response_depth1 {
 private:
    int i_ = 0;
    std::vector<std::vector<std::string>> resps_;
-   void add_element()
+   void add_element(int n)
    {
-      if (++i_ > 1)
-	 resps_.push_back({});
+      ++i_;
+      if (i_ == 2)
+         resps_.push_back({});
    }
 
    void add(std::string_view s) { resps_.back().push_back(std::string{s}); }
 
 public:
    void clear()
-      { resps_.clear(); }
+      { resps_.clear(); i_ = 0;}
+   auto size() const
+      { return resps_.size(); }
 
    auto& at(int i) { return resps_.at(i); }
    auto const& at(int i) const { return resps_.at(i); }
 
-   void pop() {}
-   void select_array(int n) {add_element();}
-   void select_push(int n) {add_element();}
-   void select_set(int n) {add_element();}
-   void select_map(int n) {add_element();}
-   void select_attribute(int n) {add_element();}
+   void pop()
+   {
+      --i_;
+   }
+
+   void select_array(int n) {add_element(n);}
+   void select_push(int n) {add_element(n);}
+   void select_set(int n) {add_element(n);}
+   void select_map(int n) {add_element(n);}
+   void select_attribute(int n) {add_element(n);}
 
    void on_simple_string(std::string_view s) {add(s);}
    void on_simple_error(std::string_view s) {add(s);}

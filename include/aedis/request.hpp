@@ -8,6 +8,7 @@
 #pragma once
 
 #include <queue>
+#include <vector>
 #include <string>
 #include <algorithm>
 #include <functional>
@@ -176,6 +177,7 @@ enum class command
 , zrange
 , zrangebyscore
 , zremrangebyscore
+, none
 };
 
 #define EXPAND_COMMAND_CASE(x) case command::x: return #x
@@ -229,6 +231,7 @@ auto const* to_string(command c)
       EXPAND_COMMAND_CASE(zrange);
       EXPAND_COMMAND_CASE(zrangebyscore);
       EXPAND_COMMAND_CASE(zremrangebyscore);
+      EXPAND_COMMAND_CASE(none);
       default: assert(false);
    }
 }
