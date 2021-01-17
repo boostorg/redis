@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2020 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,6 +6,7 @@
  */
 
 #include <aedis/aedis.hpp>
+#include <aedis/utils.hpp>
 
 namespace net = aedis::net;
 namespace this_coro = net::this_coro;
@@ -42,13 +43,13 @@ net::awaitable<void> example()
 	    {
 	       resp::response_list<int> res;
 	       co_await resp::async_read(socket, buffer, res);
-	       print(res.result, "Interesting1");
+	       resp::print(res.result, "Interesting1");
 	    } break;
 	    case myevents::interesting2:
 	    {
 	       resp::response_set<int> res;
 	       co_await resp::async_read(socket, buffer, res);
-	       print(res.result, "Interesting2");
+	       resp::print(res.result, "Interesting2");
 	    } break;
 	    default:
 	    {

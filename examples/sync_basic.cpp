@@ -6,6 +6,7 @@
  */
 
 #include <aedis/aedis.hpp>
+#include <aedis/utils.hpp>
 
 namespace net = aedis::net;
 using namespace aedis;
@@ -28,7 +29,7 @@ int main()
       std::string buffer;
       resp::response_flat_map<std::string> hello;
       resp::read(socket, buffer, hello);
-      print(hello.result);
+      resp::print(hello.result);
 
       resp::response_simple_string set;
       resp::read(socket, buffer, set);

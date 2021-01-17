@@ -6,6 +6,7 @@
  */
 
 #include <aedis/aedis.hpp>
+#include <aedis/utils.hpp>
 
 namespace net = aedis::net;
 
@@ -40,7 +41,7 @@ net::awaitable<void> example()
       for (;;) {
 	 resp::response_array<std::string> hello;
 	 co_await resp::async_read(socket, buffer, hello);
-	 print(hello.result);
+	 resp::print(hello.result);
       }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
