@@ -57,13 +57,14 @@ struct response_ignore {
    ~response_ignore() {}
 };
 
-// To receive transactions with responses the are not recursive
-// themselves.
-class response_transaction {
+// This response type is able to deal with recursive redis responses
+// as in a transaction for example.
+class response_general {
 public:
    struct elem {
       int depth;
       type t;
+      int expected_size = -1;
       std::vector<std::string> value;
    };
 
@@ -71,7 +72,7 @@ private:
    int depth_ = 0;
    std::vector<elem> resps_;
 
-   void add_element(int n, type t)
+   void add_aggregate(int n, type t)
    {
       if (depth_ == 0) {
 	 resps_.reserve(n);
@@ -79,8 +80,7 @@ private:
 	 return;
       }
       
-      assert(depth_ == 1);
-      resps_.emplace_back(depth_, t);
+      resps_.emplace_back(depth_, t, n);
       resps_.back().value.reserve(n);
       ++depth_;
    }
@@ -88,8 +88,8 @@ private:
    void add(std::string_view s, type t)
    {
       assert(!std::empty(resps_));
-      if (depth_ == 1) {
-	 resps_.emplace_back(depth_, t, std::vector<std::string>{std::string{s}});
+      if (std::ssize(resps_.back().value) == resps_.back().expected_size) {
+	 resps_.emplace_back(depth_, t, 1, std::vector<std::string>{std::string{s}});
       } else {
 	 resps_.back().value.push_back(std::string{s});
       }
@@ -98,6 +98,7 @@ private:
 public:
    void clear()
       { resps_.clear(); depth_ = 0;}
+
    auto size() const
       { return resps_.size(); }
 
@@ -106,11 +107,11 @@ public:
 
    void pop() { --depth_; }
 
-   void select_array(int n) {add_element(n, type::array);}
-   void select_push(int n) {add_element(n, type::push);}
-   void select_set(int n) {add_element(n, type::set);}
-   void select_map(int n) {add_element(n, type::map);}
-   void select_attribute(int n) {add_element(n, type::attribute);}
+   void select_array(int n) {add_aggregate(n, type::array);}
+   void select_push(int n) {add_aggregate(n, type::push);}
+   void select_set(int n) {add_aggregate(n, type::set);}
+   void select_map(int n) {add_aggregate(n, type::map);}
+   void select_attribute(int n) {add_aggregate(n, type::attribute);}
 
    void on_simple_string(std::string_view s) { add(s, type::simple_string); }
    void on_simple_error(std::string_view s) { add(s, type::simple_error); }
@@ -164,66 +165,22 @@ protected:
 
 public:
    void pop() {}
-   void select_attribute(int n)
-   {
-   }
-   void select_push(int n)
-   {
-   }
-   void select_array(int n)
-   {
-   }
-   void select_set(int n)
-   {
-   }
-   void select_map(int n)
-   {
-   }
-   void on_simple_error(std::string_view s)
-   {
-      on_simple_error_impl(s);
-   }
-   void on_blob_error(std::string_view s = {})
-   {
-      on_blob_error_impl(s);
-   }
-   void on_null()
-   {
-      on_null_impl();
-   }
-   void on_simple_string(std::string_view s)
-   {
-      on_simple_string_impl(s);
-   }
-   void on_number(std::string_view s)
-   {
-      on_number_impl(s);
-   }
-   void on_double(std::string_view s)
-   {
-      on_double_impl(s);
-   }
-   void on_bool(std::string_view s)
-   {
-      on_bool_impl(s);
-   }
-   void on_big_number(std::string_view s)
-   {
-      on_big_number_impl(s);
-   }
-   void on_verbatim_string(std::string_view s = {})
-   {
-      on_verbatim_string_impl(s);
-   }
-   void on_blob_string(std::string_view s = {})
-   {
-      on_blob_string_impl(s);
-   }
-   void on_streamed_string_part(std::string_view s = {})
-   {
-      on_streamed_string_part_impl(s);
-   }
-
+   void select_attribute(int n) { }
+   void select_push(int n) { }
+   void select_array(int n) { }
+   void select_set(int n) { }
+   void select_map(int n) { }
+   void on_simple_error(std::string_view s) { on_simple_error_impl(s); }
+   void on_blob_error(std::string_view s = {}) { on_blob_error_impl(s); }
+   void on_null() { on_null_impl(); }
+   void on_simple_string(std::string_view s) { on_simple_string_impl(s); }
+   void on_number(std::string_view s) { on_number_impl(s); }
+   void on_double(std::string_view s) { on_double_impl(s); }
+   void on_bool(std::string_view s) { on_bool_impl(s); }
+   void on_big_number(std::string_view s) { on_big_number_impl(s); }
+   void on_verbatim_string(std::string_view s = {}) { on_verbatim_string_impl(s); }
+   void on_blob_string(std::string_view s = {}) { on_blob_string_impl(s); }
+   void on_streamed_string_part(std::string_view s = {}) { on_streamed_string_part_impl(s); }
    virtual ~response_base() {}
 };
 
