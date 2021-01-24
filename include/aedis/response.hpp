@@ -12,12 +12,15 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <ostream>
 #include <numeric>
 #include <type_traits>
 #include <string_view>
 #include <charconv>
+#include <iomanip>
 
 #include "type.hpp"
+#include "command.hpp"
 
 namespace aedis { namespace resp {
 
@@ -436,5 +439,31 @@ public:
    std::array<T, 2 * N> result;
 };
 
+template <class Event>
+struct response_id {
+   command cmd;
+   type t;
+   Event event;
+};
+
+template <class Event>
+struct responses {
+   response_simple_string<char> simple_string;
+   response_array<std::string> array;
+   response_general general;
+};
+
 } // resp
 } // aedis
+
+template <class Event>
+std::ostream&
+operator<<(std::ostream& os, aedis::resp::response_id<Event> const& id)
+{
+   os
+      << std::left << std::setw(15) << aedis::resp::to_string(id.cmd)
+      << std::left << std::setw(20) << aedis::resp::to_string(id.t)
+      << std::left << std::setw(20) << id.event
+   ;
+   return os;
+}

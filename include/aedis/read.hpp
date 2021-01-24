@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <queue>
 #include <string>
 #include <cstdio>
 #include <utility>
@@ -22,6 +23,8 @@
 
 #include "type.hpp"
 #include "parser.hpp"
+#include "response.hpp"
+#include "request.hpp"
 
 namespace aedis { namespace resp {
 
@@ -249,6 +252,88 @@ auto async_read_type(
         token,
         stream);
 }
+
+template <
+   class AsyncReadStream,
+   class Receiver,
+   class WriteTrigger>
+net::awaitable<void>
+async_read_responses(
+   AsyncReadStream& socket,
+   Receiver& recv,
+   WriteTrigger wt)
+{
+   std::string buffer;
+   std::queue<response_id<typename Receiver::event_type>> trans;
+   for (;;) {
+      type t;
+      co_await async_read_type(socket, buffer, t);
+      auto& req = recv.reqs.front();
+      auto cmd = command::none;
+      if (t != type::push)
+	 cmd = req.events.front().first;
+
+      // The next two ifs are used to deal with transactions.
+      auto const is_multi = cmd == command::multi;
+      auto const is_exec = cmd == command::exec;
+      auto const trans_empty = std::empty(trans);
+
+      if (is_multi || (!trans_empty && !is_exec)) {
+	 auto const* res = cmd == command::multi ? "OK" : "QUEUED";
+	 co_await async_read(socket, buffer, recv.response_buffers.simple_string);
+	 assert(recv.response_buffers.simple_string.result == res);
+	 trans.push({req.events.front().first, type::invalid, req.events.front().second});
+	 req.events.pop();
+	 continue;
+      }
+
+      if (cmd == command::exec) {
+	 assert(trans.front().cmd == command::multi);
+	 co_await async_read(socket, buffer, recv.response_buffers.general);
+	 trans.pop(); // Removes multi.
+	 for (int i = 0; !std::empty(trans); ++i) {
+	    trans.front().t = recv.response_buffers.general.at(i).t;
+	    recv.receive(trans.front(), recv.response_buffers.general.at(i).value);
+	    trans.pop();
+	 }
+	 recv.response_buffers.general.clear();
+	 trans = {};
+	 req.events.pop(); // exec
+	 if (std::empty(req.events)) {
+	    recv.reqs.pop();
+	    if (!std::empty(recv.reqs))
+	       wt();
+	 }
+	 continue;
+      }
+
+      co_await async_read(socket, buffer, recv.response_buffers.array);
+
+      recv.receive(
+	 {cmd, t, req.events.front().second},
+	 std::move(recv.response_buffers.array.result));
+
+      recv.response_buffers.array.result.clear();
+
+      if (t != type::push)
+	 req.events.pop();
+
+      if (std::empty(req.events)) {
+	 recv.reqs.pop();
+	 if (!std::empty(recv.reqs))
+	    wt();
+      }
+   }
+}
+
+template <class Event>
+struct receiver_base {
+   responses<Event> response_buffers;
+   std::queue<request<Event>> reqs;
+   virtual void receive(
+      response_id<Event> const& id,
+      std::vector<std::string> v) { }
+};
 
 } // resp
 } // aedis
