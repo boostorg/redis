@@ -41,7 +41,7 @@ operator<<(std::ostream& os, myevent e)
    return os;
 }
 
-struct myreceiver : resp::receiver_base<myevent>
+struct myreceiver : public resp::receiver_base<myevent>
 {
    using event_type = myevent;
    void receive(
@@ -52,8 +52,9 @@ struct myreceiver : resp::receiver_base<myevent>
    }
 };
 
-void fill_request(resp::request<myevent>& req)
+auto make_req()
 {
+   resp::request<myevent> req;
    req.hello();
    req.flushall();
    req.subscribe("channel");
@@ -83,23 +84,24 @@ void fill_request(resp::request<myevent>& req)
    req.set("eee", {std::to_string(8)});
    req.get("eee");
    req.del("eee");
+   return req;
 }
 
 // A coroutine that adds commands to the request continously
+template <class Receiver>
 net::awaitable<void>
 filler(
-   std::queue<resp::request<myevent>>& reqs,
-   net::steady_timer& trigger)
+   tcp_socket& socket,
+   Receiver& recv)
 {
    auto ex = co_await this_coro::executor;
    try {
       for (;;) {
-	 resp::request<myevent> req;
-	 fill_request(req);
-	 auto const empty = std::empty(reqs);
-	 reqs.push(req);
-	 if (empty)
-	    trigger.cancel();
+	 if (recv.add(make_req())) {
+	    co_await async_write(
+	       socket,
+	       recv.reqs.front());
+	 }
 
 	 stimer timer(ex, std::chrono::milliseconds{10});
 	 co_await timer.async_wait();
@@ -119,22 +121,14 @@ net::awaitable<void> subscriber()
       co_await async_connect(socket, r);
       myreceiver recv;
 
-      net::steady_timer write_trigger {ex};
-      auto wt = [&]() { write_trigger.cancel(); };
-
       co_spawn(
 	 ex,
-	 async_writer(socket, write_trigger, recv.reqs),
-	 net::detached);
-
-      co_spawn(
-	 ex,
-	 filler(recv.reqs, write_trigger),
+	 filler(socket, recv),
 	 net::detached);
 
       co_await co_spawn(
 	 ex,
-	 resp::async_read_responses(socket, recv, wt),
+	 resp::async_read_responses(socket, recv),
 	 net::use_awaitable);
 
    } catch (std::exception const& e) {

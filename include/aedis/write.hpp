@@ -71,41 +71,6 @@ async_write(
    return net::async_write(stream, net::buffer(req.payload), token);
 }
 
-template <
-   class AsyncWriteStream,
-   class Event>
-net::awaitable<void>
-async_writer(
-   AsyncWriteStream& socket,
-   net::steady_timer& write_trigger,
-   std::queue<request<Event>>& reqs)
-{
-   auto ex = co_await net::this_coro::executor;
-
-   boost::system::error_code ec;
-   while (socket.is_open()) {
-      if (!std::empty(reqs)) {
-	 assert(!std::empty(reqs.front()));
-	 co_await async_write(
-	    socket,
-	    reqs.front(),
-	    net::redirect_error(net::use_awaitable, ec));
-
-	 if (ec) // Later we have to improve the error handling.
-	    co_return;
-      }
-
-      write_trigger.expires_after(std::chrono::years{10});
-      co_await write_trigger.async_wait(
-         net::redirect_error(net::use_awaitable, ec));
-
-      if (ec != net::error::operation_aborted)
-	 co_return;
-
-      ec = {};
-   }
-}
-
 }
 }
 

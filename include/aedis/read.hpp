@@ -255,13 +255,11 @@ auto async_read_type(
 
 template <
    class AsyncReadStream,
-   class Receiver,
-   class WriteTrigger>
+   class Receiver>
 net::awaitable<void>
 async_read_responses(
    AsyncReadStream& socket,
-   Receiver& recv,
-   WriteTrigger wt)
+   Receiver& recv)
 {
    std::string buffer;
    std::queue<response_id<typename Receiver::event_type>> trans;
@@ -301,8 +299,11 @@ async_read_responses(
 	 req.events.pop(); // exec
 	 if (std::empty(req.events)) {
 	    recv.reqs.pop();
-	    if (!std::empty(recv.reqs))
-	       wt();
+	    if (!std::empty(recv.reqs)) {
+	       co_await async_write(
+		  socket,
+		  recv.reqs.front());
+	    }
 	 }
 	 continue;
       }
@@ -320,19 +321,34 @@ async_read_responses(
 
       if (std::empty(req.events)) {
 	 recv.reqs.pop();
-	 if (!std::empty(recv.reqs))
-	    wt();
+	 if (!std::empty(recv.reqs)) {
+	    co_await async_write(
+	       socket,
+	       recv.reqs.front());
+	 }
       }
    }
 }
 
 template <class Event>
-struct receiver_base {
+class receiver_base {
+private:
+public:
    responses<Event> response_buffers;
    std::queue<request<Event>> reqs;
+   bool add(request<Event> req)
+   {
+      auto const empty = std::empty(reqs);
+      reqs.push(std::move(req));
+      return empty;
+   }
    virtual void receive(
       response_id<Event> const& id,
       std::vector<std::string> v) { }
+
+   receiver_base()
+   {
+   }
 };
 
 } // resp
