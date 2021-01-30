@@ -254,15 +254,18 @@ auto async_read_type(
 }
 
 template <
-   class AsyncReadStream,
-   class Receiver>
+   class AsyncReadWriteStream,
+   class Receiver,
+   class Event,
+   class ResponseBuffer>
 net::awaitable<void>
-async_read_responses(
-   AsyncReadStream& socket,
-   std::queue<request<typename Receiver::event_type>>& reqs,
-   Receiver& recv)
+async_reader(
+   AsyncReadWriteStream& socket,
+   std::queue<request<Event>>& reqs,
+   Receiver& recv,
+   ResponseBuffer& resps)
 {
-   using response_id_type = response_id<typename Receiver::event_type>;
+   using response_id_type = response_id<Event>;
 
    std::string buffer;
 
@@ -271,7 +274,7 @@ async_read_responses(
 
    for (;;) {
       type t;
-      co_await async_read_type(socket, buffer, t);
+      co_await async_read_type(socket, buffer, t, net::use_awaitable);
       auto& req = reqs.front();
       auto const cmd = t == type::push ? command::none : req.events.front().first;
 
@@ -286,7 +289,7 @@ async_read_responses(
 	 auto const* res = cmd == command::multi ? "OK" : "QUEUED";
 
          response_static_string<char, 6> tmp;
-	 co_await async_read(socket, buffer, tmp);
+	 co_await async_read(socket, buffer, tmp, net::use_awaitable);
 
          // Failing to QUEUE a command inside a trasaction is considered an
          // application error.
@@ -310,8 +313,12 @@ async_read_responses(
          id.t = t;
          id.event = req.events.front().second;
 
-         auto* tmp = recv.get_response_buffer().get(id);
-	 co_await async_read(socket, buffer, *tmp);
+         auto* tmp = resps.get(id);
+	 co_await async_read(
+	    socket,
+	    buffer,
+	    *tmp,
+	    net::use_awaitable);
 
 	 trans.pop(); // Removes multi.
          recv.receive_transaction(std::move(trans));
@@ -323,15 +330,20 @@ async_read_responses(
 	    if (!std::empty(reqs)) {
 	       co_await async_write(
 		  socket,
-		  reqs.front());
+		  reqs.front(),
+		  net::use_awaitable);
 	    }
 	 }
 	 continue;
       }
 
       response_id_type id{cmd, t, req.events.front().second}; 
-      auto* tmp = recv.get_response_buffer().get(id);
-      co_await async_read(socket, buffer, *tmp);
+      auto* tmp = resps.get(id);
+      co_await async_read(
+	 socket,
+	 buffer,
+	 *tmp,
+	 net::use_awaitable);
       recv.receive(id);
 
       if (t != type::push)
@@ -342,42 +354,38 @@ async_read_responses(
 	 if (!std::empty(reqs)) {
 	    co_await async_write(
 	       socket,
-	       reqs.front());
+	       reqs.front(),
+	       net::use_awaitable);
 	 }
       }
    }
 }
 
-template <class Event>
-class receiver_base {
-private:
-   responses<Event> resps_;
-
-public:
-   responses<Event>& get_response_buffer()
-      { return resps_; }
-   responses<Event> const& get_response_buffer() const noexcept
-      { return resps_; }
-
-   // NOTE: The ids in the queue parameter have an unspecified message
-   // type.
-   virtual void receive_transaction(std::queue<response_id<Event>> ids)
+struct receiver_base {
+   // The ids in the queue parameter have an unspecified message type.
+   template <class Event>
+   void receive_transaction(std::queue<response_id<Event>> ids)
    {
       while (!std::empty(ids)) {
         std::cout << ids.front() << std::endl;
         ids.pop();
       }
-
-      get_response_buffer().clear_transaction();
    }
 
-   virtual void receive(response_id<Event> const& id)
-   {
-      //std::cout << id << ": " << v.back() << std::endl;
-      std::cout << id << std::endl;
-      get_response_buffer().clear();
-   }
+   template <class Event>
+   void receive(response_id<Event> const& id)
+      { std::cout << id << std::endl; }
 };
+
+template <class Event>
+std::queue<resp::request<Event>>
+make_request_queue()
+{
+   std::queue<resp::request<Event>> reqs;
+   reqs.push({});
+   reqs.front().hello();
+   return reqs;
+}
 
 } // resp
 } // aedis

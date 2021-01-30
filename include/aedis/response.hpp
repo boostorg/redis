@@ -39,33 +39,11 @@ inline
 void from_string_view(std::string_view s, std::string& r)
    { r = s; }
 
-// The interface required from from the parser.
-struct response_ignore {
-   void pop() {}
-   void select_array(int n) {}
-   void select_push(int n) {}
-   void select_set(int n) {}
-   void select_map(int n) {}
-   void select_attribute(int n) {}
-
-   void on_simple_string(std::string_view s) {}
-   void on_simple_error(std::string_view s) {}
-   void on_number(std::string_view s) {}
-   void on_double(std::string_view s) {}
-   void on_bool(std::string_view s) {}
-   void on_big_number(std::string_view s) {}
-   void on_null() {}
-   void on_blob_error(std::string_view s = {}) {}
-   void on_verbatim_string(std::string_view s = {}) {}
-   void on_blob_string(std::string_view s = {}) {}
-   void on_streamed_string_part(std::string_view s = {}) {}
-   ~response_ignore() {}
-};
-
-// A base class for flat responses which means response with no
-// embedded types in themselves. For exaple, a transaction with an
-// lrange in it will produce a response that is an array with an
-// array. That is not suitable for this class.
+/* A base class for flat responses which means response with no
+ * embedded types in themselves. For exaple, a transaction with an
+ * lrange in it will produce a response that is an array with an
+ * array. That is not suitable for this class.
+ */
 class response_base {
 protected:
    virtual void on_simple_string_impl(std::string_view s)
@@ -120,6 +98,25 @@ public:
    void on_blob_string(std::string_view s = {}) { on_blob_string_impl(s); }
    void on_streamed_string_part(std::string_view s = {}) { on_streamed_string_part_impl(s); }
    virtual ~response_base() {}
+};
+
+struct response_ignore : response_base {
+   void on_simple_string_impl(std::string_view s) override {}
+   void on_simple_error_impl(std::string_view s) override {}
+   void on_number_impl(std::string_view s) override {}
+   void on_double_impl(std::string_view s) override {}
+   void on_null_impl() override {}
+   void on_bool_impl(std::string_view s) override {}
+   void on_big_number_impl(std::string_view s) override {}
+   void on_verbatim_string_impl(std::string_view s = {}) override {}
+   void on_blob_string_impl(std::string_view s = {}) override {}
+   void on_blob_error_impl(std::string_view s = {}) override {}
+   void on_streamed_string_part_impl(std::string_view s = {}) override {}
+   void select_array_impl(int n) override {}
+   void select_set_impl(int n) override {}
+   void select_map_impl(int n) override {}
+   void select_push_impl(int n) override {}
+   void select_attribute_impl(int n) override {}
 };
 
 // This response type is able to deal with recursive redis responses as in a
@@ -411,6 +408,7 @@ private:
    int i = 0;
    void on_blob_string_impl(std::string_view s) override
       { from_string_view(s, result[i++]); }
+   void select_array_impl(int n) override { }
 
 public:
    std::array<T, N> result;
@@ -458,8 +456,16 @@ struct response_id {
    Event event;
 };
 
-template <class Event>
-class responses {
+class response_buffers_ignore {
+private:
+   response_ignore buf_;
+
+public:
+   template <class Event>
+   response_base* get(response_id<Event> id) { return &buf_; }
+};
+
+class response_buffers {
 private:
    response_tree tree_;
    response_array<std::string> array_;
@@ -467,6 +473,7 @@ private:
 public:
    // When the id is from a transaction the type of the message is not
    // specified.
+   template <class Event>
    response_base* get(response_id<Event> id)
    {
       if (id.cmd == command::exec)

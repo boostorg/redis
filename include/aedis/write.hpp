@@ -72,41 +72,76 @@ async_write(
 }
 
 template <
-   class AsyncWriteStream,
-   class Event>
-net::awaitable<void>
-async_writer(
-   AsyncWriteStream& socket,
-   std::queue<request<Event>>& reqs,
-   net::steady_timer& st)
-{
-   auto ex = co_await net::this_coro::executor;
-   boost::system::error_code ec;
-   for (;;) {
-      if (!std::empty(reqs)) {
-	 ec = {};
-	 co_await async_write(
-	    socket,
-	    reqs.front(),
-	    net::redirect_error(net::use_awaitable, ec));
-	 if (ec) {
-	    std::cerr << "Error: async_writer." << std::endl;
-	    co_return;
-	 }
+  class AsyncReadStream,
+  class Event>
+struct writer_op {
+   AsyncReadStream& stream;
+   net::steady_timer& st;
+   std::queue<request<Event>>* reqs;
+
+   template <class Self>
+   void operator()(
+      Self& self,
+      boost::system::error_code ec = {},
+      std::size_t bytes_transferred = 0)
+   {
+      // To stop the operation users are required to close the socket
+      // and cancel the timer.
+      if (!stream.is_open()) {
+         self.complete({});
+         return;
       }
 
-      st.expires_after(std::chrono::years{10});
-      ec = {};
-      co_await st.async_wait(net::redirect_error(net::use_awaitable, ec));
-      if (ec == net::error::operation_aborted)
-	 continue;
+      // We don't leave on operation aborted as that is the error we
+      // get when users cancel the timer to signal there is message to
+      // be written.  This relies on the fact that async_write does
+      // not complete with this error.
+      if (ec && ec != net::error::operation_aborted) {
+         self.complete(ec);
+         return;
+      }
 
-      std::cerr << "Error: async_writer." << std::endl;
-      co_return;
+      // When the condition below holds we are coming from a
+      // successful write and should wait for the next write trigger.
+      if (bytes_transferred != 0) {
+	 st.expires_after(std::chrono::years{10});
+	 st.async_wait(std::move(self));
+	 return;
+      }
+
+      if (!std::empty(*reqs)) {
+         async_write(
+            stream,
+            net::buffer(reqs->front().payload),
+            std::move(self));
+         return;
+      }
    }
+};
+
+template <
+   class AsyncWriteStream,
+   class Event,
+   class CompletionToken =
+      net::default_completion_token_t<typename AsyncWriteStream::executor_type>
+   >
+auto async_writer(
+   AsyncWriteStream& stream,
+   std::queue<request<Event>>& reqs,
+   net::steady_timer& writeTrigger,
+   CompletionToken&& token =
+      net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
+{
+   return net::async_compose
+      < CompletionToken
+      , void(boost::system::error_code)
+      >(writer_op<AsyncWriteStream, Event> {stream, writeTrigger, &reqs},
+        token,
+        stream,
+	writeTrigger);
 }
 
-// Returns true is a write has been triggered.
+// Returns true id a write has been triggered.
 template <class Event, class Filler>
 bool queue_writer(
    std::queue<resp::request<Event>>& reqs,

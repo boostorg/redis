@@ -11,12 +11,8 @@
 #include <stack>
 
 namespace net = aedis::net;
-namespace this_coro = net::this_coro;
-
 using namespace aedis;
 using tcp = net::ip::tcp;
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
-using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 
 enum class myevent {zero, one, two, ignore};
 
@@ -40,17 +36,6 @@ operator<<(std::ostream& os, myevent e)
    os << to_string(e);
    return os;
 }
-
-struct myreceiver : public resp::receiver_base<myevent>
-{
-   using event_type = myevent;
-   //void receive(
-   //   resp::response_id<event_type> const& id,
-   //   std::vector<std::string> v) override final
-   //{
-   //   std::cout << id << ": " << v.back() << std::endl;
-   //}
-};
 
 auto fill_req(resp::request<myevent>& req)
 {
@@ -84,61 +69,34 @@ auto fill_req(resp::request<myevent>& req)
    req.del("eee");
 }
 
-// A coroutine that adds commands to the request continously
-net::awaitable<void>
-filler(
-   std::queue<resp::request<myevent>>& reqs,
-   net::steady_timer& st)
-{
-   try {
-      auto ex = co_await this_coro::executor;
-      auto filler = [](auto& req){fill_req(req);};
-      for (;;) {
-	 queue_writer(reqs, filler, st);
-	 stimer timer(ex, std::chrono::milliseconds{1000});
-	 co_await timer.async_wait();
-      }
-   } catch (std::exception const& e) {
-      std::cerr << "filler: " << e.what() << std::endl;
-   }
-}
-
 net::awaitable<void> subscriber()
 {
-   auto ex = co_await this_coro::executor;
+   auto ex = co_await net::this_coro::executor;
    try {
       tcp::resolver resv(ex);
       auto const r = resv.resolve("127.0.0.1", "6379");
-      tcp_socket socket {ex};
-      co_await async_connect(socket, r);
+      tcp::socket socket {ex};
+      co_await async_connect(socket, r, net::use_awaitable);
+
+      auto reqs = resp::make_request_queue<myevent>();
+      resp::response_buffers_ignore resps;
+      resp::receiver_base recv;
       net::steady_timer st{ex};
 
-      std::queue<resp::request<myevent>> reqs;
-      reqs.push({});
-      reqs.front().hello();
-
-      myreceiver recv;
-
       co_spawn(
 	 ex,
-	 resp::async_read_responses(socket, reqs, recv),
+	 resp::async_reader(socket, reqs, recv, resps),
 	 net::detached);
 
-      co_spawn(
-	 ex,
-	 resp::async_writer(socket, reqs, st),
-	 net::detached);
+      resp::async_writer(socket, reqs, st, net::detached);
 
-      // Starts some fillers.
-      co_spawn(
-	 ex,
-	 filler(reqs, st),
-	 net::detached);
+      auto filler = [](auto& req){fill_req(req);};
 
-      co_await co_spawn(
-	 ex,
-	 filler(reqs, st),
-	 net::use_awaitable);
+      for (;;) {
+	 queue_writer(reqs, filler, st);
+	 net::steady_timer timer(ex, std::chrono::milliseconds{100});
+	 co_await timer.async_wait(net::use_awaitable);
+      }
 
    } catch (std::exception const& e) {
       std::cout << e.what() << std::endl;
