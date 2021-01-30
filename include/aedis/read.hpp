@@ -261,25 +261,38 @@ async_read_responses(
    AsyncReadStream& socket,
    Receiver& recv)
 {
+   using response_id_type = response_id<typename Receiver::event_type>;
+
    std::string buffer;
-   std::queue<response_id<typename Receiver::event_type>> trans;
+
+   // Used to queue the events of a transaction.
+   std::queue<response_id_type> trans;
+
    for (;;) {
       type t;
       co_await async_read_type(socket, buffer, t);
       auto& req = recv.reqs.front();
-      auto cmd = command::none;
-      if (t != type::push)
-	 cmd = req.events.front().first;
+      auto const cmd = t == type::push ? command::none : req.events.front().first;
 
-      // The next two ifs are used to deal with transactions.
       auto const is_multi = cmd == command::multi;
       auto const is_exec = cmd == command::exec;
       auto const trans_empty = std::empty(trans);
 
+      // The next two ifs are used to deal with transactions.
       if (is_multi || (!trans_empty && !is_exec)) {
+         // The multi commands always gets a "OK" response and all other
+         // commands get QUEUED unless the user is e.g. using wrong data types.
 	 auto const* res = cmd == command::multi ? "OK" : "QUEUED";
-	 co_await async_read(socket, buffer, recv.response_buffers.simple_string);
-	 assert(recv.response_buffers.simple_string.result == res);
+
+         response_static_string<char, 6> tmp;
+	 co_await async_read(socket, buffer, tmp);
+
+         // Failing to QUEUE a command inside a trasaction is considered an
+         // application error.
+	 assert (tmp.result == res);
+
+         // Pushes the command in the transction command queue that will be
+         // processed when exec arrives.
 	 trans.push({req.events.front().first, type::invalid, req.events.front().second});
 	 req.events.pop();
 	 continue;
@@ -287,15 +300,22 @@ async_read_responses(
 
       if (cmd == command::exec) {
 	 assert(trans.front().cmd == command::multi);
-	 co_await async_read(socket, buffer, recv.response_buffers.general);
+
+         // The exec response is an array where each element is the response of
+         // one command in the transaction. This requires a special response
+         // buffer, that can deal with recursive data types.
+         response_id_type id;
+         id.cmd = command::exec;
+         id.t = t;
+         id.event = req.events.front().second;
+
+         auto* tmp = recv.get_response_buffer().get(id);
+	 co_await async_read(socket, buffer, *tmp);
+
 	 trans.pop(); // Removes multi.
-	 for (int i = 0; !std::empty(trans); ++i) {
-	    trans.front().t = recv.response_buffers.general.at(i).t;
-	    recv.receive(trans.front(), recv.response_buffers.general.at(i).value);
-	    trans.pop();
-	 }
-	 recv.response_buffers.general.clear();
+         recv.receive_transaction(std::move(trans));
 	 trans = {};
+
 	 req.events.pop(); // exec
 	 if (std::empty(req.events)) {
 	    recv.reqs.pop();
@@ -308,13 +328,10 @@ async_read_responses(
 	 continue;
       }
 
-      co_await async_read(socket, buffer, recv.response_buffers.array);
-
-      recv.receive(
-	 {cmd, t, req.events.front().second},
-	 std::move(recv.response_buffers.array.result));
-
-      recv.response_buffers.array.result.clear();
+      response_id_type id{cmd, t, req.events.front().second}; 
+      auto* tmp = recv.get_response_buffer().get(id);
+      co_await async_read(socket, buffer, *tmp);
+      recv.receive(id);
 
       if (t != type::push)
 	 req.events.pop();
@@ -333,21 +350,37 @@ async_read_responses(
 template <class Event>
 class receiver_base {
 private:
+   responses<Event> resps_;
+
 public:
-   responses<Event> response_buffers;
+   responses<Event>& get_response_buffer() { return resps_; }
+   responses<Event> const& get_response_buffer() const noexcept { return resps_; }
+
    std::queue<request<Event>> reqs;
+
    bool add(request<Event> req)
    {
       auto const empty = std::empty(reqs);
       reqs.push(std::move(req));
       return empty;
    }
-   virtual void receive(
-      response_id<Event> const& id,
-      std::vector<std::string> v) { }
 
-   receiver_base()
+   // NOTE: The ids in the queue parameter have an unspecified message type.
+   virtual void receive_transaction(std::queue<response_id<Event>> ids)
    {
+      while (!std::empty(ids)) {
+        std::cout << ids.front() << std::endl;
+        ids.pop();
+      }
+
+      get_response_buffer().clear_transaction();
+   }
+
+   virtual void receive(response_id<Event> const& id)
+   {
+      //std::cout << id << ": " << v.back() << std::endl;
+      std::cout << id << std::endl;
+      get_response_buffer().clear();
    }
 };
 

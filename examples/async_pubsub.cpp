@@ -44,12 +44,12 @@ operator<<(std::ostream& os, myevent e)
 struct myreceiver : public resp::receiver_base<myevent>
 {
    using event_type = myevent;
-   void receive(
-      resp::response_id<event_type> const& id,
-      std::vector<std::string> v) override final
-   {
-      std::cout << id << ": " << v.back() << std::endl;
-   }
+   //void receive(
+   //   resp::response_id<event_type> const& id,
+   //   std::vector<std::string> v) override final
+   //{
+   //   std::cout << id << ": " << v.back() << std::endl;
+   //}
 };
 
 auto make_req()

@@ -19,6 +19,8 @@
 #include <charconv>
 #include <iomanip>
 
+#include <boost/static_string/static_string.hpp>
+
 #include "type.hpp"
 #include "command.hpp"
 
@@ -60,75 +62,6 @@ struct response_ignore {
    ~response_ignore() {}
 };
 
-// This response type is able to deal with recursive redis responses
-// as in a transaction for example.
-class response_general {
-public:
-   struct elem {
-      int depth;
-      type t;
-      int expected_size = -1;
-      std::vector<std::string> value;
-   };
-
-private:
-   int depth_ = 0;
-   std::vector<elem> resps_;
-
-   void add_aggregate(int n, type t)
-   {
-      if (depth_ == 0) {
-	 resps_.reserve(n);
-	 ++depth_;
-	 return;
-      }
-      
-      resps_.emplace_back(depth_, t, n);
-      resps_.back().value.reserve(n);
-      ++depth_;
-   }
-
-   void add(std::string_view s, type t)
-   {
-      assert(!std::empty(resps_));
-      if (std::ssize(resps_.back().value) == resps_.back().expected_size) {
-	 resps_.emplace_back(depth_, t, 1, std::vector<std::string>{std::string{s}});
-      } else {
-	 resps_.back().value.push_back(std::string{s});
-      }
-   }
-
-public:
-   void clear()
-      { resps_.clear(); depth_ = 0;}
-
-   auto size() const
-      { return resps_.size(); }
-
-   auto& at(int i) { return resps_.at(i); }
-   auto const& at(int i) const { return resps_.at(i); }
-
-   void pop() { --depth_; }
-
-   void select_array(int n) {add_aggregate(n, type::array);}
-   void select_push(int n) {add_aggregate(n, type::push);}
-   void select_set(int n) {add_aggregate(n, type::set);}
-   void select_map(int n) {add_aggregate(n, type::map);}
-   void select_attribute(int n) {add_aggregate(n, type::attribute);}
-
-   void on_simple_string(std::string_view s) { add(s, type::simple_string); }
-   void on_simple_error(std::string_view s) { add(s, type::simple_error); }
-   void on_number(std::string_view s) {add(s, type::number);}
-   void on_double(std::string_view s) {add(s, type::double_type);}
-   void on_bool(std::string_view s) {add(s, type::boolean);}
-   void on_big_number(std::string_view s) {add(s, type::big_number);}
-   void on_null() {add({}, type::null);}
-   void on_blob_error(std::string_view s = {}) {add(s, type::blob_error);}
-   void on_verbatim_string(std::string_view s = {}) {add(s, type::verbatim_string);}
-   void on_blob_string(std::string_view s = {}) {add(s, type::blob_string);}
-   void on_streamed_string_part(std::string_view s = {}) {add(s, type::streamed_string_part);}
-};
-
 // A base class for flat responses which means response with no
 // embedded types in themselves. For exaple, a transaction with an
 // lrange in it will produce a response that is an array with an
@@ -165,14 +98,16 @@ protected:
       { throw std::runtime_error("select_map_impl: Has not been overridden."); }
    virtual void select_push_impl(int n)
       { throw std::runtime_error("select_push_impl: Has not been overridden."); }
+   virtual void select_attribute_impl(int n)
+      { throw std::runtime_error("select_attribute_impl: Has not been overridden."); }
 
 public:
-   void pop() {}
-   void select_attribute(int n) { }
-   void select_push(int n) { }
-   void select_array(int n) { }
-   void select_set(int n) { }
-   void select_map(int n) { }
+   virtual void pop() {}
+   void select_attribute(int n) { select_attribute_impl(n);}
+   void select_push(int n) { select_push_impl(n);}
+   void select_array(int n) { select_array_impl(n);}
+   void select_set(int n) { select_set_impl(n);}
+   void select_map(int n) { select_map_impl(n);}
    void on_simple_error(std::string_view s) { on_simple_error_impl(s); }
    void on_blob_error(std::string_view s = {}) { on_blob_error_impl(s); }
    void on_null() { on_null_impl(); }
@@ -185,6 +120,69 @@ public:
    void on_blob_string(std::string_view s = {}) { on_blob_string_impl(s); }
    void on_streamed_string_part(std::string_view s = {}) { on_streamed_string_part_impl(s); }
    virtual ~response_base() {}
+};
+
+// This response type is able to deal with recursive redis responses as in a
+// transaction for example.
+class response_tree: public response_base {
+public:
+   struct elem {
+      int depth;
+      type t;
+      int expected_size = -1;
+      std::vector<std::string> value;
+   };
+
+   std::vector<elem> result;
+
+private:
+   int depth_ = 0;
+
+   void add_aggregate(int n, type t)
+   {
+      if (depth_ == 0) {
+	 result.reserve(n);
+	 ++depth_;
+	 return;
+      }
+      
+      result.emplace_back(depth_, t, n);
+      result.back().value.reserve(n);
+      ++depth_;
+   }
+
+   void add(std::string_view s, type t)
+   {
+      assert(!std::empty(result));
+      if (std::ssize(result.back().value) == result.back().expected_size) {
+	 result.emplace_back(depth_, t, 1, std::vector<std::string>{std::string{s}});
+      } else {
+	 result.back().value.push_back(std::string{s});
+      }
+   }
+
+   void select_array_impl(int n) override {add_aggregate(n, type::array);}
+   void select_push_impl(int n) override {add_aggregate(n, type::push);}
+   void select_set_impl(int n) override {add_aggregate(n, type::set);}
+   void select_map_impl(int n) override {add_aggregate(n, type::map);}
+   void select_attribute_impl(int n) override {add_aggregate(n, type::attribute);}
+
+   void on_simple_string_impl(std::string_view s) override { add(s, type::simple_string); }
+   void on_simple_error_impl(std::string_view s) override { add(s, type::simple_error); }
+   void on_number_impl(std::string_view s) override {add(s, type::number);}
+   void on_double_impl(std::string_view s) override {add(s, type::double_type);}
+   void on_bool_impl(std::string_view s) override {add(s, type::boolean);}
+   void on_big_number_impl(std::string_view s) override {add(s, type::big_number);}
+   void on_null_impl() override {add({}, type::null);}
+   void on_blob_error_impl(std::string_view s = {}) override {add(s, type::blob_error);}
+   void on_verbatim_string_impl(std::string_view s = {}) override {add(s, type::verbatim_string);}
+   void on_blob_string_impl(std::string_view s = {}) override {add(s, type::blob_string);}
+   void on_streamed_string_part_impl(std::string_view s = {}) override {add(s, type::streamed_string_part);}
+
+public:
+   void clear() { result.clear(); depth_ = 0;}
+   auto size() const { return result.size(); }
+   void pop() override { --depth_; }
 };
 
 template <class T>
@@ -418,6 +416,20 @@ public:
    std::array<T, N> result;
 };
 
+template <class T, std::size_t N>
+class response_static_string : public response_base {
+private:
+   void add(std::string_view s)
+     { result.assign(std::cbegin(s), std::cend(s));};
+   void on_blob_string_impl(std::string_view s) override
+     { add(s); }
+   void on_simple_string_impl(std::string_view s) override
+     { add(s); }
+
+public:
+   boost::static_string<N> result;
+};
+
 template <
    class T,
    std::size_t N
@@ -447,10 +459,24 @@ struct response_id {
 };
 
 template <class Event>
-struct responses {
-   response_simple_string<char> simple_string;
-   response_array<std::string> array;
-   response_general general;
+class responses {
+private:
+   response_tree tree_;
+   response_array<std::string> array_;
+
+public:
+   // When the id is from a transaction the type of the message is not
+   // specified.
+   response_base* get(response_id<Event> id)
+   {
+      if (id.cmd == command::exec)
+        return &tree_;
+
+      return &array_;
+   }
+
+   void clear_transaction() { tree_.clear(); }
+   void clear() { array_.result.clear(); }
 };
 
 } // resp
