@@ -71,6 +71,60 @@ async_write(
    return net::async_write(stream, net::buffer(req.payload), token);
 }
 
+template <
+   class AsyncWriteStream,
+   class Event>
+net::awaitable<void>
+async_writer(
+   AsyncWriteStream& socket,
+   std::queue<request<Event>>& reqs,
+   net::steady_timer& st)
+{
+   auto ex = co_await net::this_coro::executor;
+   boost::system::error_code ec;
+   for (;;) {
+      if (!std::empty(reqs)) {
+	 ec = {};
+	 co_await async_write(
+	    socket,
+	    reqs.front(),
+	    net::redirect_error(net::use_awaitable, ec));
+	 if (ec) {
+	    std::cerr << "Error: async_writer." << std::endl;
+	    co_return;
+	 }
+      }
+
+      st.expires_after(std::chrono::years{10});
+      ec = {};
+      co_await st.async_wait(net::redirect_error(net::use_awaitable, ec));
+      if (ec == net::error::operation_aborted)
+	 continue;
+
+      std::cerr << "Error: async_writer." << std::endl;
+      co_return;
+   }
 }
+
+// Returns true is a write has been triggered.
+template <class Event, class Filler>
+bool queue_writer(
+   std::queue<resp::request<Event>>& reqs,
+   Filler filler,
+   net::steady_timer& st)
+{
+   auto const empty = std::empty(reqs);
+   if (empty || std::size(reqs) == 1)
+      reqs.push({});
+
+   filler(reqs.back());
+
+   if (empty)
+      st.cancel();
+
+   return empty;
 }
+
+} // resp
+} // aedis
 

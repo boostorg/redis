@@ -6,7 +6,7 @@ tarball_dir = $(pkg_name)-$(pkg_version)
 prefix = /opt/$(pkg_name)-$(pkg_version)
 incdir = $(prefix)/include/$(pkg_name)
 
-CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
+#CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
 
 CPPFLAGS =
 CPPFLAGS += -g

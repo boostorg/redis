@@ -259,6 +259,7 @@ template <
 net::awaitable<void>
 async_read_responses(
    AsyncReadStream& socket,
+   std::queue<request<typename Receiver::event_type>>& reqs,
    Receiver& recv)
 {
    using response_id_type = response_id<typename Receiver::event_type>;
@@ -271,7 +272,7 @@ async_read_responses(
    for (;;) {
       type t;
       co_await async_read_type(socket, buffer, t);
-      auto& req = recv.reqs.front();
+      auto& req = reqs.front();
       auto const cmd = t == type::push ? command::none : req.events.front().first;
 
       auto const is_multi = cmd == command::multi;
@@ -318,11 +319,11 @@ async_read_responses(
 
 	 req.events.pop(); // exec
 	 if (std::empty(req.events)) {
-	    recv.reqs.pop();
-	    if (!std::empty(recv.reqs)) {
+	    reqs.pop();
+	    if (!std::empty(reqs)) {
 	       co_await async_write(
 		  socket,
-		  recv.reqs.front());
+		  reqs.front());
 	    }
 	 }
 	 continue;
@@ -337,11 +338,11 @@ async_read_responses(
 	 req.events.pop();
 
       if (std::empty(req.events)) {
-	 recv.reqs.pop();
-	 if (!std::empty(recv.reqs)) {
+	 reqs.pop();
+	 if (!std::empty(reqs)) {
 	    co_await async_write(
 	       socket,
-	       recv.reqs.front());
+	       reqs.front());
 	 }
       }
    }
@@ -353,19 +354,13 @@ private:
    responses<Event> resps_;
 
 public:
-   responses<Event>& get_response_buffer() { return resps_; }
-   responses<Event> const& get_response_buffer() const noexcept { return resps_; }
+   responses<Event>& get_response_buffer()
+      { return resps_; }
+   responses<Event> const& get_response_buffer() const noexcept
+      { return resps_; }
 
-   std::queue<request<Event>> reqs;
-
-   bool add(request<Event> req)
-   {
-      auto const empty = std::empty(reqs);
-      reqs.push(std::move(req));
-      return empty;
-   }
-
-   // NOTE: The ids in the queue parameter have an unspecified message type.
+   // NOTE: The ids in the queue parameter have an unspecified message
+   // type.
    virtual void receive_transaction(std::queue<response_id<Event>> ids)
    {
       while (!std::empty(ids)) {

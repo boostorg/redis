@@ -52,10 +52,8 @@ struct myreceiver : public resp::receiver_base<myevent>
    //}
 };
 
-auto make_req()
+auto fill_req(resp::request<myevent>& req)
 {
-   resp::request<myevent> req;
-   req.hello();
    req.flushall();
    req.subscribe("channel");
    req.subscribe("__keyspace@0__:user:*");
@@ -84,26 +82,20 @@ auto make_req()
    req.set("eee", {std::to_string(8)});
    req.get("eee");
    req.del("eee");
-   return req;
 }
 
 // A coroutine that adds commands to the request continously
-template <class Receiver>
 net::awaitable<void>
 filler(
-   tcp_socket& socket,
-   Receiver& recv)
+   std::queue<resp::request<myevent>>& reqs,
+   net::steady_timer& st)
 {
-   auto ex = co_await this_coro::executor;
    try {
+      auto ex = co_await this_coro::executor;
+      auto filler = [](auto& req){fill_req(req);};
       for (;;) {
-	 if (recv.add(make_req())) {
-	    co_await async_write(
-	       socket,
-	       recv.reqs.front());
-	 }
-
-	 stimer timer(ex, std::chrono::milliseconds{10});
+	 queue_writer(reqs, filler, st);
+	 stimer timer(ex, std::chrono::milliseconds{1000});
 	 co_await timer.async_wait();
       }
    } catch (std::exception const& e) {
@@ -119,16 +111,33 @@ net::awaitable<void> subscriber()
       auto const r = resv.resolve("127.0.0.1", "6379");
       tcp_socket socket {ex};
       co_await async_connect(socket, r);
+      net::steady_timer st{ex};
+
+      std::queue<resp::request<myevent>> reqs;
+      reqs.push({});
+      reqs.front().hello();
+
       myreceiver recv;
 
       co_spawn(
 	 ex,
-	 filler(socket, recv),
+	 resp::async_read_responses(socket, reqs, recv),
+	 net::detached);
+
+      co_spawn(
+	 ex,
+	 resp::async_writer(socket, reqs, st),
+	 net::detached);
+
+      // Starts some fillers.
+      co_spawn(
+	 ex,
+	 filler(reqs, st),
 	 net::detached);
 
       co_await co_spawn(
 	 ex,
-	 resp::async_read_responses(socket, recv),
+	 filler(reqs, st),
 	 net::use_awaitable);
 
    } catch (std::exception const& e) {
