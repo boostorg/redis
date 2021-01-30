@@ -361,6 +361,13 @@ async_reader(
    }
 }
 
+struct receiver_ignore {
+   template <class Event>
+   void receive_transaction(std::queue<response_id<Event>>) { }
+   template <class Event>
+   void receive(response_id<Event> const&) { }
+};
+
 struct receiver_base {
    // The ids in the queue parameter have an unspecified message type.
    template <class Event>

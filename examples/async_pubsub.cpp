@@ -39,34 +39,33 @@ operator<<(std::ostream& os, myevent e)
 
 auto fill_req(resp::request<myevent>& req)
 {
-   req.flushall();
-   req.subscribe("channel");
-   req.subscribe("__keyspace@0__:user:*");
-   req.ping(myevent::one);
-   req.set("aaaa", {std::to_string(1)});
-   req.get("aaaa");
-   req.del("aaaa");
-   req.rpush("user:Marcelo", {1, 2, 3}, myevent::two);
-   req.lrange("user:Marcelo");
-   req.publish("channel", "Some message");
-   req.multi();
-   req.lrange("user:Marcelo", 0, -1, myevent::zero);
-   req.exec();
+   //req.subscribe("channel");
+   //req.subscribe("__keyspace@0__:user:*");
+   //req.ping(myevent::one);
+   //req.set("aaaa", {std::to_string(1)});
+   //req.get("aaaa");
+   //req.del("aaaa");
+   //req.rpush("user:Marcelo", {1, 2, 3}, myevent::two);
+   //req.lrange("user:Marcelo");
+   //req.publish("channel", "Some message");
+   //req.multi();
+   //req.lrange("user:Marcelo", 0, -1, myevent::zero);
+   //req.exec();
    req.set("aaaa", {std::to_string(2)});
    req.get("aaaa");
-   req.multi();
-   req.lrange("user:Marcelo");
+   //req.multi();
+   //req.lrange("user:Marcelo");
    req.ping();
-   req.lrange("user:Marcelo", 0, -1, myevent::zero);
+   //req.lrange("user:Marcelo", 0, -1, myevent::zero);
+   //req.ping();
+   //req.lrange("user:Marcelo");
    req.ping();
-   req.lrange("user:Marcelo");
-   req.ping();
-   req.lrange("user:Marcelo");
-   req.lrange("user:Marcelo");
-   req.exec();
-   req.set("eee", {std::to_string(8)});
-   req.get("eee");
-   req.del("eee");
+   //req.lrange("user:Marcelo");
+   //req.lrange("user:Marcelo");
+   //req.exec();
+   //req.set("eee", {std::to_string(8)});
+   //req.get("eee");
+   //req.del("eee");
 }
 
 net::awaitable<void> subscriber()
@@ -94,7 +93,7 @@ net::awaitable<void> subscriber()
 
       for (;;) {
 	 queue_writer(reqs, filler, st);
-	 net::steady_timer timer(ex, std::chrono::milliseconds{100});
+	 net::steady_timer timer(ex, std::chrono::milliseconds{1000});
 	 co_await timer.async_wait(net::use_awaitable);
       }
 

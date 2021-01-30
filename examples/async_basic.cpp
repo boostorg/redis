@@ -19,23 +19,28 @@ namespace this_coro = net::this_coro;
 using namespace net;
 using namespace aedis;
 
+void fill(resp::request<resp::event>& req)
+{
+   req.multi();
+   req.hello();
+   req.rpush("list", {1, 2, 3});
+   req.lrange("list");
+   req.exec();
+   req.quit();
+}
+
 net::awaitable<void> example()
 {
    try {
       auto ex = co_await this_coro::executor;
 
-      resp::request p;
-      p.multi();
-      p.hello();
-      p.rpush("list", {1, 2, 3});
-      p.lrange("list");
-      p.exec();
-      p.quit();
-
       tcp::resolver resv(ex);
       tcp_socket socket {ex};
       co_await net::async_connect(socket, resv.resolve("127.0.0.1", "6379"));
-      co_await net::async_write(socket, net::buffer(p.payload));
+
+      resp::request req;
+      fill(req);
+      co_await net::async_write(socket, net::buffer(req.payload));
 
       std::string buffer;
       for (;;) {
