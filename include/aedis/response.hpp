@@ -39,11 +39,6 @@ inline
 void from_string_view(std::string_view s, std::string& r)
    { r = s; }
 
-/* A base class for flat responses which means response with no
- * embedded types in themselves. For exaple, a transaction with an
- * lrange in it will produce a response that is an array with an
- * array. That is not suitable for this class.
- */
 class response_base {
 protected:
    virtual void on_simple_string_impl(std::string_view s)
@@ -100,7 +95,8 @@ public:
    virtual ~response_base() {}
 };
 
-struct response_ignore : response_base {
+class response_ignore : public response_base {
+private:
    void on_simple_string_impl(std::string_view s) override {}
    void on_simple_error_impl(std::string_view s) override {}
    void on_number_impl(std::string_view s) override {}
@@ -119,8 +115,8 @@ struct response_ignore : response_base {
    void select_attribute_impl(int n) override {}
 };
 
-// This response type is able to deal with recursive redis responses as in a
-// transaction for example.
+// This response type is able to deal with recursive redis responses
+// as in a transaction for example.
 class response_tree: public response_base {
 public:
    struct elem {
@@ -183,9 +179,9 @@ public:
 };
 
 template <class T>
-class response_number : public response_base {
-   static_assert(std::is_integral<T>::value);
+class response_basic_number : public response_base {
 private:
+   static_assert(std::is_integral<T>::value);
    void on_number_impl(std::string_view s) override
       { from_string_view(s, result); }
 
@@ -193,45 +189,66 @@ public:
    T result;
 };
 
+using response_number = response_basic_number<long long int>;
+
 template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>>
-class response_blob_string : public response_base {
+class response_basic_blob_string : public response_base {
 private:
-   void add(std::string_view s)
-      { from_string_view(s, result); }
-
    void on_blob_string_impl(std::string_view s) override
-      { add(s); }
-   void on_blob_error_impl(std::string_view s) override
-      { add(s); }
-   void on_simple_string_impl(std::string_view s) override
-      { add(s); }
-   void on_simple_error_impl(std::string_view s) override
-      { add(s); }
+      { from_string_view(s, result); }
 public:
    std::basic_string<CharT, Traits, Allocator> result;
 };
+
+using response_blob_string = response_basic_blob_string<char>;
+
+template<
+   class CharT = char,
+   class Traits = std::char_traits<CharT>,
+   class Allocator = std::allocator<CharT>>
+class response_basic_blob_error : public response_base {
+private:
+   void on_blob_error_impl(std::string_view s) override
+      { from_string_view(s, result); }
+public:
+   std::basic_string<CharT, Traits, Allocator> result;
+};
+
+using response_blob_error = response_basic_blob_error<char>;
 
 template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>
    >
-class response_simple_string : public response_base {
+class response_basic_simple_string : public response_base {
 private:
-   void add(std::string_view s)
-      { from_string_view(s, result); }
-
    void on_simple_string_impl(std::string_view s) override
-      { add(s); }
+      { from_string_view(s, result); }
+public:
+   std::basic_string<CharT, Traits, Allocator> result;
+};
+
+using response_simple_string = response_basic_simple_string<char>;
+
+template<
+   class CharT = char,
+   class Traits = std::char_traits<CharT>,
+   class Allocator = std::allocator<CharT>
+   >
+class response_basic_simple_error : public response_base {
+private:
    void on_simple_error_impl(std::string_view s) override
-      { add(s); }
+      { from_string_view(s, result); }
 
 public:
    std::basic_string<CharT, Traits, Allocator> result;
 };
+
+using response_simple_error = response_basic_simple_error<char>;
 
 // Big number use strings at the moment as the underlying storage.
 template <
@@ -239,7 +256,7 @@ template <
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>
    >
-class response_big_number : public response_base {
+class response_basic_big_number : public response_base {
 private:
    void on_big_number_impl(std::string_view s) override
       { from_string_view(s, result); }
@@ -248,13 +265,15 @@ public:
    std::basic_string<CharT, Traits, Allocator> result;
 };
 
+using response_big_number = response_basic_big_number<char>;
+
 // TODO: Use a double instead of string.
 template <
    class CharT = char,
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>
    >
-class response_double : public response_base {
+class response_basic_double : public response_base {
 private:
    void on_double_impl(std::string_view s) override
       { from_string_view(s, result); }
@@ -262,6 +281,8 @@ private:
 public:
    std::basic_string<CharT, Traits, Allocator> result;
 };
+
+using response_double = response_basic_double<char>;
 
 template <
    class T,
@@ -286,7 +307,7 @@ template<
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>
    >
-class response_verbatim_string : public response_base {
+class response_basic_verbatim_string : public response_base {
 private:
    void on_verbatim_string_impl(std::string_view s) override
       { from_string_view(s, result); }
@@ -294,18 +315,22 @@ public:
    std::basic_string<CharT, Traits, Allocator> result;
 };
 
+using response_verbatim_string = response_basic_verbatim_string<char>;
+
 template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>
    >
-class response_streamed_string : public response_base {
+class response_basic_streamed_string : public response_base {
 private:
    void on_streamed_string_part_impl(std::string_view s) override
       { result += s; }
 public:
    std::basic_string<CharT, Traits, Allocator> result;
 };
+
+using response_streamed_string = response_basic_streamed_string<char>;
 
 template <
    class Key,
@@ -379,6 +404,7 @@ private:
       result.emplace_back(std::move(r));
    }
 
+   // TODO: Call vector reserver.
    void on_simple_string_impl(std::string_view s) override { add(s); }
    void on_number_impl(std::string_view s) override { add(s); }
    void on_double_impl(std::string_view s) override { add(s); }
@@ -405,16 +431,16 @@ using response_flat_set = response_array<T, Allocator>;
 template <class T, std::size_t N>
 class response_static_array : public response_base {
 private:
-   int i = 0;
+   int i_ = 0;
    void on_blob_string_impl(std::string_view s) override
-      { from_string_view(s, result[i++]); }
+      { from_string_view(s, result[i_++]); }
    void select_array_impl(int n) override { }
 
 public:
    std::array<T, N> result;
 };
 
-template <class T, std::size_t N>
+template <std::size_t N>
 class response_static_string : public response_base {
 private:
    void add(std::string_view s)
@@ -434,10 +460,10 @@ template <
    >
 class response_static_flat_map : public response_base {
 private:
-   int i = 0;
+   int i_ = 0;
 
    void add(std::string_view s = {})
-      { from_string_view(s, result.at(i++)); }
+      { from_string_view(s, result.at(i_++)); }
    void on_blob_string_impl(std::string_view s) override
       { add(s); }
    void on_number_impl(std::string_view s) override
@@ -474,18 +500,21 @@ private:
    response_array<std::string> set_;
    response_array<std::string> map_;
    response_array<std::string> attribute_;
-   response_simple_string<char> simple_string_;
-   response_simple_string<char> simple_error_;
-   response_number<long long int> number_;
-   response_double<char> double_;
-   response_big_number<char> big_number_;
-   response_blob_string<char> blob_string_;
-   response_blob_string<char> blob_error_;
-   response_verbatim_string<char> verbatim_string_;
-   response_streamed_string<char> streamed_string_part_;
+   response_simple_string simple_string_;
+   response_simple_error simple_error_;
+   response_number number_;
+   response_double double_;
+   response_bool boolean_;
+   response_big_number big_number_;
+   response_blob_string blob_string_;
+   response_blob_error blob_error_;
+   response_verbatim_string verbatim_string_;
+   response_streamed_string streamed_string_part_;
    response_ignore ignore_;
 
 public:
+   auto& tree() {return tree_.result;};
+
    auto& array() {return array_.result;};
    auto const& array() const noexcept {return array_.result;};
 
@@ -510,6 +539,9 @@ public:
    auto& number() {return number_.result;};
    auto const& number() const noexcept {return number_.result;};
 
+   auto& boolean() {return boolean_.result;};
+   auto const& boolean() const noexcept {return boolean_.result;};
+
    auto& double_type() {return double_.result;};
    auto const& double_type() const noexcept {return double_.result;};
 
@@ -528,10 +560,6 @@ public:
    auto& streamed_string_part() {return streamed_string_part_.result;};
    auto const& streamed_string_part() const noexcept {return streamed_string_part_.result;};
 
-   // TODO: The types bellow are still missing.
-   //null
-   //boolean
-
    // When the id is from a transaction the type of the message is not
    // specified.
    template <class Event>
@@ -540,7 +568,7 @@ public:
       if (id.cmd == command::exec)
         return &tree_;
 
-      switch (id.type) {
+      switch (id.t) {
          case type::push: return &push_;
          case type::set: return &set_;
          case type::map: return &map_;
@@ -551,6 +579,7 @@ public:
          case type::number: return &number_;
          case type::double_type: return &double_;
          case type::big_number: return &big_number_;
+         case type::boolean: return &boolean_;
          case type::blob_error: return &blob_error_;
          case type::blob_string: return &blob_string_;
 	 case type::verbatim_string: return &verbatim_string_;
@@ -570,7 +599,7 @@ operator<<(std::ostream& os, aedis::resp::response_id<Event> const& id)
    os
       << std::left << std::setw(15) << aedis::resp::to_string(id.cmd)
       << std::left << std::setw(20) << aedis::resp::to_string(id.t)
-      << std::left << std::setw(20) << id.event
+      << std::left << std::setw(20) << (int)id.event
    ;
    return os;
 }

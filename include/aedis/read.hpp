@@ -253,17 +253,24 @@ auto async_read_type(
         stream);
 }
 
+struct receiver_ignore {
+   template <class Event>
+   void receive(response_id<Event> const&) {}
+   template <class Event>
+   void receive_transaction(std::queue<response_id<Event>>) {}
+};
+
 template <
    class AsyncReadWriteStream,
-   class Receiver,
    class Event,
-   class ResponseBuffer>
+   class ResponseBuffer,
+   class Receiver = receiver_ignore>
 net::awaitable<void>
 async_reader(
    AsyncReadWriteStream& socket,
    std::queue<request<Event>>& reqs,
-   Receiver& recv,
-   ResponseBuffer& resps)
+   ResponseBuffer& resps,
+   Receiver recv = receiver_ignore{})
 {
    using response_id_type = response_id<Event>;
 
@@ -284,15 +291,14 @@ async_reader(
 
       // The next two ifs are used to deal with transactions.
       if (is_multi || (!trans_empty && !is_exec)) {
-         // The multi commands always gets a "OK" response and all other
-         // commands get QUEUED unless the user is e.g. using wrong data types.
-	 auto const* res = cmd == command::multi ? "OK" : "QUEUED";
-
-         response_static_string<char, 6> tmp;
+         response_static_string<6> tmp;
 	 co_await async_read(socket, buffer, tmp, net::use_awaitable);
 
-         // Failing to QUEUE a command inside a trasaction is considered an
-         // application error.
+	 // Failing to QUEUE a command inside a trasaction is
+	 // considered an application error.  The multi commands
+	 // always gets a "OK" response and all other commands get
+	 // QUEUED unless the user is e.g. using wrong data types.
+	 auto const* res = cmd == command::multi ? "OK" : "QUEUED";
 	 assert (tmp.result == res);
 
          // Pushes the command in the transction command queue that will be
@@ -344,6 +350,7 @@ async_reader(
 	 buffer,
 	 *tmp,
 	 net::use_awaitable);
+
       recv.receive(id);
 
       if (t != type::push)
@@ -361,30 +368,7 @@ async_reader(
    }
 }
 
-struct receiver_ignore {
-   template <class Event>
-   void receive_transaction(std::queue<response_id<Event>>) { }
-   template <class Event>
-   void receive(response_id<Event> const&) { }
-};
-
-struct receiver_print {
-   // The ids in the queue parameter have an unspecified message type.
-   template <class Event>
-   void receive_transaction(std::queue<response_id<Event>> ids)
-   {
-      while (!std::empty(ids)) {
-        std::cout << ids.front() << std::endl;
-        ids.pop();
-      }
-   }
-
-   template <class Event>
-   void receive(response_id<Event> const& id)
-      { std::cout << id << std::endl; }
-};
-
-template <class Event>
+template <class Event = event>
 std::queue<resp::request<Event>>
 make_request_queue()
 {

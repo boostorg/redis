@@ -7,6 +7,7 @@
 
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
+#include <aedis/receiver_print.hpp>
 
 #include <stack>
 
@@ -37,7 +38,7 @@ operator<<(std::ostream& os, myevent e)
    return os;
 }
 
-auto fill_req(resp::request<myevent>& req)
+auto filler(resp::request<myevent>& req)
 {
    //req.subscribe("channel");
    //req.subscribe("__keyspace@0__:user:*");
@@ -68,10 +69,19 @@ auto fill_req(resp::request<myevent>& req)
    //req.del("eee");
 }
 
+void fill1(resp::request<myevent>& req)
+{
+   req.multi();
+   req.rpush("list", {1, 2, 3});
+   req.lrange("list");
+   req.exec();
+   req.ping();
+}
+
 net::awaitable<void> subscriber()
 {
-   auto ex = co_await net::this_coro::executor;
    try {
+      auto ex = co_await net::this_coro::executor;
       tcp::resolver resv(ex);
       auto const r = resv.resolve("127.0.0.1", "6379");
       tcp::socket socket {ex};
@@ -84,15 +94,13 @@ net::awaitable<void> subscriber()
 
       co_spawn(
 	 ex,
-	 resp::async_reader(socket, reqs, recv, resps),
+	 resp::async_reader(socket, reqs, resps, recv),
 	 net::detached);
 
       resp::async_writer(socket, reqs, st, net::detached);
 
-      auto filler = [](auto& req){fill_req(req);};
-
       for (;;) {
-	 queue_writer(reqs, filler, st);
+	 queue_writer(reqs, fill1, st);
 	 net::steady_timer timer(ex, std::chrono::milliseconds{1000});
 	 co_await timer.async_wait(net::use_awaitable);
       }

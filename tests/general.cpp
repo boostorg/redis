@@ -64,9 +64,9 @@ net::awaitable<void> test_list()
    }
 
    {  // rpush
-      resp::response_number<int> res;
+      resp::response_number res;
       co_await resp::async_read(socket, buffer, res);
-      check_equal(res.result, 6, "rpush");
+      check_equal(res.result, (long long int)6, "rpush");
    }
 
    {  // lrange
@@ -229,25 +229,25 @@ net::awaitable<void> number()
    {  // int
       std::string cmd {":-3\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_number<int> res;
+      resp::response_number res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, -3, "number (int)");
+      check_equal(res.result, (long long int)-3, "number (int)");
    }
 
    {  // unsigned
       std::string cmd {":3\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_number<int> res;
+      resp::response_number res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, 3, "number (unsigned)");
+      check_equal(res.result, (long long int)3, "number (unsigned)");
    }
 
    {  // std::size_t
       std::string cmd {":1111111\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_number<int> res;
+      resp::response_number res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, 1111111, "number (std::size_t)");
+      check_equal(res.result, (long long int)1111111, "number (std::size_t)");
    }
 }
 
@@ -321,7 +321,7 @@ net::awaitable<void> simple_error()
    {
       std::string cmd {"-Error\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_simple_string res;
+      resp::response_simple_error res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {"Error"}, "simple_error (message)");
    }
@@ -382,7 +382,7 @@ net::awaitable<void> blob_error()
    {
       std::string cmd {"!21\r\nSYNTAX invalid syntax\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_blob_string res;
+      resp::response_blob_error res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {"SYNTAX invalid syntax"}, "blob_error (message)");
    }
@@ -390,7 +390,7 @@ net::awaitable<void> blob_error()
    {
       std::string cmd {"!0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_blob_string res;
+      resp::response_blob_error res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {}, "blob_error (empty message)");
    }
