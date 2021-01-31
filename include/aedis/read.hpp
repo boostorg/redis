@@ -368,7 +368,7 @@ struct receiver_ignore {
    void receive(response_id<Event> const&) { }
 };
 
-struct receiver_base {
+struct receiver_print {
    // The ids in the queue parameter have an unspecified message type.
    template <class Event>
    void receive_transaction(std::queue<response_id<Event>> ids)

@@ -79,7 +79,7 @@ net::awaitable<void> subscriber()
 
       auto reqs = resp::make_request_queue<myevent>();
       resp::response_buffers_ignore resps;
-      resp::receiver_base recv;
+      resp::receiver_print recv;
       net::steady_timer st{ex};
 
       co_spawn(

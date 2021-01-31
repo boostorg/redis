@@ -468,9 +468,70 @@ public:
 class response_buffers {
 private:
    response_tree tree_;
+
    response_array<std::string> array_;
+   response_array<std::string> push_;
+   response_array<std::string> set_;
+   response_array<std::string> map_;
+   response_array<std::string> attribute_;
+   response_simple_string<char> simple_string_;
+   response_simple_string<char> simple_error_;
+   response_number<long long int> number_;
+   response_double<char> double_;
+   response_big_number<char> big_number_;
+   response_blob_string<char> blob_string_;
+   response_blob_string<char> blob_error_;
+   response_verbatim_string<char> verbatim_string_;
+   response_streamed_string<char> streamed_string_part_;
+   response_ignore ignore_;
 
 public:
+   auto& array() {return array_.result;};
+   auto const& array() const noexcept {return array_.result;};
+
+   auto& push() {return push_.result;};
+   auto const& push() const noexcept {return push_.result;};
+
+   auto& set() {return set_.result;};
+   auto const& set() const noexcept {return set_.result;};
+
+   auto& map() {return map_.result;};
+   auto const& map() const noexcept {return map_.result;};
+
+   auto& attribute() {return attribute_.result;};
+   auto const& attribute() const noexcept {return attribute_.result;};
+
+   auto& simple_string() {return simple_string_.result;};
+   auto const& simple_string() const noexcept {return simple_string_.result;};
+
+   auto& simple_error() {return simple_error_.result;};
+   auto const& simple_error() const noexcept {return simple_error_.result;};
+
+   auto& number() {return number_.result;};
+   auto const& number() const noexcept {return number_.result;};
+
+   auto& double_type() {return double_.result;};
+   auto const& double_type() const noexcept {return double_.result;};
+
+   auto& big_number() {return big_number_.result;};
+   auto const& big_number() const noexcept {return big_number_.result;};
+
+   auto& blob_error() {return blob_error_.result;};
+   auto const& blob_error() const noexcept {return blob_error_.result;};
+
+   auto& blob_string() {return blob_string_.result;};
+   auto const& blob_string() const noexcept {return blob_string_.result;};
+
+   auto& verbatim_string() {return verbatim_string_.result;};
+   auto const& verbatim_string() const noexcept {return verbatim_string_.result;};
+
+   auto& streamed_string_part() {return streamed_string_part_.result;};
+   auto const& streamed_string_part() const noexcept {return streamed_string_part_.result;};
+
+   // TODO: The types bellow are still missing.
+   //null
+   //boolean
+
    // When the id is from a transaction the type of the message is not
    // specified.
    template <class Event>
@@ -479,11 +540,24 @@ public:
       if (id.cmd == command::exec)
         return &tree_;
 
-      return &array_;
+      switch (id.type) {
+         case type::push: return &push_;
+         case type::set: return &set_;
+         case type::map: return &map_;
+         case type::attribute: return &attribute_;
+         case type::array: return &array_;
+         case type::simple_error: return &simple_error_;
+         case type::simple_string: return &simple_string_;
+         case type::number: return &number_;
+         case type::double_type: return &double_;
+         case type::big_number: return &big_number_;
+         case type::blob_error: return &blob_error_;
+         case type::blob_string: return &blob_string_;
+	 case type::verbatim_string: return &verbatim_string_;
+	 case type::streamed_string_part: return &streamed_string_part_;
+	 default: return &ignore_;
+      }
    }
-
-   void clear_transaction() { tree_.clear(); }
-   void clear() { array_.result.clear(); }
 };
 
 } // resp
