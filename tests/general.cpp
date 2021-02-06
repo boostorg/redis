@@ -32,7 +32,7 @@ void check_equal(T const& a, T const& b, std::string const& msg = "")
 
 net::awaitable<void> test_list()
 {
-   std::list<int> list {1 ,2, 3, 4, 5, 6};
+   std::vector<int> list {1 ,2, 3, 4, 5, 6};
 
    resp::request p;
    p.hello("3");
@@ -70,15 +70,15 @@ net::awaitable<void> test_list()
    }
 
    {  // lrange
-      resp::response_list<int> res;
+      resp::response_basic_array<int> res;
       co_await resp::async_read(socket, buffer, res);
       check_equal(res.result, list, "lrange-1");
    }
 
    {  // lrange
-      resp::response_list<int> res;
+      resp::response_basic_array<int> res;
       co_await resp::async_read(socket, buffer, res);
-      check_equal(res.result, std::list<int>{3, 4, 5}, "lrange-2");
+      check_equal(res.result, std::vector<int>{3, 4, 5}, "lrange-2");
    }
 
    {  // ltrim
@@ -257,7 +257,7 @@ net::awaitable<void> array()
    {  // Dynamic
       std::string cmd {"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_array<std::string> res;
+      resp::response_array res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {"one", "two", "three"}, "array (dynamic)");
    }
@@ -281,7 +281,7 @@ net::awaitable<void> array()
    {
       std::string cmd {"*0\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_array<std::string> res;
+      resp::response_array res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {}, "array (empty)");
    }
@@ -470,7 +470,7 @@ net::awaitable<void> streamed_string()
    {
       std::string cmd {"$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_streamed_string res;
+      resp::response_streamed_string_part res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {"Hello word"}, "streamed string");
    }
@@ -478,7 +478,7 @@ net::awaitable<void> streamed_string()
    {
       std::string cmd {"$?\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_array<std::string> res;
+      resp::response_array res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {}, "streamed string (empty)");
    }
@@ -490,7 +490,7 @@ net::awaitable<void> offline()
    //{
    //   std::string cmd {"|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"};
    //   test_tcp_socket ts {cmd};
-   //   resp::response_array<std::string> res;
+   //   resp::response_array res;
    //   co_await resp::async_read(ts, buffer, res);
    //   check_equal(res.result, {"key-popularity", "a", "0.1923", "b", "0.0012"}, "attribute");
    //}
@@ -498,7 +498,7 @@ net::awaitable<void> offline()
    //{
    //   std::string cmd {">4\r\n+pubsub\r\n+message\r\n+foo\r\n+bar\r\n"};
    //   test_tcp_socket ts {cmd};
-   //   resp::response_array<std::string> res;
+   //   resp::response_array res;
    //   co_await resp::async_read(ts, buffer, res);
    //   check_equal(res.result, {"pubsub", "message", "foo", "bar"}, "push type");
    //}
@@ -506,7 +506,7 @@ net::awaitable<void> offline()
    //{
    //   std::string cmd {">0\r\n"};
    //   test_tcp_socket ts {cmd};
-   //   resp::response_array<std::string> res;
+   //   resp::response_array res;
    //   co_await resp::async_read(ts, buffer, res);
    //   check_equal(res.result, {}, "push type (empty)");
    //}

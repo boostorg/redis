@@ -146,8 +146,9 @@ private:
 
    void add(std::string_view s, type t)
    {
-      assert(!std::empty(result));
-      if (std::ssize(result.back().value) == result.back().expected_size) {
+      if (std::empty(result)) {
+	 result.emplace_back(depth_, t, 1, std::vector<std::string>{std::string{s}});
+      } else if (std::ssize(result.back().value) == result.back().expected_size) {
 	 result.emplace_back(depth_, t, 1, std::vector<std::string>{std::string{s}});
       } else {
 	 result.back().value.push_back(std::string{s});
@@ -186,7 +187,8 @@ private:
       { from_string_view(s, result); }
 
 public:
-   T result;
+   using data_type = T;
+   data_type result;
 };
 
 using response_number = response_basic_number<long long int>;
@@ -200,7 +202,8 @@ private:
    void on_blob_string_impl(std::string_view s) override
       { from_string_view(s, result); }
 public:
-   std::basic_string<CharT, Traits, Allocator> result;
+   using data_type = std::basic_string<CharT, Traits, Allocator>;
+   data_type result;
 };
 
 using response_blob_string = response_basic_blob_string<char>;
@@ -214,7 +217,8 @@ private:
    void on_blob_error_impl(std::string_view s) override
       { from_string_view(s, result); }
 public:
-   std::basic_string<CharT, Traits, Allocator> result;
+   using data_type = std::basic_string<CharT, Traits, Allocator>;
+   data_type result;
 };
 
 using response_blob_error = response_basic_blob_error<char>;
@@ -229,7 +233,8 @@ private:
    void on_simple_string_impl(std::string_view s) override
       { from_string_view(s, result); }
 public:
-   std::basic_string<CharT, Traits, Allocator> result;
+   using data_type = std::basic_string<CharT, Traits, Allocator>;
+   data_type result;
 };
 
 using response_simple_string = response_basic_simple_string<char>;
@@ -245,7 +250,8 @@ private:
       { from_string_view(s, result); }
 
 public:
-   std::basic_string<CharT, Traits, Allocator> result;
+   using data_type = std::basic_string<CharT, Traits, Allocator>;
+   data_type result;
 };
 
 using response_simple_error = response_basic_simple_error<char>;
@@ -262,7 +268,8 @@ private:
       { from_string_view(s, result); }
 
 public:
-   std::basic_string<CharT, Traits, Allocator> result;
+   using data_type = std::basic_string<CharT, Traits, Allocator>;
+   data_type result;
 };
 
 using response_big_number = response_basic_big_number<char>;
@@ -279,28 +286,11 @@ private:
       { from_string_view(s, result); }
 
 public:
-   std::basic_string<CharT, Traits, Allocator> result;
+   using data_type = std::basic_string<CharT, Traits, Allocator>;
+   data_type result;
 };
 
 using response_double = response_basic_double<char>;
-
-template <
-   class T,
-   class Allocator = std::allocator<T>>
-class response_list : public response_base {
-private:
-   void on_blob_string_impl(std::string_view s) override
-   {
-      T r;
-      from_string_view(s, r);
-      result.push_back(std::move(r));
-   }
-
-   void select_array_impl(int n) override { }
-
-public:
-   std::list<T, Allocator> result;
-};
 
 template<
    class CharT = char,
@@ -312,7 +302,8 @@ private:
    void on_verbatim_string_impl(std::string_view s) override
       { from_string_view(s, result); }
 public:
-   std::basic_string<CharT, Traits, Allocator> result;
+   using data_type = std::basic_string<CharT, Traits, Allocator>;
+   data_type result;
 };
 
 using response_verbatim_string = response_basic_verbatim_string<char>;
@@ -322,15 +313,16 @@ template<
    class Traits = std::char_traits<CharT>,
    class Allocator = std::allocator<CharT>
    >
-class response_basic_streamed_string : public response_base {
+class response_basic_streamed_string_part : public response_base {
 private:
    void on_streamed_string_part_impl(std::string_view s) override
       { result += s; }
 public:
-   std::basic_string<CharT, Traits, Allocator> result;
+   using data_type = std::basic_string<CharT, Traits, Allocator>;
+   data_type result;
 };
 
-using response_streamed_string = response_basic_streamed_string<char>;
+using response_streamed_string_part = response_basic_streamed_string_part<char>;
 
 template <
    class Key,
@@ -367,7 +359,8 @@ private:
    }
 
 public:
-   bool result;
+   using data_type = bool;
+   data_type result;
 };
 
 template<
@@ -395,7 +388,7 @@ template <
    class T,
    class Allocator = std::allocator<T>
    >
-class response_array : public response_base {
+class response_basic_array : public response_base {
 private:
    void add(std::string_view s = {})
    {
@@ -419,14 +412,17 @@ private:
    void on_streamed_string_part_impl(std::string_view s = {}) override { add(s); }
 
 public:
-   std::vector<T, Allocator> result;
+   using data_type = std::vector<T, Allocator>;
+   data_type result;
 };
 
-template <class T, class Allocator = std::allocator<T>>
-using response_flat_map = response_array<T, Allocator>;
+using response_array = response_basic_array<std::string>;
 
 template <class T, class Allocator = std::allocator<T>>
-using response_flat_set = response_array<T, Allocator>;
+using response_flat_map = response_basic_array<T, Allocator>;
+
+template <class T, class Allocator = std::allocator<T>>
+using response_flat_set = response_basic_array<T, Allocator>;
 
 template <class T, std::size_t N>
 class response_static_array : public response_base {
@@ -482,84 +478,27 @@ struct response_id {
    Event event;
 };
 
-class response_buffers_ignore {
-private:
-   response_ignore buf_;
-
-public:
-   template <class Event>
-   response_base* get(response_id<Event> id) { return &buf_; }
-};
-
 class response_buffers {
 private:
+   // TODO: Use a variant to store all responses.
    response_tree tree_;
-
-   response_array<std::string> array_;
-   response_array<std::string> push_;
-   response_array<std::string> set_;
-   response_array<std::string> map_;
-   response_array<std::string> attribute_;
+   response_array array_;
+   response_array push_;
+   response_array set_;
+   response_array map_;
+   response_array attribute_;
    response_simple_string simple_string_;
    response_simple_error simple_error_;
    response_number number_;
    response_double double_;
-   response_bool boolean_;
+   response_bool bool_;
    response_big_number big_number_;
    response_blob_string blob_string_;
    response_blob_error blob_error_;
    response_verbatim_string verbatim_string_;
-   response_streamed_string streamed_string_part_;
-   response_ignore ignore_;
+   response_streamed_string_part streamed_string_part_;
 
 public:
-   auto& tree() {return tree_.result;};
-
-   auto& array() {return array_.result;};
-   auto const& array() const noexcept {return array_.result;};
-
-   auto& push() {return push_.result;};
-   auto const& push() const noexcept {return push_.result;};
-
-   auto& set() {return set_.result;};
-   auto const& set() const noexcept {return set_.result;};
-
-   auto& map() {return map_.result;};
-   auto const& map() const noexcept {return map_.result;};
-
-   auto& attribute() {return attribute_.result;};
-   auto const& attribute() const noexcept {return attribute_.result;};
-
-   auto& simple_string() {return simple_string_.result;};
-   auto const& simple_string() const noexcept {return simple_string_.result;};
-
-   auto& simple_error() {return simple_error_.result;};
-   auto const& simple_error() const noexcept {return simple_error_.result;};
-
-   auto& number() {return number_.result;};
-   auto const& number() const noexcept {return number_.result;};
-
-   auto& boolean() {return boolean_.result;};
-   auto const& boolean() const noexcept {return boolean_.result;};
-
-   auto& double_type() {return double_.result;};
-   auto const& double_type() const noexcept {return double_.result;};
-
-   auto& big_number() {return big_number_.result;};
-   auto const& big_number() const noexcept {return big_number_.result;};
-
-   auto& blob_error() {return blob_error_.result;};
-   auto const& blob_error() const noexcept {return blob_error_.result;};
-
-   auto& blob_string() {return blob_string_.result;};
-   auto const& blob_string() const noexcept {return blob_string_.result;};
-
-   auto& verbatim_string() {return verbatim_string_.result;};
-   auto const& verbatim_string() const noexcept {return verbatim_string_.result;};
-
-   auto& streamed_string_part() {return streamed_string_part_.result;};
-   auto const& streamed_string_part() const noexcept {return streamed_string_part_.result;};
-
    // When the id is from a transaction the type of the message is not
    // specified.
    template <class Event>
@@ -579,12 +518,103 @@ public:
          case type::number: return &number_;
          case type::double_type: return &double_;
          case type::big_number: return &big_number_;
-         case type::boolean: return &boolean_;
+         case type::boolean: return &bool_;
          case type::blob_error: return &blob_error_;
          case type::blob_string: return &blob_string_;
 	 case type::verbatim_string: return &verbatim_string_;
 	 case type::streamed_string_part: return &streamed_string_part_;
-	 default: return &ignore_;
+	 default: {
+            throw std::runtime_error("response_buffers");
+	    return nullptr;
+	 }
+      }
+   }
+
+   template <
+      class Event,
+      class Receiver>
+   void
+   forward_transaction(
+      std::queue<response_id<Event>> ids,
+      Receiver& recv)
+   {
+      while (!std::empty(ids)) {
+        std::cout << ids.front() << std::endl;
+        ids.pop();
+      }
+
+      tree_.result.clear();
+   }
+
+   template <
+      class Event,
+      class Receiver>
+   void
+   forward(
+      response_id<Event> const& id,
+      Receiver& recv)
+   {
+      // TODO: Handle null.
+      switch (id.t) {
+         case type::push:
+	    recv.on_push(id.cmd, id.event, push_.result);
+	    push_.result.clear();
+	    break;
+         case type::set:
+	    recv.on_set(id.cmd, id.event, set_.result);
+	    set_.result.clear();
+	    break;
+         case type::map:
+	    recv.on_map(id.cmd, id.event, map_.result);
+	    map_.result.clear();
+	    break;
+         case type::attribute:
+	    recv.on_attribute(id.cmd, id.event, attribute_.result);
+	    attribute_.result.clear();
+	    break;
+         case type::array:
+	    recv.on_array(id.cmd, id.event, array_.result);
+	    array_.result.clear();
+	    break;
+         case type::simple_error:
+	    recv.on_simple_error(id.cmd, id.event, simple_error_.result);
+	    simple_error_.result.clear();
+	    break;
+         case type::simple_string:
+	    recv.on_simple_string(id.cmd, id.event, simple_string_.result);
+	    simple_string_.result.clear();
+	    break;
+         case type::number:
+	    recv.on_number(id.cmd, id.event, number_.result);
+	    break;
+         case type::double_type:
+	    recv.on_double(id.cmd, id.event, double_.result);
+	    break;
+         case type::big_number:
+	    recv.on_big_number(id.cmd, id.event, big_number_.result);
+	    big_number_.result.clear();
+	    break;
+         case type::boolean:
+	    recv.on_boolean(id.cmd, id.event, bool_.result);
+	    bool_.result = false;
+	    break;
+         case type::blob_error:
+	    recv.on_blob_error(id.cmd, id.event, blob_error_.result);
+	    blob_error_.result.clear();
+	    break;
+         case type::blob_string:
+	    recv.on_blob_string(id.cmd, id.event, blob_string_.result);
+	    blob_string_.result.clear();
+	    break;
+	 case type::verbatim_string:
+	    recv.on_verbatim_string(id.cmd, id.event, verbatim_string_.result);
+	    verbatim_string_.result.clear();
+	    break;
+	 case type::streamed_string_part:
+	    recv.on_streamed_string_part(id.cmd, id.event, streamed_string_part_.result);
+	    streamed_string_part_.result.clear();
+	    break;
+	 default:{}
       }
    }
 };
@@ -599,7 +629,7 @@ operator<<(std::ostream& os, aedis::resp::response_id<Event> const& id)
    os
       << std::left << std::setw(15) << aedis::resp::to_string(id.cmd)
       << std::left << std::setw(20) << aedis::resp::to_string(id.t)
-      << std::left << std::setw(20) << (int)id.event
+      << std::left << std::setw(4) << (int)id.event
    ;
    return os;
 }

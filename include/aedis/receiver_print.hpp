@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <memory>
 #include <iostream>
 
 #include "type.hpp"
@@ -16,78 +17,97 @@
 
 namespace aedis { namespace resp {
 
-class receiver_print {
+template <class Event>
+class receiver_base {
+public:
+   using event_type = Event;
+
+   virtual void on_array(command cmd, Event ev, response_array::data_type& v) noexcept
+      { print(v); }
+   virtual void on_push(command cmd, Event ev, response_array::data_type& v) noexcept
+      { print(v); }
+   virtual void on_map(command cmd, Event ev, response_array::data_type& v) noexcept
+      { print(v); }
+   virtual void on_set(command cmd, Event ev, response_array::data_type& v) noexcept
+      { print(v); }
+   virtual void on_attribute(command cmd, Event ev, response_array::data_type& v) noexcept
+      { print(v); }
+   virtual void on_simple_string(command cmd, Event ev, response_simple_string::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+   virtual void on_simple_error(command cmd, Event ev, response_simple_error::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+   virtual void on_number(command cmd, Event ev, response_number::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+   virtual void on_double(command cmd, Event ev, response_double::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+   virtual void on_big_number(command cmd, Event ev, response_big_number::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+   virtual void on_boolean(command cmd, Event ev, response_bool::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+   virtual void on_blob_string(command cmd, Event ev, response_blob_string::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+   virtual void on_blob_error(command cmd, Event ev, response_blob_error::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+   virtual void on_verbatim_string(command cmd, Event ev, response_verbatim_string::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+   virtual void on_streamed_string_part(command cmd, Event ev, response_streamed_string_part::data_type& v) noexcept
+      { std::cout << v << std::endl; }
+};
+
+template <class Event>
+class connection :
+   public std::enable_shared_from_this<connection<Event>> {
 private:
-   response_buffers& buffer_;
+   net::steady_timer st_;
+   tcp::resolver resv_;
+   tcp::socket socket_;
+   std::queue<request<Event>> reqs_;
+
+   template <class Receiver>
+   net::awaitable<void>
+   reconnect_loop(Receiver& recv)
+   {
+      try {
+	 auto ex = co_await net::this_coro::executor;
+	 auto const r = resv_.resolve("127.0.0.1", "6379");
+	 co_await async_connect(socket_, r, net::use_awaitable);
+	 resp::async_writer(socket_, reqs_, st_, net::detached);
+	 co_await co_spawn(
+	    ex,
+	    resp::async_reader(socket_, recv, reqs_),
+	    net::use_awaitable);
+      } catch (std::exception const& e) {
+	 std::cout << e.what() << std::endl;
+	 socket_.close();
+	 st_.cancel();
+      }
+   }
 
 public:
-   receiver_print(response_buffers& buffer)
-   : buffer_{buffer}
-   {}
+   using event_type = Event;
 
-   // The ids in the queue parameter have an unspecified message type.
-   template <class Event>
-   void receive_transaction(std::queue<response_id<Event>> ids)
+   connection(net::io_context& ioc)
+   : st_{ioc}
+   , resv_{ioc}
+   , socket_{ioc}
+   , reqs_ (resp::make_request_queue<Event>())
+   { }
+
+   template <class Receiver>
+   void start(Receiver& recv)
    {
-      while (!std::empty(ids)) {
-        std::cout << ids.front() << std::endl;
-        ids.pop();
-      }
+      net::co_spawn(
+	 socket_.get_executor(),
+         [self = this->shared_from_this(), recv] () mutable { return self->reconnect_loop(recv); },
+         net::detached);
    }
 
-   template <class Event>
-   void receive(response_id<Event> const& id)
-   {
-      buffer_.tree().clear();
+   template <class Filler>
+   void send(Filler filler)
+      { queue_writer(reqs_, filler, st_); }
 
-      std::cout << id;
-      switch (id.t) {
-         case type::push:
-	    buffer_.push().clear();
-	    break;
-         case type::set:
-	    buffer_.set().clear();
-	    break;
-         case type::map:
-	    buffer_.map().clear();
-	    break;
-         case type::attribute:
-	    buffer_.attribute().clear();
-	    break;
-         case type::array:
-	    buffer_.array().clear();
-	    break;
-         case type::simple_error:
-	    buffer_.simple_error().clear();
-	    break;
-         case type::simple_string:
-	    buffer_.simple_string().clear();
-	    break;
-         case type::number:
-	    break;
-         case type::double_type:
-	    break;
-         case type::big_number:
-	    buffer_.big_number().clear();
-	    break;
-         case type::boolean:
-	    break;
-         case type::blob_error:
-	    buffer_.blob_error().clear();
-	    break;
-         case type::blob_string:
-	    buffer_.blob_string().clear();
-	    break;
-	 case type::verbatim_string:
-	    buffer_.verbatim_string().clear();
-	    break;
-	 case type::streamed_string_part:
-	    buffer_.streamed_string_part().clear();
-	    break;
-	 default:{}
-      }
-      std::cout << std::endl;
-   }
+   auto& requests() {return reqs_;}
+   auto const& requests() const {return reqs_;}
 };
 
 }

@@ -83,7 +83,7 @@ net::awaitable<void> read_hashes_coro()
 
    std::string buffer;
 
-   resp::response_array<std::string> keys;
+   resp::response_array keys;
    co_await resp::async_read(socket, buffer, keys);
    //print(keys.result);
 
@@ -96,7 +96,7 @@ net::awaitable<void> read_hashes_coro()
    co_await async_write(socket, net::buffer(pv.payload));
 
    for (auto const& key : keys.result) {
-      resp::response_array<std::string> value;
+      resp::response_array value;
       co_await resp::async_read(socket, buffer, value);
       //print(value.result);
    }
@@ -118,7 +118,7 @@ void read_hashes(net::io_context& ioc)
 
    std::string buffer;
 
-   resp::response_array<std::string> keys;
+   resp::response_array keys;
    resp::read(socket, buffer, keys);
 
    // Generates the request to retrieve all hashes.
@@ -130,7 +130,7 @@ void read_hashes(net::io_context& ioc)
    write(socket, pv);
 
    for (auto const& key : keys.result) {
-      resp::response_array<std::string> value;
+      resp::response_array value;
       resp::read(socket, buffer, value);
    }
 

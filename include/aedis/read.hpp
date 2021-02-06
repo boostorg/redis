@@ -28,22 +28,6 @@
 
 namespace aedis { namespace resp {
 
-inline
-void print_command_raw(std::string const& data, int n)
-{
-  for (int i = 0; i < n; ++i) {
-    if (data[i] == '\n') {
-      std::cout << "\\n";
-      continue;
-    }
-    if (data[i] == '\r') {
-      std::cout << "\\r";
-      continue;
-    }
-    std::cout << data[i];
-  }
-}
-
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
 // 1.
@@ -253,28 +237,20 @@ auto async_read_type(
         stream);
 }
 
-struct receiver_ignore {
-   template <class Event>
-   void receive(response_id<Event> const&) {}
-   template <class Event>
-   void receive_transaction(std::queue<response_id<Event>>) {}
-};
-
 template <
    class AsyncReadWriteStream,
-   class Event,
-   class ResponseBuffer,
-   class Receiver = receiver_ignore>
+   class Receiver>
 net::awaitable<void>
 async_reader(
    AsyncReadWriteStream& socket,
-   std::queue<request<Event>>& reqs,
-   ResponseBuffer& resps,
-   Receiver recv = receiver_ignore{})
+   Receiver& recv,
+   std::queue<request<typename Receiver::event_type>>& reqs)
 {
-   using response_id_type = response_id<Event>;
+   using event_type = typename Receiver::event_type;
+   using response_id_type = response_id<event_type>;
 
    std::string buffer;
+   resp::response_buffers resps;
 
    // Used to queue the events of a transaction.
    std::queue<response_id_type> trans;
@@ -327,7 +303,7 @@ async_reader(
 	    net::use_awaitable);
 
 	 trans.pop(); // Removes multi.
-         recv.receive_transaction(std::move(trans));
+         resps.forward_transaction(std::move(trans), recv);
 	 trans = {};
 
 	 req.events.pop(); // exec
@@ -351,7 +327,7 @@ async_reader(
 	 *tmp,
 	 net::use_awaitable);
 
-      recv.receive(id);
+      resps.forward(id, recv);
 
       if (t != type::push)
 	 req.events.pop();

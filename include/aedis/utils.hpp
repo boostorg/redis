@@ -14,18 +14,35 @@ namespace aedis { namespace resp {
 template <class Iter>
 void print(Iter begin, Iter end, char const* p)
 {
-  std::cout << p << ": ";
+   if (p)
+     std::cout << p << ": ";
    for (; begin != end; ++begin)
      std::cout << *begin << " ";
    std::cout << std::endl;
 }
 
 template <class Range>
-void print(Range const& v, char const* p = "")
+void print(Range const& v, char const* p = nullptr)
 {
    using std::cbegin;
    using std::cend;
    print(cbegin(v), cend(v), p);
+}
+
+inline
+void print_command_raw(std::string const& data, int n)
+{
+  for (int i = 0; i < n; ++i) {
+    if (data[i] == '\n') {
+      std::cout << "\\n";
+      continue;
+    }
+    if (data[i] == '\r') {
+      std::cout << "\\r";
+      continue;
+    }
+    std::cout << data[i];
+  }
 }
 
 } // resp

@@ -17,103 +17,23 @@ using tcp = net::ip::tcp;
 
 enum class myevent {zero, one, two, ignore};
 
-#define EXPAND_MYEVENT_CASE(x) case myevent::x: return #x
-
-inline
-auto to_string(myevent t)
+void fill1(resp::request<resp::event>& req)
 {
-   switch (t) {
-      EXPAND_MYEVENT_CASE(zero);
-      EXPAND_MYEVENT_CASE(one);
-      EXPAND_MYEVENT_CASE(two);
-      EXPAND_MYEVENT_CASE(ignore);
-      default: assert(false);
-   }
-}
-
-std::ostream&
-operator<<(std::ostream& os, myevent e)
-{
-   os << to_string(e);
-   return os;
-}
-
-auto filler(resp::request<myevent>& req)
-{
-   //req.subscribe("channel");
-   //req.subscribe("__keyspace@0__:user:*");
-   //req.ping(myevent::one);
-   //req.set("aaaa", {std::to_string(1)});
-   //req.get("aaaa");
-   //req.del("aaaa");
-   //req.rpush("user:Marcelo", {1, 2, 3}, myevent::two);
-   //req.lrange("user:Marcelo");
-   //req.publish("channel", "Some message");
-   //req.multi();
-   //req.lrange("user:Marcelo", 0, -1, myevent::zero);
-   //req.exec();
-   req.set("aaaa", {std::to_string(2)});
-   req.get("aaaa");
-   //req.multi();
-   //req.lrange("user:Marcelo");
    req.ping();
-   //req.lrange("user:Marcelo", 0, -1, myevent::zero);
-   //req.ping();
-   //req.lrange("user:Marcelo");
-   req.ping();
-   //req.lrange("user:Marcelo");
-   //req.lrange("user:Marcelo");
-   //req.exec();
-   //req.set("eee", {std::to_string(8)});
-   //req.get("eee");
-   //req.del("eee");
-}
-
-void fill1(resp::request<myevent>& req)
-{
-   req.multi();
    req.rpush("list", {1, 2, 3});
+   req.multi();
    req.lrange("list");
    req.exec();
    req.ping();
 }
 
-net::awaitable<void> subscriber()
-{
-   try {
-      auto ex = co_await net::this_coro::executor;
-      tcp::resolver resv(ex);
-      auto const r = resv.resolve("127.0.0.1", "6379");
-      tcp::socket socket {ex};
-      co_await async_connect(socket, r, net::use_awaitable);
-
-      auto reqs = resp::make_request_queue<myevent>();
-      resp::response_buffers_ignore resps;
-      resp::receiver_print recv;
-      net::steady_timer st{ex};
-
-      co_spawn(
-	 ex,
-	 resp::async_reader(socket, reqs, resps, recv),
-	 net::detached);
-
-      resp::async_writer(socket, reqs, st, net::detached);
-
-      for (;;) {
-	 queue_writer(reqs, fill1, st);
-	 net::steady_timer timer(ex, std::chrono::milliseconds{1000});
-	 co_await timer.async_wait(net::use_awaitable);
-      }
-
-   } catch (std::exception const& e) {
-      std::cout << e.what() << std::endl;
-   }
-}
-
 int main()
 {
    net::io_context ioc {1};
-   co_spawn(ioc, subscriber(), net::detached);
+   auto conn = std::make_shared<resp::connection<resp::event>>(ioc);
+   resp::receiver_base<resp::event> recv;
+   conn->start(recv);
+   conn->send(fill1);
    ioc.run();
 }
 
