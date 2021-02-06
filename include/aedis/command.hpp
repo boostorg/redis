@@ -7,7 +7,9 @@
 
 #pragma once
 
-namespace aedis { namespace resp {
+#include <ostream>
+
+namespace aedis {
 
 enum class command
 { append
@@ -20,7 +22,7 @@ enum class command
 , exec
 , expire
 , flushall
-, get // 10
+, get
 , hello
 , hget
 , hgetall
@@ -30,7 +32,7 @@ enum class command
 , hmget
 , hset
 , hvals
-, incr // 20
+, incr
 , keys
 , llen
 , lpop
@@ -40,7 +42,7 @@ enum class command
 , multi
 , ping
 , psubscribe
-, publish // 30
+, publish
 , quit
 , role
 , rpush
@@ -50,7 +52,7 @@ enum class command
 , set
 , smembers
 , subscribe
-, unsubscribe // 40
+, unsubscribe
 , zadd
 , zrange
 , zrangebyscore
@@ -114,6 +116,11 @@ auto const* to_string(command c)
    }
 }
 
-}
-}
+} // aedis
 
+inline
+std::ostream& operator<<(std::ostream& os, aedis::command c)
+{
+   os << to_string(c);
+   return os;
+}

@@ -7,10 +7,9 @@
 
 #pragma once
 
-#include <aedis/read.hpp>
-#include <aedis/request.hpp>
-#include <aedis/response.hpp>
-#include <aedis/version.hpp>
-#include <aedis/write.hpp>
-#include <aedis/connection.hpp>
-#include <aedis/receiver.hpp>
+#include <boost/asio.hpp>
+
+namespace aedis {
+namespace net = boost::asio;
+}
+

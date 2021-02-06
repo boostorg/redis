@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2020 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,6 @@
 #include <aedis/aedis.hpp>
 #include <aedis/utils.hpp>
 
-namespace net = aedis::net;
 using namespace aedis;
 
 int main()
@@ -21,8 +20,8 @@ int main()
       req.quit();
 
       net::io_context ioc {1};
-      tcp::resolver resv(ioc);
-      tcp::socket socket {ioc};
+      net::ip::tcp::resolver resv(ioc);
+      net::ip::tcp::socket socket {ioc};
       net::connect(socket, resv.resolve("127.0.0.1", "6379"));
       resp::write(socket, req);
 

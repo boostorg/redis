@@ -10,10 +10,10 @@
 #include <queue>
 #include <chrono>
 
-#include <boost/asio.hpp>
-#include <boost/beast/core/stream_traits.hpp>
+#include "config.hpp"
+#include "request.hpp"
 
-#include <aedis/request.hpp>
+#include <boost/beast/core/stream_traits.hpp>
 
 namespace aedis { namespace resp {
 

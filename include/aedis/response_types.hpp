@@ -7,10 +7,20 @@
 
 #pragma once
 
-#include <aedis/read.hpp>
-#include <aedis/request.hpp>
-#include <aedis/response.hpp>
-#include <aedis/version.hpp>
-#include <aedis/write.hpp>
-#include <aedis/connection.hpp>
-#include <aedis/receiver.hpp>
+#include <set>
+#include <list>
+#include <array>
+#include <vector>
+#include <string>
+#include <ostream>
+#include <numeric>
+#include <type_traits>
+#include <string_view>
+#include <charconv>
+#include <iomanip>
+
+namespace aedis { namespace resp {
+
+} // resp
+} // aedis
+

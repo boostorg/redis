@@ -21,6 +21,7 @@
 #include <string_view>
 #include <charconv>
 
+#include "config.hpp"
 #include "type.hpp"
 #include "parser.hpp"
 #include "response.hpp"
@@ -342,16 +343,6 @@ async_reader(
 	 }
       }
    }
-}
-
-template <class Event = event>
-std::queue<resp::request<Event>>
-make_request_queue()
-{
-   std::queue<resp::request<Event>> reqs;
-   reqs.push({});
-   reqs.front().hello();
-   return reqs;
 }
 
 } // resp

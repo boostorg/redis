@@ -7,31 +7,55 @@
 
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
-#include <aedis/receiver_print.hpp>
-
-#include <stack>
 
 namespace net = aedis::net;
 using namespace aedis;
 using tcp = net::ip::tcp;
 
-void fill1(resp::request<resp::event>& req)
+enum class myevents
+{ one
+, two
+, three
+, ignore
+};
+
+void fill(resp::request<myevents>& req)
 {
-   req.ping();
+   req.ping(myevents::one);
    req.rpush("list", {1, 2, 3});
-   req.multi();
    req.lrange("list");
-   req.exec();
-   req.ping();
+   req.ping(myevents::two);
 }
+
+class myreceiver : public receiver_base<myevents> {
+private:
+   std::shared_ptr<connection<myevents>> conn_;
+
+public:
+   using event_type = myevents;
+
+   myreceiver(std::shared_ptr<connection<myevents>> conn)
+   : conn_{conn}
+   { }
+
+   void on_hello(myevents ev, resp::response_array::data_type& v) noexcept override
+   {
+      resp::print(v);
+      conn_->send(fill);
+   }
+};
 
 int main()
 {
    net::io_context ioc {1};
-   auto conn = std::make_shared<resp::connection<resp::event>>(ioc);
-   resp::receiver_base<resp::event> recv;
-   conn->start(recv);
-   conn->send(fill1);
+
+   tcp::resolver resolver{ioc};
+   auto const results = resolver.resolve("127.0.0.1", "6379");
+
+   auto conn = std::make_shared<connection<myevents>>(ioc);
+   myreceiver recv{conn};
+
+   conn->start(recv, results);
    ioc.run();
 }
 

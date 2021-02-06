@@ -19,10 +19,11 @@
 #include <charconv>
 #include <iomanip>
 
-#include <boost/static_string/static_string.hpp>
-
+#include "config.hpp"
 #include "type.hpp"
 #include "command.hpp"
+
+#include <boost/static_string/static_string.hpp>
 
 namespace aedis { namespace resp {
 
@@ -565,28 +566,44 @@ public:
 	    set_.result.clear();
 	    break;
          case type::map:
-	    recv.on_map(id.cmd, id.event, map_.result);
+	 {
+	    switch (id.cmd) {
+	       case command::hello: recv.on_hello(id.event, map_.result); break;
+	       default: {assert(false);}
+	    }
 	    map_.result.clear();
-	    break;
+	 } break;
          case type::attribute:
 	    recv.on_attribute(id.cmd, id.event, attribute_.result);
 	    attribute_.result.clear();
 	    break;
          case type::array:
-	    recv.on_array(id.cmd, id.event, array_.result);
+	 {
+	    switch (id.cmd) {
+	       case command::lrange: recv.on_lrange(id.event, array_.result); break;
+	       default: {assert(false);}
+	    }
 	    array_.result.clear();
-	    break;
+	 } break;
          case type::simple_error:
 	    recv.on_simple_error(id.cmd, id.event, simple_error_.result);
 	    simple_error_.result.clear();
 	    break;
          case type::simple_string:
-	    recv.on_simple_string(id.cmd, id.event, simple_string_.result);
+	 {
+	    switch (id.cmd) {
+	       case command::ping: recv.on_ping(id.event, simple_string_.result); break;
+	       default: {assert(false);}
+	    }
 	    simple_string_.result.clear();
-	    break;
+	 } break;
          case type::number:
-	    recv.on_number(id.cmd, id.event, number_.result);
-	    break;
+	 {
+	    switch (id.cmd) {
+	       case command::rpush: recv.on_rpush(id.event, number_.result); break;
+	       default: {assert(false);}
+	    }
+	 } break;
          case type::double_type:
 	    recv.on_double(id.cmd, id.event, double_.result);
 	    break;
@@ -627,8 +644,8 @@ std::ostream&
 operator<<(std::ostream& os, aedis::resp::response_id<Event> const& id)
 {
    os
-      << std::left << std::setw(15) << aedis::resp::to_string(id.cmd)
-      << std::left << std::setw(20) << aedis::resp::to_string(id.t)
+      << std::left << std::setw(15) << id.cmd
+      << std::left << std::setw(20) << id.t
       << std::left << std::setw(4) << (int)id.event
    ;
    return os;

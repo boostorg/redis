@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <ostream>
+
 namespace aedis { namespace resp {
 
 enum class type
@@ -82,3 +84,10 @@ auto to_type(char c)
 
 } // resp
 } // aedis
+
+inline
+std::ostream& operator<<(std::ostream& os, aedis::resp::type t)
+{
+   os << to_string(t);
+   return os;
+}

@@ -15,9 +15,7 @@
 #include <type_traits>
 #include <string_view>
 
-#include <boost/asio.hpp>
-#include <boost/beast/core/stream_traits.hpp>
-
+#include "config.hpp"
 #include "command.hpp"
 
 namespace aedis { namespace resp {
