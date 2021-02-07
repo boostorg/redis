@@ -32,10 +32,8 @@ public:
    using event_type = events;
    receiver(std::shared_ptr<connection<events>> conn) : conn_{conn} { }
 
-   void on_hello(events ev, resp::response_array::data_type& v) noexcept override
+   void on_hello(events ev, resp::array_type& v) noexcept override
    {
-      print(v, "HELLO");
-
       auto f = [](auto& req)
       {
 	 req.ping(events::one);
@@ -46,10 +44,10 @@ public:
       conn_->send(f);
    }
 
-   void on_ping(events ev, resp::response_simple_string::data_type& s) noexcept override
+   void on_ping(events ev, resp::simple_string_type& s) noexcept override
       { std::cout << "PING: " << s << std::endl; }
 
-   void on_quit(events ev, resp::response_simple_string::data_type& s) noexcept override
+   void on_quit(events ev, resp::simple_string_type& s) noexcept override
       { std::cout << "QUIT: " << s << std::endl; }
 };
 

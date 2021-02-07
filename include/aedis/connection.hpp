@@ -13,7 +13,7 @@
 #include "config.hpp"
 #include "type.hpp"
 #include "request.hpp"
-#include "response.hpp"
+#include "response_buffers.hpp"
 
 namespace aedis {
 
@@ -25,13 +25,15 @@ private:
    net::ip::tcp::socket socket_;
    std::string buffer_;
    resp::response_buffers resps_;
-   std::queue<resp::request<Event>> reqs_;
+   std::queue<request<Event>> reqs_;
    bool reconnect_ = true;
 
-   void finish_coro()
+   void reset()
    {
       socket_.close();
       timer_.cancel();
+      reqs_.push({});
+      reqs_.front().hello();
    }
 
    template <class Receiver>
@@ -53,7 +55,7 @@ private:
 	    net::redirect_error(net::use_awaitable, ec));
 
 	 if (ec) {
-	    finish_coro();
+	    reset();
 	    recv.on_error(ec);
 	    timer.expires_after(wait_interval);
 	    co_await timer.async_wait(net::use_awaitable);
@@ -69,7 +71,7 @@ private:
 	    net::use_awaitable);
 
 	 if (ec) {
-	    finish_coro();
+	    reset();
 	    recv.on_error(ec);
 	    timer.expires_after(wait_interval);
 	    co_await timer.async_wait(net::use_awaitable);
@@ -113,4 +115,3 @@ public:
 };
 
 } // aedis
-

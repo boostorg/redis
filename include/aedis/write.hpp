@@ -15,7 +15,7 @@
 
 #include <boost/beast/core/stream_traits.hpp>
 
-namespace aedis { namespace resp {
+namespace aedis {
 
 template<
    class SyncWriteStream,
@@ -71,15 +71,13 @@ async_write(
    return net::async_write(stream, net::buffer(req.payload), token);
 }
 
-} // resp
-
 template <
   class AsyncReadStream,
   class Event>
 struct writer_op {
    AsyncReadStream& stream;
    net::steady_timer& st;
-   std::queue<resp::request<Event>>* reqs;
+   std::queue<request<Event>>* reqs;
 
    template <class Self>
    void operator()(
@@ -129,7 +127,7 @@ template <
    >
 auto async_writer(
    AsyncWriteStream& stream,
-   std::queue<resp::request<Event>>& reqs,
+   std::queue<request<Event>>& reqs,
    net::steady_timer& writeTrigger,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
@@ -146,7 +144,7 @@ auto async_writer(
 // Returns true if a write has been triggered.
 template <class Event, class Filler>
 bool queue_writer(
-   std::queue<resp::request<Event>>& reqs,
+   std::queue<request<Event>>& reqs,
    Filler filler,
    net::steady_timer& st)
 {

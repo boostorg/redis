@@ -22,7 +22,7 @@ net::awaitable<void> example1()
    auto ex = co_await this_coro::executor;
    for (;;) {
       try {
-	 resp::request<events> req;
+	 request<events> req;
 	 req.quit();
 
 	 tcp::resolver resv(ex);

@@ -192,8 +192,6 @@ public:
    data_type result;
 };
 
-using response_number = response_basic_number<long long int>;
-
 template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
@@ -206,8 +204,6 @@ public:
    using data_type = std::basic_string<CharT, Traits, Allocator>;
    data_type result;
 };
-
-using response_blob_string = response_basic_blob_string<char>;
 
 template<
    class CharT = char,
@@ -222,8 +218,6 @@ public:
    data_type result;
 };
 
-using response_blob_error = response_basic_blob_error<char>;
-
 template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
@@ -237,8 +231,6 @@ public:
    using data_type = std::basic_string<CharT, Traits, Allocator>;
    data_type result;
 };
-
-using response_simple_string = response_basic_simple_string<char>;
 
 template<
    class CharT = char,
@@ -255,9 +247,7 @@ public:
    data_type result;
 };
 
-using response_simple_error = response_basic_simple_error<char>;
-
-// Big number use strings at the moment as the underlying storage.
+// Big number uses strings at the moment as the underlying storage.
 template <
    class CharT = char,
    class Traits = std::char_traits<CharT>,
@@ -272,8 +262,6 @@ public:
    using data_type = std::basic_string<CharT, Traits, Allocator>;
    data_type result;
 };
-
-using response_big_number = response_basic_big_number<char>;
 
 // TODO: Use a double instead of string.
 template <
@@ -291,8 +279,6 @@ public:
    data_type result;
 };
 
-using response_double = response_basic_double<char>;
-
 template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
@@ -307,8 +293,6 @@ public:
    data_type result;
 };
 
-using response_verbatim_string = response_basic_verbatim_string<char>;
-
 template<
    class CharT = char,
    class Traits = std::char_traits<CharT>,
@@ -321,30 +305,6 @@ private:
 public:
    using data_type = std::basic_string<CharT, Traits, Allocator>;
    data_type result;
-};
-
-using response_streamed_string_part = response_basic_streamed_string_part<char>;
-
-template <
-   class Key,
-   class Compare = std::less<Key>,
-   class Allocator = std::allocator<Key>
-   >
-class response_set : public response_base {
-private:
-   void add(std::string_view s)
-   {
-      Key r;
-      from_string_view(s, r);
-      result.insert(std::end(result), std::move(r));
-   }
-
-   void on_simple_string_impl(std::string_view s) override { add(s); }
-   void on_blob_string_impl(std::string_view s) override { add(s); }
-   void select_set_impl(int n) override { }
-
-public:
-   std::set<Key, Compare, Allocator> result;
 };
 
 class response_bool : public response_base {
@@ -417,13 +377,65 @@ public:
    data_type result;
 };
 
-using response_array = response_basic_array<std::string>;
+template <
+   class T,
+   class Allocator = std::allocator<T>
+   >
+class response_basic_map : public response_base {
+private:
+   void add(std::string_view s = {})
+   {
+      T r;
+      from_string_view(s, r);
+      result.emplace_back(std::move(r));
+   }
 
-template <class T, class Allocator = std::allocator<T>>
-using response_flat_map = response_basic_array<T, Allocator>;
+   void select_map_impl(int n) override { }
 
-template <class T, class Allocator = std::allocator<T>>
-using response_flat_set = response_basic_array<T, Allocator>;
+   // We also have to enable arrays, the hello command for example
+   // returns a map that has an embeded array.
+   void select_array_impl(int n) override { }
+
+   void on_simple_string_impl(std::string_view s) override { add(s); }
+   void on_number_impl(std::string_view s) override { add(s); }
+   void on_double_impl(std::string_view s) override { add(s); }
+   void on_bool_impl(std::string_view s) override { add(s); }
+   void on_big_number_impl(std::string_view s) override { add(s); }
+   void on_verbatim_string_impl(std::string_view s = {}) override { add(s); }
+   void on_blob_string_impl(std::string_view s = {}) override { add(s); }
+
+public:
+   using data_type = std::vector<T, Allocator>;
+   data_type result;
+};
+
+template <
+   class T,
+   class Allocator = std::allocator<T>
+   >
+class response_basic_set : public response_base {
+private:
+   void add(std::string_view s = {})
+   {
+      T r;
+      from_string_view(s, r);
+      result.emplace_back(std::move(r));
+   }
+
+   void select_set_impl(int n) override { }
+
+   void on_simple_string_impl(std::string_view s) override { add(s); }
+   void on_number_impl(std::string_view s) override { add(s); }
+   void on_double_impl(std::string_view s) override { add(s); }
+   void on_bool_impl(std::string_view s) override { add(s); }
+   void on_big_number_impl(std::string_view s) override { add(s); }
+   void on_verbatim_string_impl(std::string_view s = {}) override { add(s); }
+   void on_blob_string_impl(std::string_view s = {}) override { add(s); }
+
+public:
+   using data_type = std::vector<T, Allocator>;
+   data_type result;
+};
 
 template <class T, std::size_t N>
 class response_static_array : public response_base {
@@ -455,7 +467,7 @@ template <
    class T,
    std::size_t N
    >
-class response_static_flat_map : public response_base {
+class response_basic_static_map : public response_base {
 private:
    int i_ = 0;
 
@@ -472,182 +484,6 @@ public:
    std::array<T, 2 * N> result;
 };
 
-template <class Event>
-struct response_id {
-   command cmd;
-   type t;
-   Event event;
-};
-
-class response_buffers {
-private:
-   // TODO: Use a variant to store all responses.
-   response_tree tree_;
-   response_array array_;
-   response_array push_;
-   response_array set_;
-   response_array map_;
-   response_array attribute_;
-   response_simple_string simple_string_;
-   response_simple_error simple_error_;
-   response_number number_;
-   response_double double_;
-   response_bool bool_;
-   response_big_number big_number_;
-   response_blob_string blob_string_;
-   response_blob_error blob_error_;
-   response_verbatim_string verbatim_string_;
-   response_streamed_string_part streamed_string_part_;
-
-public:
-   // When the id is from a transaction the type of the message is not
-   // specified.
-   template <class Event>
-   response_base* get(response_id<Event> id)
-   {
-      if (id.cmd == command::exec)
-        return &tree_;
-
-      switch (id.t) {
-         case type::push: return &push_;
-         case type::set: return &set_;
-         case type::map: return &map_;
-         case type::attribute: return &attribute_;
-         case type::array: return &array_;
-         case type::simple_error: return &simple_error_;
-         case type::simple_string: return &simple_string_;
-         case type::number: return &number_;
-         case type::double_type: return &double_;
-         case type::big_number: return &big_number_;
-         case type::boolean: return &bool_;
-         case type::blob_error: return &blob_error_;
-         case type::blob_string: return &blob_string_;
-	 case type::verbatim_string: return &verbatim_string_;
-	 case type::streamed_string_part: return &streamed_string_part_;
-	 default: {
-            throw std::runtime_error("response_buffers");
-	    return nullptr;
-	 }
-      }
-   }
-
-   template <
-      class Event,
-      class Receiver>
-   void
-   forward_transaction(
-      std::queue<response_id<Event>> ids,
-      Receiver& recv)
-   {
-      while (!std::empty(ids)) {
-        std::cout << ids.front() << std::endl;
-        ids.pop();
-      }
-
-      tree_.result.clear();
-   }
-
-   template <
-      class Event,
-      class Receiver>
-   void
-   forward(
-      response_id<Event> const& id,
-      Receiver& recv)
-   {
-      // TODO: Handle null.
-      switch (id.t) {
-         case type::push:
-	    recv.on_push(id.cmd, id.event, push_.result);
-	    push_.result.clear();
-	    break;
-         case type::set:
-	    recv.on_set(id.cmd, id.event, set_.result);
-	    set_.result.clear();
-	    break;
-         case type::map:
-	 {
-	    switch (id.cmd) {
-	       case command::hello: recv.on_hello(id.event, map_.result); break;
-	       default: {assert(false);}
-	    }
-	    map_.result.clear();
-	 } break;
-         case type::attribute:
-	    recv.on_attribute(id.cmd, id.event, attribute_.result);
-	    attribute_.result.clear();
-	    break;
-         case type::array:
-	 {
-	    switch (id.cmd) {
-	       case command::lrange: recv.on_lrange(id.event, array_.result); break;
-	       default: {assert(false);}
-	    }
-	    array_.result.clear();
-	 } break;
-         case type::simple_error:
-	    recv.on_simple_error(id.cmd, id.event, simple_error_.result);
-	    simple_error_.result.clear();
-	    break;
-         case type::simple_string:
-	 {
-	    switch (id.cmd) {
-	       case command::ping: recv.on_ping(id.event, simple_string_.result); break;
-	       case command::quit: recv.on_quit(id.event, simple_string_.result); break;
-	       default: {assert(false);}
-	    }
-	    simple_string_.result.clear();
-	 } break;
-         case type::number:
-	 {
-	    switch (id.cmd) {
-	       case command::rpush: recv.on_rpush(id.event, number_.result); break;
-	       default: {assert(false);}
-	    }
-	 } break;
-         case type::double_type:
-	    recv.on_double(id.cmd, id.event, double_.result);
-	    break;
-         case type::big_number:
-	    recv.on_big_number(id.cmd, id.event, big_number_.result);
-	    big_number_.result.clear();
-	    break;
-         case type::boolean:
-	    recv.on_boolean(id.cmd, id.event, bool_.result);
-	    bool_.result = false;
-	    break;
-         case type::blob_error:
-	    recv.on_blob_error(id.cmd, id.event, blob_error_.result);
-	    blob_error_.result.clear();
-	    break;
-         case type::blob_string:
-	    recv.on_blob_string(id.cmd, id.event, blob_string_.result);
-	    blob_string_.result.clear();
-	    break;
-	 case type::verbatim_string:
-	    recv.on_verbatim_string(id.cmd, id.event, verbatim_string_.result);
-	    verbatim_string_.result.clear();
-	    break;
-	 case type::streamed_string_part:
-	    recv.on_streamed_string_part(id.cmd, id.event, streamed_string_part_.result);
-	    streamed_string_part_.result.clear();
-	    break;
-	 default:{}
-      }
-   }
-};
-
 } // resp
 } // aedis
 
-template <class Event>
-std::ostream&
-operator<<(std::ostream& os, aedis::resp::response_id<Event> const& id)
-{
-   os
-      << std::left << std::setw(15) << id.cmd
-      << std::left << std::setw(20) << id.t
-      << std::left << std::setw(4) << (int)id.event
-   ;
-   return os;
-}

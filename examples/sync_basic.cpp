@@ -15,7 +15,7 @@ enum class events {ignore};
 int main()
 {
    try {
-      resp::request<events> req;
+      request<events> req;
       req.hello();
       req.set("Password", {"12345"});
       req.get("Password");
@@ -25,10 +25,10 @@ int main()
       net::ip::tcp::resolver resv(ioc);
       net::ip::tcp::socket socket {ioc};
       net::connect(socket, resv.resolve("127.0.0.1", "6379"));
-      resp::write(socket, req);
+      write(socket, req);
 
       std::string buffer;
-      resp::response_flat_map<std::string> hello;
+      resp::response_map hello;
       resp::read(socket, buffer, hello);
       print(hello.result);
 

@@ -36,7 +36,7 @@ net::awaitable<void> test_list()
 {
    std::vector<int> list {1 ,2, 3, 4, 5, 6};
 
-   resp::request<events> p;
+   request<events> p;
    p.hello("3");
    p.flushall();
    p.rpush("a", list);
@@ -117,7 +117,7 @@ net::awaitable<void> test_set()
    tcp_socket socket {ex};
    co_await async_connect(socket, rr);
 
-   resp::request<events> p;
+   request<events> p;
    p.hello("3");
    p.flushall();
    p.set("s", {test_bulk1});
@@ -424,7 +424,7 @@ net::awaitable<void> set()
    {
       std::string cmd {"~5\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_set<std::string> res;
+      resp::response_set res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {"orange", "apple", "one", "two", "three"}, "set");
    }
@@ -432,7 +432,7 @@ net::awaitable<void> set()
    {
       std::string cmd {"~5\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_flat_set<std::string> res;
+      resp::response_set res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {"orange", "apple", "one", "two", "three"}, "set (flat)");
    }
@@ -440,7 +440,7 @@ net::awaitable<void> set()
    {
       std::string cmd {"~0\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_set<std::string> res;
+      resp::response_set res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {}, "set (empty)");
    }
@@ -452,7 +452,7 @@ net::awaitable<void> map()
    {
       std::string cmd {"%7\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n6.0.9\r\n$5\r\nproto\r\n:3\r\n$2\r\nid\r\n:203\r\n$4\r\nmode\r\n$10\r\nstandalone\r\n$4\r\nrole\r\n$6\r\nmaster\r\n$7\r\nmodules\r\n*0\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_flat_map<std::string> res;
+      resp::response_map res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {"server", "redis", "version", "6.0.9", "proto", "3", "id", "203", "mode", "standalone", "role", "master", "modules"}, "map (flat)");
    }
@@ -460,7 +460,7 @@ net::awaitable<void> map()
    {
       std::string cmd {"%0\r\n"};
       test_tcp_socket ts {cmd};
-      resp::response_flat_map<std::string> res;
+      resp::response_map res;
       co_await resp::async_read(ts, buffer, res);
       check_equal(res.result, {}, "map (flat - empty)");
    }

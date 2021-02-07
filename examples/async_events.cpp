@@ -23,7 +23,7 @@ enum class myevents
 net::awaitable<void> example()
 {
    try {
-      resp::request<myevents> req;
+      request<myevents> req;
       req.rpush("list", {1, 2, 3});
       req.lrange("list", 0, -1, myevents::interesting1);
       req.sadd("set", std::set<int>{3, 4, 5});
@@ -34,7 +34,7 @@ net::awaitable<void> example()
       tcp::resolver resv(ex);
       tcp_socket socket {ex};
       co_await net::async_connect(socket, resv.resolve("127.0.0.1", "6379"));
-      co_await resp::async_write(socket, req);
+      co_await async_write(socket, req);
 
       std::string buffer;
       for (;;) {
@@ -47,7 +47,7 @@ net::awaitable<void> example()
 	    } break;
 	    case myevents::interesting2:
 	    {
-	       resp::response_set<int> res;
+	       resp::response_basic_set<int> res;
 	       co_await resp::async_read(socket, buffer, res);
 	       print(res.result, "Interesting2");
 	    } break;

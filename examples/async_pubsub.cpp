@@ -19,7 +19,7 @@ enum class myevents
 , ignore
 };
 
-void fill(resp::request<myevents>& req)
+void fill(request<myevents>& req)
 {
    req.ping(myevents::one);
    req.rpush("list", {1, 2, 3});
@@ -38,7 +38,7 @@ public:
    : conn_{conn}
    { }
 
-   void on_hello(myevents ev, resp::response_array::data_type& v) noexcept override
+   void on_hello(myevents ev, resp::array_type& v) noexcept override
    {
       print(v);
       conn_->send(fill);

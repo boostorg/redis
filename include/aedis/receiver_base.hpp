@@ -23,28 +23,29 @@ public:
    using event_type = Event;
 
    // Array
-   virtual void on_lrange(Event ev, resp::response_array::data_type& v) noexcept { }
-   virtual void on_hello(Event ev, resp::response_array::data_type& v) noexcept {}
+   virtual void on_lrange(Event ev, resp::array_type& v) noexcept { }
+   virtual void on_hello(Event ev, resp::array_type& v) noexcept {}
 
    // Simple string
-   virtual void on_ping(Event ev, resp::response_simple_string::data_type& v) noexcept { }
-   virtual void on_quit(Event ev, resp::response_simple_string::data_type& v) noexcept { }
+   virtual void on_ping(Event ev, resp::simple_string_type& v) noexcept { }
+   virtual void on_quit(Event ev, resp::simple_string_type& v) noexcept { }
 
    // Number
    virtual void on_rpush(Event ev, resp::response_number::data_type& v) noexcept { }
 
-   virtual void on_push(command cmd, Event ev, resp::response_array::data_type& v) noexcept { }
-   virtual void on_set(command cmd, Event ev, resp::response_array::data_type& v) noexcept { }
-   virtual void on_attribute(command cmd, Event ev, resp::response_array::data_type& v) noexcept { }
-   virtual void on_simple_error(command cmd, Event ev, resp::response_simple_error::data_type& v) noexcept { }
-   virtual void on_double(command cmd, Event ev, resp::response_double::data_type& v) noexcept { }
-   virtual void on_big_number(command cmd, Event ev, resp::response_big_number::data_type& v) noexcept { }
-   virtual void on_boolean(command cmd, Event ev, resp::response_bool::data_type& v) noexcept {  }
-   virtual void on_blob_string(command cmd, Event ev, resp::response_blob_string::data_type& v) noexcept { }
-   virtual void on_blob_error(command cmd, Event ev, resp::response_blob_error::data_type& v) noexcept { }
-   virtual void on_verbatim_string(command cmd, Event ev, resp::response_verbatim_string::data_type& v) noexcept { }
-   virtual void on_streamed_string_part(command cmd, Event ev, resp::response_streamed_string_part::data_type& v) noexcept { }
+   virtual void on_set(command cmd, Event ev, resp::array_type& v) noexcept { }
+   virtual void on_double(command cmd, Event ev, resp::double_type& v) noexcept { }
+   virtual void on_big_number(command cmd, Event ev, resp::big_number_type& v) noexcept { }
+   virtual void on_boolean(command cmd, Event ev, resp::bool_type& v) noexcept {  }
+   virtual void on_blob_string(command cmd, Event ev, resp::blob_string_type& v) noexcept { }
+   virtual void on_verbatim_string(command cmd, Event ev, resp::verbatim_string_type& v) noexcept { }
+   virtual void on_streamed_string_part(command cmd, Event ev, resp::streamed_string_part_type& v) noexcept { }
    virtual void on_error(boost::system::error_code ec) { }
+
+   virtual void on_push(Event ev, resp::array_type& v) noexcept { }
+   virtual void on_simple_error(command cmd, Event ev, resp::response_simple_error::data_type& v) noexcept { }
+   virtual void on_blob_error(command cmd, Event ev, resp::response_blob_error::data_type& v) noexcept { }
+   virtual void on_null(command cmd, Event ev) noexcept { }
 };
 
 } // aedis

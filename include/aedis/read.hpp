@@ -25,7 +25,7 @@
 #include "type.hpp"
 #include "parser.hpp"
 #include "request.hpp"
-#include "response.hpp"
+#include "response_buffers.hpp"
 
 namespace aedis { namespace resp {
 
@@ -255,7 +255,7 @@ async_reader(
    Storage& buffer,
    ResponseBuffers& resps,
    Receiver& recv,
-   std::queue<resp::request<typename Receiver::event_type>>& reqs,
+   std::queue<request<typename Receiver::event_type>>& reqs,
    boost::system::error_code& ec)
 {
    using event_type = typename Receiver::event_type;
