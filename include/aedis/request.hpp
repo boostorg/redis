@@ -215,9 +215,21 @@ public:
    void
    lpop(
       std::string_view key,
+      int count = 1,
       Event e = Event::ignore)
    {
-      resp::assemble(payload, "LPOP", key);
+      if (count == 1) {
+	 resp::assemble(payload, "LPOP", key);
+      } else {
+	 auto par = {std::to_string(count)};
+	 resp::assemble(
+	    payload,
+	    "LPOP",
+	    {key},
+	    std::cbegin(par),
+	    std::cend(par));
+      }
+
       events.push({command::lpop, e});
    }
 
@@ -565,6 +577,7 @@ public:
       events.push({command::ltrim, e});
    }
    
+   // TODO: Overload for vector del.
    auto
    del(
       std::string_view key,
@@ -636,12 +649,12 @@ public:
    }
 
    auto
-   client(
+   client_id(
       std::string_view parameters,
       Event e = Event::ignore)
    {
-      resp::assemble(payload, "CLIENT", {parameters});
-      events.push({command::client, e});
+      resp::assemble(payload, "CLIENT ID", {parameters});
+      events.push({command::client_id, e});
    }
 };
 

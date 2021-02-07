@@ -5,17 +5,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 
 using namespace aedis;
 
 /* This example shows how to receive and send events.
  *
- *    1. Store a shared_ptr to the connection in the receiver.
+ * 1. Create a connection obeject.
  *
- *    2. Start sending commands after the hello command has been
- *       received.
+ * 2. Start sending commands after the hello command has been
+ *    received.
  *
  * As a rule, every redis command is received in a function named
  * on_command. The user has to override the base class version to

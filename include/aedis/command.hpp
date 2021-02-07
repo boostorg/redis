@@ -17,7 +17,7 @@ enum class command
 , bgrewriteaof
 , bgsave
 , bitcount
-, client
+, client_id
 , del
 , exec
 , expire
@@ -71,7 +71,7 @@ auto const* to_string(command c)
       EXPAND_COMMAND_CASE(bgrewriteaof);
       EXPAND_COMMAND_CASE(bgsave);
       EXPAND_COMMAND_CASE(bitcount);
-      EXPAND_COMMAND_CASE(client);
+      EXPAND_COMMAND_CASE(client_id);
       EXPAND_COMMAND_CASE(del);
       EXPAND_COMMAND_CASE(exec);
       EXPAND_COMMAND_CASE(expire);

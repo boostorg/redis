@@ -21,7 +21,7 @@ namespace this_coro = net::this_coro;
 
 using namespace aedis;
 
-enum class events {ignore};
+enum class events {one, two, three, ignore};
 
 template <class T>
 void check_equal(T const& a, T const& b, std::string const& msg = "")
@@ -32,7 +32,95 @@ void check_equal(T const& a, T const& b, std::string const& msg = "")
      std::cout << "Error: " << msg << std::endl;
 }
 
-net::awaitable<void> test_list()
+class test_receiver : public receiver_base<events> {
+private:
+   std::shared_ptr<connection<events>> conn_;
+
+   std::vector<int> list_ {1 ,2, 3, 4, 5, 6};
+   std::string set_ {"aaa"};
+
+public:
+   using event_type = events;
+   test_receiver(std::shared_ptr<connection<events>> conn) : conn_{conn} { }
+
+   void on_hello(events ev, resp::array_type& v) noexcept override
+   {
+      auto f = [this](auto& req)
+      {
+	 req.flushall();
+	 req.ping();
+	 req.rpush("a", list_);
+	 req.llen("a");
+	 req.lrange("a");
+	 req.ltrim("a", 2, -2);
+	 req.lpop("a");
+	 req.lpop("a", 2); // Not working?
+	 req.set("b", {set_});
+	 req.get("b");
+	 req.del("b");
+	 req.subscribe("channel");
+	 req.publish("channel", "message");
+	 req.incr("c");
+	 req.quit();
+      };
+
+      conn_->disable_reconnect();
+      conn_->send(f);
+   }
+
+   virtual void on_push(events ev, resp::array_type& v) noexcept override
+   {
+      // TODO: Check the responses below.
+      // {"subscribe", "channel", "1"}
+      // {"message", "channel", "message"}
+      check_equal(1, 1, "push (receiver)");
+   }
+
+   void on_get(events ev, resp::blob_string_type& s) noexcept override
+      { check_equal(s, set_, "get (receiver)"); }
+
+   void on_set(events ev, resp::simple_string_type& s) noexcept override
+      { check_equal(s, {"OK"}, "set (receiver)"); }
+
+   void on_lpop(events ev, resp::blob_string_type& s) noexcept override
+      { check_equal(s, {"3"}, "lpop (receiver)"); }
+
+   void on_lpop(events ev, resp::array_type& s) noexcept override
+      { check_equal(s, {"4", "5"}, "lpop(count) (receiver)"); }
+
+   void on_ping(events ev, resp::simple_string_type& s) noexcept override
+      { check_equal(s, {"PONG"}, "ping (receiver)"); }
+
+   void on_quit(events ev, resp::simple_string_type& s) noexcept override
+      { check_equal(s, {"OK"}, "quit (receiver)"); }
+
+   void on_flushall(events ev, resp::simple_string_type& s) noexcept override
+      { check_equal(s, {"OK"}, "flushall (receiver)"); }
+
+   void on_ltrim(events ev, resp::simple_string_type& s) noexcept override
+      { check_equal(s, {"OK"}, "ltrim (receiver)"); }
+
+   void on_rpush(events ev, resp::number_type n) noexcept override
+      { check_equal(n, (resp::number_type)std::size(list_), "rpush (receiver)"); }
+
+   void on_del(events ev, resp::number_type n) noexcept override
+      { check_equal((int)n, 1, "del (receiver)"); }
+
+   void on_llen(events ev, resp::number_type n) noexcept override
+      { check_equal((int)n, 6, "llen (receiver)"); }
+
+   void on_incr(events ev, resp::number_type n) noexcept override
+      { check_equal((int)n, 1, "incr (receiver)"); }
+
+   void on_publish(events ev, resp::number_type n) noexcept override
+      { check_equal((int)n, 1, "publish (receiver)"); }
+
+   void on_lrange(events ev, resp::array_type& v) noexcept override
+      { check_equal(v, {"1", "2", "3", "4", "5", "6"}, "lrange (receiver)"); }
+};
+
+net::awaitable<void>
+test_list(net::ip::tcp::resolver::results_type const& results)
 {
    std::vector<int> list {1 ,2, 3, 4, 5, 6};
 
@@ -47,10 +135,8 @@ net::awaitable<void> test_list()
    p.quit();
 
    auto ex = co_await this_coro::executor;
-   tcp::resolver resv(ex);
-   auto const rr = resv.resolve("127.0.0.1", "6379");
    tcp_socket socket {ex};
-   co_await async_connect(socket, rr);
+   co_await async_connect(socket, results);
    co_await async_write(socket, net::buffer(p.payload));
    std::string buffer;
 
@@ -102,8 +188,11 @@ net::awaitable<void> test_list()
    }
 }
 
-net::awaitable<void> test_set()
+net::awaitable<void>
+test_set(net::ip::tcp::resolver::results_type const& results)
 {
+   auto ex = co_await this_coro::executor;
+
    // Tests whether the parser can handle payloads that contain the separator.
    std::string test_bulk1(10000, 'a');
    test_bulk1[30] = '\r';
@@ -111,11 +200,8 @@ net::awaitable<void> test_set()
 
    std::string test_bulk2 = "aaaaa";
 
-   auto ex = co_await this_coro::executor;
-   tcp::resolver resv(ex);
-   auto const rr = resv.resolve("127.0.0.1", "6379");
    tcp_socket socket {ex};
-   co_await async_connect(socket, rr);
+   co_await async_connect(socket, results);
 
    request<events> p;
    p.hello("3");
@@ -528,8 +614,17 @@ int main(int argc, char* argv[])
    co_spawn(ioc, verbatim_string(), net::detached);
    co_spawn(ioc, set(), net::detached);
    co_spawn(ioc, map(), net::detached);
-   co_spawn(ioc, test_list(), net::detached);
-   co_spawn(ioc, test_set(), net::detached);
+
+   tcp::resolver resv(ioc);
+   auto const results = resv.resolve("127.0.0.1", "6379");
+
+   co_spawn(ioc, test_list(results), net::detached);
+   co_spawn(ioc, test_set(results), net::detached);
+
+   auto conn = std::make_shared<connection<events>>(ioc);
+   test_receiver recv{conn};
+   conn->start(recv, results);
+
    ioc.run();
 }
 

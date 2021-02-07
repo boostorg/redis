@@ -37,6 +37,7 @@ using double_type = response_double::data_type;
 using verbatim_string_type = response_verbatim_string::data_type;
 using streamed_string_part_type = response_streamed_string_part::data_type;
 using bool_type = response_bool::data_type;
+using number_type = response_number::data_type;
 
 } // resp
 } // aedis

@@ -26,8 +26,8 @@ private:
    response_tree tree_;
    response_array array_;
    response_array push_;
-   response_array set_;
-   response_array map_;
+   response_set set_;
+   response_map map_;
    response_array attribute_;
    response_simple_string simple_string_;
    response_simple_error simple_error_;
@@ -101,13 +101,13 @@ public:
       switch (id.t) {
          case type::push:
 	 {
-	    assert(id.t == type::invalid);
+	    assert(id.t == type::push);
 	    recv.on_push(id.event, push_.result);
 	    push_.result.clear();
 	 } break;
          case type::set:
 	 {
-	    recv.on_set(id.cmd, id.event, set_.result);
+	    //recv.on_set(id.cmd, id.event, set_.result);
 	    set_.result.clear();
 	 } break;
          case type::map:
@@ -122,6 +122,7 @@ public:
 	 {
 	    switch (id.cmd) {
 	       case command::lrange: recv.on_lrange(id.event, array_.result); break;
+	       case command::lpop: recv.on_lpop(id.event, array_.result); break;
 	       default: {assert(false);}
 	    }
 	    array_.result.clear();
@@ -131,6 +132,9 @@ public:
 	    switch (id.cmd) {
 	       case command::ping: recv.on_ping(id.event, simple_string_.result); break;
 	       case command::quit: recv.on_quit(id.event, simple_string_.result); break;
+	       case command::flushall: recv.on_flushall(id.event, simple_string_.result); break;
+	       case command::ltrim: recv.on_ltrim(id.event, simple_string_.result); break;
+	       case command::set: recv.on_set(id.event, simple_string_.result); break;
 	       default: {assert(false);}
 	    }
 	    simple_string_.result.clear();
@@ -139,6 +143,10 @@ public:
 	 {
 	    switch (id.cmd) {
 	       case command::rpush: recv.on_rpush(id.event, number_.result); break;
+	       case command::del: recv.on_del(id.event, number_.result); break;
+	       case command::llen: recv.on_llen(id.event, number_.result); break;
+	       case command::publish: recv.on_publish(id.event, number_.result); break;
+	       case command::incr: recv.on_incr(id.event, number_.result); break;
 	       default: {assert(false);}
 	    }
 	 } break;
@@ -158,7 +166,11 @@ public:
 	 } break;
          case type::blob_string:
 	 {
-	    recv.on_blob_string(id.cmd, id.event, blob_string_.result);
+	    switch (id.cmd) {
+	       case command::lpop: recv.on_lpop(id.event, blob_string_.result); break;
+	       case command::get: recv.on_get(id.event, blob_string_.result); break;
+	       default: {assert(false);}
+	    }
 	    blob_string_.result.clear();
 	 } break;
 	 case type::verbatim_string:

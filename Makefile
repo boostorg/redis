@@ -25,10 +25,8 @@ examples =
 examples += sync_basic
 examples += async_minimum
 examples += async_basic
-examples += async_reconnect
 examples += async_all_hashes
-examples += async_events
-examples += async_pubsub
+examples += async_low_level
 
 tests =
 tests += general

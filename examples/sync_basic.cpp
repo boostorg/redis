@@ -10,15 +10,15 @@
 
 using namespace aedis;
 
-enum class events {ignore};
+enum events {one, two, ignore};
 
 int main()
 {
    try {
       request<events> req;
       req.hello();
-      req.set("Password", {"12345"});
-      req.get("Password");
+      req.rpush("list", {1, 2, 3});
+      req.lrange("list");
       req.quit();
 
       net::io_context ioc {1};
@@ -28,21 +28,26 @@ int main()
       write(socket, req);
 
       std::string buffer;
-      resp::response_map hello;
-      resp::read(socket, buffer, hello);
-      print(hello.result);
 
-      resp::response_simple_string set;
-      resp::read(socket, buffer, set);
+      resp::response_ignore hello;
+      read(socket, buffer, hello);
 
-      resp::response_blob_string get;
-      resp::read(socket, buffer, get);
-      std::cout << "get: " << get.result << std::endl;
+      resp::response_basic_number<int> list_size;
+      read(socket, buffer, list_size);
+      std::cout << list_size.result << std::endl;
 
-      resp::response_ignore quit;
-      resp::read(socket, buffer, quit);
+      resp::response_basic_array<int> list;
+      read(socket, buffer, list);
+      print(list.result);
+
+      resp::response_simple_string ok;
+      read(socket, buffer, ok);
+      std::cout << ok.result << std::endl;
+
+      resp::response_ignore noop;
+      read(socket, buffer, noop);
+
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }
 }
-
