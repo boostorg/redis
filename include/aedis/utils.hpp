@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-namespace aedis { namespace resp {
+namespace aedis {
 
 template <class Iter>
 void print(Iter begin, Iter end, char const* p)
@@ -45,5 +45,4 @@ void print_command_raw(std::string const& data, int n)
   }
 }
 
-} // resp
 } // aedis

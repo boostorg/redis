@@ -17,6 +17,8 @@ namespace this_coro = net::this_coro;
 using namespace net;
 using namespace aedis;
 
+enum class events {ignore};
+
 struct foo {
    std::string id {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
    std::string from {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
@@ -48,7 +50,7 @@ auto make_hset_arg(foo const& p)
 net::awaitable<void> create_hashes()
 {
    std::vector<foo> posts(20000);
-   resp::request req;
+   resp::request<events> req;
    req.flushall();
    for (auto i = 0; i < std::ssize(posts); ++i) {
       std::string const name = "posts:" + std::to_string(i);
@@ -71,7 +73,7 @@ net::awaitable<void> create_hashes()
 
 net::awaitable<void> read_hashes_coro()
 {
-   resp::request req;
+   resp::request<events> req;
    req.keys("posts:*");
 
    auto ex = co_await this_coro::executor;
@@ -88,7 +90,7 @@ net::awaitable<void> read_hashes_coro()
    //print(keys.result);
 
    // Generates the request to retrieve all hashes.
-   resp::request pv;
+   resp::request<events> pv;
    for (auto const& o : keys.result)
       pv.hvals(o);
    pv.quit();
@@ -107,7 +109,7 @@ net::awaitable<void> read_hashes_coro()
 
 void read_hashes(net::io_context& ioc)
 {
-   resp::request req;
+   resp::request<events> req;
    req.keys("posts:*");
 
    tcp::resolver resv(ioc);
@@ -122,7 +124,7 @@ void read_hashes(net::io_context& ioc)
    resp::read(socket, buffer, keys);
 
    // Generates the request to retrieve all hashes.
-   resp::request pv;
+   resp::request<events> pv;
    for (auto const& o : keys.result)
       pv.hvals(o);
    pv.quit();

@@ -8,10 +8,12 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "config.hpp"
 #include "type.hpp"
 #include "request.hpp"
+#include "response.hpp"
 
 namespace aedis {
 
@@ -21,9 +23,12 @@ class connection :
 private:
    net::steady_timer timer_;
    net::ip::tcp::socket socket_;
+   std::string buffer_;
+   resp::response_buffers resps_;
    std::queue<resp::request<Event>> reqs_;
+   bool reconnect_ = true;
 
-   void finish()
+   void finish_coro()
    {
       socket_.close();
       timer_.cancel();
@@ -37,31 +42,39 @@ private:
    {
       auto ex = co_await net::this_coro::executor;
 
+      net::steady_timer timer {ex};
+      std::chrono::seconds wait_interval {1};
+
       boost::system::error_code ec;
+      while (reconnect_) {
+	 co_await async_connect(
+	    socket_,
+	    results,
+	    net::redirect_error(net::use_awaitable, ec));
 
-      co_await async_connect(
-	 socket_,
-	 results,
-	 net::redirect_error(net::use_awaitable, ec));
+	 if (ec) {
+	    finish_coro();
+	    recv.on_error(ec);
+	    timer.expires_after(wait_interval);
+	    co_await timer.async_wait(net::use_awaitable);
+	    continue;
+	 }
 
-      if (ec) {
-	 finish();
-	 recv.on_error(ec);
-	 co_return;
-      }
+	 async_writer(socket_, reqs_, timer_, net::detached);
 
-      resp::async_writer(socket_, reqs_, timer_, net::detached);
+	 ec = {};
+	 co_await co_spawn(
+	    ex,
+	    async_reader(socket_, buffer_, resps_, recv, reqs_, ec),
+	    net::use_awaitable);
 
-      ec = {};
-      co_await co_spawn(
-	 ex,
-	 resp::async_reader(socket_, recv, reqs_),
-	 net::redirect_error(net::use_awaitable, ec));
-
-      if (ec) {
-	 finish();
-	 recv.on_error(ec);
-	 co_return;
+	 if (ec) {
+	    finish_coro();
+	    recv.on_error(ec);
+	    timer.expires_after(wait_interval);
+	    co_await timer.async_wait(net::use_awaitable);
+	    continue;
+	 }
       }
    }
 
@@ -92,6 +105,11 @@ public:
    template <class Filler>
    void send(Filler filler)
       { queue_writer(reqs_, filler, timer_); }
+
+   void disable_reconnect()
+   {
+      reconnect_ = false;
+   }
 };
 
 } // aedis

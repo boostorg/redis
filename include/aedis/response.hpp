@@ -593,6 +593,7 @@ public:
 	 {
 	    switch (id.cmd) {
 	       case command::ping: recv.on_ping(id.event, simple_string_.result); break;
+	       case command::quit: recv.on_quit(id.event, simple_string_.result); break;
 	       default: {assert(false);}
 	    }
 	    simple_string_.result.clear();

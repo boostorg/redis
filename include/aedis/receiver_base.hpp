@@ -22,9 +22,15 @@ class receiver_base {
 public:
    using event_type = Event;
 
+   // Array
    virtual void on_lrange(Event ev, resp::response_array::data_type& v) noexcept { }
    virtual void on_hello(Event ev, resp::response_array::data_type& v) noexcept {}
+
+   // Simple string
    virtual void on_ping(Event ev, resp::response_simple_string::data_type& v) noexcept { }
+   virtual void on_quit(Event ev, resp::response_simple_string::data_type& v) noexcept { }
+
+   // Number
    virtual void on_rpush(Event ev, resp::response_number::data_type& v) noexcept { }
 
    virtual void on_push(command cmd, Event ev, resp::response_array::data_type& v) noexcept { }

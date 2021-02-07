@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,6 +21,8 @@ namespace this_coro = net::this_coro;
 
 using namespace aedis;
 
+enum class events {ignore};
+
 template <class T>
 void check_equal(T const& a, T const& b, std::string const& msg = "")
 {
@@ -34,7 +36,7 @@ net::awaitable<void> test_list()
 {
    std::vector<int> list {1 ,2, 3, 4, 5, 6};
 
-   resp::request p;
+   resp::request<events> p;
    p.hello("3");
    p.flushall();
    p.rpush("a", list);
@@ -115,7 +117,7 @@ net::awaitable<void> test_set()
    tcp_socket socket {ex};
    co_await async_connect(socket, rr);
 
-   resp::request p;
+   resp::request<events> p;
    p.hello("3");
    p.flushall();
    p.set("s", {test_bulk1});

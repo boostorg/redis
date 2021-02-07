@@ -131,11 +131,9 @@ void assemble(std::string& ret, std::string_view cmd, std::string_view key)
    assemble(ret, cmd, {key}, std::cbegin(dummy), std::cend(dummy));
 }
 
-enum class event {ignore};
-
 // TODO: Make the write functions friend of this class and make the
 // payload private.
-template <class Event = event>
+template <class Event>
 class request {
 public:
    std::string payload;

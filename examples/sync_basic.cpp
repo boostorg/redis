@@ -10,10 +10,12 @@
 
 using namespace aedis;
 
+enum class events {ignore};
+
 int main()
 {
    try {
-      resp::request req;
+      resp::request<events> req;
       req.hello();
       req.set("Password", {"12345"});
       req.get("Password");
@@ -28,7 +30,7 @@ int main()
       std::string buffer;
       resp::response_flat_map<std::string> hello;
       resp::read(socket, buffer, hello);
-      resp::print(hello.result);
+      print(hello.result);
 
       resp::response_simple_string set;
       resp::read(socket, buffer, set);

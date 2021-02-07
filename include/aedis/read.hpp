@@ -24,8 +24,8 @@
 #include "config.hpp"
 #include "type.hpp"
 #include "parser.hpp"
-#include "response.hpp"
 #include "request.hpp"
+#include "response.hpp"
 
 namespace aedis { namespace resp {
 
@@ -204,16 +204,20 @@ public:
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
+      if (ec)
+	 return self.complete(ec);
+
       if (std::empty(*buf_)) {
 	 net::async_read_until(
 	    stream_,
 	    net::dynamic_buffer(*buf_),
 	    "\r\n",
 	    std::move(self));
-      } else {
-	 *t_ = to_type(buf_->front());
-	 return self.complete(ec);
+	 return;
       }
+
+      *t_ = to_type(buf_->front());
+      return self.complete(ec);
    }
 };
 
@@ -238,38 +242,56 @@ auto async_read_type(
         stream);
 }
 
+} // resp
+
 template <
    class AsyncReadWriteStream,
-   class Receiver>
+   class Storage,
+   class Receiver,
+   class ResponseBuffers>
 net::awaitable<void>
 async_reader(
    AsyncReadWriteStream& socket,
+   Storage& buffer,
+   ResponseBuffers& resps,
    Receiver& recv,
-   std::queue<request<typename Receiver::event_type>>& reqs)
+   std::queue<resp::request<typename Receiver::event_type>>& reqs,
+   boost::system::error_code& ec)
 {
    using event_type = typename Receiver::event_type;
-   using response_id_type = response_id<event_type>;
-
-   std::string buffer;
-   resp::response_buffers resps;
+   using response_id_type = resp::response_id<event_type>;
 
    // Used to queue the events of a transaction.
    std::queue<response_id_type> trans;
 
    for (;;) {
-      type t;
-      co_await async_read_type(socket, buffer, t, net::use_awaitable);
+      resp::type t;
+      co_await async_read_type(
+	 socket,
+	 buffer,
+	 t,
+	 net::redirect_error(net::use_awaitable, ec));
+
+      if (ec)
+	 co_return;
+
       auto& req = reqs.front();
-      auto const cmd = t == type::push ? command::none : req.events.front().first;
+      auto const cmd = t == resp::type::push ? command::none : req.events.front().first;
 
       auto const is_multi = cmd == command::multi;
       auto const is_exec = cmd == command::exec;
       auto const trans_empty = std::empty(trans);
 
-      // The next two ifs are used to deal with transactions.
       if (is_multi || (!trans_empty && !is_exec)) {
-         response_static_string<6> tmp;
-	 co_await async_read(socket, buffer, tmp, net::use_awaitable);
+	 resp::response_static_string<6> tmp;
+	 co_await async_read(
+	    socket,
+	    buffer,
+	    tmp,
+	    net::redirect_error(net::use_awaitable, ec));
+
+	 if (ec)
+	    co_return;
 
 	 // Failing to QUEUE a command inside a trasaction is
 	 // considered an application error.  The multi commands
@@ -280,7 +302,7 @@ async_reader(
 
          // Pushes the command in the transction command queue that will be
          // processed when exec arrives.
-	 trans.push({req.events.front().first, type::invalid, req.events.front().second});
+	 trans.push({req.events.front().first, resp::type::invalid, req.events.front().second});
 	 req.events.pop();
 	 continue;
       }
@@ -301,7 +323,10 @@ async_reader(
 	    socket,
 	    buffer,
 	    *tmp,
-	    net::use_awaitable);
+	    net::redirect_error(net::use_awaitable, ec));
+
+	 if (ec)
+	    co_return;
 
 	 trans.pop(); // Removes multi.
          resps.forward_transaction(std::move(trans), recv);
@@ -314,7 +339,10 @@ async_reader(
 	       co_await async_write(
 		  socket,
 		  reqs.front(),
-		  net::use_awaitable);
+		  net::redirect_error(net::use_awaitable, ec));
+
+	       if (ec)
+		  co_return;
 	    }
 	 }
 	 continue;
@@ -322,15 +350,19 @@ async_reader(
 
       response_id_type id{cmd, t, req.events.front().second}; 
       auto* tmp = resps.get(id);
+
       co_await async_read(
 	 socket,
 	 buffer,
 	 *tmp,
-	 net::use_awaitable);
+	 net::redirect_error(net::use_awaitable, ec));
+
+      if (ec)
+	 co_return;
 
       resps.forward(id, recv);
 
-      if (t != type::push)
+      if (t != resp::type::push)
 	 req.events.pop();
 
       if (std::empty(req.events)) {
@@ -345,5 +377,4 @@ async_reader(
    }
 }
 
-} // resp
 } // aedis

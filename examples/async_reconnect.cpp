@@ -15,12 +15,14 @@ using tcp = net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 
+enum class events {ignore};
+
 net::awaitable<void> example1()
 {
    auto ex = co_await this_coro::executor;
    for (;;) {
       try {
-	 resp::request req;
+	 resp::request<events> req;
 	 req.quit();
 
 	 tcp::resolver resv(ex);

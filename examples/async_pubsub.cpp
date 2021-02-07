@@ -40,7 +40,7 @@ public:
 
    void on_hello(myevents ev, resp::response_array::data_type& v) noexcept override
    {
-      resp::print(v);
+      print(v);
       conn_->send(fill);
    }
 };

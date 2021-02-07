@@ -8,54 +8,61 @@
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 
-namespace net = aedis::net;
 using namespace aedis;
-using tcp = net::ip::tcp;
 
-enum class myevents
-{ one
-, two
-, three
-, ignore
-};
+/* This example shows how to receive and send events.
+ *
+ *    1. Store a shared_ptr to the connection in the receiver.
+ *
+ *    2. Start sending commands after the hello command has been
+ *       received.
+ *
+ * As a rule, every redis command is received in a function named
+ * on_command. The user has to override the base class version to
+ * start receiving events.
+ */
 
-void fill(resp::request<myevents>& req)
-{
-   req.ping(myevents::one);
-   req.rpush("list", {1, 2, 3});
-   req.lrange("list");
-   req.ping(myevents::two);
-}
+enum class events {one, two, three, ignore};
 
-class myreceiver : public receiver_base<myevents> {
+class receiver : public receiver_base<events> {
 private:
-   std::shared_ptr<connection<myevents>> conn_;
+   std::shared_ptr<connection<events>> conn_;
 
 public:
-   using event_type = myevents;
+   using event_type = events;
+   receiver(std::shared_ptr<connection<events>> conn) : conn_{conn} { }
 
-   myreceiver(std::shared_ptr<connection<myevents>> conn)
-   : conn_{conn}
-   { }
-
-   void on_hello(myevents ev, resp::response_array::data_type& v) noexcept override
+   void on_hello(events ev, resp::response_array::data_type& v) noexcept override
    {
-      resp::print(v);
-      conn_->send(fill);
+      print(v, "HELLO");
+
+      auto f = [](auto& req)
+      {
+	 req.ping(events::one);
+	 req.quit();
+      };
+
+      conn_->disable_reconnect();
+      conn_->send(f);
    }
+
+   void on_ping(events ev, resp::response_simple_string::data_type& s) noexcept override
+      { std::cout << "PING: " << s << std::endl; }
+
+   void on_quit(events ev, resp::response_simple_string::data_type& s) noexcept override
+      { std::cout << "QUIT: " << s << std::endl; }
 };
 
 int main()
 {
    net::io_context ioc {1};
-
-   tcp::resolver resolver{ioc};
+   net::ip::tcp::resolver resolver{ioc};
    auto const results = resolver.resolve("127.0.0.1", "6379");
-
-   auto conn = std::make_shared<connection<myevents>>(ioc);
-   myreceiver recv{conn};
-
+   auto conn = std::make_shared<connection<events>>(ioc);
+   receiver recv{conn};
    conn->start(recv, results);
    ioc.run();
 }
+
+
 

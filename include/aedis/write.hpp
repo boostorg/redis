@@ -27,7 +27,7 @@ write(
    boost::system::error_code& ec)
 {
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
-        "SyncWriteStream type requirements not met");
+       "SyncWriteStream type requirements not met");
 
     return write(stream, net::buffer(req.payload), ec);
 }
@@ -71,13 +71,15 @@ async_write(
    return net::async_write(stream, net::buffer(req.payload), token);
 }
 
+} // resp
+
 template <
   class AsyncReadStream,
   class Event>
 struct writer_op {
    AsyncReadStream& stream;
    net::steady_timer& st;
-   std::queue<request<Event>>* reqs;
+   std::queue<resp::request<Event>>* reqs;
 
    template <class Self>
    void operator()(
@@ -127,7 +129,7 @@ template <
    >
 auto async_writer(
    AsyncWriteStream& stream,
-   std::queue<request<Event>>& reqs,
+   std::queue<resp::request<Event>>& reqs,
    net::steady_timer& writeTrigger,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
@@ -141,7 +143,7 @@ auto async_writer(
 	writeTrigger);
 }
 
-// Returns true id a write has been triggered.
+// Returns true if a write has been triggered.
 template <class Event, class Filler>
 bool queue_writer(
    std::queue<resp::request<Event>>& reqs,
@@ -159,7 +161,5 @@ bool queue_writer(
 
    return empty;
 }
-
-} // resp
 } // aedis
 

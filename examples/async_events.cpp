@@ -43,13 +43,13 @@ net::awaitable<void> example()
 	    {
 	       resp::response_basic_array<int> res;
 	       co_await resp::async_read(socket, buffer, res);
-	       resp::print(res.result, "Interesting1");
+	       print(res.result, "Interesting1");
 	    } break;
 	    case myevents::interesting2:
 	    {
 	       resp::response_set<int> res;
 	       co_await resp::async_read(socket, buffer, res);
-	       resp::print(res.result, "Interesting2");
+	       print(res.result, "Interesting2");
 	    } break;
 	    default:
 	    {
