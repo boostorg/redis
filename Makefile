@@ -23,7 +23,6 @@ LDFLAGS += -pthread
 
 examples =
 examples += sync_basic
-examples += async_minimum
 examples += async_basic
 examples += async_all_hashes
 examples += async_low_level

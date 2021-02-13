@@ -26,7 +26,7 @@ private:
    std::string buffer_;
    resp::response_buffers resps_;
    std::queue<request<Event>> reqs_;
-   bool reconnect_ = true;
+   bool reconnect_ = false;
 
    void reset()
    {
@@ -48,7 +48,7 @@ private:
       std::chrono::seconds wait_interval {1};
 
       boost::system::error_code ec;
-      while (reconnect_) {
+      do {
 	 co_await async_connect(
 	    socket_,
 	    results,
@@ -75,7 +75,7 @@ private:
 	    co_await timer.async_wait(net::use_awaitable);
 	    continue;
 	 }
-      }
+      } while (reconnect_);
    }
 
 public:
@@ -106,7 +106,7 @@ public:
    void send(Filler filler)
       { queue_writer(reqs_, filler, timer_); }
 
-   void disable_reconnect()
+   void enable_reconnect()
    {
       reconnect_ = false;
    }

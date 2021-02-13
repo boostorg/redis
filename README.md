@@ -1,19 +1,71 @@
 # Aedis
 
-Aedis is a low level redis client designed for scalability and
-performance while providing an easy and intuitive interface. Some of
-the supported features are
+Aedis is a redis client designed for scalability and performance while
+providing an easy and intuitive interface. Some of the supported
+features are
 
 * TLS, RESP3 and STL containers.
 * Pipelines (essential for performance).
 * Coroutines, futures and callbacks.
 
-At the moment the biggest missing part is the Attribute data type as
-its specification seems to be incomplete and I found no way to test
-them.
-
 ## Tutorial
 
+All you have to do is to define an `enum` that defines the events you
+want to handle, if any, and a receiver. For example
+
+```cpp
+   enum class events {one, two, three, ignore};
+
+   void f(request<events>& req)
+   {
+      req.ping(events::one);
+      req.quit();
+   }
+
+   class receiver : public receiver_base<events> {
+   private:
+      std::shared_ptr<connection<events>> conn_;
+
+   public:
+      using event_type = events;
+      receiver(std::shared_ptr<connection<events>> conn) : conn_{conn} { }
+
+      void on_hello(events ev, resp::array_type& v) noexcept override
+	 { conn_->send(f); }
+
+      void on_ping(events ev, resp::simple_string_type& s) noexcept override
+	 { std::cout << "PING: " << s << std::endl; }
+
+      void on_quit(events ev, resp::simple_string_type& s) noexcept override
+	 { std::cout << "QUIT: " << s << std::endl; }
+   };
+
+```
+
+Inheriting from the `receiver_base` class is not needed but convenient
+to avoid writing the complete receiver interface. In general for each
+redis command you have to override (or offer) a member function in the
+receiver.
+
+The main function looks like
+
+```cpp
+   int main()
+   {
+      net::io_context ioc {1};
+      net::ip::tcp::resolver resolver{ioc};
+      auto const results = resolver.resolve("127.0.0.1", "6379");
+      auto conn = std::make_shared<connection<events>>(ioc);
+      receiver recv{conn};
+      conn->start(recv, results);
+      ioc.run();
+   }
+```
+
+## Low level API
+
+A low level api is also offered, though I don't recommend using it as
+is offers no real advantage over the high level as shown above.
 Sending a command to a redis server is done as follows
 
 ```cpp
@@ -81,6 +133,7 @@ net::awaitable<void> example()
    }
 }
 ```
+
 The important things to notice above are
 
 * After connecting RESP3 requires the `hello` command to be sent.
@@ -161,48 +214,3 @@ net::awaitable<void> example()
    }
 }
 ```
-
-## Reconnecting and Sentinel support
-
-In production we usually need a way to reconnect to the redis server
-after a disconnect, some of the reasons are
-
-1. The server has crashed and has been restarted by systemd.
-1. All connection have been killed by the admin.
-1. A failover operation has started.
-
-It is easy to implement such a mechnism in scalable way using
-coroutines, for example
-
-```cpp
-net::awaitable<void> example1()
-{
-   auto ex = co_await this_coro::executor;
-   for (;;) {
-      try {
-	 resp::request req;
-	 req.quit();
-
-	 tcp::resolver resv(ex);
-	 auto const r = resv.resolve("127.0.0.1", "6379");
-	 tcp_socket socket {ex};
-	 co_await async_connect(socket, r);
-	 co_await async_write(socket, req);
-
-	 std::string buffer;
-	 for (;;) {
-	    resp::response_ignore res;
-	    co_await resp::async_read(socket, buffer, res);
-	 }
-      } catch (std::exception const& e) {
-	 std::cerr << "Trying to reconnect ..." << std::endl;
-	 stimer timer(ex, std::chrono::seconds{2});
-	 co_await timer.async_wait();
-      }
-   }
-}
-```
-
-More sophisticated reconnect strategies using sentinel are also easy
-to implement using coroutines.
-

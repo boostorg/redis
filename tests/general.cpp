@@ -80,11 +80,10 @@ public:
 	 req.quit();
       };
 
-      conn_->disable_reconnect();
       conn_->send(f);
    }
 
-   void on_simple_error(command cmd, events ev, resp::response_simple_error::data_type& v) noexcept override
+   void on_simple_error(command cmd, events ev, resp::simple_error_type& v) noexcept override
    {
       std::cout << v << std::endl;
    }

@@ -18,15 +18,10 @@ using response_set = response_basic_set<std::string>;
 using response_blob_string = response_basic_blob_string<char>;
 using response_blob_error = response_basic_blob_error<char>;
 using response_simple_string = response_basic_simple_string<char>;
-
 using response_simple_error = response_basic_simple_error<char>;
 using response_big_number = response_basic_big_number<char>;
 using response_verbatim_string = response_basic_verbatim_string<char>;
 using response_streamed_string_part = response_basic_streamed_string_part<char>;
-
-using big_number_type = response_big_number::data_type;
-using verbatim_string_type = response_verbatim_string::data_type;
-using streamed_string_part_type = response_streamed_string_part::data_type;
 
 } // resp
 } // aedis

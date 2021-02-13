@@ -20,41 +20,11 @@
 #include "config.hpp"
 #include "type.hpp"
 #include "command.hpp"
+#include "resp_types.hpp"
 
 #include <boost/static_string/static_string.hpp>
 
 namespace aedis { namespace resp {
-
-template <class T, class Allocator = std::allocator<T>>
-using basic_array_type = std::vector<T, Allocator>;
-
-template <class T, class Allocator = std::allocator<T>>
-using basic_map_type = std::vector<T, Allocator>;
-
-template <class T, class Allocator = std::allocator<T>>
-using basic_set_type = std::vector<T, Allocator>;
-
-template<
-   class CharT,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>>
-using basic_blob_string_type = std::basic_string<CharT, Traits, Allocator>;
-
-template<
-   class CharT,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>>
-using basic_simple_string_type = std::basic_string<CharT, Traits, Allocator>;
-
-using array_type = basic_array_type<std::string>;
-using map_type = basic_map_type<std::string>;
-using set_type = basic_set_type<std::string>;
-
-using number_type = long long int;
-using bool_type = bool;
-using double_type = double;
-using blob_string_type = basic_blob_string_type<char>;
-using simple_string_type = basic_simple_string_type<char>;
 
 template <class T>
 std::enable_if<std::is_integral<T>::value, void>::type
@@ -211,7 +181,7 @@ private:
    void on_blob_string_impl(std::string_view s) override
       { from_string_view(s, result); }
 public:
-   basic_blob_string_type<char> result;
+   basic_blob_string<char> result;
 };
 
 template<
@@ -223,8 +193,7 @@ private:
    void on_blob_error_impl(std::string_view s) override
       { from_string_view(s, result); }
 public:
-   using data_type = std::basic_string<CharT, Traits, Allocator>;
-   data_type result;
+   basic_blob_error<char> result;
 };
 
 template<
@@ -237,7 +206,7 @@ private:
    void on_simple_string_impl(std::string_view s) override
       { from_string_view(s, result); }
 public:
-   basic_simple_string_type<CharT, Traits, Allocator> result;
+   basic_simple_string<CharT, Traits, Allocator> result;
 };
 
 template<
@@ -251,8 +220,7 @@ private:
       { from_string_view(s, result); }
 
 public:
-   using data_type = std::basic_string<CharT, Traits, Allocator>;
-   data_type result;
+   basic_simple_error<CharT, Traits, Allocator> result;
 };
 
 // Big number uses strings at the moment as the underlying storage.
@@ -267,8 +235,7 @@ private:
       { from_string_view(s, result); }
 
 public:
-   using data_type = std::basic_string<CharT, Traits, Allocator>;
-   data_type result;
+   basic_big_number<CharT, Traits, Allocator> result;
 };
 
 class response_double : public response_base {
@@ -293,8 +260,7 @@ private:
    void on_verbatim_string_impl(std::string_view s) override
       { from_string_view(s, result); }
 public:
-   using data_type = std::basic_string<CharT, Traits, Allocator>;
-   data_type result;
+   basic_verbatim_string<CharT, Traits, Allocator> result;
 };
 
 template<
@@ -307,8 +273,7 @@ private:
    void on_streamed_string_part_impl(std::string_view s) override
       { result += s; }
 public:
-   using data_type = std::basic_string<CharT, Traits, Allocator>;
-   data_type result;
+   basic_streamed_string_part<CharT, Traits, Allocator> result;
 };
 
 class response_bool : public response_base {

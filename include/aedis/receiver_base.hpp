@@ -58,8 +58,8 @@ public:
 
    // TODO: Introduce a push type.
    virtual void on_push(Event ev, resp::array_type& v) noexcept { }
-   virtual void on_simple_error(command cmd, Event ev, resp::response_simple_error::data_type& v) noexcept { }
-   virtual void on_blob_error(command cmd, Event ev, resp::response_blob_error::data_type& v) noexcept { }
+   virtual void on_simple_error(command cmd, Event ev, resp::simple_error_type& v) noexcept { }
+   virtual void on_blob_error(command cmd, Event ev, resp::blob_error_type& v) noexcept { }
    virtual void on_null(command cmd, Event ev) noexcept { }
 };
 

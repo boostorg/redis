@@ -37,13 +37,13 @@ net::awaitable<void> example()
          switch (req.events.front().second) {
             case events::one:
             {
-               resp::response_basic_array<int> res;
+               resp::response_array res;
                co_await async_read(socket, buffer, res, net::use_awaitable);
                print(res.result, "one");
             } break;
             case events::two:
             {
-               resp::response_basic_array<int> res;
+               resp::response_array res;
                co_await async_read(socket, buffer, res, net::use_awaitable);
                print(res.result, "two");
             } break;

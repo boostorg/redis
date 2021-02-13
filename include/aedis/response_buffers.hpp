@@ -45,7 +45,7 @@ public:
    // When the id is from a transaction the type of the message is not
    // specified.
    template <class Event>
-   response_base* get(response_id<Event> const& id)
+   response_base* select(response_id<Event> const& id)
    {
       if (id.cmd == command::exec)
         return &tree_;

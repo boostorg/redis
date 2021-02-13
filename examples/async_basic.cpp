@@ -9,19 +9,15 @@
 
 using namespace aedis;
 
-/* This example shows how to receive and send events.
- *
- * 1. Create a connection obeject.
- *
- * 2. Start sending commands after the hello command has been
- *    received.
- *
- * As a rule, every redis command is received in a function named
- * on_command. The user has to override the base class version to
- * start receiving events.
- */
+// This example shows how to receive and send events.
 
 enum class events {one, two, three, ignore};
+
+void f(request<events>& req)
+{
+   req.ping(events::one);
+   req.quit();
+}
 
 class receiver : public receiver_base<events> {
 private:
@@ -32,16 +28,7 @@ public:
    receiver(std::shared_ptr<connection<events>> conn) : conn_{conn} { }
 
    void on_hello(events ev, resp::array_type& v) noexcept override
-   {
-      auto f = [](auto& req)
-      {
-	 req.ping(events::one);
-	 req.quit();
-      };
-
-      conn_->disable_reconnect();
-      conn_->send(f);
-   }
+      { conn_->send(f); }
 
    void on_ping(events ev, resp::simple_string_type& s) noexcept override
       { std::cout << "PING: " << s << std::endl; }
@@ -60,6 +47,3 @@ int main()
    conn->start(recv, results);
    ioc.run();
 }
-
-
-
