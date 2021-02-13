@@ -218,17 +218,17 @@ public:
       int count = 1,
       Event e = Event::ignore)
    {
-      if (count == 1) {
+      //if (count == 1) {
 	 resp::assemble(payload, "LPOP", key);
-      } else {
-	 auto par = {std::to_string(count)};
-	 resp::assemble(
-	    payload,
-	    "LPOP",
-	    {key},
-	    std::cbegin(par),
-	    std::cend(par));
-      }
+      //} else {
+      //auto par = {std::to_string(count)};
+      //resp::assemble(
+      //   payload,
+      //   "LPOP",
+      //   {key},
+      //   std::cbegin(par),
+      //   std::cend(par));
+      //}
 
       events.push({command::lpop, e});
    }
@@ -399,6 +399,8 @@ public:
       std::string_view key,
       Range const& r, Event e = Event::ignore)
    {
+      //Note: Requires an std::pair as value type, otherwise gets
+      //error: ERR Protocol error: expected '$', got '*'
       using std::cbegin;
       using std::cend;
       resp::assemble(payload, "HSET", {key}, std::cbegin(r), std::cend(r), 2);
@@ -412,7 +414,8 @@ public:
       int by,
       Event e = Event::ignore)
    {
-      auto par = {field, std::to_string(by)};
+      auto by_str = std::to_string(by);
+      std::initializer_list<std::string_view> par {field, by_str};
       resp::assemble(payload, "HINCRBY", {key}, std::cbegin(par), std::cend(par));
       events.push({command::hincrby, e});
    }
@@ -544,11 +547,11 @@ public:
    auto
    zremrangebyscore(
       std::string_view key,
-      int score,
+      std::string_view min,
+      std::string_view max,
       Event e = Event::ignore)
    {
-      auto const s = std::to_string(score);
-      auto par = {s, s};
+      auto par = {min, max};
       resp::assemble(payload, "ZREMRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
       events.push({command::zremrangebyscore, e});
    }

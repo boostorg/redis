@@ -114,6 +114,7 @@ public:
 	 {
 	    switch (id.cmd) {
 	       case command::hello: recv.on_hello(id.event, map_.result); break;
+	       case command::hgetall: recv.on_hgetall(id.event, map_.result); break;
 	       default: {assert(false);}
 	    }
 	    map_.result.clear();
@@ -123,6 +124,8 @@ public:
 	    switch (id.cmd) {
 	       case command::lrange: recv.on_lrange(id.event, array_.result); break;
 	       case command::lpop: recv.on_lpop(id.event, array_.result); break;
+	       case command::zrange: recv.on_zrange(id.event, array_.result); break;
+	       case command::zrangebyscore: recv.on_zrangebyscore(id.event, array_.result); break;
 	       default: {assert(false);}
 	    }
 	    array_.result.clear();
@@ -147,21 +150,32 @@ public:
 	       case command::llen: recv.on_llen(id.event, number_.result); break;
 	       case command::publish: recv.on_publish(id.event, number_.result); break;
 	       case command::incr: recv.on_incr(id.event, number_.result); break;
+	       case command::append: recv.on_append(id.event, number_.result); break;
+	       case command::hset: recv.on_hset(id.event, number_.result); break;
+	       case command::hincrby: recv.on_hincrby(id.event, number_.result); break;
+	       case command::zadd: recv.on_zadd(id.event, number_.result); break;
+	       case command::zremrangebyscore: recv.on_zremrangebyscore(id.event, number_.result); break;
 	       default: {assert(false);}
 	    }
 	 } break;
          case type::double_type:
 	 {
-	    recv.on_double(id.cmd, id.event, double_.result);
+	    switch (id.cmd) {
+	       default: {assert(false);}
+	    }
 	 } break;
          case type::big_number:
 	 {
-	    recv.on_big_number(id.cmd, id.event, big_number_.result);
+	    switch (id.cmd) {
+	       default: {assert(false);}
+	    }
 	    big_number_.result.clear();
 	 } break;
          case type::boolean:
 	 {
-	    recv.on_boolean(id.cmd, id.event, bool_.result);
+	    switch (id.cmd) {
+	       default: {assert(false);}
+	    }
 	    bool_.result = false;
 	 } break;
          case type::blob_string:
@@ -169,18 +183,23 @@ public:
 	    switch (id.cmd) {
 	       case command::lpop: recv.on_lpop(id.event, blob_string_.result); break;
 	       case command::get: recv.on_get(id.event, blob_string_.result); break;
+	       case command::hget: recv.on_hget(id.event, blob_string_.result); break;
 	       default: {assert(false);}
 	    }
 	    blob_string_.result.clear();
 	 } break;
 	 case type::verbatim_string:
 	 {
-	    recv.on_verbatim_string(id.cmd, id.event, verbatim_string_.result);
+	    switch (id.cmd) {
+	       default: {assert(false);}
+	    }
 	    verbatim_string_.result.clear();
 	 } break;
 	 case type::streamed_string_part:
 	 {
-	    recv.on_streamed_string_part(id.cmd, id.event, streamed_string_part_.result);
+	    switch (id.cmd) {
+	       default: {assert(false);}
+	    }
 	    streamed_string_part_.result.clear();
 	 } break;
          case type::simple_error:

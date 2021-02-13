@@ -56,7 +56,6 @@ private:
 
 	 if (ec) {
 	    reset();
-	    recv.on_error(ec);
 	    timer.expires_after(wait_interval);
 	    co_await timer.async_wait(net::use_awaitable);
 	    continue;
@@ -72,7 +71,6 @@ private:
 
 	 if (ec) {
 	    reset();
-	    recv.on_error(ec);
 	    timer.expires_after(wait_interval);
 	    co_await timer.async_wait(net::use_awaitable);
 	    continue;

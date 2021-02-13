@@ -32,7 +32,7 @@ int main()
       resp::response_ignore hello;
       read(socket, buffer, hello);
 
-      resp::response_basic_number<int> list_size;
+      resp::response_number list_size;
       read(socket, buffer, list_size);
       std::cout << list_size.result << std::endl;
 

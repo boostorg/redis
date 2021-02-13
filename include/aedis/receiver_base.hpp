@@ -25,6 +25,9 @@ public:
    // Array
    virtual void on_lrange(Event ev, resp::array_type& v) noexcept { }
    virtual void on_lpop(Event ev, resp::array_type& v) noexcept { }
+   virtual void on_hgetall(Event ev, resp::array_type& v) noexcept { }
+   virtual void on_zrange(Event ev, resp::array_type& v) noexcept { }
+   virtual void on_zrangebyscore(Event ev, resp::array_type& v) noexcept { }
 
    // Map
    virtual void on_hello(Event ev, resp::map_type& v) noexcept {}
@@ -42,17 +45,16 @@ public:
    virtual void on_llen(Event ev, resp::number_type v) noexcept { }
    virtual void on_publish(Event ev, resp::number_type v) noexcept { }
    virtual void on_incr(Event ev, resp::number_type v) noexcept { }
+   virtual void on_append(Event ev, resp::number_type v) noexcept { }
+   virtual void on_hset(Event ev, resp::number_type v) noexcept { }
+   virtual void on_hincrby(Event ev, resp::number_type v) noexcept { }
+   virtual void on_zadd(Event ev, resp::number_type v) noexcept { }
+   virtual void on_zremrangebyscore(Event ev, resp::number_type& v) noexcept { }
 
    // Blob string
    virtual void on_lpop(Event ev, resp::blob_string_type& v) noexcept { }
    virtual void on_get(Event ev, resp::blob_string_type& v) noexcept { }
-
-   virtual void on_double(command cmd, Event ev, resp::double_type& v) noexcept { }
-   virtual void on_big_number(command cmd, Event ev, resp::big_number_type& v) noexcept { }
-   virtual void on_boolean(command cmd, Event ev, resp::bool_type& v) noexcept {  }
-   virtual void on_verbatim_string(command cmd, Event ev, resp::verbatim_string_type& v) noexcept { }
-   virtual void on_streamed_string_part(command cmd, Event ev, resp::streamed_string_part_type& v) noexcept { }
-   virtual void on_error(boost::system::error_code ec) { }
+   virtual void on_hget(Event ev, resp::blob_string_type& v) noexcept { }
 
    // TODO: Introduce a push type.
    virtual void on_push(Event ev, resp::array_type& v) noexcept { }
