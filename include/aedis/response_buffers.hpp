@@ -155,6 +155,7 @@ public:
 	       case command::hincrby: recv.on_hincrby(id.event, number_.result); break;
 	       case command::zadd: recv.on_zadd(id.event, number_.result); break;
 	       case command::zremrangebyscore: recv.on_zremrangebyscore(id.event, number_.result); break;
+	       case command::expire: recv.on_expire(id.event, number_.result); break;
 	       default: {assert(false);}
 	    }
 	 } break;

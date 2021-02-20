@@ -50,6 +50,7 @@ public:
    virtual void on_hincrby(Event ev, resp::number_type v) noexcept { }
    virtual void on_zadd(Event ev, resp::number_type v) noexcept { }
    virtual void on_zremrangebyscore(Event ev, resp::number_type& v) noexcept { }
+   virtual void on_expire(Event ev, resp::number_type& v) noexcept { }
 
    // Blob string
    virtual void on_lpop(Event ev, resp::blob_string_type& v) noexcept { }

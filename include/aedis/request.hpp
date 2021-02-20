@@ -233,23 +233,17 @@ public:
       events.push({command::lpop, e});
    }
 
-   void
-   subscribe(
-      std::string_view key,
-      Event e = Event::ignore)
+   void subscribe(std::string_view key)
    {
+      // The response to this command is a push.
       resp::assemble(payload, "SUBSCRIBE", key);
-      // It looks like in resp3 there is not response for subscribe. 
-      //events.push({command::subscribe, e});
    }
 
    void
-   unsubscribe(
-      std::string_view key,
-      Event e = Event::ignore)
+   unsubscribe(std::string_view key)
    {
+      // The response to this command is a push.
       resp::assemble(payload, "UNSUBSCRIBE", key);
-      events.push({command::unsubscribe, e});
    }
 
    void
