@@ -13,6 +13,7 @@ CPPFLAGS += -g
 CPPFLAGS += -O0
 CPPFLAGS += -std=c++20 -Wall #-Werror
 CPPFLAGS += -fcoroutines
+CPPFLAGS += -fsanitize=address
 CPPFLAGS += -I/opt/boost_1_74_0/include
 CPPFLAGS += -I./include
 CPPFLAGS += -D BOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE

@@ -197,7 +197,9 @@ public:
    : stream_ {stream}
    , buf_ {buf}
    , t_ {t}
-   { }
+   {
+      assert(buf_);
+   }
 
    template <class Self>
    void operator()( Self& self
@@ -216,6 +218,7 @@ public:
 	 return;
       }
 
+      assert(!std::empty(*buf_));
       *t_ = to_type(buf_->front());
       return self.complete(ec);
    }
@@ -265,7 +268,7 @@ async_reader(
    std::queue<response_id_type> trans;
 
    for (;;) {
-      resp::type t;
+      auto t = resp::type::invalid;
       co_await async_read_type(
 	 socket,
 	 buffer,
@@ -275,8 +278,16 @@ async_reader(
       if (ec)
 	 co_return;
 
-      auto& req = reqs.front();
-      auto const cmd = t == resp::type::push ? command::none : req.events.front().first;
+      assert(t != resp::type::invalid);
+
+      command cmd = command::none;
+      event_type event = event_type::ignore;
+      if (t != resp::type::push) {
+	 assert(!std::empty(reqs));
+	 assert(!std::empty(reqs.front().events));
+	 cmd = reqs.front().events.front().first;
+	 event = reqs.front().events.front().second;
+      }
 
       auto const is_multi = cmd == command::multi;
       auto const is_exec = cmd == command::exec;
@@ -302,23 +313,27 @@ async_reader(
 
          // Pushes the command in the transction command queue that will be
          // processed when exec arrives.
-	 trans.push({req.events.front().first, resp::type::invalid, req.events.front().second});
-	 req.events.pop();
+	 response_id_type id
+	 { reqs.front().events.front().first
+	 , resp::type::invalid
+	 , reqs.front().events.front().second
+	 };
+
+	 trans.push(id);
+	 reqs.front().events.pop();
 	 continue;
       }
 
       if (cmd == command::exec) {
 	 assert(trans.front().cmd == command::multi);
 
-         // The exec response is an array where each element is the response of
-         // one command in the transaction. This requires a special response
-         // buffer, that can deal with recursive data types.
-         response_id_type id;
-         id.cmd = command::exec;
-         id.t = t;
-         id.event = req.events.front().second;
-
+	 // The exec response is an array where each element is the
+	 // response of one command in the transaction. This requires
+	 // a special response buffer, that can deal with recursive
+	 // data types.
+         response_id_type id{command::exec, t, event};
          auto* tmp = resps.select(id);
+
 	 co_await async_read(
 	    socket,
 	    buffer,
@@ -332,8 +347,8 @@ async_reader(
          resps.forward_transaction(std::move(trans), recv);
 	 trans = {};
 
-	 req.events.pop(); // exec
-	 if (std::empty(req.events)) {
+	 reqs.front().events.pop(); // exec
+	 if (std::empty(reqs.front().events)) {
 	    reqs.pop();
 	    if (!std::empty(reqs)) {
 	       co_await async_write(
@@ -348,7 +363,7 @@ async_reader(
 	 continue;
       }
 
-      response_id_type id{cmd, t, req.events.front().second}; 
+      response_id_type id{cmd, t, event}; 
       auto* tmp = resps.select(id);
 
       co_await async_read(
@@ -362,10 +377,14 @@ async_reader(
 
       resps.forward(id, recv);
 
-      if (t != resp::type::push)
-	 req.events.pop();
+      if (t == resp::type::push)
+	 continue;
 
-      if (std::empty(req.events)) {
+      assert(!std::empty(reqs));
+      assert(!std::empty(reqs.front().events));
+
+      reqs.front().events.pop();
+      if (std::empty(reqs.front().events)) {
 	 reqs.pop();
 	 if (!std::empty(reqs)) {
 	    co_await async_write(

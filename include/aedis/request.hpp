@@ -21,7 +21,7 @@
 namespace aedis { namespace resp {
 
 inline
-void make_bulk(std::string& to, std::string_view param)
+void add_bulk(std::string& to, std::string_view param)
 {
    to += "$";
    to += std::to_string(std::size(param));
@@ -31,7 +31,7 @@ void make_bulk(std::string& to, std::string_view param)
 }
 
 inline
-void make_header(std::string& to, int size)
+void add_header(std::string& to, int size)
 {
    to += "*";
    to += std::to_string(size);
@@ -44,7 +44,7 @@ struct accumulator {
       std::string a,
       std::string_view b) const
    {
-      make_bulk(a, b);
+      add_bulk(a, b);
       return a;
    }
 
@@ -56,7 +56,8 @@ struct accumulator {
       std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value),
 		      bool>::type = false) const
    {
-      make_bulk(a, std::to_string(b));
+      auto const v = std::to_string(b);
+      add_bulk(a, v);
       return a;
    }
 
@@ -65,8 +66,8 @@ struct accumulator {
       std::string a,
       std::pair<std::string, std::string_view> b) const
    {
-      make_bulk(a, b.first);
-      make_bulk(a, b.second);
+      add_bulk(a, b.first);
+      add_bulk(a, b.second);
       return a;
    }
 
@@ -78,8 +79,9 @@ struct accumulator {
       std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value),
 		      bool>::type = false) const
    {
-      make_bulk(a, std::to_string(b.first));
-      make_bulk(a, b.second);
+      auto const v = std::to_string(b.first);
+      add_bulk(a, v);
+      add_bulk(a, b.second);
       return a;
    }
 };
@@ -87,12 +89,12 @@ struct accumulator {
 inline
 void assemble(std::string& ret, std::string_view cmd)
 {
-   make_header(ret, 1);
-   make_bulk(ret, cmd);
+   add_header(ret, 1);
+   add_bulk(ret, cmd);
 }
 
 template <class Iter>
-auto assemble( std::string& ret
+void assemble( std::string& ret
              , std::string_view cmd
              , std::initializer_list<std::string_view> key
              , Iter begin
@@ -105,11 +107,9 @@ auto assemble( std::string& ret
 
    auto const d2 = std::distance(begin, end);
 
-   // Perhaps, we would avoid some copying by passing ret to the
-   // functions below instead of declaring a below.
    std::string a;
-   make_header(a, 1 + d1 + size * d2);
-   make_bulk(a, cmd);
+   add_header(a, 1 + d1 + size * d2);
+   add_bulk(a, cmd);
 
    auto b =
       std::accumulate( std::cbegin(key)
@@ -302,7 +302,10 @@ public:
       int end = -1,
       Event e = Event::ignore)
    {
-      auto par = {std::to_string(start), std::to_string(end)};
+      auto const start_str = std::to_string(start);
+      auto const end_str = std::to_string(end);
+      std::initializer_list<std::string_view> par {start_str, end_str};
+
       resp::assemble( payload
    	            , "BITCOUNT"
    		    , {key}
@@ -483,7 +486,8 @@ public:
       int secs,
       Event e = Event::ignore)
    {
-      auto par = {std::to_string(secs)};
+      auto const str = std::to_string(secs);
+      std::initializer_list<std::string_view> par {str};
       resp::assemble(payload, "EXPIRE", {key}, std::cbegin(par), std::cend(par));
       events.push({command::expire, e});
    }
@@ -495,8 +499,8 @@ public:
       std::string_view value,
       Event e = Event::ignore)
    {
-      std::initializer_list<std::string_view> par =
-	 {std::to_string(score), value};
+      auto const score_str = std::to_string(score);
+      std::initializer_list<std::string_view> par = {score_str, value};
       resp::assemble(payload, "ZADD", {key}, std::cbegin(par), std::cend(par));
       events.push({command::zadd, e});
    }
@@ -517,7 +521,10 @@ public:
 	  int max = -1,
 	  Event e = Event::ignore)
    {
-      auto par = {std::to_string(min), std::to_string(max)};
+      auto const min_str = std::to_string(min);
+      auto const max_str = std::to_string(max);
+      std::initializer_list<std::string_view> par {min_str, max_str};
+
       resp::assemble(payload, "ZRANGE", {key}, std::cbegin(par), std::cend(par));
       events.push({command::zrange, e});
    }
@@ -533,7 +540,8 @@ public:
       if (max != -1)
          max_str = std::to_string(max);
    
-      auto par = {std::to_string(min) , max_str};
+      auto const min_str = std::to_string(min);
+      auto par = {min_str , max_str};
       resp::assemble(payload, "ZRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
       events.push({command::zrangebyscore, e});
    }
@@ -557,7 +565,9 @@ public:
       int max = -1,
       Event e = Event::ignore)
    {
-      auto par = {std::to_string(min), std::to_string(max)};
+      auto const min_str = std::to_string(min);
+      auto const max_str = std::to_string(max);
+      std::initializer_list<std::string_view> par {min_str, max_str};
       resp::assemble(payload, "LRANGE", {key}, std::cbegin(par), std::cend(par));
       events.push({command::lrange, e});
    }
@@ -569,7 +579,9 @@ public:
       int max = -1,
       Event e = Event::ignore)
    {
-      auto par = {std::to_string(min), std::to_string(max)};
+      auto const min_str = std::to_string(min);
+      auto const max_str = std::to_string(max);
+      std::initializer_list<std::string_view> par {min_str, max_str};
       resp::assemble(payload, "LTRIM", {key}, std::cbegin(par), std::cend(par));
       events.push({command::ltrim, e});
    }
