@@ -104,21 +104,24 @@ struct writer_op {
       // When b1 is true we are coming from a successful write.
       auto const b1 = bytes_transferred != 0;
 
-      // When b2 is true there is no message to be written.
-      auto const b2 = std::empty(*reqs);
+      // Check whether we are coming from a successful write of a
+      // command that has a response as a push type, so we can proceed
+      // with the next write without waiting any response the next.
+      if (b1 && std::empty(reqs->front().req.events))
+	 reqs->pop();
 
-      // When b3 is true the message in the queue has already be sent.
-      auto const b3 = reqs->front().sent;
+      // When b3 is true there is a message that hasn't been sent yet.
+      auto const b3 = !std::empty(*reqs) && !reqs->front().sent;
 
-      if (b1 || b2 || b3) {
-	 st.expires_after(std::chrono::years{10});
-	 st.async_wait(std::move(self));
-      } else {
+      if (b3) {
 	 reqs->front().sent = true;
 	 async_write(
 	    stream,
 	    net::buffer(reqs->front().req.payload),
 	    std::move(self));
+      } else {
+	 st.expires_after(std::chrono::years{10});
+	 st.async_wait(std::move(self));
       }
    }
 };

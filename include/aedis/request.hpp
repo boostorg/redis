@@ -676,4 +676,19 @@ struct queue_elem {
 template <class Event>
 using request_queue = std::queue<queue_elem<Event>>;
 
+// Returns true when a new request can be sent to redis.
+template <class Event>
+bool queue_pop(request_queue<Event>& reqs)
+{
+   assert(!std::empty(reqs));
+   assert(!std::empty(reqs.front().req.events));
+   reqs.front().req.events.pop();
+   if (std::empty(reqs.front().req.events)) {
+      reqs.pop();
+      return true;
+   }
+
+   return false;
+}
+
 } // aedis

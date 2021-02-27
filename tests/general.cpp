@@ -655,6 +655,9 @@ net::awaitable<void> offline()
 int main(int argc, char* argv[])
 {
    net::io_context ioc {1};
+   tcp::resolver resv(ioc);
+   auto const results = resv.resolve("127.0.0.1", "6379");
+
    co_spawn(ioc, simple_string(), net::detached);
    co_spawn(ioc, number(), net::detached);
    co_spawn(ioc, array(), net::detached);
@@ -667,8 +670,6 @@ int main(int argc, char* argv[])
    co_spawn(ioc, set(), net::detached);
    co_spawn(ioc, map(), net::detached);
 
-   tcp::resolver resv(ioc);
-   auto const results = resv.resolve("127.0.0.1", "6379");
 
    co_spawn(ioc, test_list(results), net::detached);
    co_spawn(ioc, test_set(results), net::detached);

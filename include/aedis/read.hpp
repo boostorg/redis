@@ -347,11 +347,15 @@ async_reader(
          resps.forward_transaction(std::move(trans), recv);
 	 trans = {};
 
-	 reqs.front().req.events.pop(); // exec
-	 if (std::empty(reqs.front().req.events))
-	    reqs.pop();
+	 if (!queue_pop(reqs))
+	    continue;
 
-	 if (!std::empty(reqs) && !reqs.front().sent) {
+	 // The following loop apears again in this function below. We
+	 // need to implement this as a composed operation.
+	 while (!std::empty(reqs)) {
+	    if (reqs.front().sent)
+	       break;
+
 	    reqs.front().sent = true;
 	    co_await async_write(
 	       socket,
@@ -362,6 +366,11 @@ async_reader(
 	       reqs.front().sent = false;
 	       co_return;
 	    }
+
+	    if (!std::empty(reqs.front().req.events))
+	       break;
+
+	    reqs.pop();
 	 }
 
 	 continue;
@@ -381,15 +390,18 @@ async_reader(
 
       resps.forward(id, recv);
 
-      if (t != resp::type::push) {
-	 assert(!std::empty(reqs));
-	 assert(!std::empty(reqs.front().req.events));
-	 reqs.front().req.events.pop();
-	 if (std::empty(reqs.front().req.events))
-	    reqs.pop();
-      }
+      if (t == resp::type::push)
+	 continue;
 
-      if (!std::empty(reqs) && !reqs.front().sent) {
+      if (!queue_pop(reqs))
+	 continue;
+
+      // Commands like unsubscribe have a push response so we do not
+      // have to wait for a response before sending a new request.
+      while (!std::empty(reqs)) {
+	 if (reqs.front().sent)
+	    break;
+
 	 reqs.front().sent = true;
 	 co_await async_write(
 	    socket,
@@ -400,6 +412,11 @@ async_reader(
 	    reqs.front().sent = false;
 	    co_return;
 	 }
+
+	 if (!std::empty(reqs.front().req.events))
+	    break;
+
+	 reqs.pop();
       }
    }
 }
