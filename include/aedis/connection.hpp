@@ -13,6 +13,7 @@
 #include "config.hpp"
 #include "type.hpp"
 #include "request.hpp"
+#include "read.hpp"
 #include "response_buffers.hpp"
 
 namespace aedis {
@@ -25,7 +26,7 @@ private:
    net::ip::tcp::socket socket_;
    std::string buffer_;
    resp::response_buffers resps_;
-   std::queue<request<Event>> reqs_;
+   request_queue<Event> reqs_;
    bool reconnect_ = false;
 
    void reset()
@@ -33,7 +34,7 @@ private:
       socket_.close();
       timer_.cancel();
       reqs_.push({});
-      reqs_.front().hello();
+      reqs_.front().req.hello();
    }
 
    template <class Receiver>
@@ -86,7 +87,7 @@ public:
    , socket_{ioc}
    {
       reqs_.push({});
-      reqs_.front().hello();
+      reqs_.front().req.hello();
    }
 
    template <class Receiver>

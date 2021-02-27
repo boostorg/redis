@@ -667,4 +667,13 @@ public:
    }
 };
 
+template <class Event>
+struct queue_elem {
+   request<Event> req;
+   bool sent = false;
+};
+
+template <class Event>
+using request_queue = std::queue<queue_elem<Event>>;
+
 } // aedis

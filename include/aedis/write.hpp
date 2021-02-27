@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <queue>
 #include <chrono>
 
 #include "config.hpp"
@@ -77,7 +76,7 @@ template <
 struct writer_op {
    AsyncReadStream& stream;
    net::steady_timer& st;
-   std::queue<request<Event>>* reqs;
+   request_queue<Event>* reqs;
 
    template <class Self>
    void operator()(
@@ -97,6 +96,7 @@ struct writer_op {
       // be written.  This relies on the fact that async_write does
       // not complete with this error.
       if (ec && ec != net::error::operation_aborted) {
+	 reqs->front().sent = false;
          self.complete(ec);
          return;
       }
@@ -110,9 +110,10 @@ struct writer_op {
       }
 
       if (!std::empty(*reqs)) {
+	 reqs->front().sent = true;
          async_write(
             stream,
-            net::buffer(reqs->front().payload),
+            net::buffer(reqs->front().req.payload),
             std::move(self));
          return;
       }
@@ -127,7 +128,7 @@ template <
    >
 auto async_writer(
    AsyncWriteStream& stream,
-   std::queue<request<Event>>& reqs,
+   request_queue<Event>& reqs,
    net::steady_timer& writeTrigger,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
@@ -144,7 +145,7 @@ auto async_writer(
 // Returns true if a write has been triggered.
 template <class Event, class Filler>
 bool queue_writer(
-   std::queue<request<Event>>& reqs,
+   request_queue<Event>& reqs,
    Filler filler,
    net::steady_timer& st)
 {
@@ -152,7 +153,7 @@ bool queue_writer(
    if (empty || std::size(reqs) == 1)
       reqs.push({});
 
-   filler(reqs.back());
+   filler(reqs.back().req);
 
    if (empty)
       st.cancel();

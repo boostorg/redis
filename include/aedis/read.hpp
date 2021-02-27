@@ -258,7 +258,7 @@ async_reader(
    Storage& buffer,
    ResponseBuffers& resps,
    Receiver& recv,
-   std::queue<request<typename Receiver::event_type>>& reqs,
+   request_queue<typename Receiver::event_type>& reqs,
    boost::system::error_code& ec)
 {
    using event_type = typename Receiver::event_type;
@@ -284,9 +284,9 @@ async_reader(
       event_type event = event_type::ignore;
       if (t != resp::type::push) {
 	 assert(!std::empty(reqs));
-	 assert(!std::empty(reqs.front().events));
-	 cmd = reqs.front().events.front().first;
-	 event = reqs.front().events.front().second;
+	 assert(!std::empty(reqs.front().req.events));
+	 cmd = reqs.front().req.events.front().first;
+	 event = reqs.front().req.events.front().second;
       }
 
       auto const is_multi = cmd == command::multi;
@@ -314,13 +314,13 @@ async_reader(
          // Pushes the command in the transction command queue that will be
          // processed when exec arrives.
 	 response_id_type id
-	 { reqs.front().events.front().first
+	 { reqs.front().req.events.front().first
 	 , resp::type::invalid
-	 , reqs.front().events.front().second
+	 , reqs.front().req.events.front().second
 	 };
 
 	 trans.push(id);
-	 reqs.front().events.pop();
+	 reqs.front().req.events.pop();
 	 continue;
       }
 
@@ -347,19 +347,23 @@ async_reader(
          resps.forward_transaction(std::move(trans), recv);
 	 trans = {};
 
-	 reqs.front().events.pop(); // exec
-	 if (std::empty(reqs.front().events)) {
+	 reqs.front().req.events.pop(); // exec
+	 if (std::empty(reqs.front().req.events))
 	    reqs.pop();
-	    if (!std::empty(reqs)) {
-	       co_await async_write(
-		  socket,
-		  reqs.front(),
-		  net::redirect_error(net::use_awaitable, ec));
 
-	       if (ec)
-		  co_return;
+	 if (!std::empty(reqs)) {
+	    reqs.front().sent = true;
+	    co_await async_write(
+	       socket,
+	       reqs.front().req,
+	       net::redirect_error(net::use_awaitable, ec));
+
+	    if (ec) {
+	       reqs.front().sent = false;
+	       co_return;
 	    }
 	 }
+
 	 continue;
       }
 
@@ -377,20 +381,24 @@ async_reader(
 
       resps.forward(id, recv);
 
-      if (t == resp::type::push)
-	 continue;
+      if (t != resp::type::push) {
+	 assert(!std::empty(reqs));
+	 assert(!std::empty(reqs.front().req.events));
+	 reqs.front().req.events.pop();
+	 if (std::empty(reqs.front().req.events))
+	    reqs.pop();
+      }
 
-      assert(!std::empty(reqs));
-      assert(!std::empty(reqs.front().events));
+      if (!std::empty(reqs)) {
+	 reqs.front().sent = true;
+	 co_await async_write(
+	    socket,
+	    reqs.front().req,
+	    net::redirect_error(net::use_awaitable, ec));
 
-      reqs.front().events.pop();
-      if (std::empty(reqs.front().events)) {
-	 reqs.pop();
-	 if (!std::empty(reqs)) {
-	    co_await async_write(
-	       socket,
-	       reqs.front(),
-	       net::use_awaitable);
+	 if (ec) {
+	    reqs.front().sent = false;
+	    co_return;
 	 }
       }
    }
