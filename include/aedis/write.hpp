@@ -101,21 +101,24 @@ struct writer_op {
          return;
       }
 
-      // When the condition below holds we are coming from a
-      // successful write and should wait for the next write trigger.
-      if (bytes_transferred != 0) {
+      // When b1 is true we are coming from a successful write.
+      auto const b1 = bytes_transferred != 0;
+
+      // When b2 is true there is no message to be written.
+      auto const b2 = std::empty(*reqs);
+
+      // When b3 is true the message in the queue has already be sent.
+      auto const b3 = reqs->front().sent;
+
+      if (b1 || b2 || b3) {
 	 st.expires_after(std::chrono::years{10});
 	 st.async_wait(std::move(self));
-	 return;
-      }
-
-      if (!std::empty(*reqs)) {
+      } else {
 	 reqs->front().sent = true;
-         async_write(
-            stream,
-            net::buffer(reqs->front().req.payload),
-            std::move(self));
-         return;
+	 async_write(
+	    stream,
+	    net::buffer(reqs->front().req.payload),
+	    std::move(self));
       }
    }
 };

@@ -351,7 +351,7 @@ async_reader(
 	 if (std::empty(reqs.front().req.events))
 	    reqs.pop();
 
-	 if (!std::empty(reqs)) {
+	 if (!std::empty(reqs) && !reqs.front().sent) {
 	    reqs.front().sent = true;
 	    co_await async_write(
 	       socket,
@@ -389,7 +389,7 @@ async_reader(
 	    reqs.pop();
       }
 
-      if (!std::empty(reqs)) {
+      if (!std::empty(reqs) && !reqs.front().sent) {
 	 reqs.front().sent = true;
 	 co_await async_write(
 	    socket,
