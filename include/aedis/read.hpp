@@ -352,10 +352,7 @@ async_reader(
 
 	 // The following loop apears again in this function below. We
 	 // need to implement this as a composed operation.
-	 while (!std::empty(reqs)) {
-	    if (reqs.front().sent)
-	       break;
-
+	 while (!std::empty(reqs) && !reqs.front().sent) {
 	    reqs.front().sent = true;
 	    co_await async_write(
 	       socket,
@@ -398,10 +395,7 @@ async_reader(
 
       // Commands like unsubscribe have a push response so we do not
       // have to wait for a response before sending a new request.
-      while (!std::empty(reqs)) {
-	 if (reqs.front().sent)
-	    break;
-
+      while (!std::empty(reqs) && !reqs.front().sent) {
 	 reqs.front().sent = true;
 	 co_await async_write(
 	    socket,
