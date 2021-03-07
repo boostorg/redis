@@ -20,6 +20,8 @@ struct response_id {
    Event event;
 };
 
+#define EXPAND_RECEIVER_CASE(var, x) case command::x: recv.on_##x(id.event, var.result); break
+
 class response_buffers {
 private:
    // TODO: Use a variant to store all responses.
@@ -113,8 +115,8 @@ public:
          case type::map:
 	 {
 	    switch (id.cmd) {
-	       case command::hello: recv.on_hello(id.event, map_.result); break;
-	       case command::hgetall: recv.on_hgetall(id.event, map_.result); break;
+	       EXPAND_RECEIVER_CASE(map_, hello);
+	       EXPAND_RECEIVER_CASE(map_, hgetall);
 	       default: {assert(false);}
 	    }
 	    map_.result.clear();
@@ -122,10 +124,10 @@ public:
          case type::array:
 	 {
 	    switch (id.cmd) {
-	       case command::lrange: recv.on_lrange(id.event, array_.result); break;
-	       case command::lpop: recv.on_lpop(id.event, array_.result); break;
-	       case command::zrange: recv.on_zrange(id.event, array_.result); break;
-	       case command::zrangebyscore: recv.on_zrangebyscore(id.event, array_.result); break;
+	       EXPAND_RECEIVER_CASE(array_, lrange);
+	       EXPAND_RECEIVER_CASE(array_, lpop);
+	       EXPAND_RECEIVER_CASE(array_, zrange);
+	       EXPAND_RECEIVER_CASE(array_, zrangebyscore);
 	       default: {assert(false);}
 	    }
 	    array_.result.clear();
@@ -133,11 +135,11 @@ public:
          case type::simple_string:
 	 {
 	    switch (id.cmd) {
-	       case command::ping: recv.on_ping(id.event, simple_string_.result); break;
-	       case command::quit: recv.on_quit(id.event, simple_string_.result); break;
-	       case command::flushall: recv.on_flushall(id.event, simple_string_.result); break;
-	       case command::ltrim: recv.on_ltrim(id.event, simple_string_.result); break;
-	       case command::set: recv.on_set(id.event, simple_string_.result); break;
+	       EXPAND_RECEIVER_CASE(simple_string_, ping);
+	       EXPAND_RECEIVER_CASE(simple_string_, quit);
+	       EXPAND_RECEIVER_CASE(simple_string_, flushall);
+	       EXPAND_RECEIVER_CASE(simple_string_, ltrim);
+	       EXPAND_RECEIVER_CASE(simple_string_, set);
 	       default: {assert(false);}
 	    }
 	    simple_string_.result.clear();
@@ -145,17 +147,17 @@ public:
          case type::number:
 	 {
 	    switch (id.cmd) {
-	       case command::rpush: recv.on_rpush(id.event, number_.result); break;
-	       case command::del: recv.on_del(id.event, number_.result); break;
-	       case command::llen: recv.on_llen(id.event, number_.result); break;
-	       case command::publish: recv.on_publish(id.event, number_.result); break;
-	       case command::incr: recv.on_incr(id.event, number_.result); break;
-	       case command::append: recv.on_append(id.event, number_.result); break;
-	       case command::hset: recv.on_hset(id.event, number_.result); break;
-	       case command::hincrby: recv.on_hincrby(id.event, number_.result); break;
-	       case command::zadd: recv.on_zadd(id.event, number_.result); break;
-	       case command::zremrangebyscore: recv.on_zremrangebyscore(id.event, number_.result); break;
-	       case command::expire: recv.on_expire(id.event, number_.result); break;
+	       EXPAND_RECEIVER_CASE(number_, rpush);
+	       EXPAND_RECEIVER_CASE(number_, del);
+	       EXPAND_RECEIVER_CASE(number_, llen);
+	       EXPAND_RECEIVER_CASE(number_, publish);
+	       EXPAND_RECEIVER_CASE(number_, incr);
+	       EXPAND_RECEIVER_CASE(number_, append);
+	       EXPAND_RECEIVER_CASE(number_, hset);
+	       EXPAND_RECEIVER_CASE(number_, hincrby);
+	       EXPAND_RECEIVER_CASE(number_, zadd);
+	       EXPAND_RECEIVER_CASE(number_, zremrangebyscore);
+	       EXPAND_RECEIVER_CASE(number_, expire);
 	       default: {assert(false);}
 	    }
 	 } break;
@@ -182,9 +184,9 @@ public:
          case type::blob_string:
 	 {
 	    switch (id.cmd) {
-	       case command::lpop: recv.on_lpop(id.event, blob_string_.result); break;
-	       case command::get: recv.on_get(id.event, blob_string_.result); break;
-	       case command::hget: recv.on_hget(id.event, blob_string_.result); break;
+	       EXPAND_RECEIVER_CASE(blob_string_, lpop);
+	       EXPAND_RECEIVER_CASE(blob_string_, get);
+	       EXPAND_RECEIVER_CASE(blob_string_, hget);
 	       default: {assert(false);}
 	    }
 	    blob_string_.result.clear();
