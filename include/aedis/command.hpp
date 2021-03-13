@@ -8,6 +8,7 @@
 #pragma once
 
 #include <ostream>
+#include <cassert>
 
 namespace aedis {
 

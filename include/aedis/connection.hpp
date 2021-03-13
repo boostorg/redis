@@ -27,86 +27,26 @@ private:
    request_queue reqs_;
    bool reconnect_ = false;
 
-   void reset()
-   {
-      socket_.close();
-      timer_.cancel();
-      reqs_.push({});
-      reqs_.front().req.hello();
-   }
+   void reset();
 
-   template <class Receiver>
    net::awaitable<void>
    worker_coro(
-      Receiver& recv,
-      typename boost::asio::ip::tcp::resolver::results_type const& results)
-   {
-      auto ex = co_await net::this_coro::executor;
-
-      net::steady_timer timer {ex};
-      std::chrono::seconds wait_interval {1};
-
-      boost::system::error_code ec;
-      do {
-	 co_await async_connect(
-	    socket_,
-	    results,
-	    net::redirect_error(net::use_awaitable, ec));
-
-	 if (ec) {
-	    reset();
-	    timer.expires_after(wait_interval);
-	    co_await timer.async_wait(net::use_awaitable);
-	    continue;
-	 }
-
-	 async_writer(socket_, reqs_, timer_, net::detached);
-
-	 ec = {};
-	 co_await co_spawn(
-	    ex,
-	    async_reader(socket_, buffer_, resps_, recv, reqs_, ec),
-	    net::use_awaitable);
-
-	 if (ec) {
-	    reset();
-	    timer.expires_after(wait_interval);
-	    co_await timer.async_wait(net::use_awaitable);
-	    continue;
-	 }
-      } while (reconnect_);
-   }
+      receiver_base& recv,
+      boost::asio::ip::tcp::resolver::results_type const& results);
 
 public:
-   connection(net::io_context& ioc)
-   : timer_{ioc}
-   , socket_{ioc}
-   {
-      reqs_.push({});
-      reqs_.front().req.hello();
-   }
+   connection(net::io_context& ioc);
 
-   template <class Receiver>
    void
    start(
-      Receiver& recv,
-      typename boost::asio::ip::tcp::resolver::results_type const& results)
-   {
-      auto self = this->shared_from_this();
-      net::co_spawn(
-	 socket_.get_executor(),
-         [self, &recv, &results] () mutable { return self->worker_coro(recv, results); },
-         net::detached);
-   }
+      receiver_base& recv,
+      boost::asio::ip::tcp::resolver::results_type const& results);
 
    template <class Filler>
    void send(Filler filler)
       { queue_writer(reqs_, filler, timer_); }
 
-   void enable_reconnect()
-   {
-      reconnect_ = false;
-   }
+   void enable_reconnect() { reconnect_ = false; }
 };
 
 } // aedis

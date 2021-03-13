@@ -247,6 +247,28 @@ auto async_read_type(
 
 } // resp
 
+struct queue_elem {
+   request req;
+   bool sent = false;
+};
+
+using request_queue = std::queue<queue_elem>;
+
+// Returns true when a new request can be sent to redis.
+inline
+bool queue_pop(request_queue& reqs)
+{
+   assert(!std::empty(reqs));
+   assert(!std::empty(reqs.front().req.cmds));
+   reqs.front().req.cmds.pop();
+   if (std::empty(reqs.front().req.cmds)) {
+      reqs.pop();
+      return true;
+   }
+
+   return false;
+}
+
 template <
    class AsyncReadWriteStream,
    class Storage,

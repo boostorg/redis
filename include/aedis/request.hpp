@@ -10,6 +10,7 @@
 #include <queue>
 #include <vector>
 #include <string>
+#include <numeric>
 #include <algorithm>
 #include <functional>
 #include <type_traits>
@@ -523,26 +524,5 @@ public:
       cmds.push(command::client_id);
    }
 };
-
-struct queue_elem {
-   request req;
-   bool sent = false;
-};
-
-using request_queue = std::queue<queue_elem>;
-
-// Returns true when a new request can be sent to redis.
-bool queue_pop(request_queue& reqs)
-{
-   assert(!std::empty(reqs));
-   assert(!std::empty(reqs.front().req.cmds));
-   reqs.front().req.cmds.pop();
-   if (std::empty(reqs.front().req.cmds)) {
-      reqs.pop();
-      return true;
-   }
-
-   return false;
-}
 
 } // aedis
