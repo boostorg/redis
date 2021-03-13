@@ -258,14 +258,11 @@ async_reader(
    Storage& buffer,
    ResponseBuffers& resps,
    Receiver& recv,
-   request_queue<typename Receiver::event_type>& reqs,
+   request_queue& reqs,
    boost::system::error_code& ec)
 {
-   using event_type = typename Receiver::event_type;
-   using response_id_type = resp::response_id<event_type>;
-
-   // Used to queue the events of a transaction.
-   std::queue<response_id_type> trans;
+   // Used to queue the cmds of a transaction.
+   std::queue<std::pair<command, resp::type>> trans;
 
    for (;;) {
       auto t = resp::type::invalid;
@@ -281,12 +278,10 @@ async_reader(
       assert(t != resp::type::invalid);
 
       command cmd = command::none;
-      event_type event = event_type::ignore;
       if (t != resp::type::push) {
 	 assert(!std::empty(reqs));
-	 assert(!std::empty(reqs.front().req.events));
-	 cmd = reqs.front().req.events.front().first;
-	 event = reqs.front().req.events.front().second;
+	 assert(!std::empty(reqs.front().req.cmds));
+	 cmd = reqs.front().req.cmds.front();
       }
 
       auto const is_multi = cmd == command::multi;
@@ -313,26 +308,19 @@ async_reader(
 
          // Pushes the command in the transction command queue that will be
          // processed when exec arrives.
-	 response_id_type id
-	 { reqs.front().req.events.front().first
-	 , resp::type::invalid
-	 , reqs.front().req.events.front().second
-	 };
-
-	 trans.push(id);
-	 reqs.front().req.events.pop();
+	 trans.push({reqs.front().req.cmds.front(), resp::type::invalid });
+	 reqs.front().req.cmds.pop();
 	 continue;
       }
 
       if (cmd == command::exec) {
-	 assert(trans.front().cmd == command::multi);
+	 assert(trans.front().first == command::multi);
 
 	 // The exec response is an array where each element is the
 	 // response of one command in the transaction. This requires
 	 // a special response buffer, that can deal with recursive
 	 // data types.
-         response_id_type id{command::exec, t, event};
-         auto* tmp = resps.select(id);
+         auto* tmp = resps.select(command::exec, t);
 
 	 co_await async_read(
 	    socket,
@@ -364,7 +352,7 @@ async_reader(
 	       co_return;
 	    }
 
-	    if (!std::empty(reqs.front().req.events))
+	    if (!std::empty(reqs.front().req.cmds))
 	       break;
 
 	    reqs.pop();
@@ -373,8 +361,7 @@ async_reader(
 	 continue;
       }
 
-      response_id_type id{cmd, t, event}; 
-      auto* tmp = resps.select(id);
+      auto* tmp = resps.select(cmd, t);
 
       co_await async_read(
 	 socket,
@@ -385,7 +372,7 @@ async_reader(
       if (ec)
 	 co_return;
 
-      resps.forward(id, recv);
+      resps.forward(cmd, t, recv);
 
       if (t == resp::type::push)
 	 continue;
@@ -407,7 +394,7 @@ async_reader(
 	    co_return;
 	 }
 
-	 if (!std::empty(reqs.front().req.events))
+	 if (!std::empty(reqs.front().req.cmds))
 	    break;
 
 	 reqs.pop();

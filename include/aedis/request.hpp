@@ -133,90 +133,80 @@ void assemble(std::string& ret, std::string_view cmd, std::string_view key)
 
 } // resp
 
-// TODO: Make the write functions friend of this class and make the
-// payload private.
-template <class Event>
 class request {
 public:
    std::string payload;
-   std::queue<std::pair<command, Event>> events;
+   std::queue<command> cmds;
 
 public:
    bool empty() const noexcept { return std::empty(payload); };
    void clear()
    {
       payload.clear();
-      events = {};
+      cmds = {};
    }
 
-   void ping(Event e = Event::ignore)
+   void ping()
    {
       resp::assemble(payload, "PING");
-      events.push({command::ping, e});
+      cmds.push(command::ping);
    }
 
-   void quit(Event e = Event::ignore)
+   void quit()
    {
       resp::assemble(payload, "QUIT");
-      events.push({command::quit, e});
+      cmds.push(command::quit);
    }
 
-   void multi(Event e = Event::ignore)
+   void multi()
    {
       resp::assemble(payload, "MULTI");
-      events.push({command::multi, e});
+      cmds.push(command::multi);
    }
 
-   void exec(Event e = Event::ignore)
+   void exec()
    {
       resp::assemble(payload, "EXEC");
-      events.push({command::exec, e});
+      cmds.push(command::exec);
    }
 
-   void incr(std::string_view key, Event e = Event::ignore)
+   void incr(std::string_view key)
    {
       resp::assemble(payload, "INCR", key);
-      events.push({command::incr, e});
+      cmds.push(command::incr);
    }
 
-   void
-   auth(
-      std::string_view pwd,
-      Event e = Event::ignore)
+   void auth(std::string_view pwd)
    {
       resp::assemble(payload, "AUTH", pwd);
-      events.push({command::auth, e});
+      cmds.push(command::auth);
    }
 
-   auto bgrewriteaof(Event e = Event::ignore)
+   auto bgrewriteaof()
    {
       resp::assemble(payload, "BGREWRITEAOF");
-      events.push({command::bgrewriteaof, e});
+      cmds.push(command::bgrewriteaof);
    }
 
-   auto role(Event e = Event::ignore)
+   auto role()
    {
       resp::assemble(payload, "ROLE");
-      events.push({command::role, e});
+      cmds.push(command::role);
    }
 
-   auto bgsave(Event e = Event::ignore)
+   auto bgsave()
    {
       resp::assemble(payload, "BGSAVE");
-      events.push({command::bgsave, e});
+      cmds.push(command::bgsave);
    }
 
-   auto flushall(Event e = Event::ignore)
+   auto flushall()
    {
       resp::assemble(payload, "FLUSHALL");
-      events.push({command::flushall, e});
+      cmds.push(command::flushall);
    }
 
-   void
-   lpop(
-      std::string_view key,
-      int count = 1,
-      Event e = Event::ignore)
+   void lpop(std::string_view key, int count = 1)
    {
       //if (count == 1) {
 	 resp::assemble(payload, "LPOP", key);
@@ -230,7 +220,7 @@ public:
       //   std::cend(par));
       //}
 
-      events.push({command::lpop, e});
+      cmds.push(command::lpop);
    }
 
    void subscribe(std::string_view key)
@@ -246,61 +236,39 @@ public:
       resp::assemble(payload, "UNSUBSCRIBE", key);
    }
 
-   void
-   get(
-      std::string_view key,
-      Event e = Event::ignore)
+   void get(std::string_view key)
    {
       resp::assemble(payload, "GET", key);
-      events.push({command::get, e});
+      cmds.push(command::get);
    }
 
-   void
-   keys(
-      std::string_view pattern,
-      Event e = Event::ignore)
+   void keys(std::string_view pattern)
    {
       resp::assemble(payload, "KEYS", pattern);
-      events.push({command::keys, e});
+      cmds.push(command::keys);
    }
 
-   void
-   hello(
-      std::string_view version = "3",
-      Event e = Event::ignore)
+   void hello(std::string_view version = "3")
    {
       resp::assemble(payload, "HELLO", version);
-      events.push({command::hello, e});
+      cmds.push(command::hello);
    }
    
-   void
-   sentinel(
-      std::string_view arg,
-      std::string_view name,
-      Event e = Event::ignore)
+   void sentinel(std::string_view arg, std::string_view name)
    {
       auto par = {name};
       resp::assemble(payload, "SENTINEL", {arg}, std::cbegin(par), std::cend(par));
-      events.push({command::sentinel, e});
+      cmds.push(command::sentinel);
    }
    
-   auto
-   append(
-      std::string_view key,
-      std::string_view msg,
-      Event e = Event::ignore)
+   auto append(std::string_view key, std::string_view msg)
    {
       auto par = {msg};
       resp::assemble(payload, "APPEND", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::append, e});
+      cmds.push(command::append);
    }
    
-   auto
-   bitcount(
-      std::string_view key,
-      int start = 0,
-      int end = -1,
-      Event e = Event::ignore)
+   auto bitcount(std::string_view key, int start = 0, int end = -1)
    {
       auto const start_str = std::to_string(start);
       auto const end_str = std::to_string(end);
@@ -311,165 +279,113 @@ public:
    		    , {key}
    		    , std::cbegin(par)
    		    , std::cend(par));
-      events.push({command::bitcount, e});
+      cmds.push(command::bitcount);
    }
    
    template <class Iter>
-   auto
-   rpush(
-      std::string_view key,
-      Iter begin,
-      Iter end,
-      Event e = Event::ignore)
+   auto rpush(std::string_view key, Iter begin, Iter end)
    {
       resp::assemble(payload, "RPUSH", {key}, begin, end);
-      events.push({command::rpush, e});
+      cmds.push(command::rpush);
    }
    
    template <class T>
-   auto
-   rpush(
-      std::string_view key,
-      std::initializer_list<T> v,
-      Event e = Event::ignore)
+   auto rpush( std::string_view key, std::initializer_list<T> v)
    {
-      return rpush(key, std::cbegin(v), std::cend(v), e);
+      return rpush(key, std::cbegin(v), std::cend(v));
    }
 
    template <class Range>
-   void
-   rpush(
-      std::string_view key,
-      Range const& v, Event e = Event::ignore)
+   void rpush( std::string_view key, Range const& v)
    {
       using std::cbegin;
       using std::cend;
-      rpush(key, cbegin(v), cend(v), e);
+      rpush(key, cbegin(v), cend(v));
    }
    
    template <class Iter>
-   auto
-   lpush(
-      std::string_view key,
-      Iter begin,
-      Iter end,
-      Event e = Event::ignore)
+   auto lpush(std::string_view key, Iter begin, Iter end)
    {
       resp::assemble(payload, "LPUSH", {key}, begin, end);
-      events.push({command::lpush, e});
+      cmds.push(command::lpush);
    }
    
-   auto
-   psubscribe(
-      std::initializer_list<std::string_view> l,
-      Event e = Event::ignore)
+   auto psubscribe( std::initializer_list<std::string_view> l)
    {
       std::initializer_list<std::string_view> dummy = {};
       resp::assemble(payload, "PSUBSCRIBE", l, std::cbegin(dummy), std::cend(dummy));
-      events.push({command::psubscribe, e});
+      cmds.push(command::psubscribe);
    }
    
-   auto
-   publish(
-      std::string_view key,
-      std::string_view msg,
-      Event e = Event::ignore)
+   auto publish(std::string_view key, std::string_view msg)
    {
       auto par = {msg};
       resp::assemble(payload, "PUBLISH", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::publish, e});
+      cmds.push(command::publish);
    }
    
-   auto
-   set(std::string_view key,
-       std::initializer_list<std::string_view> args,
-       Event e = Event::ignore)
+   auto set(std::string_view key,
+            std::initializer_list<std::string_view> args)
    {
       resp::assemble(payload, "SET", {key}, std::cbegin(args), std::cend(args));
-      events.push({command::set, e});
+      cmds.push(command::set);
    }
 
    // TODO: Find a way to assert the value type is a pair.
    template <class Range>
-   auto
-   hset(
-      std::string_view key,
-      Range const& r, Event e = Event::ignore)
+   auto hset(std::string_view key, Range const& r)
    {
       //Note: Requires an std::pair as value type, otherwise gets
       //error: ERR Protocol error: expected '$', got '*'
       using std::cbegin;
       using std::cend;
       resp::assemble(payload, "HSET", {key}, std::cbegin(r), std::cend(r), 2);
-      events.push({command::hset, e});
+      cmds.push(command::hset);
    }
    
-   auto
-   hincrby(
-      std::string_view key,
-      std::string_view field,
-      int by,
-      Event e = Event::ignore)
+   auto hincrby(std::string_view key, std::string_view field, int by)
    {
       auto by_str = std::to_string(by);
       std::initializer_list<std::string_view> par {field, by_str};
       resp::assemble(payload, "HINCRBY", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::hincrby, e});
+      cmds.push(command::hincrby);
    }
    
-   auto
-   hkeys(
-      std::string_view key,
-      Event e = Event::ignore)
+   auto hkeys(std::string_view key)
    {
       auto par = {""};
       resp::assemble(payload, "HKEYS", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::hkeys, e});
+      cmds.push(command::hkeys);
    }
    
-   auto
-   hlen(
-      std::string_view key,
-      Event e = Event::ignore)
+   auto hlen(std::string_view key)
    {
       resp::assemble(payload, "HLEN", {key});
-      events.push({command::hlen, e});
+      cmds.push(command::hlen);
    }
 
-   auto
-   hgetall(
-      std::string_view key,
-      Event e = Event::ignore)
+   auto hgetall(std::string_view key)
    {
       resp::assemble(payload, "HGETALL", {key});
-      events.push({command::hgetall, e});
+      cmds.push(command::hgetall);
    }
 
-   auto
-   hvals(
-      std::string_view key,
-      Event e = Event::ignore)
+   auto hvals( std::string_view key)
    {
       resp::assemble(payload, "HVALS", {key});
-      events.push({command::hvals, e});
+      cmds.push(command::hvals);
    }
    
-   auto
-   hget(
-      std::string_view key,
-      std::string_view field,
-      Event e = Event::ignore)
+   auto hget(std::string_view key, std::string_view field)
    {
       auto par = {field};
       resp::assemble(payload, "HGET", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::hget, e});
+      cmds.push(command::hget);
    }
    
-   auto
-   hmget(
+   auto hmget(
       std::string_view key,
-      std::initializer_list<std::string_view> fields,
-      Event e = Event::ignore)
+      std::initializer_list<std::string_view> fields)
    {
       resp::assemble( payload
    	            , "HMGET"
@@ -477,64 +393,44 @@ public:
    		    , std::cbegin(fields)
    		    , std::cend(fields));
 
-      events.push({command::hmget, e});
+      cmds.push(command::hmget);
    }
    
-   auto
-   expire(
-      std::string_view key,
-      int secs,
-      Event e = Event::ignore)
+   auto expire(std::string_view key, int secs)
    {
       auto const str = std::to_string(secs);
       std::initializer_list<std::string_view> par {str};
       resp::assemble(payload, "EXPIRE", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::expire, e});
+      cmds.push(command::expire);
    }
    
-   auto
-   zadd(
-      std::string_view key,
-      int score,
-      std::string_view value,
-      Event e = Event::ignore)
+   auto zadd(std::string_view key, int score, std::string_view value)
    {
       auto const score_str = std::to_string(score);
       std::initializer_list<std::string_view> par = {score_str, value};
       resp::assemble(payload, "ZADD", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::zadd, e});
+      cmds.push(command::zadd);
    }
    
    template <class Range>
-   auto
-   zadd(std::initializer_list<std::string_view> key,
-	Range const& r,
-	Event e = Event::ignore)
+   auto zadd(std::initializer_list<std::string_view> key, Range const& r)
    {
       resp::assemble(payload, "ZADD", key, std::cbegin(r), std::cend(r), 2);
-      events.push({command::zadd, e});
+      cmds.push(command::zadd);
    }
    
-   auto
-   zrange(std::string_view key,
-	  int min = 0,
-	  int max = -1,
-	  Event e = Event::ignore)
+   auto zrange(std::string_view key, int min = 0, int max = -1)
    {
       auto const min_str = std::to_string(min);
       auto const max_str = std::to_string(max);
       std::initializer_list<std::string_view> par {min_str, max_str};
 
       resp::assemble(payload, "ZRANGE", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::zrange, e});
+      cmds.push(command::zrange);
    }
    
    auto
-   zrangebyscore(
-      std::string_view key,
-      int min,
-      int max,
-      Event e = Event::ignore)
+   zrangebyscore(std::string_view key, int min, int max)
    {
       auto max_str = std::string {"inf"};
       if (max != -1)
@@ -543,147 +439,105 @@ public:
       auto const min_str = std::to_string(min);
       auto par = {min_str , max_str};
       resp::assemble(payload, "ZRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::zrangebyscore, e});
+      cmds.push(command::zrangebyscore);
    }
    
    auto
    zremrangebyscore(
       std::string_view key,
       std::string_view min,
-      std::string_view max,
-      Event e = Event::ignore)
+      std::string_view max)
    {
       auto par = {min, max};
       resp::assemble(payload, "ZREMRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::zremrangebyscore, e});
+      cmds.push(command::zremrangebyscore);
    }
    
-   auto
-   lrange(
-      std::string_view key,
-      int min = 0,
-      int max = -1,
-      Event e = Event::ignore)
+   auto lrange(std::string_view key, int min = 0, int max = -1)
    {
       auto const min_str = std::to_string(min);
       auto const max_str = std::to_string(max);
       std::initializer_list<std::string_view> par {min_str, max_str};
       resp::assemble(payload, "LRANGE", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::lrange, e});
+      cmds.push(command::lrange);
    }
    
-   auto
-   ltrim(
-      std::string_view key,
-      int min = 0,
-      int max = -1,
-      Event e = Event::ignore)
+   auto ltrim(std::string_view key, int min = 0, int max = -1)
    {
       auto const min_str = std::to_string(min);
       auto const max_str = std::to_string(max);
       std::initializer_list<std::string_view> par {min_str, max_str};
       resp::assemble(payload, "LTRIM", {key}, std::cbegin(par), std::cend(par));
-      events.push({command::ltrim, e});
+      cmds.push(command::ltrim);
    }
    
    // TODO: Overload for vector del.
-   auto
-   del(
-      std::string_view key,
-      Event e = Event::ignore)
+   auto del(std::string_view key)
    {
       resp::assemble(payload, "DEL", key);
-      events.push({command::del, e});
+      cmds.push(command::del);
    }
    
-   auto
-   llen(
-      std::string_view key,
-      Event e = Event::ignore)
+   auto llen(std::string_view key)
    {
       resp::assemble(payload, "LLEN", key);
-      events.push({command::llen, e});
+      cmds.push(command::llen);
    }
 
    template <class Iter>
-   void
-   sadd(
-      std::string_view key,
-      Iter begin,
-      Iter end,
-      Event e = Event::ignore)
+   void sadd(std::string_view key, Iter begin, Iter end)
    {
       resp::assemble(payload, "SADD", {key}, begin, end);
-      events.push({command::sadd, e});
+      cmds.push(command::sadd);
    }
 
    template <class Range>
-   void
-   sadd(
-      std::string_view key,
-      Range const& r,
-      Event e = Event::ignore)
+   void sadd(std::string_view key, Range const& r)
    {
       using std::cbegin;
       using std::cend;
-      sadd(key, cbegin(r), cend(r), e);
+      sadd(key, cbegin(r), cend(r));
    }
 
-   auto
-   smembers(
-      std::string_view key,
-      Event e = Event::ignore)
+   auto smembers(std::string_view key)
    {
       resp::assemble(payload, "SMEMBERS", key);
-      events.push({command::smembers, e});
+      cmds.push(command::smembers);
    }
 
-   auto
-   scard(
-      std::string_view key,
-      Event e = Event::ignore)
+   auto scard(std::string_view key)
    {
       resp::assemble(payload, "SCARD", key);
-      events.push({command::scard, e});
+      cmds.push(command::scard);
    }
 
-   auto
-   scard(
-      std::string_view key,
-      std::initializer_list<std::string_view> l,
-      Event e = Event::ignore)
+   auto scard(std::string_view key, std::initializer_list<std::string_view> l)
    {
       resp::assemble(payload, "SDIFF", {key}, std::cbegin(l), std::cend(l));
-      events.push({command::scard, e});
+      cmds.push(command::scard);
    }
 
-   auto
-   client_id(
-      std::string_view parameters,
-      Event e = Event::ignore)
+   auto client_id(std::string_view parameters)
    {
       resp::assemble(payload, "CLIENT ID", {parameters});
-      events.push({command::client_id, e});
+      cmds.push(command::client_id);
    }
 };
 
-template <class Event>
 struct queue_elem {
-   request<Event> req;
+   request req;
    bool sent = false;
 };
 
-template <class Event>
-using request_queue = std::queue<queue_elem<Event>>;
+using request_queue = std::queue<queue_elem>;
 
 // Returns true when a new request can be sent to redis.
-template <class Event>
-bool queue_pop(request_queue<Event>& reqs)
+bool queue_pop(request_queue& reqs)
 {
    assert(!std::empty(reqs));
-   assert(!std::empty(reqs.front().req.events));
-   reqs.front().req.events.pop();
-   if (std::empty(reqs.front().req.events)) {
+   assert(!std::empty(reqs.front().req.cmds));
+   reqs.front().req.cmds.pop();
+   if (std::empty(reqs.front().req.cmds)) {
       reqs.pop();
       return true;
    }

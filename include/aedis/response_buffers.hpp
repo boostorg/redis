@@ -9,22 +9,16 @@
 
 #include "type.hpp"
 #include "command.hpp"
+#include "receiver_base.hpp"
 #include "response_types.hpp"
 
 namespace aedis { namespace resp {
 
-template <class Event>
-struct response_id {
-   command cmd;
-   type t;
-   Event event;
-};
-
-#define EXPAND_RECEIVER_CASE(var, x) case command::x: recv.on_##x(id.event, var.result); break
+#define EXPAND_RECEIVER_CASE(var, x) case command::x: recv.on_##x(var.result); break
 
 class response_buffers {
 private:
-   // TODO: Use a variant to store all responses.
+   // Consider a variant to store all responses.
    response_tree tree_;
    response_array array_;
    response_array push_;
@@ -44,15 +38,14 @@ private:
    response_ignore ignore_;
 
 public:
-   // When the id is from a transaction the type of the message is not
-   // specified.
-   template <class Event>
-   response_base* select(response_id<Event> const& id)
+   // When the cmd is from a transaction the type of the message is
+   // not specified.
+   response_base* select(command cmd, type t)
    {
-      if (id.cmd == command::exec)
+      if (cmd == command::exec)
         return &tree_;
 
-      switch (id.t) {
+      switch (t) {
          case type::push: return &push_;
          case type::set: return &set_;
          case type::map: return &map_;
@@ -76,45 +69,35 @@ public:
       }
    }
 
-   template <
-      class Event,
-      class Receiver>
-   void
-   forward_transaction(
-      std::queue<response_id<Event>> ids,
-      Receiver& recv)
+   void forward_transaction(
+      std::queue<std::pair<command, type>> ids,
+      receiver_base& recv)
    {
       while (!std::empty(ids)) {
-        std::cout << ids.front() << std::endl;
+        //std::cout << ids.front() << std::endl;
         ids.pop();
       }
 
       tree_.result.clear();
    }
 
-   template <
-      class Event,
-      class Receiver>
-   void
-   forward(
-      response_id<Event> const& id,
-      Receiver& recv)
+   void forward(command cmd, type t, receiver_base& recv)
    {
-      switch (id.t) {
+      switch (t) {
          case type::push:
 	 {
-	    assert(id.t == type::push);
-	    recv.on_push(id.event, push_.result);
+	    assert(t == type::push);
+	    recv.on_push(push_.result);
 	    push_.result.clear();
 	 } break;
          case type::set:
 	 {
-	    //recv.on_set(id.cmd, id.event, set_.result);
+	    //recv.on_set(cmd, set_.result);
 	    set_.result.clear();
 	 } break;
          case type::map:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
 	       EXPAND_RECEIVER_CASE(map_, hello);
 	       EXPAND_RECEIVER_CASE(map_, hgetall);
 	       default: {assert(false);}
@@ -123,7 +106,13 @@ public:
 	 } break;
          case type::array:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
+	       EXPAND_RECEIVER_CASE(array_, acl_list);
+	       EXPAND_RECEIVER_CASE(array_, acl_users);
+	       EXPAND_RECEIVER_CASE(array_, acl_getuser);
+	       EXPAND_RECEIVER_CASE(array_, acl_cat);
+	       EXPAND_RECEIVER_CASE(array_, acl_log);
+	       EXPAND_RECEIVER_CASE(array_, acl_help);
 	       EXPAND_RECEIVER_CASE(array_, lrange);
 	       EXPAND_RECEIVER_CASE(array_, lpop);
 	       EXPAND_RECEIVER_CASE(array_, zrange);
@@ -134,7 +123,11 @@ public:
 	 } break;
          case type::simple_string:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
+	       EXPAND_RECEIVER_CASE(simple_string_, acl_load);
+	       EXPAND_RECEIVER_CASE(simple_string_, acl_save);
+	       EXPAND_RECEIVER_CASE(simple_string_, acl_setuser);
+	       EXPAND_RECEIVER_CASE(simple_string_, acl_log);
 	       EXPAND_RECEIVER_CASE(simple_string_, ping);
 	       EXPAND_RECEIVER_CASE(simple_string_, quit);
 	       EXPAND_RECEIVER_CASE(simple_string_, flushall);
@@ -146,7 +139,8 @@ public:
 	 } break;
          case type::number:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
+	       EXPAND_RECEIVER_CASE(number_, acl_deluser);
 	       EXPAND_RECEIVER_CASE(number_, rpush);
 	       EXPAND_RECEIVER_CASE(number_, del);
 	       EXPAND_RECEIVER_CASE(number_, llen);
@@ -163,27 +157,29 @@ public:
 	 } break;
          case type::double_type:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
 	       default: {assert(false);}
 	    }
 	 } break;
          case type::big_number:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
 	       default: {assert(false);}
 	    }
 	    big_number_.result.clear();
 	 } break;
          case type::boolean:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
 	       default: {assert(false);}
 	    }
 	    bool_.result = false;
 	 } break;
          case type::blob_string:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
+	       EXPAND_RECEIVER_CASE(blob_string_, acl_genpass);
+	       EXPAND_RECEIVER_CASE(blob_string_, acl_whoami);
 	       EXPAND_RECEIVER_CASE(blob_string_, lpop);
 	       EXPAND_RECEIVER_CASE(blob_string_, get);
 	       EXPAND_RECEIVER_CASE(blob_string_, hget);
@@ -193,31 +189,31 @@ public:
 	 } break;
 	 case type::verbatim_string:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
 	       default: {assert(false);}
 	    }
 	    verbatim_string_.result.clear();
 	 } break;
 	 case type::streamed_string_part:
 	 {
-	    switch (id.cmd) {
+	    switch (cmd) {
 	       default: {assert(false);}
 	    }
 	    streamed_string_part_.result.clear();
 	 } break;
          case type::simple_error:
 	 {
-	    recv.on_simple_error(id.cmd, id.event, simple_error_.result);
+	    recv.on_simple_error(cmd, simple_error_.result);
 	    simple_error_.result.clear();
 	 } break;
          case type::blob_error:
 	 {
-	    recv.on_blob_error(id.cmd, id.event, blob_error_.result);
+	    recv.on_blob_error(cmd, blob_error_.result);
 	    blob_error_.result.clear();
 	 } break;
          case type::null:
 	 {
-	    recv.on_null(id.cmd, id.event);
+	    recv.on_null(cmd);
 	 } break;
          case type::attribute:
 	 {
@@ -231,14 +227,3 @@ public:
 } // resp
 } // aedis
 
-template <class Event>
-std::ostream&
-operator<<(std::ostream& os, aedis::resp::response_id<Event> const& id)
-{
-   os
-      << std::left << std::setw(15) << id.cmd
-      << std::left << std::setw(20) << id.t
-      << std::left << std::setw(4) << (int)id.event
-   ;
-   return os;
-}

@@ -12,18 +12,16 @@ using namespace aedis;
 
 // Low level async example.
 
-enum class events {one, two, ignore};
-
 net::awaitable<void> example()
 {
    try {
       auto ex = co_await net::this_coro::executor;
 
-      request<events> req;
+      request req;
       req.rpush("list", {1, 2, 3});
-      req.lrange("list", 0, -1, events::one);
+      req.lrange("list", 0, -1);
       req.sadd("set", std::set<int>{3, 4, 5});
-      req.smembers("set", events::two);
+      req.smembers("set");
       req.quit();
 
       net::ip::tcp::resolver resv(ex);
@@ -34,18 +32,11 @@ net::awaitable<void> example()
 
       std::string buffer;
       for (;;) {
-         switch (req.events.front().second) {
-            case events::one:
+         switch (req.cmds.front()) {
+            case command::lrange:
             {
                resp::response_array res;
                co_await async_read(socket, buffer, res, net::use_awaitable);
-               print(res.result, "one");
-            } break;
-            case events::two:
-            {
-               resp::response_array res;
-               co_await async_read(socket, buffer, res, net::use_awaitable);
-               print(res.result, "two");
             } break;
             default:
             {
@@ -53,7 +44,7 @@ net::awaitable<void> example()
                co_await async_read(socket, buffer, res, net::use_awaitable);
             }
          }
-         req.events.pop();
+         req.cmds.pop();
       }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

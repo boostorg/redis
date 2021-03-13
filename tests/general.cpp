@@ -21,8 +21,6 @@ namespace this_coro = net::this_coro;
 
 using namespace aedis;
 
-enum class events {one, two, three, ignore};
-
 template <class T>
 void check_equal(T const& a, T const& b, std::string const& msg = "")
 {
@@ -32,18 +30,17 @@ void check_equal(T const& a, T const& b, std::string const& msg = "")
      std::cout << "Error: " << msg << std::endl;
 }
 
-class test_receiver : public receiver_base<events> {
+class test_receiver : public receiver_base {
 private:
-   std::shared_ptr<connection<events>> conn_;
+   std::shared_ptr<connection> conn_;
 
    std::vector<int> list_ {1 ,2, 3, 4, 5, 6};
    std::string set_ {"aaa"};
 
 public:
-   using event_type = events;
-   test_receiver(std::shared_ptr<connection<events>> conn) : conn_{conn} { }
+   test_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
-   void on_hello(events ev, resp::array_type& v) noexcept override
+   void on_hello(resp::array_type& v) noexcept override
    {
       auto f = [this](auto& req)
       {
@@ -83,12 +80,12 @@ public:
       conn_->send(f);
    }
 
-   void on_simple_error(command cmd, events ev, resp::simple_error_type& v) noexcept override
+   void on_simple_error(command cmd, resp::simple_error_type& v) noexcept override
    {
       std::cout << v << std::endl;
    }
 
-   void on_push(events ev, resp::array_type& v) noexcept override
+   void on_push(resp::array_type& v) noexcept override
    {
       // TODO: Check the responses below.
       // {"subscribe", "channel", "1"}
@@ -97,76 +94,76 @@ public:
    }
 
    // Blob string.
-   void on_get(events ev, resp::blob_string_type& s) noexcept override
+   void on_get(resp::blob_string_type& s) noexcept override
       { check_equal(s, set_, "get (receiver)"); }
 
-   void on_hget(events ev, resp::blob_string_type& s) noexcept override
+   void on_hget(resp::blob_string_type& s) noexcept override
       { check_equal(s, std::string{"value2"}, "hget (receiver)"); }
 
-   void on_lpop(events ev, resp::blob_string_type& s) noexcept override
+   void on_lpop(resp::blob_string_type& s) noexcept override
       { check_equal(s, {"3"}, "lpop (receiver)"); }
 
    // Array
-   void on_lrange(events ev, resp::array_type& v) noexcept override
+   void on_lrange(resp::array_type& v) noexcept override
       { check_equal(v, {"1", "2", "3", "4", "5", "6"}, "lrange (receiver)"); }
 
-   void on_lpop(events ev, resp::array_type& s) noexcept override
+   void on_lpop(resp::array_type& s) noexcept override
       { check_equal(s, {"4", "5"}, "lpop(count) (receiver)"); }
 
-   void on_hgetall(events ev, resp::array_type& s) noexcept override
+   void on_hgetall(resp::array_type& s) noexcept override
       { check_equal(s, {"field1", "value1", "field2", "value2"}, "hgetall (receiver)"); }
 
-   void on_zrange(events ev, resp::array_type& s) noexcept override
+   void on_zrange(resp::array_type& s) noexcept override
       { check_equal(s, {"Marcelo"}, "zrange (receiver)"); }
 
-   void on_zrangebyscore(events ev, resp::array_type& s) noexcept override
+   void on_zrangebyscore(resp::array_type& s) noexcept override
       { check_equal(s, {"Marcelo"}, "zrangebyscore (receiver)"); }
 
    // Simple string
-   void on_set(events ev, resp::simple_string_type& s) noexcept override
+   void on_set(resp::simple_string_type& s) noexcept override
       { check_equal(s, {"OK"}, "set (receiver)"); }
 
-   void on_ping(events ev, resp::simple_string_type& s) noexcept override
+   void on_ping(resp::simple_string_type& s) noexcept override
       { check_equal(s, {"PONG"}, "ping (receiver)"); }
 
-   void on_quit(events ev, resp::simple_string_type& s) noexcept override
+   void on_quit(resp::simple_string_type& s) noexcept override
       { check_equal(s, {"OK"}, "quit (receiver)"); }
 
-   void on_flushall(events ev, resp::simple_string_type& s) noexcept override
+   void on_flushall(resp::simple_string_type& s) noexcept override
       { check_equal(s, {"OK"}, "flushall (receiver)"); }
 
-   void on_ltrim(events ev, resp::simple_string_type& s) noexcept override
+   void on_ltrim(resp::simple_string_type& s) noexcept override
       { check_equal(s, {"OK"}, "ltrim (receiver)"); }
 
    // Number
-   void on_append(events ev, resp::number_type n) noexcept override
+   void on_append(resp::number_type n) noexcept override
       { check_equal((int)n, 4, "append (receiver)"); }
 
-   void on_hset(events ev, resp::number_type n) noexcept override
+   void on_hset(resp::number_type n) noexcept override
       { check_equal((int)n, 2, "hset (receiver)"); }
 
-   void on_rpush(events ev, resp::number_type n) noexcept override
+   void on_rpush(resp::number_type n) noexcept override
       { check_equal(n, (resp::number_type)std::size(list_), "rpush (receiver)"); }
 
-   void on_del(events ev, resp::number_type n) noexcept override
+   void on_del(resp::number_type n) noexcept override
       { check_equal((int)n, 1, "del (receiver)"); }
 
-   void on_llen(events ev, resp::number_type n) noexcept override
+   void on_llen(resp::number_type n) noexcept override
       { check_equal((int)n, 6, "llen (receiver)"); }
 
-   void on_incr(events ev, resp::number_type n) noexcept override
+   void on_incr(resp::number_type n) noexcept override
       { check_equal((int)n, 1, "incr (receiver)"); }
 
-   void on_publish(events ev, resp::number_type n) noexcept override
+   void on_publish(resp::number_type n) noexcept override
       { check_equal((int)n, 1, "publish (receiver)"); }
 
-   void on_hincrby(events ev, resp::number_type n) noexcept override
+   void on_hincrby(resp::number_type n) noexcept override
       { check_equal((int)n, 10, "hincrby (receiver)"); }
 
-   void on_zadd(events ev, resp::number_type n) noexcept override
+   void on_zadd(resp::number_type n) noexcept override
       { check_equal((int)n, 1, "zadd (receiver)"); }
 
-   void on_zremrangebyscore(events ev, resp::number_type& s) noexcept override
+   void on_zremrangebyscore(resp::number_type s) noexcept override
       { check_equal((int)s, 1, "zremrangebyscore (receiver)"); }
 };
 
@@ -175,7 +172,7 @@ test_list(net::ip::tcp::resolver::results_type const& results)
 {
    std::vector<int> list {1 ,2, 3, 4, 5, 6};
 
-   request<events> p;
+   request p;
    p.hello("3");
    p.flushall();
    p.rpush("a", list);
@@ -254,7 +251,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    tcp_socket socket {ex};
    co_await async_connect(socket, results);
 
-   request<events> p;
+   request p;
    p.hello("3");
    p.flushall();
    p.set("s", {test_bulk1});
@@ -674,7 +671,7 @@ int main(int argc, char* argv[])
    co_spawn(ioc, test_list(results), net::detached);
    co_spawn(ioc, test_set(results), net::detached);
 
-   auto conn = std::make_shared<connection<events>>(ioc);
+   auto conn = std::make_shared<connection>(ioc);
    test_receiver recv{conn};
    conn->start(recv, results);
 

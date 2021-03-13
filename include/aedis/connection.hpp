@@ -18,15 +18,13 @@
 
 namespace aedis {
 
-template <class Event>
-class connection :
-   public std::enable_shared_from_this<connection<Event>> {
+class connection : public std::enable_shared_from_this<connection> {
 private:
    net::steady_timer timer_;
    net::ip::tcp::socket socket_;
    std::string buffer_;
    resp::response_buffers resps_;
-   request_queue<Event> reqs_;
+   request_queue reqs_;
    bool reconnect_ = false;
 
    void reset()
@@ -80,8 +78,6 @@ private:
    }
 
 public:
-   using event_type = Event;
-
    connection(net::io_context& ioc)
    : timer_{ioc}
    , socket_{ioc}

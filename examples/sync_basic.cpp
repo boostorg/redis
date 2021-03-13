@@ -10,12 +10,10 @@
 
 using namespace aedis;
 
-enum events {one, two, ignore};
-
 int main()
 {
    try {
-      request<events> req;
+      request req;
       req.hello();
       req.rpush("list", {1, 2, 3});
       req.lrange("list");

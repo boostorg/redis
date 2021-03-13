@@ -9,31 +9,26 @@
 
 using namespace aedis;
 
-// This example shows how to receive and send events.
-
-enum class events {one, two, three, ignore};
-
-void f(request<events>& req)
+void f(request& req)
 {
-   req.ping(events::one);
+   req.ping();
    req.quit();
 }
 
-class receiver : public receiver_base<events> {
+class receiver : public receiver_base {
 private:
-   std::shared_ptr<connection<events>> conn_;
+   std::shared_ptr<connection> conn_;
 
 public:
-   using event_type = events;
-   receiver(std::shared_ptr<connection<events>> conn) : conn_{conn} { }
+   receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
-   void on_hello(events ev, resp::array_type& v) noexcept override
+   void on_hello(resp::array_type& v) noexcept override
       { conn_->send(f); }
 
-   void on_ping(events ev, resp::simple_string_type& s) noexcept override
+   void on_ping(resp::simple_string_type& s) noexcept override
       { std::cout << "PING: " << s << std::endl; }
 
-   void on_quit(events ev, resp::simple_string_type& s) noexcept override
+   void on_quit(resp::simple_string_type& s) noexcept override
       { std::cout << "QUIT: " << s << std::endl; }
 };
 
@@ -42,7 +37,7 @@ int main()
    net::io_context ioc {1};
    net::ip::tcp::resolver resolver{ioc};
    auto const results = resolver.resolve("127.0.0.1", "6379");
-   auto conn = std::make_shared<connection<events>>(ioc);
+   auto conn = std::make_shared<connection>(ioc);
    receiver recv{conn};
    conn->start(recv, results);
    ioc.run();

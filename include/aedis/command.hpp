@@ -12,7 +12,19 @@
 namespace aedis {
 
 enum class command
-{ append
+{ acl_load
+, acl_save
+, acl_list
+, acl_users
+, acl_getuser
+, acl_setuser
+, acl_deluser
+, acl_cat
+, acl_genpass
+, acl_whoami
+, acl_log
+, acl_help
+, append
 , auth
 , bgrewriteaof
 , bgsave

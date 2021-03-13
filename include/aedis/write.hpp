@@ -16,13 +16,11 @@
 
 namespace aedis {
 
-template<
-   class SyncWriteStream,
-   class Event>
+template<class SyncWriteStream>
 std::size_t
 write(
    SyncWriteStream& stream,
-   request<Event>& req,
+   request& req,
    boost::system::error_code& ec)
 {
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
@@ -31,13 +29,10 @@ write(
     return write(stream, net::buffer(req.payload), ec);
 }
 
-template<
-   class SyncWriteStream,
-   class Event>
-std::size_t
-write(
+template<class SyncWriteStream>
+std::size_t write(
    SyncWriteStream& stream,
-   request<Event>& req)
+   request& req)
 {
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
         "SyncWriteStream type requirements not met");
@@ -53,13 +48,12 @@ write(
 
 template<
    class AsyncWriteStream,
-   class Event,
    class CompletionToken =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>>
 auto
 async_write(
    AsyncWriteStream& stream,
-   request<Event>& req,
+   request& req,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
 {
@@ -70,13 +64,11 @@ async_write(
    return net::async_write(stream, net::buffer(req.payload), token);
 }
 
-template <
-  class AsyncReadStream,
-  class Event>
+template <class AsyncReadStream>
 struct writer_op {
    AsyncReadStream& stream;
    net::steady_timer& st;
-   request_queue<Event>* reqs;
+   request_queue* reqs;
 
    template <class Self>
    void operator()(
@@ -107,7 +99,7 @@ struct writer_op {
       // Check whether we are coming from a successful write of a
       // command that has a response as a push type, so we can proceed
       // with the next write without waiting any response the next.
-      if (b1 && std::empty(reqs->front().req.events))
+      if (b1 && std::empty(reqs->front().req.cmds))
 	 reqs->pop();
 
       // When b3 is true there is a message that hasn't been sent yet.
@@ -128,13 +120,12 @@ struct writer_op {
 
 template <
    class AsyncWriteStream,
-   class Event,
    class CompletionToken =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>
    >
 auto async_writer(
    AsyncWriteStream& stream,
-   request_queue<Event>& reqs,
+   request_queue& reqs,
    net::steady_timer& writeTrigger,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
@@ -142,16 +133,16 @@ auto async_writer(
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(writer_op<AsyncWriteStream, Event> {stream, writeTrigger, &reqs},
+      >(writer_op<AsyncWriteStream> {stream, writeTrigger, &reqs},
         token,
         stream,
 	writeTrigger);
 }
 
 // Returns true if a write has been triggered.
-template <class Event, class Filler>
+template <class Filler>
 bool queue_writer(
-   request_queue<Event>& reqs,
+   request_queue& reqs,
    Filler filler,
    net::steady_timer& st)
 {
