@@ -36,6 +36,8 @@ public:
 
    RECEIVER_FUNCTION_REF(map_type, hello);
 
+   RECEIVER_FUNCTION_REF(set_type, smembers);
+
    RECEIVER_FUNCTION_REF(simple_string_type, acl_load);
    RECEIVER_FUNCTION_REF(simple_string_type, acl_save);
    RECEIVER_FUNCTION_REF(simple_string_type, acl_setuser);
@@ -58,6 +60,7 @@ public:
    RECEIVER_FUNCTION(number_type, zadd);
    RECEIVER_FUNCTION(number_type, zremrangebyscore);
    RECEIVER_FUNCTION(number_type, expire);
+   RECEIVER_FUNCTION(number_type, sadd);
 
    RECEIVER_FUNCTION_REF(blob_string_type, acl_genpass);
    RECEIVER_FUNCTION_REF(blob_string_type, acl_whoami);

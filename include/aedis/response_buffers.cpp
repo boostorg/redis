@@ -34,7 +34,10 @@ void response_buffers::forward(command cmd, type t, receiver_base& recv)
       } break;
       case type::set:
       {
-	 //recv.on_set(cmd, set_.result);
+	 switch (cmd) {
+	    EXPAND_RECEIVER_CASE(set_, smembers);
+	    default: {assert(false);}
+	 }
 	 set_.result.clear();
       } break;
       case type::map:
@@ -94,6 +97,7 @@ void response_buffers::forward(command cmd, type t, receiver_base& recv)
 	    EXPAND_RECEIVER_CASE(number_, zadd);
 	    EXPAND_RECEIVER_CASE(number_, zremrangebyscore);
 	    EXPAND_RECEIVER_CASE(number_, expire);
+	    EXPAND_RECEIVER_CASE(number_, sadd);
 	    default: {assert(false);}
 	 }
       } break;

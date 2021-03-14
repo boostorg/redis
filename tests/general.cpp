@@ -74,6 +74,9 @@ public:
 	 req.zrangebyscore("f", 1, 1);
 	 req.zremrangebyscore("f", "-inf", "+inf");
 
+	 req.sadd("g", std::vector<int>{1, 2, 3});
+	 req.smembers("g");
+
 	 req.quit();
       };
 
@@ -118,6 +121,9 @@ public:
 
    void on_zrangebyscore(resp::array_type& s) noexcept override
       { check_equal(s, {"Marcelo"}, "zrangebyscore (receiver)"); }
+
+   void on_smembers(resp::array_type& s) noexcept override
+      { check_equal(s, {"1", "2", "3"}, "smembers (receiver)"); }
 
    // Simple string
    void on_set(resp::simple_string_type& s) noexcept override
@@ -165,6 +171,9 @@ public:
 
    void on_zremrangebyscore(resp::number_type s) noexcept override
       { check_equal((int)s, 1, "zremrangebyscore (receiver)"); }
+
+   void on_sadd(resp::number_type n) noexcept override
+      { check_equal((int)n, 3, "sadd (receiver)"); }
 };
 
 net::awaitable<void>

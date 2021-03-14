@@ -12,7 +12,6 @@ libdir = $(exec_prefix)/lib
 VPATH = ./include/aedis/
 
 CPPFLAGS =
-CPPFLAGS += -O0
 CPPFLAGS += -std=c++20 -Wall #-Werror
 CPPFLAGS += -fcoroutines
 CPPFLAGS += -I/opt/boost_1_74_0/include
@@ -23,6 +22,7 @@ CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS
 
 #CPPFLAGS += -g
 #CPPFLAGS += -fsanitize=address
+CPPFLAGS += -O2
 
 LDFLAGS += -pthread
 
