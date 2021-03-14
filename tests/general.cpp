@@ -122,7 +122,7 @@ public:
    void on_zrangebyscore(resp::array_type& s) noexcept override
       { check_equal(s, {"Marcelo"}, "zrangebyscore (receiver)"); }
 
-   void on_smembers(resp::array_type& s) noexcept override
+   void on_smembers(resp::set_type& s) noexcept override
       { check_equal(s, {"1", "2", "3"}, "smembers (receiver)"); }
 
    // Simple string
