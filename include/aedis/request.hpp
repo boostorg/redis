@@ -315,7 +315,6 @@ public:
    {
       std::initializer_list<std::string_view> dummy = {};
       resp::assemble(payload, "PSUBSCRIBE", l, std::cbegin(dummy), std::cend(dummy));
-      cmds.push(command::psubscribe);
    }
    
    auto publish(std::string_view key, std::string_view msg)

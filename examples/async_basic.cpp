@@ -6,12 +6,14 @@
  */
 
 #include <aedis/aedis.hpp>
+#include <aedis/utils.hpp>
 
 using namespace aedis;
 
 void f(request& req)
 {
    req.ping();
+   req.psubscribe({"aaa*"});
    req.quit();
 }
 
@@ -30,6 +32,9 @@ public:
 
    void on_quit(resp::simple_string_type& s) noexcept override
       { std::cout << "QUIT: " << s << std::endl; }
+
+   void on_push(resp::array_type& s) noexcept override
+      { std::cout << "on_push: "; print(s); }
 };
 
 int main()
