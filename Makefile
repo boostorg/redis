@@ -12,16 +12,17 @@ libdir = $(exec_prefix)/lib
 VPATH = ./include/aedis/
 
 CPPFLAGS =
-CPPFLAGS += -g
 CPPFLAGS += -O0
 CPPFLAGS += -std=c++20 -Wall #-Werror
 CPPFLAGS += -fcoroutines
-#CPPFLAGS += -fsanitize=address
 CPPFLAGS += -I/opt/boost_1_74_0/include
 CPPFLAGS += -I./include
 CPPFLAGS += -D BOOST_ASIO_CONCURRENCY_HINT_1=BOOST_ASIO_CONCURRENCY_HINT_UNSAFE
 CPPFLAGS += -D BOOST_ASIO_NO_DEPRECATED 
 CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS 
+
+#CPPFLAGS += -g
+#CPPFLAGS += -fsanitize=address
 
 LDFLAGS += -pthread
 
@@ -36,13 +37,15 @@ tests += general
 objs =
 objs += response_buffers.o
 objs += connection.o
+objs += command.o
+objs += type.o
 
 remove =
 remove += aedis.a
 remove += $(objs)
 remove += $(examples)
 remove += $(tests)
-remove += $(addsuffix .o, $(examples))
+remove += $(addprefix examples/, $(addsuffix .o, $(examples)))
 remove += $(addsuffix .o, $(tests))
 remove += Makefile.dep
 remove += $(tarball_name).tar.gz
