@@ -20,12 +20,8 @@ below
       req.quit();
    }
 
-   class receiver : public receiver_base {
-   private:
-      std::shared_ptr<connection> conn_;
-
-   public:
-      receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
+   struct receiver : public receiver_base {
+      std::shared_ptr<connection> conn_; // Optional
 
       void on_hello(resp::array_type& v) noexcept override
 	 { conn_->send(f); }
@@ -53,10 +49,12 @@ function in the receiver. The main function looks like this
    }
 ```
 
-## Tutorial
+See the `examples` directory for more examples.
+
+## Installation
 
 This library is header only. To use it include the following header in
-one of your source files e.g. aedis.cpp
+one of your source files e.g. `aedis.cpp`
 
 ```cpp
 #include <aedis/src.hpp>
