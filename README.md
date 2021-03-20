@@ -10,8 +10,8 @@ features are
 
 ## Tutorial
 
-All you have to do is to define an `enum` that defines the events you
-want to handle, if any, and a receiver. For example
+All you have to do is to define a receiver class as shown in the example
+below
 
 ```cpp
    void f(request& req)
@@ -39,23 +39,25 @@ want to handle, if any, and a receiver. For example
 
 ```
 
-Inheriting from the `receiver_base` class is not needed but convenient
-to avoid writing the complete receiver interface. In general for each
-redis command you have to override (or offer) a member function in the
-receiver.
-
-The main function looks like
+In general for each redis command you have to override a member
+function in the receiver. The main function looks like this
 
 ```cpp
    int main()
    {
       net::io_context ioc {1};
-      net::ip::tcp::resolver resolver{ioc};
-      auto const results = resolver.resolve("127.0.0.1", "6379");
       auto conn = std::make_shared<connection>(ioc);
       receiver recv{conn};
-      conn->start(recv, results);
+      conn->start(recv);
       ioc.run();
    }
 ```
 
+## Tutorial
+
+This library is header only. To use it include the following header in
+one of your source files e.g. aedis.cpp
+
+```cpp
+#include <aedis/src.hpp>
+```
