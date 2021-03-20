@@ -11,9 +11,10 @@
 
 namespace aedis {
 
-connection::connection(net::io_context& ioc)
+connection::connection(net::io_context& ioc, config const& conf)
 : timer_{ioc}
 , socket_{ioc}
+, conf_{conf}
 {
    reqs_.push({});
    reqs_.front().req.hello();
@@ -27,13 +28,12 @@ void connection::reset()
    reqs_.front().req.hello();
 }
 
-
-net::awaitable<void>
-connection::worker_coro(
-   receiver_base& recv,
-   boost::asio::ip::tcp::resolver::results_type const& results)
+net::awaitable<void> connection::worker_coro(receiver_base& recv)
 {
    auto ex = co_await net::this_coro::executor;
+
+   net::ip::tcp::resolver resolver{ex};
+   auto const res = resolver.resolve(conf_.host, conf_.port);
 
    net::steady_timer timer {ex};
    std::chrono::seconds wait_interval {1};
@@ -42,7 +42,7 @@ connection::worker_coro(
    do {
       co_await async_connect(
 	 socket_,
-	 results,
+	 res,
 	 net::redirect_error(net::use_awaitable, ec));
 
       if (ec) {
@@ -69,16 +69,18 @@ connection::worker_coro(
    } while (reconnect_);
 }
 
-void
-connection::start(
-   receiver_base& recv,
-   boost::asio::ip::tcp::resolver::results_type const& results)
+void connection::start(receiver_base& recv)
 {
    auto self = this->shared_from_this();
    net::co_spawn(
       socket_.get_executor(),
-      [self, &recv, &results] () mutable { return self->worker_coro(recv, results); },
+      [self, &recv] () mutable { return self->worker_coro(recv); },
       net::detached);
+}
+
+void connection::enable_reconnect() noexcept
+{
+   reconnect_ = false;
 }
 
 } // aedis

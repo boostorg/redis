@@ -40,10 +40,8 @@ public:
 int main()
 {
    net::io_context ioc {1};
-   net::ip::tcp::resolver resolver{ioc};
-   auto const results = resolver.resolve("127.0.0.1", "6379");
    auto conn = std::make_shared<connection>(ioc);
    receiver recv{conn};
-   conn->start(recv, results);
+   conn->start(recv);
    ioc.run();
 }

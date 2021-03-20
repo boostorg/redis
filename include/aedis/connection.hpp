@@ -19,6 +19,12 @@
 namespace aedis {
 
 class connection : public std::enable_shared_from_this<connection> {
+public:
+   struct config {
+      std::string host;
+      std::string port;
+   };
+
 private:
    net::steady_timer timer_;
    net::ip::tcp::socket socket_;
@@ -26,27 +32,23 @@ private:
    resp::response_buffers resps_;
    request_queue reqs_;
    bool reconnect_ = false;
+   config conf_;
 
    void reset();
-
-   net::awaitable<void>
-   worker_coro(
-      receiver_base& recv,
-      boost::asio::ip::tcp::resolver::results_type const& results);
+   net::awaitable<void> worker_coro(receiver_base& recv);
 
 public:
-   connection(net::io_context& ioc);
+   connection(
+      net::io_context& ioc,
+      config const& conf = config {"127.0.0.1", "6379"});
 
-   void
-   start(
-      receiver_base& recv,
-      boost::asio::ip::tcp::resolver::results_type const& results);
+   void start(receiver_base& recv);
 
    template <class Filler>
    void send(Filler filler)
       { queue_writer(reqs_, filler, timer_); }
 
-   void enable_reconnect() { reconnect_ = false; }
+   void enable_reconnect() noexcept;
 };
 
 } // aedis

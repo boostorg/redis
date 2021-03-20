@@ -682,7 +682,7 @@ int main(int argc, char* argv[])
 
    auto conn = std::make_shared<connection>(ioc);
    test_receiver recv{conn};
-   conn->start(recv, results);
+   conn->start(recv);
 
    ioc.run();
 }

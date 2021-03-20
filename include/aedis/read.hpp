@@ -25,6 +25,7 @@
 #include "type.hpp"
 #include "parser.hpp"
 #include "request.hpp"
+#include "response_base.hpp"
 #include "response_buffers.hpp"
 
 namespace aedis { namespace resp {
@@ -32,19 +33,16 @@ namespace aedis { namespace resp {
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
 // 1.
-template <
-  class AsyncReadStream,
-  class Storage,
-  class Response>
+template <class AsyncReadStream, class Storage>
 class parse_op {
 private:
    AsyncReadStream& stream_;
    Storage* buf_ = nullptr;
-   parser<Response> parser_;
+   parser parser_;
    int start_ = 1;
 
 public:
-   parse_op(AsyncReadStream& stream, Storage* buf, Response* res)
+   parse_op(AsyncReadStream& stream, Storage* buf, resp::response_base* res)
    : stream_ {stream}
    , buf_ {buf}
    , parser_ {res}
@@ -57,7 +55,7 @@ public:
    {
       switch (start_) {
          for (;;) {
-            if (parser_.bulk() == bulk_type::none) {
+            if (parser_.bulk() == parser::bulk_type::none) {
                case 1:
                start_ = 0;
                net::async_read_until(
@@ -105,20 +103,17 @@ public:
    }
 };
 
-template <
-   class SyncReadStream,
-   class Storage,
-   class Response>
+template <class SyncReadStream, class Storage>
 auto read(
    SyncReadStream& stream,
    Storage& buf,
-   Response& res,
+   resp::response_base& res,
    boost::system::error_code& ec)
 {
-   parser<Response> p {&res};
+   parser p {&res};
    std::size_t n = 0;
    do {
-      if (p.bulk() == bulk_type::none) {
+      if (p.bulk() == parser::bulk_type::none) {
 	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
 	 if (ec || n < 3)
 	    return n;
@@ -142,15 +137,12 @@ auto read(
    return n;
 }
 
-template<
-   class SyncReadStream,
-   class Storage,
-   class Response>
+template<class SyncReadStream, class Storage>
 std::size_t
 read(
    SyncReadStream& stream,
    Storage& buf,
-   Response& res)
+   resp::response_base& res)
 {
    boost::system::error_code ec;
    auto const n = read(stream, buf, res, ec);
@@ -164,28 +156,25 @@ read(
 template <
    class AsyncReadStream,
    class Storage,
-   class Response,
    class CompletionToken =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(
    AsyncReadStream& stream,
    Storage& buffer,
-   Response& res,
+   resp::response_base& res,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(parse_op<AsyncReadStream, Storage, Response> {stream, &buffer, &res},
+      >(parse_op<AsyncReadStream, Storage> {stream, &buffer, &res},
         token,
         stream);
 }
 
-template <
-  class AsyncReadStream,
-  class Storage>
+template <class AsyncReadStream, class Storage>
 class type_op {
 private:
    AsyncReadStream& stream_;
@@ -255,19 +244,7 @@ struct queue_elem {
 using request_queue = std::queue<queue_elem>;
 
 // Returns true when a new request can be sent to redis.
-inline
-bool queue_pop(request_queue& reqs)
-{
-   assert(!std::empty(reqs));
-   assert(!std::empty(reqs.front().req.cmds));
-   reqs.front().req.cmds.pop();
-   if (std::empty(reqs.front().req.cmds)) {
-      reqs.pop();
-      return true;
-   }
-
-   return false;
-}
+bool queue_pop(request_queue& reqs);
 
 template <
    class AsyncReadWriteStream,

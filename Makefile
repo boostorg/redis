@@ -9,7 +9,7 @@ exec_prefix = $(prefix)
 libdir = $(exec_prefix)/lib
 
 #CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
-VPATH = ./include/aedis/
+VPATH = ./src/
 
 CPPFLAGS =
 CPPFLAGS += -std=c++20 -Wall #-Werror
@@ -21,7 +21,7 @@ CPPFLAGS += -D BOOST_ASIO_NO_DEPRECATED
 CPPFLAGS += -D BOOST_ASIO_NO_TS_EXECUTORS 
 
 CPPFLAGS += -g
-#CPPFLAGS += -fsanitize=address
+CPPFLAGS += -fsanitize=address
 CPPFLAGS += -O0
 
 LDFLAGS += -pthread
@@ -34,16 +34,12 @@ examples += async_low_level
 tests =
 tests += general
 
-objs =
-objs += response_buffers.o
-objs += connection.o
-objs += command.o
-objs += type.o
+aedis_obj =
+aedis_obj += aedis.o
 
 remove =
-remove += aedis.a
-remove += $(objs)
 remove += $(examples)
+remove += $(aedis_obj)
 remove += $(tests)
 remove += $(addprefix examples/, $(addsuffix .o, $(examples)))
 remove += $(addsuffix .o, $(tests))
@@ -58,14 +54,11 @@ Makefile.dep:
 
 -include Makefile.dep
 
-aedis.a: $(objs)
-	ar rsv $@ $^
+$(examples): % : examples/%.o $(aedis_obj)
+	$(CXX) -o $@ $< $(CPPFLAGS) $(LDFLAGS) $(aedis_obj)
 
-$(examples): % : examples/%.o aedis.a
-	$(CXX) -o $@ $< $(CPPFLAGS) $(LDFLAGS) aedis.a
-
-$(tests): % : tests/%.cpp aedis.a
-	$(CXX) -o $@ $< $(CPPFLAGS) $(LDFLAGS) aedis.a
+$(tests): % : tests/%.cpp $(aedis_obj)
+	$(CXX) -o $@ $< $(CPPFLAGS) $(LDFLAGS) $(aedis_obj)
 
 .PHONY: check
 check: $(tests)
@@ -73,12 +66,10 @@ check: $(tests)
 
 .PHONY: install
 install:
-	install --mode=444 -D include/aedis/*.hpp --target-directory $(incdir)
-	install --mode=444 -D aedis.a --target-directory $(libdir)
+	install --mode=444 -D include/aedis/* --target-directory $(incdir)
 
 uninstall:
 	rm -rf $(incdir)
-	rm -rf $(libdir)/aedis.a
 
 .PHONY: clean
 clean:

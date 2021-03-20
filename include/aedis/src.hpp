@@ -7,11 +7,9 @@
 
 #pragma once
 
-#include <aedis/read.hpp>
-#include <aedis/request.hpp>
-#include <aedis/responses.hpp>
-#include <aedis/version.hpp>
-#include <aedis/write.hpp>
-#include <aedis/connection.hpp>
-#include <aedis/receiver_base.hpp>
-#include <aedis/response_types.hpp>
+#include <aedis/type.ipp>
+#include <aedis/read.ipp>
+#include <aedis/parser.ipp>
+#include <aedis/command.ipp>
+#include <aedis/connection.ipp>
+#include <aedis/response_buffers.ipp>
