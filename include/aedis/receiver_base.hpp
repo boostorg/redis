@@ -11,8 +11,6 @@
 #include <iostream>
 
 #include "type.hpp"
-#include "utils.hpp"
-#include "responses.hpp"
 #include "request.hpp"
 
 namespace aedis {

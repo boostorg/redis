@@ -10,11 +10,12 @@
 #include <memory>
 #include <string>
 
+#include <aedis/detail/response_buffers.hpp>
+
 #include "config.hpp"
 #include "type.hpp"
 #include "request.hpp"
 #include "read.hpp"
-#include "response_buffers.hpp"
 
 namespace aedis {
 

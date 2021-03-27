@@ -5,9 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include "connection.hpp"
-
-#include "write.hpp"
+#include <aedis/connection.hpp>
+#include <aedis/write.hpp>
 
 namespace aedis {
 

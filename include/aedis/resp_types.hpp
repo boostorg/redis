@@ -69,7 +69,7 @@ using set_type = basic_set_type<std::string>;
 
 using number_type = long long int;
 using bool_type = bool;
-using double_type = double;
+using double_type = std::string;
 using blob_string_type = basic_blob_string<char>;
 using blob_error_type = basic_blob_error<char>;
 using simple_string_type = basic_simple_string<char>;

@@ -8,7 +8,6 @@
 #pragma once
 
 #include <ostream>
-#include <cassert>
 
 namespace aedis {
 
@@ -73,7 +72,7 @@ enum class command
 , none
 };
 
-char const* to_string(command c);
+std::string to_string(command c);
 std::ostream& operator<<(std::ostream& os, command c);
 
 } // aedis

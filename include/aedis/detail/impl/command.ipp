@@ -5,7 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include "command.hpp"
+#include <aedis/detail/command.hpp>
 
 #include <cassert>
 
@@ -13,7 +13,7 @@ namespace aedis {
 
 #define EXPAND_COMMAND_CASE(x) case command::x: return #x
 
-char const* to_string(command c)
+std::string to_string(command c)
 {
    switch (c) {
       EXPAND_COMMAND_CASE(append);

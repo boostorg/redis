@@ -5,7 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include "type.hpp"
+#include <aedis/type.hpp>
 
 #include <cassert>
 
@@ -13,7 +13,7 @@ namespace aedis { namespace resp {
 
 #define EXPAND_TYPE_CASE(x) case type::x: return #x
 
-auto to_string(type t)
+std::string to_string(type t)
 {
    switch (t) {
       EXPAND_TYPE_CASE(array);

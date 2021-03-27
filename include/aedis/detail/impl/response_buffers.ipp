@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include "response_buffers.hpp"
-
 #include <cassert>
+
+#include <aedis/detail/response_buffers.hpp>
 
 namespace aedis { namespace resp {
 

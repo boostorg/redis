@@ -480,25 +480,24 @@ net::awaitable<void> floating_point()
       test_tcp_socket ts {cmd};
       resp::response_double res;
       co_await resp::async_read(ts, buffer, res);
-      check_equal(res.result, 1.23, "double");
+      check_equal(res.result, {"1.23"}, "double");
    }
 
-   // TODO: Support INF.
-   //{
-   //   std::string cmd {",inf\r\n"};
-   //   test_tcp_socket ts {cmd};
-   //   resp::response_double res;
-   //   co_await resp::async_read(ts, buffer, res);
-   //   check_equal(res.result, {"inf"}, "double (inf)");
-   //}
+   {
+      std::string cmd {",inf\r\n"};
+      test_tcp_socket ts {cmd};
+      resp::response_double res;
+      co_await resp::async_read(ts, buffer, res);
+      check_equal(res.result, {"inf"}, "double (inf)");
+   }
 
-   //{
-   //   std::string cmd {",-inf\r\n"};
-   //   test_tcp_socket ts {cmd};
-   //   resp::response_double res;
-   //   co_await resp::async_read(ts, buffer, res);
-   //   check_equal(res.result, {"-inf"}, "double (-inf)");
-   //}
+   {
+      std::string cmd {",-inf\r\n"};
+      test_tcp_socket ts {cmd};
+      resp::response_double res;
+      co_await resp::async_read(ts, buffer, res);
+      check_equal(res.result, {"-inf"}, "double (-inf)");
+   }
 
 }
 
@@ -675,7 +674,6 @@ int main(int argc, char* argv[])
    co_spawn(ioc, verbatim_string(), net::detached);
    co_spawn(ioc, set(), net::detached);
    co_spawn(ioc, map(), net::detached);
-
 
    co_spawn(ioc, test_list(results), net::detached);
    co_spawn(ioc, test_set(results), net::detached);

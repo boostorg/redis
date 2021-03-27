@@ -7,9 +7,10 @@
 
 #pragma once
 
-#include "type.hpp"
+#include <aedis/type.hpp>
+#include <aedis/receiver_base.hpp>
+
 #include "command.hpp"
-#include "receiver_base.hpp"
 #include "response_types.hpp"
 
 namespace aedis { namespace resp {

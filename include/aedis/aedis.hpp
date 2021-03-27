@@ -9,9 +9,7 @@
 
 #include <aedis/read.hpp>
 #include <aedis/request.hpp>
-#include <aedis/responses.hpp>
 #include <aedis/version.hpp>
 #include <aedis/write.hpp>
 #include <aedis/connection.hpp>
 #include <aedis/receiver_base.hpp>
-#include <aedis/response_types.hpp>

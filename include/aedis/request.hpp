@@ -16,8 +16,9 @@
 #include <type_traits>
 #include <string_view>
 
+#include <aedis/detail/command.hpp>
+
 #include "config.hpp"
-#include "command.hpp"
 
 namespace aedis { namespace resp {
 

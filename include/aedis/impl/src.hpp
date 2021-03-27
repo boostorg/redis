@@ -7,9 +7,10 @@
 
 #pragma once
 
-#include <aedis/type.ipp>
-#include <aedis/read.ipp>
-#include <aedis/parser.ipp>
-#include <aedis/command.ipp>
-#include <aedis/connection.ipp>
-#include <aedis/response_buffers.ipp>
+#include <aedis/impl/type.ipp>
+#include <aedis/impl/read.ipp>
+#include <aedis/impl/connection.ipp>
+
+#include <aedis/detail/impl/parser.ipp>
+#include <aedis/detail/impl/command.ipp>
+#include <aedis/detail/impl/response_buffers.ipp>

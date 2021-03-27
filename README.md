@@ -20,8 +20,12 @@ below
       req.quit();
    }
 
-   struct receiver : public receiver_base {
-      std::shared_ptr<connection> conn_; // Optional
+   class receiver : public receiver_base {
+   private:
+      std::shared_ptr<connection> conn_;
+
+   public:
+      receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
       void on_hello(resp::array_type& v) noexcept override
 	 { conn_->send(f); }
@@ -32,7 +36,6 @@ below
       void on_quit(resp::simple_string_type& s) noexcept override
 	 { std::cout << "QUIT: " << s << std::endl; }
    };
-
 ```
 
 In general for each redis command you have to override a member
@@ -57,5 +60,5 @@ This library is header only. To use it include the following header in
 one of your source files e.g. `aedis.cpp`
 
 ```cpp
-#include <aedis/src.hpp>
+#include <aedis/impl/src.hpp>
 ```

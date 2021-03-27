@@ -6,7 +6,7 @@
  */
 
 #include <aedis/aedis.hpp>
-#include <aedis/utils.hpp>
+#include <aedis/detail/utils.hpp>
 
 using namespace aedis;
 
