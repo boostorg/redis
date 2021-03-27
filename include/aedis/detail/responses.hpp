@@ -29,7 +29,7 @@
 namespace aedis { namespace resp {
 
 template <class T>
-std::enable_if<std::is_integral<T>::value, void>::type
+typename std::enable_if<std::is_integral<T>::value, void>::type
 from_string_view(std::string_view s, T& n)
 {
    auto r = std::from_chars(s.data(), s.data() + s.size(), n);

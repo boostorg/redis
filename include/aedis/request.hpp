@@ -55,8 +55,7 @@ struct accumulator {
    operator()(
       std::string a,
       T b,
-      std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value),
-		      bool>::type = false) const
+      typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value), bool>::type = false) const
    {
       auto const v = std::to_string(b);
       add_bulk(a, v);
@@ -78,8 +77,7 @@ struct accumulator {
    operator()(
       std::string a,
       std::pair<T, std::string_view> b,
-      std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value),
-		      bool>::type = false) const
+      typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value), bool>::type = false) const
    {
       auto const v = std::to_string(b.first);
       add_bulk(a, v);

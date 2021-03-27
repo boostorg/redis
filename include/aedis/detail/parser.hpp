@@ -14,7 +14,7 @@
 namespace aedis { namespace resp {
 
 class parser {
-private:
+public:
    enum class bulk_type
    { blob_error
    , verbatim_string 
@@ -23,6 +23,7 @@ private:
    , none
    };
 
+private:
    response_base* res_;
    int depth_;
    int sizes_[6]; // Streaming will require a bigger integer.

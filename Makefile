@@ -8,11 +8,14 @@ incdir = $(prefix)/include/$(pkg_name)
 exec_prefix = $(prefix)
 libdir = $(exec_prefix)/lib
 
-#CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
 VPATH = ./src/
+
+#CXX = /opt/gcc-10.2.0/bin/g++-10.2.0
+#CXX = clang++
 
 CPPFLAGS =
 CPPFLAGS += -std=c++20 -Wall #-Werror
+#CPPFLAGS += -stdlib=libc++
 CPPFLAGS += -fcoroutines
 CPPFLAGS += -I/opt/boost_1_74_0/include
 CPPFLAGS += -I./include
