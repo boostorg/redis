@@ -69,7 +69,12 @@ check: $(tests)
 
 .PHONY: install
 install:
-	install --mode=444 -D include/aedis/* --target-directory $(incdir)
+	install --mode=444 -D include/aedis/*.hpp --target-directory $(incdir)
+	install --mode=444 -D include/aedis/impl/*.hpp --target-directory $(incdir)/impl
+	install --mode=444 -D include/aedis/impl/*.ipp --target-directory $(incdir)/impl
+	install --mode=444 -D include/aedis/detail/*.hpp --target-directory $(incdir)/detail
+	#install --mode=444 -D include/aedis/detail/impl/*.hpp --target-directory $(incdir)/detail/impl
+	install --mode=444 -D include/aedis/detail/impl/*.ipp --target-directory $(incdir)/detail/impl
 
 uninstall:
 	rm -rf $(incdir)

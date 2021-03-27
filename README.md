@@ -56,8 +56,14 @@ See the `examples` directory for more examples.
 
 ## Installation
 
-This library is header only. To use it include the following header in
-one of your source files e.g. `aedis.cpp`
+This library is header only. To install it run
+
+```cpp
+$ sudo make install
+```
+
+You will also need to include the following header in one of your
+source files e.g. `aedis.cpp`
 
 ```cpp
 #include <aedis/impl/src.hpp>
