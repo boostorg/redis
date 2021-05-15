@@ -62,6 +62,7 @@ void response_buffers::forward(command cmd, type t, receiver_base& recv)
 	    EXPAND_RECEIVER_CASE(array_, lpop);
 	    EXPAND_RECEIVER_CASE(array_, zrange);
 	    EXPAND_RECEIVER_CASE(array_, zrangebyscore);
+	    EXPAND_RECEIVER_CASE(array_, hvals);
 	    default: {assert(false);}
 	 }
 	 array_.result.clear();

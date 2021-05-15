@@ -29,6 +29,7 @@ public:
    RECEIVER_FUNCTION_REF(array_type, lrange);
    RECEIVER_FUNCTION_REF(array_type, lpop);
    RECEIVER_FUNCTION_REF(array_type, hgetall);
+   RECEIVER_FUNCTION_REF(array_type, hvals);
    RECEIVER_FUNCTION_REF(array_type, zrange);
    RECEIVER_FUNCTION_REF(array_type, zrangebyscore);
 
