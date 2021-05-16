@@ -60,6 +60,7 @@ public:
    RECEIVER_FUNCTION(number_type, zremrangebyscore);
    RECEIVER_FUNCTION(number_type, expire);
    RECEIVER_FUNCTION(number_type, sadd);
+   RECEIVER_FUNCTION(number_type, hdel);
 
    RECEIVER_FUNCTION_REF(blob_string_type, acl_genpass);
    RECEIVER_FUNCTION_REF(blob_string_type, acl_whoami);

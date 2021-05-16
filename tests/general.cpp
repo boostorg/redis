@@ -67,6 +67,7 @@ public:
 	 req.hset("d", m1);
 	 req.hget("d", "field2");
 	 req.hgetall("d");
+	 req.hdel("d", {"field1", "field2"});
 	 req.hincrby("e", "some-field", 10);
 
 	 req.zadd("f", 1, "Marcelo");
@@ -115,6 +116,9 @@ public:
 
    void on_hgetall(resp::array_type& s) noexcept override
       { check_equal(s, {"field1", "value1", "field2", "value2"}, "hgetall (receiver)"); }
+
+   void on_hvals(resp::array_type& s) noexcept override
+      { check_equal(s, {"value1", "value2"}, "hvals (receiver)"); }
 
    void on_zrange(resp::array_type& s) noexcept override
       { check_equal(s, {"Marcelo"}, "zrange (receiver)"); }
@@ -174,6 +178,10 @@ public:
 
    void on_sadd(resp::number_type n) noexcept override
       { check_equal((int)n, 3, "sadd (receiver)"); }
+
+   void on_hdel(resp::number_type n) noexcept override
+      { check_equal((int)n, 2, "hdel (receiver)"); }
+
 };
 
 net::awaitable<void>

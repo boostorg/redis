@@ -395,6 +395,20 @@ public:
       cmds.push(command::hmget);
    }
    
+   auto
+   hdel(std::string_view key,
+        std::initializer_list<std::string_view> fields)
+   {
+      resp::assemble(
+	 payload,
+	 "HDEL",
+	 {key},
+	 std::cbegin(fields),
+	 std::cend(fields));
+
+      cmds.push(command::hdel);
+   }
+
    auto expire(std::string_view key, int secs)
    {
       auto const str = std::to_string(secs);

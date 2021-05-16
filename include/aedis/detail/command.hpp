@@ -44,6 +44,7 @@ enum class command
 , hmget
 , hset
 , hvals
+, hdel
 , incr
 , keys
 , llen

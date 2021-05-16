@@ -99,6 +99,7 @@ void response_buffers::forward(command cmd, type t, receiver_base& recv)
 	    EXPAND_RECEIVER_CASE(number_, zremrangebyscore);
 	    EXPAND_RECEIVER_CASE(number_, expire);
 	    EXPAND_RECEIVER_CASE(number_, sadd);
+	    EXPAND_RECEIVER_CASE(number_, hdel);
 	    default: {assert(false);}
 	 }
       } break;
