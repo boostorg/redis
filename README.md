@@ -4,9 +4,8 @@ Aedis is a redis client designed for scalability and performance while
 providing an easy and intuitive interface. Some of the supported
 features are
 
-* TLS, RESP3 and STL containers.
+* RESP3 and STL containers.
 * Pipelines (essential for performance).
-* Coroutines, futures and callbacks.
 
 ## Tutorial
 
@@ -62,8 +61,8 @@ This library is header only. To install it run
 $ sudo make install
 ```
 
-You will also need to include the following header in one of your
-source files e.g. `aedis.cpp`
+or copy the include folder to where you want.  You will also need to include
+the following header in one of your source files e.g. `aedis.cpp`
 
 ```cpp
 #include <aedis/impl/src.hpp>

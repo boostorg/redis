@@ -1,6 +1,0 @@
-[requires]
-boost/1.74.0
-fmt/7.0.2
-
-[generators]
-cmake

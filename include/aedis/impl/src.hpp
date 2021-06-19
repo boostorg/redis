@@ -5,8 +5,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
-
 #include <aedis/impl/type.ipp>
 #include <aedis/impl/read.ipp>
 #include <aedis/impl/connection.ipp>
