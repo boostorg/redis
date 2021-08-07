@@ -18,10 +18,19 @@ namespace aedis {
 #define RECEIVER_FUNCTION_REF(name, cmd) virtual void on_##cmd(resp::name& v) noexcept { }
 #define RECEIVER_FUNCTION(name, cmd) virtual void on_##cmd(resp::name v) noexcept { }
 
+/** Receiver base class.
+ *
+ *  Response to redis commands via callback.
+ */
 class receiver_base {
 public:
+   /// Receives an acl_list response.
    RECEIVER_FUNCTION_REF(array_type, acl_list);
+
+   /// Receives an acl_users response.
    RECEIVER_FUNCTION_REF(array_type, acl_users);
+
+   /// Receives an acl_getuser response.
    RECEIVER_FUNCTION_REF(array_type, acl_getuser);
    RECEIVER_FUNCTION_REF(array_type, acl_cat);
    RECEIVER_FUNCTION_REF(array_type, acl_log);

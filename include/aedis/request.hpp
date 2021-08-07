@@ -133,6 +133,8 @@ void assemble(std::string& ret, std::string_view cmd, std::string_view key)
 
 } // resp
 
+/** A class that generates RESP3-commands.
+*/
 class request {
 public:
    std::string payload;
@@ -140,42 +142,50 @@ public:
 
 public:
    bool empty() const noexcept { return std::empty(payload); };
+
+   /// Clear the commands.
    void clear()
    {
       payload.clear();
       cmds = {};
    }
 
+   /// Adds the ping command to the request. See https://redis.io/commands/ping.
    void ping()
    {
       resp::assemble(payload, "PING");
       cmds.push(command::ping);
    }
 
+   /// Adds the quit command to the request. See https://redis.io/commands/quit
    void quit()
    {
       resp::assemble(payload, "QUIT");
       cmds.push(command::quit);
    }
 
+   /// Adds the multi command to the request. See https://redis.io/commands/multi
    void multi()
    {
       resp::assemble(payload, "MULTI");
       cmds.push(command::multi);
    }
 
+   /// Adds the exec command to the request. See https://redis.io/commands/exec
    void exec()
    {
       resp::assemble(payload, "EXEC");
       cmds.push(command::exec);
    }
 
+   /// Adds the incr to the request. See 
    void incr(std::string_view key)
    {
       resp::assemble(payload, "INCR", key);
       cmds.push(command::incr);
    }
 
+   /// Adds the auth command to the request. See
    void auth(std::string_view pwd)
    {
       resp::assemble(payload, "AUTH", pwd);

@@ -19,10 +19,17 @@
 
 namespace aedis {
 
+/** A class that keeps a connection to the redis server.
+*/
 class connection : public std::enable_shared_from_this<connection> {
 public:
+   /** Redis server configuration.
+   */
    struct config {
+      // Redis host.
       std::string host;
+
+      // Redis port.
       std::string port;
    };
 
@@ -39,12 +46,17 @@ private:
    net::awaitable<void> worker_coro(receiver_base& recv);
 
 public:
+   /// Contructs a connection.
    connection(
-      net::io_context& ioc,
+      net::any_io_executor const& ioc,
       config const& conf = config {"127.0.0.1", "6379"});
 
+   /// Stablishes the connection with the redis server.
    void start(receiver_base& recv);
 
+   /// Adds commands to the ouput queue. The Filler signature must be
+   ///
+   /// void f(request& req)
    template <class Filler>
    void send(Filler filler)
       { queue_writer(reqs_, filler, timer_); }

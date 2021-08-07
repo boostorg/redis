@@ -17,12 +17,12 @@ void f(request& req)
    req.quit();
 }
 
-class receiver : public receiver_base {
+class myreceiver : public receiver_base {
 private:
    std::shared_ptr<connection> conn_;
 
 public:
-   receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
+   myreceiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
    void on_hello(resp::array_type& v) noexcept override
       { conn_->send(f); }
@@ -40,8 +40,8 @@ public:
 int main()
 {
    net::io_context ioc {1};
-   auto conn = std::make_shared<connection>(ioc);
-   receiver recv{conn};
+   auto conn = std::make_shared<connection>(ioc.get_executor());
+   myreceiver recv{conn};
    conn->start(recv);
    ioc.run();
 }

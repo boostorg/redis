@@ -686,7 +686,7 @@ int main(int argc, char* argv[])
    co_spawn(ioc, test_list(results), net::detached);
    co_spawn(ioc, test_set(results), net::detached);
 
-   auto conn = std::make_shared<connection>(ioc);
+   auto conn = std::make_shared<connection>(ioc.get_executor());
    test_receiver recv{conn};
    conn->start(recv);
 

@@ -10,7 +10,7 @@
 
 namespace aedis {
 
-connection::connection(net::io_context& ioc, config const& conf)
+connection::connection(net::any_io_executor const& ioc, config const& conf)
 : timer_{ioc}
 , socket_{ioc}
 , conf_{conf}
