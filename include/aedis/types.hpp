@@ -11,7 +11,7 @@
 
 namespace aedis { namespace resp {
 
-enum class type
+enum class types
 { array
 , push
 , set
@@ -31,8 +31,8 @@ enum class type
 , invalid
 };
 
-type to_type(char c);
-std::ostream& operator<<(std::ostream& os, type t);
+types to_type(char c);
+std::ostream& operator<<(std::ostream& os, types t);
 
 } // resp
 } // aedis

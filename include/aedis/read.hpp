@@ -26,7 +26,7 @@
 #include <aedis/detail/response_base.hpp>
 
 #include "config.hpp"
-#include "type.hpp"
+#include "types.hpp"
 #include "request.hpp"
 
 namespace aedis { namespace resp {
@@ -180,10 +180,10 @@ class type_op {
 private:
    AsyncReadStream& stream_;
    Storage* buf_ = nullptr;
-   type* t_;
+   types* t_;
 
 public:
-   type_op(AsyncReadStream& stream, Storage* buf, type* t)
+   type_op(AsyncReadStream& stream, Storage* buf, types* t)
    : stream_ {stream}
    , buf_ {buf}
    , t_ {t}
@@ -223,7 +223,7 @@ template <
 auto async_read_type(
    AsyncReadStream& stream,
    Storage& buffer,
-   type& t,
+   types& t,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
@@ -262,10 +262,10 @@ async_reader(
    boost::system::error_code& ec)
 {
    // Used to queue the cmds of a transaction.
-   std::deque<std::pair<commands, resp::type>> trans;
+   std::deque<std::pair<commands, resp::types>> trans;
 
    for (;;) {
-      auto t = resp::type::invalid;
+      auto t = resp::types::invalid;
       co_await async_read_type(
 	 socket,
 	 buffer,
@@ -275,10 +275,10 @@ async_reader(
       if (ec)
 	 co_return;
 
-      assert(t != resp::type::invalid);
+      assert(t != resp::types::invalid);
 
-      auto cmd = commands::none;
-      if (t != resp::type::push) {
+      auto cmd = commands::unknown;
+      if (t != resp::types::push) {
 	 assert(!std::empty(reqs));
 	 assert(!std::empty(reqs.front().req.cmds));
 	 cmd = reqs.front().req.cmds.front();
@@ -308,7 +308,7 @@ async_reader(
 
          // Pushes the command in the transction command queue that will be
          // processed when exec arrives.
-	 trans.push_back({reqs.front().req.cmds.front(), resp::type::invalid});
+	 trans.push_back({reqs.front().req.cmds.front(), resp::types::invalid});
 	 reqs.front().req.cmds.pop();
 	 continue;
       }
@@ -332,7 +332,7 @@ async_reader(
 	    co_return;
 
 	 trans.pop_front(); // Removes multi.
-         resps.forward_transaction(std::move(trans), recv);
+         resps.forward_transaction(trans, recv);
 	 trans = {};
 
 	 if (!queue_pop(reqs))
@@ -374,7 +374,7 @@ async_reader(
 
       resps.forward(cmd, t, recv);
 
-      if (t == resp::type::push)
+      if (t == resp::types::push)
 	 continue;
 
       if (!queue_pop(reqs))

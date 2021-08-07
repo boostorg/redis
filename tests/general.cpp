@@ -237,7 +237,9 @@ public:
 	 req.multi();
 	 req.ping();
 	 req.incr("c");
+	 req.publish("channel", "message");
 	 req.exec();
+	 req.ping();
       };
 
       conn_->send(f);
@@ -246,27 +248,38 @@ public:
    void on_flushall(resp::simple_string_type& s) noexcept override
       { check_equal(s, {"OK"}, "flushall (transaction)"); }
 
-   void on_transaction(
-      std::deque<std::pair<commands, resp::type>> ids,
-      std::vector<transaction_element> const& result) noexcept override
+   void
+   on_transaction(std::vector<transaction_element>& result) noexcept override
    {
-      check_equal(std::size(ids), std::size(result), "size (transaction)");
+      check_equal(result[0].command, commands::ping, "transaction (command)");
+      check_equal(result[0].depth, 1, "transaction (depth)");
+      check_equal(result[0].type, resp::types::simple_string, "transaction (type)");
+      check_equal(result[0].expected_size, 1, "transaction (size)");
 
-      check_equal(ids[0].first, commands::ping, "command (transaction)");
-      check_equal(result[0].depth, 1, "depth (transaction)");
-      check_equal(result[0].t, resp::type::simple_string, "type (transaction)");
-      check_equal(result[0].expected_size, 1, "size (transaction)");
+      check_equal(result[1].command, commands::incr, "transaction (command)");
+      check_equal(result[1].depth, 1, "transaction (dept)h");
+      check_equal(result[1].type, resp::types::number, "transaction (typ)e");
+      check_equal(result[1].expected_size, 1, "transaction (size)");
 
-      check_equal(ids[1].first, commands::incr, "command (transaction)");
-      check_equal(result[1].depth, 1, "depth (transaction)");
-      check_equal(result[1].t, resp::type::number, "type (transaction)");
-      check_equal(result[1].expected_size, 1, "size (transaction)");
-
-      conn_->send([this](auto& req) { req.quit(); });
+      check_equal(result[2].command, commands::publish, "transaction (command)");
+      check_equal(result[2].depth, 1, "transaction (depth)");
+      check_equal(result[2].type, resp::types::number, "transaction (type)");
+      check_equal(result[2].expected_size, 1, "transaction (size)");
+      result.clear();
    }
 
    void on_quit(resp::simple_string_type& s) noexcept override
       { check_equal(s, {"OK"}, "quit"); }
+
+   void on_publish(resp::number_type n) noexcept override
+      { check_equal((int)n, 1, "publish (transaction)"); }
+
+   void on_ping(resp::simple_string_type& s) noexcept override
+   {
+      check_equal(s, {"PONG"}, "ping");
+      conn_->send([this](auto& req) { req.quit(); });
+   }
+
 };
 
 void test_trans()

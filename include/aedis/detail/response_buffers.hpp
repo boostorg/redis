@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
+#include <aedis/types.hpp>
 #include <aedis/receiver_base.hpp>
 
 #include "commands.hpp"
@@ -41,13 +41,13 @@ private:
 public:
    // When the cmd is from a transaction the type of the message is
    // not specified.
-   response_base* select(commands cmd, type t);
+   response_base* select(commands cmd, types t);
 
    void forward_transaction(
-      std::deque<std::pair<commands, type>> ids,
+      std::deque<std::pair<commands, types>> const& ids,
       receiver_base& recv);
 
-   void forward(commands cmd, type t, receiver_base& recv);
+   void forward(commands cmd, types t, receiver_base& recv);
 };
 
 } // resp

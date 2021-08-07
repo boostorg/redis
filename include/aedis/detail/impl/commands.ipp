@@ -61,7 +61,7 @@ std::string to_string(commands c)
       EXPAND_COMMAND_CASE(zrange);
       EXPAND_COMMAND_CASE(zrangebyscore);
       EXPAND_COMMAND_CASE(zremrangebyscore);
-      EXPAND_COMMAND_CASE(none);
+      EXPAND_COMMAND_CASE(unknown);
       default: assert(false);
    }
 }

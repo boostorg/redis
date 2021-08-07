@@ -13,7 +13,7 @@
 #include <aedis/detail/response_buffers.hpp>
 
 #include "config.hpp"
-#include "type.hpp"
+#include "types.hpp"
 #include "request.hpp"
 #include "read.hpp"
 

@@ -10,7 +10,7 @@
 #include <memory>
 #include <iostream>
 
-#include "type.hpp"
+#include "types.hpp"
 #include "request.hpp"
 
 namespace aedis {
@@ -30,8 +30,9 @@ namespace aedis {
 
 struct transaction_element {
    int depth;
-   resp::type t;
+   resp::types type;
    int expected_size = -1;
+   commands command = commands::unknown;
    std::vector<std::string> value;
 };
 
@@ -183,9 +184,7 @@ public:
 
    /// Receives a transaction
    virtual void
-   on_transaction(
-      std::deque<std::pair<commands, resp::type>> ids,
-      std::vector<transaction_element> const& result) noexcept { }
+   on_transaction(std::vector<transaction_element>& result) noexcept { }
 };
 
 } // aedis

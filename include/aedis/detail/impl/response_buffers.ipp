@@ -12,22 +12,27 @@
 namespace aedis { namespace resp {
 
 void response_buffers::forward_transaction(
-   std::deque<std::pair<commands, type>> ids,
+   std::deque<std::pair<commands, types>> const& ids,
    receiver_base& recv)
 {
-   recv.on_transaction(std::move(ids), tree_.result);
+   assert(std::size(ids) == std::size(tree_.result));
+
+   for (auto i = 0U; i < std::size(ids); ++i)
+      tree_.result[i].command = ids[i].first;
+
+   recv.on_transaction(tree_.result);
 }
 
-void response_buffers::forward(commands cmd, type t, receiver_base& recv)
+void response_buffers::forward(commands cmd, types t, receiver_base& recv)
 {
    switch (t) {
-      case type::push:
+      case types::push:
       {
-	 assert(t == type::push);
+	 assert(t == types::push);
 	 recv.on_push(push_.result);
 	 push_.result.clear();
       } break;
-      case type::set:
+      case types::set:
       {
 	 switch (cmd) {
 	    EXPAND_RECEIVER_CASE(set_, smembers);
@@ -35,7 +40,7 @@ void response_buffers::forward(commands cmd, type t, receiver_base& recv)
 	 }
 	 set_.result.clear();
       } break;
-      case type::map:
+      case types::map:
       {
 	 switch (cmd) {
 	    EXPAND_RECEIVER_CASE(map_, hello);
@@ -44,7 +49,7 @@ void response_buffers::forward(commands cmd, type t, receiver_base& recv)
 	 }
 	 map_.result.clear();
       } break;
-      case type::array:
+      case types::array:
       {
 	 switch (cmd) {
 	    EXPAND_RECEIVER_CASE(array_, acl_list);
@@ -62,7 +67,7 @@ void response_buffers::forward(commands cmd, type t, receiver_base& recv)
 	 }
 	 array_.result.clear();
       } break;
-      case type::simple_string:
+      case types::simple_string:
       {
 	 switch (cmd) {
 	    EXPAND_RECEIVER_CASE(simple_string_, acl_load);
@@ -78,7 +83,7 @@ void response_buffers::forward(commands cmd, type t, receiver_base& recv)
 	 }
 	 simple_string_.result.clear();
       } break;
-      case type::number:
+      case types::number:
       {
 	 switch (cmd) {
 	    EXPAND_RECEIVER_CASE(number_, acl_deluser);
@@ -98,27 +103,27 @@ void response_buffers::forward(commands cmd, type t, receiver_base& recv)
 	    default: {assert(false);}
 	 }
       } break;
-      case type::double_type:
+      case types::double_type:
       {
 	 switch (cmd) {
 	    default: {assert(false);}
 	 }
       } break;
-      case type::big_number:
+      case types::big_number:
       {
 	 switch (cmd) {
 	    default: {assert(false);}
 	 }
 	 big_number_.result.clear();
       } break;
-      case type::boolean:
+      case types::boolean:
       {
 	 switch (cmd) {
 	    default: {assert(false);}
 	 }
 	 bool_.result = false;
       } break;
-      case type::blob_string:
+      case types::blob_string:
       {
 	 switch (cmd) {
 	    EXPAND_RECEIVER_CASE(blob_string_, acl_genpass);
@@ -130,35 +135,35 @@ void response_buffers::forward(commands cmd, type t, receiver_base& recv)
 	 }
 	 blob_string_.result.clear();
       } break;
-      case type::verbatim_string:
+      case types::verbatim_string:
       {
 	 switch (cmd) {
 	    default: {assert(false);}
 	 }
 	 verbatim_string_.result.clear();
       } break;
-      case type::streamed_string_part:
+      case types::streamed_string_part:
       {
 	 switch (cmd) {
 	    default: {assert(false);}
 	 }
 	 streamed_string_part_.result.clear();
       } break;
-      case type::simple_error:
+      case types::simple_error:
       {
 	 recv.on_simple_error(cmd, simple_error_.result);
 	 simple_error_.result.clear();
       } break;
-      case type::blob_error:
+      case types::blob_error:
       {
 	 recv.on_blob_error(cmd, blob_error_.result);
 	 blob_error_.result.clear();
       } break;
-      case type::null:
+      case types::null:
       {
 	 recv.on_null(cmd);
       } break;
-      case type::attribute:
+      case types::attribute:
       {
 	 throw std::runtime_error("Attribute are not supported yet.");
       } break;
@@ -166,28 +171,28 @@ void response_buffers::forward(commands cmd, type t, receiver_base& recv)
    }
 }
 
-response_base* response_buffers::select(commands cmd, type t)
+response_base* response_buffers::select(commands cmd, types t)
 {
    if (cmd == commands::exec)
      return &tree_;
 
    switch (t) {
-      case type::push: return &push_;
-      case type::set: return &set_;
-      case type::map: return &map_;
-      case type::attribute: return &attribute_;
-      case type::array: return &array_;
-      case type::simple_error: return &simple_error_;
-      case type::simple_string: return &simple_string_;
-      case type::number: return &number_;
-      case type::double_type: return &double_;
-      case type::big_number: return &big_number_;
-      case type::boolean: return &bool_;
-      case type::blob_error: return &blob_error_;
-      case type::blob_string: return &blob_string_;
-      case type::verbatim_string: return &verbatim_string_;
-      case type::streamed_string_part: return &streamed_string_part_;
-      case type::null: return &ignore_;
+      case types::push: return &push_;
+      case types::set: return &set_;
+      case types::map: return &map_;
+      case types::attribute: return &attribute_;
+      case types::array: return &array_;
+      case types::simple_error: return &simple_error_;
+      case types::simple_string: return &simple_string_;
+      case types::number: return &number_;
+      case types::double_type: return &double_;
+      case types::big_number: return &big_number_;
+      case types::boolean: return &bool_;
+      case types::blob_error: return &blob_error_;
+      case types::blob_string: return &blob_string_;
+      case types::verbatim_string: return &verbatim_string_;
+      case types::streamed_string_part: return &streamed_string_part_;
+      case types::null: return &ignore_;
       default: {
 	 throw std::runtime_error("response_buffers");
 	 return nullptr;

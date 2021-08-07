@@ -70,7 +70,7 @@ enum class commands
 , zrange
 , zrangebyscore
 , zremrangebyscore
-, none
+, unknown
 };
 
 std::string to_string(commands c);
