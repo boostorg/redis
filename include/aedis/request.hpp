@@ -16,7 +16,7 @@
 #include <type_traits>
 #include <string_view>
 
-#include <aedis/detail/command.hpp>
+#include <aedis/detail/commands.hpp>
 
 #include "config.hpp"
 
@@ -133,89 +133,101 @@ void assemble(std::string& ret, std::string_view cmd, std::string_view key)
 
 } // resp
 
-/** A class that generates RESP3-commands.
-*/
+/** A class to compose redis requests
+ *  
+ *  A request is composed of one or more redis commands and is refered
+ *  to in the redis documentation as a pipeline, see
+ *  https://redis.io/topics/pipelining.
+ *
+ *  The protocol version suported is RESP3, see
+ *  https://github.com/antirez/RESP3/blob/74adea588783e463c7e84793b325b088fe6edd1c/spec.md
+ */
 class request {
 public:
    std::string payload;
-   std::queue<command> cmds;
+   std::queue<commands> cmds;
 
 public:
    bool empty() const noexcept { return std::empty(payload); };
 
-   /// Clear the commands.
+   /// Clears the request.
    void clear()
    {
       payload.clear();
       cmds = {};
    }
 
-   /// Adds the ping command to the request. See https://redis.io/commands/ping.
+   /// Adds ping to the request, see https://redis.io/commands/bgrewriteaof
    void ping()
    {
       resp::assemble(payload, "PING");
-      cmds.push(command::ping);
+      cmds.push(commands::ping);
    }
 
-   /// Adds the quit command to the request. See https://redis.io/commands/quit
+   /// Adds quit to the request, see https://redis.io/commands/quit
    void quit()
    {
       resp::assemble(payload, "QUIT");
-      cmds.push(command::quit);
+      cmds.push(commands::quit);
    }
 
-   /// Adds the multi command to the request. See https://redis.io/commands/multi
+   /// Adds multi to the request, see https://redis.io/commands/multi
    void multi()
    {
       resp::assemble(payload, "MULTI");
-      cmds.push(command::multi);
+      cmds.push(commands::multi);
    }
 
-   /// Adds the exec command to the request. See https://redis.io/commands/exec
+   /// Adds exec to the request, see https://redis.io/commands/exec
    void exec()
    {
       resp::assemble(payload, "EXEC");
-      cmds.push(command::exec);
+      cmds.push(commands::exec);
    }
 
-   /// Adds the incr to the request. See 
+   /// Adds incr to the request, see https://redis.io/commands/incr
    void incr(std::string_view key)
    {
       resp::assemble(payload, "INCR", key);
-      cmds.push(command::incr);
+      cmds.push(commands::incr);
    }
 
-   /// Adds the auth command to the request. See
+   /// Adds auth to the request, see https://redis.io/commands/bgrewriteaof
    void auth(std::string_view pwd)
    {
       resp::assemble(payload, "AUTH", pwd);
-      cmds.push(command::auth);
+      cmds.push(commands::auth);
    }
 
-   auto bgrewriteaof()
+   /// Adds bgrewriteaof to the request, see https://redis.io/commands/bgrewriteaof
+   void bgrewriteaof()
    {
       resp::assemble(payload, "BGREWRITEAOF");
-      cmds.push(command::bgrewriteaof);
+      cmds.push(commands::bgrewriteaof);
    }
 
-   auto role()
+   /// Adds role to the request, see https://redis.io/commands/role
+   void role()
    {
       resp::assemble(payload, "ROLE");
-      cmds.push(command::role);
+      cmds.push(commands::role);
    }
 
-   auto bgsave()
+   /// Adds bgsave to the request, see //https://redis.io/commands/bgsave
+   void bgsave()
    {
       resp::assemble(payload, "BGSAVE");
-      cmds.push(command::bgsave);
+      cmds.push(commands::bgsave);
    }
 
-   auto flushall()
+   /// Adds ping to the request, see https://redis.io/commands/flushall
+   void flushall()
    {
       resp::assemble(payload, "FLUSHALL");
-      cmds.push(command::flushall);
+      cmds.push(commands::flushall);
    }
 
+   /// Adds ping to the request, see https://redis.io/commands/lpop
    void lpop(std::string_view key, int count = 1)
    {
       //if (count == 1) {
@@ -230,55 +242,62 @@ public:
       //   std::cend(par));
       //}
 
-      cmds.push(command::lpop);
+      cmds.push(commands::lpop);
    }
 
+   /// Adds ping to the request, see https://redis.io/commands/subscribe
    void subscribe(std::string_view key)
    {
       // The response to this command is a push.
       resp::assemble(payload, "SUBSCRIBE", key);
    }
 
-   void
-   unsubscribe(std::string_view key)
+   /// Adds ping to the request, see https://redis.io/commands/unsubscribe
+   void unsubscribe(std::string_view key)
    {
       // The response to this command is a push.
       resp::assemble(payload, "UNSUBSCRIBE", key);
    }
 
+   /// Adds ping to the request, see https://redis.io/commands/get
    void get(std::string_view key)
    {
       resp::assemble(payload, "GET", key);
-      cmds.push(command::get);
+      cmds.push(commands::get);
    }
 
+   /// Adds ping to the request, see https://redis.io/commands/keys
    void keys(std::string_view pattern)
    {
       resp::assemble(payload, "KEYS", pattern);
-      cmds.push(command::keys);
+      cmds.push(commands::keys);
    }
 
+   /// Adds ping to the request, see https://redis.io/commands/hello
    void hello(std::string_view version = "3")
    {
       resp::assemble(payload, "HELLO", version);
-      cmds.push(command::hello);
+      cmds.push(commands::hello);
    }
    
+   /// Adds ping to the request, see https://redis.io/commands/sentinel
    void sentinel(std::string_view arg, std::string_view name)
    {
       auto par = {name};
       resp::assemble(payload, "SENTINEL", {arg}, std::cbegin(par), std::cend(par));
-      cmds.push(command::sentinel);
+      cmds.push(commands::sentinel);
    }
    
-   auto append(std::string_view key, std::string_view msg)
+   /// Adds ping to the request, see https://redis.io/commands/append
+   void append(std::string_view key, std::string_view msg)
    {
       auto par = {msg};
       resp::assemble(payload, "APPEND", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::append);
+      cmds.push(commands::append);
    }
    
-   auto bitcount(std::string_view key, int start = 0, int end = -1)
+   /// Adds ping to the request, see https://redis.io/commands/bitcount
+   void bitcount(std::string_view key, int start = 0, int end = -1)
    {
       auto const start_str = std::to_string(start);
       auto const end_str = std::to_string(end);
@@ -289,22 +308,25 @@ public:
    		    , {key}
    		    , std::cbegin(par)
    		    , std::cend(par));
-      cmds.push(command::bitcount);
+      cmds.push(commands::bitcount);
    }
    
+   /// Adds ping to the request, see https://redis.io/commands/rpush
    template <class Iter>
-   auto rpush(std::string_view key, Iter begin, Iter end)
+   void rpush(std::string_view key, Iter begin, Iter end)
    {
       resp::assemble(payload, "RPUSH", {key}, begin, end);
-      cmds.push(command::rpush);
+      cmds.push(commands::rpush);
    }
    
+   /// Adds ping to the request, see https://redis.io/commands/rpush
    template <class T>
-   auto rpush( std::string_view key, std::initializer_list<T> v)
+   void rpush( std::string_view key, std::initializer_list<T> v)
    {
       return rpush(key, std::cbegin(v), std::cend(v));
    }
 
+   /// Adds ping to the request, see https://redis.io/commands/rpush
    template <class Range>
    void rpush( std::string_view key, Range const& v)
    {
@@ -313,86 +335,98 @@ public:
       rpush(key, cbegin(v), cend(v));
    }
    
+   /// Adds ping to the request, see https://redis.io/commands/lpush
    template <class Iter>
-   auto lpush(std::string_view key, Iter begin, Iter end)
+   void lpush(std::string_view key, Iter begin, Iter end)
    {
       resp::assemble(payload, "LPUSH", {key}, begin, end);
-      cmds.push(command::lpush);
+      cmds.push(commands::lpush);
    }
    
-   auto psubscribe( std::initializer_list<std::string_view> l)
+   /// Adds ping to the request, see https://redis.io/commands/psubscribe
+   void psubscribe( std::initializer_list<std::string_view> l)
    {
       std::initializer_list<std::string_view> dummy = {};
       resp::assemble(payload, "PSUBSCRIBE", l, std::cbegin(dummy), std::cend(dummy));
    }
    
-   auto publish(std::string_view key, std::string_view msg)
+   /// Adds ping to the request, see https://redis.io/commands/publish
+   void publish(std::string_view key, std::string_view msg)
    {
       auto par = {msg};
       resp::assemble(payload, "PUBLISH", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::publish);
+      cmds.push(commands::publish);
    }
    
-   auto set(std::string_view key,
+   /// Adds ping to the request, see https://redis.io/commands/set
+   void set(std::string_view key,
             std::initializer_list<std::string_view> args)
    {
       resp::assemble(payload, "SET", {key}, std::cbegin(args), std::cend(args));
-      cmds.push(command::set);
+      cmds.push(commands::set);
    }
 
    // TODO: Find a way to assert the value type is a pair.
+   /// Adds ping to the request, see https://redis.io/commands/hset
    template <class Range>
-   auto hset(std::string_view key, Range const& r)
+   void hset(std::string_view key, Range const& r)
    {
       //Note: Requires an std::pair as value type, otherwise gets
       //error: ERR Protocol error: expected '$', got '*'
       using std::cbegin;
       using std::cend;
       resp::assemble(payload, "HSET", {key}, std::cbegin(r), std::cend(r), 2);
-      cmds.push(command::hset);
+      cmds.push(commands::hset);
    }
    
-   auto hincrby(std::string_view key, std::string_view field, int by)
+   /// Adds ping to the request, see https://redis.io/commands/hincrby
+   void hincrby(std::string_view key, std::string_view field, int by)
    {
       auto by_str = std::to_string(by);
       std::initializer_list<std::string_view> par {field, by_str};
       resp::assemble(payload, "HINCRBY", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::hincrby);
+      cmds.push(commands::hincrby);
    }
    
-   auto hkeys(std::string_view key)
+   /// Adds ping to the request, see https://redis.io/commands/hkeys
+   void hkeys(std::string_view key)
    {
       auto par = {""};
       resp::assemble(payload, "HKEYS", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::hkeys);
+      cmds.push(commands::hkeys);
    }
    
-   auto hlen(std::string_view key)
+   /// Adds ping to the request, see https://redis.io/commands/hlen
+   void hlen(std::string_view key)
    {
       resp::assemble(payload, "HLEN", {key});
-      cmds.push(command::hlen);
+      cmds.push(commands::hlen);
    }
 
-   auto hgetall(std::string_view key)
+   /// Adds ping to the request, see https://redis.io/commands/hgetall
+   void hgetall(std::string_view key)
    {
       resp::assemble(payload, "HGETALL", {key});
-      cmds.push(command::hgetall);
+      cmds.push(commands::hgetall);
    }
 
-   auto hvals( std::string_view key)
+   /// Adds ping to the request, see https://redis.io/commands/hvals
+   void hvals( std::string_view key)
    {
       resp::assemble(payload, "HVALS", {key});
-      cmds.push(command::hvals);
+      cmds.push(commands::hvals);
    }
    
-   auto hget(std::string_view key, std::string_view field)
+   /// Adds ping to the request, see https://redis.io/commands/hget
+   void hget(std::string_view key, std::string_view field)
    {
       auto par = {field};
       resp::assemble(payload, "HGET", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::hget);
+      cmds.push(commands::hget);
    }
    
-   auto hmget(
+   /// Adds ping to the request, see https://redis.io/commands/hmget
+   void hmget(
       std::string_view key,
       std::initializer_list<std::string_view> fields)
    {
@@ -402,10 +436,11 @@ public:
    		    , std::cbegin(fields)
    		    , std::cend(fields));
 
-      cmds.push(command::hmget);
+      cmds.push(commands::hmget);
    }
    
-   auto
+   /// Adds ping to the request, see https://redis.io/commands/hdel
+   void
    hdel(std::string_view key,
         std::initializer_list<std::string_view> fields)
    {
@@ -416,44 +451,48 @@ public:
 	 std::cbegin(fields),
 	 std::cend(fields));
 
-      cmds.push(command::hdel);
+      cmds.push(commands::hdel);
    }
 
-   auto expire(std::string_view key, int secs)
+   /// Adds ping to the request, see https://redis.io/commands/expire
+   void expire(std::string_view key, int secs)
    {
       auto const str = std::to_string(secs);
       std::initializer_list<std::string_view> par {str};
       resp::assemble(payload, "EXPIRE", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::expire);
+      cmds.push(commands::expire);
    }
    
-   auto zadd(std::string_view key, int score, std::string_view value)
+   /// Adds ping to the request, see https://redis.io/commands/zadd
+   void zadd(std::string_view key, int score, std::string_view value)
    {
       auto const score_str = std::to_string(score);
       std::initializer_list<std::string_view> par = {score_str, value};
       resp::assemble(payload, "ZADD", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::zadd);
+      cmds.push(commands::zadd);
    }
    
+   /// Adds ping to the request, see https://redis.io/commands/zadd
    template <class Range>
-   auto zadd(std::initializer_list<std::string_view> key, Range const& r)
+   void zadd(std::initializer_list<std::string_view> key, Range const& r)
    {
       resp::assemble(payload, "ZADD", key, std::cbegin(r), std::cend(r), 2);
-      cmds.push(command::zadd);
+      cmds.push(commands::zadd);
    }
    
-   auto zrange(std::string_view key, int min = 0, int max = -1)
+   /// Adds ping to the request, see https://redis.io/commands/zrange
+   void zrange(std::string_view key, int min = 0, int max = -1)
    {
       auto const min_str = std::to_string(min);
       auto const max_str = std::to_string(max);
       std::initializer_list<std::string_view> par {min_str, max_str};
 
       resp::assemble(payload, "ZRANGE", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::zrange);
+      cmds.push(commands::zrange);
    }
    
-   auto
-   zrangebyscore(std::string_view key, int min, int max)
+   /// Adds ping to the request, see https://redis.io/commands/zrangebyscore
+   void zrangebyscore(std::string_view key, int min, int max)
    {
       auto max_str = std::string {"inf"};
       if (max != -1)
@@ -462,10 +501,11 @@ public:
       auto const min_str = std::to_string(min);
       auto par = {min_str , max_str};
       resp::assemble(payload, "ZRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::zrangebyscore);
+      cmds.push(commands::zrangebyscore);
    }
    
-   auto
+   /// Adds ping to the request, see https://redis.io/commands/zremrangebyscore
+   void
    zremrangebyscore(
       std::string_view key,
       std::string_view min,
@@ -473,47 +513,53 @@ public:
    {
       auto par = {min, max};
       resp::assemble(payload, "ZREMRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::zremrangebyscore);
+      cmds.push(commands::zremrangebyscore);
    }
    
-   auto lrange(std::string_view key, int min = 0, int max = -1)
+   /// Adds ping to the request, see https://redis.io/commands/lrange
+   void lrange(std::string_view key, int min = 0, int max = -1)
    {
       auto const min_str = std::to_string(min);
       auto const max_str = std::to_string(max);
       std::initializer_list<std::string_view> par {min_str, max_str};
       resp::assemble(payload, "LRANGE", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::lrange);
+      cmds.push(commands::lrange);
    }
    
-   auto ltrim(std::string_view key, int min = 0, int max = -1)
+   /// Adds ping to the request, see https://redis.io/commands/ltrim
+   void ltrim(std::string_view key, int min = 0, int max = -1)
    {
       auto const min_str = std::to_string(min);
       auto const max_str = std::to_string(max);
       std::initializer_list<std::string_view> par {min_str, max_str};
       resp::assemble(payload, "LTRIM", {key}, std::cbegin(par), std::cend(par));
-      cmds.push(command::ltrim);
+      cmds.push(commands::ltrim);
    }
    
    // TODO: Overload for vector del.
-   auto del(std::string_view key)
+   /// Adds ping to the request, see https://redis.io/commands/del
+   void del(std::string_view key)
    {
       resp::assemble(payload, "DEL", key);
-      cmds.push(command::del);
+      cmds.push(commands::del);
    }
    
-   auto llen(std::string_view key)
+   /// Adds ping to the request, see https://redis.io/commands/llen
+   void llen(std::string_view key)
    {
       resp::assemble(payload, "LLEN", key);
-      cmds.push(command::llen);
+      cmds.push(commands::llen);
    }
 
+   /// Adds ping to the request, see https://redis.io/commands/sadd
    template <class Iter>
    void sadd(std::string_view key, Iter begin, Iter end)
    {
       resp::assemble(payload, "SADD", {key}, begin, end);
-      cmds.push(command::sadd);
+      cmds.push(commands::sadd);
    }
 
+   /// Adds ping to the request, see https://redis.io/commands/sadd
    template <class Range>
    void sadd(std::string_view key, Range const& r)
    {
@@ -522,28 +568,32 @@ public:
       sadd(key, cbegin(r), cend(r));
    }
 
-   auto smembers(std::string_view key)
+   /// Adds ping to the request, see https://redis.io/commands/smembers
+   void smembers(std::string_view key)
    {
       resp::assemble(payload, "SMEMBERS", key);
-      cmds.push(command::smembers);
+      cmds.push(commands::smembers);
    }
 
-   auto scard(std::string_view key)
+   /// Adds ping to the request, see https://redis.io/commands/scard
+   void scard(std::string_view key)
    {
       resp::assemble(payload, "SCARD", key);
-      cmds.push(command::scard);
+      cmds.push(commands::scard);
    }
 
-   auto scard(std::string_view key, std::initializer_list<std::string_view> l)
+   /// Adds ping to the request, see https://redis.io/commands/scard
+   void scard(std::string_view key, std::initializer_list<std::string_view> l)
    {
       resp::assemble(payload, "SDIFF", {key}, std::cbegin(l), std::cend(l));
-      cmds.push(command::scard);
+      cmds.push(commands::scard);
    }
 
-   auto client_id(std::string_view parameters)
+   /// Adds ping to the request, see https://redis.io/commands/client_id
+   void client_id(std::string_view parameters)
    {
       resp::assemble(payload, "CLIENT ID", {parameters});
-      cmds.push(command::client_id);
+      cmds.push(commands::client_id);
    }
 };
 

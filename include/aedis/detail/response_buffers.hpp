@@ -10,12 +10,12 @@
 #include <aedis/type.hpp>
 #include <aedis/receiver_base.hpp>
 
-#include "command.hpp"
+#include "commands.hpp"
 #include "response_types.hpp"
 
 namespace aedis { namespace resp {
 
-#define EXPAND_RECEIVER_CASE(var, x) case command::x: recv.on_##x(var.result); break
+#define EXPAND_RECEIVER_CASE(var, x) case commands::x: recv.on_##x(var.result); break
 
 class response_buffers {
 private:
@@ -41,13 +41,13 @@ private:
 public:
    // When the cmd is from a transaction the type of the message is
    // not specified.
-   response_base* select(command cmd, type t);
+   response_base* select(commands cmd, type t);
 
    void forward_transaction(
-      std::queue<std::pair<command, type>> ids,
+      std::deque<std::pair<commands, type>> ids,
       receiver_base& recv);
 
-   void forward(command cmd, type t, receiver_base& recv);
+   void forward(commands cmd, type t, receiver_base& recv);
 };
 
 } // resp

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <queue>
+#include <deque>
 #include <string>
 #include <cstdio>
 #include <utility>
@@ -262,7 +262,7 @@ async_reader(
    boost::system::error_code& ec)
 {
    // Used to queue the cmds of a transaction.
-   std::queue<std::pair<command, resp::type>> trans;
+   std::deque<std::pair<commands, resp::type>> trans;
 
    for (;;) {
       auto t = resp::type::invalid;
@@ -277,15 +277,15 @@ async_reader(
 
       assert(t != resp::type::invalid);
 
-      command cmd = command::none;
+      auto cmd = commands::none;
       if (t != resp::type::push) {
 	 assert(!std::empty(reqs));
 	 assert(!std::empty(reqs.front().req.cmds));
 	 cmd = reqs.front().req.cmds.front();
       }
 
-      auto const is_multi = cmd == command::multi;
-      auto const is_exec = cmd == command::exec;
+      auto const is_multi = cmd == commands::multi;
+      auto const is_exec = cmd == commands::exec;
       auto const trans_empty = std::empty(trans);
 
       if (is_multi || (!trans_empty && !is_exec)) {
@@ -303,24 +303,24 @@ async_reader(
 	 // considered an application error.  The multi commands
 	 // always gets a "OK" response and all other commands get
 	 // QUEUED unless the user is e.g. using wrong data types.
-	 auto const* res = cmd == command::multi ? "OK" : "QUEUED";
+	 auto const* res = cmd == commands::multi ? "OK" : "QUEUED";
 	 assert (tmp.result == res);
 
          // Pushes the command in the transction command queue that will be
          // processed when exec arrives.
-	 trans.push({reqs.front().req.cmds.front(), resp::type::invalid });
+	 trans.push_back({reqs.front().req.cmds.front(), resp::type::invalid});
 	 reqs.front().req.cmds.pop();
 	 continue;
       }
 
-      if (cmd == command::exec) {
-	 assert(trans.front().first == command::multi);
+      if (cmd == commands::exec) {
+	 assert(trans.front().first == commands::multi);
 
 	 // The exec response is an array where each element is the
 	 // response of one command in the transaction. This requires
 	 // a special response buffer, that can deal with recursive
 	 // data types.
-         auto* tmp = resps.select(command::exec, t);
+         auto* tmp = resps.select(commands::exec, t);
 
 	 co_await async_read(
 	    socket,
@@ -331,15 +331,15 @@ async_reader(
 	 if (ec)
 	    co_return;
 
-	 trans.pop(); // Removes multi.
+	 trans.pop_front(); // Removes multi.
          resps.forward_transaction(std::move(trans), recv);
 	 trans = {};
 
 	 if (!queue_pop(reqs))
 	    continue;
 
-	 // The following loop apears again in this function below. We
-	 // need to implement this as a composed operation.
+	 // The following loop apears again in this function below. It
+	 // should to be implement as a composed operation.
 	 while (!std::empty(reqs) && !reqs.front().sent) {
 	    reqs.front().sent = true;
 	    co_await async_write(

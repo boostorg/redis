@@ -10,5 +10,5 @@
 #include <aedis/impl/connection.ipp>
 
 #include <aedis/detail/impl/parser.ipp>
-#include <aedis/detail/impl/command.ipp>
+#include <aedis/detail/impl/commands.ipp>
 #include <aedis/detail/impl/response_buffers.ipp>

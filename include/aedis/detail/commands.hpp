@@ -11,7 +11,7 @@
 
 namespace aedis {
 
-enum class command
+enum class commands
 { acl_load
 , acl_save
 , acl_list
@@ -73,8 +73,8 @@ enum class command
 , none
 };
 
-std::string to_string(command c);
-std::ostream& operator<<(std::ostream& os, command c);
+std::string to_string(commands c);
+std::ostream& operator<<(std::ostream& os, commands c);
 
 } // aedis
 

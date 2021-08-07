@@ -63,7 +63,10 @@ template<
    class Allocator = std::allocator<CharT>>
 using basic_simple_error = std::basic_string<CharT, Traits, Allocator>;
 
+/// RESP3 array type.
 using array_type = basic_array_type<std::string>;
+
+/// RESP3 map type.
 using map_type = basic_map_type<std::string>;
 using set_type = basic_set_type<std::string>;
 

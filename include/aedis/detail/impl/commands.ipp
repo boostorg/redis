@@ -5,15 +5,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/detail/command.hpp>
+#include <aedis/detail/commands.hpp>
 
 #include <cassert>
 
 namespace aedis {
 
-#define EXPAND_COMMAND_CASE(x) case command::x: return #x
+#define EXPAND_COMMAND_CASE(x) case commands::x: return #x
 
-std::string to_string(command c)
+std::string to_string(commands c)
 {
    switch (c) {
       EXPAND_COMMAND_CASE(append);
@@ -66,7 +66,7 @@ std::string to_string(command c)
    }
 }
 
-std::ostream& operator<<(std::ostream& os, aedis::command c)
+std::ostream& operator<<(std::ostream& os, aedis::commands c)
 {
    os << to_string(c);
    return os;

@@ -45,7 +45,6 @@ public:
       auto f = [this](auto& req)
       {
 	 req.flushall();
-	 req.ping();
 	 req.rpush("a", list_);
 	 req.llen("a");
 	 req.lrange("a");
@@ -84,7 +83,7 @@ public:
       conn_->send(f);
    }
 
-   void on_simple_error(command cmd, resp::simple_error_type& v) noexcept override
+   void on_simple_error(commands cmd, resp::simple_error_type& v) noexcept override
    {
       std::cout << v << std::endl;
    }
@@ -133,9 +132,6 @@ public:
    void on_set(resp::simple_string_type& s) noexcept override
       { check_equal(s, {"OK"}, "set (receiver)"); }
 
-   void on_ping(resp::simple_string_type& s) noexcept override
-      { check_equal(s, {"PONG"}, "ping (receiver)"); }
-
    void on_quit(resp::simple_string_type& s) noexcept override
       { check_equal(s, {"OK"}, "quit (receiver)"); }
 
@@ -183,6 +179,106 @@ public:
       { check_equal((int)n, 2, "hdel (receiver)"); }
 
 };
+
+void test_receiver_1()
+{
+   net::io_context ioc;
+   auto conn = std::make_shared<connection>(ioc.get_executor());
+   test_receiver recv{conn};
+   conn->start(recv);
+   ioc.run();
+}
+
+//-------------------------------------------------------------------
+
+class ping_receiver : public receiver_base {
+private:
+   std::shared_ptr<connection> conn_;
+
+public:
+   ping_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
+
+   void on_hello(resp::array_type& v) noexcept override
+      { conn_->send([this](auto& req) { req.ping(); }); }
+
+   void on_ping(resp::simple_string_type& s) noexcept override
+   {
+      check_equal(s, {"PONG"}, "ping");
+      conn_->send([this](auto& req) { req.quit(); });
+   }
+
+   void on_quit(resp::simple_string_type& s) noexcept override
+      { check_equal(s, {"OK"}, "quit"); }
+};
+
+void test_ping()
+{
+   net::io_context ioc;
+   auto conn = std::make_shared<connection>(ioc.get_executor());
+   ping_receiver recv{conn};
+   conn->start(recv);
+   ioc.run();
+}
+
+//-------------------------------------------------------------------
+
+class trans_receiver : public receiver_base {
+private:
+   std::shared_ptr<connection> conn_;
+
+public:
+   trans_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
+
+   void on_hello(resp::array_type& v) noexcept override
+   {
+      auto f = [this](auto& req)
+      {
+	 req.flushall();
+	 req.multi();
+	 req.ping();
+	 req.incr("c");
+	 req.exec();
+      };
+
+      conn_->send(f);
+   }
+
+   void on_flushall(resp::simple_string_type& s) noexcept override
+      { check_equal(s, {"OK"}, "flushall (transaction)"); }
+
+   void on_transaction(
+      std::deque<std::pair<commands, resp::type>> ids,
+      std::vector<transaction_element> const& result) noexcept override
+   {
+      check_equal(std::size(ids), std::size(result), "size (transaction)");
+
+      check_equal(ids[0].first, commands::ping, "command (transaction)");
+      check_equal(result[0].depth, 1, "depth (transaction)");
+      check_equal(result[0].t, resp::type::simple_string, "type (transaction)");
+      check_equal(result[0].expected_size, 1, "size (transaction)");
+
+      check_equal(ids[1].first, commands::incr, "command (transaction)");
+      check_equal(result[1].depth, 1, "depth (transaction)");
+      check_equal(result[1].t, resp::type::number, "type (transaction)");
+      check_equal(result[1].expected_size, 1, "size (transaction)");
+
+      conn_->send([this](auto& req) { req.quit(); });
+   }
+
+   void on_quit(resp::simple_string_type& s) noexcept override
+      { check_equal(s, {"OK"}, "quit"); }
+};
+
+void test_trans()
+{
+   net::io_context ioc;
+   auto conn = std::make_shared<connection>(ioc.get_executor());
+   trans_receiver recv{conn};
+   conn->start(recv);
+   ioc.run();
+}
+
+//-------------------------------------------------------------------
 
 net::awaitable<void>
 test_list(net::ip::tcp::resolver::results_type const& results)
@@ -685,11 +781,11 @@ int main(int argc, char* argv[])
 
    co_spawn(ioc, test_list(results), net::detached);
    co_spawn(ioc, test_set(results), net::detached);
-
-   auto conn = std::make_shared<connection>(ioc.get_executor());
-   test_receiver recv{conn};
-   conn->start(recv);
-
    ioc.run();
+
+   test_receiver_1();
+
+   test_ping();
+   test_trans();
 }
 

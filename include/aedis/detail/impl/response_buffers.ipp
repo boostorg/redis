@@ -12,18 +12,13 @@
 namespace aedis { namespace resp {
 
 void response_buffers::forward_transaction(
-   std::queue<std::pair<command, type>> ids,
+   std::deque<std::pair<commands, type>> ids,
    receiver_base& recv)
 {
-   while (!std::empty(ids)) {
-     //std::cout << ids.front() << std::endl;
-     ids.pop();
-   }
-
-   tree_.result.clear();
+   recv.on_transaction(std::move(ids), tree_.result);
 }
 
-void response_buffers::forward(command cmd, type t, receiver_base& recv)
+void response_buffers::forward(commands cmd, type t, receiver_base& recv)
 {
    switch (t) {
       case type::push:
@@ -171,9 +166,9 @@ void response_buffers::forward(command cmd, type t, receiver_base& recv)
    }
 }
 
-response_base* response_buffers::select(command cmd, type t)
+response_base* response_buffers::select(commands cmd, type t)
 {
-   if (cmd == command::exec)
+   if (cmd == commands::exec)
      return &tree_;
 
    switch (t) {

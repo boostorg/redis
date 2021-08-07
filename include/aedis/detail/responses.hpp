@@ -17,7 +17,7 @@
 #include <charconv>
 #include <iomanip>
 
-#include <aedis/detail/command.hpp>
+#include <aedis/detail/commands.hpp>
 #include <aedis/config.hpp>
 #include <aedis/type.hpp>
 #include <aedis/resp_types.hpp>
@@ -64,14 +64,7 @@ struct response_ignore : response_base {
 // as in a transaction for example.
 class response_tree: public response_base {
 public:
-   struct elem {
-      int depth;
-      type t;
-      int expected_size = -1;
-      std::vector<std::string> value;
-   };
-
-   std::vector<elem> result;
+   std::vector<transaction_element> result;
 
 private:
    int depth_ = 0;
