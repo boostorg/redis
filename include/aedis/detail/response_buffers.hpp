@@ -11,7 +11,7 @@
 #include <aedis/receiver_base.hpp>
 #include <aedis/commands.hpp>
 
-#include "response_types.hpp"
+#include "responses.hpp"
 
 namespace aedis { namespace detail {
 

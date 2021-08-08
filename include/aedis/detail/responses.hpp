@@ -125,63 +125,39 @@ struct response_number : public response_base {
    number_type result;
 };
 
-template<
-   class CharT,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>>
-struct response_basic_blob_string : public response_base {
+struct response_blob_string : public response_base {
    void on_blob_string(std::string_view s) override
       { from_string_view(s, result); }
 
-   basic_blob_string<char> result;
+   blob_string_type result;
 };
 
-template<
-   class CharT = char,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>>
-struct response_basic_blob_error : public response_base {
+struct response_blob_error : public response_base {
    void on_blob_error(std::string_view s) override
       { from_string_view(s, result); }
 
-   basic_blob_error<char> result;
+   blob_error_type result;
 };
 
-template<
-   class CharT = char,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>
-   >
-struct response_basic_simple_string : public response_base {
+struct response_simple_string : public response_base {
    void on_simple_string(std::string_view s) override
       { from_string_view(s, result); }
 
-   basic_simple_string<CharT, Traits, Allocator> result;
+   simple_string_type result;
 };
 
-template<
-   class CharT = char,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>
-   >
-struct response_basic_simple_error : public response_base {
+struct response_simple_error : public response_base {
    void on_simple_error(std::string_view s) override
       { from_string_view(s, result); }
 
-   basic_simple_error<CharT, Traits, Allocator> result;
+   simple_error_type result;
 };
 
-// Big number uses strings at the moment as the underlying storage.
-template <
-   class CharT = char,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>
-   >
-struct response_basic_big_number : public response_base {
+struct response_big_number : public response_base {
    void on_big_number(std::string_view s) override
       { from_string_view(s, result); }
 
-   basic_big_number<CharT, Traits, Allocator> result;
+   big_number_type result;
 };
 
 struct response_double : public response_base {
@@ -193,28 +169,18 @@ struct response_double : public response_base {
    double_type result;
 };
 
-template<
-   class CharT = char,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>
-   >
-struct response_basic_verbatim_string : public response_base {
+struct response_verbatim_string : public response_base {
    void on_verbatim_string(std::string_view s) override
       { from_string_view(s, result); }
-public:
-   basic_verbatim_string<CharT, Traits, Allocator> result;
+
+   verbatim_string_type result;
 };
 
-template<
-   class CharT = char,
-   class Traits = std::char_traits<CharT>,
-   class Allocator = std::allocator<CharT>
-   >
-struct response_basic_streamed_string_part : public response_base {
+struct response_streamed_string_part : public response_base {
    void on_streamed_string_part(std::string_view s) override
       { result += s; }
 
-   basic_streamed_string_part<CharT, Traits, Allocator> result;
+   streamed_string_part_type result;
 };
 
 struct response_bool : public response_base {
@@ -246,10 +212,7 @@ struct response_unordered_set : response_base {
    std::set<Key, Compare, Allocator> result;
 };
 
-template <
-   class T,
-   class Allocator = std::allocator<T>
-   >
+template <class T>
 struct response_basic_array : response_base {
    void add(std::string_view s = {})
    {
@@ -272,17 +235,15 @@ struct response_basic_array : response_base {
    void select_push(int n) override { }
    void on_streamed_string_part(std::string_view s = {}) override { add(s); }
 
-   basic_array_type<T, Allocator> result;
+   basic_array_type<T> result;
 };
 
-template <
-   class T,
-   class Allocator = std::allocator<T>
-   >
-struct response_basic_map : response_base {
+using response_array = response_basic_array<std::string>;
+
+struct response_map : response_base {
    void add(std::string_view s = {})
    {
-      T r;
+      std::string r;
       from_string_view(s, r);
       result.emplace_back(std::move(r));
    }
@@ -301,17 +262,13 @@ struct response_basic_map : response_base {
    void on_verbatim_string(std::string_view s = {}) override { add(s); }
    void on_blob_string(std::string_view s = {}) override { add(s); }
 
-   basic_map_type<T, Allocator> result;
+   map_type result;
 };
 
-template <
-   class T,
-   class Allocator = std::allocator<T>
-   >
-struct response_basic_set : response_base {
+struct response_set : response_base {
    void add(std::string_view s = {})
    {
-      T r;
+      std::string r;
       from_string_view(s, r);
       result.emplace_back(std::move(r));
    }
@@ -326,7 +283,7 @@ struct response_basic_set : response_base {
    void on_verbatim_string(std::string_view s = {}) override { add(s); }
    void on_blob_string(std::string_view s = {}) override { add(s); }
 
-   basic_set_type<T, Allocator> result;
+   set_type result;
 };
 
 template <class T, std::size_t N>
