@@ -9,7 +9,7 @@
 
 #include <cassert>
 
-namespace aedis { namespace resp {
+namespace aedis {
 
 #define EXPAND_TYPE_CASE(x) case types::x: return #x
 
@@ -60,10 +60,9 @@ types to_type(char c)
    }
 }
 
-} // resp
 } // aedis
 
-std::ostream& operator<<(std::ostream& os, aedis::resp::types type)
+std::ostream& operator<<(std::ostream& os, aedis::types type)
 {
    os << to_string(type);
    return os;

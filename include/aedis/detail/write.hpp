@@ -9,12 +9,14 @@
 
 #include <chrono>
 
-#include "config.hpp"
-#include "request.hpp"
+#include <aedis/net.hpp>
+#include <aedis/request.hpp>
+
+#include "read.hpp"
 
 #include <boost/beast/core/stream_traits.hpp>
 
-namespace aedis {
+namespace aedis { namespace detail {
 
 template<class SyncWriteStream>
 std::size_t
@@ -44,24 +46,6 @@ std::size_t write(
         BOOST_THROW_EXCEPTION(boost::system::system_error{ec});
 
     return bytes_transferred;
-}
-
-template<
-   class AsyncWriteStream,
-   class CompletionToken =
-      net::default_completion_token_t<typename AsyncWriteStream::executor_type>>
-auto
-async_write(
-   AsyncWriteStream& stream,
-   request& req,
-   CompletionToken&& token =
-      net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
-{
-   static_assert(boost::beast::is_async_write_stream<
-      AsyncWriteStream>::value,
-      "AsyncWriteStream type requirements not met");
-
-   return net::async_write(stream, net::buffer(req.payload), token);
 }
 
 template <class AsyncReadStream>
@@ -157,5 +141,6 @@ bool queue_writer(
 
    return empty;
 }
-} // aedis
 
+} // detail
+} // aedis

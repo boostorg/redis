@@ -6,9 +6,9 @@
  */
 
 #include <aedis/impl/types.ipp>
-#include <aedis/impl/read.ipp>
 #include <aedis/impl/connection.ipp>
+#include <aedis/impl/commands.ipp>
 
+#include <aedis/detail/impl/read.ipp>
 #include <aedis/detail/impl/parser.ipp>
-#include <aedis/detail/impl/commands.ipp>
 #include <aedis/detail/impl/response_buffers.ipp>

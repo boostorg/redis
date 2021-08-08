@@ -26,13 +26,13 @@ below
    public:
       receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
-      void on_hello(resp::array_type& v) noexcept override
+      void on_hello(array_type& v) noexcept override
 	 { conn_->send(f); }
 
-      void on_ping(resp::simple_string_type& s) noexcept override
+      void on_ping(simple_string_type& s) noexcept override
 	 { std::cout << "PING: " << s << std::endl; }
 
-      void on_quit(resp::simple_string_type& s) noexcept override
+      void on_quit(simple_string_type& s) noexcept override
 	 { std::cout << "QUIT: " << s << std::endl; }
    };
 ```

@@ -6,7 +6,7 @@
  */
 
 #include <aedis/connection.hpp>
-#include <aedis/write.hpp>
+#include <aedis/detail/write.hpp>
 
 namespace aedis {
 
@@ -51,12 +51,12 @@ net::awaitable<void> connection::worker_coro(receiver_base& recv)
 	 continue;
       }
 
-      async_writer(socket_, reqs_, timer_, net::detached);
+      detail::async_writer(socket_, reqs_, timer_, net::detached);
 
       ec = {};
       co_await co_spawn(
 	 ex,
-	 async_reader(socket_, buffer_, resps_, recv, reqs_, ec),
+	 detail::async_reader(socket_, buffer_, resps_, recv, reqs_, ec),
 	 net::use_awaitable);
 
       if (ec) {

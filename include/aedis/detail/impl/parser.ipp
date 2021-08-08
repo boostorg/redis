@@ -7,7 +7,7 @@
 
 #include <aedis/detail/parser.hpp>
 
-namespace aedis { namespace resp {
+namespace aedis { namespace detail {
 
 // Converts a decimal number in ascii format to an integer.
 long long length(char const* p)
@@ -140,5 +140,5 @@ std::size_t parser::advance(char const* data, std::size_t n)
    return n;
 }
 
-} // resp
+} // detail
 } // aedis

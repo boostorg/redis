@@ -9,7 +9,7 @@
 
 #include <ostream>
 
-namespace aedis { namespace resp {
+namespace aedis {
 
 enum class types
 { array
@@ -34,5 +34,4 @@ enum class types
 types to_type(char c);
 std::ostream& operator<<(std::ostream& os, types t);
 
-} // resp
 } // aedis

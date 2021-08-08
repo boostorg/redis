@@ -12,11 +12,12 @@
 
 #include "types.hpp"
 #include "request.hpp"
+#include "resp_types.hpp"
 
 namespace aedis {
 
-#define RECEIVER_FUNCTION_REF(name, cmd) virtual void on_##cmd(resp::name& v) noexcept { }
-#define RECEIVER_FUNCTION(name, cmd) virtual void on_##cmd(resp::name v) noexcept { }
+#define RECEIVER_FUNCTION_REF(name, cmd) virtual void on_##cmd(name& v) noexcept { }
+#define RECEIVER_FUNCTION(name, cmd) virtual void on_##cmd(name v) noexcept { }
 
 /** Receiver base class.
  *
@@ -27,14 +28,6 @@ namespace aedis {
  *  The RESP3 data types suported can be found on
  *  https://github.com/antirez/RESP3/blob/74adea588783e463c7e84793b325b088fe6edd1c/spec.md#resp3-types
  */
-
-struct transaction_element {
-   int depth;
-   resp::types type;
-   int expected_size = -1;
-   commands command = commands::unknown;
-   std::vector<std::string> value;
-};
 
 class receiver_base {
 public:
@@ -171,13 +164,13 @@ public:
    RECEIVER_FUNCTION_REF(blob_string_type, hget);
 
    /// Callback for push notifications
-   virtual void on_push(resp::array_type& v) noexcept { }
+   virtual void on_push(array_type& v) noexcept { }
 
    /// Callback for simple error.
-   virtual void on_simple_error(commands cmd, resp::simple_error_type& v) noexcept { }
+   virtual void on_simple_error(commands cmd, simple_error_type& v) noexcept { }
 
    /// Callback for blob error.
-   virtual void on_blob_error(commands cmd, resp::blob_error_type& v) noexcept { }
+   virtual void on_blob_error(commands cmd, blob_error_type& v) noexcept { }
 
    /// Callback from null responses.
    virtual void on_null(commands cmd) noexcept { }

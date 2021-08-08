@@ -5,7 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/detail/commands.hpp>
+#include <aedis/commands.hpp>
 
 #include <cassert>
 

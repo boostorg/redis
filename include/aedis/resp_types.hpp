@@ -10,7 +10,9 @@
 #include <vector>
 #include <string>
 
-namespace aedis { namespace resp {
+#include "commands.hpp"
+
+namespace aedis {
 
 template <class T, class Allocator = std::allocator<T>>
 using basic_array_type = std::vector<T, Allocator>;
@@ -81,5 +83,12 @@ using big_number_type = basic_big_number<char>;
 using verbatim_string_type = basic_verbatim_string<char>;
 using streamed_string_part_type = basic_streamed_string_part<char>;
 
-} // resp
+struct transaction_element {
+   int depth;
+   types type;
+   int expected_size = -1;
+   commands command = commands::unknown;
+   std::vector<std::string> value;
+};
+
 } // aedis

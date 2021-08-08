@@ -9,7 +9,7 @@
 
 #include <aedis/detail/response_buffers.hpp>
 
-namespace aedis { namespace resp {
+namespace aedis { namespace detail {
 
 void response_buffers::forward_transaction(
    std::deque<std::pair<commands, types>> const& ids,
@@ -200,6 +200,6 @@ response_base* response_buffers::select(commands cmd, types t)
    }
 }
 
-} // resp
+} // detail
 } // aedis
 

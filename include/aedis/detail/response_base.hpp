@@ -12,7 +12,7 @@
 
 #include <aedis/resp_types.hpp>
 
-namespace aedis { namespace resp {
+namespace aedis { namespace detail {
 
 struct response_base {
    virtual void pop() {}
@@ -35,6 +35,6 @@ struct response_base {
    virtual ~response_base() {}
 };
 
-} // resp
+} // detail
 } // aedis
 

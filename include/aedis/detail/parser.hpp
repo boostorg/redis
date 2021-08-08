@@ -11,8 +11,9 @@
 
 #include "response_base.hpp"
 
-namespace aedis { namespace resp {
+namespace aedis { namespace detail {
 
+// resp3 parser.
 class parser {
 public:
    enum class bulk_type
@@ -60,5 +61,5 @@ public:
    auto bulk_length() const noexcept { return bulk_length_; }
 };
 
-} // resp
+} // detail
 } // aedis

@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/read.hpp>
+#include <aedis/detail/read.hpp>
 
-namespace aedis {
+namespace aedis { namespace detail {
 
 bool queue_pop(request_queue& reqs)
 {
@@ -23,4 +23,5 @@ bool queue_pop(request_queue& reqs)
    return false;
 }
 
+} // detail
 } // aedis

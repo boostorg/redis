@@ -21,15 +21,15 @@
 #include <string_view>
 #include <charconv>
 
-#include <aedis/detail/parser.hpp>
-#include <aedis/detail/response_buffers.hpp>
-#include <aedis/detail/response_base.hpp>
+#include <aedis/net.hpp>
+#include <aedis/types.hpp>
+#include <aedis/request.hpp>
 
-#include "config.hpp"
-#include "types.hpp"
-#include "request.hpp"
+#include "parser.hpp"
+#include "response_buffers.hpp"
+#include "response_base.hpp"
 
-namespace aedis { namespace resp {
+namespace aedis { namespace detail {
 
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
@@ -43,7 +43,7 @@ private:
    int start_ = 1;
 
 public:
-   parse_op(AsyncReadStream& stream, Storage* buf, resp::response_base* res)
+   parse_op(AsyncReadStream& stream, Storage* buf, response_base* res)
    : stream_ {stream}
    , buf_ {buf}
    , parser_ {res}
@@ -108,7 +108,7 @@ template <class SyncReadStream, class Storage>
 auto read(
    SyncReadStream& stream,
    Storage& buf,
-   resp::response_base& res,
+   response_base& res,
    boost::system::error_code& ec)
 {
    parser p {&res};
@@ -143,7 +143,7 @@ std::size_t
 read(
    SyncReadStream& stream,
    Storage& buf,
-   resp::response_base& res)
+   response_base& res)
 {
    boost::system::error_code ec;
    auto const n = read(stream, buf, res, ec);
@@ -163,7 +163,7 @@ template <
 auto async_read(
    AsyncReadStream& stream,
    Storage& buffer,
-   resp::response_base& res,
+   response_base& res,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
@@ -235,8 +235,6 @@ auto async_read_type(
         stream);
 }
 
-} // resp
-
 struct queue_elem {
    request req;
    bool sent = false;
@@ -262,10 +260,10 @@ async_reader(
    boost::system::error_code& ec)
 {
    // Used to queue the cmds of a transaction.
-   std::deque<std::pair<commands, resp::types>> trans;
+   std::deque<std::pair<commands, types>> trans;
 
    for (;;) {
-      auto t = resp::types::invalid;
+      auto t = types::invalid;
       co_await async_read_type(
 	 socket,
 	 buffer,
@@ -275,10 +273,10 @@ async_reader(
       if (ec)
 	 co_return;
 
-      assert(t != resp::types::invalid);
+      assert(t != types::invalid);
 
       auto cmd = commands::unknown;
-      if (t != resp::types::push) {
+      if (t != types::push) {
 	 assert(!std::empty(reqs));
 	 assert(!std::empty(reqs.front().req.cmds));
 	 cmd = reqs.front().req.cmds.front();
@@ -289,7 +287,7 @@ async_reader(
       auto const trans_empty = std::empty(trans);
 
       if (is_multi || (!trans_empty && !is_exec)) {
-	 resp::response_static_string<6> tmp;
+	 response_static_string<6> tmp;
 	 co_await async_read(
 	    socket,
 	    buffer,
@@ -308,7 +306,7 @@ async_reader(
 
          // Pushes the command in the transction command queue that will be
          // processed when exec arrives.
-	 trans.push_back({reqs.front().req.cmds.front(), resp::types::invalid});
+	 trans.push_back({reqs.front().req.cmds.front(), types::invalid});
 	 reqs.front().req.cmds.pop();
 	 continue;
       }
@@ -344,7 +342,7 @@ async_reader(
 	    reqs.front().sent = true;
 	    co_await async_write(
 	       socket,
-	       reqs.front().req,
+	       net::buffer(reqs.front().req.payload),
 	       net::redirect_error(net::use_awaitable, ec));
 
 	    if (ec) {
@@ -374,7 +372,7 @@ async_reader(
 
       resps.forward(cmd, t, recv);
 
-      if (t == resp::types::push)
+      if (t == types::push)
 	 continue;
 
       if (!queue_pop(reqs))
@@ -386,7 +384,7 @@ async_reader(
 	 reqs.front().sent = true;
 	 co_await async_write(
 	    socket,
-	    reqs.front().req,
+	    net::buffer(reqs.front().req.payload),
 	    net::redirect_error(net::use_awaitable, ec));
 
 	 if (ec) {
@@ -402,4 +400,5 @@ async_reader(
    }
 }
 
+} // detail
 } // aedis

@@ -7,22 +7,22 @@
 
 #pragma once
 
-#include "responses.hpp"
+#include <aedis/detail/responses.hpp>
 
-namespace aedis { namespace resp {
+namespace aedis { namespace detail {
 
-using response_array = response_basic_array<std::string>;
-using response_map = response_basic_map<std::string>;
-using response_set = response_basic_set<std::string>;
+using response_array = detail::response_basic_array<std::string>;
+using response_map = detail::response_basic_map<std::string>;
+using response_set = detail::response_basic_set<std::string>;
 
-using response_blob_string = response_basic_blob_string<char>;
-using response_blob_error = response_basic_blob_error<char>;
-using response_simple_string = response_basic_simple_string<char>;
-using response_simple_error = response_basic_simple_error<char>;
-using response_big_number = response_basic_big_number<char>;
-using response_verbatim_string = response_basic_verbatim_string<char>;
-using response_streamed_string_part = response_basic_streamed_string_part<char>;
+using response_blob_string = detail::response_basic_blob_string<char>;
+using response_blob_error = detail::response_basic_blob_error<char>;
+using response_simple_string = detail::response_basic_simple_string<char>;
+using response_simple_error = detail::response_basic_simple_error<char>;
+using response_big_number = detail::response_basic_big_number<char>;
+using response_verbatim_string = detail::response_basic_verbatim_string<char>;
+using response_streamed_string_part = detail::response_basic_streamed_string_part<char>;
 
-} // resp
+} // detail
 } // aedis
 

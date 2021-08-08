@@ -9,11 +9,11 @@
 
 #include <aedis/types.hpp>
 #include <aedis/receiver_base.hpp>
+#include <aedis/commands.hpp>
 
-#include "commands.hpp"
 #include "response_types.hpp"
 
-namespace aedis { namespace resp {
+namespace aedis { namespace detail {
 
 #define EXPAND_RECEIVER_CASE(var, x) case commands::x: recv.on_##x(var.result); break
 
@@ -50,6 +50,6 @@ public:
    void forward(commands cmd, types t, receiver_base& recv);
 };
 
-} // resp
+} // detail
 } // aedis
 

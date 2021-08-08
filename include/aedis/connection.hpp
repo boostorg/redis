@@ -10,12 +10,12 @@
 #include <memory>
 #include <string>
 
+#include <aedis/detail/write.hpp>
 #include <aedis/detail/response_buffers.hpp>
 
-#include "config.hpp"
+#include "net.hpp"
 #include "types.hpp"
 #include "request.hpp"
-#include "read.hpp"
 
 namespace aedis {
 
@@ -37,8 +37,8 @@ private:
    net::steady_timer timer_;
    net::ip::tcp::socket socket_;
    std::string buffer_;
-   resp::response_buffers resps_;
-   request_queue reqs_;
+   detail::response_buffers resps_;
+   detail::request_queue reqs_;
    bool reconnect_ = false;
    config conf_;
 

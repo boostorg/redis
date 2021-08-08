@@ -17,16 +17,18 @@
 #include <charconv>
 #include <iomanip>
 
-#include <aedis/detail/commands.hpp>
-#include <aedis/config.hpp>
+#include <aedis/net.hpp>
 #include <aedis/types.hpp>
+#include <aedis/resp_types.hpp>
+#include <aedis/commands.hpp>
+#include <aedis/receiver_base.hpp>
 #include <aedis/resp_types.hpp>
 
 #include "response_base.hpp"
 
 #include <boost/static_string/static_string.hpp>
 
-namespace aedis { namespace resp {
+namespace aedis { namespace detail {
 
 template <class T>
 typename std::enable_if<std::is_integral<T>::value, void>::type
@@ -368,6 +370,5 @@ struct response_basic_static_map : response_base {
    std::array<T, 2 * N> result;
 };
 
-} // resp
+} // detail
 } // aedis
-
