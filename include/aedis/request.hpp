@@ -147,6 +147,18 @@ public:
    std::queue<commands> cmds;
 
 public:
+   /// Return the size of the pipeline. i.e. how many commands it
+   /// contians.
+   auto size() const noexcept
+   {
+      return std::size(cmds);
+   }
+
+   auto payload_size() const noexcept
+   {
+      return std::size(payload);
+   }
+
    bool empty() const noexcept { return std::empty(payload); };
 
    /// Clears the request.

@@ -11,20 +11,9 @@
 namespace aedis {
 
 connection::connection(net::any_io_executor const& ioc, config const& conf)
-: timer_{ioc}
-, socket_{ioc}
+: socket_{ioc}
 , conf_{conf}
 {
-   reqs_.push({});
-   reqs_.front().req.hello();
-}
-
-void connection::reset()
-{
-   socket_.close();
-   timer_.cancel();
-   reqs_.push({});
-   reqs_.front().req.hello();
 }
 
 net::awaitable<void> connection::worker_coro(receiver_base& recv)
@@ -37,30 +26,26 @@ net::awaitable<void> connection::worker_coro(receiver_base& recv)
    net::steady_timer timer {ex};
    std::chrono::seconds wait_interval {1};
 
-   boost::system::error_code ec;
    do {
+      boost::system::error_code ec;
       co_await async_connect(
 	 socket_,
 	 res,
 	 net::redirect_error(net::use_awaitable, ec));
 
       if (ec) {
-	 reset();
+	 socket_.close();
 	 timer.expires_after(wait_interval);
 	 co_await timer.async_wait(net::use_awaitable);
 	 continue;
       }
 
-      detail::async_writer(socket_, reqs_, timer_, net::detached);
+      send([](auto& req) { req.hello(); });
 
-      ec = {};
-      co_await co_spawn(
-	 ex,
-	 detail::async_reader(socket_, buffer_, resps_, recv, reqs_, ec),
-	 net::use_awaitable);
+      co_await detail::async_reader(socket_, buffer_, resps_, recv, reqs_, ec);
 
       if (ec) {
-	 reset();
+	 socket_.close();
 	 timer.expires_after(wait_interval);
 	 co_await timer.async_wait(net::use_awaitable);
 	 continue;

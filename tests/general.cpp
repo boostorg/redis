@@ -231,6 +231,23 @@ void test_ping()
 
 //-------------------------------------------------------------------
 
+void trans_filler(auto& req)
+{
+   req.subscribe("some-channel");
+   req.publish("some-channel", "message0");
+   req.multi();
+   req.ping();
+   req.ping();
+
+   // TODO: It looks like we can't publish to a channel we are already
+   // subscribed to from inside a transaction.
+   //req.publish("some-channel", "message1");
+
+   req.exec();
+   req.ping();
+   req.publish("some-channel", "message2");
+};
+
 class trans_receiver : public receiver_base {
 private:
    int counter_ = 0;
@@ -244,29 +261,20 @@ public:
       auto f = [this](auto& req)
       {
 	 req.flushall();
-	 req.subscribe("some-channel");
-	 req.publish("some-channel", "message0");
-	 req.multi();
-	 req.ping();
-	 req.incr("c");
-
-         // TODO: It looks like we can't publish to a channel we are already
-         // subscribed to from inside a transaction.
-	 //req.publish("some-channel", "message1");
-
-	 req.exec();
-	 req.ping();
-	 req.publish("some-channel", "message2");
+	 trans_filler(req);
       };
 
-      conn_->send(f);
+      for (auto i = 0; i < 20; ++i) {
+	 conn_->send(f);
+      }
    }
 
    void on_push(array_type& v) noexcept override
    {
      assert(std::size(v) == 3U);
      
-     switch (counter_) {
+     auto const i = counter_ % 3;
+     switch (i) {
        case 0:
        {
           check_equal(v[0], {"subscribe"}, "on_push subscribe (transaction)");
@@ -310,9 +318,9 @@ public:
       check_equal(result[0].type, types::simple_string, "transaction (type)");
       check_equal(result[0].expected_size, 1, "transaction (size)");
 
-      check_equal(result[1].command, commands::incr, "transaction incr (command)");
+      check_equal(result[1].command, commands::ping, "transaction incr (command)");
       check_equal(result[1].depth, 1, "transaction (depth)");
-      check_equal(result[1].type, types::number, "transaction (typ)e");
+      check_equal(result[1].type, types::simple_string, "transaction (typ)e");
       check_equal(result[1].expected_size, 1, "transaction (size)");
 
       // See note above
@@ -336,13 +344,14 @@ public:
       check_equal(s, {"PONG"}, "ping");
       conn_->send([this](auto& req) { req.quit(); });
    }
-
 };
 
 void test_trans()
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc.get_executor());
+   connection::config cfg{"127.0.0.1", "6379", 3, 10000};
+   
+   auto conn = std::make_shared<connection>(ioc.get_executor(), cfg);
    trans_receiver recv{conn};
    conn->start(recv);
    ioc.run();

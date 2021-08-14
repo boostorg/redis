@@ -339,36 +339,22 @@ async_reader(
          // a special response buffer, that can deal with recursive
          // data types.
          auto* reader = resps.select(commands::exec, types::invalid);
+
          auto const trans_queue =
-            co_await async_read_transaction(socket, buffer, *reader, reqs, ec);
+	    co_await async_read_transaction(
+	       socket,
+	       buffer,
+	       *reader,
+	       reqs,
+	       ec);
 
          if (ec)
             co_return;
 
          resps.forward_transaction(trans_queue, recv);
 
-         if (queue_pop(reqs)) {
-            // The following loop apears again in this function below. It
-            // should to be implement as a composed operation.
-            while (!std::empty(reqs) && !reqs.front().sent) {
-               reqs.front().sent = true;
-               auto buffer = net::buffer(reqs.front().req.payload);
-               co_await async_write(
-                  socket,
-                  buffer,
-                  net::redirect_error(net::use_awaitable, ec));
-
-               if (ec) {
-                  reqs.front().sent = false;
-                  co_return;
-               }
-
-               if (!std::empty(reqs.front().req.cmds))
-                  break;
-
-               reqs.pop();
-            }
-         }
+         if (queue_pop(reqs))
+	    co_await async_write_all(socket, reqs, ec);
 
          continue;
       }
@@ -382,28 +368,8 @@ async_reader(
 
       resps.forward(cmd, t, recv);
 
-      if (queue_pop(reqs)) {
-         // Commands like unsubscribe have a push response so we do not
-         // have to wait for a response before sending a new request.
-         while (!std::empty(reqs) && !reqs.front().sent) {
-            reqs.front().sent = true;
-            auto buffer = net::buffer(reqs.front().req.payload);
-            co_await async_write(
-               socket,
-               buffer,
-               net::redirect_error(net::use_awaitable, ec));
-
-            if (ec) {
-               reqs.front().sent = false;
-               co_return;
-            }
-
-            if (!std::empty(reqs.front().req.cmds))
-               break;
-
-            reqs.pop();
-         }
-      }
+      if (queue_pop(reqs))
+	 co_await async_write_all(socket, reqs, ec);
    }
 }
 

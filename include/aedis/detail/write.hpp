@@ -48,98 +48,34 @@ std::size_t write(
     return bytes_transferred;
 }
 
-template <class AsyncReadStream>
-struct writer_op {
-   AsyncReadStream& stream;
-   net::steady_timer& st;
-   request_queue* reqs;
+// TODO: Implement as a composed operation.
+template <class AsyncReadWriteStream>
+net::awaitable<void>
+async_write_all(
+   AsyncReadWriteStream& socket,
+   request_queue& reqs,
+   boost::system::error_code& ec)
+{
+   // Commands like unsubscribe have a push response so we do not
+   // have to wait for a response before sending a new request.
+   while (!std::empty(reqs) && !reqs.front().sent) {
+      reqs.front().sent = true;
+      auto buffer = net::buffer(reqs.front().req.payload);
+      co_await async_write(
+	 socket,
+	 buffer,
+	 net::redirect_error(net::use_awaitable, ec));
 
-   template <class Self>
-   void operator()(
-      Self& self,
-      boost::system::error_code ec = {},
-      std::size_t bytes_transferred = 0)
-   {
-      // To stop the operation users are required to close the socket
-      // and cancel the timer.
-      if (!stream.is_open()) {
-         self.complete({});
-         return;
+      if (ec) {
+	 reqs.front().sent = false;
+	 co_return;
       }
 
-      // We don't leave on operation aborted as that is the error we
-      // get when users cancel the timer to signal there is message to
-      // be written.  This relies on the fact that async_write does
-      // not complete with this error.
-      if (ec && ec != net::error::operation_aborted) {
-	 reqs->front().sent = false;
-         self.complete(ec);
-         return;
-      }
+      if (!std::empty(reqs.front().req.cmds))
+	 break;
 
-      // When b1 is true we are coming from a successful write.
-      auto const b1 = bytes_transferred != 0;
-
-      // Check whether we are coming from a successful write of a
-      // command that has a response as a push type, so we can proceed
-      // with the next write without waiting any response the next.
-      if (b1 && std::empty(reqs->front().req.cmds))
-	 reqs->pop();
-
-      // When b3 is true there is a message that hasn't been sent yet.
-      auto const b3 = !std::empty(*reqs) && !reqs->front().sent;
-
-      if (b3) {
-	 reqs->front().sent = true;
-	 async_write(
-	    stream,
-	    net::buffer(reqs->front().req.payload),
-	    std::move(self));
-      } else {
-	 st.expires_after(std::chrono::years{10});
-	 st.async_wait(std::move(self));
-      }
+      reqs.pop();
    }
-};
-
-template <
-   class AsyncWriteStream,
-   class CompletionToken =
-      net::default_completion_token_t<typename AsyncWriteStream::executor_type>
-   >
-auto async_writer(
-   AsyncWriteStream& stream,
-   request_queue& reqs,
-   net::steady_timer& writeTrigger,
-   CompletionToken&& token =
-      net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
-{
-   return net::async_compose
-      < CompletionToken
-      , void(boost::system::error_code)
-      >(writer_op<AsyncWriteStream> {stream, writeTrigger, &reqs},
-        token,
-        stream,
-	writeTrigger);
-}
-
-// Returns true if a write has been triggered.
-template <class Filler>
-bool queue_writer(
-   request_queue& reqs,
-   Filler filler,
-   net::steady_timer& st)
-{
-   auto const empty = std::empty(reqs);
-   if (empty || std::size(reqs) == 1)
-      reqs.push({});
-
-   filler(reqs.back().req);
-
-   if (empty)
-      st.cancel();
-
-   return empty;
 }
 
 } // detail
