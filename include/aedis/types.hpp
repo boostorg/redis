@@ -32,6 +32,8 @@ enum class types
 };
 
 types to_type(char c);
-std::ostream& operator<<(std::ostream& os, types t);
 
 } // aedis
+
+std::ostream& operator<<(std::ostream& os, aedis::types t);
+

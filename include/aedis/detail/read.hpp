@@ -245,6 +245,57 @@ using request_queue = std::queue<queue_elem>;
 // Returns true when a new request can be sent to redis.
 bool queue_pop(request_queue& reqs);
 
+using transaction_queue_type = std::deque<std::pair<commands, types>>;
+
+// TODO: Implement as a composed operation.
+template <class AsyncReadWriteStream, class Storage>
+net::awaitable<transaction_queue_type>
+async_read_transaction(
+   AsyncReadWriteStream& socket,
+   Storage& buffer,
+   response_base& reader,
+   request_queue& reqs,
+   boost::system::error_code& ec)
+{
+   transaction_queue_type trans;
+   for (;;) {
+      auto const cmd = reqs.front().req.cmds.front();
+      if (cmd != commands::exec) {
+         response_static_string<6> tmp;
+         co_await async_read(socket, buffer, tmp, net::redirect_error(net::use_awaitable, ec));
+
+         if (ec)
+            co_return transaction_queue_type{};
+
+         // Failing to QUEUE a command inside a trasaction is
+         // considered an application error.  The multi commands
+         // always gets a "OK" response and all other commands get
+         // QUEUED unless the user is e.g. using wrong data types.
+         auto const* res = cmd == commands::multi ? "OK" : "QUEUED";
+         assert (tmp.result == res);
+
+         // Pushes the command in the transction command queue that will be
+         // processed when exec arrives.
+         trans.push_back({reqs.front().req.cmds.front(), types::invalid});
+         reqs.front().req.cmds.pop();
+         continue;
+      }
+
+      if (cmd == commands::exec) {
+         assert(trans.front().first == commands::multi);
+         co_await async_read(socket, buffer, reader, net::redirect_error(net::use_awaitable, ec));
+         if (ec)
+            co_return transaction_queue_type{};
+
+         trans.pop_front(); // Removes multi.
+         co_return trans;
+      }
+      assert(false);
+   }
+
+   co_return transaction_queue_type{};
+}
+
 template <
    class AsyncReadWriteStream,
    class Storage,
@@ -259,143 +310,99 @@ async_reader(
    request_queue& reqs,
    boost::system::error_code& ec)
 {
-   // Used to queue the cmds of a transaction.
-   std::deque<std::pair<commands, types>> trans;
-
    for (;;) {
       auto t = types::invalid;
-      co_await async_read_type(
-	 socket,
-	 buffer,
-	 t,
-	 net::redirect_error(net::use_awaitable, ec));
+      co_await async_read_type(socket, buffer, t, net::redirect_error(net::use_awaitable, ec));
 
       if (ec)
-	 co_return;
+         co_return;
 
       assert(t != types::invalid);
 
-      auto cmd = commands::unknown;
-      if (t != types::push) {
-	 assert(!std::empty(reqs));
-	 assert(!std::empty(reqs.front().req.cmds));
-	 cmd = reqs.front().req.cmds.front();
+      if (t == types::push) {
+         auto* tmp = resps.select(commands::unknown, types::push);
+
+         co_await async_read(socket, buffer, *tmp, net::redirect_error(net::use_awaitable, ec));
+         if (ec)
+            co_return;
+
+         resps.forward(commands::unknown, types::push, recv);
+         continue;
       }
 
-      auto const is_multi = cmd == commands::multi;
-      auto const is_exec = cmd == commands::exec;
-      auto const trans_empty = std::empty(trans);
+      assert(!std::empty(reqs));
+      assert(!std::empty(reqs.front().req.cmds));
 
-      if (is_multi || (!trans_empty && !is_exec)) {
-	 response_static_string<6> tmp;
-	 co_await async_read(
-	    socket,
-	    buffer,
-	    tmp,
-	    net::redirect_error(net::use_awaitable, ec));
+      if (reqs.front().req.cmds.front() == commands::multi) {
+         // The exec response is an array where each element is the
+         // response of one command in the transaction. This requires
+         // a special response buffer, that can deal with recursive
+         // data types.
+         auto* reader = resps.select(commands::exec, types::invalid);
+         auto const trans_queue =
+            co_await async_read_transaction(socket, buffer, *reader, reqs, ec);
 
-	 if (ec)
-	    co_return;
+         if (ec)
+            co_return;
 
-	 // Failing to QUEUE a command inside a trasaction is
-	 // considered an application error.  The multi commands
-	 // always gets a "OK" response and all other commands get
-	 // QUEUED unless the user is e.g. using wrong data types.
-	 auto const* res = cmd == commands::multi ? "OK" : "QUEUED";
-	 assert (tmp.result == res);
+         resps.forward_transaction(trans_queue, recv);
 
-         // Pushes the command in the transction command queue that will be
-         // processed when exec arrives.
-	 trans.push_back({reqs.front().req.cmds.front(), types::invalid});
-	 reqs.front().req.cmds.pop();
-	 continue;
+         if (queue_pop(reqs)) {
+            // The following loop apears again in this function below. It
+            // should to be implement as a composed operation.
+            while (!std::empty(reqs) && !reqs.front().sent) {
+               reqs.front().sent = true;
+               auto buffer = net::buffer(reqs.front().req.payload);
+               co_await async_write(
+                  socket,
+                  buffer,
+                  net::redirect_error(net::use_awaitable, ec));
+
+               if (ec) {
+                  reqs.front().sent = false;
+                  co_return;
+               }
+
+               if (!std::empty(reqs.front().req.cmds))
+                  break;
+
+               reqs.pop();
+            }
+         }
+
+         continue;
       }
 
-      if (cmd == commands::exec) {
-	 assert(trans.front().first == commands::multi);
-
-	 // The exec response is an array where each element is the
-	 // response of one command in the transaction. This requires
-	 // a special response buffer, that can deal with recursive
-	 // data types.
-         auto* tmp = resps.select(commands::exec, t);
-
-	 co_await async_read(
-	    socket,
-	    buffer,
-	    *tmp,
-	    net::redirect_error(net::use_awaitable, ec));
-
-	 if (ec)
-	    co_return;
-
-	 trans.pop_front(); // Removes multi.
-         resps.forward_transaction(trans, recv);
-	 trans = {};
-
-	 if (!queue_pop(reqs))
-	    continue;
-
-	 // The following loop apears again in this function below. It
-	 // should to be implement as a composed operation.
-	 while (!std::empty(reqs) && !reqs.front().sent) {
-	    reqs.front().sent = true;
-	    co_await async_write(
-	       socket,
-	       net::buffer(reqs.front().req.payload),
-	       net::redirect_error(net::use_awaitable, ec));
-
-	    if (ec) {
-	       reqs.front().sent = false;
-	       co_return;
-	    }
-
-	    if (!std::empty(reqs.front().req.cmds))
-	       break;
-
-	    reqs.pop();
-	 }
-
-	 continue;
-      }
-
+      auto const cmd = reqs.front().req.cmds.front();
       auto* tmp = resps.select(cmd, t);
-
-      co_await async_read(
-	 socket,
-	 buffer,
-	 *tmp,
-	 net::redirect_error(net::use_awaitable, ec));
+      co_await async_read(socket, buffer, *tmp, net::redirect_error(net::use_awaitable, ec));
 
       if (ec)
-	 co_return;
+         co_return;
 
       resps.forward(cmd, t, recv);
 
-      if (t == types::push)
-	 continue;
+      if (queue_pop(reqs)) {
+         // Commands like unsubscribe have a push response so we do not
+         // have to wait for a response before sending a new request.
+         while (!std::empty(reqs) && !reqs.front().sent) {
+            reqs.front().sent = true;
+            auto buffer = net::buffer(reqs.front().req.payload);
+            co_await async_write(
+               socket,
+               buffer,
+               net::redirect_error(net::use_awaitable, ec));
 
-      if (!queue_pop(reqs))
-	 continue;
+            if (ec) {
+               reqs.front().sent = false;
+               co_return;
+            }
 
-      // Commands like unsubscribe have a push response so we do not
-      // have to wait for a response before sending a new request.
-      while (!std::empty(reqs) && !reqs.front().sent) {
-	 reqs.front().sent = true;
-	 co_await async_write(
-	    socket,
-	    net::buffer(reqs.front().req.payload),
-	    net::redirect_error(net::use_awaitable, ec));
+            if (!std::empty(reqs.front().req.cmds))
+               break;
 
-	 if (ec) {
-	    reqs.front().sent = false;
-	    co_return;
-	 }
-
-	 if (!std::empty(reqs.front().req.cmds))
-	    break;
-
-	 reqs.pop();
+            reqs.pop();
+         }
       }
    }
 }
