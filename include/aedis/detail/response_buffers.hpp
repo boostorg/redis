@@ -38,16 +38,10 @@ struct response_buffers {
    response_ignore resp_ignore;
 };
 
-// When the cmd is from a transaction the type of the message is
-// not specified.
-response_base*
-select(
-   response_buffers& buffers,
-   command cmd,
-   resp3::type t);
+response_base* select_buffer(response_buffers& buffers, resp3::type t);
 
 void forward_transaction(
-   response_buffers& buffers,
+   resp3::transaction_result& result,
    std::deque<std::pair<command, resp3::type>> const& ids,
    receiver_base& recv);
 

@@ -176,7 +176,7 @@ public:
 
    /// Receives a transaction
    virtual void
-   on_transaction(std::vector<resp3::transaction_response>& result) noexcept { }
+   on_transaction(resp3::transaction_result& result) noexcept { }
 };
 
 } // aedis

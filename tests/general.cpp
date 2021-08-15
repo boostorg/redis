@@ -306,13 +306,14 @@ public:
      }
 
      ++counter_;
+     v.clear();
    }
 
    void on_flushall(resp3::simple_string& s) noexcept override
       { check_equal(s, {"OK"}, "flushall (transaction)"); }
 
    void
-   on_transaction(std::vector<resp3::transaction_response>& result) noexcept override
+   on_transaction(resp3::transaction_result& result) noexcept override
    {
       check_equal(result[0].cmd, command::ping, "transaction ping (command)");
       check_equal(result[0].depth, 1, "transaction (depth)");

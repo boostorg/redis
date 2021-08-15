@@ -289,6 +289,7 @@ async_read_transaction(
    co_return transaction_queue_type{};
 }
 
+// TODO: Handle errors properly.
 template <
    class AsyncReadWriteStream,
    class Storage,
@@ -304,22 +305,28 @@ async_reader(
    boost::system::error_code& ec)
 {
    for (;;) {
-      auto t = resp3::type::invalid;
-      co_await async_read_type(socket, buffer, t, net::redirect_error(net::use_awaitable, ec));
+      auto type = resp3::type::invalid;
+      co_await async_read_type(socket, buffer, type, net::redirect_error(net::use_awaitable, ec));
 
       if (ec)
          co_return;
 
-      assert(t != resp3::type::invalid);
+      if (type == resp3::type::invalid) {
+	 // TODO: Add our own error code.
+	 assert(false);
+      }
 
-      if (t == resp3::type::push) {
-         auto* tmp = select(resps, command::unknown, resp3::type::push);
+      if (type == resp3::type::push) {
+         co_await async_read(
+	    socket,
+	    buffer,
+	    resps.resp_push,
+	    net::redirect_error(net::use_awaitable, ec));
 
-         co_await async_read(socket, buffer, *tmp, net::redirect_error(net::use_awaitable, ec));
          if (ec)
             co_return;
 
-         forward(resps, command::unknown, resp3::type::push, recv);
+	 recv.on_push(resps.resp_push.result);
          continue;
       }
 
@@ -331,20 +338,18 @@ async_reader(
          // response of one command in the transaction. This requires
          // a special response buffer, that can deal with recursive
          // data types.
-         auto* reader = select(resps, command::exec, resp3::type::invalid);
-
          auto const trans_queue =
 	    co_await async_read_transaction(
 	       socket,
 	       buffer,
-	       *reader,
+	       resps.resp_tree,
 	       reqs,
 	       ec);
 
          if (ec)
             co_return;
 
-         forward_transaction(resps, trans_queue, recv);
+         forward_transaction(resps.resp_tree.result, trans_queue, recv);
 
          if (queue_pop(reqs))
 	    co_await async_write_all(socket, reqs, ec);
@@ -353,13 +358,13 @@ async_reader(
       }
 
       auto const cmd = reqs.front().cmds.front();
-      auto* tmp = select(resps, cmd, t);
+      auto* tmp = select_buffer(resps, type);
       co_await async_read(socket, buffer, *tmp, net::redirect_error(net::use_awaitable, ec));
 
       if (ec)
          co_return;
 
-      forward(resps, cmd, t, recv);
+      forward(resps, cmd, type, recv);
 
       if (queue_pop(reqs))
 	 co_await async_write_all(socket, reqs, ec);

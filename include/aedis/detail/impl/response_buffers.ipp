@@ -13,16 +13,16 @@ namespace aedis { namespace detail {
 
 void
 forward_transaction(
-   response_buffers& buffers,
+   resp3::transaction_result& result,
    std::deque<std::pair<command, resp3::type>> const& ids,
    receiver_base& recv)
 {
-   assert(std::size(ids) == std::size(buffers.resp_tree.result));
+   assert(std::size(ids) == std::size(result));
 
    for (auto i = 0U; i < std::size(ids); ++i)
-      buffers.resp_tree.result[i].cmd = ids[i].first;
+      result[i].cmd = ids[i].first;
 
-   recv.on_transaction(buffers.resp_tree.result);
+   recv.on_transaction(result);
 }
 
 void
@@ -33,11 +33,6 @@ forward(
    receiver_base& recv)
 {
    switch (type) {
-      case resp3::type::push:
-      {
-	 recv.on_push(buffers.resp_push.result);
-	 buffers.resp_push.result.clear();
-      } break;
       case resp3::type::set:
       {
 	 switch (cmd) {
@@ -173,21 +168,16 @@ forward(
       {
 	 throw std::runtime_error("Attribute are not supported yet.");
       } break;
-      default:{}
+      default:
+      {
+	 assert(false);
+      }
    }
 }
 
-response_base*
-select(
-   response_buffers& buffers,
-   command cmd,
-   resp3::type type)
+response_base* select_buffer(response_buffers& buffers, resp3::type type)
 {
-   if (cmd == command::exec)
-     return &buffers.resp_tree;
-
    switch (type) {
-      case resp3::type::push: return &buffers.resp_push;
       case resp3::type::set: return &buffers.resp_set;
       case resp3::type::map: return &buffers.resp_map;
       case resp3::type::attribute: return &buffers.resp_attribute;

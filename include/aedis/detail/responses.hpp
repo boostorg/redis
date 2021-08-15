@@ -64,7 +64,7 @@ struct response_ignore : response_base {
 // as in a transaction for example.
 class response_tree: public response_base {
 public:
-   std::vector<resp3::transaction_response> result;
+   resp3::transaction_result result;
 
 private:
    int depth_ = 0;

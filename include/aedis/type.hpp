@@ -62,13 +62,15 @@ using big_number = std::string;
 using verbatim_string = std::string;
 using streamed_string_part = std::string;
 
-struct transaction_response {
+struct transaction_item {
    int depth;
    resp3::type type;
    int expected_size = -1;
    command cmd = command::unknown;
    std::vector<std::string> value;
 };
+
+using transaction_result = std::vector<transaction_item>;
 
 } // resp3
 } // aedis
