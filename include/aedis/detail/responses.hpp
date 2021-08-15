@@ -64,7 +64,9 @@ struct response_ignore : response_base {
 // as in a transaction for example.
 class response_tree: public response_base {
 public:
-   resp3::transaction_result result;
+   resp3::transaction_result* result;
+
+   response_tree(resp3::transaction_result* p) : result(p) {}
 
 private:
    int depth_ = 0;
@@ -72,24 +74,24 @@ private:
    void add_aggregate(int n, resp3::type type)
    {
       if (depth_ == 0) {
-	 result.reserve(n);
+	 result->reserve(n);
 	 ++depth_;
 	 return;
       }
       
-      result.emplace_back(depth_, type, n);
-      result.back().value.reserve(n);
+      result->emplace_back(depth_, type, n);
+      result->back().value.reserve(n);
       ++depth_;
    }
 
    void add(std::string_view s, resp3::type type)
    {
-      if (std::empty(result)) {
-	 result.emplace_back(depth_, type, 1, command::unknown, std::vector<std::string>{std::string{s}});
-      } else if (std::ssize(result.back().value) == result.back().expected_size) {
-	 result.emplace_back(depth_, type, 1, command::unknown, std::vector<std::string>{std::string{s}});
+      if (std::empty(*result)) {
+	 result->emplace_back(depth_, type, 1, command::unknown, std::vector<std::string>{std::string{s}});
+      } else if (std::ssize(result->back().value) == result->back().expected_size) {
+	 result->emplace_back(depth_, type, 1, command::unknown, std::vector<std::string>{std::string{s}});
       } else {
-	 result.back().value.push_back(std::string{s});
+	 result->back().value.push_back(std::string{s});
       }
    }
 
@@ -103,7 +105,7 @@ public:
    void on_simple_string(std::string_view s) override { add(s, resp3::type::simple_string); }
    void on_simple_error(std::string_view s) override { add(s, resp3::type::simple_error); }
    void on_number(std::string_view s) override {add(s, resp3::type::number);}
-   void on_double(std::string_view s) override {add(s, resp3::type::double_type);}
+   void on_double(std::string_view s) override {add(s, resp3::type::doublean);}
    void on_bool(std::string_view s) override {add(s, resp3::type::boolean);}
    void on_big_number(std::string_view s) override {add(s, resp3::type::big_number);}
    void on_null() override {add({}, resp3::type::null);}
@@ -111,84 +113,102 @@ public:
    void on_verbatim_string(std::string_view s = {}) override {add(s, resp3::type::verbatim_string);}
    void on_blob_string(std::string_view s = {}) override {add(s, resp3::type::blob_string);}
    void on_streamed_string_part(std::string_view s = {}) override {add(s, resp3::type::streamed_string_part);}
-   void clear() { result.clear(); depth_ = 0;}
-   auto size() const { return result.size(); }
+   void clear() { result->clear(); depth_ = 0;}
+   auto size() const { return std::size(*result); }
    void pop() override { --depth_; }
 };
 
 struct response_number : public response_base {
-   void on_number(std::string_view s) override
-      { from_string_view(s, result); }
+   resp3::number* result = nullptr;
 
-   resp3::number result;
+   response_number(resp3::number* p) : result(p) {}
+
+   void on_number(std::string_view s) override
+      { from_string_view(s, *result); }
 };
 
 struct response_blob_string : public response_base {
-   void on_blob_string(std::string_view s) override
-      { from_string_view(s, result); }
+   resp3::blob_string* result = nullptr;
 
-   resp3::blob_string result;
+   response_blob_string(resp3::blob_string* p) : result(p) {}
+
+   void on_blob_string(std::string_view s) override
+      { from_string_view(s, *result); }
 };
 
 struct response_blob_error : public response_base {
-   void on_blob_error(std::string_view s) override
-      { from_string_view(s, result); }
+   resp3::blob_error* result = nullptr;
 
-   resp3::blob_error result;
+   response_blob_error(resp3::blob_error* p) : result(p) {}
+
+   void on_blob_error(std::string_view s) override
+      { from_string_view(s, *result); }
 };
 
 struct response_simple_string : public response_base {
-   void on_simple_string(std::string_view s) override
-      { from_string_view(s, result); }
+   resp3::simple_string* result = nullptr;
 
-   resp3::simple_string result;
+   response_simple_string(resp3::simple_string* p) : result(p) {}
+
+   void on_simple_string(std::string_view s) override
+      { from_string_view(s, *result); }
 };
 
 struct response_simple_error : public response_base {
-   void on_simple_error(std::string_view s) override
-      { from_string_view(s, result); }
+   resp3::simple_error* result = nullptr;
 
-   resp3::simple_error result;
+   response_simple_error(resp3::simple_error* p) : result(p) {}
+
+   void on_simple_error(std::string_view s) override
+      { from_string_view(s, *result); }
 };
 
 struct response_big_number : public response_base {
-   void on_big_number(std::string_view s) override
-      { from_string_view(s, result); }
+   resp3::big_number* result = nullptr;
 
-   resp3::big_number result;
+   response_big_number(resp3::big_number* p) : result(p) {}
+
+   void on_big_number(std::string_view s) override
+      { from_string_view(s, *result); }
 };
 
 struct response_double : public response_base {
-   void on_double(std::string_view s) override
-   {
-      result = s;
-   }
+   resp3::doublean* result = nullptr;
 
-   resp3::double_type result;
+   response_double(resp3::doublean* p) : result(p) {}
+
+   void on_double(std::string_view s) override
+      { *result = s; }
 };
 
 struct response_verbatim_string : public response_base {
-   void on_verbatim_string(std::string_view s) override
-      { from_string_view(s, result); }
+   resp3::verbatim_string* result = nullptr;
 
-   resp3::verbatim_string result;
+   response_verbatim_string(resp3::verbatim_string* p) : result(p) {}
+
+   void on_verbatim_string(std::string_view s) override
+      { from_string_view(s, *result); }
 };
 
 struct response_streamed_string_part : public response_base {
-   void on_streamed_string_part(std::string_view s) override
-      { result += s; }
+   resp3::streamed_string_part* result = nullptr;
 
-   resp3::streamed_string_part result;
+   response_streamed_string_part(resp3::streamed_string_part* p) : result(p) {}
+
+   void on_streamed_string_part(std::string_view s) override
+      { *result += s; }
 };
 
 struct response_bool : public response_base {
+   resp3::boolean* result = nullptr;
+
+   response_bool(resp3::boolean* p) : result(p) {}
+
    void on_bool(std::string_view s) override
    {
       assert(std::ssize(s) == 1);
-      result = s[0] == 't';
+      *result = s[0] == 't';
    }
-
-   resp3::boolean result;
 };
 
 template<
@@ -212,14 +232,18 @@ struct response_unordered_set : response_base {
 
 template <class T>
 struct response_basic_array : response_base {
+   resp3::basic_array<T>* result = nullptr;
+
+   response_basic_array(resp3::basic_array<T>* p) : result(p) {}
+
    void add(std::string_view s = {})
    {
       T r;
       from_string_view(s, r);
-      result.emplace_back(std::move(r));
+      result->push_back(std::move(r));
    }
 
-   // TODO: Call vector reserver.
+   // TODO: Call vector reserve.
    void on_simple_string(std::string_view s) override { add(s); }
    void on_number(std::string_view s) override { add(s); }
    void on_double(std::string_view s) override { add(s); }
@@ -232,18 +256,20 @@ struct response_basic_array : response_base {
    void select_map(int n) override { }
    void select_push(int n) override { }
    void on_streamed_string_part(std::string_view s = {}) override { add(s); }
-
-   resp3::basic_array<T> result;
 };
 
 using response_array = response_basic_array<std::string>;
 
 struct response_map : response_base {
+   resp3::map* result = nullptr;
+
+   response_map(resp3::map* p) : result(p) {}
+
    void add(std::string_view s = {})
    {
       std::string r;
       from_string_view(s, r);
-      result.emplace_back(std::move(r));
+      result->emplace_back(std::move(r));
    }
 
    void select_map(int n) override { }
@@ -259,16 +285,18 @@ struct response_map : response_base {
    void on_big_number(std::string_view s) override { add(s); }
    void on_verbatim_string(std::string_view s = {}) override { add(s); }
    void on_blob_string(std::string_view s = {}) override { add(s); }
-
-   resp3::map result;
 };
 
 struct response_set : response_base {
+   resp3::set* result = nullptr;
+
+   response_set(resp3::set* p) : result(p) {}
+
    void add(std::string_view s = {})
    {
       std::string r;
       from_string_view(s, r);
-      result.emplace_back(std::move(r));
+      result->emplace_back(std::move(r));
    }
 
    void select_set(int n) override { }
@@ -280,8 +308,6 @@ struct response_set : response_base {
    void on_big_number(std::string_view s) override { add(s); }
    void on_verbatim_string(std::string_view s = {}) override { add(s); }
    void on_blob_string(std::string_view s = {}) override { add(s); }
-
-   resp3::set result;
 };
 
 template <class T, std::size_t N>
@@ -290,7 +316,6 @@ struct response_static_array : response_base {
    void on_blob_string(std::string_view s) override
       { from_string_view(s, result[i_++]); }
    void select_array(int n) override { }
-
    std::array<T, N> result;
 };
 

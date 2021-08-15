@@ -46,6 +46,7 @@ public:
 private:
    net::ip::tcp::socket socket_;
    std::string buffer_;
+   detail::buffers buffers_;
    detail::response_buffers resps_;
    std::queue<pipeline> reqs_;
    bool reconnect_ = false;

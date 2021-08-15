@@ -24,7 +24,7 @@ std::string to_string(type t)
       EXPAND_TYPE_CASE(simple_string);
       EXPAND_TYPE_CASE(simple_error);
       EXPAND_TYPE_CASE(number);
-      EXPAND_TYPE_CASE(double_type);
+      EXPAND_TYPE_CASE(doublean);
       EXPAND_TYPE_CASE(boolean);
       EXPAND_TYPE_CASE(big_number);
       EXPAND_TYPE_CASE(null);
@@ -46,7 +46,7 @@ type to_type(char c)
       case ';': return type::streamed_string_part;
       case '-': return type::simple_error;
       case ':': return type::number;
-      case ',': return type::double_type;
+      case ',': return type::doublean;
       case '#': return type::boolean;
       case '(': return type::big_number;
       case '+': return type::simple_string;

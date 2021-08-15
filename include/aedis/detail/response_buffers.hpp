@@ -15,10 +15,26 @@
 
 namespace aedis { namespace detail {
 
-#define EXPAND_RECEIVER_CASE(var, x) case command::x: recv.on_##x(var.result); break
+struct buffers {
+   resp3::transaction_result tree;
+   resp3::array array;
+   resp3::array push;
+   resp3::set set;
+   resp3::map map;
+   resp3::array attribute;
+   resp3::simple_string simple_string;
+   resp3::simple_error simple_error;
+   resp3::number number;
+   resp3::doublean doublean;
+   resp3::boolean boolean;
+   resp3::big_number big_number;
+   resp3::blob_string blob_string;
+   resp3::blob_error blob_error;
+   resp3::verbatim_string verbatim_string;
+   resp3::streamed_string_part streamed_string_part;
+};
 
 struct response_buffers {
-   // Consider a variant to store all responses.
    response_tree resp_tree;
    response_array resp_array;
    response_array resp_push;
@@ -36,20 +52,26 @@ struct response_buffers {
    response_verbatim_string resp_verbatim_string;
    response_streamed_string_part resp_streamed_string_part;
    response_ignore resp_ignore;
+
+   response_buffers(buffers& buf)
+   : resp_tree{&buf.tree}
+   , resp_array{&buf.array}
+   , resp_push{&buf.push}
+   , resp_set{&buf.set}
+   , resp_map{&buf.map}
+   , resp_attribute{&buf.attribute}
+   , resp_simple_string{&buf.simple_string}
+   , resp_simple_error{&buf.simple_error}
+   , resp_number{&buf.number}
+   , resp_double{&buf.doublean}
+   , resp_boolean{&buf.boolean}
+   , resp_big_number{&buf.big_number}
+   , resp_blob_string{&buf.blob_string}
+   , resp_blob_error{&buf.blob_error}
+   , resp_verbatim_string{&buf.verbatim_string}
+   , resp_streamed_string_part{&buf.streamed_string_part}
+   { }
 };
-
-response_base* select_buffer(response_buffers& buffers, resp3::type t);
-
-void forward_transaction(
-   resp3::transaction_result& result,
-   std::deque<std::pair<command, resp3::type>> const& ids,
-   receiver_base& recv);
-
-void forward(
-   response_buffers& buffers,
-   command cmd,
-   resp3::type type,
-   receiver_base& recv);
 
 } // detail
 } // aedis

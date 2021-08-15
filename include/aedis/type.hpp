@@ -24,7 +24,7 @@ enum class type
 , simple_string
 , simple_error
 , number
-, double_type
+, doublean
 , boolean
 , big_number
 , null
@@ -44,6 +44,7 @@ using basic_array = std::vector<T>;
 
 /// RESP3 array type.
 using array = basic_array<std::string>;
+using array_int = basic_array<int>;
 
 /// RESP3 map type.
 using map = std::vector<std::string>;
@@ -53,7 +54,7 @@ using set = std::vector<std::string>;
 
 using number = long long int;
 using boolean = bool;
-using double_type = std::string;
+using doublean = std::string;
 using blob_string = std::string;
 using blob_error = std::string;
 using simple_string = std::string;

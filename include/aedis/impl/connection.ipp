@@ -13,6 +13,7 @@ namespace aedis {
 
 connection::connection(net::any_io_executor const& ioc, config const& conf)
 : socket_{ioc}
+, resps_{buffers_}
 , conf_{conf}
 {
 }

@@ -31,6 +31,19 @@
 
 namespace aedis { namespace detail {
 
+response_base* select_buffer(response_buffers& buffers, resp3::type t);
+
+void forward_transaction(
+   resp3::transaction_result& result,
+   std::deque<std::pair<command, resp3::type>> const& ids,
+   receiver_base& recv);
+
+void forward(
+   response_buffers& buffers,
+   command cmd,
+   resp3::type type,
+   receiver_base& recv);
+
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
 // 1.
@@ -326,7 +339,7 @@ async_reader(
          if (ec)
             co_return;
 
-	 recv.on_push(resps.resp_push.result);
+	 recv.on_push(*resps.resp_push.result);
          continue;
       }
 
@@ -349,7 +362,7 @@ async_reader(
          if (ec)
             co_return;
 
-         forward_transaction(resps.resp_tree.result, trans_queue, recv);
+         forward_transaction(*resps.resp_tree.result, trans_queue, recv);
 
          if (queue_pop(reqs))
 	    co_await async_write_all(socket, reqs, ec);

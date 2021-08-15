@@ -11,4 +11,3 @@
 
 #include <aedis/detail/impl/read.ipp>
 #include <aedis/detail/impl/parser.ipp>
-#include <aedis/detail/impl/response_buffers.ipp>
