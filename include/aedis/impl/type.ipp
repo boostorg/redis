@@ -5,17 +5,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/types.hpp>
+#include <aedis/type.hpp>
 
 #include <cassert>
 
-namespace aedis {
+namespace aedis { namespace resp3 {
 
-#define EXPAND_TYPE_CASE(x) case types::x: return #x
+#define EXPAND_TYPE_CASE(x) case resp3::type::x: return #x
 
-std::string to_string(types type)
+std::string to_string(type t)
 {
-   switch (type) {
+   switch (t) {
       EXPAND_TYPE_CASE(array);
       EXPAND_TYPE_CASE(push);
       EXPAND_TYPE_CASE(set);
@@ -37,33 +37,34 @@ std::string to_string(types type)
    }
 }
 
-types to_type(char c)
+type to_type(char c)
 {
    switch (c) {
-      case '!': return types::blob_error;
-      case '=': return types::verbatim_string;
-      case '$': return types::blob_string;
-      case ';': return types::streamed_string_part;
-      case '-': return types::simple_error;
-      case ':': return types::number;
-      case ',': return types::double_type;
-      case '#': return types::boolean;
-      case '(': return types::big_number;
-      case '+': return types::simple_string;
-      case '_': return types::null;
-      case '>': return types::push;
-      case '~': return types::set;
-      case '*': return types::array;
-      case '|': return types::attribute;
-      case '%': return types::map;
-      default: return types::invalid;
+      case '!': return type::blob_error;
+      case '=': return type::verbatim_string;
+      case '$': return type::blob_string;
+      case ';': return type::streamed_string_part;
+      case '-': return type::simple_error;
+      case ':': return type::number;
+      case ',': return type::double_type;
+      case '#': return type::boolean;
+      case '(': return type::big_number;
+      case '+': return type::simple_string;
+      case '_': return type::null;
+      case '>': return type::push;
+      case '~': return type::set;
+      case '*': return type::array;
+      case '|': return type::attribute;
+      case '%': return type::map;
+      default: return type::invalid;
    }
 }
 
+} // resp3
 } // aedis
 
-std::ostream& operator<<(std::ostream& os, aedis::types type)
+std::ostream& operator<<(std::ostream& os, aedis::resp3::type t)
 {
-   os << to_string(type);
+   os << to_string(t);
    return os;
 }

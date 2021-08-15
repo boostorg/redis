@@ -6,6 +6,7 @@
  */
 
 #include <aedis/connection.hpp>
+#include <aedis/detail/read.hpp>
 #include <aedis/detail/write.hpp>
 
 namespace aedis {

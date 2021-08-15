@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <aedis/request.hpp>
+#include <aedis/pipeline.hpp>
 #include <aedis/version.hpp>
 #include <aedis/connection.hpp>
 #include <aedis/receiver_base.hpp>

@@ -6,6 +6,7 @@
  */
 
 #include <aedis/aedis.hpp>
+#include <aedis/detail/read.hpp>
 
 #include "test_stream.hpp"
 
@@ -92,7 +93,7 @@ public:
       conn_->send(f);
    }
 
-   void on_simple_error(commands cmd, simple_error_type& v) noexcept override
+   void on_simple_error(command cmd, simple_error_type& v) noexcept override
    {
       std::cout << v << std::endl;
    }
@@ -208,12 +209,12 @@ public:
    ping_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
    void on_hello(array_type& v) noexcept override
-      { conn_->send([this](auto& req) { req.ping(); }); }
+      { conn_->ping(); }
 
    void on_ping(simple_string_type& s) noexcept override
    {
       check_equal(s, {"PONG"}, "ping");
-      conn_->send([this](auto& req) { req.quit(); });
+      conn_->quit();
    }
 
    void on_quit(simple_string_type& s) noexcept override
@@ -313,20 +314,20 @@ public:
    void
    on_transaction(std::vector<transaction_element>& result) noexcept override
    {
-      check_equal(result[0].command, commands::ping, "transaction ping (command)");
+      check_equal(result[0].cmd, command::ping, "transaction ping (command)");
       check_equal(result[0].depth, 1, "transaction (depth)");
-      check_equal(result[0].type, types::simple_string, "transaction (type)");
+      check_equal(result[0].type, resp3::type::simple_string, "transaction (type)");
       check_equal(result[0].expected_size, 1, "transaction (size)");
 
-      check_equal(result[1].command, commands::ping, "transaction incr (command)");
+      check_equal(result[1].cmd, command::ping, "transaction incr (command)");
       check_equal(result[1].depth, 1, "transaction (depth)");
-      check_equal(result[1].type, types::simple_string, "transaction (typ)e");
+      check_equal(result[1].type, resp3::type::simple_string, "transaction (typ)e");
       check_equal(result[1].expected_size, 1, "transaction (size)");
 
       // See note above
-      //check_equal(result[2].command, commands::publish, "transaction publish (command)");
+      //check_equal(result[2].command, command::publish, "transaction publish (command)");
       //check_equal_number(result[2].depth, 1, "transaction (depth)");
-      //check_equal_number(result[2].type, types::number, "transaction (type)");
+      //check_equal_number(result[2].type, resp3::type::number, "transaction (type)");
       //check_equal_number(result[2].expected_size, 1, "transaction (size)");
       result.clear();
    }
@@ -364,7 +365,7 @@ test_list(net::ip::tcp::resolver::results_type const& results)
 {
    std::vector<int> list {1 ,2, 3, 4, 5, 6};
 
-   request p;
+   pipeline p;
    p.hello("3");
    p.flushall();
    p.rpush("a", list);
@@ -444,7 +445,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    tcp_socket socket {ex};
    co_await async_connect(socket, results);
 
-   request p;
+   pipeline p;
    p.hello("3");
    p.flushall();
    p.set("s", {test_bulk1});

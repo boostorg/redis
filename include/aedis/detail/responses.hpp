@@ -18,11 +18,9 @@
 #include <iomanip>
 
 #include <aedis/net.hpp>
-#include <aedis/types.hpp>
-#include <aedis/resp_types.hpp>
-#include <aedis/commands.hpp>
+#include <aedis/type.hpp>
+#include <aedis/command.hpp>
 #include <aedis/receiver_base.hpp>
-#include <aedis/resp_types.hpp>
 
 #include "response_base.hpp"
 
@@ -71,7 +69,7 @@ public:
 private:
    int depth_ = 0;
 
-   void add_aggregate(int n, types type)
+   void add_aggregate(int n, resp3::type type)
    {
       if (depth_ == 0) {
 	 result.reserve(n);
@@ -84,35 +82,35 @@ private:
       ++depth_;
    }
 
-   void add(std::string_view s, types t)
+   void add(std::string_view s, resp3::type type)
    {
       if (std::empty(result)) {
-	 result.emplace_back(depth_, t, 1, commands::unknown, std::vector<std::string>{std::string{s}});
+	 result.emplace_back(depth_, type, 1, command::unknown, std::vector<std::string>{std::string{s}});
       } else if (std::ssize(result.back().value) == result.back().expected_size) {
-	 result.emplace_back(depth_, t, 1, commands::unknown, std::vector<std::string>{std::string{s}});
+	 result.emplace_back(depth_, type, 1, command::unknown, std::vector<std::string>{std::string{s}});
       } else {
 	 result.back().value.push_back(std::string{s});
       }
    }
 
 public:
-   void select_array(int n) override {add_aggregate(n, types::array);}
-   void select_push(int n) override {add_aggregate(n, types::push);}
-   void select_set(int n) override {add_aggregate(n, types::set);}
-   void select_map(int n) override {add_aggregate(n, types::map);}
-   void select_attribute(int n) override {add_aggregate(n, types::attribute);}
+   void select_array(int n) override {add_aggregate(n, resp3::type::array);}
+   void select_push(int n) override {add_aggregate(n, resp3::type::push);}
+   void select_set(int n) override {add_aggregate(n, resp3::type::set);}
+   void select_map(int n) override {add_aggregate(n, resp3::type::map);}
+   void select_attribute(int n) override {add_aggregate(n, resp3::type::attribute);}
 
-   void on_simple_string(std::string_view s) override { add(s, types::simple_string); }
-   void on_simple_error(std::string_view s) override { add(s, types::simple_error); }
-   void on_number(std::string_view s) override {add(s, types::number);}
-   void on_double(std::string_view s) override {add(s, types::double_type);}
-   void on_bool(std::string_view s) override {add(s, types::boolean);}
-   void on_big_number(std::string_view s) override {add(s, types::big_number);}
-   void on_null() override {add({}, types::null);}
-   void on_blob_error(std::string_view s = {}) override {add(s, types::blob_error);}
-   void on_verbatim_string(std::string_view s = {}) override {add(s, types::verbatim_string);}
-   void on_blob_string(std::string_view s = {}) override {add(s, types::blob_string);}
-   void on_streamed_string_part(std::string_view s = {}) override {add(s, types::streamed_string_part);}
+   void on_simple_string(std::string_view s) override { add(s, resp3::type::simple_string); }
+   void on_simple_error(std::string_view s) override { add(s, resp3::type::simple_error); }
+   void on_number(std::string_view s) override {add(s, resp3::type::number);}
+   void on_double(std::string_view s) override {add(s, resp3::type::double_type);}
+   void on_bool(std::string_view s) override {add(s, resp3::type::boolean);}
+   void on_big_number(std::string_view s) override {add(s, resp3::type::big_number);}
+   void on_null() override {add({}, resp3::type::null);}
+   void on_blob_error(std::string_view s = {}) override {add(s, resp3::type::blob_error);}
+   void on_verbatim_string(std::string_view s = {}) override {add(s, resp3::type::verbatim_string);}
+   void on_blob_string(std::string_view s = {}) override {add(s, resp3::type::blob_string);}
+   void on_streamed_string_part(std::string_view s = {}) override {add(s, resp3::type::streamed_string_part);}
    void clear() { result.clear(); depth_ = 0;}
    auto size() const { return result.size(); }
    void pop() override { --depth_; }

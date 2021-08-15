@@ -22,8 +22,8 @@
 #include <charconv>
 
 #include <aedis/net.hpp>
-#include <aedis/types.hpp>
-#include <aedis/request.hpp>
+#include <aedis/type.hpp>
+#include <aedis/pipeline.hpp>
 
 #include "parser.hpp"
 #include "response_buffers.hpp"
@@ -180,10 +180,10 @@ class type_op {
 private:
    AsyncReadStream& stream_;
    Storage* buf_ = nullptr;
-   types* t_;
+   resp3::type* t_;
 
 public:
-   type_op(AsyncReadStream& stream, Storage* buf, types* t)
+   type_op(AsyncReadStream& stream, Storage* buf, resp3::type* t)
    : stream_ {stream}
    , buf_ {buf}
    , t_ {t}
@@ -209,7 +209,7 @@ public:
       }
 
       assert(!std::empty(*buf_));
-      *t_ = to_type(buf_->front());
+      *t_ = resp3::to_type(buf_->front());
       return self.complete(ec);
    }
 };
@@ -223,7 +223,7 @@ template <
 auto async_read_type(
    AsyncReadStream& stream,
    Storage& buffer,
-   types& t,
+   resp3::type& t,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
@@ -235,17 +235,10 @@ auto async_read_type(
         stream);
 }
 
-struct queue_elem {
-   request req;
-   bool sent = false;
-};
+// Returns true when a new pipeline can be sent to redis.
+bool queue_pop(std::queue<pipeline>& reqs);
 
-using request_queue = std::queue<queue_elem>;
-
-// Returns true when a new request can be sent to redis.
-bool queue_pop(request_queue& reqs);
-
-using transaction_queue_type = std::deque<std::pair<commands, types>>;
+using transaction_queue_type = std::deque<std::pair<command, resp3::type>>;
 
 // TODO: Implement as a composed operation.
 template <class AsyncReadWriteStream, class Storage>
@@ -254,13 +247,13 @@ async_read_transaction(
    AsyncReadWriteStream& socket,
    Storage& buffer,
    response_base& reader,
-   request_queue& reqs,
+   std::queue<pipeline>& reqs,
    boost::system::error_code& ec)
 {
    transaction_queue_type trans;
    for (;;) {
-      auto const cmd = reqs.front().req.cmds.front();
-      if (cmd != commands::exec) {
+      auto const cmd = reqs.front().cmds.front();
+      if (cmd != command::exec) {
          response_static_string<6> tmp;
          co_await async_read(socket, buffer, tmp, net::redirect_error(net::use_awaitable, ec));
 
@@ -268,21 +261,21 @@ async_read_transaction(
             co_return transaction_queue_type{};
 
          // Failing to QUEUE a command inside a trasaction is
-         // considered an application error.  The multi commands
+         // considered an application error.  The multi command
          // always gets a "OK" response and all other commands get
          // QUEUED unless the user is e.g. using wrong data types.
-         auto const* res = cmd == commands::multi ? "OK" : "QUEUED";
+         auto const* res = cmd == command::multi ? "OK" : "QUEUED";
          assert (tmp.result == res);
 
          // Pushes the command in the transction command queue that will be
          // processed when exec arrives.
-         trans.push_back({reqs.front().req.cmds.front(), types::invalid});
-         reqs.front().req.cmds.pop();
+         trans.push_back({reqs.front().cmds.front(), resp3::type::invalid});
+         reqs.front().cmds.pop();
          continue;
       }
 
-      if (cmd == commands::exec) {
-         assert(trans.front().first == commands::multi);
+      if (cmd == command::exec) {
+         assert(trans.front().first == command::multi);
          co_await async_read(socket, buffer, reader, net::redirect_error(net::use_awaitable, ec));
          if (ec)
             co_return transaction_queue_type{};
@@ -307,38 +300,38 @@ async_reader(
    Storage& buffer,
    ResponseBuffers& resps,
    Receiver& recv,
-   request_queue& reqs,
+   std::queue<pipeline>& reqs,
    boost::system::error_code& ec)
 {
    for (;;) {
-      auto t = types::invalid;
+      auto t = resp3::type::invalid;
       co_await async_read_type(socket, buffer, t, net::redirect_error(net::use_awaitable, ec));
 
       if (ec)
          co_return;
 
-      assert(t != types::invalid);
+      assert(t != resp3::type::invalid);
 
-      if (t == types::push) {
-         auto* tmp = resps.select(commands::unknown, types::push);
+      if (t == resp3::type::push) {
+         auto* tmp = resps.select(command::unknown, resp3::type::push);
 
          co_await async_read(socket, buffer, *tmp, net::redirect_error(net::use_awaitable, ec));
          if (ec)
             co_return;
 
-         resps.forward(commands::unknown, types::push, recv);
+         resps.forward(command::unknown, resp3::type::push, recv);
          continue;
       }
 
       assert(!std::empty(reqs));
-      assert(!std::empty(reqs.front().req.cmds));
+      assert(!std::empty(reqs.front().cmds));
 
-      if (reqs.front().req.cmds.front() == commands::multi) {
+      if (reqs.front().cmds.front() == command::multi) {
          // The exec response is an array where each element is the
          // response of one command in the transaction. This requires
          // a special response buffer, that can deal with recursive
          // data types.
-         auto* reader = resps.select(commands::exec, types::invalid);
+         auto* reader = resps.select(command::exec, resp3::type::invalid);
 
          auto const trans_queue =
 	    co_await async_read_transaction(
@@ -359,7 +352,7 @@ async_reader(
          continue;
       }
 
-      auto const cmd = reqs.front().req.cmds.front();
+      auto const cmd = reqs.front().cmds.front();
       auto* tmp = resps.select(cmd, t);
       co_await async_read(socket, buffer, *tmp, net::redirect_error(net::use_awaitable, ec));
 

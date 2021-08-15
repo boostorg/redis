@@ -7,12 +7,39 @@
 
 #pragma once
 
+#include <ostream>
 #include <vector>
 #include <string>
 
-#include "commands.hpp"
+#include "command.hpp"
 
-namespace aedis {
+namespace aedis { namespace resp3 {
+
+enum class type
+{ array
+, push
+, set
+, map
+, attribute
+, simple_string
+, simple_error
+, number
+, double_type
+, boolean
+, big_number
+, null
+, blob_error
+, verbatim_string
+, blob_string
+, streamed_string_part
+, invalid
+};
+
+type to_type(char c);
+
+} // resp3
+
+// TODO: Move everything below to namespace resp3.
 
 template <class T>
 using basic_array_type = std::vector<T>;
@@ -39,10 +66,13 @@ using streamed_string_part_type = std::string;
 
 struct transaction_element {
    int depth;
-   types type;
+   resp3::type type;
    int expected_size = -1;
-   commands command = commands::unknown;
+   command cmd = command::unknown;
    std::vector<std::string> value;
 };
 
 } // aedis
+
+std::ostream& operator<<(std::ostream& os, aedis::resp3::type t);
+

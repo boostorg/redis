@@ -10,9 +10,7 @@
 #include <chrono>
 
 #include <aedis/net.hpp>
-#include <aedis/request.hpp>
-
-#include "read.hpp"
+#include <aedis/pipeline.hpp>
 
 #include <boost/beast/core/stream_traits.hpp>
 
@@ -22,7 +20,7 @@ template<class SyncWriteStream>
 std::size_t
 write(
    SyncWriteStream& stream,
-   request& req,
+   pipeline& req,
    boost::system::error_code& ec)
 {
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
@@ -34,7 +32,7 @@ write(
 template<class SyncWriteStream>
 std::size_t write(
    SyncWriteStream& stream,
-   request& req)
+   pipeline& req)
 {
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
         "SyncWriteStream type requirements not met");
@@ -53,25 +51,25 @@ template <class AsyncReadWriteStream>
 net::awaitable<void>
 async_write_all(
    AsyncReadWriteStream& socket,
-   request_queue& reqs,
+   std::queue<pipeline>& reqs,
    boost::system::error_code& ec)
 {
    // Commands like unsubscribe have a push response so we do not
-   // have to wait for a response before sending a new request.
-   while (!std::empty(reqs) && !reqs.front().sent) {
-      reqs.front().sent = true;
-      auto buffer = net::buffer(reqs.front().req.payload);
+   // have to wait for a response before sending a new pipeline.
+   while (!std::empty(reqs) && !reqs.front().writing) {
+      reqs.front().writing = true;
+      auto buffer = net::buffer(reqs.front().payload);
       co_await async_write(
 	 socket,
 	 buffer,
 	 net::redirect_error(net::use_awaitable, ec));
 
       if (ec) {
-	 reqs.front().sent = false;
+	 reqs.front().writing = false;
 	 co_return;
       }
 
-      if (!std::empty(reqs.front().req.cmds))
+      if (!std::empty(reqs.front().cmds))
 	 break;
 
       reqs.pop();

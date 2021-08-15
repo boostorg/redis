@@ -10,7 +10,7 @@
 #include <exception>
 #include <string_view>
 
-#include <aedis/resp_types.hpp>
+#include <aedis/type.hpp>
 
 namespace aedis { namespace detail {
 

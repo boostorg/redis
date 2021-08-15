@@ -5,7 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/impl/types.ipp>
+#include <aedis/impl/type.ipp>
 #include <aedis/impl/connection.ipp>
 #include <aedis/impl/commands.ipp>
 

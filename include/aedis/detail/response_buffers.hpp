@@ -7,15 +7,15 @@
 
 #pragma once
 
-#include <aedis/types.hpp>
+#include <aedis/type.hpp>
 #include <aedis/receiver_base.hpp>
-#include <aedis/commands.hpp>
+#include <aedis/command.hpp>
 
 #include "responses.hpp"
 
 namespace aedis { namespace detail {
 
-#define EXPAND_RECEIVER_CASE(var, x) case commands::x: recv.on_##x(var.result); break
+#define EXPAND_RECEIVER_CASE(var, x) case command::x: recv.on_##x(var.result); break
 
 class response_buffers {
 private:
@@ -41,13 +41,13 @@ private:
 public:
    // When the cmd is from a transaction the type of the message is
    // not specified.
-   response_base* select(commands cmd, types t);
+   response_base* select(command cmd, resp3::type t);
 
    void forward_transaction(
-      std::deque<std::pair<commands, types>> const& ids,
+      std::deque<std::pair<command, resp3::type>> const& ids,
       receiver_base& recv);
 
-   void forward(commands cmd, types t, receiver_base& recv);
+   void forward(command cmd, resp3::type type, receiver_base& recv);
 };
 
 } // detail

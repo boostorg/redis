@@ -14,8 +14,8 @@
 #include <aedis/detail/response_buffers.hpp>
 
 #include "net.hpp"
-#include "types.hpp"
-#include "request.hpp"
+#include "type.hpp"
+#include "pipeline.hpp"
 
 namespace aedis {
 
@@ -47,7 +47,7 @@ private:
    net::ip::tcp::socket socket_;
    std::string buffer_;
    detail::response_buffers resps_;
-   detail::request_queue reqs_;
+   std::queue<pipeline> reqs_;
    bool reconnect_ = false;
    config conf_;
    boost::system::error_code ec_;
@@ -74,12 +74,12 @@ public:
       if (empty || std::size(reqs_) == 1)
 	 reqs_.push({});
 
-      auto const pipeline_size = std::ssize(reqs_.back().req);
-      auto const payload_size = std::ssize(reqs_.back().req.payload);
+      auto const pipeline_size = std::ssize(reqs_.back());
+      auto const payload_size = std::ssize(reqs_.back().payload);
       if (pipeline_size > conf_.max_pipeline_size || payload_size > conf_.max_payload_size)
 	 reqs_.push({});
 
-      filler(reqs_.back().req);
+      filler(reqs_.back());
 
       if (empty) {
 	 co_spawn(
@@ -95,6 +95,30 @@ public:
       { return std::ssize(reqs_); }
 
    void enable_reconnect() noexcept;
+
+   /// Adds ping to the request, see https://redis.io/commands/bgrewriteaof
+   void ping()
+      { send([](auto& req){ req.ping();}); }
+
+   /// Adds ping to the request, see https://redis.io/commands/psubscribe
+   void psubscribe(std::initializer_list<std::string_view> l)
+      { send([&](auto& req){ req.psubscribe(l);}); }
+   
+   /// Adds quit to the request, see https://redis.io/commands/quit
+   void quit()
+      { send([](auto& req){ req.quit();}); }
+
+   /// Adds multi to the request, see https://redis.io/commands/multi
+   void multi()
+      { send([](auto& req){ req.multi();}); }
+
+   /// Adds multi to the request, see https://redis.io/commands/exec
+   void exec()
+      { send([](auto& req){ req.exec();}); }
+
+   /// Adds incr to the request, see https://redis.io/commands/incr
+   void incr(std::string_view key)
+      { send([&](auto& req){ req.incr(key);}); }
 };
 
 } // aedis

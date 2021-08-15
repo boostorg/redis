@@ -10,13 +10,6 @@
 
 using namespace aedis;
 
-void f(request& req)
-{
-   req.ping();
-   req.psubscribe({"aaa*"});
-   req.quit();
-}
-
 class myreceiver : public receiver_base {
 private:
    std::shared_ptr<connection> conn_;
@@ -25,7 +18,11 @@ public:
    myreceiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
    void on_hello(array_type& v) noexcept override
-      { conn_->send(f); }
+   {
+      conn_->ping();
+      conn_->psubscribe({"aaa*"});
+      conn_->quit();
+   }
 
    void on_ping(simple_string_type& s) noexcept override
       { std::cout << "PING: " << s << std::endl; }

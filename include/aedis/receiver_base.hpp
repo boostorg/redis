@@ -10,9 +10,8 @@
 #include <memory>
 #include <iostream>
 
-#include "types.hpp"
-#include "request.hpp"
-#include "resp_types.hpp"
+#include "type.hpp"
+#include "pipeline.hpp"
 
 namespace aedis {
 
@@ -167,13 +166,13 @@ public:
    virtual void on_push(array_type& v) noexcept { }
 
    /// Callback for simple error.
-   virtual void on_simple_error(commands cmd, simple_error_type& v) noexcept { }
+   virtual void on_simple_error(command cmd, simple_error_type& v) noexcept { }
 
    /// Callback for blob error.
-   virtual void on_blob_error(commands cmd, blob_error_type& v) noexcept { }
+   virtual void on_blob_error(command cmd, blob_error_type& v) noexcept { }
 
    /// Callback from null responses.
-   virtual void on_null(commands cmd) noexcept { }
+   virtual void on_null(command cmd) noexcept { }
 
    /// Receives a transaction
    virtual void
