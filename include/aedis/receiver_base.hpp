@@ -15,8 +15,8 @@
 
 namespace aedis {
 
-#define RECEIVER_FUNCTION_REF(name, cmd) virtual void on_##cmd(name& v) noexcept { }
-#define RECEIVER_FUNCTION(name, cmd) virtual void on_##cmd(name v) noexcept { }
+#define RECEIVER_FUNCTION_REF(name, cmd) virtual void on_##cmd(resp3::name& v) noexcept { }
+#define RECEIVER_FUNCTION(name, cmd) virtual void on_##cmd(resp3::name v) noexcept { }
 
 /** Receiver base class.
  *
@@ -32,151 +32,151 @@ class receiver_base {
 public:
 
    /// Receiver of an acl_list command.
-   RECEIVER_FUNCTION_REF(array_type, acl_list);
+   RECEIVER_FUNCTION_REF(array, acl_list);
 
    /// Receiver of an acl_users command.
-   RECEIVER_FUNCTION_REF(array_type, acl_users);
+   RECEIVER_FUNCTION_REF(array, acl_users);
 
    /// Receiver of an acl_getuser command.
-   RECEIVER_FUNCTION_REF(array_type, acl_getuser);
+   RECEIVER_FUNCTION_REF(array, acl_getuser);
 
    /// Receiver of an acl_cat command.
-   RECEIVER_FUNCTION_REF(array_type, acl_cat);
+   RECEIVER_FUNCTION_REF(array, acl_cat);
 
    /// Receiver of an acl_log command.
-   RECEIVER_FUNCTION_REF(array_type, acl_log);
+   RECEIVER_FUNCTION_REF(array, acl_log);
 
    /// Receiver of an acl_help command.
-   RECEIVER_FUNCTION_REF(array_type, acl_help);
+   RECEIVER_FUNCTION_REF(array, acl_help);
 
    /// Receiver of an lrange command.
-   RECEIVER_FUNCTION_REF(array_type, lrange);
+   RECEIVER_FUNCTION_REF(array, lrange);
 
    /// Receiver of an lpop command.
-   RECEIVER_FUNCTION_REF(array_type, lpop);
+   RECEIVER_FUNCTION_REF(array, lpop);
 
    /// Receiver of an hgetall command.
-   RECEIVER_FUNCTION_REF(array_type, hgetall);
+   RECEIVER_FUNCTION_REF(array, hgetall);
 
    /// Receiver of an hvals command.
-   RECEIVER_FUNCTION_REF(array_type, hvals);
+   RECEIVER_FUNCTION_REF(array, hvals);
 
    /// Receiver of an zrange command.
-   RECEIVER_FUNCTION_REF(array_type, zrange);
+   RECEIVER_FUNCTION_REF(array, zrange);
 
    /// Receiver of an zrangebyscore command.
-   RECEIVER_FUNCTION_REF(array_type, zrangebyscore);
+   RECEIVER_FUNCTION_REF(array, zrangebyscore);
 
 
    /// Receiver of an hello command.
-   RECEIVER_FUNCTION_REF(map_type, hello);
+   RECEIVER_FUNCTION_REF(map, hello);
 
 
    /// Receiver of an smembers command.
-   RECEIVER_FUNCTION_REF(set_type, smembers);
+   RECEIVER_FUNCTION_REF(set, smembers);
 
 
    /// Receiver of an acl_load command.
-   RECEIVER_FUNCTION_REF(simple_string_type, acl_load);
+   RECEIVER_FUNCTION_REF(simple_string, acl_load);
 
    /// Receiver of an acl_save command.
-   RECEIVER_FUNCTION_REF(simple_string_type, acl_save);
+   RECEIVER_FUNCTION_REF(simple_string, acl_save);
 
    /// Receiver of an acl_setuser command.
-   RECEIVER_FUNCTION_REF(simple_string_type, acl_setuser);
+   RECEIVER_FUNCTION_REF(simple_string, acl_setuser);
 
    /// Receiver of an acl_log command.
-   RECEIVER_FUNCTION_REF(simple_string_type, acl_log);
+   RECEIVER_FUNCTION_REF(simple_string, acl_log);
 
    /// Receiver of an acl_ping command.
-   RECEIVER_FUNCTION_REF(simple_string_type, ping);
+   RECEIVER_FUNCTION_REF(simple_string, ping);
 
    /// Receiver of an quit command.
-   RECEIVER_FUNCTION_REF(simple_string_type, quit);
+   RECEIVER_FUNCTION_REF(simple_string, quit);
 
    /// Receiver of an flushall command.
-   RECEIVER_FUNCTION_REF(simple_string_type, flushall);
+   RECEIVER_FUNCTION_REF(simple_string, flushall);
 
    /// Receiver of an ltrim command.
-   RECEIVER_FUNCTION_REF(simple_string_type, ltrim);
+   RECEIVER_FUNCTION_REF(simple_string, ltrim);
 
    /// Receiver of an set command.
-   RECEIVER_FUNCTION_REF(simple_string_type, set);
+   RECEIVER_FUNCTION_REF(simple_string, set);
 
 
    /// Receiver of an acl_deluser command.
-   RECEIVER_FUNCTION(number_type, acl_deluser);
+   RECEIVER_FUNCTION(number, acl_deluser);
 
    /// Receiver of an rpush command.
-   RECEIVER_FUNCTION(number_type, rpush);
+   RECEIVER_FUNCTION(number, rpush);
 
    /// Receiver of an del command.
-   RECEIVER_FUNCTION(number_type, del);
+   RECEIVER_FUNCTION(number, del);
 
    /// Receiver of an llen command.
-   RECEIVER_FUNCTION(number_type, llen);
+   RECEIVER_FUNCTION(number, llen);
 
    /// Receiver of an publish command.
-   RECEIVER_FUNCTION(number_type, publish);
+   RECEIVER_FUNCTION(number, publish);
 
    /// Receiver of an incr command.
-   RECEIVER_FUNCTION(number_type, incr);
+   RECEIVER_FUNCTION(number, incr);
 
    /// Receiver of an append command.
-   RECEIVER_FUNCTION(number_type, append);
+   RECEIVER_FUNCTION(number, append);
 
    /// Receiver of an hset command.
-   RECEIVER_FUNCTION(number_type, hset);
+   RECEIVER_FUNCTION(number, hset);
 
    /// Receiver of an hincrby command.
-   RECEIVER_FUNCTION(number_type, hincrby);
+   RECEIVER_FUNCTION(number, hincrby);
 
    /// Receiver of an zadd command.
-   RECEIVER_FUNCTION(number_type, zadd);
+   RECEIVER_FUNCTION(number, zadd);
 
    /// Receiver of an zremrangebyscore command.
-   RECEIVER_FUNCTION(number_type, zremrangebyscore);
+   RECEIVER_FUNCTION(number, zremrangebyscore);
 
    /// Receiver of an expire command.
-   RECEIVER_FUNCTION(number_type, expire);
+   RECEIVER_FUNCTION(number, expire);
 
    /// Receiver of an sadd command.
-   RECEIVER_FUNCTION(number_type, sadd);
+   RECEIVER_FUNCTION(number, sadd);
 
    /// Receiver of an hdel command.
-   RECEIVER_FUNCTION(number_type, hdel);
+   RECEIVER_FUNCTION(number, hdel);
 
 
    /// Receiver of an acl_genpass command.
-   RECEIVER_FUNCTION_REF(blob_string_type, acl_genpass);
+   RECEIVER_FUNCTION_REF(blob_string, acl_genpass);
 
    /// Receiver of an acl_whoami command.
-   RECEIVER_FUNCTION_REF(blob_string_type, acl_whoami);
+   RECEIVER_FUNCTION_REF(blob_string, acl_whoami);
 
    /// Receiver of an lpop command.
-   RECEIVER_FUNCTION_REF(blob_string_type, lpop);
+   RECEIVER_FUNCTION_REF(blob_string, lpop);
 
    /// Receiver of an get command.
-   RECEIVER_FUNCTION_REF(blob_string_type, get);
+   RECEIVER_FUNCTION_REF(blob_string, get);
 
    /// Receiver of an hget command.
-   RECEIVER_FUNCTION_REF(blob_string_type, hget);
+   RECEIVER_FUNCTION_REF(blob_string, hget);
 
    /// Callback for push notifications
-   virtual void on_push(array_type& v) noexcept { }
+   virtual void on_push(resp3::array& v) noexcept { }
 
    /// Callback for simple error.
-   virtual void on_simple_error(command cmd, simple_error_type& v) noexcept { }
+   virtual void on_simple_error(command cmd, resp3::simple_error& v) noexcept { }
 
    /// Callback for blob error.
-   virtual void on_blob_error(command cmd, blob_error_type& v) noexcept { }
+   virtual void on_blob_error(command cmd, resp3::blob_error& v) noexcept { }
 
    /// Callback from null responses.
    virtual void on_null(command cmd) noexcept { }
 
    /// Receives a transaction
    virtual void
-   on_transaction(std::vector<transaction_element>& result) noexcept { }
+   on_transaction(std::vector<resp3::transaction_response>& result) noexcept { }
 };
 
 } // aedis

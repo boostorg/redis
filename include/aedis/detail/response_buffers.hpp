@@ -17,39 +17,45 @@ namespace aedis { namespace detail {
 
 #define EXPAND_RECEIVER_CASE(var, x) case command::x: recv.on_##x(var.result); break
 
-class response_buffers {
-private:
+struct response_buffers {
    // Consider a variant to store all responses.
-   response_tree tree_;
-   response_array array_;
-   response_array push_;
-   response_set set_;
-   response_map map_;
-   response_array attribute_;
-   response_simple_string simple_string_;
-   response_simple_error simple_error_;
-   response_number number_;
-   response_double double_;
-   response_bool bool_;
-   response_big_number big_number_;
-   response_blob_string blob_string_;
-   response_blob_error blob_error_;
-   response_verbatim_string verbatim_string_;
-   response_streamed_string_part streamed_string_part_;
-   response_ignore ignore_;
-
-public:
-   // When the cmd is from a transaction the type of the message is
-   // not specified.
-   response_base* select(command cmd, resp3::type t);
-
-   void forward_transaction(
-      std::deque<std::pair<command, resp3::type>> const& ids,
-      receiver_base& recv);
-
-   void forward(command cmd, resp3::type type, receiver_base& recv);
+   response_tree resp_tree;
+   response_array resp_array;
+   response_array resp_push;
+   response_set resp_set;
+   response_map resp_map;
+   response_array resp_attribute;
+   response_simple_string resp_simple_string;
+   response_simple_error resp_simple_error;
+   response_number resp_number;
+   response_double resp_double;
+   response_bool resp_boolean;
+   response_big_number resp_big_number;
+   response_blob_string resp_blob_string;
+   response_blob_error resp_blob_error;
+   response_verbatim_string resp_verbatim_string;
+   response_streamed_string_part resp_streamed_string_part;
+   response_ignore resp_ignore;
 };
+
+// When the cmd is from a transaction the type of the message is
+// not specified.
+response_base*
+select(
+   response_buffers& buffers,
+   command cmd,
+   resp3::type t);
+
+void forward_transaction(
+   response_buffers& buffers,
+   std::deque<std::pair<command, resp3::type>> const& ids,
+   receiver_base& recv);
+
+void forward(
+   response_buffers& buffers,
+   command cmd,
+   resp3::type type,
+   receiver_base& recv);
 
 } // detail
 } // aedis
-

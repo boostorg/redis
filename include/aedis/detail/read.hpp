@@ -313,13 +313,13 @@ async_reader(
       assert(t != resp3::type::invalid);
 
       if (t == resp3::type::push) {
-         auto* tmp = resps.select(command::unknown, resp3::type::push);
+         auto* tmp = select(resps, command::unknown, resp3::type::push);
 
          co_await async_read(socket, buffer, *tmp, net::redirect_error(net::use_awaitable, ec));
          if (ec)
             co_return;
 
-         resps.forward(command::unknown, resp3::type::push, recv);
+         forward(resps, command::unknown, resp3::type::push, recv);
          continue;
       }
 
@@ -331,7 +331,7 @@ async_reader(
          // response of one command in the transaction. This requires
          // a special response buffer, that can deal with recursive
          // data types.
-         auto* reader = resps.select(command::exec, resp3::type::invalid);
+         auto* reader = select(resps, command::exec, resp3::type::invalid);
 
          auto const trans_queue =
 	    co_await async_read_transaction(
@@ -344,7 +344,7 @@ async_reader(
          if (ec)
             co_return;
 
-         resps.forward_transaction(trans_queue, recv);
+         forward_transaction(resps, trans_queue, recv);
 
          if (queue_pop(reqs))
 	    co_await async_write_all(socket, reqs, ec);
@@ -353,13 +353,13 @@ async_reader(
       }
 
       auto const cmd = reqs.front().cmds.front();
-      auto* tmp = resps.select(cmd, t);
+      auto* tmp = select(resps, cmd, t);
       co_await async_read(socket, buffer, *tmp, net::redirect_error(net::use_awaitable, ec));
 
       if (ec)
          co_return;
 
-      resps.forward(cmd, t, recv);
+      forward(resps, cmd, t, recv);
 
       if (queue_pop(reqs))
 	 co_await async_write_all(socket, reqs, ec);

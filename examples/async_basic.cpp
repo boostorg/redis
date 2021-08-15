@@ -17,20 +17,20 @@ private:
 public:
    myreceiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
-   void on_hello(array_type& v) noexcept override
+   void on_hello(resp3::array& v) noexcept override
    {
       conn_->ping();
       conn_->psubscribe({"aaa*"});
       conn_->quit();
    }
 
-   void on_ping(simple_string_type& s) noexcept override
+   void on_ping(resp3::simple_string& s) noexcept override
       { std::cout << "PING: " << s << std::endl; }
 
-   void on_quit(simple_string_type& s) noexcept override
+   void on_quit(resp3::simple_string& s) noexcept override
       { std::cout << "QUIT: " << s << std::endl; }
 
-   void on_push(array_type& s) noexcept override
+   void on_push(resp3::array& s) noexcept override
       { std::cout << "on_push: "; print(s); }
 };
 

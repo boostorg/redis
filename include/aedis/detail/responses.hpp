@@ -64,7 +64,7 @@ struct response_ignore : response_base {
 // as in a transaction for example.
 class response_tree: public response_base {
 public:
-   std::vector<transaction_element> result;
+   std::vector<resp3::transaction_response> result;
 
 private:
    int depth_ = 0;
@@ -120,42 +120,42 @@ struct response_number : public response_base {
    void on_number(std::string_view s) override
       { from_string_view(s, result); }
 
-   number_type result;
+   resp3::number result;
 };
 
 struct response_blob_string : public response_base {
    void on_blob_string(std::string_view s) override
       { from_string_view(s, result); }
 
-   blob_string_type result;
+   resp3::blob_string result;
 };
 
 struct response_blob_error : public response_base {
    void on_blob_error(std::string_view s) override
       { from_string_view(s, result); }
 
-   blob_error_type result;
+   resp3::blob_error result;
 };
 
 struct response_simple_string : public response_base {
    void on_simple_string(std::string_view s) override
       { from_string_view(s, result); }
 
-   simple_string_type result;
+   resp3::simple_string result;
 };
 
 struct response_simple_error : public response_base {
    void on_simple_error(std::string_view s) override
       { from_string_view(s, result); }
 
-   simple_error_type result;
+   resp3::simple_error result;
 };
 
 struct response_big_number : public response_base {
    void on_big_number(std::string_view s) override
       { from_string_view(s, result); }
 
-   big_number_type result;
+   resp3::big_number result;
 };
 
 struct response_double : public response_base {
@@ -164,21 +164,21 @@ struct response_double : public response_base {
       result = s;
    }
 
-   double_type result;
+   resp3::double_type result;
 };
 
 struct response_verbatim_string : public response_base {
    void on_verbatim_string(std::string_view s) override
       { from_string_view(s, result); }
 
-   verbatim_string_type result;
+   resp3::verbatim_string result;
 };
 
 struct response_streamed_string_part : public response_base {
    void on_streamed_string_part(std::string_view s) override
       { result += s; }
 
-   streamed_string_part_type result;
+   resp3::streamed_string_part result;
 };
 
 struct response_bool : public response_base {
@@ -188,7 +188,7 @@ struct response_bool : public response_base {
       result = s[0] == 't';
    }
 
-   bool_type result;
+   resp3::boolean result;
 };
 
 template<
@@ -233,7 +233,7 @@ struct response_basic_array : response_base {
    void select_push(int n) override { }
    void on_streamed_string_part(std::string_view s = {}) override { add(s); }
 
-   basic_array_type<T> result;
+   resp3::basic_array<T> result;
 };
 
 using response_array = response_basic_array<std::string>;
@@ -260,7 +260,7 @@ struct response_map : response_base {
    void on_verbatim_string(std::string_view s = {}) override { add(s); }
    void on_blob_string(std::string_view s = {}) override { add(s); }
 
-   map_type result;
+   resp3::map result;
 };
 
 struct response_set : response_base {
@@ -281,7 +281,7 @@ struct response_set : response_base {
    void on_verbatim_string(std::string_view s = {}) override { add(s); }
    void on_blob_string(std::string_view s = {}) override { add(s); }
 
-   set_type result;
+   resp3::set result;
 };
 
 template <class T, std::size_t N>

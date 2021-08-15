@@ -11,95 +11,101 @@
 
 namespace aedis { namespace detail {
 
-void response_buffers::forward_transaction(
+void
+forward_transaction(
+   response_buffers& buffers,
    std::deque<std::pair<command, resp3::type>> const& ids,
    receiver_base& recv)
 {
-   assert(std::size(ids) == std::size(tree_.result));
+   assert(std::size(ids) == std::size(buffers.resp_tree.result));
 
    for (auto i = 0U; i < std::size(ids); ++i)
-      tree_.result[i].cmd = ids[i].first;
+      buffers.resp_tree.result[i].cmd = ids[i].first;
 
-   recv.on_transaction(tree_.result);
+   recv.on_transaction(buffers.resp_tree.result);
 }
 
-void response_buffers::forward(command cmd, resp3::type type, receiver_base& recv)
+void
+forward(
+   response_buffers& buffers,
+   command cmd,
+   resp3::type type,
+   receiver_base& recv)
 {
    switch (type) {
       case resp3::type::push:
       {
-	 assert(type == resp3::type::push);
-	 recv.on_push(push_.result);
-	 push_.result.clear();
+	 recv.on_push(buffers.resp_push.result);
+	 buffers.resp_push.result.clear();
       } break;
       case resp3::type::set:
       {
 	 switch (cmd) {
-	    EXPAND_RECEIVER_CASE(set_, smembers);
+	    EXPAND_RECEIVER_CASE(buffers.resp_set, smembers);
 	    default: {assert(false);}
 	 }
-	 set_.result.clear();
+	 buffers.resp_set.result.clear();
       } break;
       case resp3::type::map:
       {
 	 switch (cmd) {
-	    EXPAND_RECEIVER_CASE(map_, hello);
-	    EXPAND_RECEIVER_CASE(map_, hgetall);
+	    EXPAND_RECEIVER_CASE(buffers.resp_map, hello);
+	    EXPAND_RECEIVER_CASE(buffers.resp_map, hgetall);
 	    default: {assert(false);}
 	 }
-	 map_.result.clear();
+	 buffers.resp_map.result.clear();
       } break;
       case resp3::type::array:
       {
 	 switch (cmd) {
-	    EXPAND_RECEIVER_CASE(array_, acl_list);
-	    EXPAND_RECEIVER_CASE(array_, acl_users);
-	    EXPAND_RECEIVER_CASE(array_, acl_getuser);
-	    EXPAND_RECEIVER_CASE(array_, acl_cat);
-	    EXPAND_RECEIVER_CASE(array_, acl_log);
-	    EXPAND_RECEIVER_CASE(array_, acl_help);
-	    EXPAND_RECEIVER_CASE(array_, lrange);
-	    EXPAND_RECEIVER_CASE(array_, lpop);
-	    EXPAND_RECEIVER_CASE(array_, zrange);
-	    EXPAND_RECEIVER_CASE(array_, zrangebyscore);
-	    EXPAND_RECEIVER_CASE(array_, hvals);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, acl_list);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, acl_users);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, acl_getuser);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, acl_cat);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, acl_log);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, acl_help);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, lrange);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, lpop);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, zrange);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, zrangebyscore);
+	    EXPAND_RECEIVER_CASE(buffers.resp_array, hvals);
 	    default: {assert(false);}
 	 }
-	 array_.result.clear();
+	 buffers.resp_array.result.clear();
       } break;
       case resp3::type::simple_string:
       {
 	 switch (cmd) {
-	    EXPAND_RECEIVER_CASE(simple_string_, acl_load);
-	    EXPAND_RECEIVER_CASE(simple_string_, acl_save);
-	    EXPAND_RECEIVER_CASE(simple_string_, acl_setuser);
-	    EXPAND_RECEIVER_CASE(simple_string_, acl_log);
-	    EXPAND_RECEIVER_CASE(simple_string_, ping);
-	    EXPAND_RECEIVER_CASE(simple_string_, quit);
-	    EXPAND_RECEIVER_CASE(simple_string_, flushall);
-	    EXPAND_RECEIVER_CASE(simple_string_, ltrim);
-	    EXPAND_RECEIVER_CASE(simple_string_, set);
+	    EXPAND_RECEIVER_CASE(buffers.resp_simple_string, acl_load);
+	    EXPAND_RECEIVER_CASE(buffers.resp_simple_string, acl_save);
+	    EXPAND_RECEIVER_CASE(buffers.resp_simple_string, acl_setuser);
+	    EXPAND_RECEIVER_CASE(buffers.resp_simple_string, acl_log);
+	    EXPAND_RECEIVER_CASE(buffers.resp_simple_string, ping);
+	    EXPAND_RECEIVER_CASE(buffers.resp_simple_string, quit);
+	    EXPAND_RECEIVER_CASE(buffers.resp_simple_string, flushall);
+	    EXPAND_RECEIVER_CASE(buffers.resp_simple_string, ltrim);
+	    EXPAND_RECEIVER_CASE(buffers.resp_simple_string, set);
 	    default: {assert(false);}
 	 }
-	 simple_string_.result.clear();
+	 buffers.resp_simple_string.result.clear();
       } break;
       case resp3::type::number:
       {
 	 switch (cmd) {
-	    EXPAND_RECEIVER_CASE(number_, acl_deluser);
-	    EXPAND_RECEIVER_CASE(number_, rpush);
-	    EXPAND_RECEIVER_CASE(number_, del);
-	    EXPAND_RECEIVER_CASE(number_, llen);
-	    EXPAND_RECEIVER_CASE(number_, publish);
-	    EXPAND_RECEIVER_CASE(number_, incr);
-	    EXPAND_RECEIVER_CASE(number_, append);
-	    EXPAND_RECEIVER_CASE(number_, hset);
-	    EXPAND_RECEIVER_CASE(number_, hincrby);
-	    EXPAND_RECEIVER_CASE(number_, zadd);
-	    EXPAND_RECEIVER_CASE(number_, zremrangebyscore);
-	    EXPAND_RECEIVER_CASE(number_, expire);
-	    EXPAND_RECEIVER_CASE(number_, sadd);
-	    EXPAND_RECEIVER_CASE(number_, hdel);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, acl_deluser);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, rpush);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, del);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, llen);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, publish);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, incr);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, append);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, hset);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, hincrby);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, zadd);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, zremrangebyscore);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, expire);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, sadd);
+	    EXPAND_RECEIVER_CASE(buffers.resp_number, hdel);
 	    default: {assert(false);}
 	 }
       } break;
@@ -114,50 +120,50 @@ void response_buffers::forward(command cmd, resp3::type type, receiver_base& rec
 	 switch (cmd) {
 	    default: {assert(false);}
 	 }
-	 big_number_.result.clear();
+	 buffers.resp_big_number.result.clear();
       } break;
       case resp3::type::boolean:
       {
 	 switch (cmd) {
 	    default: {assert(false);}
 	 }
-	 bool_.result = false;
+	 buffers.resp_boolean.result = false;
       } break;
       case resp3::type::blob_string:
       {
 	 switch (cmd) {
-	    EXPAND_RECEIVER_CASE(blob_string_, acl_genpass);
-	    EXPAND_RECEIVER_CASE(blob_string_, acl_whoami);
-	    EXPAND_RECEIVER_CASE(blob_string_, lpop);
-	    EXPAND_RECEIVER_CASE(blob_string_, get);
-	    EXPAND_RECEIVER_CASE(blob_string_, hget);
+	    EXPAND_RECEIVER_CASE(buffers.resp_blob_string, acl_genpass);
+	    EXPAND_RECEIVER_CASE(buffers.resp_blob_string, acl_whoami);
+	    EXPAND_RECEIVER_CASE(buffers.resp_blob_string, lpop);
+	    EXPAND_RECEIVER_CASE(buffers.resp_blob_string, get);
+	    EXPAND_RECEIVER_CASE(buffers.resp_blob_string, hget);
 	    default: {assert(false);}
 	 }
-	 blob_string_.result.clear();
+	 buffers.resp_blob_string.result.clear();
       } break;
       case resp3::type::verbatim_string:
       {
 	 switch (cmd) {
 	    default: {assert(false);}
 	 }
-	 verbatim_string_.result.clear();
+	 buffers.resp_verbatim_string.result.clear();
       } break;
       case resp3::type::streamed_string_part:
       {
 	 switch (cmd) {
 	    default: {assert(false);}
 	 }
-	 streamed_string_part_.result.clear();
+	 buffers.resp_streamed_string_part.result.clear();
       } break;
       case resp3::type::simple_error:
       {
-	 recv.on_simple_error(cmd, simple_error_.result);
-	 simple_error_.result.clear();
+	 recv.on_simple_error(cmd, buffers.resp_simple_error.result);
+	 buffers.resp_simple_error.result.clear();
       } break;
       case resp3::type::blob_error:
       {
-	 recv.on_blob_error(cmd, blob_error_.result);
-	 blob_error_.result.clear();
+	 recv.on_blob_error(cmd, buffers.resp_blob_error.result);
+	 buffers.resp_blob_error.result.clear();
       } break;
       case resp3::type::null:
       {
@@ -171,28 +177,32 @@ void response_buffers::forward(command cmd, resp3::type type, receiver_base& rec
    }
 }
 
-response_base* response_buffers::select(command cmd, resp3::type type)
+response_base*
+select(
+   response_buffers& buffers,
+   command cmd,
+   resp3::type type)
 {
    if (cmd == command::exec)
-     return &tree_;
+     return &buffers.resp_tree;
 
    switch (type) {
-      case resp3::type::push: return &push_;
-      case resp3::type::set: return &set_;
-      case resp3::type::map: return &map_;
-      case resp3::type::attribute: return &attribute_;
-      case resp3::type::array: return &array_;
-      case resp3::type::simple_error: return &simple_error_;
-      case resp3::type::simple_string: return &simple_string_;
-      case resp3::type::number: return &number_;
-      case resp3::type::double_type: return &double_;
-      case resp3::type::big_number: return &big_number_;
-      case resp3::type::boolean: return &bool_;
-      case resp3::type::blob_error: return &blob_error_;
-      case resp3::type::blob_string: return &blob_string_;
-      case resp3::type::verbatim_string: return &verbatim_string_;
-      case resp3::type::streamed_string_part: return &streamed_string_part_;
-      case resp3::type::null: return &ignore_;
+      case resp3::type::push: return &buffers.resp_push;
+      case resp3::type::set: return &buffers.resp_set;
+      case resp3::type::map: return &buffers.resp_map;
+      case resp3::type::attribute: return &buffers.resp_attribute;
+      case resp3::type::array: return &buffers.resp_array;
+      case resp3::type::simple_error: return &buffers.resp_simple_error;
+      case resp3::type::simple_string: return &buffers.resp_simple_string;
+      case resp3::type::number: return &buffers.resp_number;
+      case resp3::type::double_type: return &buffers.resp_double;
+      case resp3::type::big_number: return &buffers.resp_big_number;
+      case resp3::type::boolean: return &buffers.resp_boolean;
+      case resp3::type::blob_error: return &buffers.resp_blob_error;
+      case resp3::type::blob_string: return &buffers.resp_blob_string;
+      case resp3::type::verbatim_string: return &buffers.resp_verbatim_string;
+      case resp3::type::streamed_string_part: return &buffers.resp_streamed_string_part;
+      case resp3::type::null: return &buffers.resp_ignore;
       default: {
 	 throw std::runtime_error("response_buffers");
 	 return nullptr;

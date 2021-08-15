@@ -37,34 +37,32 @@ enum class type
 
 type to_type(char c);
 
-} // resp3
-
 // TODO: Move everything below to namespace resp3.
 
 template <class T>
-using basic_array_type = std::vector<T>;
+using basic_array = std::vector<T>;
 
 /// RESP3 array type.
-using array_type = basic_array_type<std::string>;
+using array = basic_array<std::string>;
 
 /// RESP3 map type.
-using map_type = std::vector<std::string>;
+using map = std::vector<std::string>;
 
 /// RESP3 set type.
-using set_type = std::vector<std::string>;
+using set = std::vector<std::string>;
 
-using number_type = long long int;
-using bool_type = bool;
+using number = long long int;
+using boolean = bool;
 using double_type = std::string;
-using blob_string_type = std::string;
-using blob_error_type = std::string;
-using simple_string_type = std::string;
-using simple_error_type = std::string;
-using big_number_type = std::string;
-using verbatim_string_type = std::string;
-using streamed_string_part_type = std::string;
+using blob_string = std::string;
+using blob_error = std::string;
+using simple_string = std::string;
+using simple_error = std::string;
+using big_number = std::string;
+using verbatim_string = std::string;
+using streamed_string_part = std::string;
 
-struct transaction_element {
+struct transaction_response {
    int depth;
    resp3::type type;
    int expected_size = -1;
@@ -72,6 +70,7 @@ struct transaction_element {
    std::vector<std::string> value;
 };
 
+} // resp3
 } // aedis
 
 std::ostream& operator<<(std::ostream& os, aedis::resp3::type t);

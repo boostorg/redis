@@ -50,7 +50,7 @@ private:
 public:
    test_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
-   void on_hello(array_type& v) noexcept override
+   void on_hello(resp3::array& v) noexcept override
    {
       auto f = [this](auto& req)
       {
@@ -93,12 +93,12 @@ public:
       conn_->send(f);
    }
 
-   void on_simple_error(command cmd, simple_error_type& v) noexcept override
+   void on_simple_error(command cmd, resp3::simple_error& v) noexcept override
    {
       std::cout << v << std::endl;
    }
 
-   void on_push(array_type& v) noexcept override
+   void on_push(resp3::array& v) noexcept override
    {
       // TODO: Check the responses below.
       // {"subscribe", "channel", "1"}
@@ -107,85 +107,85 @@ public:
    }
 
    // Blob string.
-   void on_get(blob_string_type& s) noexcept override
+   void on_get(resp3::blob_string& s) noexcept override
       { check_equal(s, set_, "get (receiver)"); }
 
-   void on_hget(blob_string_type& s) noexcept override
+   void on_hget(resp3::blob_string& s) noexcept override
       { check_equal(s, std::string{"value2"}, "hget (receiver)"); }
 
-   void on_lpop(blob_string_type& s) noexcept override
+   void on_lpop(resp3::blob_string& s) noexcept override
       { check_equal(s, {"3"}, "lpop (receiver)"); }
 
    // Array
-   void on_lrange(array_type& v) noexcept override
+   void on_lrange(resp3::array& v) noexcept override
       { check_equal(v, {"1", "2", "3", "4", "5", "6"}, "lrange (receiver)"); }
 
-   void on_lpop(array_type& s) noexcept override
+   void on_lpop(resp3::array& s) noexcept override
       { check_equal(s, {"4", "5"}, "lpop(count) (receiver)"); }
 
-   void on_hgetall(array_type& s) noexcept override
+   void on_hgetall(resp3::array& s) noexcept override
       { check_equal(s, {"field1", "value1", "field2", "value2"}, "hgetall (receiver)"); }
 
-   void on_hvals(array_type& s) noexcept override
+   void on_hvals(resp3::array& s) noexcept override
       { check_equal(s, {"value1", "value2"}, "hvals (receiver)"); }
 
-   void on_zrange(array_type& s) noexcept override
+   void on_zrange(resp3::array& s) noexcept override
       { check_equal(s, {"Marcelo"}, "zrange (receiver)"); }
 
-   void on_zrangebyscore(array_type& s) noexcept override
+   void on_zrangebyscore(resp3::array& s) noexcept override
       { check_equal(s, {"Marcelo"}, "zrangebyscore (receiver)"); }
 
-   void on_smembers(set_type& s) noexcept override
+   void on_smembers(resp3::set& s) noexcept override
       { check_equal(s, {"1", "2", "3"}, "smembers (receiver)"); }
 
    // Simple string
-   void on_set(simple_string_type& s) noexcept override
+   void on_set(resp3::simple_string& s) noexcept override
       { check_equal(s, {"OK"}, "set (receiver)"); }
 
-   void on_quit(simple_string_type& s) noexcept override
+   void on_quit(resp3::simple_string& s) noexcept override
       { check_equal(s, {"OK"}, "quit (receiver)"); }
 
-   void on_flushall(simple_string_type& s) noexcept override
+   void on_flushall(resp3::simple_string& s) noexcept override
       { check_equal(s, {"OK"}, "flushall (receiver)"); }
 
-   void on_ltrim(simple_string_type& s) noexcept override
+   void on_ltrim(resp3::simple_string& s) noexcept override
       { check_equal(s, {"OK"}, "ltrim (receiver)"); }
 
    // Number
-   void on_append(number_type n) noexcept override
+   void on_append(resp3::number n) noexcept override
       { check_equal((int)n, 4, "append (receiver)"); }
 
-   void on_hset(number_type n) noexcept override
+   void on_hset(resp3::number n) noexcept override
       { check_equal((int)n, 2, "hset (receiver)"); }
 
-   void on_rpush(number_type n) noexcept override
-      { check_equal(n, (number_type)std::size(list_), "rpush (receiver)"); }
+   void on_rpush(resp3::number n) noexcept override
+      { check_equal(n, (resp3::number)std::size(list_), "rpush (receiver)"); }
 
-   void on_del(number_type n) noexcept override
+   void on_del(resp3::number n) noexcept override
       { check_equal((int)n, 1, "del (receiver)"); }
 
-   void on_llen(number_type n) noexcept override
+   void on_llen(resp3::number n) noexcept override
       { check_equal((int)n, 6, "llen (receiver)"); }
 
-   void on_incr(number_type n) noexcept override
+   void on_incr(resp3::number n) noexcept override
       { check_equal((int)n, 1, "incr (receiver)"); }
 
-   void on_publish(number_type n) noexcept override
+   void on_publish(resp3::number n) noexcept override
       { check_equal((int)n, 1, "publish (receiver)"); }
 
-   void on_hincrby(number_type n) noexcept override
+   void on_hincrby(resp3::number n) noexcept override
       { check_equal((int)n, 10, "hincrby (receiver)"); }
 
-   void on_zadd(number_type n) noexcept override
+   void on_zadd(resp3::number n) noexcept override
       { check_equal((int)n, 1, "zadd (receiver)"); }
 
-   void on_zremrangebyscore(number_type s) noexcept override
+   void on_zremrangebyscore(resp3::number s) noexcept override
       { check_equal((int)s, 1, "zremrangebyscore (receiver)"); }
 
-   void on_sadd(number_type n) noexcept override
+   void on_sadd(resp3::number n) noexcept override
       { check_equal((int)n, 3, "sadd (receiver)"); }
 
-   void on_hdel(number_type n) noexcept override
+   void on_hdel(resp3::number n) noexcept override
       { check_equal((int)n, 2, "hdel (receiver)"); }
 
 };
@@ -208,16 +208,16 @@ private:
 public:
    ping_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
-   void on_hello(array_type& v) noexcept override
+   void on_hello(resp3::array& v) noexcept override
       { conn_->ping(); }
 
-   void on_ping(simple_string_type& s) noexcept override
+   void on_ping(resp3::simple_string& s) noexcept override
    {
       check_equal(s, {"PONG"}, "ping");
       conn_->quit();
    }
 
-   void on_quit(simple_string_type& s) noexcept override
+   void on_quit(resp3::simple_string& s) noexcept override
       { check_equal(s, {"OK"}, "quit"); }
 };
 
@@ -257,7 +257,7 @@ private:
 public:
    trans_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
 
-   void on_hello(array_type& v) noexcept override
+   void on_hello(resp3::array& v) noexcept override
    {
       auto f = [this](auto& req)
       {
@@ -270,7 +270,7 @@ public:
       }
    }
 
-   void on_push(array_type& v) noexcept override
+   void on_push(resp3::array& v) noexcept override
    {
      assert(std::size(v) == 3U);
      
@@ -308,11 +308,11 @@ public:
      ++counter_;
    }
 
-   void on_flushall(simple_string_type& s) noexcept override
+   void on_flushall(resp3::simple_string& s) noexcept override
       { check_equal(s, {"OK"}, "flushall (transaction)"); }
 
    void
-   on_transaction(std::vector<transaction_element>& result) noexcept override
+   on_transaction(std::vector<resp3::transaction_response>& result) noexcept override
    {
       check_equal(result[0].cmd, command::ping, "transaction ping (command)");
       check_equal(result[0].depth, 1, "transaction (depth)");
@@ -332,15 +332,15 @@ public:
       result.clear();
    }
 
-   void on_quit(simple_string_type& s) noexcept override
+   void on_quit(resp3::simple_string& s) noexcept override
       { check_equal(s, {"OK"}, "quit"); }
 
-   void on_publish(number_type n) noexcept override
+   void on_publish(resp3::number n) noexcept override
    {
       check_equal((int)n, 1, "publish (transaction)");
    }
 
-   void on_ping(simple_string_type& s) noexcept override
+   void on_ping(resp3::simple_string& s) noexcept override
    {
       check_equal(s, {"PONG"}, "ping");
       conn_->send([this](auto& req) { req.quit(); });
