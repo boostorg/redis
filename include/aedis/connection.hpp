@@ -62,7 +62,10 @@ private:
 
          co_await async_connect(socket_, res, net::use_awaitable);
 
-         send([](auto& req) { req.hello(); });
+	 pipeline p;
+	 p.hello("3");
+	 reqs_.push(p);
+	 co_await async_write(socket_, net::buffer(p.payload), net::use_awaitable);
 
          detail::response_adapters adapters{bufs};
          for (;;) {

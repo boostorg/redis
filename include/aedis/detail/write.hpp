@@ -56,8 +56,7 @@ async_write_all(
 {
    // Commands like unsubscribe have a push response so we do not
    // have to wait for a response before sending a new pipeline.
-   while (!std::empty(reqs) && !reqs.front().writing) {
-      reqs.front().writing = true;
+   while (!std::empty(reqs)) {
       auto buffer = net::buffer(reqs.front().payload);
       co_await async_write(
 	 socket,
@@ -65,7 +64,6 @@ async_write_all(
 	 net::redirect_error(net::use_awaitable, ec));
 
       if (ec) {
-	 reqs.front().writing = false;
 	 co_return;
       }
 

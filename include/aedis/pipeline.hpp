@@ -146,11 +146,6 @@ public:
    std::string payload;
    std::queue<command> cmds;
 
-   // Helper member that is set to true just before the pipeline is
-   // writen to the socket and to false when the write operation
-   // completes.
-   bool writing = false;
-
 public:
    /// Return the size of the pipeline. i.e. how many commands it
    /// contians.
