@@ -14,7 +14,7 @@
 
 namespace aedis { namespace detail {
 
-struct response_base {
+struct response_adapter_base {
    virtual void pop() {}
    virtual void on_simple_string(std::string_view s) { throw std::runtime_error("on_simple_string: Has not been overridden."); }
    virtual void on_simple_error(std::string_view s) { throw std::runtime_error("on_simple_error: Has not been overridden."); }
@@ -32,7 +32,7 @@ struct response_base {
    virtual void select_map(int n) { throw std::runtime_error("select_map: Has not been overridden."); }
    virtual void select_push(int n) { throw std::runtime_error("select_push: Has not been overridden."); }
    virtual void select_attribute(int n) { throw std::runtime_error("select_attribute: Has not been overridden."); }
-   virtual ~response_base() {}
+   virtual ~response_adapter_base() {}
 };
 
 } // detail

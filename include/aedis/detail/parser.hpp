@@ -9,7 +9,7 @@
 
 #include <string_view>
 
-#include "response_base.hpp"
+#include "response_adapter_base.hpp"
 
 namespace aedis { namespace detail {
 
@@ -25,13 +25,13 @@ public:
    };
 
 private:
-   response_base* res_;
+   response_adapter_base* res_;
    int depth_;
    int sizes_[6]; // Streaming will require a bigger integer.
    bulk_type bulk_;
    int bulk_length_;
 
-   void init(response_base* res);
+   void init(response_adapter_base* res);
    long long on_array_impl(char const* data, int m = 1);
    void on_array(char const* data) { res_->select_array(on_array_impl(data, 1)); }
    void on_push(char const* data) { res_->select_push(on_array_impl(data, 1)); }
@@ -54,7 +54,7 @@ private:
    std::string_view handle_simple_string(char const* data, std::size_t n);
 
 public:
-   parser(response_base* res);
+   parser(response_adapter_base* res);
    std::size_t advance(char const* data, std::size_t n);
    auto done() const noexcept { return depth_ == 0 && bulk_ == bulk_type::none; }
    auto bulk() const noexcept { return bulk_; }

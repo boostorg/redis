@@ -10,35 +10,46 @@
 
 using namespace aedis;
 
-class myreceiver : public receiver_base {
-private:
-   std::shared_ptr<connection> conn_;
-
-public:
-   myreceiver(std::shared_ptr<connection> conn) : conn_{conn} { }
-
-   void on_hello(resp3::array& v) noexcept override
-   {
-      conn_->ping();
-      conn_->psubscribe({"aaa*"});
-      conn_->quit();
+void print_helper(command cmd, resp3::type type, buffers& buf)
+{
+   switch (type) {
+      case resp3::type::simple_string:
+      {
+         std::cout << cmd << " " << buf.simple_string << " (" << type << ")" << std::endl;
+      } break;
+      case resp3::type::push:
+      case resp3::type::map:
+      {
+         std::cout << cmd << " (" << type << ")" << std::endl;
+      } break;
+      default:{}
    }
+}
 
-   void on_ping(resp3::simple_string& s) noexcept override
-      { std::cout << "PING: " << s << std::endl; }
+struct myreceiver {
+   std::shared_ptr<connection> conn;
+   buffers& buf;
 
-   void on_quit(resp3::simple_string& s) noexcept override
-      { std::cout << "QUIT: " << s << std::endl; }
+   void operator()(command cmd, resp3::type type) const
+   {
+      if (cmd == command::hello) {
+         assert(type == resp3::type::map);
+         conn->ping();
+         conn->psubscribe({"aaa*"});
+         conn->quit();
+      }
 
-   void on_push(resp3::array& s) noexcept override
-      { std::cout << "on_push: "; print(s); }
+      print_helper(cmd, type, buf);
+   }
 };
 
 int main()
 {
    net::io_context ioc {1};
    auto conn = std::make_shared<connection>(ioc.get_executor());
-   myreceiver recv{conn};
-   conn->start(recv);
+
+   buffers bufs;
+   myreceiver recv{conn, bufs};
+   conn->run(std::ref(recv), bufs);
    ioc.run();
 }

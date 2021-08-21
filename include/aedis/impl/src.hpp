@@ -7,7 +7,7 @@
 
 #include <aedis/impl/type.ipp>
 #include <aedis/impl/connection.ipp>
-#include <aedis/impl/commands.ipp>
+#include <aedis/impl/command.ipp>
 
 #include <aedis/detail/impl/read.ipp>
 #include <aedis/detail/impl/parser.ipp>

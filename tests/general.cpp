@@ -43,14 +43,15 @@ void check_equal_number(T const& a, T const& b, std::string const& msg = "")
 class test_receiver : public receiver_base {
 private:
    std::shared_ptr<connection> conn_;
+   buffers& buffers_;
 
    std::vector<int> list_ {1 ,2, 3, 4, 5, 6};
    std::string set_ {"aaa"};
 
 public:
-   test_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
+   test_receiver(std::shared_ptr<connection> conn, buffers& bufs) : conn_{conn}, buffers_{bufs} { }
 
-   void on_hello(resp3::array& v) noexcept override
+   void on_hello(resp3::type type) noexcept override
    {
       auto f = [this](auto& req)
       {
@@ -91,14 +92,10 @@ public:
       };
 
       conn_->send(f);
+      buffers_.map.clear();
    }
 
-   void on_simple_error(command cmd, resp3::simple_error& v) noexcept override
-   {
-      std::cout << v << std::endl;
-   }
-
-   void on_push(resp3::array& v) noexcept override
+   void on_push() noexcept override
    {
       // TODO: Check the responses below.
       // {"subscribe", "channel", "1"}
@@ -106,87 +103,132 @@ public:
       check_equal(1, 1, "push (receiver)");
    }
 
-   // Blob string.
-   void on_get(resp3::blob_string& s) noexcept override
-      { check_equal(s, set_, "get (receiver)"); }
+   void on_get(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.blob_string, set_, "get (receiver)");
+      buffers_.blob_string.clear();
+   }
 
-   void on_hget(resp3::blob_string& s) noexcept override
-      { check_equal(s, std::string{"value2"}, "hget (receiver)"); }
+   void on_hget(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.blob_string, std::string{"value2"}, "hget (receiver)");
+      buffers_.blob_string.clear();
+   }
 
-   void on_lpop(resp3::blob_string& s) noexcept override
-      { check_equal(s, {"3"}, "lpop (receiver)"); }
+   void on_lrange(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.array, {"1", "2", "3", "4", "5", "6"}, "lrange (receiver)");
+      buffers_.array.clear();
+   }
 
-   // Array
-   void on_lrange(resp3::array& v) noexcept override
-      { check_equal(v, {"1", "2", "3", "4", "5", "6"}, "lrange (receiver)"); }
+   void on_lpop(resp3::type type) noexcept override
+   {
+      if (type == resp3::type::array) {
+         check_equal(buffers_.array, {"4", "5"}, "lpop(count) (receiver)");
+         buffers_.array.clear();
+         return;
+      }
 
-   void on_lpop(resp3::array& s) noexcept override
-      { check_equal(s, {"4", "5"}, "lpop(count) (receiver)"); }
+      if (type == resp3::type::blob_string) {
+         check_equal(buffers_.blob_string, {"3"}, "lpop(count) (receiver)");
+         buffers_.array.clear();
+         return;
+      }
 
-   void on_hgetall(resp3::array& s) noexcept override
-      { check_equal(s, {"field1", "value1", "field2", "value2"}, "hgetall (receiver)"); }
+      assert(false);
+   }
 
-   void on_hvals(resp3::array& s) noexcept override
-      { check_equal(s, {"value1", "value2"}, "hvals (receiver)"); }
+   void on_hgetall(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.map, {"field1", "value1", "field2", "value2"}, "hgetall (receiver)");
+      buffers_.array.clear();
+   }
 
-   void on_zrange(resp3::array& s) noexcept override
-      { check_equal(s, {"Marcelo"}, "zrange (receiver)"); }
+   void on_hvals(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.array, {"value1", "value2"}, "hvals (receiver)");
+      buffers_.array.clear();
+   }
 
-   void on_zrangebyscore(resp3::array& s) noexcept override
-      { check_equal(s, {"Marcelo"}, "zrangebyscore (receiver)"); }
+   void on_zrange(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.array, {"Marcelo"}, "zrange (receiver)");
+      buffers_.array.clear();
+   }
 
-   void on_smembers(resp3::set& s) noexcept override
-      { check_equal(s, {"1", "2", "3"}, "smembers (receiver)"); }
+   void on_zrangebyscore(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.array, {"Marcelo"}, "zrangebyscore (receiver)");
+      buffers_.array.clear();
+   }
+
+   void on_smembers(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.set, {"1", "2", "3"}, "smembers (receiver)");
+      buffers_.array.clear();
+   }
 
    // Simple string
-   void on_set(resp3::simple_string& s) noexcept override
-      { check_equal(s, {"OK"}, "set (receiver)"); }
+   void on_set(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.simple_string, {"OK"}, "set (receiver)");
+      buffers_.simple_string.clear();
+   }
 
-   void on_quit(resp3::simple_string& s) noexcept override
-      { check_equal(s, {"OK"}, "quit (receiver)"); }
+   void on_quit(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.simple_string, {"OK"}, "quit (receiver)");
+      buffers_.simple_string.clear();
+   }
 
-   void on_flushall(resp3::simple_string& s) noexcept override
-      { check_equal(s, {"OK"}, "flushall (receiver)"); }
+   void on_flushall(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.simple_string, {"OK"}, "flushall (receiver)");
+      buffers_.simple_string.clear();
+   }
 
-   void on_ltrim(resp3::simple_string& s) noexcept override
-      { check_equal(s, {"OK"}, "ltrim (receiver)"); }
+   void on_ltrim(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.simple_string, {"OK"}, "ltrim (receiver)");
+      buffers_.simple_string.clear();
+   }
 
    // Number
-   void on_append(resp3::number n) noexcept override
-      { check_equal((int)n, 4, "append (receiver)"); }
+   void on_append(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 4, "append (receiver)"); }
 
-   void on_hset(resp3::number n) noexcept override
-      { check_equal((int)n, 2, "hset (receiver)"); }
+   void on_hset(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 2, "hset (receiver)"); }
 
-   void on_rpush(resp3::number n) noexcept override
-      { check_equal(n, (resp3::number)std::size(list_), "rpush (receiver)"); }
+   void on_rpush(resp3::type type) noexcept override
+      { check_equal(buffers_.number, (resp3::number)std::size(list_), "rpush (receiver)"); }
 
-   void on_del(resp3::number n) noexcept override
-      { check_equal((int)n, 1, "del (receiver)"); }
+   void on_del(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 1, "del (receiver)"); }
 
-   void on_llen(resp3::number n) noexcept override
-      { check_equal((int)n, 6, "llen (receiver)"); }
+   void on_llen(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 6, "llen (receiver)"); }
 
-   void on_incr(resp3::number n) noexcept override
-      { check_equal((int)n, 1, "incr (receiver)"); }
+   void on_incr(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 1, "incr (receiver)"); }
 
-   void on_publish(resp3::number n) noexcept override
-      { check_equal((int)n, 1, "publish (receiver)"); }
+   void on_publish(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 1, "publish (receiver)"); }
 
-   void on_hincrby(resp3::number n) noexcept override
-      { check_equal((int)n, 10, "hincrby (receiver)"); }
+   void on_hincrby(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 10, "hincrby (receiver)"); }
 
-   void on_zadd(resp3::number n) noexcept override
-      { check_equal((int)n, 1, "zadd (receiver)"); }
+   void on_zadd(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 1, "zadd (receiver)"); }
 
-   void on_zremrangebyscore(resp3::number s) noexcept override
-      { check_equal((int)s, 1, "zremrangebyscore (receiver)"); }
+   void on_zremrangebyscore(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 1, "zremrangebyscore (receiver)"); }
 
-   void on_sadd(resp3::number n) noexcept override
-      { check_equal((int)n, 3, "sadd (receiver)"); }
+   void on_sadd(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 3, "sadd (receiver)"); }
 
-   void on_hdel(resp3::number n) noexcept override
-      { check_equal((int)n, 2, "hdel (receiver)"); }
+   void on_hdel(resp3::type type) noexcept override
+      { check_equal((int)buffers_.number, 2, "hdel (receiver)"); }
 
 };
 
@@ -194,8 +236,10 @@ void test_receiver_1()
 {
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc.get_executor());
-   test_receiver recv{conn};
-   conn->start(recv);
+
+   buffers bufs;
+   test_receiver recv{conn, bufs};
+   conn->start(recv, bufs);
    ioc.run();
 }
 
@@ -204,29 +248,32 @@ void test_receiver_1()
 class ping_receiver : public receiver_base {
 private:
    std::shared_ptr<connection> conn_;
+   buffers& buffers_;
 
 public:
-   ping_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
+   ping_receiver(std::shared_ptr<connection> conn, buffers& bufs) : conn_{conn}, buffers_{bufs} { }
 
-   void on_hello(resp3::array& v) noexcept override
+   void on_hello(resp3::type type) noexcept override
       { conn_->ping(); }
 
-   void on_ping(resp3::simple_string& s) noexcept override
+   void on_ping(resp3::type type) noexcept override
    {
-      check_equal(s, {"PONG"}, "ping");
+      check_equal(buffers_.simple_string, {"PONG"}, "ping");
       conn_->quit();
    }
 
-   void on_quit(resp3::simple_string& s) noexcept override
-      { check_equal(s, {"OK"}, "quit"); }
+   void on_quit(resp3::type type) noexcept override
+      { check_equal(buffers_.simple_string, {"OK"}, "quit"); }
 };
 
 void test_ping()
 {
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc.get_executor());
-   ping_receiver recv{conn};
-   conn->start(recv);
+
+   buffers bufs;
+   ping_receiver recv{conn, bufs};
+   conn->start(recv, bufs);
    ioc.run();
 }
 
@@ -245,7 +292,7 @@ void trans_filler(auto& req)
    //req.publish("some-channel", "message1");
 
    req.exec();
-   req.ping();
+   req.incr("a");
    req.publish("some-channel", "message2");
 };
 
@@ -253,11 +300,12 @@ class trans_receiver : public receiver_base {
 private:
    int counter_ = 0;
    std::shared_ptr<connection> conn_;
+   buffers& buffers_;
 
 public:
-   trans_receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
+   trans_receiver(std::shared_ptr<connection> conn, buffers& bufs) : conn_{conn}, buffers_{bufs} { }
 
-   void on_hello(resp3::array& v) noexcept override
+   void on_hello(resp3::type type) noexcept override
    {
       auto f = [this](auto& req)
       {
@@ -270,8 +318,9 @@ public:
       }
    }
 
-   void on_push(resp3::array& v) noexcept override
+   void on_push() noexcept override
    {
+     auto& v = buffers_.push;
      assert(std::size(v) == 3U);
      
      auto const i = counter_ % 3;
@@ -309,42 +358,46 @@ public:
      v.clear();
    }
 
-   void on_flushall(resp3::simple_string& s) noexcept override
-      { check_equal(s, {"OK"}, "flushall (transaction)"); }
+   void on_flushall(resp3::type type) noexcept override
+      { check_equal(buffers_.simple_string, {"OK"}, "flushall (transaction)"); }
 
-   void
-   on_transaction(resp3::transaction_result& result) noexcept override
+   void on_exec(resp3::type type) noexcept override
    {
-      check_equal(result[0].cmd, command::ping, "transaction ping (command)");
-      check_equal(result[0].depth, 1, "transaction (depth)");
-      check_equal(result[0].type, resp3::type::simple_string, "transaction (type)");
-      check_equal(result[0].expected_size, 1, "transaction (size)");
+      check_equal(buffers_.transaction[0].cmd, command::unknown, "transaction ping (command)");
+      check_equal(buffers_.transaction[0].depth, 1, "transaction (depth)");
+      check_equal(buffers_.transaction[0].type, resp3::type::simple_string, "transaction (type)");
+      check_equal(buffers_.transaction[0].expected_size, 1, "transaction (size)");
 
-      check_equal(result[1].cmd, command::ping, "transaction incr (command)");
-      check_equal(result[1].depth, 1, "transaction (depth)");
-      check_equal(result[1].type, resp3::type::simple_string, "transaction (typ)e");
-      check_equal(result[1].expected_size, 1, "transaction (size)");
+      check_equal(buffers_.transaction[1].cmd, command::unknown, "transaction ping (command)");
+      check_equal(buffers_.transaction[1].depth, 1, "transaction (depth)");
+      check_equal(buffers_.transaction[1].type, resp3::type::simple_string, "transaction (typ)e");
+      check_equal(buffers_.transaction[1].expected_size, 1, "transaction (size)");
 
       // See note above
       //check_equal(result[2].command, command::publish, "transaction publish (command)");
       //check_equal_number(result[2].depth, 1, "transaction (depth)");
       //check_equal_number(result[2].type, resp3::type::number, "transaction (type)");
       //check_equal_number(result[2].expected_size, 1, "transaction (size)");
-      result.clear();
+      buffers_.transaction.clear();
    }
 
-   void on_quit(resp3::simple_string& s) noexcept override
-      { check_equal(s, {"OK"}, "quit"); }
+   void on_quit(resp3::type type) noexcept override
+      { check_equal(buffers_.simple_string, {"OK"}, "quit"); }
 
-   void on_publish(resp3::number n) noexcept override
+   void on_publish(resp3::type type) noexcept override
    {
-      check_equal((int)n, 1, "publish (transaction)");
+      check_equal((int)buffers_.number, 1, "publish (transaction)");
    }
 
-   void on_ping(resp3::simple_string& s) noexcept override
+   void on_ping(resp3::type type) noexcept override
    {
-      check_equal(s, {"PONG"}, "ping");
+      check_equal(buffers_.simple_string, {"QUEUED"}, "ping");
       conn_->send([this](auto& req) { req.quit(); });
+   }
+
+   void on_multi(resp3::type type) noexcept override
+   {
+      check_equal(buffers_.simple_string, {"OK"}, "multi");
    }
 };
 
@@ -352,10 +405,11 @@ void test_trans()
 {
    net::io_context ioc;
    connection::config cfg{"127.0.0.1", "6379", 3, 10000};
-   
    auto conn = std::make_shared<connection>(ioc.get_executor(), cfg);
-   trans_receiver recv{conn};
-   conn->start(recv);
+
+   buffers bufs;
+   trans_receiver recv{conn, bufs};
+   conn->start(recv, bufs);
    ioc.run();
 }
 

@@ -17,12 +17,12 @@
 #include <charconv>
 #include <iomanip>
 
-#include <aedis/net.hpp>
 #include <aedis/type.hpp>
-#include <aedis/command.hpp>
 #include <aedis/receiver_base.hpp>
+#include <aedis/command.hpp>
+#include <aedis/buffers.hpp>
 
-#include "response_base.hpp"
+#include "response_adapter_base.hpp"
 
 #include <boost/static_string/static_string.hpp>
 
@@ -41,7 +41,7 @@ inline
 void from_string_view(std::string_view s, std::string& r)
    { r = s; }
 
-struct response_ignore : response_base {
+struct response_ignore : response_adapter_base {
    void on_simple_string(std::string_view s) override {}
    void on_simple_error(std::string_view s) override {}
    void on_number(std::string_view s) override {}
@@ -62,11 +62,11 @@ struct response_ignore : response_base {
 
 // This response type is able to deal with recursive redis responses
 // as in a transaction for example.
-class response_tree: public response_base {
+class response_tree: public response_adapter_base {
 public:
-   resp3::transaction_result* result;
+   resp3::transaction* result;
 
-   response_tree(resp3::transaction_result* p) : result(p) {}
+   response_tree(resp3::transaction* p) : result(p) {}
 
 private:
    int depth_ = 0;
@@ -118,7 +118,7 @@ public:
    void pop() override { --depth_; }
 };
 
-struct response_number : public response_base {
+struct response_number : public response_adapter_base {
    resp3::number* result = nullptr;
 
    response_number(resp3::number* p) : result(p) {}
@@ -127,7 +127,7 @@ struct response_number : public response_base {
       { from_string_view(s, *result); }
 };
 
-struct response_blob_string : public response_base {
+struct response_blob_string : public response_adapter_base {
    resp3::blob_string* result = nullptr;
 
    response_blob_string(resp3::blob_string* p) : result(p) {}
@@ -136,7 +136,7 @@ struct response_blob_string : public response_base {
       { from_string_view(s, *result); }
 };
 
-struct response_blob_error : public response_base {
+struct response_blob_error : public response_adapter_base {
    resp3::blob_error* result = nullptr;
 
    response_blob_error(resp3::blob_error* p) : result(p) {}
@@ -145,7 +145,7 @@ struct response_blob_error : public response_base {
       { from_string_view(s, *result); }
 };
 
-struct response_simple_string : public response_base {
+struct response_simple_string : public response_adapter_base {
    resp3::simple_string* result = nullptr;
 
    response_simple_string(resp3::simple_string* p) : result(p) {}
@@ -154,7 +154,7 @@ struct response_simple_string : public response_base {
       { from_string_view(s, *result); }
 };
 
-struct response_simple_error : public response_base {
+struct response_simple_error : public response_adapter_base {
    resp3::simple_error* result = nullptr;
 
    response_simple_error(resp3::simple_error* p) : result(p) {}
@@ -163,7 +163,7 @@ struct response_simple_error : public response_base {
       { from_string_view(s, *result); }
 };
 
-struct response_big_number : public response_base {
+struct response_big_number : public response_adapter_base {
    resp3::big_number* result = nullptr;
 
    response_big_number(resp3::big_number* p) : result(p) {}
@@ -172,7 +172,7 @@ struct response_big_number : public response_base {
       { from_string_view(s, *result); }
 };
 
-struct response_double : public response_base {
+struct response_double : public response_adapter_base {
    resp3::doublean* result = nullptr;
 
    response_double(resp3::doublean* p) : result(p) {}
@@ -181,7 +181,7 @@ struct response_double : public response_base {
       { *result = s; }
 };
 
-struct response_verbatim_string : public response_base {
+struct response_verbatim_string : public response_adapter_base {
    resp3::verbatim_string* result = nullptr;
 
    response_verbatim_string(resp3::verbatim_string* p) : result(p) {}
@@ -190,7 +190,7 @@ struct response_verbatim_string : public response_base {
       { from_string_view(s, *result); }
 };
 
-struct response_streamed_string_part : public response_base {
+struct response_streamed_string_part : public response_adapter_base {
    resp3::streamed_string_part* result = nullptr;
 
    response_streamed_string_part(resp3::streamed_string_part* p) : result(p) {}
@@ -199,7 +199,7 @@ struct response_streamed_string_part : public response_base {
       { *result += s; }
 };
 
-struct response_bool : public response_base {
+struct response_bool : public response_adapter_base {
    resp3::boolean* result = nullptr;
 
    response_bool(resp3::boolean* p) : result(p) {}
@@ -216,7 +216,7 @@ template<
    class Compare = std::less<Key>,
    class Allocator = std::allocator<Key>
    >
-struct response_unordered_set : response_base {
+struct response_unordered_set : response_adapter_base {
    void on_blob_string(std::string_view s) override
    {
       Key r;
@@ -231,7 +231,7 @@ struct response_unordered_set : response_base {
 };
 
 template <class T>
-struct response_basic_array : response_base {
+struct response_basic_array : response_adapter_base {
    resp3::basic_array<T>* result = nullptr;
 
    response_basic_array(resp3::basic_array<T>* p) : result(p) {}
@@ -260,7 +260,7 @@ struct response_basic_array : response_base {
 
 using response_array = response_basic_array<std::string>;
 
-struct response_map : response_base {
+struct response_map : response_adapter_base {
    resp3::map* result = nullptr;
 
    response_map(resp3::map* p) : result(p) {}
@@ -287,7 +287,7 @@ struct response_map : response_base {
    void on_blob_string(std::string_view s = {}) override { add(s); }
 };
 
-struct response_set : response_base {
+struct response_set : response_adapter_base {
    resp3::set* result = nullptr;
 
    response_set(resp3::set* p) : result(p) {}
@@ -311,7 +311,7 @@ struct response_set : response_base {
 };
 
 template <class T, std::size_t N>
-struct response_static_array : response_base {
+struct response_static_array : response_adapter_base {
    int i_ = 0;
    void on_blob_string(std::string_view s) override
       { from_string_view(s, result[i_++]); }
@@ -320,7 +320,7 @@ struct response_static_array : response_base {
 };
 
 template <std::size_t N>
-struct response_static_string : response_base {
+struct response_static_string : response_adapter_base {
    void add(std::string_view s)
      { result.assign(std::cbegin(s), std::cend(s));};
    void on_blob_string(std::string_view s) override
@@ -335,7 +335,7 @@ template <
    class T,
    std::size_t N
    >
-struct response_basic_static_map : response_base {
+struct response_basic_static_map : response_adapter_base {
    int i_ = 0;
 
    void add(std::string_view s = {})
@@ -348,6 +348,45 @@ struct response_basic_static_map : response_base {
    void select_push(int n) override { }
 
    std::array<T, 2 * N> result;
+};
+
+struct response_adapters {
+   response_tree resp_transaction;
+   response_array resp_array;
+   response_array resp_push;
+   response_set resp_set;
+   response_map resp_map;
+   response_array resp_attribute;
+   response_simple_string resp_simple_string;
+   response_simple_error resp_simple_error;
+   response_number resp_number;
+   response_double resp_double;
+   response_bool resp_boolean;
+   response_big_number resp_big_number;
+   response_blob_string resp_blob_string;
+   response_blob_error resp_blob_error;
+   response_verbatim_string resp_verbatim_string;
+   response_streamed_string_part resp_streamed_string_part;
+   response_ignore resp_ignore;
+
+   response_adapters(buffers& buf)
+   : resp_transaction{&buf.transaction}
+   , resp_array{&buf.array}
+   , resp_push{&buf.push}
+   , resp_set{&buf.set}
+   , resp_map{&buf.map}
+   , resp_attribute{&buf.attribute}
+   , resp_simple_string{&buf.simple_string}
+   , resp_simple_error{&buf.simple_error}
+   , resp_number{&buf.number}
+   , resp_double{&buf.doublean}
+   , resp_boolean{&buf.boolean}
+   , resp_big_number{&buf.big_number}
+   , resp_blob_string{&buf.blob_string}
+   , resp_blob_error{&buf.blob_error}
+   , resp_verbatim_string{&buf.verbatim_string}
+   , resp_streamed_string_part{&buf.streamed_string_part}
+   { }
 };
 
 } // detail

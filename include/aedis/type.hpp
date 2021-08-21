@@ -32,6 +32,7 @@ enum class type
 , verbatim_string
 , blob_string
 , streamed_string_part
+, transaction // Not from resp3.
 , invalid
 };
 
@@ -45,6 +46,8 @@ using basic_array = std::vector<T>;
 /// RESP3 array type.
 using array = basic_array<std::string>;
 using array_int = basic_array<int>;
+
+using push = std::vector<std::string>;
 
 /// RESP3 map type.
 using map = std::vector<std::string>;
@@ -71,7 +74,7 @@ struct transaction_item {
    std::vector<std::string> value;
 };
 
-using transaction_result = std::vector<transaction_item>;
+using transaction = std::vector<transaction_item>;
 
 } // resp3
 } // aedis

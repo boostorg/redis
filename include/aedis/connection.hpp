@@ -10,8 +10,9 @@
 #include <memory>
 #include <string>
 
+#include <aedis/detail/read.hpp>
 #include <aedis/detail/write.hpp>
-#include <aedis/detail/response_buffers.hpp>
+#include <aedis/detail/response_adapters.hpp>
 
 #include "net.hpp"
 #include "type.hpp"
@@ -46,14 +47,31 @@ public:
 private:
    net::ip::tcp::socket socket_;
    std::string buffer_;
-   detail::buffers buffers_;
-   detail::response_buffers resps_;
    std::queue<pipeline> reqs_;
-   bool reconnect_ = false;
    config conf_;
    boost::system::error_code ec_;
 
-   net::awaitable<void> worker_coro(receiver_base& recv);
+   template <class Receiver>
+   net::awaitable<void> worker_coro(Receiver receiver, buffers& bufs)
+   {
+      try {
+         auto ex = co_await net::this_coro::executor;
+
+         net::ip::tcp::resolver resolver{ex};
+         auto const res = resolver.resolve(conf_.host, conf_.port);
+
+         co_await async_connect(socket_, res, net::use_awaitable);
+
+         send([](auto& req) { req.hello(); });
+
+         detail::response_adapters adapters{bufs};
+         for (;;) {
+            auto const event = co_await detail::async_consume(socket_, buffer_, adapters, reqs_);
+            receiver(event.first, event.second);
+         }
+      } catch (...) {
+      }
+   }
 
 public:
    /// Contructs a connection.
@@ -62,7 +80,18 @@ public:
       config const& conf = config {"127.0.0.1", "6379", 1000, 10000});
 
    /// Stablishes the connection with the redis server.
-   void start(receiver_base& recv);
+   void start(receiver_base& recv, buffers& bufs);
+
+   template <class Receiver>
+   void run(Receiver receiver, buffers& bufs)
+   {
+      auto self = this->shared_from_this();
+
+      auto f = [self, receiver, &bufs] () mutable
+         { return self->worker_coro(receiver, bufs); };
+
+      net::co_spawn(socket_.get_executor(), f, net::detached);
+   }
 
    /** Adds commands to the ouput queue. The Filler signature must be
     *
@@ -94,8 +123,6 @@ public:
 
    auto queue_size() const noexcept
       { return std::ssize(reqs_); }
-
-   void enable_reconnect() noexcept;
 
    /// Adds ping to the request, see https://redis.io/commands/bgrewriteaof
    void ping()
