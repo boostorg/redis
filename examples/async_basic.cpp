@@ -6,50 +6,75 @@
  */
 
 #include <aedis/aedis.hpp>
-#include <aedis/detail/utils.hpp>
 
 using namespace aedis;
 
-void print_helper(command cmd, resp3::type type, buffers& buf)
+void print_helper(command cmd, resp3::type type, buffers& bufs)
 {
+   std::cout << cmd << " (" << type << "): ";
+
    switch (type) {
-      case resp3::type::simple_string:
-      {
-         std::cout << cmd << " " << buf.simple_string << " (" << type << ")" << std::endl;
-      } break;
-      case resp3::type::push:
-      case resp3::type::map:
-      {
-         std::cout << cmd << " (" << type << ")" << std::endl;
-      } break;
-      default:{}
+      case resp3::type::simple_string: std::cout << bufs.simple_string; break;
+      case resp3::type::blob_string: std::cout << bufs.blob_string; break;
+      case resp3::type::number: std::cout << bufs.number; break;
+      default:
+         std::cout << "Unexpected." << "\n";
+   }
+
+   std::cout << "\n";
+}
+
+net::awaitable<void>
+reader(net::ip::tcp::socket& socket, std::queue<pipeline>& reqs)
+{
+   buffers bufs;
+   std::string buffer;
+
+   detail::prepare_queue(reqs);
+   reqs.back().hello("3");
+
+   co_await async_write(socket, net::buffer(reqs.back().payload), net::use_awaitable);
+
+   detail::response_adapters adapters{bufs};
+   for (;;) {
+      auto const event = co_await detail::async_consume(socket, buffer, adapters, reqs);
+
+      switch (event.first) {
+	 case command::hello:
+	 {
+	    auto const empty = detail::prepare_queue(reqs);
+	    reqs.back().ping();
+	    reqs.back().incr("a");
+	    reqs.back().set("b", {"Some string"});
+	    reqs.back().get("b");
+	    reqs.back().quit();
+	    if (empty)
+	       co_await detail::async_write_all(socket, reqs);
+	 } break;
+	 case command::get:
+	 case command::incr:
+	 case command::quit:
+	 case command::set:
+	 case command::ping:
+	    print_helper(event.first, event.second, bufs);
+	    break;
+	 default: {
+	    std::cout << "PUSH notification ("  << event.second << ")" << std::endl;
+	 }
+      }
    }
 }
 
-struct myreceiver {
-   std::shared_ptr<connection> conn;
-   buffers& buf;
-
-   void operator()(command cmd, resp3::type type) const
-   {
-      if (cmd == command::hello) {
-         assert(type == resp3::type::map);
-         conn->ping();
-         conn->psubscribe({"aaa*"});
-         conn->quit();
-      }
-
-      print_helper(cmd, type, buf);
-   }
-};
-
 int main()
 {
-   net::io_context ioc {1};
-   auto conn = std::make_shared<connection>(ioc.get_executor());
+   net::io_context ioc;
 
-   buffers bufs;
-   myreceiver recv{conn, bufs};
-   conn->run(std::ref(recv), bufs);
+   net::ip::tcp::socket socket{ioc};
+   net::ip::tcp::resolver resolver{ioc};
+   auto const res = resolver.resolve("127.0.0.1", "6379");
+   net::connect(socket, res);
+
+   std::queue<pipeline> reqs;
+   co_spawn(ioc, reader(socket, reqs), net::detached);
    ioc.run();
 }

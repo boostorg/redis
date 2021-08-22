@@ -9,6 +9,10 @@
 
 #include <iostream>
 
+#include "type.hpp"
+#include "command.hpp"
+#include "buffers.hpp"
+
 namespace aedis {
 
 template <class Iter>

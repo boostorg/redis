@@ -51,27 +51,32 @@ template <class AsyncReadWriteStream>
 net::awaitable<void>
 async_write_all(
    AsyncReadWriteStream& socket,
-   std::queue<pipeline>& reqs,
-   boost::system::error_code& ec)
+   std::queue<pipeline>& reqs)
 {
    // Commands like unsubscribe have a push response so we do not
    // have to wait for a response before sending a new pipeline.
    while (!std::empty(reqs)) {
       auto buffer = net::buffer(reqs.front().payload);
-      co_await async_write(
-	 socket,
-	 buffer,
-	 net::redirect_error(net::use_awaitable, ec));
-
-      if (ec) {
-	 co_return;
-      }
-
+      co_await async_write(socket, buffer, net::use_awaitable);
       if (!std::empty(reqs.front().cmds))
 	 break;
-
       reqs.pop();
    }
+}
+
+inline
+bool prepare_queue(std::queue<pipeline>& reqs, int max_cmds = 5000)
+{
+   auto const empty = std::empty(reqs);
+   if (empty || std::size(reqs) == 1) {
+      reqs.push({});
+      return empty;
+   }
+
+   if (std::ssize(reqs.back()) > max_cmds)
+      reqs.push({});
+
+   return false;
 }
 
 } // detail

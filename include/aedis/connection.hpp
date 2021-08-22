@@ -49,7 +49,6 @@ private:
    std::string buffer_;
    std::queue<pipeline> reqs_;
    config conf_;
-   boost::system::error_code ec_;
 
    template <class Receiver>
    net::awaitable<void> worker_coro(Receiver receiver, buffers& bufs)
@@ -117,7 +116,7 @@ public:
       if (empty) {
 	 co_spawn(
 	    socket_.get_executor(),
-	    detail::async_write_all(socket_, reqs_, ec_),
+	    detail::async_write_all(socket_, reqs_),
 	    net::detached);
       }
 
