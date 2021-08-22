@@ -9,7 +9,7 @@
 
 using namespace aedis;
 
-void print_helper(command cmd, resp3::type type, buffers& bufs)
+void print_helper(command cmd, resp3::type type, response_buffers& bufs)
 {
    std::cout << cmd << " (" << type << "): ";
 
@@ -27,7 +27,7 @@ void print_helper(command cmd, resp3::type type, buffers& bufs)
 net::awaitable<void>
 reader(net::ip::tcp::socket& socket, std::queue<pipeline>& reqs)
 {
-   buffers bufs;
+   response_buffers bufs;
    std::string buffer;
 
    prepare_queue(reqs);

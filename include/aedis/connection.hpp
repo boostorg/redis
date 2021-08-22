@@ -51,7 +51,7 @@ private:
    config conf_;
 
    template <class Receiver>
-   net::awaitable<void> worker_coro(Receiver receiver, buffers& bufs)
+   net::awaitable<void> worker_coro(Receiver receiver, response_buffers& bufs)
    {
       try {
          auto ex = co_await net::this_coro::executor;
@@ -82,10 +82,10 @@ public:
       config const& conf = config {"127.0.0.1", "6379", 1000, 10000});
 
    /// Stablishes the connection with the redis server.
-   void start(receiver_base& recv, buffers& bufs);
+   void start(receiver_base& recv, response_buffers& bufs);
 
    template <class Receiver>
-   void run(Receiver receiver, buffers& bufs)
+   void run(Receiver receiver, response_buffers& bufs)
    {
       auto self = this->shared_from_this();
 

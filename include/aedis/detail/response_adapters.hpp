@@ -20,7 +20,7 @@
 #include <aedis/type.hpp>
 #include <aedis/receiver_base.hpp>
 #include <aedis/command.hpp>
-#include <aedis/buffers.hpp>
+#include <aedis/response_buffers.hpp>
 #include <aedis/response_adapter_base.hpp>
 
 #include <boost/static_string/static_string.hpp>
@@ -368,7 +368,7 @@ struct response_adapters {
    response_streamed_string_part resp_streamed_string_part;
    response_ignore resp_ignore;
 
-   response_adapters(buffers& buf)
+   response_adapters(response_buffers& buf)
    : resp_transaction{&buf.transaction}
    , resp_array{&buf.array}
    , resp_push{&buf.push}

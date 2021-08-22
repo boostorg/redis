@@ -11,7 +11,7 @@
 
 namespace aedis {
 
-struct buffers {
+struct response_buffers {
    resp3::transaction transaction;
    resp3::array array;
    resp3::array push;

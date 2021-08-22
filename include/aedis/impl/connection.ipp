@@ -17,7 +17,7 @@ connection::connection(net::any_io_executor const& ioc, config const& conf)
 {
 }
 
-void connection::start(receiver_base& recv, buffers& bufs)
+void connection::start(receiver_base& recv, response_buffers& bufs)
 {
    auto self = this->shared_from_this();
 

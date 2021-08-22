@@ -39,241 +39,211 @@ void check_equal_number(T const& a, T const& b, std::string const& msg = "")
      std::cout << "Error: " << a << " != " << b << " " << msg << std::endl;
 }
 
-class test_receiver : public receiver_base {
-private:
-   std::shared_ptr<connection> conn_;
-   buffers& buffers_;
+//-------------------------------------------------------------------
+
+net::awaitable<void>
+test_general(net::ip::tcp::resolver::results_type const& res)
+{
+   auto ex = co_await this_coro::executor;
+
+   net::ip::tcp::socket socket{ex};
+   co_await net::async_connect(socket, res, net::use_awaitable);
+
+   std::queue<pipeline> reqs;
+   response_buffers bufs;
+   std::string buffer;
+
+   prepare_queue(reqs);
+   reqs.back().hello("3");
 
    std::vector<int> list_ {1 ,2, 3, 4, 5, 6};
    std::string set_ {"aaa"};
 
-public:
-   test_receiver(std::shared_ptr<connection> conn, buffers& bufs) : conn_{conn}, buffers_{bufs} { }
+   co_await async_write(socket, net::buffer(reqs.back().payload), net::use_awaitable);
 
-   void on_hello(resp3::type type) noexcept override
-   {
-      auto f = [this](auto& req)
-      {
-	 req.flushall();
-	 req.rpush("a", list_);
-	 req.llen("a");
-	 req.lrange("a");
-	 req.ltrim("a", 2, -2);
-	 req.lpop("a");
-	 //req.lpop("a", 2); // Not working?
-	 req.set("b", {set_});
-	 req.get("b");
-	 req.append("b", "b");
-	 req.del("b");
-	 req.subscribe("channel");
-	 req.publish("channel", "message");
-	 req.incr("c");
+   detail::response_adapters adapters{bufs};
+   for (;;) {
+      auto const event = co_await async_consume(socket, buffer, adapters, reqs);
 
-	 std::map<std::string, std::string> m1 =
-	 { {"field1", "value1"}
-	 , {"field2", "value2"}};
+      switch (event.first) {
+	 case command::hello:
+	 {
+	    bufs.map.clear();
+	    auto const empty = prepare_queue(reqs);
+	    reqs.back().flushall();
+	    reqs.back().rpush("a", list_);
+	    reqs.back().llen("a");
+	    reqs.back().lrange("a");
+	    reqs.back().ltrim("a", 2, -2);
+	    reqs.back().lpop("a");
+	    //reqs.back().lpop("a", 2); // Not working?
+	    reqs.back().set("b", {set_});
+	    reqs.back().get("b");
+	    reqs.back().append("b", "b");
+	    reqs.back().del("b");
+	    reqs.back().subscribe("channel");
+	    reqs.back().publish("channel", "message");
+	    reqs.back().incr("c");
 
-	 req.hset("d", m1);
-	 req.hget("d", "field2");
-	 req.hgetall("d");
-	 req.hdel("d", {"field1", "field2"});
-	 req.hincrby("e", "some-field", 10);
+	    std::map<std::string, std::string> m1 =
+	    { {"field1", "value1"}
+	    , {"field2", "value2"}};
 
-	 req.zadd("f", 1, "Marcelo");
-	 req.zrange("f");
-	 req.zrangebyscore("f", 1, 1);
-	 req.zremrangebyscore("f", "-inf", "+inf");
+	    reqs.back().hset("d", m1);
+	    reqs.back().hget("d", "field2");
+	    reqs.back().hgetall("d");
+	    reqs.back().hdel("d", {"field1", "field2"});
+	    reqs.back().hincrby("e", "some-field", 10);
 
-	 req.sadd("g", std::vector<int>{1, 2, 3});
-	 req.smembers("g");
+	    reqs.back().zadd("f", 1, "Marcelo");
+	    reqs.back().zrange("f");
+	    reqs.back().zrangebyscore("f", 1, 1);
+	    reqs.back().zremrangebyscore("f", "-inf", "+inf");
 
-	 req.quit();
-      };
+	    reqs.back().sadd("g", std::vector<int>{1, 2, 3});
+	    reqs.back().smembers("g");
 
-      conn_->send(f);
-      buffers_.map.clear();
-   }
-
-   void on_push() noexcept override
-   {
-      // TODO: Check the responses below.
-      // {"subscribe", "channel", "1"}
-      // {"message", "channel", "message"}
-      check_equal(1, 1, "push (receiver)");
-   }
-
-   void on_get(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.blob_string, set_, "get (receiver)");
-      buffers_.blob_string.clear();
-   }
-
-   void on_hget(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.blob_string, std::string{"value2"}, "hget (receiver)");
-      buffers_.blob_string.clear();
-   }
-
-   void on_lrange(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.array, {"1", "2", "3", "4", "5", "6"}, "lrange (receiver)");
-      buffers_.array.clear();
-   }
-
-   void on_lpop(resp3::type type) noexcept override
-   {
-      if (type == resp3::type::array) {
-         check_equal(buffers_.array, {"4", "5"}, "lpop(count) (receiver)");
-         buffers_.array.clear();
-         return;
+	    reqs.back().quit();
+	    if (empty)
+	       co_await async_write_all(socket, reqs);
+	 } break;
+	 case command::get:
+	    check_equal(event.second, resp3::type::blob_string, "get (type)");
+	    check_equal(bufs.blob_string, set_, "get (value)");
+	    bufs.blob_string.clear();
+	    break;
+	 case command::lrange:
+	    check_equal(event.second, resp3::type::array, "lrange (type)");
+	    check_equal(bufs.array, {"1", "2", "3", "4", "5", "6"}, "lrange (value)");
+	    bufs.array.clear();
+	    break;
+	 case command::hget:
+	    check_equal(event.second, resp3::type::blob_string, "hget (type)");
+	    check_equal(bufs.blob_string, std::string{"value2"}, "hget (value)");
+	    bufs.blob_string.clear();
+	    break;
+	 case command::hgetall:
+	    check_equal(event.second, resp3::type::map, "hgetall (type)");
+	    check_equal(bufs.map, {"field1", "value1", "field2", "value2"}, "hgetall (value)");
+	    bufs.map.clear();
+	    break;
+	 case command::hvals:
+	    check_equal(event.second, resp3::type::array, "hvals (type)");
+	    check_equal(bufs.array, {"value1", "value2"}, "hvals (value)");
+	    bufs.array.clear();
+	    break;
+	 case command::zrange:
+	    check_equal(event.second, resp3::type::array, "hvals (type)");
+	    check_equal(bufs.array, {"Marcelo"}, "hvals (value)");
+	    bufs.array.clear();
+	    break;
+	 case command::zrangebyscore:
+	    check_equal(event.second, resp3::type::array, "zrangebyscore (type)");
+	    check_equal(bufs.array, {"Marcelo"}, "zrangebyscore (value)");
+	    bufs.array.clear();
+	    break;
+	 case command::smembers:
+	    check_equal(event.second, resp3::type::set, "smembers (type)");
+	    check_equal(bufs.set, {"1", "2", "3"}, "smembers (value)");
+	    bufs.set.clear();
+	    break;
+	 case command::set:
+	    check_equal(event.second, resp3::type::simple_string, "set (type)");
+	    check_equal(bufs.simple_string, {"OK"}, "set (value)");
+	    bufs.simple_string.clear();
+	    break;
+	 case command::quit:
+	    check_equal(event.second, resp3::type::simple_string, "quit (type)");
+	    check_equal(bufs.simple_string, {"OK"}, "quit (value)");
+	    bufs.simple_string.clear();
+	    break;
+	 case command::flushall:
+	    check_equal(event.second, resp3::type::simple_string, "flushall (type)");
+	    check_equal(bufs.simple_string, {"OK"}, "flushall (value)");
+	    bufs.simple_string.clear();
+	    break;
+	 case command::ltrim:
+	    check_equal(event.second, resp3::type::simple_string, "ltrim (type)");
+	    check_equal(bufs.simple_string, {"OK"}, "ltrim (value)");
+	    bufs.simple_string.clear();
+	    break;
+	 case command::append:
+	    check_equal(event.second, resp3::type::number, "append (type)");
+	    check_equal(bufs.number, 4LL, "append (value)");
+	    break;
+	 case command::hset:
+	    check_equal(event.second, resp3::type::number, "hset (type)");
+	    check_equal(bufs.number, 2LL, "hset (value)");
+	    break;
+	 case command::rpush:
+	    check_equal(event.second, resp3::type::number, "rpush (type)");
+	    check_equal(bufs.number, (resp3::number)std::size(list_), "rpush (value)");
+	    break;
+	 case command::del:
+	    check_equal(event.second, resp3::type::number, "del (type)");
+	    check_equal(bufs.number, 1LL, "del (value)");
+	    break;
+	 case command::llen:
+	    check_equal(event.second, resp3::type::number, "llen (type)");
+	    check_equal(bufs.number, 6LL, "llen (value)");
+	    break;
+	 case command::incr:
+	    check_equal(event.second, resp3::type::number, "incr (type)");
+	    check_equal(bufs.number, 1LL, "incr (value)");
+	    break;
+	 case command::publish:
+	    check_equal(event.second, resp3::type::number, "publish (type)");
+	    check_equal(bufs.number, 1LL, "publish (value)");
+	    break;
+	 case command::hincrby:
+	    check_equal(event.second, resp3::type::number, "hincrby (type)");
+	    check_equal(bufs.number, 10LL, "hincrby (value)");
+	    break;
+	 case command::zadd:
+	    check_equal(event.second, resp3::type::number, "zadd (type)");
+	    check_equal(bufs.number, 1LL, "zadd (value)");
+	    break;
+	 case command::sadd:
+	    check_equal(event.second, resp3::type::number, "sadd (type)");
+	    check_equal(bufs.number, 3LL, "sadd (value)");
+	    bufs.simple_string.clear();
+	    break;
+	 case command::hdel:
+	    check_equal(event.second, resp3::type::number, "hdel (type)");
+	    check_equal(bufs.number, 2LL, "hdel (value)");
+	    bufs.simple_string.clear();
+	    break;
+	 case command::zremrangebyscore:
+	    check_equal(event.second, resp3::type::number, "zremrangebyscore (type)");
+	    check_equal(bufs.number, 1LL, "zremrangebyscore (value)");
+	    bufs.simple_string.clear();
+	    break;
+	 case command::lpop:
+	 {
+	    if (event.second == resp3::type::array) {
+	       check_equal(bufs.array, {"4", "5"}, "lpop (count) (value)");
+	       bufs.array.clear();
+	    } else if (event.second == resp3::type::blob_string) {
+	       check_equal(bufs.blob_string, {"3"}, "lpop (value) (value)");
+	       bufs.array.clear();
+	    } else {
+	       std::cout << "Error: in lpop test_general." << std::endl;
+	    }
+	 } break;
+	 default: {
+	    check_equal(event.second, resp3::type::push, "push (type)");
+	    // TODO: Check the responses below.
+	    // {"subscribe", "channel", "1"}
+	    // {"message", "channel", "message"}
+	    //
+	    //std::cout
+	    //   << "ERROR: unexpected event in test_general. "
+	    //   << event.first << " "
+	    //   << event.second << " "
+	    //   << std::endl;
+	 }
       }
-
-      if (type == resp3::type::blob_string) {
-         check_equal(buffers_.blob_string, {"3"}, "lpop(count) (receiver)");
-         buffers_.array.clear();
-         return;
-      }
-
-      assert(false);
    }
-
-   void on_hgetall(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.map, {"field1", "value1", "field2", "value2"}, "hgetall (receiver)");
-      buffers_.array.clear();
-   }
-
-   void on_hvals(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.array, {"value1", "value2"}, "hvals (receiver)");
-      buffers_.array.clear();
-   }
-
-   void on_zrange(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.array, {"Marcelo"}, "zrange (receiver)");
-      buffers_.array.clear();
-   }
-
-   void on_zrangebyscore(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.array, {"Marcelo"}, "zrangebyscore (receiver)");
-      buffers_.array.clear();
-   }
-
-   void on_smembers(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.set, {"1", "2", "3"}, "smembers (receiver)");
-      buffers_.array.clear();
-   }
-
-   // Simple string
-   void on_set(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.simple_string, {"OK"}, "set (receiver)");
-      buffers_.simple_string.clear();
-   }
-
-   void on_quit(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.simple_string, {"OK"}, "quit (receiver)");
-      buffers_.simple_string.clear();
-   }
-
-   void on_flushall(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.simple_string, {"OK"}, "flushall (receiver)");
-      buffers_.simple_string.clear();
-   }
-
-   void on_ltrim(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.simple_string, {"OK"}, "ltrim (receiver)");
-      buffers_.simple_string.clear();
-   }
-
-   // Number
-   void on_append(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 4, "append (receiver)"); }
-
-   void on_hset(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 2, "hset (receiver)"); }
-
-   void on_rpush(resp3::type type) noexcept override
-      { check_equal(buffers_.number, (resp3::number)std::size(list_), "rpush (receiver)"); }
-
-   void on_del(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 1, "del (receiver)"); }
-
-   void on_llen(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 6, "llen (receiver)"); }
-
-   void on_incr(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 1, "incr (receiver)"); }
-
-   void on_publish(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 1, "publish (receiver)"); }
-
-   void on_hincrby(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 10, "hincrby (receiver)"); }
-
-   void on_zadd(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 1, "zadd (receiver)"); }
-
-   void on_zremrangebyscore(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 1, "zremrangebyscore (receiver)"); }
-
-   void on_sadd(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 3, "sadd (receiver)"); }
-
-   void on_hdel(resp3::type type) noexcept override
-      { check_equal((int)buffers_.number, 2, "hdel (receiver)"); }
-
-};
-
-void test_receiver_1()
-{
-   net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc.get_executor());
-
-   buffers bufs;
-   test_receiver recv{conn, bufs};
-   conn->start(recv, bufs);
-   ioc.run();
-}
-
-//-------------------------------------------------------------------
-
-class ping_receiver : public receiver_base {
-private:
-   std::shared_ptr<connection> conn_;
-   buffers& buffers_;
-
-public:
-   ping_receiver(std::shared_ptr<connection> conn, buffers& bufs) : conn_{conn}, buffers_{bufs} { }
-
-   void on_hello(resp3::type type) noexcept override
-      { conn_->ping(); }
-
-   void on_ping(resp3::type type) noexcept override
-   {
-      check_equal(buffers_.simple_string, {"PONG"}, "ping");
-      conn_->quit();
-   }
-
-   void on_quit(resp3::type type) noexcept override
-      { check_equal(buffers_.simple_string, {"OK"}, "quit"); }
-};
-
-void test_ping()
-{
-   net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc.get_executor());
-
-   buffers bufs;
-   ping_receiver recv{conn, bufs};
-   conn->start(recv, bufs);
-   ioc.run();
 }
 
 //-------------------------------------------------------------------
@@ -299,10 +269,10 @@ class trans_receiver : public receiver_base {
 private:
    int counter_ = 0;
    std::shared_ptr<connection> conn_;
-   buffers& buffers_;
+   response_buffers& buffers_;
 
 public:
-   trans_receiver(std::shared_ptr<connection> conn, buffers& bufs) : conn_{conn}, buffers_{bufs} { }
+   trans_receiver(std::shared_ptr<connection> conn, response_buffers& bufs) : conn_{conn}, buffers_{bufs} { }
 
    void on_hello(resp3::type type) noexcept override
    {
@@ -312,7 +282,7 @@ public:
 	 trans_filler(req);
       };
 
-      for (auto i = 0; i < 20; ++i) {
+      for (auto i = 0; i < 3; ++i) {
 	 conn_->send(f);
       }
    }
@@ -406,7 +376,7 @@ void test_trans()
    connection::config cfg{"127.0.0.1", "6379", 3, 10000};
    auto conn = std::make_shared<connection>(ioc.get_executor(), cfg);
 
-   buffers bufs;
+   response_buffers bufs;
    trans_receiver recv{conn, bufs};
    conn->start(recv, bufs);
    ioc.run();
@@ -953,7 +923,7 @@ int main(int argc, char* argv[])
 {
    net::io_context ioc {1};
    tcp::resolver resv(ioc);
-   auto const results = resv.resolve("127.0.0.1", "6379");
+   auto const res = resv.resolve("127.0.0.1", "6379");
 
    co_spawn(ioc, test_simple_string(), net::detached);
    co_spawn(ioc, test_number(), net::detached);
@@ -967,13 +937,10 @@ int main(int argc, char* argv[])
    co_spawn(ioc, test_set2(), net::detached);
    co_spawn(ioc, test_map(), net::detached);
 
-   co_spawn(ioc, test_list(results), net::detached);
-   co_spawn(ioc, test_set(results), net::detached);
+   co_spawn(ioc, test_list(res), net::detached);
+   co_spawn(ioc, test_set(res), net::detached);
+   co_spawn(ioc, test_general(res), net::detached);
    ioc.run();
-
-   test_receiver_1();
-
-   test_ping();
    test_trans();
 }
 
