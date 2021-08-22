@@ -14,7 +14,7 @@
 
 #include <boost/beast/core/stream_traits.hpp>
 
-namespace aedis { namespace detail {
+namespace aedis {
 
 template<class SyncWriteStream>
 std::size_t
@@ -79,5 +79,4 @@ bool prepare_queue(std::queue<pipeline>& reqs, int max_cmds = 5000)
    return false;
 }
 
-} // detail
 } // aedis

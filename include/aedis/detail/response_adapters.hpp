@@ -21,8 +21,7 @@
 #include <aedis/receiver_base.hpp>
 #include <aedis/command.hpp>
 #include <aedis/buffers.hpp>
-
-#include "response_adapter_base.hpp"
+#include <aedis/response_adapter_base.hpp>
 
 #include <boost/static_string/static_string.hpp>
 

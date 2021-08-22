@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <aedis/read.hpp>
 #include <aedis/connection.hpp>
-#include <aedis/detail/read.hpp>
-#include <aedis/detail/write.hpp>
+#include <aedis/write.hpp>
 
 namespace aedis {
 
@@ -25,7 +25,7 @@ void connection::start(receiver_base& recv, buffers& bufs)
    {
      switch (type) {
        case resp3::type::push: recv.on_push(); break;
-       default: detail::forward(cmd, type, recv);
+       default: forward(cmd, type, recv);
      }
    };
 

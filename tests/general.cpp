@@ -6,7 +6,6 @@
  */
 
 #include <aedis/aedis.hpp>
-#include <aedis/detail/read.hpp>
 
 #include "test_stream.hpp"
 

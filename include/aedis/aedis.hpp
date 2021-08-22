@@ -12,3 +12,5 @@
 #include <aedis/connection.hpp>
 #include <aedis/receiver_base.hpp>
 #include <aedis/utils.hpp>
+#include <aedis/read.hpp>
+#include <aedis/write.hpp>

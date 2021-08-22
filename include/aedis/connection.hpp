@@ -10,11 +10,11 @@
 #include <memory>
 #include <string>
 
-#include <aedis/detail/read.hpp>
-#include <aedis/detail/write.hpp>
 #include <aedis/detail/response_adapters.hpp>
 
 #include "net.hpp"
+#include "read.hpp"
+#include "write.hpp"
 #include "type.hpp"
 #include "pipeline.hpp"
 
@@ -68,7 +68,7 @@ private:
 
          detail::response_adapters adapters{bufs};
          for (;;) {
-            auto const event = co_await detail::async_consume(socket_, buffer_, adapters, reqs_);
+            auto const event = co_await async_consume(socket_, buffer_, adapters, reqs_);
             receiver(event.first, event.second);
          }
       } catch (...) {
@@ -116,7 +116,7 @@ public:
       if (empty) {
 	 co_spawn(
 	    socket_.get_executor(),
-	    detail::async_write_all(socket_, reqs_),
+	    async_write_all(socket_, reqs_),
 	    net::detached);
       }
 

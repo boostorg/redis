@@ -5,11 +5,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/detail/read.hpp>
+#include <aedis/read.hpp>
 
 #define EXPAND_RECEIVER_CASE(type, cmd) case command::cmd: recv.on_##cmd(type); break
 
-namespace aedis { namespace detail {
+namespace aedis {
 
 void
 forward(
@@ -64,7 +64,7 @@ forward(
    }
 }
 
-response_adapter_base* select_buffer(response_adapters& adapters, resp3::type type, command cmd)
+response_adapter_base* select_buffer(detail::response_adapters& adapters, resp3::type type, command cmd)
 {
    if (type == resp3::type::push)
      return &adapters.resp_push;
@@ -95,5 +95,4 @@ response_adapter_base* select_buffer(response_adapters& adapters, resp3::type ty
    }
 }
 
-} // detail
 } // aedis

@@ -30,26 +30,26 @@ reader(net::ip::tcp::socket& socket, std::queue<pipeline>& reqs)
    buffers bufs;
    std::string buffer;
 
-   detail::prepare_queue(reqs);
+   prepare_queue(reqs);
    reqs.back().hello("3");
 
    co_await async_write(socket, net::buffer(reqs.back().payload), net::use_awaitable);
 
    detail::response_adapters adapters{bufs};
    for (;;) {
-      auto const event = co_await detail::async_consume(socket, buffer, adapters, reqs);
+      auto const event = co_await async_consume(socket, buffer, adapters, reqs);
 
       switch (event.first) {
 	 case command::hello:
 	 {
-	    auto const empty = detail::prepare_queue(reqs);
+	    auto const empty = prepare_queue(reqs);
 	    reqs.back().ping();
 	    reqs.back().incr("a");
 	    reqs.back().set("b", {"Some string"});
 	    reqs.back().get("b");
 	    reqs.back().quit();
 	    if (empty)
-	       co_await detail::async_write_all(socket, reqs);
+	       co_await async_write_all(socket, reqs);
 	 } break;
 	 case command::get:
 	 case command::incr:

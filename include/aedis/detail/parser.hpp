@@ -9,7 +9,7 @@
 
 #include <string_view>
 
-#include "response_adapter_base.hpp"
+#include <aedis/response_adapter_base.hpp>
 
 namespace aedis { namespace detail {
 

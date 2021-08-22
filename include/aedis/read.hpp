@@ -25,15 +25,15 @@
 #include <aedis/net.hpp>
 #include <aedis/type.hpp>
 #include <aedis/pipeline.hpp>
+#include <aedis/write.hpp>
 
-#include "parser.hpp"
-#include "response_adapters.hpp"
-#include "response_adapter_base.hpp"
-#include "write.hpp"
+#include <aedis/detail/parser.hpp>
+#include <aedis/detail/response_adapters.hpp>
+#include <aedis/response_adapter_base.hpp>
 
-namespace aedis { namespace detail {
+namespace aedis {
 
-response_adapter_base* select_buffer(response_adapters& buffers, resp3::type t, command cmd);
+response_adapter_base* select_buffer(detail::response_adapters& buffers, resp3::type t, command cmd);
 
 void forward(
    command cmd,
@@ -48,7 +48,7 @@ class parse_op {
 private:
    AsyncReadStream& stream_;
    Storage* buf_ = nullptr;
-   parser parser_;
+   detail::parser parser_;
    int start_ = 1;
 
 public:
@@ -65,7 +65,7 @@ public:
    {
       switch (start_) {
          for (;;) {
-            if (parser_.bulk() == parser::bulk_type::none) {
+            if (parser_.bulk() == detail::parser::bulk_type::none) {
                case 1:
                start_ = 0;
                net::async_read_until(
@@ -120,10 +120,10 @@ auto read(
    response_adapter_base& res,
    boost::system::error_code& ec)
 {
-   parser p {&res};
+   detail::parser p {&res};
    std::size_t n = 0;
    do {
-      if (p.bulk() == parser::bulk_type::none) {
+      if (p.bulk() == detail::parser::bulk_type::none) {
 	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
 	 if (ec || n < 3)
 	    return n;
@@ -258,7 +258,7 @@ async_consume(
    ResponseBuffers& resps,
    std::queue<pipeline>& reqs)
 {
-   auto const type = co_await detail::async_read_type(socket, buffer, net::use_awaitable);
+   auto const type = co_await async_read_type(socket, buffer, net::use_awaitable);
    assert(type != resp3::type::invalid);
 
    auto cmd = command::unknown;
@@ -269,7 +269,7 @@ async_consume(
    }
 
    auto* buf_adapter = select_buffer(resps, type, cmd);
-   co_await detail::async_read(socket, buffer, *buf_adapter, net::use_awaitable);
+   co_await async_read(socket, buffer, *buf_adapter, net::use_awaitable);
 
    if (type != resp3::type::push) {
      reqs.front().cmds.pop();
@@ -298,5 +298,4 @@ async_consume(
    co_return std::make_pair(cmd, type);
 }
 
-} // detail
 } // aedis
