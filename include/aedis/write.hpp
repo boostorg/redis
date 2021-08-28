@@ -65,16 +65,17 @@ async_write_all(
 }
 
 inline
-bool prepare_queue(std::queue<pipeline>& reqs, int max_cmds = 5000)
+bool prepare_queue(std::queue<pipeline>& reqs)
 {
-   auto const empty = std::empty(reqs);
-   if (empty || std::size(reqs) == 1) {
+   if (std::empty(reqs)) {
       reqs.push({});
-      return empty;
+      return true;
    }
 
-   if (std::ssize(reqs.back()) > max_cmds)
+   if (reqs.back().sent) {
       reqs.push({});
+      return false;
+   }
 
    return false;
 }

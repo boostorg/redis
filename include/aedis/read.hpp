@@ -224,16 +224,13 @@ auto async_read_type(
       >(type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
 }
 
-using transaction_queue_type = std::deque<std::pair<command, resp3::type>>;
-
-// TODO: Convert into a composed operation with async_compose.
 template < class AsyncReadWriteStream, class Storage>
 net::awaitable<std::pair<command, resp3::type>>
-async_read(
+async_read_impl(
    AsyncReadWriteStream& socket,
    Storage& buffer,
    response_buffers& bufs,
-   std::queue<pipeline>& reqs)
+   std::queue<pipeline> const& reqs)
 {
    auto const type = co_await async_read_type(socket, buffer, net::use_awaitable);
    assert(type != resp3::type::invalid);
@@ -248,32 +245,88 @@ async_read(
    detail::response_adapters adapters{bufs};
    auto* buf_adapter = select_buffer(adapters, type, cmd);
    co_await async_read_one(socket, buffer, *buf_adapter, net::use_awaitable);
+   co_return std::make_pair(cmd, type);
+}
 
-   if (type != resp3::type::push) {
-     reqs.front().cmds.pop();
+using transaction_queue_type = std::deque<std::pair<command, resp3::type>>;
 
-     // If that were that last command in the pipeline, delete the pipeline too.
-     if (std::empty(reqs.front().cmds)) {
-        reqs.pop();
-        // Now we should write any the next pipeline waiting in the
-        // queue.  Notice that commands like unsubscribe have a push
-        // response type so we do not have to wait for a response before
-        // sending a new pipeline.
-        while (!std::empty(reqs)) {
-           auto buffer = net::buffer(reqs.front().payload);
-           auto const n = co_await async_write(socket, buffer, net::use_awaitable);
-           if (!std::empty(reqs.front().cmds))
-              break;
+// DEPRECATED
+template < class AsyncReadWriteStream, class Storage>
+net::awaitable<std::pair<command, resp3::type>>
+async_read(
+   AsyncReadWriteStream& socket,
+   Storage& buffer,
+   response_buffers& bufs,
+   std::queue<pipeline>& reqs)
+{
+   auto const res = co_await async_read_impl(socket, buffer, bufs, reqs);
 
-           // We only pop when all commands in the pipeline has push
-           // responses like subscribe, otherwise, pop is done when the
-           // response arrives.
-           reqs.pop();
-        }
-     }
+   if (res.second == resp3::type::push)
+      co_return res;
+
+   reqs.front().cmds.pop();
+   // If that were that last command in the pipeline, delete the pipeline too.
+   if (std::empty(reqs.front().cmds)) {
+      reqs.pop();
+      // Now we should write any the next pipeline waiting in the
+      // queue.  Notice that commands like unsubscribe have a push
+      // response type so we do not have to wait for a response before
+      // sending a new pipeline.
+      while (!std::empty(reqs)) {
+	 auto buffer = net::buffer(reqs.front().payload);
+	 auto const n = co_await async_write(socket, buffer, net::use_awaitable);
+	 if (!std::empty(reqs.front().cmds))
+	    break;
+
+	 // We only pop when all commands in the pipeline has push
+	 // responses like subscribe, otherwise, pop is done when the
+	 // response arrives.
+	 reqs.pop();
+      }
    }
 
-   co_return std::make_pair(cmd, type);
+   co_return res;
+}
+
+template <class Receiver>
+net::awaitable<void>
+async_consume(
+   net::ip::tcp::socket& socket,
+   std::queue<pipeline>& reqs,
+   response_buffers& bufs,
+   Receiver receiver)
+{
+   prepare_queue(reqs);
+   reqs.back().hello("3");
+
+   std::string buffer;
+   for (;;) {
+      while (!std::empty(reqs)) {
+	 auto buffer = net::buffer(reqs.front().payload);
+	 auto const n = co_await async_write(socket, buffer, net::use_awaitable);
+	 reqs.front().sent = true;
+	 if (!std::empty(reqs.front().cmds))
+	    break;
+
+	 // We only pop when all commands in the pipeline has push
+	 // responses like subscribe, otherwise, pop is done when the
+	 // response arrives.
+	 reqs.pop();
+      }
+
+      for (;;) {
+	 auto const event = co_await async_read_impl(socket, buffer, bufs, reqs);
+	 receiver(event.first, event.second);
+	 if (event.second != resp3::type::push) {
+	    reqs.front().cmds.pop();
+	    if (std::empty(reqs.front().cmds)) {
+	       reqs.pop();
+	       if (!std::empty(reqs))
+		  break;
+	    }
+	 }
+      }
+   }
 }
 
 } // aedis

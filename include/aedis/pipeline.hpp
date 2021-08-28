@@ -145,6 +145,7 @@ class pipeline {
 public:
    std::string payload;
    std::queue<command> cmds;
+   bool sent = false;
 
 public:
    /// Return the size of the pipeline. i.e. how many commands it

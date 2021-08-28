@@ -18,51 +18,48 @@ void print_helper(command cmd, resp3::type type, response_buffers& bufs)
       case resp3::type::blob_string: std::cout << bufs.blob_string; break;
       case resp3::type::number: std::cout << bufs.number; break;
       default:
-         std::cout << "Unexpected." << "\n";
+         std::cout << "Unexpected.";
    }
 
    std::cout << "\n";
 }
 
-net::awaitable<void>
-reader(net::ip::tcp::socket& socket, std::queue<pipeline>& reqs)
-{
-   std::string buffer;
+struct receiver {
+   std::queue<pipeline>& reqs;
+   response_buffers& bufs;
 
-   prepare_queue(reqs);
-   reqs.back().hello("3");
-
-   co_await async_write(socket, net::buffer(reqs.back().payload), net::use_awaitable);
-
-   response_buffers bufs;
-   for (;;) {
-      auto const event = co_await async_read(socket, buffer, bufs, reqs);
-
-      switch (event.first) {
+   void operator()(command cmd, resp3::type type) const
+   {
+      switch (cmd) {
 	 case command::hello:
 	 {
-	    auto const empty = prepare_queue(reqs);
+	    prepare_queue(reqs);
+	    reqs.back().flushall();
 	    reqs.back().ping();
+	 } break;
+	 case command::flushall: break;
+	 case command::get:
+	 {
+	    prepare_queue(reqs);
+	    reqs.back().quit();
+	 } break;
+	 case command::incr: break;
+	 case command::quit: break;
+	 case command::set: break;
+	 case command::ping:
+	 {
+	    prepare_queue(reqs);
 	    reqs.back().incr("a");
 	    reqs.back().set("b", {"Some string"});
 	    reqs.back().get("b");
-	    reqs.back().quit();
-	    if (empty)
-	       co_await async_write_all(socket, reqs);
 	 } break;
-	 case command::get:
-	 case command::incr:
-	 case command::quit:
-	 case command::set:
-	 case command::ping:
-	    print_helper(event.first, event.second, bufs);
-	    break;
 	 default: {
-	    std::cout << "PUSH notification ("  << event.second << ")" << std::endl;
+	    std::cout << "PUSH notification ("  << type << ")" << std::endl;
 	 }
       }
+      print_helper(cmd, type, bufs);
    }
-}
+};
 
 int main()
 {
@@ -73,7 +70,9 @@ int main()
    auto const res = resolver.resolve("127.0.0.1", "6379");
    net::connect(socket, res);
 
+   response_buffers bufs;
    std::queue<pipeline> reqs;
-   co_spawn(ioc, reader(socket, reqs), net::detached);
+   receiver i{reqs, bufs};
+   co_spawn(ioc, async_consume(socket, reqs, bufs, std::ref(i)), net::detached);
    ioc.run();
 }
