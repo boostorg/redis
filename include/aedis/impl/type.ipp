@@ -33,6 +33,7 @@ std::string to_string(type t)
       EXPAND_TYPE_CASE(blob_string);
       EXPAND_TYPE_CASE(streamed_string_part);
       EXPAND_TYPE_CASE(invalid);
+      EXPAND_TYPE_CASE(transaction);
       default: assert(false);
    }
 }

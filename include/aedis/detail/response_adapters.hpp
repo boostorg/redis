@@ -150,7 +150,7 @@ struct response_simple_string : public response_adapter_base {
    response_simple_string(resp3::simple_string* p) : result(p) {}
 
    void on_simple_string(std::string_view s) override
-      { from_string_view(s, *result); }
+      { *result = s; }
 };
 
 struct response_simple_error : public response_adapter_base {
@@ -159,7 +159,7 @@ struct response_simple_error : public response_adapter_base {
    response_simple_error(resp3::simple_error* p) : result(p) {}
 
    void on_simple_error(std::string_view s) override
-      { from_string_view(s, *result); }
+      { *result = s; }
 };
 
 struct response_big_number : public response_adapter_base {
@@ -231,15 +231,27 @@ struct response_unordered_set : response_adapter_base {
 
 template <class T>
 struct response_basic_array : response_adapter_base {
+   int i = 0;
    resp3::basic_array<T>* result = nullptr;
 
    response_basic_array(resp3::basic_array<T>* p) : result(p) {}
 
    void add(std::string_view s = {})
    {
-      T r;
-      from_string_view(s, r);
-      result->push_back(std::move(r));
+      from_string_view(s, result->at(i));
+      ++i;
+   }
+
+   void select_array(int n) override
+   {
+      i = 0;
+      result->resize(n);
+   }
+
+   void select_push(int n) override
+   {
+      i = 0;
+      result->resize(n);
    }
 
    // TODO: Call vector reserve.
@@ -250,14 +262,13 @@ struct response_basic_array : response_adapter_base {
    void on_big_number(std::string_view s) override { add(s); }
    void on_verbatim_string(std::string_view s = {}) override { add(s); }
    void on_blob_string(std::string_view s = {}) override { add(s); }
-   void select_array(int n) override { }
    void select_set(int n) override { }
    void select_map(int n) override { }
-   void select_push(int n) override { }
    void on_streamed_string_part(std::string_view s = {}) override { add(s); }
 };
 
 using response_array = response_basic_array<std::string>;
+using response_push = response_basic_array<std::string>;
 
 struct response_map : response_adapter_base {
    resp3::map* result = nullptr;
@@ -352,7 +363,7 @@ struct response_basic_static_map : response_adapter_base {
 struct response_adapters {
    response_tree resp_transaction;
    response_array resp_array;
-   response_array resp_push;
+   response_push resp_push;
    response_set resp_set;
    response_map resp_map;
    response_array resp_attribute;

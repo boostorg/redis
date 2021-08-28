@@ -6,7 +6,6 @@
  */
 
 #include <aedis/impl/type.ipp>
-#include <aedis/impl/connection.ipp>
 #include <aedis/impl/command.ipp>
 #include <aedis/impl/read.ipp>
 

@@ -7,21 +7,6 @@
 
 #pragma once
 
-#include <deque>
-#include <string>
-#include <cstdio>
-#include <utility>
-#include <cstdlib>
-#include <cstring>
-#include <numeric>
-#include <iostream>
-#include <stdexcept>
-#include <algorithm>
-#include <functional>
-#include <type_traits>
-#include <string_view>
-#include <charconv>
-
 #include <aedis/net.hpp>
 #include <aedis/type.hpp>
 #include <aedis/pipeline.hpp>
@@ -34,11 +19,6 @@
 namespace aedis {
 
 response_adapter_base* select_buffer(detail::response_adapters& buffers, resp3::type t, command cmd);
-
-void forward(
-   command cmd,
-   resp3::type type,
-   receiver_base& recv);
 
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
@@ -169,7 +149,7 @@ template <
    class CompletionToken =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
-auto async_read(
+auto async_read_one(
    AsyncReadStream& stream,
    Storage& buffer,
    response_adapter_base& res,
@@ -247,15 +227,12 @@ auto async_read_type(
 using transaction_queue_type = std::deque<std::pair<command, resp3::type>>;
 
 // TODO: Convert into a composed operation with async_compose.
-template <
-   class AsyncReadWriteStream,
-   class Storage,
-   class ResponseBuffers>
+template < class AsyncReadWriteStream, class Storage>
 net::awaitable<std::pair<command, resp3::type>>
-async_consume(
+async_read(
    AsyncReadWriteStream& socket,
    Storage& buffer,
-   ResponseBuffers& resps,
+   response_buffers& bufs,
    std::queue<pipeline>& reqs)
 {
    auto const type = co_await async_read_type(socket, buffer, net::use_awaitable);
@@ -268,8 +245,9 @@ async_consume(
       cmd = reqs.front().cmds.front();
    }
 
-   auto* buf_adapter = select_buffer(resps, type, cmd);
-   co_await async_read(socket, buffer, *buf_adapter, net::use_awaitable);
+   detail::response_adapters adapters{bufs};
+   auto* buf_adapter = select_buffer(adapters, type, cmd);
+   co_await async_read_one(socket, buffer, *buf_adapter, net::use_awaitable);
 
    if (type != resp3::type::push) {
      reqs.front().cmds.pop();

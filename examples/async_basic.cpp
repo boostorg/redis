@@ -27,7 +27,6 @@ void print_helper(command cmd, resp3::type type, response_buffers& bufs)
 net::awaitable<void>
 reader(net::ip::tcp::socket& socket, std::queue<pipeline>& reqs)
 {
-   response_buffers bufs;
    std::string buffer;
 
    prepare_queue(reqs);
@@ -35,9 +34,9 @@ reader(net::ip::tcp::socket& socket, std::queue<pipeline>& reqs)
 
    co_await async_write(socket, net::buffer(reqs.back().payload), net::use_awaitable);
 
-   detail::response_adapters adapters{bufs};
+   response_buffers bufs;
    for (;;) {
-      auto const event = co_await async_consume(socket, buffer, adapters, reqs);
+      auto const event = co_await async_read(socket, buffer, bufs, reqs);
 
       switch (event.first) {
 	 case command::hello:

@@ -32,7 +32,7 @@ enum class type
 , verbatim_string
 , blob_string
 , streamed_string_part
-, transaction // Not from resp3.
+, transaction // Not from resp3. TODO: Perhaps rename to array and array to flat_array?
 , invalid
 };
 

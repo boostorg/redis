@@ -7,62 +7,7 @@
 
 #include <aedis/read.hpp>
 
-#define EXPAND_RECEIVER_CASE(type, cmd) case command::cmd: recv.on_##cmd(type); break
-
 namespace aedis {
-
-void
-forward(
-   command cmd,
-   resp3::type type,
-   receiver_base& recv)
-{
-   switch (cmd) {
-      EXPAND_RECEIVER_CASE(type, acl_cat);
-      EXPAND_RECEIVER_CASE(type, acl_deluser);
-      EXPAND_RECEIVER_CASE(type, acl_genpass);
-      EXPAND_RECEIVER_CASE(type, acl_getuser);
-      EXPAND_RECEIVER_CASE(type, acl_help);
-      EXPAND_RECEIVER_CASE(type, acl_list);
-      EXPAND_RECEIVER_CASE(type, acl_load);
-      EXPAND_RECEIVER_CASE(type, acl_log);
-      EXPAND_RECEIVER_CASE(type, acl_save);
-      EXPAND_RECEIVER_CASE(type, acl_setuser);
-      EXPAND_RECEIVER_CASE(type, acl_users);
-      EXPAND_RECEIVER_CASE(type, acl_whoami);
-      EXPAND_RECEIVER_CASE(type, append);
-      EXPAND_RECEIVER_CASE(type, del);
-      EXPAND_RECEIVER_CASE(type, exec);
-      EXPAND_RECEIVER_CASE(type, expire);
-      EXPAND_RECEIVER_CASE(type, flushall);
-      EXPAND_RECEIVER_CASE(type, get);
-      EXPAND_RECEIVER_CASE(type, hdel);
-      EXPAND_RECEIVER_CASE(type, hello);
-      EXPAND_RECEIVER_CASE(type, hget);
-      EXPAND_RECEIVER_CASE(type, hgetall);
-      EXPAND_RECEIVER_CASE(type, hincrby);
-      EXPAND_RECEIVER_CASE(type, hset);
-      EXPAND_RECEIVER_CASE(type, hvals);
-      EXPAND_RECEIVER_CASE(type, incr);
-      EXPAND_RECEIVER_CASE(type, llen);
-      EXPAND_RECEIVER_CASE(type, lpop);
-      EXPAND_RECEIVER_CASE(type, lrange);
-      EXPAND_RECEIVER_CASE(type, ltrim);
-      EXPAND_RECEIVER_CASE(type, multi);
-      EXPAND_RECEIVER_CASE(type, ping);
-      EXPAND_RECEIVER_CASE(type, publish);
-      EXPAND_RECEIVER_CASE(type, quit);
-      EXPAND_RECEIVER_CASE(type, rpush);
-      EXPAND_RECEIVER_CASE(type, sadd);
-      EXPAND_RECEIVER_CASE(type, set);
-      EXPAND_RECEIVER_CASE(type, smembers);
-      EXPAND_RECEIVER_CASE(type, zadd);
-      EXPAND_RECEIVER_CASE(type, zrange);
-      EXPAND_RECEIVER_CASE(type, zrangebyscore);
-      EXPAND_RECEIVER_CASE(type, zremrangebyscore);
-      default: {assert(false);}
-   }
-}
 
 response_adapter_base* select_buffer(detail::response_adapters& adapters, resp3::type type, command cmd)
 {
