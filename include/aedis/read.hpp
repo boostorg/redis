@@ -288,6 +288,26 @@ async_read(
    co_return res;
 }
 
+inline
+net::awaitable<void>
+async_write_some(
+   net::ip::tcp::socket& socket,
+   std::queue<pipeline>& reqs)
+{
+   while (!std::empty(reqs)) {
+      auto buffer = net::buffer(reqs.front().payload);
+      auto const n = co_await async_write(socket, buffer, net::use_awaitable);
+      reqs.front().sent = true;
+      if (!std::empty(reqs.front().cmds))
+	 break;
+
+      // We only pop when all commands in the pipeline has push
+      // responses like subscribe, otherwise, pop is done when the
+      // response arrives.
+      reqs.pop();
+   }
+}
+
 template <class Receiver>
 net::awaitable<void>
 async_consume(
@@ -298,34 +318,20 @@ async_consume(
 {
    prepare_queue(reqs);
    reqs.back().hello("3");
-
    std::string buffer;
-   for (;;) {
-      while (!std::empty(reqs)) {
-	 auto buffer = net::buffer(reqs.front().payload);
-	 auto const n = co_await async_write(socket, buffer, net::use_awaitable);
-	 reqs.front().sent = true;
-	 if (!std::empty(reqs.front().cmds))
-	    break;
+   while (!std::empty(reqs)) {
+      co_await async_write_some(socket, reqs);
 
-	 // We only pop when all commands in the pipeline has push
-	 // responses like subscribe, otherwise, pop is done when the
-	 // response arrives.
-	 reqs.pop();
-      }
-
-      for (;;) {
-	 auto const event = co_await async_read_impl(socket, buffer, bufs, reqs);
-	 receiver(event.first, event.second);
-	 if (event.second != resp3::type::push) {
-	    reqs.front().cmds.pop();
-	    if (std::empty(reqs.front().cmds)) {
-	       reqs.pop();
-	       if (!std::empty(reqs))
-		  break;
-	    }
-	 }
-      }
+      do { // Reads while there is no oustanding pipeline.
+	 do { // Consumes the pipeline skipping pushes.
+	    auto const event = co_await async_read_impl(socket, buffer, bufs, reqs);
+	    receiver(event.first, event.second);
+	    if (event.second == resp3::type::push)
+               continue;
+            reqs.front().cmds.pop();
+	 } while (!std::empty(reqs.front().cmds));
+         reqs.pop(); // Pipeline received, pop.
+      } while (std::empty(reqs));
    }
 }
 
