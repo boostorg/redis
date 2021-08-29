@@ -149,7 +149,7 @@ template <
    class CompletionToken =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
-auto async_read_one(
+auto async_read_one_impl(
    AsyncReadStream& stream,
    Storage& buffer,
    response_adapter_base& res,
@@ -224,12 +224,15 @@ auto async_read_type(
       >(type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
 }
 
+/** Asynchronously reads the response from one command. The result is
+ *  stored in the parameter buffers.
+ */
 template < class AsyncReadWriteStream, class Storage>
 net::awaitable<std::pair<command, resp3::type>>
-async_read_impl(
+async_read_one(
    AsyncReadWriteStream& socket,
    Storage& buffer,
-   response_buffers& bufs,
+   response_buffers& buffers,
    std::queue<pipeline> const& reqs)
 {
    auto const type = co_await async_read_type(socket, buffer, net::use_awaitable);
@@ -238,13 +241,13 @@ async_read_impl(
    auto cmd = command::unknown;
    if (type != resp3::type::push) {
       assert(!std::empty(reqs));
-      assert(!std::empty(reqs.front().cmds));
-      cmd = reqs.front().cmds.front();
+      assert(!std::empty(reqs.front().commands));
+      cmd = reqs.front().commands.front();
    }
 
-   detail::response_adapters adapters{bufs};
+   detail::response_adapters adapters{buffers};
    auto* buf_adapter = select_buffer(adapters, type, cmd);
-   co_await async_read_one(socket, buffer, *buf_adapter, net::use_awaitable);
+   co_await async_read_one_impl(socket, buffer, *buf_adapter, net::use_awaitable);
    co_return std::make_pair(cmd, type);
 }
 
@@ -253,20 +256,20 @@ using transaction_queue_type = std::deque<std::pair<command, resp3::type>>;
 // DEPRECATED
 template < class AsyncReadWriteStream, class Storage>
 net::awaitable<std::pair<command, resp3::type>>
-async_read(
+async_consume(
    AsyncReadWriteStream& socket,
    Storage& buffer,
    response_buffers& bufs,
    std::queue<pipeline>& reqs)
 {
-   auto const res = co_await async_read_impl(socket, buffer, bufs, reqs);
+   auto const res = co_await async_read_one(socket, buffer, bufs, reqs);
 
    if (res.second == resp3::type::push)
       co_return res;
 
-   reqs.front().cmds.pop();
+   reqs.front().commands.pop();
    // If that were that last command in the pipeline, delete the pipeline too.
-   if (std::empty(reqs.front().cmds)) {
+   if (std::empty(reqs.front().commands)) {
       reqs.pop();
       // Now we should write any the next pipeline waiting in the
       // queue.  Notice that commands like unsubscribe have a push
@@ -275,7 +278,7 @@ async_read(
       while (!std::empty(reqs)) {
 	 auto buffer = net::buffer(reqs.front().payload);
 	 auto const n = co_await async_write(socket, buffer, net::use_awaitable);
-	 if (!std::empty(reqs.front().cmds))
+	 if (!std::empty(reqs.front().commands))
 	    break;
 
 	 // We only pop when all commands in the pipeline has push
@@ -288,50 +291,38 @@ async_read(
    co_return res;
 }
 
-inline
+template<class Receiver>
 net::awaitable<void>
-async_write_some(
+async_read(
    net::ip::tcp::socket& socket,
-   std::queue<pipeline>& reqs)
-{
-   while (!std::empty(reqs)) {
-      auto buffer = net::buffer(reqs.front().payload);
-      auto const n = co_await async_write(socket, buffer, net::use_awaitable);
-      reqs.front().sent = true;
-      if (!std::empty(reqs.front().cmds))
-	 break;
-
-      // We only pop when all commands in the pipeline has push
-      // responses like subscribe, otherwise, pop is done when the
-      // response arrives.
-      reqs.pop();
-   }
-}
-
-template <class Receiver>
-net::awaitable<void>
-async_consume(
-   net::ip::tcp::socket& socket,
-   std::queue<pipeline>& reqs,
-   response_buffers& bufs,
+   std::string& buffer,
+   response_buffers& buffers,
+   std::queue<pipeline>& pipelines,
    Receiver receiver)
 {
-   prepare_queue(reqs);
-   reqs.back().hello("3");
-   std::string buffer;
-   while (!std::empty(reqs)) {
-      co_await async_write_some(socket, reqs);
+   for (;;) {
+      do {
+	 co_await async_write(socket, net::buffer(pipelines.front().payload), net::use_awaitable);
+	 pipelines.front().sent = true;
+	 if (std::empty(pipelines.front().commands)) {
+	    // We only pop when all commands in the pipeline has push
+	    // responses like subscribe, otherwise, pop is done when the
+	    // response arrives.
+	    pipelines.pop();
+	 }
+      } while (!std::empty(pipelines) && std::empty(pipelines.front().commands));
 
-      do { // Reads while there is no oustanding pipeline.
-	 do { // Consumes the pipeline skipping pushes.
-	    auto const event = co_await async_read_impl(socket, buffer, bufs, reqs);
+      do {
+	 do {
+	    auto const event = co_await async_read_one(socket, buffer, buffers, pipelines);
+	    if (event.second != resp3::type::push)
+	       pipelines.front().commands.pop();
+
 	    receiver(event.first, event.second);
-	    if (event.second == resp3::type::push)
-               continue;
-            reqs.front().cmds.pop();
-	 } while (!std::empty(reqs.front().cmds));
-         reqs.pop(); // Pipeline received, pop.
-      } while (std::empty(reqs));
+
+	 } while (!std::empty(pipelines.front().commands));
+         pipelines.pop();
+      } while (std::empty(pipelines));
    }
 }
 

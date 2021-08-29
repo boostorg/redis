@@ -1,54 +1,60 @@
 # Aedis
 
 Aedis is a redis client designed for scalability and performance while
-providing an easy and intuitive interface. Some of the supported
-features are
+providing an easy and intuitive interface.
 
-* RESP3 and STL containers.
-* Pipelines (essential for performance).
+## Example
 
-## Tutorial
-
-All you have to do is to define a receiver class as shown in the example
-below
+The general form of the read and write operations of a redis client
+that support push notifications and pipelines looks like the following
 
 ```cpp
-   void f(request& req)
-   {
-      req.ping();
-      req.quit();
+net::awaitable<void> reader(net::ip::tcp::resolver::results_type const& res)
+{
+   auto ex = co_await net::this_coro::executor;
+
+   net::ip::tcp::socket socket{ex};
+   co_await net::async_connect(socket, res, net::use_awaitable);
+
+   std::string read_buffer;
+   response_buffers buffers;
+   std::queue<pipeline> pipelines;
+
+   pipelines.push({});
+   pipelines.back().hello("3");
+
+   for (;;) {
+      co_await async_write_some(socket, pipelines);
+
+      do {
+	 do {
+	    auto const event = co_await async_read_one(socket, read_buffer, buffers, pipelines);
+	    if (event.second != resp3::type::push)
+	       pipelines.front().commands.pop();
+
+	    // Your code comes here.
+
+	 } while (!std::empty(pipelines.front().commands));
+         pipelines.pop();
+      } while (std::empty(pipelines));
    }
-
-   class receiver : public receiver_base {
-   private:
-      std::shared_ptr<connection> conn_;
-
-   public:
-      receiver(std::shared_ptr<connection> conn) : conn_{conn} { }
-
-      void on_hello(array_type& v) noexcept override
-	 { conn_->send(f); }
-
-      void on_ping(simple_string_type& s) noexcept override
-	 { std::cout << "PING: " << s << std::endl; }
-
-      void on_quit(simple_string_type& s) noexcept override
-	 { std::cout << "QUIT: " << s << std::endl; }
-   };
+}
 ```
 
-In general for each redis command you have to override a member
-function in the receiver. The main function looks like this
+The example above will start writing the `hello` command and proceed
+reading its response. After that users can add further commands to the
+queue. See the example directory for a complete example. The main
+function looks like this
 
 ```cpp
-   int main()
-   {
-      net::io_context ioc {1};
-      auto conn = std::make_shared<connection>(ioc);
-      receiver recv{conn};
-      conn->start(recv);
-      ioc.run();
-   }
+int main()
+{
+   net::io_context ioc;
+   net::ip::tcp::resolver resolver{ioc};
+   auto const res = resolver.resolve("127.0.0.1", "6379");
+   co_spawn(ioc, reader(res), net::detached);
+   ioc.run();
+}
 ```
 
 See the `examples` directory for more examples.

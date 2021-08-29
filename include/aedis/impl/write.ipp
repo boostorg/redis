@@ -5,10 +5,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/impl/type.ipp>
-#include <aedis/impl/command.ipp>
-#include <aedis/impl/read.ipp>
-#include <aedis/impl/write.ipp>
-#include <aedis/impl/pipeline.ipp>
+#include <aedis/write.hpp>
 
-#include <aedis/detail/impl/parser.ipp>
+namespace aedis {
+
+bool prepare_queue(std::queue<pipeline>& reqs)
+{
+   if (std::empty(reqs)) {
+      reqs.push({});
+      return true;
+   }
+
+   if (reqs.back().sent) {
+      reqs.push({});
+      return false;
+   }
+
+   return false;
+}
+
+} // aedis
+

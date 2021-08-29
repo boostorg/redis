@@ -118,7 +118,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    int push_counter = 0;
    response_buffers bufs;
    for (;;) {
-      auto const event = co_await async_read(socket, buffer, bufs, reqs);
+      auto const event = co_await async_consume(socket, buffer, bufs, reqs);
 
       switch (event.second) {
 	 case resp3::type::simple_string:
@@ -219,7 +219,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
                   auto const empty = prepare_queue(reqs);
                   filler(reqs.back());
                   if (empty)
-                     co_await async_write_all(socket, reqs);
+                     co_await async_write_some(socket, reqs);
                } break;
                default: {
                   std::cout << "Error: " << event.first << " " << event.second << std::endl;
@@ -271,55 +271,55 @@ test_list(net::ip::tcp::resolver::results_type const& results)
 
    {  // hello
       detail::response_ignore res;
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
    }
 
    {  // flushall
       resp3::simple_string buffer;
       detail::response_simple_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "flushall");
    }
 
    {  // rpush
       resp3::number buffer;
       detail::response_number res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, (long long int)6, "rpush");
    }
 
    {  // lrange
       resp3::array_int buffer;
       detail::response_basic_array<int> res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, list, "lrange-1");
    }
 
    {  // lrange
       resp3::array_int buffer;
       detail::response_basic_array<int> res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, std::vector<int>{3, 4, 5}, "lrange-2");
    }
 
    {  // ltrim
       resp3::simple_string buffer;
       detail::response_simple_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "ltrim");
    }
 
    {  // lpop. Why a blob string instead of a number?
       resp3::blob_string buffer;
       detail::response_blob_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"3"}, "lpop");
    }
 
    {  // quit
       resp3::simple_string buffer;
       detail::response_simple_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "quit");
    }
 }
@@ -356,56 +356,56 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    std::string buf;
    {  // hello, flushall
       response_ignore res;
-      co_await async_read_one(socket, buf, res);
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
    }
 
    {  // set
       resp3::simple_string buffer;
       response_simple_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "set1");
    }
 
    {  // get
       resp3::blob_string buffer;
       response_blob_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, test_bulk1, "get1");
    }
 
    {  // set
       resp3::simple_string buffer;
       response_simple_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "set1");
    }
 
    {  // get
       resp3::blob_string buffer;
       response_blob_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, test_bulk2, "get2");
    }
 
    {  // set
       resp3::simple_string buffer;
       response_simple_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "set3");
    }
 
    {  // get
       resp3::blob_string buffer;
       response_blob_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer,  std::string {}, "get3");
    }
 
    {  // quit
       resp3::simple_string buffer;
       response_simple_string res{&buffer};
-      co_await async_read_one(socket, buf, res);
+      co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "quit");
    }
 }
@@ -427,7 +427,7 @@ net::awaitable<void> test_simple_string()
       test_tcp_socket ts {cmd};
       resp3::simple_string buffer;
       response_simple_string res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"OK"}, "simple_string");
       //check_equal(res.attribute.value, {}, "simple_string (empty attribute)");
    }
@@ -438,7 +438,7 @@ net::awaitable<void> test_simple_string()
       test_tcp_socket ts {cmd};
       resp3::simple_string buffer;
       response_simple_string res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {}, "simple_string (empty)");
       //check_equal(res.attribute.value, {}, "simple_string (empty attribute)");
    }
@@ -452,7 +452,7 @@ net::awaitable<void> test_simple_string()
    //   cmd += "\r\n";
    //   test_tcp_socket ts {cmd};
    //   response_simple_string res;
-   //   co_await async_read_one(ts, buffer, res);
+   //   co_await async_read_one_impl(ts, buffer, res);
    //   check_equal(res.result, str, "simple_string (large)");
    //   //check_equal(res.attribute.value, {}, "simple_string (empty attribute)");
    //}
@@ -467,7 +467,7 @@ net::awaitable<void> test_number()
       test_tcp_socket ts {cmd};
       resp3::number buffer;
       response_number res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, (long long int)-3, "number (int)");
    }
 
@@ -476,7 +476,7 @@ net::awaitable<void> test_number()
       test_tcp_socket ts {cmd};
       resp3::number buffer;
       response_number res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, (long long int)3, "number (unsigned)");
    }
 
@@ -485,7 +485,7 @@ net::awaitable<void> test_number()
       test_tcp_socket ts {cmd};
       resp3::number buffer;
       response_number res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, (long long int)1111111, "number (std::size_t)");
    }
 }
@@ -499,7 +499,7 @@ net::awaitable<void> test_array()
       test_tcp_socket ts {cmd};
       resp3::array buffer;
       response_array res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"one", "two", "three"}, "array (dynamic)");
    }
 
@@ -507,7 +507,7 @@ net::awaitable<void> test_array()
       std::string cmd {"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"};
       test_tcp_socket ts {cmd};
       response_static_array<std::string, 3> res;
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(res.result, {"one", "two", "three"}, "array (static)");
    }
 
@@ -515,7 +515,7 @@ net::awaitable<void> test_array()
       std::string cmd {"*3\r\n$1\r\n1\r\n$1\r\n2\r\n$1\r\n3\r\n"};
       test_tcp_socket ts {cmd};
       response_static_array<int, 3> res;
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(res.result, {1, 2, 3}, "array (int)");
    }
 
@@ -524,7 +524,7 @@ net::awaitable<void> test_array()
       test_tcp_socket ts {cmd};
       resp3::array buffer;
       response_array res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {}, "array (empty)");
    }
 }
@@ -538,7 +538,7 @@ net::awaitable<void> test_blob_string()
       test_tcp_socket ts {cmd};
       resp3::blob_string buffer;
       response_blob_string res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"hh"}, "blob_string");
    }
 
@@ -547,7 +547,7 @@ net::awaitable<void> test_blob_string()
       test_tcp_socket ts {cmd};
       resp3::blob_string buffer;
       response_blob_string res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}, "blob_string (with separator)");
    }
 
@@ -556,7 +556,7 @@ net::awaitable<void> test_blob_string()
       test_tcp_socket ts {cmd};
       resp3::blob_string buffer;
       response_blob_string res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {}, "blob_string (size 0)");
    }
 }
@@ -570,7 +570,7 @@ net::awaitable<void> test_simple_error()
       test_tcp_socket ts {cmd};
       resp3::simple_error buffer;
       response_simple_error res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"Error"}, "simple_error (message)");
    }
 }
@@ -584,7 +584,7 @@ net::awaitable<void> test_floating_point()
       test_tcp_socket ts {cmd};
       resp3::doublean buffer;
       response_double res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"1.23"}, "double");
    }
 
@@ -593,7 +593,7 @@ net::awaitable<void> test_floating_point()
       test_tcp_socket ts {cmd};
       resp3::doublean buffer;
       response_double res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"inf"}, "double (inf)");
    }
 
@@ -602,7 +602,7 @@ net::awaitable<void> test_floating_point()
       test_tcp_socket ts {cmd};
       resp3::doublean buffer;
       response_double res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"-inf"}, "double (-inf)");
    }
 
@@ -617,7 +617,7 @@ net::awaitable<void> test_boolean()
       test_tcp_socket ts {cmd};
       resp3::boolean buffer;
       response_bool res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, false, "bool (false)");
    }
 
@@ -626,7 +626,7 @@ net::awaitable<void> test_boolean()
       test_tcp_socket ts {cmd};
       resp3::boolean buffer;
       response_bool res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, true, "bool (true)");
    }
 }
@@ -640,7 +640,7 @@ net::awaitable<void> test_blob_error()
       test_tcp_socket ts {cmd};
       resp3::blob_error buffer;
       response_blob_error res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"SYNTAX invalid syntax"}, "blob_error (message)");
    }
 
@@ -649,7 +649,7 @@ net::awaitable<void> test_blob_error()
       test_tcp_socket ts {cmd};
       resp3::blob_error buffer;
       response_blob_error res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {}, "blob_error (empty message)");
    }
 }
@@ -663,7 +663,7 @@ net::awaitable<void> test_verbatim_string()
       test_tcp_socket ts {cmd};
       resp3::verbatim_string buffer;
       response_verbatim_string res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"txt:Some string"}, "verbatim_string");
    }
 
@@ -672,7 +672,7 @@ net::awaitable<void> test_verbatim_string()
       test_tcp_socket ts {cmd};
       resp3::verbatim_string buffer;
       response_verbatim_string res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {}, "verbatim_string (empty)");
    }
 }
@@ -686,7 +686,7 @@ net::awaitable<void> test_set2()
       test_tcp_socket ts {cmd};
       resp3::set buffer;
       response_set res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"orange", "apple", "one", "two", "three"}, "set");
    }
 
@@ -695,7 +695,7 @@ net::awaitable<void> test_set2()
       test_tcp_socket ts {cmd};
       resp3::set buffer;
       response_set res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"orange", "apple", "one", "two", "three"}, "set (flat)");
    }
 
@@ -704,7 +704,7 @@ net::awaitable<void> test_set2()
       test_tcp_socket ts {cmd};
       resp3::set buffer;
       response_set res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {}, "set (empty)");
    }
 }
@@ -718,7 +718,7 @@ net::awaitable<void> test_map()
       test_tcp_socket ts {cmd};
       resp3::map buffer;
       response_map res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"server", "redis", "version", "6.0.9", "proto", "3", "id", "203", "mode", "standalone", "role", "master", "modules"}, "map (flat)");
    }
 
@@ -727,7 +727,7 @@ net::awaitable<void> test_map()
       test_tcp_socket ts {cmd};
       resp3::map buffer;
       response_map res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {}, "map (flat - empty)");
    }
 }
@@ -741,7 +741,7 @@ net::awaitable<void> test_streamed_string()
       test_tcp_socket ts {cmd};
       resp3::streamed_string_part buffer;
       response_streamed_string_part res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {"Hello word"}, "streamed string");
    }
 
@@ -750,7 +750,7 @@ net::awaitable<void> test_streamed_string()
       test_tcp_socket ts {cmd};
       resp3::array buffer;
       response_array res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await async_read_one_impl(ts, buf, res);
       check_equal(buffer, {}, "streamed string (empty)");
    }
 }
@@ -762,7 +762,7 @@ net::awaitable<void> offline()
    //   std::string cmd {"|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"};
    //   test_tcp_socket ts {cmd};
    //   response_array res;
-   //   co_await async_read_one(ts, buf, res);
+   //   co_await async_read_one_impl(ts, buf, res);
    //   check_equal(res.result, {"key-popularity", "a", "0.1923", "b", "0.0012"}, "attribute");
    //}
 
@@ -770,7 +770,7 @@ net::awaitable<void> offline()
    //   std::string cmd {">4\r\n+pubsub\r\n+message\r\n+foo\r\n+bar\r\n"};
    //   test_tcp_socket ts {cmd};
    //   response_array res;
-   //   co_await async_read_one(ts, buf, res);
+   //   co_await async_read_one_impl(ts, buf, res);
    //   check_equal(res.result, {"pubsub", "message", "foo", "bar"}, "push type");
    //}
 
@@ -778,7 +778,7 @@ net::awaitable<void> offline()
    //   std::string cmd {">0\r\n"};
    //   test_tcp_socket ts {cmd};
    //   response_array res;
-   //   co_await async_read_one(ts, buf, res);
+   //   co_await async_read_one_impl(ts, buf, res);
    //   check_equal(res.result, {}, "push type (empty)");
    //}
 }

@@ -16,6 +16,8 @@
 
 namespace aedis {
 
+bool prepare_queue(std::queue<pipeline>& reqs);
+
 template<class SyncWriteStream>
 std::size_t
 write(
@@ -46,38 +48,24 @@ std::size_t write(
     return bytes_transferred;
 }
 
-// TODO: Implement as a composed operation.
-template <class AsyncReadWriteStream>
+/** Asynchronously writes one or more command pipelines on the stream.
+ */
+template<class AsyncWriteStream>
 net::awaitable<void>
-async_write_all(
-   AsyncReadWriteStream& socket,
-   std::queue<pipeline>& reqs)
+async_write_some(
+   AsyncWriteStream& stream,
+   std::queue<pipeline>& pipelines)
 {
-   // Commands like unsubscribe have a push response so we do not
-   // have to wait for a response before sending a new pipeline.
-   while (!std::empty(reqs)) {
-      auto buffer = net::buffer(reqs.front().payload);
-      co_await async_write(socket, buffer, net::use_awaitable);
-      if (!std::empty(reqs.front().cmds))
-	 break;
-      reqs.pop();
-   }
-}
-
-inline
-bool prepare_queue(std::queue<pipeline>& reqs)
-{
-   if (std::empty(reqs)) {
-      reqs.push({});
-      return true;
-   }
-
-   if (reqs.back().sent) {
-      reqs.push({});
-      return false;
-   }
-
-   return false;
+   do {
+      co_await async_write(stream, net::buffer(pipelines.front().payload), net::use_awaitable);
+      pipelines.front().sent = true;
+      if (std::empty(pipelines.front().commands)) {
+	 // We only pop when all commands in the pipeline has push
+	 // responses like subscribe, otherwise, pop is done when the
+	 // response arrives.
+	 pipelines.pop();
+      }
+   } while (!std::empty(pipelines) && std::empty(pipelines.front().commands));
 }
 
 } // aedis
