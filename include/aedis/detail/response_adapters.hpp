@@ -18,7 +18,6 @@
 #include <iomanip>
 
 #include <aedis/type.hpp>
-#include <aedis/receiver_base.hpp>
 #include <aedis/command.hpp>
 #include <aedis/response_buffers.hpp>
 #include <aedis/response_adapter_base.hpp>
@@ -210,25 +209,6 @@ struct response_bool : public response_adapter_base {
    }
 };
 
-template<
-   class Key,
-   class Compare = std::less<Key>,
-   class Allocator = std::allocator<Key>
-   >
-struct response_unordered_set : response_adapter_base {
-   void on_blob_string(std::string_view s) override
-   {
-      Key r;
-      from_string_view(s, r);
-      result.insert(std::end(result), std::move(r));
-   }
-
-   void select_array(int n) override { }
-   void select_set(int n) override { }
-
-   std::set<Key, Compare, Allocator> result;
-};
-
 template <class T>
 struct response_basic_array : response_adapter_base {
    int i = 0;
@@ -268,6 +248,7 @@ struct response_basic_array : response_adapter_base {
 };
 
 using response_array = response_basic_array<std::string>;
+using response_array_int = response_basic_array<int>;
 using response_push = response_basic_array<std::string>;
 
 struct response_map : response_adapter_base {
@@ -318,46 +299,6 @@ struct response_set : response_adapter_base {
    void on_big_number(std::string_view s) override { add(s); }
    void on_verbatim_string(std::string_view s = {}) override { add(s); }
    void on_blob_string(std::string_view s = {}) override { add(s); }
-};
-
-template <class T, std::size_t N>
-struct response_static_array : response_adapter_base {
-   int i_ = 0;
-   void on_blob_string(std::string_view s) override
-      { from_string_view(s, result[i_++]); }
-   void select_array(int n) override { }
-   std::array<T, N> result;
-};
-
-template <std::size_t N>
-struct response_static_string : response_adapter_base {
-   void add(std::string_view s)
-     { result.assign(std::cbegin(s), std::cend(s));};
-   void on_blob_string(std::string_view s) override
-     { add(s); }
-   void on_simple_string(std::string_view s) override
-     { add(s); }
-
-   boost::static_string<N> result;
-};
-
-template <
-   class T,
-   std::size_t N
-   >
-struct response_basic_static_map : response_adapter_base {
-   int i_ = 0;
-
-   void add(std::string_view s = {})
-      { from_string_view(s, result.at(i_++)); }
-   void on_blob_string(std::string_view s) override
-      { add(s); }
-   void on_number(std::string_view s) override
-      { add(s); }
-
-   void select_push(int n) override { }
-
-   std::array<T, 2 * N> result;
 };
 
 struct response_adapters {

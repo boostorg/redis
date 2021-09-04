@@ -22,7 +22,6 @@ libaedis_a_SOURCES += $(top_srcdir)/include/aedis/aedis.hpp
 libaedis_a_SOURCES += $(top_srcdir)/include/aedis/buffers.hpp
 libaedis_a_SOURCES += $(top_srcdir)/include/aedis/net.hpp
 libaedis_a_SOURCES += $(top_srcdir)/include/aedis/connection.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/receiver_base.hpp
 libaedis_a_SOURCES += $(top_srcdir)/include/aedis/pipeline.hpp
 libaedis_a_SOURCES += $(top_srcdir)/include/aedis/type.hpp
 libaedis_a_SOURCES += $(top_srcdir)/include/aedis/command.hpp

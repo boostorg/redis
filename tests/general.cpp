@@ -494,7 +494,7 @@ net::awaitable<void> test_array()
 {
    using namespace aedis::detail;
    std::string buf;
-   {  // Dynamic
+   {  // String
       std::string cmd {"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"};
       test_tcp_socket ts {cmd};
       resp3::array buffer;
@@ -503,20 +503,13 @@ net::awaitable<void> test_array()
       check_equal(buffer, {"one", "two", "three"}, "array (dynamic)");
    }
 
-   {  // Static
-      std::string cmd {"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"};
-      test_tcp_socket ts {cmd};
-      response_static_array<std::string, 3> res;
-      co_await async_read_one_impl(ts, buf, res);
-      check_equal(res.result, {"one", "two", "three"}, "array (static)");
-   }
-
-   {  // Static int
+   {  // int
       std::string cmd {"*3\r\n$1\r\n1\r\n$1\r\n2\r\n$1\r\n3\r\n"};
       test_tcp_socket ts {cmd};
-      response_static_array<int, 3> res;
+      resp3::array_int buffer;
+      response_array_int res{&buffer};
       co_await async_read_one_impl(ts, buf, res);
-      check_equal(res.result, {1, 2, 3}, "array (int)");
+      check_equal(buffer, {1, 2, 3}, "array (int)");
    }
 
    {

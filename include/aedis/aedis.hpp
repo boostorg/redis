@@ -9,7 +9,6 @@
 
 #include <aedis/pipeline.hpp>
 #include <aedis/version.hpp>
-#include <aedis/receiver_base.hpp>
 #include <aedis/utils.hpp>
 #include <aedis/read.hpp>
 #include <aedis/write.hpp>

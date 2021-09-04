@@ -24,7 +24,7 @@ net::awaitable<void> reader(net::ip::tcp::resolver::results_type const& res)
    pipelines.back().hello("3");
 
    for (;;) {
-      co_await async_write_some(socket, pipelines);
+      co_await async_write_some(socket, pipelines, net::use_awaitable);
 
       do {
 	 do {

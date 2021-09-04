@@ -301,25 +301,15 @@ async_read(
    Receiver receiver)
 {
    for (;;) {
-      do {
-	 co_await async_write(socket, net::buffer(pipelines.front().payload), net::use_awaitable);
-	 pipelines.front().sent = true;
-	 if (std::empty(pipelines.front().commands)) {
-	    // We only pop when all commands in the pipeline has push
-	    // responses like subscribe, otherwise, pop is done when the
-	    // response arrives.
-	    pipelines.pop();
-	 }
-      } while (!std::empty(pipelines) && std::empty(pipelines.front().commands));
+      co_await async_write_some(socket, pipelines, net::use_awaitable);
 
       do {
 	 do {
 	    auto const event = co_await async_read_one(socket, buffer, buffers, pipelines);
-	    if (event.second != resp3::type::push)
-	       pipelines.front().commands.pop();
-
 	    receiver(event.first, event.second);
 
+	    if (event.second != resp3::type::push)
+	       pipelines.front().commands.pop();
 	 } while (!std::empty(pipelines.front().commands));
          pipelines.pop();
       } while (std::empty(pipelines));
