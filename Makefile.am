@@ -8,7 +8,13 @@ Makefile.dep:
 
 -include Makefile.dep
 
-noinst_PROGRAMS =
+MY_CPPFLAGS =
+MY_CPPFLAGS += $(BOOST_CPPFLAGS)
+MY_CPPFLAGS += -I$(top_srcdir)/include
+
+MY_LDADD =
+MY_LDADD += libaedis.a
+MY_LDADD += -lpthread
 
 noinst_LIBRARIES = libaedis.a
 libaedis_a_SOURCES =
@@ -34,29 +40,18 @@ libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/utils.hpp
 libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/impl/read.ipp
 libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/impl/parser.ipp
 libaedis_a_SOURCES += $(top_srcdir)/src/aedis.cpp
-libaedis_a_CPPFLAGS =
-libaedis_a_CPPFLAGS += $(BOOST_CPPFLAGS)
-libaedis_a_CPPFLAGS += -I$(top_srcdir)/include
+libaedis_a_CPPFLAGS = $(MY_CPPFLAGS)
 
+noinst_PROGRAMS =
 noinst_PROGRAMS += async_basic
-async_basic_SOURCES =
-async_basic_SOURCES += $(top_srcdir)/examples/async_basic.cpp
-async_basic_CPPFLAGS =
-async_basic_CPPFLAGS += $(BOOST_CPPFLAGS)
-async_basic_CPPFLAGS += -I$(top_srcdir)/include
-async_basic_LDADD =
-async_basic_LDADD += libaedis.a
-async_basic_LDADD += -lpthread
+async_basic_SOURCES = $(top_srcdir)/examples/async_basic.cpp
+async_basic_CPPFLAGS = $(MY_CPPFLAGS)
+async_basic_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += test
-test_SOURCES =
-test_SOURCES += $(top_srcdir)/tests/general.cpp
-test_CPPFLAGS =
-test_CPPFLAGS += $(BOOST_CPPFLAGS)
-test_CPPFLAGS += -I$(top_srcdir)/include
-test_LDADD =
-test_LDADD += libaedis.a
-test_LDADD += -lpthread
+test_SOURCES = $(top_srcdir)/tests/general.cpp
+test_CPPFLAGS = $(MY_CPPFLAGS)
+test_LDADD = $(MY_LDADD)
 
 TESTS = test
 

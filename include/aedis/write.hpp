@@ -13,6 +13,7 @@
 #include <aedis/pipeline.hpp>
 
 #include <boost/beast/core/stream_traits.hpp>
+#include <boost/asio/yield.hpp>
 
 namespace aedis {
 
@@ -51,21 +52,62 @@ std::size_t write(
 /** Asynchronously writes one or more command pipelines on the stream.
  */
 template<class AsyncWriteStream>
-net::awaitable<void>
+struct write_some_op {
+   AsyncWriteStream& stream;
+   std::queue<pipeline>& pipelines;
+   std::size_t counter = 0;
+   net::coroutine coro = net::coroutine();
+
+   void
+   operator()(
+      auto& self,
+      boost::system::error_code const& ec = {},
+      std::size_t n = 0)
+   {
+      reenter (coro) {
+	 do {
+	    assert(!std::empty(pipelines));
+	    assert(!std::empty(pipelines.front().payload));
+
+	    yield async_write(
+	       stream,
+	       net::buffer(pipelines.front().payload),
+	       std::move(self));
+
+	    if (ec)
+	       break;
+
+	    pipelines.front().sent = true;
+	    ++counter;
+
+	    if (std::empty(pipelines.front().commands)) {
+	       // We only pop when all commands in the pipeline has push
+	       // responses like subscribe, otherwise, pop is done when the
+	       // response arrives.
+	       pipelines.pop();
+	    }
+	 } while (!std::empty(pipelines) && std::empty(pipelines.front().commands));
+
+         self.complete(ec, counter);
+      }
+   }
+};
+
+template<
+  class AsyncWriteStream,
+  class CompletionToken>
+auto
 async_write_some(
    AsyncWriteStream& stream,
-   std::queue<pipeline>& pipelines)
+   std::queue<pipeline>& pipelines,
+   CompletionToken&& token)
 {
-   do {
-      co_await async_write(stream, net::buffer(pipelines.front().payload), net::use_awaitable);
-      pipelines.front().sent = true;
-      if (std::empty(pipelines.front().commands)) {
-	 // We only pop when all commands in the pipeline has push
-	 // responses like subscribe, otherwise, pop is done when the
-	 // response arrives.
-	 pipelines.pop();
-      }
-   } while (!std::empty(pipelines) && std::empty(pipelines.front().commands));
+  return net::async_compose<
+     CompletionToken,
+     void(std::error_code, std::size_t)>(
+	write_some_op{stream, pipelines},
+	token, stream);
 }
 
 } // aedis
+#include <boost/asio/unyield.hpp>

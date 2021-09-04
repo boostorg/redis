@@ -219,7 +219,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
                   auto const empty = prepare_queue(reqs);
                   filler(reqs.back());
                   if (empty)
-                     co_await async_write_some(socket, reqs);
+                     co_await async_write_some(socket, reqs, net::use_awaitable);
                } break;
                default: {
                   std::cout << "Error: " << event.first << " " << event.second << std::endl;
