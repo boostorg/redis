@@ -24,7 +24,7 @@
 
 #include <boost/static_string/static_string.hpp>
 
-namespace aedis { namespace detail {
+namespace aedis {
 
 template <class T>
 typename std::enable_if<std::is_integral<T>::value, void>::type
@@ -340,5 +340,4 @@ struct response_adapters {
    { }
 };
 
-} // detail
 } // aedis

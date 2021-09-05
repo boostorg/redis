@@ -13,12 +13,12 @@
 #include <aedis/write.hpp>
 
 #include <aedis/detail/parser.hpp>
-#include <aedis/detail/response_adapters.hpp>
 #include <aedis/response_adapter_base.hpp>
+#include <aedis/response_adapters.hpp>
 
 namespace aedis {
 
-response_adapter_base* select_buffer(detail::response_adapters& buffers, resp3::type t, command cmd);
+response_adapter_base* select_buffer(response_adapters& buffers, resp3::type t, command cmd);
 
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
@@ -232,7 +232,7 @@ net::awaitable<std::pair<command, resp3::type>>
 async_read_one(
    AsyncReadWriteStream& socket,
    Storage& buffer,
-   response_buffers& buffers,
+   response_adapters& adapters,
    std::queue<pipeline> const& reqs)
 {
    auto const type = co_await async_read_type(socket, buffer, net::use_awaitable);
@@ -245,7 +245,6 @@ async_read_one(
       cmd = reqs.front().commands.front();
    }
 
-   detail::response_adapters adapters{buffers};
    auto* buf_adapter = select_buffer(adapters, type, cmd);
    co_await async_read_one_impl(socket, buffer, *buf_adapter, net::use_awaitable);
    co_return std::make_pair(cmd, type);
@@ -262,7 +261,8 @@ async_consume(
    response_buffers& bufs,
    std::queue<pipeline>& reqs)
 {
-   auto const res = co_await async_read_one(socket, buffer, bufs, reqs);
+   response_adapters adapters{bufs};
+   auto const res = co_await async_read_one(socket, buffer, adapters, reqs);
 
    if (res.second == resp3::type::push)
       co_return res;
@@ -305,7 +305,8 @@ async_read(
 
       do {
 	 do {
-	    auto const event = co_await async_read_one(socket, buffer, buffers, pipelines);
+	    response_adapters adapters{buffers};
+	    auto const event = co_await async_read_one(socket, buffer, adapters, pipelines);
 	    receiver(event.first, event.second);
 
 	    if (event.second != resp3::type::push)

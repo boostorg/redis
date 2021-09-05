@@ -270,55 +270,55 @@ test_list(net::ip::tcp::resolver::results_type const& results)
    std::string buf;
 
    {  // hello
-      detail::response_ignore res;
+      response_ignore res;
       co_await async_read_one_impl(socket, buf, res);
    }
 
    {  // flushall
       resp3::simple_string buffer;
-      detail::response_simple_string res{&buffer};
+      response_simple_string res{&buffer};
       co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "flushall");
    }
 
    {  // rpush
       resp3::number buffer;
-      detail::response_number res{&buffer};
+      response_number res{&buffer};
       co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, (long long int)6, "rpush");
    }
 
    {  // lrange
       resp3::array_int buffer;
-      detail::response_basic_array<int> res{&buffer};
+      response_basic_array<int> res{&buffer};
       co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, list, "lrange-1");
    }
 
    {  // lrange
       resp3::array_int buffer;
-      detail::response_basic_array<int> res{&buffer};
+      response_basic_array<int> res{&buffer};
       co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, std::vector<int>{3, 4, 5}, "lrange-2");
    }
 
    {  // ltrim
       resp3::simple_string buffer;
-      detail::response_simple_string res{&buffer};
+      response_simple_string res{&buffer};
       co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "ltrim");
    }
 
    {  // lpop. Why a blob string instead of a number?
       resp3::blob_string buffer;
-      detail::response_blob_string res{&buffer};
+      response_blob_string res{&buffer};
       co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"3"}, "lpop");
    }
 
    {  // quit
       resp3::simple_string buffer;
-      detail::response_simple_string res{&buffer};
+      response_simple_string res{&buffer};
       co_await async_read_one_impl(socket, buf, res);
       check_equal(buffer, {"OK"}, "quit");
    }
