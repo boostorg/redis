@@ -9,7 +9,8 @@
 
 namespace aedis {
 
-response_adapter_base* select_buffer(response_adapters& adapters, resp3::type type, command cmd)
+response_adapter_base*
+select_adapter(response_adapters& adapters, resp3::type type, command cmd)
 {
    if (type == resp3::type::push)
      return &adapters.resp_push;

@@ -18,7 +18,7 @@
 
 namespace aedis {
 
-response_adapter_base* select_buffer(response_adapters& buffers, resp3::type t, command cmd);
+response_adapter_base* select_adapter(response_adapters& buffers, resp3::type t, command cmd);
 
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
@@ -245,7 +245,7 @@ async_read_one(
       cmd = reqs.front().commands.front();
    }
 
-   auto* buf_adapter = select_buffer(adapters, type, cmd);
+   auto* buf_adapter = select_adapter(adapters, type, cmd);
    co_await async_read_one_impl(socket, buffer, *buf_adapter, net::use_awaitable);
    co_return std::make_pair(cmd, type);
 }
@@ -306,11 +306,20 @@ async_read(
       do {
 	 do {
 	    response_adapters adapters{buffers};
-	    auto const event = co_await async_read_one(socket, buffer, adapters, pipelines);
-	    receiver(event.first, event.second);
 
-	    if (event.second != resp3::type::push)
+	    auto const type =
+	       co_await async_read_type(socket, buffer, net::use_awaitable);
+
+	    auto cmd = command::unknown;
+	    if (type != resp3::type::push) {
+	       cmd = pipelines.front().commands.front();
 	       pipelines.front().commands.pop();
+	    }
+
+	    auto* adapter = select_adapter(adapters, type, cmd);
+	    co_await async_read_one_impl(socket, buffer, *adapter, net::use_awaitable);
+	    receiver(cmd, type);
+
 	 } while (!std::empty(pipelines.front().commands));
          pipelines.pop();
       } while (std::empty(pipelines));
