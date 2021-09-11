@@ -55,7 +55,6 @@ template<class AsyncWriteStream>
 struct write_some_op {
    AsyncWriteStream& stream;
    std::queue<pipeline>& pipelines;
-   std::size_t counter = 0;
    net::coroutine coro = net::coroutine();
 
    void
@@ -78,7 +77,6 @@ struct write_some_op {
 	       break;
 
 	    pipelines.front().sent = true;
-	    ++counter;
 
 	    if (std::empty(pipelines.front().commands)) {
 	       // We only pop when all commands in the pipeline has push
@@ -88,7 +86,7 @@ struct write_some_op {
 	    }
 	 } while (!std::empty(pipelines) && std::empty(pipelines.front().commands));
 
-         self.complete(ec, counter);
+         self.complete(ec);
       }
    }
 };
@@ -104,7 +102,7 @@ async_write_some(
 {
   return net::async_compose<
      CompletionToken,
-     void(std::error_code, std::size_t)>(
+     void(boost::system::error_code)>(
 	write_some_op{stream, pipelines},
 	token, stream);
 }

@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <iostream>
+
 #include <aedis/net.hpp>
 #include <aedis/type.hpp>
 #include <aedis/pipeline.hpp>
@@ -15,6 +17,8 @@
 #include <aedis/detail/parser.hpp>
 #include <aedis/response_adapter_base.hpp>
 #include <aedis/response_adapters.hpp>
+
+#include <boost/asio/yield.hpp>
 
 namespace aedis {
 
@@ -291,39 +295,84 @@ async_consume(
    co_return res;
 }
 
-template<class Receiver>
-net::awaitable<void>
-async_read(
+struct consume_op {
+   net::ip::tcp::socket& socket;
+   std::string& buffer;
+   std::queue<pipeline>& pipelines;
+   response_adapters& adapters;
+   resp3::type& m_type;
+   net::coroutine& coro;
+
+   template <class Self>
+   void operator()(
+      Self& self,
+      boost::system::error_code const& ec = {},
+      resp3::type type = resp3::type::invalid)
+   {
+      reenter (coro) for (;;)
+      {
+         yield async_write_some(socket, pipelines, std::move(self));
+         if (ec) {
+            self.complete(ec, resp3::type::invalid);
+            return;
+         }
+
+         do {
+            do {
+               yield async_read_type(socket, buffer, std::move(self));
+               if (ec) {
+                  self.complete(ec, resp3::type::invalid);
+                  return;
+               }
+
+               m_type = type;
+
+               yield
+               {
+                  auto cmd = command::unknown;
+                  if (m_type != resp3::type::push)
+                     cmd = pipelines.front().commands.front();
+
+                  auto* adapter = select_adapter(adapters, m_type, cmd);
+                  async_read_one_impl(socket, buffer, *adapter, std::move(self));
+               }
+
+               if (ec) {
+                  self.complete(ec, resp3::type::invalid);
+                  return;
+               }
+
+               yield self.complete(ec, m_type);
+
+               if (m_type != resp3::type::push)
+                  pipelines.front().commands.pop();
+
+            } while (!std::empty(pipelines.front().commands));
+            pipelines.pop();
+         } while (std::empty(pipelines));
+      }
+   }
+};
+
+struct consumer_state {
+   net::coroutine coro = net::coroutine();
+   resp3::type type = resp3::type::invalid;
+};
+
+template<class CompletionToken>
+auto async_consume(
    net::ip::tcp::socket& socket,
    std::string& buffer,
-   response_buffers& buffers,
    std::queue<pipeline>& pipelines,
-   Receiver receiver)
+   response_adapters& adapters,
+   consumer_state& cs,
+   CompletionToken&& token)
 {
-   for (;;) {
-      co_await async_write_some(socket, pipelines, net::use_awaitable);
-
-      do {
-	 do {
-	    response_adapters adapters{buffers};
-
-	    auto const type =
-	       co_await async_read_type(socket, buffer, net::use_awaitable);
-
-	    auto cmd = command::unknown;
-	    if (type != resp3::type::push) {
-	       cmd = pipelines.front().commands.front();
-	       pipelines.front().commands.pop();
-	    }
-
-	    auto* adapter = select_adapter(adapters, type, cmd);
-	    co_await async_read_one_impl(socket, buffer, *adapter, net::use_awaitable);
-	    receiver(cmd, type);
-
-	 } while (!std::empty(pipelines.front().commands));
-         pipelines.pop();
-      } while (std::empty(pipelines));
-   }
+  return net::async_compose<
+     CompletionToken,
+     void(boost::system::error_code, resp3::type)>(
+        consume_op{socket, buffer, pipelines, adapters, cs.type, cs.coro}, token, socket);
 }
 
 } // aedis
+#include <boost/asio/unyield.hpp>

@@ -9,34 +9,30 @@ The general form of the read and write operations of a redis client
 that support push notifications and pipelines looks like the following
 
 ```cpp
-net::awaitable<void> reader(net::ip::tcp::resolver::results_type const& res)
+net::awaitable<void>
+example(net::ip::tcp::socket& socket, std::queue<pipeline>& pipelines)
 {
-   auto ex = co_await net::this_coro::executor;
-
-   net::ip::tcp::socket socket{ex};
-   co_await net::async_connect(socket, res, net::use_awaitable);
-
-   std::string read_buffer;
-   response_buffers buffers;
-   std::queue<pipeline> pipelines;
-
    pipelines.push({});
    pipelines.back().hello("3");
 
+   std::string buffer;
+   response_buffers buffers;
+   response_adapters adapters{buffers};
+   consumer_state cs;
+
    for (;;) {
-      co_await async_write_some(socket, pipelines, net::use_awaitable);
+      auto const type =
+        co_await async_consume(
+            socket, buffer, pipelines, adapters, cs, net::use_awaitable);
 
-      do {
-	 do {
-	    auto const event = co_await async_read_one(socket, read_buffer, buffers, pipelines);
-	    if (event.second != resp3::type::push)
-	       pipelines.front().commands.pop();
+      if (type == resp3::type::push) {
+         // Push received.
+         continue;
+      }
 
-	    // Your code comes here.
+      auto const cmd = pipelines.front().commands.front();
 
-	 } while (!std::empty(pipelines.front().commands));
-         pipelines.pop();
-      } while (std::empty(pipelines));
+      // Response to a specific command.
    }
 }
 ```
@@ -52,7 +48,12 @@ int main()
    net::io_context ioc;
    net::ip::tcp::resolver resolver{ioc};
    auto const res = resolver.resolve("127.0.0.1", "6379");
-   co_spawn(ioc, reader(res), net::detached);
+
+   net::ip::tcp::socket socket{ioc};
+   net::connect(socket, res);
+
+   std::queue<pipeline> pipelines;
+   co_spawn(ioc, example(socket, pipelines), net::detached);
    ioc.run();
 }
 ```

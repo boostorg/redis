@@ -105,20 +105,21 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    net::ip::tcp::socket socket{ex};
    co_await net::async_connect(socket, res, net::use_awaitable);
 
-   std::queue<pipeline> reqs;
    std::string buffer;
 
-   prepare_queue(reqs);
-   reqs.back().hello("3");
+   std::queue<pipeline> pipelines;
+   pipelines.push({});
+   pipelines.back().hello("3");
 
    test_general_fill filler;
 
-   co_await async_write(socket, net::buffer(reqs.back().payload), net::use_awaitable);
+   auto tmp = net::buffer(pipelines.back().payload);
+   co_await async_write(socket, tmp, net::use_awaitable);
 
    int push_counter = 0;
    response_buffers bufs;
    for (;;) {
-      auto const event = co_await async_consume(socket, buffer, bufs, reqs);
+      auto const event = co_await async_consume(socket, buffer, bufs, pipelines);
 
       switch (event.second) {
 	 case resp3::type::simple_string:
@@ -216,10 +217,10 @@ test_general(net::ip::tcp::resolver::results_type const& res)
                case command::hgetall: check_equal(bufs.map, {"field1", "value1", "field2", "value2"}, "hgetall (value)"); break;
                case command::hello:
                {
-                  auto const empty = prepare_queue(reqs);
-                  filler(reqs.back());
+                  auto const empty = prepare_queue(pipelines);
+                  filler(pipelines.back());
                   if (empty)
-                     co_await async_write_some(socket, reqs, net::use_awaitable);
+                     co_await async_write_some(socket, pipelines, net::use_awaitable);
                } break;
                default: {
                   std::cout << "Error: " << event.first << " " << event.second << std::endl;
