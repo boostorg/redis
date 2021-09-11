@@ -355,23 +355,29 @@ struct consume_op {
 };
 
 struct consumer_state {
-   net::coroutine coro = net::coroutine();
-   resp3::type type = resp3::type::invalid;
+   std::string buffer;
+   response_adapters adapters;
+   net::coroutine coro;
+   resp3::type type;
+
+   consumer_state(response_buffers& buffers)
+   : adapters{buffers}
+   , coro{net::coroutine()}
+   , type {resp3::type::invalid}
+   { }
 };
 
 template<class CompletionToken>
 auto async_consume(
    net::ip::tcp::socket& socket,
-   std::string& buffer,
    std::queue<pipeline>& pipelines,
-   response_adapters& adapters,
    consumer_state& cs,
    CompletionToken&& token)
 {
   return net::async_compose<
      CompletionToken,
      void(boost::system::error_code, resp3::type)>(
-        consume_op{socket, buffer, pipelines, adapters, cs.type, cs.coro}, token, socket);
+        consume_op{socket, cs.buffer, pipelines, cs.adapters, cs.type, cs.coro}, token, socket);
 }
 
 } // aedis

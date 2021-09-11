@@ -15,15 +15,12 @@ example(net::ip::tcp::socket& socket, std::queue<pipeline>& pipelines)
    pipelines.push({});
    pipelines.back().hello("3");
 
-   std::string buffer;
    response_buffers buffers;
-   response_adapters adapters{buffers};
-   consumer_state cs;
+   consumer_state cs{buffers};
 
    for (;;) {
       auto const type =
-        co_await async_consume(
-            socket, buffer, pipelines, adapters, cs, net::use_awaitable);
+        co_await async_consume(socket, pipelines, cs, net::use_awaitable);
 
       if (type == resp3::type::push) {
          std::cout << "Event: " << "(" << type << ")" << std::endl;
