@@ -11,18 +11,16 @@
 
 #include <aedis/net.hpp>
 #include <aedis/type.hpp>
-#include <aedis/pipeline.hpp>
+#include <aedis/request.hpp>
 #include <aedis/write.hpp>
 
 #include <aedis/detail/parser.hpp>
 #include <aedis/response_adapter_base.hpp>
-#include <aedis/response_adapters.hpp>
+#include <aedis/response_adapter.hpp>
 
 #include <boost/asio/yield.hpp>
 
 namespace aedis {
-
-response_adapter_base* select_adapter(response_adapters& buffers, resp3::type t, command cmd);
 
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
@@ -229,28 +227,28 @@ auto async_read_type(
 }
 
 /** Asynchronously reads the response from one command. The result is
- *  stored in the parameter buffers.
+ *  stored in the parameter resps.
  */
 template < class AsyncReadWriteStream, class Storage>
 net::awaitable<std::pair<command, resp3::type>>
 async_read_one(
    AsyncReadWriteStream& socket,
    Storage& buffer,
-   response_adapters& adapters,
-   std::queue<pipeline> const& reqs)
+   response_adapter& adapter,
+   std::queue<request> const& reqs)
 {
    auto const type = co_await async_read_type(socket, buffer, net::use_awaitable);
    assert(type != resp3::type::invalid);
 
    auto cmd = command::unknown;
-   if (type != resp3::type::push) {
+   if (type != resp3::type::flat_push) {
       assert(!std::empty(reqs));
       assert(!std::empty(reqs.front().commands));
       cmd = reqs.front().commands.front();
    }
 
-   auto* buf_adapter = select_adapter(adapters, type, cmd);
-   co_await async_read_one_impl(socket, buffer, *buf_adapter, net::use_awaitable);
+   auto* p = select_adapter(adapter, type, cmd);
+   co_await async_read_one_impl(socket, buffer, *p, net::use_awaitable);
    co_return std::make_pair(cmd, type);
 }
 
@@ -262,13 +260,13 @@ net::awaitable<std::pair<command, resp3::type>>
 async_consume(
    AsyncReadWriteStream& socket,
    Storage& buffer,
-   response_buffers& bufs,
-   std::queue<pipeline>& reqs)
+   response& resp,
+   std::queue<request>& reqs)
 {
-   response_adapters adapters{bufs};
-   auto const res = co_await async_read_one(socket, buffer, adapters, reqs);
+   response_adapter adapter{resp};
+   auto const res = co_await async_read_one(socket, buffer, adapter, reqs);
 
-   if (res.second == resp3::type::push)
+   if (res.second == resp3::type::flat_push)
       co_return res;
 
    reqs.front().commands.pop();
@@ -298,8 +296,8 @@ async_consume(
 struct consume_op {
    net::ip::tcp::socket& socket;
    std::string& buffer;
-   std::queue<pipeline>& pipelines;
-   response_adapters& adapters;
+   std::queue<request>& requests;
+   response_adapter& adapter;
    resp3::type& m_type;
    net::coroutine& coro;
 
@@ -311,7 +309,7 @@ struct consume_op {
    {
       reenter (coro) for (;;)
       {
-         yield async_write_some(socket, pipelines, std::move(self));
+         yield async_write_some(socket, requests, std::move(self));
          if (ec) {
             self.complete(ec, resp3::type::invalid);
             return;
@@ -330,11 +328,11 @@ struct consume_op {
                yield
                {
                   auto cmd = command::unknown;
-                  if (m_type != resp3::type::push)
-                     cmd = pipelines.front().commands.front();
+                  if (m_type != resp3::type::flat_push)
+                     cmd = requests.front().commands.front();
 
-                  auto* adapter = select_adapter(adapters, m_type, cmd);
-                  async_read_one_impl(socket, buffer, *adapter, std::move(self));
+                  auto* p = select_adapter(adapter, m_type, cmd);
+                  async_read_one_impl(socket, buffer, *p, std::move(self));
                }
 
                if (ec) {
@@ -344,24 +342,24 @@ struct consume_op {
 
                yield self.complete(ec, m_type);
 
-               if (m_type != resp3::type::push)
-                  pipelines.front().commands.pop();
+               if (m_type != resp3::type::flat_push)
+                  requests.front().commands.pop();
 
-            } while (!std::empty(pipelines.front().commands));
-            pipelines.pop();
-         } while (std::empty(pipelines));
+            } while (!std::empty(requests.front().commands));
+            requests.pop();
+         } while (std::empty(requests));
       }
    }
 };
 
 struct consumer_state {
    std::string buffer;
-   response_adapters adapters;
+   response_adapter adapter;
    net::coroutine coro;
    resp3::type type;
 
-   consumer_state(response_buffers& buffers)
-   : adapters{buffers}
+   consumer_state(response& resp)
+   : adapter{resp}
    , coro{net::coroutine()}
    , type {resp3::type::invalid}
    { }
@@ -370,14 +368,14 @@ struct consumer_state {
 template<class CompletionToken>
 auto async_consume(
    net::ip::tcp::socket& socket,
-   std::queue<pipeline>& pipelines,
+   std::queue<request>& requests,
    consumer_state& cs,
    CompletionToken&& token)
 {
   return net::async_compose<
      CompletionToken,
      void(boost::system::error_code, resp3::type)>(
-        consume_op{socket, cs.buffer, pipelines, cs.adapters, cs.type, cs.coro}, token, socket);
+        consume_op{socket, cs.buffer, requests, cs.adapter, cs.type, cs.coro}, token, socket);
 }
 
 } // aedis

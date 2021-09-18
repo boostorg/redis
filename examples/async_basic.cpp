@@ -10,40 +10,40 @@
 using namespace aedis;
 
 net::awaitable<void>
-example(net::ip::tcp::socket& socket, std::queue<pipeline>& pipelines)
+example(net::ip::tcp::socket& socket, std::queue<request>& requests)
 {
-   pipelines.push({});
-   pipelines.back().hello("3");
+   requests.push({});
+   requests.back().hello("3");
 
-   response_buffers buffers;
-   consumer_state cs{buffers};
+   response resp;
+   consumer_state cs{resp};
 
    for (;;) {
       auto const type =
-        co_await async_consume(socket, pipelines, cs, net::use_awaitable);
+        co_await async_consume(socket, requests, cs, net::use_awaitable);
 
-      if (type == resp3::type::push) {
+      if (type == resp3::type::flat_push) {
          std::cout << "Event: " << "(" << type << ")" << std::endl;
          continue;
       }
 
-      auto const cmd = pipelines.front().commands.front();
+      auto const cmd = requests.front().commands.front();
 
       std::cout << "Event: " << cmd << " (" << type << ")" << std::endl;
       switch (cmd) {
          case command::hello:
          {
-            prepare_queue(pipelines);
-            pipelines.back().ping();
-            pipelines.back().subscribe("some-channel");
+            prepare_next(requests);
+            requests.back().ping();
+            requests.back().subscribe("some-channel");
          } break;
          case command::publish: break;
          case command::quit: break;
          case command::ping:
          {
-            prepare_queue(pipelines);
-            pipelines.back().publish("some-channel", "Some message");
-            pipelines.back().quit();
+            prepare_next(requests);
+            requests.back().publish("some-channel", "Some message");
+            requests.back().quit();
          } break;
          default: { }
       }
@@ -59,7 +59,7 @@ int main()
    net::ip::tcp::socket socket{ioc};
    net::connect(socket, res);
 
-   std::queue<pipeline> pipelines;
-   co_spawn(ioc, example(socket, pipelines), net::detached);
+   std::queue<request> requests;
+   co_spawn(ioc, example(socket, requests), net::detached);
    ioc.run();
 }

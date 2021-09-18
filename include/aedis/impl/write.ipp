@@ -9,7 +9,7 @@
 
 namespace aedis {
 
-bool prepare_queue(std::queue<pipeline>& reqs)
+bool prepare_next(std::queue<request>& reqs)
 {
    if (std::empty(reqs)) {
       reqs.push({});

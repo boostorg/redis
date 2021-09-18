@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <aedis/pipeline.hpp>
+#include <aedis/request.hpp>
 #include <aedis/version.hpp>
 #include <aedis/utils.hpp>
 #include <aedis/read.hpp>

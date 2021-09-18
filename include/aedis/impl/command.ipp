@@ -66,11 +66,11 @@ std::string to_string(command c)
    }
 }
 
+} // aedis
+
 std::ostream& operator<<(std::ostream& os, aedis::command c)
 {
    os << to_string(c);
    return os;
 }
-
-} // aedis
 

@@ -10,20 +10,20 @@
 #include <chrono>
 
 #include <aedis/net.hpp>
-#include <aedis/pipeline.hpp>
+#include <aedis/request.hpp>
 
 #include <boost/beast/core/stream_traits.hpp>
 #include <boost/asio/yield.hpp>
 
 namespace aedis {
 
-bool prepare_queue(std::queue<pipeline>& reqs);
+bool prepare_next(std::queue<request>& reqs);
 
 template<class SyncWriteStream>
 std::size_t
 write(
    SyncWriteStream& stream,
-   pipeline& req,
+   request& req,
    boost::system::error_code& ec)
 {
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
@@ -35,7 +35,7 @@ write(
 template<class SyncWriteStream>
 std::size_t write(
    SyncWriteStream& stream,
-   pipeline& req)
+   request& req)
 {
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
         "SyncWriteStream type requirements not met");
@@ -49,12 +49,12 @@ std::size_t write(
     return bytes_transferred;
 }
 
-/** Asynchronously writes one or more command pipelines on the stream.
+/** Asynchronously writes one or more requests on the stream.
  */
 template<class AsyncWriteStream>
 struct write_some_op {
    AsyncWriteStream& stream;
-   std::queue<pipeline>& pipelines;
+   std::queue<request>& requests;
    net::coroutine coro = net::coroutine();
 
    void
@@ -65,26 +65,26 @@ struct write_some_op {
    {
       reenter (coro) {
 	 do {
-	    assert(!std::empty(pipelines));
-	    assert(!std::empty(pipelines.front().payload));
+	    assert(!std::empty(requests));
+	    assert(!std::empty(requests.front().payload));
 
 	    yield async_write(
 	       stream,
-	       net::buffer(pipelines.front().payload),
+	       net::buffer(requests.front().payload),
 	       std::move(self));
 
 	    if (ec)
 	       break;
 
-	    pipelines.front().sent = true;
+	    requests.front().sent = true;
 
-	    if (std::empty(pipelines.front().commands)) {
+	    if (std::empty(requests.front().commands)) {
 	       // We only pop when all commands in the pipeline has push
 	       // responses like subscribe, otherwise, pop is done when the
 	       // response arrives.
-	       pipelines.pop();
+	       requests.pop();
 	    }
-	 } while (!std::empty(pipelines) && std::empty(pipelines.front().commands));
+	 } while (!std::empty(requests) && std::empty(requests.front().commands));
 
          self.complete(ec);
       }
@@ -97,13 +97,13 @@ template<
 auto
 async_write_some(
    AsyncWriteStream& stream,
-   std::queue<pipeline>& pipelines,
+   std::queue<request>& requests,
    CompletionToken&& token)
 {
   return net::async_compose<
      CompletionToken,
      void(boost::system::error_code)>(
-	write_some_op{stream, pipelines},
+	write_some_op{stream, requests},
 	token, stream);
 }
 

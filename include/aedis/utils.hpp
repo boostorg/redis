@@ -11,7 +11,7 @@
 
 #include "type.hpp"
 #include "command.hpp"
-#include "response_buffers.hpp"
+#include "response.hpp"
 
 namespace aedis {
 

@@ -17,10 +17,11 @@ namespace aedis { namespace resp3 {
 
 enum class type
 { array
-, push
-, set
-, map
-, attribute
+, flat_array
+, flat_push
+, flat_set
+, flat_map
+, flat_attribute
 , simple_string
 , simple_error
 , number
@@ -32,28 +33,25 @@ enum class type
 , verbatim_string
 , blob_string
 , streamed_string_part
-, transaction // Not from resp3. TODO: Perhaps rename to array and array to flat_array?
 , invalid
 };
 
 type to_type(char c);
 
-// TODO: Move everything below to namespace resp3.
-
 template <class T>
-using basic_array = std::vector<T>;
+using basic_flat_array = std::vector<T>;
 
-/// RESP3 array type.
-using array = basic_array<std::string>;
-using array_int = basic_array<int>;
+/// RESP3 flat array types.
+using flat_array = basic_flat_array<std::string>;
+using flat_array_int = basic_flat_array<int>;
 
-using push = std::vector<std::string>;
+using flat_push = std::vector<std::string>;
 
 /// RESP3 map type.
-using map = std::vector<std::string>;
+using flat_map = std::vector<std::string>;
 
 /// RESP3 set type.
-using set = std::vector<std::string>;
+using flat_set = std::vector<std::string>;
 
 using number = long long int;
 using boolean = bool;
@@ -66,7 +64,7 @@ using big_number = std::string;
 using verbatim_string = std::string;
 using streamed_string_part = std::string;
 
-struct transaction_item {
+struct node {
    int depth;
    resp3::type type;
    int expected_size = -1;
@@ -74,7 +72,7 @@ struct transaction_item {
    std::vector<std::string> value;
 };
 
-using transaction = std::vector<transaction_item>;
+using array = std::vector<node>;
 
 } // resp3
 } // aedis

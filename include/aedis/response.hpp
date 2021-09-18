@@ -11,13 +11,13 @@
 
 namespace aedis {
 
-struct response_buffers {
-   resp3::transaction transaction;
+struct response {
    resp3::array array;
-   resp3::array push;
-   resp3::set set;
-   resp3::map map;
-   resp3::array attribute;
+   resp3::flat_array flat_array;
+   resp3::flat_array flat_push;
+   resp3::flat_set flat_set;
+   resp3::flat_map flat_map;
+   resp3::flat_array flat_attribute;
    resp3::simple_string simple_string;
    resp3::simple_error simple_error;
    resp3::number number;

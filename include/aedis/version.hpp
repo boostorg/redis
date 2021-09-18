@@ -5,5 +5,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#define AEDIS_VERSION 3
+#define AEDIS_VERSION 4
 

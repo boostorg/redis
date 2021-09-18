@@ -17,10 +17,11 @@ std::string to_string(type t)
 {
    switch (t) {
       EXPAND_TYPE_CASE(array);
-      EXPAND_TYPE_CASE(push);
-      EXPAND_TYPE_CASE(set);
-      EXPAND_TYPE_CASE(map);
-      EXPAND_TYPE_CASE(attribute);
+      EXPAND_TYPE_CASE(flat_array);
+      EXPAND_TYPE_CASE(flat_push);
+      EXPAND_TYPE_CASE(flat_set);
+      EXPAND_TYPE_CASE(flat_map);
+      EXPAND_TYPE_CASE(flat_attribute);
       EXPAND_TYPE_CASE(simple_string);
       EXPAND_TYPE_CASE(simple_error);
       EXPAND_TYPE_CASE(number);
@@ -33,7 +34,6 @@ std::string to_string(type t)
       EXPAND_TYPE_CASE(blob_string);
       EXPAND_TYPE_CASE(streamed_string_part);
       EXPAND_TYPE_CASE(invalid);
-      EXPAND_TYPE_CASE(transaction);
       default: assert(false);
    }
 }
@@ -52,11 +52,11 @@ type to_type(char c)
       case '(': return type::big_number;
       case '+': return type::simple_string;
       case '_': return type::null;
-      case '>': return type::push;
-      case '~': return type::set;
-      case '*': return type::array;
-      case '|': return type::attribute;
-      case '%': return type::map;
+      case '>': return type::flat_push;
+      case '~': return type::flat_set;
+      case '*': return type::flat_array;
+      case '|': return type::flat_attribute;
+      case '%': return type::flat_map;
       default: return type::invalid;
    }
 }
