@@ -9,33 +9,52 @@
 
 namespace aedis {
 
-response_adapter_base*
-select_adapter(response_adapter& adapters, resp3::type type, command cmd)
+response_adapter::response_adapter(response& resp)
+: array_{&resp.array}
+, flat_array_{&resp.flat_array}
+, flat_push_{&resp.flat_push}
+, flat_set_{&resp.flat_set}
+, flat_map_{&resp.flat_map}
+, flat_attribute_{&resp.flat_attribute}
+, simple_string_{&resp.simple_string}
+, simple_error_{&resp.simple_error}
+, number_{&resp.number}
+, doublean_{&resp.doublean}
+, boolean_{&resp.boolean}
+, big_number_{&resp.big_number}
+, blob_string_{&resp.blob_string}
+, blob_error_{&resp.blob_error}
+, verbatim_string_{&resp.verbatim_string}
+, streamed_string_part_{&resp.streamed_string_part}
+{ }
+
+response_adapter_base* response_adapter::
+select(resp3::type type, command cmd)
 {
    if (type == resp3::type::flat_push)
-     return &adapters.flat_push;
+     return &flat_push_;
 
    if (cmd == command::exec)
-     return &adapters.array;
+     return &array_;
 
    switch (type) {
-      case resp3::type::flat_set: return &adapters.flat_set;
-      case resp3::type::flat_map: return &adapters.flat_map;
-      case resp3::type::flat_attribute: return &adapters.flat_attribute;
-      case resp3::type::flat_array: return &adapters.flat_array;
-      case resp3::type::simple_error: return &adapters.simple_error;
-      case resp3::type::simple_string: return &adapters.simple_string;
-      case resp3::type::number: return &adapters.number;
-      case resp3::type::doublean: return &adapters.doublean;
-      case resp3::type::big_number: return &adapters.big_number;
-      case resp3::type::boolean: return &adapters.boolean;
-      case resp3::type::blob_error: return &adapters.blob_error;
-      case resp3::type::blob_string: return &adapters.blob_string;
-      case resp3::type::verbatim_string: return &adapters.verbatim_string;
-      case resp3::type::streamed_string_part: return &adapters.streamed_string_part;
-      case resp3::type::null: return &adapters.resp_ignore;
+      case resp3::type::flat_set: return &flat_set_;
+      case resp3::type::flat_map: return &flat_map_;
+      case resp3::type::flat_attribute: return &flat_attribute_;
+      case resp3::type::flat_array: return &flat_array_;
+      case resp3::type::simple_error: return &simple_error_;
+      case resp3::type::simple_string: return &simple_string_;
+      case resp3::type::number: return &number_;
+      case resp3::type::doublean: return &doublean_;
+      case resp3::type::big_number: return &big_number_;
+      case resp3::type::boolean: return &boolean_;
+      case resp3::type::blob_error: return &blob_error_;
+      case resp3::type::blob_string: return &blob_string_;
+      case resp3::type::verbatim_string: return &verbatim_string_;
+      case resp3::type::streamed_string_part: return &streamed_string_part_;
+      case resp3::type::null: return &ignore_;
       default: {
-	 throw std::runtime_error("response_buffers");
+	 assert(false);
 	 return nullptr;
       }
    }

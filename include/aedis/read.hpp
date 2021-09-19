@@ -247,7 +247,7 @@ async_read_one(
       cmd = reqs.front().commands.front();
    }
 
-   auto* p = select_adapter(adapter, type, cmd);
+   auto* p = adapter.select(type, cmd);
    co_await async_read_one_impl(socket, buffer, *p, net::use_awaitable);
    co_return std::make_pair(cmd, type);
 }
@@ -331,7 +331,7 @@ struct consume_op {
                   if (m_type != resp3::type::flat_push)
                      cmd = requests.front().commands.front();
 
-                  auto* p = select_adapter(adapter, m_type, cmd);
+                  auto* p = adapter.select(m_type, cmd);
                   async_read_one_impl(socket, buffer, *p, std::move(self));
                }
 
