@@ -151,7 +151,7 @@ template <
    class CompletionToken =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
-auto async_read_one_impl(
+auto async_read_one(
    AsyncReadStream& stream,
    Storage& buffer,
    response_adapter_base& res,
@@ -226,73 +226,6 @@ auto async_read_type(
       >(type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
 }
 
-/** Asynchronously reads the response from one command. The result is
- *  stored in the parameter resps.
- */
-template < class AsyncReadWriteStream, class Storage>
-net::awaitable<std::pair<command, resp3::type>>
-async_read_one(
-   AsyncReadWriteStream& socket,
-   Storage& buffer,
-   response_adapter& adapter,
-   std::queue<request> const& reqs)
-{
-   auto const type = co_await async_read_type(socket, buffer, net::use_awaitable);
-   assert(type != resp3::type::invalid);
-
-   auto cmd = command::unknown;
-   if (type != resp3::type::flat_push) {
-      assert(!std::empty(reqs));
-      assert(!std::empty(reqs.front().commands));
-      cmd = reqs.front().commands.front();
-   }
-
-   auto* p = adapter.select(type, cmd);
-   co_await async_read_one_impl(socket, buffer, *p, net::use_awaitable);
-   co_return std::make_pair(cmd, type);
-}
-
-using transaction_queue_type = std::deque<std::pair<command, resp3::type>>;
-
-// DEPRECATED
-template < class AsyncReadWriteStream, class Storage>
-net::awaitable<std::pair<command, resp3::type>>
-async_consume(
-   AsyncReadWriteStream& socket,
-   Storage& buffer,
-   response& resp,
-   std::queue<request>& reqs)
-{
-   response_adapter adapter{resp};
-   auto const res = co_await async_read_one(socket, buffer, adapter, reqs);
-
-   if (res.second == resp3::type::flat_push)
-      co_return res;
-
-   reqs.front().commands.pop();
-   // If that were that last command in the pipeline, delete the pipeline too.
-   if (std::empty(reqs.front().commands)) {
-      reqs.pop();
-      // Now we should write any the next pipeline waiting in the
-      // queue.  Notice that commands like unsubscribe have a push
-      // response type so we do not have to wait for a response before
-      // sending a new pipeline.
-      while (!std::empty(reqs)) {
-	 auto buffer = net::buffer(reqs.front().payload);
-	 auto const n = co_await async_write(socket, buffer, net::use_awaitable);
-	 if (!std::empty(reqs.front().commands))
-	    break;
-
-	 // We only pop when all commands in the pipeline has push
-	 // responses like subscribe, otherwise, pop is done when the
-	 // response arrives.
-	 reqs.pop();
-      }
-   }
-
-   co_return res;
-}
-
 struct consume_op {
    net::ip::tcp::socket& socket;
    std::string& buffer;
@@ -332,7 +265,7 @@ struct consume_op {
                      cmd = requests.front().commands.front();
 
                   auto* p = adapter.select(m_type, cmd);
-                  async_read_one_impl(socket, buffer, *p, std::move(self));
+                  async_read_one(socket, buffer, *p, std::move(self));
                }
 
                if (ec) {

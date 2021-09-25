@@ -11,7 +11,9 @@
 
 namespace aedis {
 
-struct response {
+class response {
+private:
+public:
    resp3::array array;
    resp3::flat_array flat_array;
    resp3::flat_array flat_push;
