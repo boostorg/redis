@@ -16,11 +16,10 @@ example(net::ip::tcp::socket& socket, std::queue<request>& requests)
    requests.back().hello("3");
 
    response resp;
-   consumer_state cs{resp};
+   consumer_state cs;
 
    for (;;) {
-      auto const type =
-        co_await async_consume(socket, requests, cs, net::use_awaitable);
+      auto const type = co_await async_consume(socket, requests, resp, cs, net::use_awaitable);
 
       if (type == resp3::type::flat_push) {
          std::cout << "Event: " << "(" << type << ")" << std::endl;

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <aedis/response.hpp>
+#include <aedis/type.hpp>
 #include <aedis/resp3/adapter_utils.hpp>
 #include <aedis/response_adapter_base.hpp>
 

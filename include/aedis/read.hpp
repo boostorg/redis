@@ -16,7 +16,6 @@
 
 #include <aedis/detail/parser.hpp>
 #include <aedis/response_adapter_base.hpp>
-#include <aedis/response_adapter.hpp>
 
 #include <boost/asio/yield.hpp>
 
@@ -230,7 +229,7 @@ struct consume_op {
    net::ip::tcp::socket& socket;
    std::string& buffer;
    std::queue<request>& requests;
-   response_adapter& adapter;
+   response& resp;
    resp3::type& m_type;
    net::coroutine& coro;
 
@@ -264,8 +263,8 @@ struct consume_op {
                   if (m_type != resp3::type::flat_push)
                      cmd = requests.front().commands.front();
 
-                  auto* p = adapter.select(m_type, cmd);
-                  async_read_one(socket, buffer, *p, std::move(self));
+                  auto* adapter = resp.select_adapter(m_type, cmd);
+                  async_read_one(socket, buffer, *adapter, std::move(self));
                }
 
                if (ec) {
@@ -287,28 +286,23 @@ struct consume_op {
 
 struct consumer_state {
    std::string buffer;
-   response_adapter adapter;
-   net::coroutine coro;
-   resp3::type type;
-
-   consumer_state(response& resp)
-   : adapter{resp}
-   , coro{net::coroutine()}
-   , type {resp3::type::invalid}
-   { }
+   response resp;
+   net::coroutine coro = net::coroutine();
+   resp3::type type = resp3::type::invalid;
 };
 
 template<class CompletionToken>
 auto async_consume(
    net::ip::tcp::socket& socket,
    std::queue<request>& requests,
+   response& resp,
    consumer_state& cs,
    CompletionToken&& token)
 {
   return net::async_compose<
      CompletionToken,
      void(boost::system::error_code, resp3::type)>(
-        consume_op{socket, cs.buffer, requests, cs.adapter, cs.type, cs.coro}, token, socket);
+        consume_op{socket, cs.buffer, requests, resp, cs.type, cs.coro}, token, socket);
 }
 
 } // aedis

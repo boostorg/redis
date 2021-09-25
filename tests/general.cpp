@@ -121,12 +121,12 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    test_general_fill filler;
 
    response resp;
-   consumer_state cs{resp};
+   consumer_state cs;
 
    int push_counter = 0;
    for (;;) {
       auto const type =
-        co_await async_consume(socket, requests, cs, net::use_awaitable);
+        co_await async_consume(socket, requests, resp, cs, net::use_awaitable);
 
       if (type == resp3::type::flat_push) {
 	 switch (push_counter) {
@@ -702,10 +702,10 @@ net::awaitable<void> test_streamed_string()
    {
       std::string cmd {"$?\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_array buffer;
-      resp3::flat_array_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {}, "streamed string (empty)");
+      response resp;
+      auto* adapter = resp.select_adapter(resp3::type::streamed_string_part, command::unknown);
+      co_await async_read_one(ts, buf, *adapter);
+      check_equal(resp.streamed_string_part, {}, "streamed string (empty)");
    }
 }
 
