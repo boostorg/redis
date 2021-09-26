@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis { namespace resp3 {
 

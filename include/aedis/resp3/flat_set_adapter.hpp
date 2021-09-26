@@ -7,16 +7,16 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 #include <aedis/resp3/adapter_utils.hpp>
 
 namespace aedis { namespace resp3 {
 
 struct flat_set_adapter : response_adapter_base {
-   flat_set* result = nullptr;
+   flat_set_type* result = nullptr;
 
-   flat_set_adapter(flat_set* p) : result(p) {}
+   flat_set_adapter(flat_set_type* p) : result(p) {}
 
    void add(std::string_view s = {})
    {

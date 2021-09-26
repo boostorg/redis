@@ -7,16 +7,16 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 #include <aedis/resp3/adapter_utils.hpp>
 
 namespace aedis { namespace resp3 {
 
 struct blob_error_adapter : public response_adapter_base {
-   blob_error* result = nullptr;
+   blob_error_type* result = nullptr;
 
-   blob_error_adapter(blob_error* p) : result(p) {}
+   blob_error_adapter(blob_error_type* p) : result(p) {}
 
    void on_blob_error(std::string_view s) override
       { from_string_view(s, *result); }

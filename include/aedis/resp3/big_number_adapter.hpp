@@ -7,16 +7,16 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 #include <aedis/resp3/adapter_utils.hpp>
 
 namespace aedis { namespace resp3 {
 
 struct big_number_adapter : public response_adapter_base {
-   big_number* result = nullptr;
+   big_number_type* result = nullptr;
 
-   big_number_adapter(big_number* p) : result(p) {}
+   big_number_adapter(big_number_type* p) : result(p) {}
 
    void on_big_number(std::string_view s) override
       { from_string_view(s, *result); }

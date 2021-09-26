@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis { namespace resp3 {
 
@@ -16,9 +16,9 @@ namespace aedis { namespace resp3 {
 // as in a transaction for example.
 class array_adapter: public response_adapter_base {
 public:
-   array* result;
+   array_type* result;
 
-   array_adapter(array* p) : result(p) {}
+   array_adapter(array_type* p) : result(p) {}
 
 private:
    int depth_ = 0;

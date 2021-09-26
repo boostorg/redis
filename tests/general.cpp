@@ -120,18 +120,18 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 
    test_general_fill filler;
 
-   response resp;
-   consumer_state cs;
+   resp3::response resp;
+   resp3::consumer cs;
 
    int push_counter = 0;
    for (;;) {
       auto const type =
-        co_await async_consume(socket, requests, resp, cs, net::use_awaitable);
+        co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
 
       if (type == resp3::type::flat_push) {
 	 switch (push_counter) {
-	    case 0: check_equal(resp.flat_push, {"subscribe", "channel", "1"}, "push (value1)"); break;
-	    case 1: check_equal(resp.flat_push, {"message", "channel", "message"}, "push (value2)"); break;
+	    case 0: check_equal(resp.flat_push(), {"subscribe", "channel", "1"}, "push (value1)"); break;
+	    case 1: check_equal(resp.flat_push(), {"message", "channel", "message"}, "push (value2)"); break;
 	    default: std::cout << "ERROR: unexpected push event." << std::endl;
 	 }
 	 ++push_counter;
@@ -146,64 +146,64 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	    prepare_next(requests);
 	    filler(requests.back());
 	 } break;
-	 case command::multi: check_equal(resp.simple_string, {"OK"}, "multi"); break;
-	 case command::ping: check_equal(resp.simple_string, {"QUEUED"}, "ping"); break;
-	 case command::set: check_equal(resp.simple_string, {"OK"}, "set"); break;
-	 case command::quit: check_equal(resp.simple_string, {"OK"}, "quit"); break;
-	 case command::flushall: check_equal(resp.simple_string, {"OK"}, "flushall"); break;
-	 case command::ltrim: check_equal(resp.simple_string, {"OK"}, "ltrim"); break;
-	 case command::append: check_equal(resp.number, 4LL, "append"); break;
-	 case command::hset: check_equal(resp.number, 2LL, "hset"); break;
-	 case command::rpush: check_equal(resp.number, (resp3::number)std::size(filler.list_), "rpush (value)"); break;
-	 case command::del: check_equal(resp.number, 1LL, "del"); break;
-	 case command::llen: check_equal(resp.number, 6LL, "llen"); break;
-	 case command::incr: check_equal(resp.number, 1LL, "incr"); break;
-	 case command::publish: check_equal(resp.number, 1LL, "publish"); break;
-	 case command::hincrby: check_equal(resp.number, 10LL, "hincrby"); break;
-	 case command::zadd: check_equal(resp.number, 1LL, "zadd"); break;
-	 case command::sadd: check_equal(resp.number, 3LL, "sadd"); break;
-	 case command::hdel: check_equal(resp.number, 2LL, "hdel"); break;
-	 case command::zremrangebyscore: check_equal(resp.number, 1LL, "zremrangebyscore"); break;
-	 case command::get: check_equal(resp.blob_string, filler.set_, "get"); break;
-	 case command::hget: check_equal(resp.blob_string, std::string{"value2"}, "hget"); break;
-	 case command::lrange: check_equal(resp.flat_array, {"1", "2", "3", "4", "5", "6"}, "lrange"); break;
-	 case command::hvals: check_equal(resp.flat_array, {"value1", "value2"}, "hvals"); break;
-	 case command::zrange: check_equal(resp.flat_array, {"Marcelo"}, "hvals"); break;
-	 case command::zrangebyscore: check_equal(resp.flat_array, {"Marcelo"}, "zrangebyscore"); break;
+	 case command::multi: check_equal(resp.simple_string(), {"OK"}, "multi"); break;
+	 case command::ping: check_equal(resp.simple_string(), {"QUEUED"}, "ping"); break;
+	 case command::set: check_equal(resp.simple_string(), {"OK"}, "set"); break;
+	 case command::quit: check_equal(resp.simple_string(), {"OK"}, "quit"); break;
+	 case command::flushall: check_equal(resp.simple_string(), {"OK"}, "flushall"); break;
+	 case command::ltrim: check_equal(resp.simple_string(), {"OK"}, "ltrim"); break;
+	 case command::append: check_equal(resp.number(), 4LL, "append"); break;
+	 case command::hset: check_equal(resp.number(), 2LL, "hset"); break;
+	 case command::rpush: check_equal(resp.number(), (resp3::number_type)std::size(filler.list_), "rpush (value)"); break;
+	 case command::del: check_equal(resp.number(), 1LL, "del"); break;
+	 case command::llen: check_equal(resp.number(), 6LL, "llen"); break;
+	 case command::incr: check_equal(resp.number(), 1LL, "incr"); break;
+	 case command::publish: check_equal(resp.number(), 1LL, "publish"); break;
+	 case command::hincrby: check_equal(resp.number(), 10LL, "hincrby"); break;
+	 case command::zadd: check_equal(resp.number(), 1LL, "zadd"); break;
+	 case command::sadd: check_equal(resp.number(), 3LL, "sadd"); break;
+	 case command::hdel: check_equal(resp.number(), 2LL, "hdel"); break;
+	 case command::zremrangebyscore: check_equal(resp.number(), 1LL, "zremrangebyscore"); break;
+	 case command::get: check_equal(resp.blob_string(), filler.set_, "get"); break;
+	 case command::hget: check_equal(resp.blob_string(), std::string{"value2"}, "hget"); break;
+	 case command::lrange: check_equal(resp.flat_array(), {"1", "2", "3", "4", "5", "6"}, "lrange"); break;
+	 case command::hvals: check_equal(resp.flat_array(), {"value1", "value2"}, "hvals"); break;
+	 case command::zrange: check_equal(resp.flat_array(), {"Marcelo"}, "hvals"); break;
+	 case command::zrangebyscore: check_equal(resp.flat_array(), {"Marcelo"}, "zrangebyscore"); break;
 	 case command::lpop:
 	 {
 	     switch (type)
 	     {
-		case resp3::type::blob_string: check_equal(resp.blob_string, {"3"}, "lpop"); break;
-		case resp3::type::flat_array: check_equal(resp.flat_array, {"4", "5"}, "lpop"); break;
+		case resp3::type::blob_string: check_equal(resp.blob_string(), {"3"}, "lpop"); break;
+		case resp3::type::flat_array: check_equal(resp.flat_array(), {"4", "5"}, "lpop"); break;
 		default: {std::cout << "Error." << std::endl;}
 	     }
 	 } break;
 	 case command::exec:
 	 {
 	    check_equal_number(type, resp3::type::flat_array, "exec (type)");
-	    check_equal(std::size(resp.array), 2lu, "exec (size)");
+	    check_equal(std::size(resp.array()), 2lu, "exec (size)");
 
-	    check_equal(resp.array[0].cmd, command::unknown, "transaction ping (command)");
-	    check_equal(resp.array[0].depth, 1, "transaction (depth)");
-	    check_equal(resp.array[0].type, resp3::type::simple_string, "transaction (type)");
-	    check_equal(resp.array[0].expected_size, 1, "transaction (size)");
+	    check_equal(resp.array()[0].cmd, command::unknown, "transaction ping (command)");
+	    check_equal(resp.array()[0].depth, 1, "transaction (depth)");
+	    check_equal(resp.array()[0].type, resp3::type::simple_string, "transaction (type)");
+	    check_equal(resp.array()[0].expected_size, 1, "transaction (size)");
 
-	    check_equal(resp.array[1].cmd, command::unknown, "transaction ping (command)");
-	    check_equal(resp.array[1].depth, 1, "transaction (depth)");
-	    check_equal(resp.array[1].type, resp3::type::simple_string, "transaction (typ)e");
-	    check_equal(resp.array[1].expected_size, 1, "transaction (size)");
+	    check_equal(resp.array()[1].cmd, command::unknown, "transaction ping (command)");
+	    check_equal(resp.array()[1].depth, 1, "transaction (depth)");
+	    check_equal(resp.array()[1].type, resp3::type::simple_string, "transaction (typ)e");
+	    check_equal(resp.array()[1].expected_size, 1, "transaction (size)");
 	 } break;
-	 case command::hgetall: check_equal(resp.flat_map, {"field1", "value1", "field2", "value2"}, "hgetall (value)"); break;
-	 case command::smembers: check_equal(resp.flat_set, {"1", "2", "3"}, "smembers (value)"); break;
+	 case command::hgetall: check_equal(resp.flat_map(), {"field1", "value1", "field2", "value2"}, "hgetall (value)"); break;
+	 case command::smembers: check_equal(resp.flat_set(), {"1", "2", "3"}, "smembers (value)"); break;
 	 default: { std::cout << "Error: " << type << " " << cmd << std::endl; }
       }
 
-      resp.blob_string.clear();
-      resp.flat_push.clear();
-      resp.flat_map.clear();
-      resp.flat_set.clear();
-      resp.array.clear();
+      resp.blob_string().clear();
+      resp.flat_push().clear();
+      resp.flat_map().clear();
+      resp.flat_set().clear();
+      resp.array().clear();
    }
 }
 
@@ -236,49 +236,49 @@ test_list(net::ip::tcp::resolver::results_type const& results)
    }
 
    {  // flushall
-      resp3::simple_string buffer;
+      resp3::simple_string_type buffer;
       resp3::simple_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, {"OK"}, "flushall");
    }
 
    {  // rpush
-      resp3::number buffer;
+      resp3::number_type buffer;
       resp3::number_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, (long long int)6, "rpush");
    }
 
    {  // lrange
-      resp3::flat_array_int buffer;
+      resp3::flat_array_int_type buffer;
       resp3::basic_flat_array_adapter<int> res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, list, "lrange-1");
    }
 
    {  // lrange
-      resp3::flat_array_int buffer;
+      resp3::flat_array_int_type buffer;
       resp3::basic_flat_array_adapter<int> res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, std::vector<int>{3, 4, 5}, "lrange-2");
    }
 
    {  // ltrim
-      resp3::simple_string buffer;
+      resp3::simple_string_type buffer;
       resp3::simple_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, {"OK"}, "ltrim");
    }
 
    {  // lpop. Why a blob string instead of a number?
-      resp3::blob_string buffer;
+      resp3::blob_string_type buffer;
       resp3::blob_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, {"3"}, "lpop");
    }
 
    {  // quit
-      resp3::simple_string buffer;
+      resp3::simple_string_type buffer;
       resp3::simple_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, {"OK"}, "quit");
@@ -288,7 +288,7 @@ test_list(net::ip::tcp::resolver::results_type const& results)
 net::awaitable<void>
 test_set(net::ip::tcp::resolver::results_type const& results)
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    auto ex = co_await this_coro::executor;
 
    // Tests whether the parser can handle payloads that contain the separator.
@@ -322,49 +322,49 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    }
 
    {  // set
-      resp3::simple_string buffer;
+      resp3::simple_string_type buffer;
       resp3::simple_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, {"OK"}, "set1");
    }
 
    {  // get
-      resp3::blob_string buffer;
+      resp3::blob_string_type buffer;
       resp3::blob_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, test_bulk1, "get1");
    }
 
    {  // set
-      resp3::simple_string buffer;
+      resp3::simple_string_type buffer;
       resp3::simple_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, {"OK"}, "set1");
    }
 
    {  // get
-      resp3::blob_string buffer;
+      resp3::blob_string_type buffer;
       resp3::blob_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, test_bulk2, "get2");
    }
 
    {  // set
-      resp3::simple_string buffer;
+      resp3::simple_string_type buffer;
       resp3::simple_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, {"OK"}, "set3");
    }
 
    {  // get
-      resp3::blob_string buffer;
+      resp3::blob_string_type buffer;
       resp3::blob_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer,  std::string {}, "get3");
    }
 
    {  // quit
-      resp3::simple_string buffer;
+      resp3::simple_string_type buffer;
       resp3::simple_string_adapter res{&buffer};
       co_await async_read_one(socket, buf, res);
       check_equal(buffer, {"OK"}, "quit");
@@ -381,12 +381,12 @@ struct test_handler {
 
 net::awaitable<void> test_simple_string()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    {  // Small string
       std::string buf;
       std::string cmd {"+OK\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::simple_string buffer;
+      resp3::simple_string_type buffer;
       resp3::simple_string_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"OK"}, "simple_string");
@@ -397,7 +397,7 @@ net::awaitable<void> test_simple_string()
       std::string buf;
       std::string cmd {"+\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::simple_string buffer;
+      resp3::simple_string_type buffer;
       resp3::simple_string_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {}, "simple_string (empty)");
@@ -421,12 +421,12 @@ net::awaitable<void> test_simple_string()
 
 net::awaitable<void> test_number()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {  // int
       std::string cmd {":-3\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::number buffer;
+      resp3::number_type buffer;
       resp3::number_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, (long long int)-3, "number (int)");
@@ -435,7 +435,7 @@ net::awaitable<void> test_number()
    {  // unsigned
       std::string cmd {":3\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::number buffer;
+      resp3::number_type buffer;
       resp3::number_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, (long long int)3, "number (unsigned)");
@@ -444,7 +444,7 @@ net::awaitable<void> test_number()
    {  // std::size_t
       std::string cmd {":1111111\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::number buffer;
+      resp3::number_type buffer;
       resp3::number_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, (long long int)1111111, "number (std::size_t)");
@@ -453,12 +453,12 @@ net::awaitable<void> test_number()
 
 net::awaitable<void> test_array()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {  // String
       std::string cmd {"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_array buffer;
+      resp3::flat_array_type buffer;
       resp3::flat_array_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"one", "two", "three"}, "array (dynamic)");
@@ -467,7 +467,7 @@ net::awaitable<void> test_array()
    {  // int
       std::string cmd {"*3\r\n$1\r\n1\r\n$1\r\n2\r\n$1\r\n3\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_array_int buffer;
+      resp3::flat_array_int_type buffer;
       resp3::flat_array_int_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {1, 2, 3}, "array (int)");
@@ -476,7 +476,7 @@ net::awaitable<void> test_array()
    {
       std::string cmd {"*0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_array buffer;
+      resp3::flat_array_type buffer;
       resp3::flat_array_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {}, "array (empty)");
@@ -485,12 +485,12 @@ net::awaitable<void> test_array()
 
 net::awaitable<void> test_blob_string()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {
       std::string cmd {"$2\r\nhh\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_string buffer;
+      resp3::blob_string_type buffer;
       resp3::blob_string_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"hh"}, "blob_string");
@@ -499,7 +499,7 @@ net::awaitable<void> test_blob_string()
    {
       std::string cmd {"$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_string buffer;
+      resp3::blob_string_type buffer;
       resp3::blob_string_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}, "blob_string (with separator)");
@@ -508,7 +508,7 @@ net::awaitable<void> test_blob_string()
    {
       std::string cmd {"$0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_string buffer;
+      resp3::blob_string_type buffer;
       resp3::blob_string_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {}, "blob_string (size 0)");
@@ -517,12 +517,12 @@ net::awaitable<void> test_blob_string()
 
 net::awaitable<void> test_simple_error()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {
       std::string cmd {"-Error\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::simple_error buffer;
+      resp3::simple_error_type buffer;
       resp3::simple_error_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"Error"}, "simple_error (message)");
@@ -531,12 +531,12 @@ net::awaitable<void> test_simple_error()
 
 net::awaitable<void> test_floating_point()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {
       std::string cmd {",1.23\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::doublean buffer;
+      resp3::doublean_type buffer;
       resp3::doublean_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"1.23"}, "double");
@@ -545,7 +545,7 @@ net::awaitable<void> test_floating_point()
    {
       std::string cmd {",inf\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::doublean buffer;
+      resp3::doublean_type buffer;
       resp3::doublean_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"inf"}, "double (inf)");
@@ -554,7 +554,7 @@ net::awaitable<void> test_floating_point()
    {
       std::string cmd {",-inf\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::doublean buffer;
+      resp3::doublean_type buffer;
       resp3::doublean_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"-inf"}, "double (-inf)");
@@ -564,12 +564,12 @@ net::awaitable<void> test_floating_point()
 
 net::awaitable<void> test_boolean()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {
       std::string cmd {"#f\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::boolean buffer;
+      resp3::boolean_type buffer;
       resp3::boolean_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, false, "bool (false)");
@@ -578,7 +578,7 @@ net::awaitable<void> test_boolean()
    {
       std::string cmd {"#t\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::boolean buffer;
+      resp3::boolean_type buffer;
       resp3::boolean_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, true, "bool (true)");
@@ -587,12 +587,12 @@ net::awaitable<void> test_boolean()
 
 net::awaitable<void> test_blob_error()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {
       std::string cmd {"!21\r\nSYNTAX invalid syntax\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_error buffer;
+      resp3::blob_error_type buffer;
       resp3::blob_error_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"SYNTAX invalid syntax"}, "blob_error (message)");
@@ -601,7 +601,7 @@ net::awaitable<void> test_blob_error()
    {
       std::string cmd {"!0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_error buffer;
+      resp3::blob_error_type buffer;
       resp3::blob_error_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {}, "blob_error (empty message)");
@@ -610,12 +610,12 @@ net::awaitable<void> test_blob_error()
 
 net::awaitable<void> test_verbatim_string()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {
       std::string cmd {"=15\r\ntxt:Some string\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::verbatim_string buffer;
+      resp3::verbatim_string_type buffer;
       resp3::verbatim_string_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"txt:Some string"}, "verbatim_string");
@@ -624,7 +624,7 @@ net::awaitable<void> test_verbatim_string()
    {
       std::string cmd {"=0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::verbatim_string buffer;
+      resp3::verbatim_string_type buffer;
       resp3::verbatim_string_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {}, "verbatim_string (empty)");
@@ -633,12 +633,12 @@ net::awaitable<void> test_verbatim_string()
 
 net::awaitable<void> test_set2()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {
       std::string cmd {"~5\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_set buffer;
+      resp3::flat_set_type buffer;
       resp3::flat_set_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"orange", "apple", "one", "two", "three"}, "set");
@@ -647,7 +647,7 @@ net::awaitable<void> test_set2()
    {
       std::string cmd {"~5\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_set buffer;
+      resp3::flat_set_type buffer;
       resp3::flat_set_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"orange", "apple", "one", "two", "three"}, "set (flat)");
@@ -656,7 +656,7 @@ net::awaitable<void> test_set2()
    {
       std::string cmd {"~0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_set buffer;
+      resp3::flat_set_type buffer;
       resp3::flat_set_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {}, "set (empty)");
@@ -665,12 +665,12 @@ net::awaitable<void> test_set2()
 
 net::awaitable<void> test_map()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {
       std::string cmd {"%7\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n6.0.9\r\n$5\r\nproto\r\n:3\r\n$2\r\nid\r\n:203\r\n$4\r\nmode\r\n$10\r\nstandalone\r\n$4\r\nrole\r\n$6\r\nmaster\r\n$7\r\nmodules\r\n*0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_map buffer;
+      resp3::flat_map_type buffer;
       resp3::flat_map_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {"server", "redis", "version", "6.0.9", "proto", "3", "id", "203", "mode", "standalone", "role", "master", "modules"}, "map (flat)");
@@ -679,7 +679,7 @@ net::awaitable<void> test_map()
    {
       std::string cmd {"%0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_map buffer;
+      resp3::flat_map_type buffer;
       resp3::flat_map_adapter res{&buffer};
       co_await async_read_one(ts, buf, res);
       check_equal(buffer, {}, "map (flat - empty)");
@@ -688,24 +688,24 @@ net::awaitable<void> test_map()
 
 net::awaitable<void> test_streamed_string()
 {
-   using namespace aedis::detail;
+   using namespace aedis;
    std::string buf;
    {
       std::string cmd {"$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::streamed_string_part buffer;
+      resp3::streamed_string_part_type buffer;
       resp3::streamed_string_part_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
+      co_await resp3::async_read_one(ts, buf, res);
       check_equal(buffer, {"Hello word"}, "streamed string");
    }
 
    {
       std::string cmd {"$?\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
-      response resp;
+      resp3::response resp;
       auto* adapter = resp.select_adapter(resp3::type::streamed_string_part, command::unknown);
-      co_await async_read_one(ts, buf, *adapter);
-      check_equal(resp.streamed_string_part, {}, "streamed string (empty)");
+      co_await resp3::async_read_one(ts, buf, *adapter);
+      check_equal(resp.streamed_string_part(), {}, "streamed string (empty)");
    }
 }
 

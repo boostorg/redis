@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/detail/parser.hpp>
+#include <aedis/resp3/detail/parser.hpp>
 
-namespace aedis { namespace detail {
+namespace aedis { namespace resp3 { namespace detail {
 
 // Converts a decimal number in ascii format to an integer.
 long long length(char const* p)
@@ -141,4 +141,5 @@ std::size_t parser::advance(char const* data, std::size_t n)
 }
 
 } // detail
+} // resp3
 } // aedis

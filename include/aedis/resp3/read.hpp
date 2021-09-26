@@ -10,16 +10,17 @@
 #include <iostream>
 
 #include <aedis/net.hpp>
-#include <aedis/type.hpp>
 #include <aedis/request.hpp>
 #include <aedis/write.hpp>
 
-#include <aedis/detail/parser.hpp>
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response.hpp>
+#include <aedis/resp3/detail/parser.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 
 #include <boost/asio/yield.hpp>
 
-namespace aedis {
+namespace aedis { namespace resp3 {
 
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
@@ -185,7 +186,7 @@ public:
                   , std::size_t n = 0)
    {
       if (ec) {
-	 self.complete(ec, resp3::type::invalid);
+	 self.complete(ec, type::invalid);
          return;
       }
 
@@ -199,8 +200,8 @@ public:
       }
 
       assert(!std::empty(*buf_));
-      auto const type = resp3::to_type(buf_->front());
-      // TODO: when type = resp3::type::invalid should we report an error or
+      auto const type = to_type(buf_->front());
+      // TODO: when type = type::invalid should we report an error or
       // complete normally and let the caller check whether it is invalid.
       self.complete(ec, type);
       return;
@@ -221,29 +222,29 @@ auto async_read_type(
 {
    return net::async_compose
       < CompletionToken
-      , void(boost::system::error_code, resp3::type)
+      , void(boost::system::error_code, type)
       >(type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
 }
 
-struct consume_op {
+struct consumer_op {
    net::ip::tcp::socket& socket;
    std::string& buffer;
    std::queue<request>& requests;
    response& resp;
-   resp3::type& m_type;
+   type& m_type;
    net::coroutine& coro;
 
    template <class Self>
    void operator()(
       Self& self,
       boost::system::error_code const& ec = {},
-      resp3::type type = resp3::type::invalid)
+      type t = type::invalid)
    {
       reenter (coro) for (;;)
       {
          yield async_write_some(socket, requests, std::move(self));
          if (ec) {
-            self.complete(ec, resp3::type::invalid);
+            self.complete(ec, type::invalid);
             return;
          }
 
@@ -251,16 +252,16 @@ struct consume_op {
             do {
                yield async_read_type(socket, buffer, std::move(self));
                if (ec) {
-                  self.complete(ec, resp3::type::invalid);
+                  self.complete(ec, type::invalid);
                   return;
                }
 
-               m_type = type;
+               m_type = t;
 
                yield
                {
                   auto cmd = command::unknown;
-                  if (m_type != resp3::type::flat_push)
+                  if (m_type != type::flat_push)
                      cmd = requests.front().commands.front();
 
                   auto* adapter = resp.select_adapter(m_type, cmd);
@@ -268,13 +269,13 @@ struct consume_op {
                }
 
                if (ec) {
-                  self.complete(ec, resp3::type::invalid);
+                  self.complete(ec, type::invalid);
                   return;
                }
 
                yield self.complete(ec, m_type);
 
-               if (m_type != resp3::type::flat_push)
+               if (m_type != type::flat_push)
                   requests.front().commands.pop();
 
             } while (!std::empty(requests.front().commands));
@@ -284,26 +285,27 @@ struct consume_op {
    }
 };
 
-struct consumer_state {
+struct consumer {
    std::string buffer;
    response resp;
    net::coroutine coro = net::coroutine();
-   resp3::type type = resp3::type::invalid;
+   type t = type::invalid;
+
+   template<class CompletionToken>
+   auto async_consume(
+      net::ip::tcp::socket& socket,
+      std::queue<request>& requests,
+      response& resp,
+      CompletionToken&& token)
+   {
+     return net::async_compose<
+	CompletionToken,
+	void(boost::system::error_code, type)>(
+	   consumer_op{socket, buffer, requests, resp, t, coro}, token, socket);
+   }
 };
 
-template<class CompletionToken>
-auto async_consume(
-   net::ip::tcp::socket& socket,
-   std::queue<request>& requests,
-   response& resp,
-   consumer_state& cs,
-   CompletionToken&& token)
-{
-  return net::async_compose<
-     CompletionToken,
-     void(boost::system::error_code, resp3::type)>(
-        consume_op{socket, cs.buffer, requests, resp, cs.type, cs.coro}, token, socket);
-}
-
+} // resp3
 } // aedis
+
 #include <boost/asio/unyield.hpp>

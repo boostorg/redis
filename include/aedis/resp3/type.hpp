@@ -11,7 +11,8 @@
 #include <vector>
 #include <string>
 
-#include "command.hpp"
+// FIXME: We shouldn't need this header here.
+#include <aedis/command.hpp>
 
 namespace aedis { namespace resp3 {
 
@@ -42,27 +43,27 @@ template <class T>
 using basic_flat_array = std::vector<T>;
 
 /// RESP3 flat array types.
-using flat_array = basic_flat_array<std::string>;
-using flat_array_int = basic_flat_array<int>;
+using flat_array_type = basic_flat_array<std::string>;
+using flat_array_int_type = basic_flat_array<int>;
 
-using flat_push = std::vector<std::string>;
+using flat_push_type = std::vector<std::string>;
 
 /// RESP3 map type.
-using flat_map = std::vector<std::string>;
+using flat_map_type = std::vector<std::string>;
 
 /// RESP3 set type.
-using flat_set = std::vector<std::string>;
+using flat_set_type = std::vector<std::string>;
 
-using number = long long int;
-using boolean = bool;
-using doublean = std::string;
-using blob_string = std::string;
-using blob_error = std::string;
-using simple_string = std::string;
-using simple_error = std::string;
-using big_number = std::string;
-using verbatim_string = std::string;
-using streamed_string_part = std::string;
+using number_type = long long int;
+using boolean_type = bool;
+using doublean_type = std::string;
+using blob_string_type = std::string;
+using blob_error_type = std::string;
+using simple_string_type = std::string;
+using simple_error_type = std::string;
+using big_number_type = std::string;
+using verbatim_string_type = std::string;
+using streamed_string_part_type = std::string;
 
 struct node {
    int depth;
@@ -72,7 +73,7 @@ struct node {
    std::vector<std::string> value;
 };
 
-using array = std::vector<node>;
+using array_type = std::vector<node>;
 
 } // resp3
 } // aedis

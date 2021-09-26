@@ -7,19 +7,18 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
-#include <aedis/resp3/adapter_utils.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis { namespace resp3 {
 
 struct blob_string_adapter : public response_adapter_base {
-   resp3::blob_string* result = nullptr;
+   blob_string_type* result = nullptr;
 
-   blob_string_adapter(resp3::blob_string* p) : result(p) {}
+   blob_string_adapter(blob_string_type* p) : result(p) {}
 
    void on_blob_string(std::string_view s) override
-      { resp3::from_string_view(s, *result); }
+      { from_string_view(s, *result); }
 };
 
 } // resp3

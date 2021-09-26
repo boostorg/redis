@@ -7,16 +7,16 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 #include <aedis/resp3/adapter_utils.hpp>
 
 namespace aedis { namespace resp3 {
 
 struct verbatim_string_adapter : public response_adapter_base {
-   verbatim_string* result = nullptr;
+   verbatim_string_type* result = nullptr;
 
-   verbatim_string_adapter(verbatim_string* p) : result(p) {}
+   verbatim_string_adapter(verbatim_string_type* p) : result(p) {}
 
    void on_verbatim_string(std::string_view s) override
       { from_string_view(s, *result); }

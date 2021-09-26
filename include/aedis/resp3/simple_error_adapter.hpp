@@ -7,15 +7,15 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis { namespace resp3 {
 
 struct simple_error_adapter : public response_adapter_base {
-   resp3::simple_error* result = nullptr;
+   simple_error_type* result = nullptr;
 
-   simple_error_adapter(resp3::simple_error* p) : result(p) {}
+   simple_error_adapter(simple_error_type* p) : result(p) {}
 
    void on_simple_error(std::string_view s) override
       { *result = s; }

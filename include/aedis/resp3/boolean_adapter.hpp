@@ -7,15 +7,15 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis { namespace resp3 {
 
 struct boolean_adapter : public response_adapter_base {
-   boolean* result = nullptr;
+   boolean_type* result = nullptr;
 
-   boolean_adapter(boolean* p) : result(p) {}
+   boolean_adapter(boolean_type* p) : result(p) {}
 
    void on_bool(std::string_view s) override
    {

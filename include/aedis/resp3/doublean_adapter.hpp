@@ -7,15 +7,15 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis { namespace resp3 {
 
 struct doublean_adapter : public response_adapter_base {
-   doublean* result = nullptr;
+   doublean_type* result = nullptr;
 
-   doublean_adapter(doublean* p) : result(p) {}
+   doublean_adapter(doublean_type* p) : result(p) {}
 
    void on_double(std::string_view s) override
       { *result = s; }

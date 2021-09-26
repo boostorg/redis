@@ -7,16 +7,15 @@
 
 #pragma once
 
-#include <aedis/type.hpp>
-#include <aedis/response_adapter_base.hpp>
-#include <aedis/resp3/adapter_utils.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis { namespace resp3 {
 
 struct simple_string_adapter : public response_adapter_base {
-   simple_string* result = nullptr;
+   simple_string_type* result = nullptr;
 
-   simple_string_adapter(simple_string* p) : result(p) {}
+   simple_string_adapter(simple_string_type* p) : result(p) {}
 
    void on_simple_string(std::string_view s) override
       { *result = s; }

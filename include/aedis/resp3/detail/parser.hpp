@@ -8,10 +8,9 @@
 #pragma once
 
 #include <string_view>
+#include <aedis/resp3/response_adapter_base.hpp>
 
-#include <aedis/response_adapter_base.hpp>
-
-namespace aedis { namespace detail {
+namespace aedis { namespace resp3 { namespace detail {
 
 // resp3 parser.
 class parser {
@@ -62,4 +61,5 @@ public:
 };
 
 } // detail
+} // resp3
 } // aedis

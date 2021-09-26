@@ -5,7 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/type.hpp>
+#include <aedis/resp3/type.hpp>
 
 #include <cassert>
 

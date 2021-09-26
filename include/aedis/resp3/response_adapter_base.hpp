@@ -9,7 +9,7 @@
 
 #include <string_view>
 
-namespace aedis {
+namespace aedis { namespace resp3 {
 
 struct response_adapter_base {
    virtual void pop() {}
@@ -32,4 +32,5 @@ struct response_adapter_base {
    virtual ~response_adapter_base() {}
 };
 
+} // resp3
 } // aedis
