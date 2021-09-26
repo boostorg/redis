@@ -9,27 +9,23 @@
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
+#include <aedis/resp3/detail/adapter_utils.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
-struct flat_map_adapter : response_adapter_base {
-   flat_map_type* result = nullptr;
+struct flat_set_adapter : response_adapter_base {
+   flat_set_type* result = nullptr;
 
-   flat_map_adapter(flat_map_type* p) : result(p) {}
+   flat_set_adapter(flat_set_type* p) : result(p) {}
 
    void add(std::string_view s = {})
    {
       std::string r;
-      r = s;
+      from_string_view(s, r);
       result->emplace_back(std::move(r));
    }
 
-   void select_map(int n) override { }
-
-   // We also have to enable arrays, the hello command for example
-   // returns a map that has an embeded array.
-   // NOTE: Remove this and use map for hello intead of flat_map.
-   void select_array(int n) override { }
+   void select_set(int n) override { }
 
    void on_simple_string(std::string_view s) override { add(s); }
    void on_number(std::string_view s) override { add(s); }
@@ -40,5 +36,6 @@ struct flat_map_adapter : response_adapter_base {
    void on_blob_string(std::string_view s = {}) override { add(s); }
 };
 
+} // detail
 } // resp3
 } // aedis

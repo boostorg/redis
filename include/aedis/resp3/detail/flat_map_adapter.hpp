@@ -8,37 +8,29 @@
 #pragma once
 
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/adapter_utils.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
-template <class T>
-struct basic_flat_array_adapter : response_adapter_base {
-   int i = 0;
-   basic_flat_array<T>* result = nullptr;
+struct flat_map_adapter : response_adapter_base {
+   flat_map_type* result = nullptr;
 
-   basic_flat_array_adapter(basic_flat_array<T>* p) : result(p) {}
+   flat_map_adapter(flat_map_type* p) : result(p) {}
 
    void add(std::string_view s = {})
    {
-      from_string_view(s, result->at(i));
-      ++i;
+      std::string r;
+      r = s;
+      result->emplace_back(std::move(r));
    }
 
-   void select_array(int n) override
-   {
-      i = 0;
-      result->resize(n);
-   }
+   void select_map(int n) override { }
 
-   void select_push(int n) override
-   {
-      i = 0;
-      result->resize(n);
-   }
+   // We also have to enable arrays, the hello command for example
+   // returns a map that has an embeded array.
+   // NOTE: Remove this and use map for hello intead of flat_map.
+   void select_array(int n) override { }
 
-   // TODO: Call vector reserve.
    void on_simple_string(std::string_view s) override { add(s); }
    void on_number(std::string_view s) override { add(s); }
    void on_double(std::string_view s) override { add(s); }
@@ -46,10 +38,8 @@ struct basic_flat_array_adapter : response_adapter_base {
    void on_big_number(std::string_view s) override { add(s); }
    void on_verbatim_string(std::string_view s = {}) override { add(s); }
    void on_blob_string(std::string_view s = {}) override { add(s); }
-   void select_set(int n) override { }
-   void select_map(int n) override { }
-   void on_streamed_string_part(std::string_view s = {}) override { add(s); }
 };
 
+} // detail
 } // resp3
 } // aedis

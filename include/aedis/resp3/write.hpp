@@ -10,12 +10,12 @@
 #include <chrono>
 
 #include <aedis/net.hpp>
-#include <aedis/request.hpp>
+#include <aedis/resp3/request.hpp>
 
 #include <boost/beast/core/stream_traits.hpp>
 #include <boost/asio/yield.hpp>
 
-namespace aedis {
+namespace aedis { namespace resp3 {
 
 bool prepare_next(std::queue<request>& reqs);
 
@@ -107,5 +107,7 @@ async_write_some(
 	token, stream);
 }
 
+} // resp3
 } // aedis
+
 #include <boost/asio/unyield.hpp>

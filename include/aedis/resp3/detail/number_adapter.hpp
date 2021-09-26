@@ -9,17 +9,19 @@
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
+#include <aedis/resp3/detail/adapter_utils.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
-struct simple_string_adapter : public response_adapter_base {
-   simple_string_type* result = nullptr;
+struct number_adapter : public response_adapter_base {
+   number_type* result = nullptr;
 
-   simple_string_adapter(simple_string_type* p) : result(p) {}
+   number_adapter(number_type* p) : result(p) {}
 
-   void on_simple_string(std::string_view s) override
-      { *result = s; }
+   void on_number(std::string_view s) override
+      { from_string_view(s, *result); }
 };
 
+} // detail
 } // resp3
 } // aedis

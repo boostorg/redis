@@ -9,7 +9,7 @@
 
 #include <aedis/resp3/response_adapter_base.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
 struct ignore_adapter : response_adapter_base {
    void on_simple_string(std::string_view s) override {}
@@ -29,5 +29,7 @@ struct ignore_adapter : response_adapter_base {
    void select_push(int n) override {}
    void select_attribute(int n) override {}
 };
+
+} // detail
 } // resp3
 } // aedis

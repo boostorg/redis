@@ -10,7 +10,8 @@
 using namespace aedis;
 
 net::awaitable<void>
-example(net::ip::tcp::socket& socket, std::queue<request>& requests)
+example(net::ip::tcp::socket& socket,
+        std::queue<resp3::request>& requests)
 {
    requests.push({});
    requests.back().hello("3");
@@ -58,7 +59,7 @@ int main()
    net::ip::tcp::socket socket{ioc};
    net::connect(socket, res);
 
-   std::queue<request> requests;
+   std::queue<resp3::request> requests;
    co_spawn(ioc, example(socket, requests), net::detached);
    ioc.run();
 }

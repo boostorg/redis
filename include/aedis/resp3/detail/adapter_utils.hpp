@@ -11,7 +11,7 @@
 #include <string_view>
 #include <charconv>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
 template <class T>
 typename std::enable_if<std::is_integral<T>::value, void>::type
@@ -26,5 +26,6 @@ inline
 void from_string_view(std::string_view s, std::string& r)
    { r = s; }
 
+} // detail
 } // resp3
 } // aedis

@@ -9,18 +9,18 @@
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
-#include <aedis/resp3/adapter_utils.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
-struct big_number_adapter : public response_adapter_base {
-   big_number_type* result = nullptr;
+struct doublean_adapter : public response_adapter_base {
+   doublean_type* result = nullptr;
 
-   big_number_adapter(big_number_type* p) : result(p) {}
+   doublean_adapter(doublean_type* p) : result(p) {}
 
-   void on_big_number(std::string_view s) override
-      { from_string_view(s, *result); }
+   void on_double(std::string_view s) override
+      { *result = s; }
 };
 
+} // detail
 } // resp3
 } // aedis

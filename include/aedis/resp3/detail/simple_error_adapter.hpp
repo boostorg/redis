@@ -10,19 +10,17 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
-struct boolean_adapter : public response_adapter_base {
-   boolean_type* result = nullptr;
+struct simple_error_adapter : public response_adapter_base {
+   simple_error_type* result = nullptr;
 
-   boolean_adapter(boolean_type* p) : result(p) {}
+   simple_error_adapter(simple_error_type* p) : result(p) {}
 
-   void on_bool(std::string_view s) override
-   {
-      assert(std::ssize(s) == 1);
-      *result = s[0] == 't';
-   }
+   void on_simple_error(std::string_view s) override
+      { *result = s; }
 };
 
+} // detail
 } // resp3
 } // aedis

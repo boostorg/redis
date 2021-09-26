@@ -9,18 +9,21 @@
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
-#include <aedis/resp3/adapter_utils.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
-struct number_adapter : public response_adapter_base {
-   number_type* result = nullptr;
+struct boolean_adapter : public response_adapter_base {
+   boolean_type* result = nullptr;
 
-   number_adapter(number_type* p) : result(p) {}
+   boolean_adapter(boolean_type* p) : result(p) {}
 
-   void on_number(std::string_view s) override
-      { from_string_view(s, *result); }
+   void on_bool(std::string_view s) override
+   {
+      assert(std::ssize(s) == 1);
+      *result = s[0] == 't';
+   }
 };
 
+} // detail
 } // resp3
 } // aedis

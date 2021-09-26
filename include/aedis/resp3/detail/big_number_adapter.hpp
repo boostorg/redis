@@ -9,18 +9,19 @@
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
-#include <aedis/resp3/adapter_utils.hpp>
+#include <aedis/resp3/detail/adapter_utils.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
-struct blob_error_adapter : public response_adapter_base {
-   blob_error_type* result = nullptr;
+struct big_number_adapter : public response_adapter_base {
+   big_number_type* result = nullptr;
 
-   blob_error_adapter(blob_error_type* p) : result(p) {}
+   big_number_adapter(big_number_type* p) : result(p) {}
 
-   void on_blob_error(std::string_view s) override
+   void on_big_number(std::string_view s) override
       { from_string_view(s, *result); }
 };
 
+} // detail
 } // resp3
 } // aedis

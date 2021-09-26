@@ -6,9 +6,8 @@
  */
 
 #include <aedis/impl/command.ipp>
-#include <aedis/impl/write.ipp>
-#include <aedis/impl/request.ipp>
-
+#include <aedis/resp3/impl/write.ipp>
+#include <aedis/resp3/impl/request.ipp>
 #include <aedis/resp3/impl/response.ipp>
 #include <aedis/resp3/impl/type.ipp>
 #include <aedis/resp3/detail/impl/parser.ipp>

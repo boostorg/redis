@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/write.hpp>
+#include <aedis/resp3/write.hpp>
 
-namespace aedis {
+namespace aedis { namespace resp3 {
 
 bool prepare_next(std::queue<request>& reqs)
 {
@@ -24,5 +24,5 @@ bool prepare_next(std::queue<request>& reqs)
    return false;
 }
 
+} // resp3
 } // aedis
-

@@ -10,9 +10,9 @@
 #include <iostream>
 
 #include <aedis/net.hpp>
-#include <aedis/request.hpp>
-#include <aedis/write.hpp>
 
+#include <aedis/resp3/write.hpp>
+#include <aedis/resp3/request.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response.hpp>
 #include <aedis/resp3/detail/parser.hpp>

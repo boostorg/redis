@@ -10,7 +10,7 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
 // This response type is able to deal with recursive redis responses
 // as in a transaction for example.
@@ -70,5 +70,6 @@ public:
    void pop() override { --depth_; }
 };
 
+} // detail
 } // resp3
 } // aedis

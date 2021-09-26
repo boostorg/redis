@@ -10,7 +10,7 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
 struct blob_string_adapter : public response_adapter_base {
    blob_string_type* result = nullptr;
@@ -21,5 +21,6 @@ struct blob_string_adapter : public response_adapter_base {
       { from_string_view(s, *result); }
 };
 
+} // detail
 } // resp3
 } // aedis

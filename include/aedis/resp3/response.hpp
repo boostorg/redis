@@ -9,76 +9,76 @@
 
 #include <aedis/command.hpp>
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/adapter_utils.hpp>
-#include <aedis/resp3/ignore_adapter.hpp>
-#include <aedis/resp3/array_adapter.hpp>
-#include <aedis/resp3/flat_map_adapter.hpp>
-#include <aedis/resp3/flat_set_adapter.hpp>
-#include <aedis/resp3/basic_flat_array_adapter.hpp>
-#include <aedis/resp3/number_adapter.hpp>
-#include <aedis/resp3/blob_string_adapter.hpp>
-#include <aedis/resp3/simple_string_adapter.hpp>
-#include <aedis/resp3/blob_error_adapter.hpp>
-#include <aedis/resp3/simple_error_adapter.hpp>
-#include <aedis/resp3/big_number_adapter.hpp>
-#include <aedis/resp3/doublean_adapter.hpp>
-#include <aedis/resp3/verbatim_string_adapter.hpp>
-#include <aedis/resp3/boolean_adapter.hpp>
-#include <aedis/resp3/streamed_string_part_adapter.hpp>
+#include <aedis/resp3/detail/adapter_utils.hpp>
+#include <aedis/resp3/detail/ignore_adapter.hpp>
+#include <aedis/resp3/detail/array_adapter.hpp>
+#include <aedis/resp3/detail/flat_map_adapter.hpp>
+#include <aedis/resp3/detail/flat_set_adapter.hpp>
+#include <aedis/resp3/detail/basic_flat_array_adapter.hpp>
+#include <aedis/resp3/detail/number_adapter.hpp>
+#include <aedis/resp3/detail/blob_string_adapter.hpp>
+#include <aedis/resp3/detail/simple_string_adapter.hpp>
+#include <aedis/resp3/detail/blob_error_adapter.hpp>
+#include <aedis/resp3/detail/simple_error_adapter.hpp>
+#include <aedis/resp3/detail/big_number_adapter.hpp>
+#include <aedis/resp3/detail/doublean_adapter.hpp>
+#include <aedis/resp3/detail/verbatim_string_adapter.hpp>
+#include <aedis/resp3/detail/boolean_adapter.hpp>
+#include <aedis/resp3/detail/streamed_string_part_adapter.hpp>
 
 namespace aedis { namespace resp3 {
 
 class response {
 private:
    array_type array_;
-   array_adapter array_adapter_{&array_};
+   detail::array_adapter array_adapter_{&array_};
 
    flat_array_type flat_array_;
-   basic_flat_array_adapter<std::string> flat_array_adapter_{&flat_array_};
+   detail::basic_flat_array_adapter<std::string> flat_array_adapter_{&flat_array_};
 
    flat_array_type flat_attribute_;
-   basic_flat_array_adapter<std::string> flat_attribute_adapter_{&flat_attribute_};
+   detail::basic_flat_array_adapter<std::string> flat_attribute_adapter_{&flat_attribute_};
 
    flat_array_type flat_push_;
-   basic_flat_array_adapter<std::string> flat_push_adapter_{&flat_push_};
+   detail::basic_flat_array_adapter<std::string> flat_push_adapter_{&flat_push_};
 
    big_number_type big_number_;
-   big_number_adapter big_number_adapter_{&big_number_};
+   detail::big_number_adapter big_number_adapter_{&big_number_};
 
    blob_error_type blob_error_;
-   blob_error_adapter blob_error_adapter_{&blob_error_};
+   detail::blob_error_adapter blob_error_adapter_{&blob_error_};
 
    blob_string_type blob_string_;
-   blob_string_adapter blob_string_adapter_{&blob_string_};
+   detail::blob_string_adapter blob_string_adapter_{&blob_string_};
 
    boolean_type boolean_;
-   boolean_adapter boolean_adapter_{&boolean_};
+   detail::boolean_adapter boolean_adapter_{&boolean_};
 
    doublean_type doublean_;
-   doublean_adapter doublean_adapter_{&doublean_};
+   detail::doublean_adapter doublean_adapter_{&doublean_};
 
    flat_map_type flat_map_;
-   flat_map_adapter flat_map_adapter_{&flat_map_};
+   detail::flat_map_adapter flat_map_adapter_{&flat_map_};
 
    flat_set_type flat_set_;
-   flat_set_adapter flat_set_adapter_{&flat_set_};
+   detail::flat_set_adapter flat_set_adapter_{&flat_set_};
 
    number_type number_;
-   number_adapter number_adapter_{&number_};
+   detail::number_adapter number_adapter_{&number_};
 
    simple_error_type simple_error_;
-   simple_error_adapter simple_error_adapter_{&simple_error_};
+   detail::simple_error_adapter simple_error_adapter_{&simple_error_};
 
    simple_string_type simple_string_;
-   simple_string_adapter simple_string_adapter_{&simple_string_};
+   detail::simple_string_adapter simple_string_adapter_{&simple_string_};
 
    streamed_string_part_type streamed_string_part_;
-   streamed_string_part_adapter streamed_string_part_adapter_{&streamed_string_part_};
+   detail::streamed_string_part_adapter streamed_string_part_adapter_{&streamed_string_part_};
 
    verbatim_string_type verbatim_string_;
-   verbatim_string_adapter verbatim_string_adapter_{&verbatim_string_};
+   detail::verbatim_string_adapter verbatim_string_adapter_{&verbatim_string_};
 
-   ignore_adapter ignore_adapter_;
+   detail::ignore_adapter ignore_adapter_;
 
 public:
    response_adapter_base* select_adapter(resp3::type type, command cmd);

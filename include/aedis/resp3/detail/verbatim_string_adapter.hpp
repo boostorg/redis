@@ -9,17 +9,19 @@
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
+#include <aedis/resp3/detail/adapter_utils.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis { namespace resp3 { namespace detail {
 
-struct doublean_adapter : public response_adapter_base {
-   doublean_type* result = nullptr;
+struct verbatim_string_adapter : public response_adapter_base {
+   verbatim_string_type* result = nullptr;
 
-   doublean_adapter(doublean_type* p) : result(p) {}
+   verbatim_string_adapter(verbatim_string_type* p) : result(p) {}
 
-   void on_double(std::string_view s) override
-      { *result = s; }
+   void on_verbatim_string(std::string_view s) override
+      { from_string_view(s, *result); }
 };
 
+} // detail
 } // resp3
 } // aedis
