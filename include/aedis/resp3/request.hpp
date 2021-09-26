@@ -15,6 +15,7 @@
 #include <functional>
 #include <type_traits>
 #include <string_view>
+#include <utility>
 
 #include <aedis/command.hpp>
 
@@ -117,14 +118,14 @@ void assemble(std::string& ret, std::string_view cmd, std::string_view key);
 class request {
 public:
    std::string payload;
-   std::queue<command> commands;
+   std::queue<std::pair<command, std::string>> ids;
    bool sent = false;
 
 public:
    /// Return the size of the pipeline. i.e. how many commands it
-   /// contians.
+   /// contains.
    auto size() const noexcept
-      { return std::size(commands); }
+      { return std::size(ids); }
 
    auto payload_size() const noexcept
       { return std::size(payload); }
@@ -136,72 +137,72 @@ public:
    void clear()
    {
       payload.clear();
-      commands = {};
+      ids = {};
    }
 
    void ping()
    {
       assemble(payload, "PING");
-      commands.push(command::ping);
+      ids.push(std::make_pair(command::ping, std::string{}));
    }
 
    void quit()
    {
       assemble(payload, "QUIT");
-      commands.push(command::quit);
+      ids.push(std::make_pair(command::quit, std::string{}));
    }
 
    void multi()
    {
       assemble(payload, "MULTI");
-      commands.push(command::multi);
+      ids.push(std::make_pair(command::multi, std::string{}));
    }
 
    void exec()
    {
       assemble(payload, "EXEC");
-      commands.push(command::exec);
+      ids.push(std::make_pair(command::exec, std::string{}));
    }
 
    void incr(std::string_view key)
    {
       assemble(payload, "INCR", key);
-      commands.push(command::incr);
+      ids.push(std::make_pair(command::incr, std::string{key}));
    }
 
    /// Adds auth to the request, see https://redis.io/commands/bgrewriteaof
    void auth(std::string_view pwd)
    {
       assemble(payload, "AUTH", pwd);
-      commands.push(command::auth);
+      ids.push(std::make_pair(command::auth, std::string{}));
    }
 
    /// Adds bgrewriteaof to the request, see https://redis.io/commands/bgrewriteaof
    void bgrewriteaof()
    {
       assemble(payload, "BGREWRITEAOF");
-      commands.push(command::bgrewriteaof);
+      ids.push(std::make_pair(command::bgrewriteaof, std::string{}));
    }
 
    /// Adds role to the request, see https://redis.io/commands/role
    void role()
    {
       assemble(payload, "ROLE");
-      commands.push(command::role);
+      ids.push(std::make_pair(command::role, std::string{}));
    }
 
    /// Adds bgsave to the request, see //https://redis.io/commands/bgsave
    void bgsave()
    {
       assemble(payload, "BGSAVE");
-      commands.push(command::bgsave);
+      ids.push(std::make_pair(command::bgsave, std::string{}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/flushall
    void flushall()
    {
       assemble(payload, "FLUSHALL");
-      commands.push(command::flushall);
+      ids.push(std::make_pair(command::flushall, std::string{}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/lpop
@@ -219,7 +220,7 @@ public:
       //   std::cend(par));
       //}
 
-      commands.push(command::lpop);
+      ids.push(std::make_pair(command::lpop, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/subscribe
@@ -240,21 +241,21 @@ public:
    void get(std::string_view key)
    {
       assemble(payload, "GET", key);
-      commands.push(command::get);
+      ids.push(std::make_pair(command::get, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/keys
    void keys(std::string_view pattern)
    {
       assemble(payload, "KEYS", pattern);
-      commands.push(command::keys);
+      ids.push(std::make_pair(command::keys, std::string{}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/hello
    void hello(std::string_view version = "3")
    {
       assemble(payload, "HELLO", version);
-      commands.push(command::hello);
+      ids.push(std::make_pair(command::hello, std::string{}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/sentinel
@@ -262,7 +263,7 @@ public:
    {
       auto par = {name};
       assemble(payload, "SENTINEL", {arg}, std::cbegin(par), std::cend(par));
-      commands.push(command::sentinel);
+      ids.push(std::make_pair(command::sentinel, std::string{}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/append
@@ -270,7 +271,7 @@ public:
    {
       auto par = {msg};
       assemble(payload, "APPEND", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::append);
+      ids.push(std::make_pair(command::append, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/bitcount
@@ -285,7 +286,7 @@ public:
    		    , {key}
    		    , std::cbegin(par)
    		    , std::cend(par));
-      commands.push(command::bitcount);
+      ids.push(std::make_pair(command::bitcount, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/rpush
@@ -293,7 +294,7 @@ public:
    void rpush(std::string_view key, Iter begin, Iter end)
    {
       assemble(payload, "RPUSH", {key}, begin, end);
-      commands.push(command::rpush);
+      ids.push(std::make_pair(command::rpush, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/rpush
@@ -317,7 +318,7 @@ public:
    void lpush(std::string_view key, Iter begin, Iter end)
    {
       assemble(payload, "LPUSH", {key}, begin, end);
-      commands.push(command::lpush);
+      ids.push(std::make_pair(command::lpush, std::string{key}));
    }
    
    void psubscribe( std::initializer_list<std::string_view> l)
@@ -331,7 +332,7 @@ public:
    {
       auto par = {msg};
       assemble(payload, "PUBLISH", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::publish);
+      ids.push(std::make_pair(command::publish, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/set
@@ -339,7 +340,7 @@ public:
             std::initializer_list<std::string_view> args)
    {
       assemble(payload, "SET", {key}, std::cbegin(args), std::cend(args));
-      commands.push(command::set);
+      ids.push(std::make_pair(command::set, std::string{key}));
    }
 
    // TODO: Find a way to assert the value type is a pair.
@@ -352,7 +353,7 @@ public:
       using std::cbegin;
       using std::cend;
       assemble(payload, "HSET", {key}, std::cbegin(r), std::cend(r), 2);
-      commands.push(command::hset);
+      ids.push(std::make_pair(command::hset, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/hincrby
@@ -361,7 +362,7 @@ public:
       auto by_str = std::to_string(by);
       std::initializer_list<std::string_view> par {field, by_str};
       assemble(payload, "HINCRBY", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::hincrby);
+      ids.push(std::make_pair(command::hincrby, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/hkeys
@@ -369,28 +370,28 @@ public:
    {
       auto par = {""};
       assemble(payload, "HKEYS", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::hkeys);
+      ids.push(std::make_pair(command::hkeys, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/hlen
    void hlen(std::string_view key)
    {
       assemble(payload, "HLEN", {key});
-      commands.push(command::hlen);
+      ids.push(std::make_pair(command::hlen, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/hgetall
    void hgetall(std::string_view key)
    {
       assemble(payload, "HGETALL", {key});
-      commands.push(command::hgetall);
+      ids.push(std::make_pair(command::hgetall, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/hvals
    void hvals( std::string_view key)
    {
       assemble(payload, "HVALS", {key});
-      commands.push(command::hvals);
+      ids.push(std::make_pair(command::hvals, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/hget
@@ -398,7 +399,7 @@ public:
    {
       auto par = {field};
       assemble(payload, "HGET", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::hget);
+      ids.push(std::make_pair(command::hget, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/hmget
@@ -412,7 +413,7 @@ public:
    		    , std::cbegin(fields)
    		    , std::cend(fields));
 
-      commands.push(command::hmget);
+      ids.push(std::make_pair(command::hmget, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/hdel
@@ -427,7 +428,7 @@ public:
 	 std::cbegin(fields),
 	 std::cend(fields));
 
-      commands.push(command::hdel);
+      ids.push(std::make_pair(command::hdel, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/expire
@@ -436,7 +437,7 @@ public:
       auto const str = std::to_string(secs);
       std::initializer_list<std::string_view> par {str};
       assemble(payload, "EXPIRE", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::expire);
+      ids.push(std::make_pair(command::expire, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/zadd
@@ -445,15 +446,15 @@ public:
       auto const score_str = std::to_string(score);
       std::initializer_list<std::string_view> par = {score_str, value};
       assemble(payload, "ZADD", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::zadd);
+      ids.push(std::make_pair(command::zadd, std::string{key}));
    }
    
-   /// Adds ping to the request, see https://redis.io/commands/zadd
+   /// Adds zadd to the request, see https://redis.io/commands/zadd
    template <class Range>
    void zadd(std::initializer_list<std::string_view> key, Range const& r)
    {
       assemble(payload, "ZADD", key, std::cbegin(r), std::cend(r), 2);
-      commands.push(command::zadd);
+      ids.push(std::make_pair(command::zadd, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/zrange
@@ -464,7 +465,7 @@ public:
       std::initializer_list<std::string_view> par {min_str, max_str};
 
       assemble(payload, "ZRANGE", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::zrange);
+      ids.push(std::make_pair(command::zrange, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/zrangebyscore
@@ -477,7 +478,7 @@ public:
       auto const min_str = std::to_string(min);
       auto par = {min_str , max_str};
       assemble(payload, "ZRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::zrangebyscore);
+      ids.push(std::make_pair(command::zrangebyscore, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/zremrangebyscore
@@ -489,7 +490,7 @@ public:
    {
       auto par = {min, max};
       assemble(payload, "ZREMRANGEBYSCORE", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::zremrangebyscore);
+      ids.push(std::make_pair(command::zremrangebyscore, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/lrange
@@ -499,7 +500,7 @@ public:
       auto const max_str = std::to_string(max);
       std::initializer_list<std::string_view> par {min_str, max_str};
       assemble(payload, "LRANGE", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::lrange);
+      ids.push(std::make_pair(command::lrange, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/ltrim
@@ -509,7 +510,7 @@ public:
       auto const max_str = std::to_string(max);
       std::initializer_list<std::string_view> par {min_str, max_str};
       assemble(payload, "LTRIM", {key}, std::cbegin(par), std::cend(par));
-      commands.push(command::ltrim);
+      ids.push(std::make_pair(command::ltrim, std::string{key}));
    }
    
    // TODO: Overload for vector del.
@@ -517,14 +518,14 @@ public:
    void del(std::string_view key)
    {
       assemble(payload, "DEL", key);
-      commands.push(command::del);
+      ids.push(std::make_pair(command::del, std::string{key}));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/llen
    void llen(std::string_view key)
    {
       assemble(payload, "LLEN", key);
-      commands.push(command::llen);
+      ids.push(std::make_pair(command::llen, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/sadd
@@ -532,7 +533,7 @@ public:
    void sadd(std::string_view key, Iter begin, Iter end)
    {
       assemble(payload, "SADD", {key}, begin, end);
-      commands.push(command::sadd);
+      ids.push(std::make_pair(command::sadd, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/sadd
@@ -548,28 +549,28 @@ public:
    void smembers(std::string_view key)
    {
       assemble(payload, "SMEMBERS", key);
-      commands.push(command::smembers);
+      ids.push(std::make_pair(command::smembers, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/scard
    void scard(std::string_view key)
    {
       assemble(payload, "SCARD", key);
-      commands.push(command::scard);
+      ids.push(std::make_pair(command::scard, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/scard
    void scard(std::string_view key, std::initializer_list<std::string_view> l)
    {
       assemble(payload, "SDIFF", {key}, std::cbegin(l), std::cend(l));
-      commands.push(command::scard);
+      ids.push(std::make_pair(command::sdiff, std::string{key}));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/client_id
    void client_id(std::string_view parameters)
    {
       assemble(payload, "CLIENT ID", {parameters});
-      commands.push(command::client_id);
+      ids.push(std::make_pair(command::client_id, std::string{}));
    }
 };
 

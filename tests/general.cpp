@@ -138,9 +138,9 @@ test_general(net::ip::tcp::resolver::results_type const& res)
          continue;
       }
 
-      auto const cmd = requests.front().commands.front();
+      auto const id = requests.front().ids.front();
 
-      switch (cmd) {
+      switch (id.first) {
 	 case command::hello:
 	 {
 	    prepare_next(requests);
@@ -196,7 +196,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 } break;
 	 case command::hgetall: check_equal(resp.flat_map(), {"field1", "value1", "field2", "value2"}, "hgetall (value)"); break;
 	 case command::smembers: check_equal(resp.flat_set(), {"1", "2", "3"}, "smembers (value)"); break;
-	 default: { std::cout << "Error: " << type << " " << cmd << std::endl; }
+	 default: { std::cout << "Error: " << type << " " << id.first << std::endl; }
       }
 
       resp.blob_string().clear();
@@ -703,7 +703,7 @@ net::awaitable<void> test_streamed_string()
       std::string cmd {"$?\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
       resp3::response resp;
-      auto* adapter = resp.select_adapter(resp3::type::streamed_string_part, command::unknown);
+      auto* adapter = resp.select_adapter(resp3::type::streamed_string_part, command::unknown, {});
       co_await resp3::async_read_one(ts, buf, *adapter);
       check_equal(resp.streamed_string_part(), {}, "streamed string (empty)");
    }

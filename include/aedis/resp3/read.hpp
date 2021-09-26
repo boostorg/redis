@@ -260,12 +260,14 @@ struct consumer_op {
 
                yield
                {
-                  auto cmd = command::unknown;
-                  if (m_type != type::flat_push)
-                     cmd = requests.front().commands.front();
-
-                  auto* adapter = resp.select_adapter(m_type, cmd);
-                  async_read_one(socket, buffer, *adapter, std::move(self));
+                  if (m_type == type::flat_push) {
+		     auto* adapter = resp.select_adapter(m_type, command::unknown, {});
+		     async_read_one(socket, buffer, *adapter, std::move(self));
+		  } else {
+		     auto const& pair = requests.front().ids.front();
+		     auto* adapter = resp.select_adapter(m_type, pair.first, pair.second);
+		     async_read_one(socket, buffer, *adapter, std::move(self));
+		  }
                }
 
                if (ec) {
@@ -276,9 +278,9 @@ struct consumer_op {
                yield self.complete(ec, m_type);
 
                if (m_type != type::flat_push)
-                  requests.front().commands.pop();
+                  requests.front().ids.pop();
 
-            } while (!std::empty(requests.front().commands));
+            } while (!std::empty(requests.front().ids));
             requests.pop();
          } while (std::empty(requests));
       }

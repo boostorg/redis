@@ -61,6 +61,7 @@ enum class command
 , rpush
 , sadd
 , scard
+, sdiff
 , sentinel
 , set
 , smembers

@@ -10,7 +10,8 @@
 
 namespace aedis { namespace resp3 {
 
-response_adapter_base* response::select_adapter(type type, command cmd)
+response_adapter_base*
+response::select_adapter(type type, command cmd, std::string const&)
 {
    if (type == type::flat_push)
      return &flat_push_adapter_;

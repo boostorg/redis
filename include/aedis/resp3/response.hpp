@@ -81,7 +81,8 @@ private:
    detail::ignore_adapter ignore_adapter_;
 
 public:
-   response_adapter_base* select_adapter(resp3::type type, command cmd);
+   response_adapter_base*
+   select_adapter(resp3::type type, command cmd, std::string const& key);
 
    auto const& array() const noexcept {return array_;}
    auto& array() noexcept {return array_;}
