@@ -66,10 +66,13 @@ using verbatim_string_type = std::string;
 using streamed_string_part_type = std::string;
 
 struct node {
-   int depth;
-   resp3::type type;
-   int expected_size = -1;
-   command cmd = command::unknown;
+   struct description {
+      int size;
+      int depth;
+      type data_type;
+   };
+
+   description desc;
    std::vector<std::string> value;
 };
 

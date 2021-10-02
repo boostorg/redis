@@ -10,20 +10,21 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
 
-namespace aedis { namespace resp3 { namespace detail {
+namespace aedis {
+namespace resp3 {
+namespace detail {
 
 // This response type is able to deal with recursive redis responses
 // as in a transaction for example.
 class array_adapter: public response_adapter_base {
 public:
    array_type* result;
-
    array_adapter(array_type* p) : result(p) {}
 
 private:
    int depth_ = 0;
 
-   void add_aggregate(int n, type type)
+   void add_aggregate(int n, type t)
    {
       if (depth_ == 0) {
 	 result->reserve(n);
@@ -31,17 +32,22 @@ private:
 	 return;
       }
       
-      result->emplace_back(depth_, type, n);
+      result->push_back({{n, depth_, t}, {}});
       result->back().value.reserve(n);
       ++depth_;
    }
 
-   void add(std::string_view s, type type)
+   void add(std::string_view s, type t)
    {
+      node::description desc;
+      desc.size = 1;
+      desc.depth = depth_;
+      desc.data_type = t;
+
       if (std::empty(*result)) {
-	 result->emplace_back(depth_, type, 1, command::unknown, std::vector<std::string>{std::string{s}});
-      } else if (std::ssize(result->back().value) == result->back().expected_size) {
-	 result->emplace_back(depth_, type, 1, command::unknown, std::vector<std::string>{std::string{s}});
+	 result->push_back(node{desc, {std::string{s}}});
+      } else if (std::ssize(result->back().value) == result->back().desc.size) {
+	 result->push_back(node{desc, {std::string{s}}});
       } else {
 	 result->back().value.push_back(std::string{s});
       }

@@ -77,6 +77,7 @@ struct test_general_fill {
       for (auto i = 0; i < 3; ++i) {
 	 p.multi();
 	 p.ping();
+	 p.lrange("a");
 	 p.ping();
 	 // TODO: It looks like we can't publish to a channel we
 	 // are already subscribed to from inside a transaction.
@@ -125,10 +126,10 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 
    int push_counter = 0;
    for (;;) {
-      auto const type =
+      auto const t =
         co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
 
-      if (type == resp3::type::flat_push) {
+      if (t == resp3::type::flat_push) {
 	 switch (push_counter) {
 	    case 0: check_equal(resp.flat_push(), {"subscribe", "channel", "1"}, "push (value1)"); break;
 	    case 1: check_equal(resp.flat_push(), {"message", "channel", "message"}, "push (value2)"); break;
@@ -172,7 +173,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 case command::zrangebyscore: check_equal(resp.flat_array(), {"Marcelo"}, "zrangebyscore"); break;
 	 case command::lpop:
 	 {
-	     switch (type)
+	     switch (t)
 	     {
 		case resp3::type::blob_string: check_equal(resp.blob_string(), {"3"}, "lpop"); break;
 		case resp3::type::flat_array: check_equal(resp.flat_array(), {"4", "5"}, "lpop"); break;
@@ -181,22 +182,25 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 } break;
 	 case command::exec:
 	 {
-	    check_equal_number(type, resp3::type::flat_array, "exec (type)");
-	    check_equal(std::size(resp.array()), 2lu, "exec (size)");
+	    check_equal_number(t, resp3::type::flat_array, "exec (type)");
+	    check_equal_number(std::size(resp.array()), 3lu, "exec (size)");
 
-	    check_equal(resp.array()[0].cmd, command::unknown, "transaction ping (command)");
-	    check_equal(resp.array()[0].depth, 1, "transaction (depth)");
-	    check_equal(resp.array()[0].type, resp3::type::simple_string, "transaction (type)");
-	    check_equal(resp.array()[0].expected_size, 1, "transaction (size)");
+	    check_equal_number(resp.array().at(0).desc.size, 1, "transaction (size)");
+	    check_equal_number(resp.array().at(0).desc.depth, 1, "transaction (depth)");
+	    check_equal_number(resp.array().at(0).desc.data_type, resp3::type::simple_string, "transaction (type)");
 
-	    check_equal(resp.array()[1].cmd, command::unknown, "transaction ping (command)");
-	    check_equal(resp.array()[1].depth, 1, "transaction (depth)");
-	    check_equal(resp.array()[1].type, resp3::type::simple_string, "transaction (typ)e");
-	    check_equal(resp.array()[1].expected_size, 1, "transaction (size)");
+	    check_equal_number(resp.array().at(1).desc.size, 2, "transaction (size)");
+	    check_equal_number(resp.array().at(1).desc.depth, 1, "transaction (depth)");
+	    check_equal_number(resp.array().at(1).desc.data_type, resp3::type::flat_array, "transaction (type)");
+	    check_equal(resp.array().at(1).value, {"4", "5"}, "transaction (value)"); break;
+
+	    check_equal_number(resp.array().at(2).desc.size, 1, "transaction (size)");
+	    check_equal_number(resp.array().at(2).desc.depth, 1, "transaction (depth)");
+	    check_equal_number(resp.array().at(2).desc.data_type, resp3::type::simple_string, "transaction (type)");
 	 } break;
 	 case command::hgetall: check_equal(resp.flat_map(), {"field1", "value1", "field2", "value2"}, "hgetall (value)"); break;
 	 case command::smembers: check_equal(resp.flat_set(), {"1", "2", "3"}, "smembers (value)"); break;
-	 default: { std::cout << "Error: " << type << " " << id.first << std::endl; }
+	 default: { std::cout << "Error: " << t << " " << id.first << std::endl; }
       }
 
       resp.blob_string().clear();
