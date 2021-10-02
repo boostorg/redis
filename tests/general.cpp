@@ -183,20 +183,26 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 case command::exec:
 	 {
 	    check_equal_number(t, resp3::type::flat_array, "exec (type)");
-	    check_equal_number(std::size(resp.array()), 3lu, "exec (size)");
 
-	    check_equal_number(resp.array().at(0).desc.size, 1, "transaction (size)");
-	    check_equal_number(resp.array().at(0).desc.depth, 1, "transaction (depth)");
-	    check_equal_number(resp.array().at(0).desc.data_type, resp3::type::simple_string, "transaction (type)");
+	    check_equal_number(std::size(resp.array().desc), 6lu, "exec size (description)");
+	    check_equal_number(resp.array().desc.at(0).depth, 0UL, "(0) transaction (depth)");
+	    check_equal_number(resp.array().desc.at(0).data_type, resp3::type::flat_array, "(0) transaction (type)");
+	    check_equal_number(resp.array().desc.at(1).depth, 1UL, "(1) transaction (depth)");
+	    check_equal_number(resp.array().desc.at(1).data_type, resp3::type::simple_string, "(1) transaction (type)");
+	    check_equal_number(resp.array().desc.at(2).depth, 1UL, "(2) transaction (depth)");
+	    check_equal_number(resp.array().desc.at(2).data_type, resp3::type::flat_array, "(2) transaction (type)");
+	    check_equal_number(resp.array().desc.at(3).depth, 2UL, "(3) transaction (depth)");
+	    check_equal_number(resp.array().desc.at(3).data_type, resp3::type::blob_string, "(3) transaction (type)");
+	    check_equal_number(resp.array().desc.at(4).depth, 2UL, "(4) transaction (depth)");
+	    check_equal_number(resp.array().desc.at(4).data_type, resp3::type::blob_string, "(4) transaction (type)");
+	    check_equal_number(resp.array().desc.at(5).depth, 1UL, "(5) transaction (depth)");
+	    check_equal_number(resp.array().desc.at(5).data_type, resp3::type::simple_string, "(5) transaction (type)");
 
-	    check_equal_number(resp.array().at(1).desc.size, 2, "transaction (size)");
-	    check_equal_number(resp.array().at(1).desc.depth, 1, "transaction (depth)");
-	    check_equal_number(resp.array().at(1).desc.data_type, resp3::type::flat_array, "transaction (type)");
-	    check_equal(resp.array().at(1).value, {"4", "5"}, "transaction (value)"); break;
-
-	    check_equal_number(resp.array().at(2).desc.size, 1, "transaction (size)");
-	    check_equal_number(resp.array().at(2).desc.depth, 1, "transaction (depth)");
-	    check_equal_number(resp.array().at(2).desc.data_type, resp3::type::simple_string, "transaction (type)");
+	    check_equal_number(std::size(resp.array().values), 4lu, "exec size (values)");
+	    check_equal(resp.array().values.at(0), {"PONG"}, "(0) transaction (value)");
+	    check_equal(resp.array().values.at(1), {"4"}, "(1) transaction (value)");
+	    check_equal(resp.array().values.at(2), {"5"}, "(1) transaction (value)");
+	    check_equal(resp.array().values.at(3), {"PONG"}, "(2) transaction (value)");
 	 } break;
 	 case command::hgetall: check_equal(resp.flat_map(), {"field1", "value1", "field2", "value2"}, "hgetall (value)"); break;
 	 case command::smembers: check_equal(resp.flat_set(), {"1", "2", "3"}, "smembers (value)"); break;

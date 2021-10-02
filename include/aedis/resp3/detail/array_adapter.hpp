@@ -17,43 +17,27 @@ namespace detail {
 // This response type is able to deal with recursive redis responses
 // as in a transaction for example.
 class array_adapter: public response_adapter_base {
-public:
-   array_type* result;
-   array_adapter(array_type* p) : result(p) {}
-
 private:
+   array_type* result_;
    int depth_ = 0;
 
    void add_aggregate(int n, type t)
    {
-      if (depth_ == 0) {
-	 result->reserve(n);
-	 ++depth_;
-	 return;
-      }
-      
-      result->push_back({{n, depth_, t}, {}});
-      result->back().value.reserve(n);
+      result_->desc.emplace_back(depth_, t);
       ++depth_;
    }
 
    void add(std::string_view s, type t)
    {
-      node::description desc;
-      desc.size = 1;
-      desc.depth = depth_;
-      desc.data_type = t;
-
-      if (std::empty(*result)) {
-	 result->push_back(node{desc, {std::string{s}}});
-      } else if (std::ssize(result->back().value) == result->back().desc.size) {
-	 result->push_back(node{desc, {std::string{s}}});
-      } else {
-	 result->back().value.push_back(std::string{s});
-      }
+      result_->desc.emplace_back(depth_, t);
+      result_->values.push_back(std::string{s});
    }
 
 public:
+   array_adapter(array_type* p)
+   : result_(p)
+   { result_->clear(); }
+
    void select_array(int n) override {add_aggregate(n, type::flat_array);}
    void select_push(int n) override {add_aggregate(n, type::flat_push);}
    void select_set(int n) override {add_aggregate(n, type::flat_set);}
@@ -71,8 +55,6 @@ public:
    void on_verbatim_string(std::string_view s = {}) override {add(s, type::verbatim_string);}
    void on_blob_string(std::string_view s = {}) override {add(s, type::blob_string);}
    void on_streamed_string_part(std::string_view s = {}) override {add(s, type::streamed_string_part);}
-   void clear() { result->clear(); depth_ = 0;}
-   auto size() const { return std::size(*result); }
    void pop() override { --depth_; }
 };
 

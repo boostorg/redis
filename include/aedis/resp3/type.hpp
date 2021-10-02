@@ -67,16 +67,21 @@ using streamed_string_part_type = std::string;
 
 struct node {
    struct description {
-      int size;
-      int depth;
+      std::size_t depth;
       type data_type;
    };
 
-   description desc;
-   std::vector<std::string> value;
+   std::vector<description> desc;
+   std::vector<std::string> values;
+
+   void clear()
+   {
+      desc.clear();
+      values.clear();
+   }
 };
 
-using array_type = std::vector<node>;
+using array_type = node;
 
 } // resp3
 } // aedis
