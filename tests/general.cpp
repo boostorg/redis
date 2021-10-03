@@ -856,10 +856,12 @@ net::awaitable<void> test_streamed_string()
    {
       std::string cmd {"$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::streamed_string_part_type buffer;
-      resp3::detail::streamed_string_part_adapter res{&buffer};
-      co_await resp3::async_read_one(ts, buf, res);
-      check_equal(buffer, {"Hello word"}, "streamed string");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::streamed_string_part, {"Hello world"}} };
+      co_await resp3::async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "streamed string");
    }
 
    {
@@ -868,7 +870,10 @@ net::awaitable<void> test_streamed_string()
       resp3::response resp;
       auto* adapter = resp.select_adapter(resp3::type::streamed_string_part, command::unknown, {});
       co_await resp3::async_read_one(ts, buf, *adapter);
-      check_equal(resp.streamed_string_part(), {}, "streamed string (empty)");
+
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::streamed_string_part, {}} };
+      check_equal(resp.array(), expected, "streamed string (empty)");
    }
 }
 

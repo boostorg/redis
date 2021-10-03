@@ -48,7 +48,6 @@ using flat_push_type = std::vector<std::string>;
 using number_type = long long int;
 using boolean_type = bool;
 using doublean_type = std::string;
-using streamed_string_part_type = std::string;
 
 struct node {
    /// The number of children node is parent of.

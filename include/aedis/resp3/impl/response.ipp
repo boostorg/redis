@@ -31,6 +31,7 @@ response::select_adapter(type type, command cmd, std::string const&)
       case type::blob_error:
       case type::big_number:
       case type::verbatim_string:
+      case type::streamed_string_part:
       {
 	 array_.resize(0);
 	 array_adapter_.clear();
@@ -41,7 +42,6 @@ response::select_adapter(type type, command cmd, std::string const&)
       case type::number: return &number_adapter_;
       case type::doublean: return &doublean_adapter_;
       case type::boolean: return &boolean_adapter_;
-      case type::streamed_string_part: return &streamed_string_part_adapter_;
       case type::null: return &ignore_adapter_;
       default: {
 	 assert(false);

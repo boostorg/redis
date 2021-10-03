@@ -16,7 +16,6 @@
 #include <aedis/resp3/detail/number_adapter.hpp>
 #include <aedis/resp3/detail/doublean_adapter.hpp>
 #include <aedis/resp3/detail/boolean_adapter.hpp>
-#include <aedis/resp3/detail/streamed_string_part_adapter.hpp>
 
 namespace aedis { namespace resp3 {
 
@@ -43,9 +42,6 @@ private:
    number_type number_;
    detail::number_adapter number_adapter_{&number_};
 
-   streamed_string_part_type streamed_string_part_;
-   detail::streamed_string_part_adapter streamed_string_part_adapter_{&streamed_string_part_};
-
    detail::ignore_adapter ignore_adapter_;
 
 public:
@@ -66,9 +62,6 @@ public:
 
    auto const& boolean() const noexcept {return boolean_;}
    auto& boolean() noexcept {return boolean_;}
-
-   auto const& streamed_string_part() const noexcept {return streamed_string_part_;}
-   auto& streamed_string_part() noexcept {return streamed_string_part_;}
 };
 
 } // resp3
