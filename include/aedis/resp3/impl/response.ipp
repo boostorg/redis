@@ -26,6 +26,7 @@ response::select_adapter(type type, command cmd, std::string const&)
       case type::set:
       case type::map:
       case type::simple_string:
+      case type::blob_string:
       {
 	 array_.resize(0);
 	 array_adapter_.clear();
@@ -39,7 +40,6 @@ response::select_adapter(type type, command cmd, std::string const&)
       case type::big_number: return &big_number_adapter_;
       case type::boolean: return &boolean_adapter_;
       case type::blob_error: return &blob_error_adapter_;
-      case type::blob_string: return &blob_string_adapter_;
       case type::verbatim_string: return &verbatim_string_adapter_;
       case type::streamed_string_part: return &streamed_string_part_adapter_;
       case type::null: return &ignore_adapter_;

@@ -14,7 +14,6 @@
 #include <aedis/resp3/detail/array_adapter.hpp>
 #include <aedis/resp3/detail/basic_flat_array_adapter.hpp>
 #include <aedis/resp3/detail/number_adapter.hpp>
-#include <aedis/resp3/detail/blob_string_adapter.hpp>
 #include <aedis/resp3/detail/blob_error_adapter.hpp>
 #include <aedis/resp3/detail/simple_error_adapter.hpp>
 #include <aedis/resp3/detail/big_number_adapter.hpp>
@@ -44,9 +43,6 @@ private:
 
    blob_error_type blob_error_;
    detail::blob_error_adapter blob_error_adapter_{&blob_error_};
-
-   blob_string_type blob_string_;
-   detail::blob_string_adapter blob_string_adapter_{&blob_string_};
 
    boolean_type boolean_;
    detail::boolean_adapter boolean_adapter_{&boolean_};
@@ -86,9 +82,6 @@ public:
 
    auto const& boolean() const noexcept {return boolean_;}
    auto& boolean() noexcept {return boolean_;}
-
-   auto const& blob_string() const noexcept {return blob_string_;}
-   auto& blob_string() noexcept {return blob_string_;}
 
    auto const& blob_error() const noexcept {return blob_error_;}
    auto& blob_error() noexcept {return blob_error_;}

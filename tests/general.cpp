@@ -154,42 +154,42 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	    resp3::array_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "multi"); break;
+	    check_equal(resp.array(), expected, "multi");
 	 } break;
 	 case command::ping:
 	 {
 	    resp3::array_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"QUEUED"}} };
 
-	    check_equal(resp.array(), expected, "ping"); break;
+	    check_equal(resp.array(), expected, "ping");
 	 } break;
 	 case command::set:
 	 {
 	    resp3::array_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "set"); break;
+	    check_equal(resp.array(), expected, "set");
 	 } break;
 	 case command::quit:
 	 {
 	    resp3::array_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "quit"); break;
+	    check_equal(resp.array(), expected, "quit");
 	 } break;
 	 case command::flushall:
 	 {
 	    resp3::array_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "flushall"); break;
+	    check_equal(resp.array(), expected, "flushall");
 	 } break;
 	 case command::ltrim:
 	 {
 	    resp3::array_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "ltrim"); break;
+	    check_equal(resp.array(), expected, "ltrim");
 	 } break;
 	 case command::append: check_equal(resp.number(), 4LL, "append"); break;
 	 case command::hset: check_equal(resp.number(), 2LL, "hset"); break;
@@ -203,20 +203,38 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 case command::sadd: check_equal(resp.number(), 3LL, "sadd"); break;
 	 case command::hdel: check_equal(resp.number(), 2LL, "hdel"); break;
 	 case command::zremrangebyscore: check_equal(resp.number(), 1LL, "zremrangebyscore"); break;
-	 case command::get: check_equal(resp.blob_string(), filler.set_, "get"); break;
-	 case command::hget: check_equal(resp.blob_string(), std::string{"value2"}, "hget"); break;
+	 case command::get:
+	 {
+	    resp3::array_type expected
+	       { {1UL, 0UL, resp3::type::blob_string, filler.set_} };
+
+	    check_equal(resp.array(), expected, "get");
+	 } break;
+	 case command::hget:
+	 {
+	    resp3::array_type expected
+	       { {1UL, 0UL, resp3::type::blob_string, std::string{"value2"}} };
+
+	    check_equal(resp.array(), expected, "hget");
+	 } break;
 	 case command::lrange: check_equal(resp.flat_array(), {"1", "2", "3", "4", "5", "6"}, "lrange"); break;
 	 case command::hvals: check_equal(resp.flat_array(), {"value1", "value2"}, "hvals"); break;
 	 case command::zrange: check_equal(resp.flat_array(), {"Marcelo"}, "hvals"); break;
 	 case command::zrangebyscore: check_equal(resp.flat_array(), {"Marcelo"}, "zrangebyscore"); break;
 	 case command::lpop:
 	 {
-	     switch (t)
-	     {
-		case resp3::type::blob_string: check_equal(resp.blob_string(), {"3"}, "lpop"); break;
-		case resp3::type::flat_array: check_equal(resp.flat_array(), {"4", "5"}, "lpop"); break;
-		default: {std::cout << "Error." << std::endl;}
-	     }
+	    switch (t)
+	    {
+	       case resp3::type::blob_string:
+	       {
+	          resp3::array_type expected
+		     { {1UL, 0UL, resp3::type::blob_string, {"3"}} };
+
+	          check_equal(resp.array(), expected, "lpop");
+	       } break;
+	       case resp3::type::flat_array: check_equal(resp.flat_array(), {"4", "5"}, "lpop"); break;
+	       default: {std::cout << "Error." << std::endl;}
+	    }
 	 } break;
 	 case command::exec:
 	 {
@@ -278,7 +296,6 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 default: { std::cout << "Error: " << t << " " << id.first << std::endl; }
       }
 
-      resp.blob_string().clear();
       resp.flat_push().clear();
       resp.array().clear();
    }
@@ -345,17 +362,21 @@ test_list(net::ip::tcp::resolver::results_type const& results)
    {  // ltrim
       array_buffer.clear();
       array_adapter.clear();
-      co_await async_read_one(socket, buf, array_adapter);
       resp3::array_type expected
-      { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
+	 { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
+
+      co_await async_read_one(socket, buf, array_adapter);
       check_equal(array_buffer, expected, "ltrim");
    }
 
    {  // lpop. Why a blob string instead of a number?
-      resp3::blob_string_type buffer;
-      resp3::detail::blob_string_adapter res{&buffer};
-      co_await async_read_one(socket, buf, res);
-      check_equal(buffer, {"3"}, "lpop");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::blob_string, {"3"}} };
+
+      co_await async_read_one(socket, buf, array_adapter);
+      check_equal(array_buffer, expected, "lpop");
    }
 
    {  // quit
@@ -414,10 +435,13 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    }
 
    {  // get
-      resp3::blob_string_type buffer;
-      resp3::detail::blob_string_adapter res{&buffer};
-      co_await async_read_one(socket, buf, res);
-      check_equal(buffer, test_bulk1, "get1");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::blob_string, test_bulk1} };
+
+      co_await async_read_one(socket, buf, array_adapter);
+      check_equal(array_buffer, expected, "get1");
    }
 
    {  // set
@@ -430,10 +454,12 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    }
 
    {  // get
-      resp3::blob_string_type buffer;
-      resp3::detail::blob_string_adapter res{&buffer};
-      co_await async_read_one(socket, buf, res);
-      check_equal(buffer, test_bulk2, "get2");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::blob_string, test_bulk2} };
+      co_await async_read_one(socket, buf, array_adapter);
+      check_equal(array_buffer, expected, "get2");
    }
 
    {  // set
@@ -446,10 +472,13 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    }
 
    {  // get
-      resp3::blob_string_type buffer;
-      resp3::detail::blob_string_adapter res{&buffer};
-      co_await async_read_one(socket, buf, res);
-      check_equal(buffer,  std::string {}, "get3");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::blob_string, {}} };
+
+      co_await async_read_one(socket, buf, array_adapter);
+      check_equal(array_buffer,  expected, "get3");
    }
 
    {  // quit
@@ -584,28 +613,34 @@ net::awaitable<void> test_blob_string()
    {
       std::string cmd {"$2\r\nhh\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_string_type buffer;
-      resp3::detail::blob_string_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"hh"}, "blob_string");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::blob_string, {"hh"}} };
+      co_await async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "blob_string");
    }
 
    {
       std::string cmd {"$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_string_type buffer;
-      resp3::detail::blob_string_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}, "blob_string (with separator)");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::blob_string, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}} };
+      co_await async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "blob_string (with separator)");
    }
 
    {
       std::string cmd {"$0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_string_type buffer;
-      resp3::detail::blob_string_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {}, "blob_string (size 0)");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::blob_string, {}} };
+      co_await async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "blob_string (size 0)");
    }
 }
 

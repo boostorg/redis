@@ -48,7 +48,6 @@ using flat_push_type = std::vector<std::string>;
 using number_type = long long int;
 using boolean_type = bool;
 using doublean_type = std::string;
-using blob_string_type = std::string;
 using blob_error_type = std::string;
 using simple_error_type = std::string;
 using big_number_type = std::string;
