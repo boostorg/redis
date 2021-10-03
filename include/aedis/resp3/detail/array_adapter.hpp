@@ -19,24 +19,22 @@ namespace detail {
 class array_adapter: public response_adapter_base {
 private:
    array_type* result_;
-   int depth_ = 0;
+   std::size_t depth_;
 
    void add_aggregate(int n, type t)
    {
-      result_->desc.emplace_back(depth_, t);
+      result_->emplace_back(n, depth_, t, std::string{});
       ++depth_;
    }
 
    void add(std::string_view s, type t)
-   {
-      result_->desc.emplace_back(depth_, t);
-      result_->values.push_back(std::string{s});
-   }
+      { result_->emplace_back(1, depth_, t, std::string{s}); }
 
 public:
-   array_adapter(array_type* p)
-   : result_(p)
-   { result_->clear(); }
+   array_adapter(array_type* p = nullptr)
+   : result_{p}
+   , depth_{0}
+   { }
 
    void select_array(int n) override {add_aggregate(n, type::flat_array);}
    void select_push(int n) override {add_aggregate(n, type::flat_push);}
@@ -56,6 +54,7 @@ public:
    void on_blob_string(std::string_view s = {}) override {add(s, type::blob_string);}
    void on_streamed_string_part(std::string_view s = {}) override {add(s, type::streamed_string_part);}
    void pop() override { --depth_; }
+   void clear() { depth_ = 0; }
 };
 
 } // detail

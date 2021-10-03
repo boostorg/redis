@@ -183,35 +183,56 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 case command::exec:
 	 {
 	    check_equal_number(t, resp3::type::flat_array, "exec (type)");
+	    check_equal_number(std::size(resp.array()), 6lu, "exec size (description)");
 
-	    check_equal_number(std::size(resp.array().desc), 6lu, "exec size (description)");
-	    check_equal_number(resp.array().desc.at(0).depth, 0UL, "(0) transaction (depth)");
-	    check_equal_number(resp.array().desc.at(0).data_type, resp3::type::flat_array, "(0) transaction (type)");
-	    check_equal_number(resp.array().desc.at(1).depth, 1UL, "(1) transaction (depth)");
-	    check_equal_number(resp.array().desc.at(1).data_type, resp3::type::simple_string, "(1) transaction (type)");
-	    check_equal_number(resp.array().desc.at(2).depth, 1UL, "(2) transaction (depth)");
-	    check_equal_number(resp.array().desc.at(2).data_type, resp3::type::flat_array, "(2) transaction (type)");
-	    check_equal_number(resp.array().desc.at(3).depth, 2UL, "(3) transaction (depth)");
-	    check_equal_number(resp.array().desc.at(3).data_type, resp3::type::blob_string, "(3) transaction (type)");
-	    check_equal_number(resp.array().desc.at(4).depth, 2UL, "(4) transaction (depth)");
-	    check_equal_number(resp.array().desc.at(4).data_type, resp3::type::blob_string, "(4) transaction (type)");
-	    check_equal_number(resp.array().desc.at(5).depth, 1UL, "(5) transaction (depth)");
-	    check_equal_number(resp.array().desc.at(5).data_type, resp3::type::simple_string, "(5) transaction (type)");
+	    check_equal_number(resp.array().at(0).size, 3UL, "(0) transaction (size)");
+	    check_equal_number(resp.array().at(0).depth, 0UL, "(0) transaction (depth)");
+	    check_equal_number(resp.array().at(0).data_type, resp3::type::flat_array, "(0) transaction (type)");
+	    check_equal(resp.array().at(0).data, {}, "(0) transaction (value)");
 
-	    check_equal_number(std::size(resp.array().values), 4lu, "exec size (values)");
-	    check_equal(resp.array().values.at(0), {"PONG"}, "(0) transaction (value)");
-	    check_equal(resp.array().values.at(1), {"4"}, "(1) transaction (value)");
-	    check_equal(resp.array().values.at(2), {"5"}, "(1) transaction (value)");
-	    check_equal(resp.array().values.at(3), {"PONG"}, "(2) transaction (value)");
+	    check_equal_number(resp.array().at(1).size, 1UL, "(1) transaction (size)");
+	    check_equal_number(resp.array().at(1).depth, 1UL, "(1) transaction (depth)");
+	    check_equal_number(resp.array().at(1).data_type, resp3::type::simple_string, "(1) transaction (type)");
+	    check_equal(resp.array().at(1).data, {"PONG"}, "(1) transaction (value)");
+
+	    check_equal_number(resp.array().at(2).size, 2UL, "(2) transaction (size)");
+	    check_equal_number(resp.array().at(2).depth, 1UL, "(2) transaction (depth)");
+	    check_equal_number(resp.array().at(2).data_type, resp3::type::flat_array, "(2) transaction (type)");
+	    check_equal(resp.array().at(2).data, {}, "(2) transaction (value)");
+
+	    check_equal_number(resp.array().at(3).size, 1UL, "(3) transaction (size)");
+	    check_equal_number(resp.array().at(3).depth, 2UL, "(3) transaction (depth)");
+	    check_equal_number(resp.array().at(3).data_type, resp3::type::blob_string, "(3) transaction (type)");
+	    check_equal(resp.array().at(3).data, {"4"}, "(3) transaction (value)");
+
+	    check_equal_number(resp.array().at(4).size, 1UL, "(4) transaction (size)");
+	    check_equal_number(resp.array().at(4).depth, 2UL, "(4) transaction (depth)");
+	    check_equal_number(resp.array().at(4).data_type, resp3::type::blob_string, "(4) transaction (type)");
+	    check_equal(resp.array().at(4).data, {"5"}, "(4) transaction (value)");
+
+	    check_equal_number(resp.array().at(5).size, 1UL, "(5) transaction (size)");
+	    check_equal_number(resp.array().at(5).depth, 1UL, "(5) transaction (depth)");
+	    check_equal_number(resp.array().at(5).data_type, resp3::type::simple_string, "(5) transaction (type)");
+	    check_equal(resp.array().at(5).data, {"PONG"}, "(5) transaction (value)");
+
 	 } break;
-	 case command::hgetall: check_equal(resp.flat_map(), {"field1", "value1", "field2", "value2"}, "hgetall (value)"); break;
+	 case command::hgetall:
+	 {
+	    resp3::array_type expected
+	    { { 4UL, 0UL, resp3::type::flat_map,    {}}
+	    , { 1UL, 1UL, resp3::type::blob_string, {"field1"}}
+	    , { 1UL, 1UL, resp3::type::blob_string, {"value1"}}
+	    , { 1UL, 1UL, resp3::type::blob_string, {"field2"}}
+	    , { 1UL, 1UL, resp3::type::blob_string, {"value2"}}
+	    };
+	    check_equal(resp.array(), expected, "hgetall (value)");
+	 } break;
 	 case command::smembers: check_equal(resp.flat_set(), {"1", "2", "3"}, "smembers (value)"); break;
 	 default: { std::cout << "Error: " << t << " " << id.first << std::endl; }
       }
 
       resp.blob_string().clear();
       resp.flat_push().clear();
-      resp.flat_map().clear();
       resp.flat_set().clear();
       resp.array().clear();
    }
@@ -673,6 +694,8 @@ net::awaitable<void> test_set2()
    }
 }
 
+resp3::array_type array_buffer;
+
 net::awaitable<void> test_map()
 {
    using namespace aedis;
@@ -680,19 +703,40 @@ net::awaitable<void> test_map()
    {
       std::string cmd {"%7\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n6.0.9\r\n$5\r\nproto\r\n:3\r\n$2\r\nid\r\n:203\r\n$4\r\nmode\r\n$10\r\nstandalone\r\n$4\r\nrole\r\n$6\r\nmaster\r\n$7\r\nmodules\r\n*0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_map_type buffer;
-      resp3::detail::flat_map_adapter res{&buffer};
+      array_buffer.clear();
+      resp3::detail::array_adapter res{&array_buffer};
       co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"server", "redis", "version", "6.0.9", "proto", "3", "id", "203", "mode", "standalone", "role", "master", "modules"}, "map (flat)");
+
+      resp3::array_type expected
+      { {14UL, 0UL, resp3::type::flat_map,    {}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"server"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"redis"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"version"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"6.0.9"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"proto"}}
+      , { 1UL, 1UL, resp3::type::number, {"3"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"id"}}
+      , { 1UL, 1UL, resp3::type::number, {"203"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"mode"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"standalone"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"role"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"master"}}
+      , { 1UL, 1UL, resp3::type::blob_string, {"modules"}}
+      , { 0UL, 1UL, resp3::type::flat_array, {}}
+      };
+      check_equal(array_buffer, expected, "test map");
    }
 
    {
       std::string cmd {"%0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_map_type buffer;
-      resp3::detail::flat_map_adapter res{&buffer};
+      array_buffer.clear();
+      resp3::detail::array_adapter res{&array_buffer};
       co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {}, "map (flat - empty)");
+      resp3::array_type expected
+      { {0UL, 0UL, resp3::type::flat_map, {}}
+      };
+      check_equal(array_buffer, expected, "test map (empty)");
    }
 }
 

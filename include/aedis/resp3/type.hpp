@@ -11,9 +11,6 @@
 #include <vector>
 #include <string>
 
-// FIXME: We shouldn't need this header here.
-#include <aedis/command.hpp>
-
 namespace aedis { namespace resp3 {
 
 enum class type
@@ -48,9 +45,6 @@ using flat_array_int_type = basic_flat_array<int>;
 
 using flat_push_type = std::vector<std::string>;
 
-/// RESP3 map type.
-using flat_map_type = std::vector<std::string>;
-
 /// RESP3 set type.
 using flat_set_type = std::vector<std::string>;
 
@@ -66,22 +60,24 @@ using verbatim_string_type = std::string;
 using streamed_string_part_type = std::string;
 
 struct node {
-   struct description {
-      std::size_t depth;
-      type data_type;
-   };
+   /// The number of children node is parent of.
+   std::size_t size;
 
-   std::vector<description> desc;
-   std::vector<std::string> values;
+   /// The depth of this node in the response tree.
+   std::size_t depth;
 
-   void clear()
-   {
-      desc.clear();
-      values.clear();
-   }
+   /// The RESP3 type  of the data in this node.
+   type data_type;
+
+   /// The data. For aggregate data types this is always empty.
+   std::string data;
 };
 
-using array_type = node;
+/// Equality compare from node
+bool operator==(node const& a, node const& b);
+
+/// A pre-order-view of the response tree.
+using array_type = std::vector<node>;
 
 } // resp3
 } // aedis

@@ -11,6 +11,14 @@
 
 namespace aedis { namespace resp3 {
 
+bool operator==(node const& a, node const& b)
+{
+   return a.size == b.size
+       && a.depth == b.depth
+       && a.data_type == b.data_type
+       && a.data == b.data;
+};
+
 #define EXPAND_TYPE_CASE(x) case resp3::type::x: return #x
 
 std::string to_string(type t)

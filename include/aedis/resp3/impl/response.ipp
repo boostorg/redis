@@ -16,12 +16,20 @@ response::select_adapter(type type, command cmd, std::string const&)
    if (type == type::flat_push)
      return &flat_push_adapter_;
 
-   if (cmd == command::exec)
-     return &array_adapter_;
+   if (cmd == command::exec) {
+      array_.resize(0);
+      array_adapter_.clear();
+      return &array_adapter_;
+   }
 
    switch (type) {
       case type::flat_set: return &flat_set_adapter_;
-      case type::flat_map: return &flat_map_adapter_;
+      case type::flat_map:
+      {
+	 array_.resize(0);
+	 array_adapter_.clear();
+	 return &array_adapter_;
+      } 
       case type::flat_attribute: return &flat_attribute_adapter_;
       case type::flat_array: return &flat_array_adapter_;
       case type::simple_error: return &simple_error_adapter_;
