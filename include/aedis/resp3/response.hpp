@@ -53,9 +53,6 @@ private:
    number_type number_;
    detail::number_adapter number_adapter_{&number_};
 
-   simple_error_type simple_error_;
-   detail::simple_error_adapter simple_error_adapter_{&simple_error_};
-
    streamed_string_part_type streamed_string_part_;
    detail::streamed_string_part_adapter streamed_string_part_adapter_{&streamed_string_part_};
 

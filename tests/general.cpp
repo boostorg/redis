@@ -651,10 +651,12 @@ net::awaitable<void> test_simple_error()
    {
       std::string cmd {"-Error\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::simple_error_type buffer;
-      resp3::detail::simple_error_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"Error"}, "simple_error (message)");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::simple_error, {"Error"}} };
+      co_await async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "simple_error (message)");
    }
 }
 
