@@ -16,7 +16,7 @@ namespace aedis { namespace resp3 {
 enum class type
 { array
 , flat_array
-, flat_push
+, push
 , set
 , map
 , flat_attribute
@@ -43,11 +43,8 @@ using basic_flat_array = std::vector<T>;
 using flat_array_type = basic_flat_array<std::string>;
 using flat_array_int_type = basic_flat_array<int>;
 
-using flat_push_type = std::vector<std::string>;
-
 using number_type = long long int;
 using boolean_type = bool;
-using doublean_type = std::string;
 
 struct node {
    /// The number of children node is parent of.

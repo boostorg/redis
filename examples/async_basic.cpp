@@ -32,7 +32,7 @@ example(net::ip::tcp::socket& socket,
    for (;;) {
       auto const t = co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
 
-      if (t == resp3::type::flat_push) {
+      if (t == resp3::type::push) {
          std::cout << "Event: " << "(" << t << ")" << std::endl;
          continue;
       }

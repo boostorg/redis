@@ -26,7 +26,7 @@ std::string to_string(type t)
    switch (t) {
       EXPAND_TYPE_CASE(array);
       EXPAND_TYPE_CASE(flat_array);
-      EXPAND_TYPE_CASE(flat_push);
+      EXPAND_TYPE_CASE(push);
       EXPAND_TYPE_CASE(set);
       EXPAND_TYPE_CASE(map);
       EXPAND_TYPE_CASE(flat_attribute);
@@ -60,7 +60,7 @@ type to_type(char c)
       case '(': return type::big_number;
       case '+': return type::simple_string;
       case '_': return type::null;
-      case '>': return type::flat_push;
+      case '>': return type::push;
       case '~': return type::set;
       case '*': return type::flat_array;
       case '|': return type::flat_attribute;

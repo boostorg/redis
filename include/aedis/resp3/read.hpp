@@ -260,7 +260,7 @@ struct consumer_op {
 
                yield
                {
-                  if (m_type == type::flat_push) {
+                  if (m_type == type::push) {
 		     auto* adapter = resp.select_adapter(m_type, command::unknown, {});
 		     async_read_one(socket, buffer, *adapter, std::move(self));
 		  } else {
@@ -277,7 +277,7 @@ struct consumer_op {
 
                yield self.complete(ec, m_type);
 
-               if (m_type != type::flat_push)
+               if (m_type != type::push)
                   requests.front().ids.pop();
 
             } while (!std::empty(requests.front().ids));

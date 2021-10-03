@@ -13,9 +13,6 @@ namespace aedis { namespace resp3 {
 response_adapter_base*
 response::select_adapter(type type, command cmd, std::string const&)
 {
-   if (type == type::flat_push)
-     return &flat_push_adapter_;
-
    if (cmd == command::exec) {
       array_.resize(0);
       array_adapter_.clear();
@@ -23,8 +20,7 @@ response::select_adapter(type type, command cmd, std::string const&)
    }
 
    switch (type) {
-      case type::set:
-      case type::map:
+      case type::doublean:
       case type::simple_string:
       case type::blob_string:
       case type::simple_error:
@@ -32,6 +28,9 @@ response::select_adapter(type type, command cmd, std::string const&)
       case type::big_number:
       case type::verbatim_string:
       case type::streamed_string_part:
+      case type::set:
+      case type::map:
+      case type::push:
       {
 	 array_.resize(0);
 	 array_adapter_.clear();
@@ -40,7 +39,6 @@ response::select_adapter(type type, command cmd, std::string const&)
       case type::flat_attribute: return &flat_attribute_adapter_;
       case type::flat_array: return &flat_array_adapter_;
       case type::number: return &number_adapter_;
-      case type::doublean: return &doublean_adapter_;
       case type::boolean: return &boolean_adapter_;
       case type::null: return &ignore_adapter_;
       default: {

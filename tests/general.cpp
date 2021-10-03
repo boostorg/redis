@@ -23,7 +23,6 @@ namespace aedis {
 namespace resp3 {
 using flat_array_adapter = detail::basic_flat_array_adapter<std::string>;
 using flat_array_int_adapter = detail::basic_flat_array_adapter<int>;
-using flat_push_adapter = detail::basic_flat_array_adapter<std::string>;
 
 } // resp3
 } // aedis
@@ -131,10 +130,30 @@ test_general(net::ip::tcp::resolver::results_type const& res)
       auto const t =
         co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
 
-      if (t == resp3::type::flat_push) {
+      if (t == resp3::type::push) {
 	 switch (push_counter) {
-	    case 0: check_equal(resp.flat_push(), {"subscribe", "channel", "1"}, "push (value1)"); break;
-	    case 1: check_equal(resp.flat_push(), {"message", "channel", "message"}, "push (value2)"); break;
+	    case 0:
+	    {
+	       resp3::array_type expected
+	       { {3UL, 0UL, resp3::type::push, {}}
+	       , {1UL, 1UL, resp3::type::blob_string, {"subscribe"}}
+	       , {1UL, 1UL, resp3::type::blob_string, {"channel"}}
+	       , {1UL, 1UL, resp3::type::number, {"1"}}
+	       };
+
+	       check_equal(resp.array(), expected, "push (value1)"); break;
+	    } break;
+	    case 1:
+	    {
+	       resp3::array_type expected
+	       { {3UL, 0UL, resp3::type::push, {}}
+	       , {1UL, 1UL, resp3::type::blob_string, {"message"}}
+	       , {1UL, 1UL, resp3::type::blob_string, {"channel"}}
+	       , {1UL, 1UL, resp3::type::blob_string, {"message"}}
+	       };
+
+	       check_equal(resp.array(), expected, "push (value2)"); break;
+	    } break;
 	    default: std::cout << "ERROR: unexpected push event." << std::endl;
 	 }
 	 ++push_counter;
@@ -296,7 +315,6 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 default: { std::cout << "Error: " << t << " " << id.first << std::endl; }
       }
 
-      resp.flat_push().clear();
       resp.array().clear();
    }
 }
@@ -667,28 +685,34 @@ net::awaitable<void> test_floating_point()
    {
       std::string cmd {",1.23\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::doublean_type buffer;
-      resp3::detail::doublean_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"1.23"}, "double");
+      resp3::response resp;
+      auto* adapter = resp.select_adapter(resp3::type::doublean);
+      co_await async_read_one(ts, buf, *adapter);
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::doublean, {"1.23"}} };
+      check_equal(resp.array(), expected, "double");
    }
 
    {
       std::string cmd {",inf\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::doublean_type buffer;
-      resp3::detail::doublean_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"inf"}, "double (inf)");
+      resp3::response resp;
+      auto* adapter = resp.select_adapter(resp3::type::doublean);
+      co_await async_read_one(ts, buf, *adapter);
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::doublean, {"inf"}} };
+      check_equal(resp.array(), expected, "double (inf)");
    }
 
    {
       std::string cmd {",-inf\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::doublean_type buffer;
-      resp3::detail::doublean_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"-inf"}, "double (-inf)");
+      resp3::response resp;
+      auto* adapter = resp.select_adapter(resp3::type::doublean);
+      co_await async_read_one(ts, buf, *adapter);
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::doublean, {"-inf"}} };
+      check_equal(resp.array(), expected, "double (-inf)");
    }
 
 }

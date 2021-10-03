@@ -14,7 +14,6 @@
 #include <aedis/resp3/detail/array_adapter.hpp>
 #include <aedis/resp3/detail/basic_flat_array_adapter.hpp>
 #include <aedis/resp3/detail/number_adapter.hpp>
-#include <aedis/resp3/detail/doublean_adapter.hpp>
 #include <aedis/resp3/detail/boolean_adapter.hpp>
 
 namespace aedis { namespace resp3 {
@@ -30,14 +29,8 @@ private:
    flat_array_type flat_attribute_;
    detail::basic_flat_array_adapter<std::string> flat_attribute_adapter_{&flat_attribute_};
 
-   flat_array_type flat_push_;
-   detail::basic_flat_array_adapter<std::string> flat_push_adapter_{&flat_push_};
-
    boolean_type boolean_;
    detail::boolean_adapter boolean_adapter_{&boolean_};
-
-   doublean_type doublean_;
-   detail::doublean_adapter doublean_adapter_{&doublean_};
 
    number_type number_;
    detail::number_adapter number_adapter_{&number_};
@@ -45,14 +38,17 @@ private:
    detail::ignore_adapter ignore_adapter_;
 
 public:
+   virtual ~response() = default;
+
+   virtual
    response_adapter_base*
-   select_adapter(resp3::type type, command cmd, std::string const& key);
+   select_adapter(
+      resp3::type type,
+      command cmd = command::unknown,
+      std::string const& key = "");
 
    auto const& array() const noexcept {return array_;}
    auto& array() noexcept {return array_;}
-
-   auto const& flat_push() const noexcept {return flat_push_;}
-   auto& flat_push() noexcept {return flat_push_;}
 
    auto const& flat_array() const noexcept {return flat_array_;}
    auto& flat_array() noexcept {return flat_array_;}
