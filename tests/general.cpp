@@ -750,19 +750,23 @@ net::awaitable<void> test_verbatim_string()
    {
       std::string cmd {"=15\r\ntxt:Some string\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::verbatim_string_type buffer;
-      resp3::detail::verbatim_string_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"txt:Some string"}, "verbatim_string");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::verbatim_string, {"txt:Some string"}} };
+      co_await async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "verbatim_string");
    }
 
    {
       std::string cmd {"=0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::verbatim_string_type buffer;
-      resp3::detail::verbatim_string_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {}, "verbatim_string (empty)");
+      co_await async_read_one(ts, buf, array_adapter);
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::verbatim_string, {}} };
+      check_equal(array_buffer, expected, "verbatim_string (empty)");
    }
 }
 

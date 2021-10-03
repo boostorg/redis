@@ -14,9 +14,7 @@
 #include <aedis/resp3/detail/array_adapter.hpp>
 #include <aedis/resp3/detail/basic_flat_array_adapter.hpp>
 #include <aedis/resp3/detail/number_adapter.hpp>
-#include <aedis/resp3/detail/big_number_adapter.hpp>
 #include <aedis/resp3/detail/doublean_adapter.hpp>
-#include <aedis/resp3/detail/verbatim_string_adapter.hpp>
 #include <aedis/resp3/detail/boolean_adapter.hpp>
 #include <aedis/resp3/detail/streamed_string_part_adapter.hpp>
 
@@ -36,9 +34,6 @@ private:
    flat_array_type flat_push_;
    detail::basic_flat_array_adapter<std::string> flat_push_adapter_{&flat_push_};
 
-   big_number_type big_number_;
-   detail::big_number_adapter big_number_adapter_{&big_number_};
-
    boolean_type boolean_;
    detail::boolean_adapter boolean_adapter_{&boolean_};
 
@@ -50,9 +45,6 @@ private:
 
    streamed_string_part_type streamed_string_part_;
    detail::streamed_string_part_adapter streamed_string_part_adapter_{&streamed_string_part_};
-
-   verbatim_string_type verbatim_string_;
-   detail::verbatim_string_adapter verbatim_string_adapter_{&verbatim_string_};
 
    detail::ignore_adapter ignore_adapter_;
 
