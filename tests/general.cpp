@@ -723,19 +723,23 @@ net::awaitable<void> test_blob_error()
    {
       std::string cmd {"!21\r\nSYNTAX invalid syntax\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_error_type buffer;
-      resp3::detail::blob_error_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"SYNTAX invalid syntax"}, "blob_error (message)");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::blob_error, {"SYNTAX invalid syntax"}} };
+      co_await async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "blob_error (message)");
    }
 
    {
       std::string cmd {"!0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::blob_error_type buffer;
-      resp3::detail::blob_error_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {}, "blob_error (empty message)");
+      array_buffer.clear();
+      array_adapter.clear();
+      resp3::array_type expected
+	 { {1UL, 0UL, resp3::type::blob_error, {}} };
+      co_await async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "blob_error (empty message)");
    }
 }
 
