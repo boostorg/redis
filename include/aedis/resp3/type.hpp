@@ -50,7 +50,6 @@ using boolean_type = bool;
 using doublean_type = std::string;
 using blob_string_type = std::string;
 using blob_error_type = std::string;
-using simple_string_type = std::string;
 using simple_error_type = std::string;
 using big_number_type = std::string;
 using verbatim_string_type = std::string;

@@ -15,7 +15,6 @@
 #include <aedis/resp3/detail/basic_flat_array_adapter.hpp>
 #include <aedis/resp3/detail/number_adapter.hpp>
 #include <aedis/resp3/detail/blob_string_adapter.hpp>
-#include <aedis/resp3/detail/simple_string_adapter.hpp>
 #include <aedis/resp3/detail/blob_error_adapter.hpp>
 #include <aedis/resp3/detail/simple_error_adapter.hpp>
 #include <aedis/resp3/detail/big_number_adapter.hpp>
@@ -61,9 +60,6 @@ private:
    simple_error_type simple_error_;
    detail::simple_error_adapter simple_error_adapter_{&simple_error_};
 
-   simple_string_type simple_string_;
-   detail::simple_string_adapter simple_string_adapter_{&simple_string_};
-
    streamed_string_part_type streamed_string_part_;
    detail::streamed_string_part_adapter streamed_string_part_adapter_{&streamed_string_part_};
 
@@ -84,9 +80,6 @@ public:
 
    auto const& flat_array() const noexcept {return flat_array_;}
    auto& flat_array() noexcept {return flat_array_;}
-
-   auto const& simple_string() const noexcept {return simple_string_;}
-   auto& simple_string() noexcept {return simple_string_;}
 
    auto const& number() const noexcept {return number_;}
    auto& number() noexcept {return number_;}
