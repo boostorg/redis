@@ -12,7 +12,6 @@
 #include <aedis/resp3/detail/adapter_utils.hpp>
 #include <aedis/resp3/detail/ignore_adapter.hpp>
 #include <aedis/resp3/detail/array_adapter.hpp>
-#include <aedis/resp3/detail/flat_set_adapter.hpp>
 #include <aedis/resp3/detail/basic_flat_array_adapter.hpp>
 #include <aedis/resp3/detail/number_adapter.hpp>
 #include <aedis/resp3/detail/blob_string_adapter.hpp>
@@ -56,9 +55,6 @@ private:
    doublean_type doublean_;
    detail::doublean_adapter doublean_adapter_{&doublean_};
 
-   flat_set_type flat_set_;
-   detail::flat_set_adapter flat_set_adapter_{&flat_set_};
-
    number_type number_;
    detail::number_adapter number_adapter_{&number_};
 
@@ -88,9 +84,6 @@ public:
 
    auto const& flat_array() const noexcept {return flat_array_;}
    auto& flat_array() noexcept {return flat_array_;}
-
-   auto const& flat_set() const noexcept {return flat_set_;}
-   auto& flat_set() noexcept {return flat_set_;}
 
    auto const& simple_string() const noexcept {return simple_string_;}
    auto& simple_string() noexcept {return simple_string_;}

@@ -38,8 +38,8 @@ public:
 
    void select_array(int n) override {add_aggregate(n, type::flat_array);}
    void select_push(int n) override {add_aggregate(n, type::flat_push);}
-   void select_set(int n) override {add_aggregate(n, type::flat_set);}
-   void select_map(int n) override {add_aggregate(n, type::flat_map);}
+   void select_set(int n) override {add_aggregate(n, type::set);}
+   void select_map(int n) override {add_aggregate(n, type::map);}
    void select_attribute(int n) override {add_aggregate(n, type::flat_attribute);}
 
    void on_simple_string(std::string_view s) override { add(s, type::simple_string); }

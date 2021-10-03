@@ -219,7 +219,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 case command::hgetall:
 	 {
 	    resp3::array_type expected
-	    { { 4UL, 0UL, resp3::type::flat_map,    {}}
+	    { { 4UL, 0UL, resp3::type::map,    {}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"field1"}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"value1"}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"field2"}}
@@ -227,13 +227,21 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	    };
 	    check_equal(resp.array(), expected, "hgetall (value)");
 	 } break;
-	 case command::smembers: check_equal(resp.flat_set(), {"1", "2", "3"}, "smembers (value)"); break;
+	 case command::smembers:
+	 {
+	    resp3::array_type expected
+	    { { 3UL, 0UL, resp3::type::set,    {}}
+	    , { 1UL, 1UL, resp3::type::blob_string, {"1"}}
+	    , { 1UL, 1UL, resp3::type::blob_string, {"2"}}
+	    , { 1UL, 1UL, resp3::type::blob_string, {"3"}}
+	    };
+	    check_equal(resp.array(), expected, "smembers (value)");
+	 } break;
 	 default: { std::cout << "Error: " << t << " " << id.first << std::endl; }
       }
 
       resp.blob_string().clear();
       resp.flat_push().clear();
-      resp.flat_set().clear();
       resp.array().clear();
    }
 }
@@ -662,6 +670,9 @@ net::awaitable<void> test_verbatim_string()
    }
 }
 
+resp3::array_type array_buffer;
+resp3::detail::array_adapter array_adapter{&array_buffer};
+
 net::awaitable<void> test_set2()
 {
    using namespace aedis;
@@ -669,32 +680,34 @@ net::awaitable<void> test_set2()
    {
       std::string cmd {"~5\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_set_type buffer;
-      resp3::detail::flat_set_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"orange", "apple", "one", "two", "three"}, "set");
-   }
+      array_buffer.clear();
 
-   {
-      std::string cmd {"~5\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n"};
-      test_tcp_socket ts {cmd};
-      resp3::flat_set_type buffer;
-      resp3::detail::flat_set_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {"orange", "apple", "one", "two", "three"}, "set (flat)");
+      resp3::array_type expected
+      { { 5UL, 0UL, resp3::type::set,    {}}
+      , { 1UL, 1UL, resp3::type::simple_string, {"orange"}}
+      , { 1UL, 1UL, resp3::type::simple_string, {"apple"}}
+      , { 1UL, 1UL, resp3::type::simple_string, {"one"}}
+      , { 1UL, 1UL, resp3::type::simple_string, {"two"}}
+      , { 1UL, 1UL, resp3::type::simple_string, {"three"}}
+      };
+
+      co_await async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "test set (1)");
    }
 
    {
       std::string cmd {"~0\r\n"};
       test_tcp_socket ts {cmd};
-      resp3::flat_set_type buffer;
-      resp3::detail::flat_set_adapter res{&buffer};
-      co_await async_read_one(ts, buf, res);
-      check_equal(buffer, {}, "set (empty)");
+      array_buffer.clear();
+
+      resp3::array_type expected
+      { { 0UL, 0UL, resp3::type::set, {}}
+      };
+
+      co_await async_read_one(ts, buf, array_adapter);
+      check_equal(array_buffer, expected, "test set (2)");
    }
 }
-
-resp3::array_type array_buffer;
 
 net::awaitable<void> test_map()
 {
@@ -704,11 +717,11 @@ net::awaitable<void> test_map()
       std::string cmd {"%7\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n6.0.9\r\n$5\r\nproto\r\n:3\r\n$2\r\nid\r\n:203\r\n$4\r\nmode\r\n$10\r\nstandalone\r\n$4\r\nrole\r\n$6\r\nmaster\r\n$7\r\nmodules\r\n*0\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      resp3::detail::array_adapter res{&array_buffer};
-      co_await async_read_one(ts, buf, res);
+      array_adapter.clear();
+      co_await async_read_one(ts, buf, array_adapter);
 
       resp3::array_type expected
-      { {14UL, 0UL, resp3::type::flat_map,    {}}
+      { {14UL, 0UL, resp3::type::map,    {}}
       , { 1UL, 1UL, resp3::type::blob_string, {"server"}}
       , { 1UL, 1UL, resp3::type::blob_string, {"redis"}}
       , { 1UL, 1UL, resp3::type::blob_string, {"version"}}
@@ -731,10 +744,10 @@ net::awaitable<void> test_map()
       std::string cmd {"%0\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      resp3::detail::array_adapter res{&array_buffer};
-      co_await async_read_one(ts, buf, res);
+      array_adapter.clear();
+      co_await async_read_one(ts, buf, array_adapter);
       resp3::array_type expected
-      { {0UL, 0UL, resp3::type::flat_map, {}}
+      { {0UL, 0UL, resp3::type::map, {}}
       };
       check_equal(array_buffer, expected, "test map (empty)");
    }

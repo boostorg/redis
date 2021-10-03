@@ -27,8 +27,8 @@ std::string to_string(type t)
       EXPAND_TYPE_CASE(array);
       EXPAND_TYPE_CASE(flat_array);
       EXPAND_TYPE_CASE(flat_push);
-      EXPAND_TYPE_CASE(flat_set);
-      EXPAND_TYPE_CASE(flat_map);
+      EXPAND_TYPE_CASE(set);
+      EXPAND_TYPE_CASE(map);
       EXPAND_TYPE_CASE(flat_attribute);
       EXPAND_TYPE_CASE(simple_string);
       EXPAND_TYPE_CASE(simple_error);
@@ -61,10 +61,10 @@ type to_type(char c)
       case '+': return type::simple_string;
       case '_': return type::null;
       case '>': return type::flat_push;
-      case '~': return type::flat_set;
+      case '~': return type::set;
       case '*': return type::flat_array;
       case '|': return type::flat_attribute;
-      case '%': return type::flat_map;
+      case '%': return type::map;
       default: return type::invalid;
    }
 }

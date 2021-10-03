@@ -23,8 +23,8 @@ response::select_adapter(type type, command cmd, std::string const&)
    }
 
    switch (type) {
-      case type::flat_set: return &flat_set_adapter_;
-      case type::flat_map:
+      case type::set:
+      case type::map:
       {
 	 array_.resize(0);
 	 array_adapter_.clear();

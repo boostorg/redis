@@ -17,8 +17,8 @@ enum class type
 { array
 , flat_array
 , flat_push
-, flat_set
-, flat_map
+, set
+, map
 , flat_attribute
 , simple_string
 , simple_error
@@ -45,9 +45,6 @@ using flat_array_int_type = basic_flat_array<int>;
 
 using flat_push_type = std::vector<std::string>;
 
-/// RESP3 set type.
-using flat_set_type = std::vector<std::string>;
-
 using number_type = long long int;
 using boolean_type = bool;
 using doublean_type = std::string;
@@ -73,7 +70,7 @@ struct node {
    std::string data;
 };
 
-/// Equality compare from node
+/// Equality compare for a node
 bool operator==(node const& a, node const& b);
 
 /// A pre-order-view of the response tree.
