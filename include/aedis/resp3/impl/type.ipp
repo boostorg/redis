@@ -61,11 +61,12 @@ type to_type(char c)
    }
 }
 
-} // resp3
-} // aedis
-
-std::ostream& operator<<(std::ostream& os, aedis::resp3::type t)
+std::ostream& operator<<(std::ostream& os, type t)
 {
    os << to_string(t);
    return os;
 }
+
+} // resp3
+} // aedis
+

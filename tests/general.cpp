@@ -32,7 +32,7 @@ using flat_array_int_type = detail::basic_flat_array<int>;
 
 using namespace aedis;
 
-resp3::response_impl array_buffer;
+resp3::response::storage_type array_buffer;
 resp3::detail::array_adapter array_adapter{&array_buffer};
 
 template <class T>
@@ -137,25 +137,25 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 switch (push_counter) {
 	    case 0:
 	    {
-	       resp3::response_impl expected
+	       resp3::response::storage_type expected
 	       { {3UL, 0UL, resp3::type::push, {}}
 	       , {1UL, 1UL, resp3::type::blob_string, {"subscribe"}}
 	       , {1UL, 1UL, resp3::type::blob_string, {"channel"}}
 	       , {1UL, 1UL, resp3::type::number, {"1"}}
 	       };
 
-	       check_equal(resp.array(), expected, "push (value1)"); break;
+	       check_equal(resp.raw(), expected, "push (value1)"); break;
 	    } break;
 	    case 1:
 	    {
-	       resp3::response_impl expected
+	       resp3::response::storage_type expected
 	       { {3UL, 0UL, resp3::type::push, {}}
 	       , {1UL, 1UL, resp3::type::blob_string, {"message"}}
 	       , {1UL, 1UL, resp3::type::blob_string, {"channel"}}
 	       , {1UL, 1UL, resp3::type::blob_string, {"message"}}
 	       };
 
-	       check_equal(resp.array(), expected, "push (value2)"); break;
+	       check_equal(resp.raw(), expected, "push (value2)"); break;
 	    } break;
 	    default: std::cout << "ERROR: unexpected push event." << std::endl;
 	 }
@@ -173,151 +173,151 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 } break;
 	 case command::multi:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "multi");
+	    check_equal(resp.raw(), expected, "multi");
 	 } break;
 	 case command::ping:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"QUEUED"}} };
 
-	    check_equal(resp.array(), expected, "ping");
+	    check_equal(resp.raw(), expected, "ping");
 	 } break;
 	 case command::set:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "set");
+	    check_equal(resp.raw(), expected, "set");
 	 } break;
 	 case command::quit:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "quit");
+	    check_equal(resp.raw(), expected, "quit");
 	 } break;
 	 case command::flushall:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "flushall");
+	    check_equal(resp.raw(), expected, "flushall");
 	 } break;
 	 case command::ltrim:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-	    check_equal(resp.array(), expected, "ltrim");
+	    check_equal(resp.raw(), expected, "ltrim");
 	 } break;
 	 case command::append:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"4"}} };
 
-           check_equal(resp.array(), expected, "append");
+           check_equal(resp.raw(), expected, "append");
          } break;
 	 case command::hset:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"2"}} };
 
-           check_equal(resp.array(), expected, "hset");
+           check_equal(resp.raw(), expected, "hset");
          } break;
 	 case command::rpush:
          {
            auto const n = std::to_string(std::size(filler.list_));
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, n} };
 
-           check_equal(resp.array(), expected, "rpush (value)");
+           check_equal(resp.raw(), expected, "rpush (value)");
          } break;
 	 case command::del:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"1"}} };
 
-           check_equal(resp.array(), expected, "del");
+           check_equal(resp.raw(), expected, "del");
          } break;
 	 case command::llen:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"6"}} };
 
-           check_equal(resp.array(), expected, "llen");
+           check_equal(resp.raw(), expected, "llen");
          } break;
 	 case command::incr:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"1"}} };
 
-           check_equal(resp.array(), expected, "incr");
+           check_equal(resp.raw(), expected, "incr");
          } break;
 	 case command::publish:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"1"}} };
 
-           check_equal(resp.array(), expected, "publish");
+           check_equal(resp.raw(), expected, "publish");
          } break;
 	 case command::hincrby:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"10"}} };
 
-           check_equal(resp.array(), expected, "hincrby");
+           check_equal(resp.raw(), expected, "hincrby");
          } break;
 	 case command::zadd:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"1"}} };
 
-           check_equal(resp.array(), expected, "zadd");
+           check_equal(resp.raw(), expected, "zadd");
          } break;
 	 case command::sadd:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"3"}} };
 
-           check_equal(resp.array(), expected, "sadd");
+           check_equal(resp.raw(), expected, "sadd");
          } break;
 	 case command::hdel:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"2"}} };
 
-           check_equal(resp.array(), expected, "hdel");
+           check_equal(resp.raw(), expected, "hdel");
          } break;
 	 case command::zremrangebyscore:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { {1UL, 0UL, resp3::type::number, {"1"}} };
 
-           check_equal(resp.array(), expected, "zremrangebyscore");
+           check_equal(resp.raw(), expected, "zremrangebyscore");
          } break;
 	 case command::get:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	       { {1UL, 0UL, resp3::type::blob_string, filler.set_} };
 
-	    check_equal(resp.array(), expected, "get");
+	    check_equal(resp.raw(), expected, "get");
 	 } break;
 	 case command::hget:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	       { {1UL, 0UL, resp3::type::blob_string, std::string{"value2"}} };
 
-	    check_equal(resp.array(), expected, "hget");
+	    check_equal(resp.raw(), expected, "hget");
 	 } break;
 	 case command::lrange:
          {
             static int c = 0;
 
             if (c == 0) {
-               resp3::response_impl expected
+               resp3::response::storage_type expected
                   { {6UL, 0UL, resp3::type::array, {}}
                   , {1UL, 1UL, resp3::type::blob_string, {"1"}}
                   , {1UL, 1UL, resp3::type::blob_string, {"2"}}
@@ -327,43 +327,43 @@ test_general(net::ip::tcp::resolver::results_type const& res)
                   , {1UL, 1UL, resp3::type::blob_string, {"6"}}
                   };
 
-               check_equal(resp.array(), expected, "lrange ");
+               check_equal(resp.raw(), expected, "lrange ");
             } else {
-               resp3::response_impl expected
+               resp3::response::storage_type expected
                   { {1UL, 0UL, resp3::type::simple_string, {"QUEUED"}} };
 
-               check_equal(resp.array(), expected, "lrange (inside transaction)");
+               check_equal(resp.raw(), expected, "lrange (inside transaction)");
             }
             
             ++c;
          } break;
 	 case command::hvals:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	       { {2UL, 0UL, resp3::type::array, {}}
 	       , {1UL, 1UL, resp3::type::array, {"value1"}}
 	       , {1UL, 1UL, resp3::type::array, {"value2"}}
                };
 
-           check_equal(resp.array(), expected, "hvals");
+           check_equal(resp.raw(), expected, "hvals");
          } break;
 	 case command::zrange:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	       { {1UL, 0UL, resp3::type::array, {}}
 	       , {1UL, 1UL, resp3::type::blob_string, {"Marcelo"}}
                };
 
-           check_equal(resp.array(), expected, "hvals");
+           check_equal(resp.raw(), expected, "hvals");
          } break;
 	 case command::zrangebyscore:
          {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	       { {1UL, 0UL, resp3::type::array, {}}
 	       , {1UL, 1UL, resp3::type::blob_string, {"Marcelo"}}
                };
 
-           check_equal(resp.array(), expected, "zrangebyscore");
+           check_equal(resp.raw(), expected, "zrangebyscore");
          } break;
 	 case command::lpop:
 	 {
@@ -371,20 +371,20 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	    {
 	       case resp3::type::blob_string:
 	       {
-	          resp3::response_impl expected
+	          resp3::response::storage_type expected
 		     { {1UL, 0UL, resp3::type::blob_string, {"3"}} };
 
-	          check_equal(resp.array(), expected, "lpop");
+	          check_equal(resp.raw(), expected, "lpop");
 	       } break;
 	       case resp3::type::array:
                {
-                 resp3::response_impl expected
+                 resp3::response::storage_type expected
                     { {2UL, 0UL, resp3::type::array, {}}
                     , {1UL, 1UL, resp3::type::array, {"4"}}
                     , {1UL, 1UL, resp3::type::array, {"5"}}
                     };
 
-                 check_equal(resp.array(), {"4", "5"}, "lpop");
+                 check_equal(resp.raw(), {"4", "5"}, "lpop");
                } break;
 	       default:
                {
@@ -394,7 +394,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 } break;
 	 case command::exec:
 	 {
-            resp3::response_impl expected
+            resp3::response::storage_type expected
                { {3UL, 0UL, resp3::type::array, {}}
                , {1UL, 1UL, resp3::type::simple_string, {"PONG"}}
                , {2UL, 1UL, resp3::type::array, {}}
@@ -403,34 +403,34 @@ test_general(net::ip::tcp::resolver::results_type const& res)
                , {1UL, 1UL, resp3::type::simple_string, {"PONG"}}
                };
 
-	    check_equal(resp.array(), expected, "transaction");
+	    check_equal(resp.raw(), expected, "transaction");
 
 	 } break;
 	 case command::hgetall:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { { 4UL, 0UL, resp3::type::map,    {}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"field1"}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"value1"}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"field2"}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"value2"}}
 	    };
-	    check_equal(resp.array(), expected, "hgetall (value)");
+	    check_equal(resp.raw(), expected, "hgetall (value)");
 	 } break;
 	 case command::smembers:
 	 {
-	    resp3::response_impl expected
+	    resp3::response::storage_type expected
 	    { { 3UL, 0UL, resp3::type::set,    {}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"1"}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"2"}}
 	    , { 1UL, 1UL, resp3::type::blob_string, {"3"}}
 	    };
-	    check_equal(resp.array(), expected, "smembers (value)");
+	    check_equal(resp.raw(), expected, "smembers (value)");
 	 } break;
 	 default: { std::cout << "Error: " << t << " " << id.first << std::endl; }
       }
 
-      resp.array().clear();
+      resp.raw().clear();
    }
 }
 
@@ -467,7 +467,7 @@ test_list(net::ip::tcp::resolver::results_type const& results)
       array_buffer.clear();
       array_adapter.clear();
       co_await async_read_one(socket, buf, array_adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "flushall");
    }
@@ -475,7 +475,7 @@ test_list(net::ip::tcp::resolver::results_type const& results)
    {  // rpush
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::number, {"6"}} };
       co_await async_read_one(socket, buf, array_adapter);
       check_equal(array_buffer, expected, "rpush");
@@ -498,7 +498,7 @@ test_list(net::ip::tcp::resolver::results_type const& results)
    {  // ltrim
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
       co_await async_read_one(socket, buf, array_adapter);
@@ -508,7 +508,7 @@ test_list(net::ip::tcp::resolver::results_type const& results)
    {  // lpop. Why a blob string instead of a number?
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {"3"}} };
 
       co_await async_read_one(socket, buf, array_adapter);
@@ -519,11 +519,13 @@ test_list(net::ip::tcp::resolver::results_type const& results)
       array_buffer.clear();
       array_adapter.clear();
       co_await async_read_one(socket, buf, array_adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "ltrim");
    }
 }
+
+std::string test_bulk1(10000, 'a');
 
 net::awaitable<void>
 test_set(net::ip::tcp::resolver::results_type const& results)
@@ -532,7 +534,6 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    auto ex = co_await this_coro::executor;
 
    // Tests whether the parser can handle payloads that contain the separator.
-   std::string test_bulk1(10000, 'a');
    test_bulk1[30] = '\r';
    test_bulk1[31] = '\n';
 
@@ -566,7 +567,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       array_buffer.clear();
       array_adapter.clear();
       co_await async_read_one(socket, buf, array_adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "set1");
    }
@@ -574,7 +575,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    {  // get
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, test_bulk1} };
 
       co_await async_read_one(socket, buf, array_adapter);
@@ -585,7 +586,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       array_buffer.clear();
       array_adapter.clear();
       co_await async_read_one(socket, buf, array_adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "ltrim");
    }
@@ -593,7 +594,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    {  // get
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, test_bulk2} };
       co_await async_read_one(socket, buf, array_adapter);
       check_equal(array_buffer, expected, "get2");
@@ -603,7 +604,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       array_buffer.clear();
       array_adapter.clear();
       co_await async_read_one(socket, buf, array_adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "set3");
    }
@@ -611,7 +612,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    {  // get
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {}} };
 
       co_await async_read_one(socket, buf, array_adapter);
@@ -622,7 +623,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       array_buffer.clear();
       array_adapter.clear();
       co_await async_read_one(socket, buf, array_adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "quit");
    }
@@ -646,7 +647,7 @@ net::awaitable<void> test_simple_string()
       array_buffer.clear();
       array_adapter.clear();
       co_await async_read_one(ts, buf, array_adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "simple_string");
    }
@@ -658,7 +659,7 @@ net::awaitable<void> test_simple_string()
       array_buffer.clear();
       array_adapter.clear();
       co_await async_read_one(ts, buf, array_adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {}} };
       check_equal(array_buffer, expected, "simple_string (empty)");
       //check_equal(res.attribute.value, {}, "simple_string (empty attribute)");
@@ -688,7 +689,7 @@ net::awaitable<void> test_number()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::number, {"-3"}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "number (int)");
@@ -699,7 +700,7 @@ net::awaitable<void> test_number()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::number, {"3"}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "number (unsigned)");
@@ -710,7 +711,7 @@ net::awaitable<void> test_number()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::number, {"1111111"}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "number (std::size_t)");
@@ -726,7 +727,7 @@ net::awaitable<void> test_array()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {3UL, 0UL, resp3::type::array, {}}
 	 , {1UL, 1UL, resp3::type::blob_string, {"one"}}
 	 , {1UL, 1UL, resp3::type::blob_string, {"two"}}
@@ -750,7 +751,7 @@ net::awaitable<void> test_array()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {0UL, 0UL, resp3::type::array, {}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "array (empty)");
@@ -766,7 +767,7 @@ net::awaitable<void> test_blob_string()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {"hh"}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "blob_string");
@@ -777,7 +778,7 @@ net::awaitable<void> test_blob_string()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "blob_string (with separator)");
@@ -788,7 +789,7 @@ net::awaitable<void> test_blob_string()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "blob_string (size 0)");
@@ -804,7 +805,7 @@ net::awaitable<void> test_simple_error()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::simple_error, {"Error"}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "simple_error (message)");
@@ -820,10 +821,10 @@ net::awaitable<void> test_floating_point()
       test_tcp_socket ts {cmd};
       resp3::response resp;
       auto* adapter = resp.select_adapter(resp3::type::doublean);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::doublean, {"1.23"}} };
       co_await async_read_one(ts, buf, *adapter);
-      check_equal(resp.array(), expected, "double");
+      check_equal(resp.raw(), expected, "double");
    }
 
    {
@@ -832,9 +833,9 @@ net::awaitable<void> test_floating_point()
       resp3::response resp;
       auto* adapter = resp.select_adapter(resp3::type::doublean);
       co_await async_read_one(ts, buf, *adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::doublean, {"inf"}} };
-      check_equal(resp.array(), expected, "double (inf)");
+      check_equal(resp.raw(), expected, "double (inf)");
    }
 
    {
@@ -843,9 +844,9 @@ net::awaitable<void> test_floating_point()
       resp3::response resp;
       auto* adapter = resp.select_adapter(resp3::type::doublean);
       co_await async_read_one(ts, buf, *adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::doublean, {"-inf"}} };
-      check_equal(resp.array(), expected, "double (-inf)");
+      check_equal(resp.raw(), expected, "double (-inf)");
    }
 
 }
@@ -859,11 +860,11 @@ net::awaitable<void> test_boolean()
       test_tcp_socket ts {cmd};
       resp3::response resp;
       auto* adapter = resp.select_adapter(resp3::type::boolean);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::boolean, {"f"}} };
 
       co_await async_read_one(ts, buf, *adapter);
-      check_equal(resp.array(), expected, "bool (false)");
+      check_equal(resp.raw(), expected, "bool (false)");
    }
 
    {
@@ -871,11 +872,11 @@ net::awaitable<void> test_boolean()
       test_tcp_socket ts {cmd};
       resp3::response resp;
       auto* adapter = resp.select_adapter(resp3::type::boolean);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::boolean, {"t"}} };
 
       co_await async_read_one(ts, buf, *adapter);
-      check_equal(resp.array(), expected, "bool (true)");
+      check_equal(resp.raw(), expected, "bool (true)");
    }
 }
 
@@ -888,7 +889,7 @@ net::awaitable<void> test_blob_error()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_error, {"SYNTAX invalid syntax"}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "blob_error (message)");
@@ -899,7 +900,7 @@ net::awaitable<void> test_blob_error()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_error, {}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "blob_error (empty message)");
@@ -915,7 +916,7 @@ net::awaitable<void> test_verbatim_string()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::verbatim_string, {"txt:Some string"}} };
       co_await async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "verbatim_string");
@@ -927,7 +928,7 @@ net::awaitable<void> test_verbatim_string()
       co_await async_read_one(ts, buf, array_adapter);
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::verbatim_string, {}} };
       check_equal(array_buffer, expected, "verbatim_string (empty)");
    }
@@ -942,7 +943,7 @@ net::awaitable<void> test_set2()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
 
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { { 5UL, 0UL, resp3::type::set,    {}}
       , { 1UL, 1UL, resp3::type::simple_string, {"orange"}}
       , { 1UL, 1UL, resp3::type::simple_string, {"apple"}}
@@ -960,7 +961,7 @@ net::awaitable<void> test_set2()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
 
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { { 0UL, 0UL, resp3::type::set, {}}
       };
 
@@ -980,7 +981,7 @@ net::awaitable<void> test_map()
       array_adapter.clear();
       co_await async_read_one(ts, buf, array_adapter);
 
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { {14UL, 0UL, resp3::type::map,    {}}
       , { 1UL, 1UL, resp3::type::blob_string, {"server"}}
       , { 1UL, 1UL, resp3::type::blob_string, {"redis"}}
@@ -1006,7 +1007,7 @@ net::awaitable<void> test_map()
       array_buffer.clear();
       array_adapter.clear();
       co_await async_read_one(ts, buf, array_adapter);
-      resp3::response_impl expected
+      resp3::response::storage_type expected
       { {0UL, 0UL, resp3::type::map, {}} };
       check_equal(array_buffer, expected, "test map (empty)");
    }
@@ -1021,7 +1022,7 @@ net::awaitable<void> test_streamed_string()
       test_tcp_socket ts {cmd};
       array_buffer.clear();
       array_adapter.clear();
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::streamed_string_part, {"Hello world"}} };
       co_await resp3::async_read_one(ts, buf, array_adapter);
       check_equal(array_buffer, expected, "streamed string");
@@ -1034,9 +1035,9 @@ net::awaitable<void> test_streamed_string()
       auto* adapter = resp.select_adapter(resp3::type::streamed_string_part, command::unknown, {});
       co_await resp3::async_read_one(ts, buf, *adapter);
 
-      resp3::response_impl expected
+      resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::streamed_string_part, {}} };
-      check_equal(resp.array(), expected, "streamed string (empty)");
+      check_equal(resp.raw(), expected, "streamed string (empty)");
    }
 }
 

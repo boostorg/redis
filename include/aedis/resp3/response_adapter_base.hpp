@@ -7,28 +7,52 @@
 
 #pragma once
 
+#include <aedis/resp3/type.hpp>
+
 #include <string_view>
 
-namespace aedis { namespace resp3 {
+namespace aedis {
+namespace resp3 {
 
+/** Response adapter base class.
+ *
+ *  Users are allowed to override this class.
+ */
 struct response_adapter_base {
+   /** Called by the parser when it is done at the specific depth. In
+    * other words, when it is done with an aggregate data type.
+    */
    virtual void pop() {}
-   virtual void on_simple_string(std::string_view s) { assert(false); }
-   virtual void on_simple_error(std::string_view s) { assert(false); }
-   virtual void on_number(std::string_view s) { assert(false); }
-   virtual void on_double(std::string_view s) { assert(false); }
-   virtual void on_null() { assert(false); }
-   virtual void on_bool(std::string_view s) { assert(false); }
-   virtual void on_big_number(std::string_view s) { assert(false); }
-   virtual void on_verbatim_string(std::string_view s = {}) { assert(false); }
-   virtual void on_blob_string(std::string_view s = {}) { assert(false); }
-   virtual void on_blob_error(std::string_view s = {}) { assert(false); }
-   virtual void on_streamed_string_part(std::string_view s = {}) { assert(false); }
-   virtual void select_array(int n) { assert(false); }
-   virtual void select_set(int n) { assert(false); }
-   virtual void select_map(int n) { assert(false); }
-   virtual void select_push(int n) { assert(false); }
-   virtual void select_attribute(int n) { assert(false); }
+
+   /** Called in the parser everytime a simple (non-aggregate) data
+    * type arrives, those are
+    *
+    *    simple_string
+    *    simple_error
+    *    number
+    *    null
+    *    double
+    *    bool
+    *    big_number
+    *    blob_error
+    *    blob_string
+    *    verbatim_string
+    *    streamed_string_part
+    */
+   virtual void add(type t, std::string_view s = {}) {}
+
+   /** Called from the parser everytime a new RESP3 aggregate data
+    * type is received, those are
+    *
+    *    array
+    *    push
+    *    set
+    *    map
+    *    attribute
+    */
+   virtual void add_aggregate(type t, int n) { }
+
+   /// Destructor.
    virtual ~response_adapter_base() {}
 };
 

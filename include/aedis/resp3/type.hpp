@@ -13,6 +13,7 @@
 
 namespace aedis { namespace resp3 {
 
+/// RESP3 message types.
 enum class type
 { array
 , push
@@ -33,11 +34,14 @@ enum class type
 , invalid
 };
 
+/// Converts a RESP3 type to a string.
 std::string to_string(type t);
+
+// TODO: Move to detail?
 type to_type(char c);
+
+/// Writes the string representation of type to the stream.
+std::ostream& operator<<(std::ostream& os, type t);
 
 } // resp3
 } // aedis
-
-std::ostream& operator<<(std::ostream& os, aedis::resp3::type t);
-

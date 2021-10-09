@@ -8,7 +8,8 @@
 #include <aedis/resp3/response.hpp>
 #include <aedis/command.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis {
+namespace resp3 {
 
 response_adapter_base*
 response::select_adapter(
@@ -16,9 +17,17 @@ response::select_adapter(
    command cmd,
    std::string const&)
 {
-   array_.resize(0);
+   data_.resize(0);
    array_adapter_.clear();
    return &array_adapter_;
+}
+
+std::ostream& operator<<(std::ostream& os, response const& r)
+{
+   for (auto const& n : r.data_)
+      os << n << "\n";
+
+   return os;
 }
 
 } // resp3

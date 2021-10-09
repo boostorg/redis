@@ -6,8 +6,11 @@
  */
 
 #include <aedis/resp3/detail/parser.hpp>
+#include <aedis/resp3/type.hpp>
 
-namespace aedis { namespace resp3 { namespace detail {
+namespace aedis {
+namespace resp3 {
+namespace detail {
 
 // Converts a decimal number in ascii format to an integer.
 long long length(char const* p)
@@ -53,7 +56,7 @@ long long parser::on_array_impl(char const* data, int m)
 
 void parser::on_null()
 {
-   res_->on_null();
+   res_->add(type::null);
    --sizes_[depth_];
 }
 
@@ -67,15 +70,15 @@ parser::handle_simple_string(char const* data, std::size_t n)
 void parser::on_bulk(parser::bulk_type b, std::string_view s)
 {
    switch (b) {
-      case bulk_type::blob_error: res_->on_blob_error(s); break;
-      case bulk_type::verbatim_string: res_->on_verbatim_string(s); break;
-      case bulk_type::blob_string: res_->on_blob_string(s); break;
+      case bulk_type::blob_error: res_->add(type::blob_error, s); break;
+      case bulk_type::verbatim_string: res_->add(type::verbatim_string, s); break;
+      case bulk_type::blob_string: res_->add(type::blob_string, s); break;
       case bulk_type::streamed_string_part:
       {
 	if (std::empty(s)) {
 	   sizes_[depth_] = 1;
 	} else {
-	   res_->on_streamed_string_part(s);
+	   res_->add(type::streamed_string_part, s);
 	}
       } break;
       default: assert(false);
@@ -84,7 +87,7 @@ void parser::on_bulk(parser::bulk_type b, std::string_view s)
    --sizes_[depth_];
 }
 
-parser::bulk_type parser::on_blob_error_impl(char const* data, parser::bulk_type b)
+parser::bulk_type parser::on_blob_error(char const* data, parser::bulk_type b)
 {
    bulk_length_ = length(data + 1);
    return b;
@@ -97,7 +100,28 @@ parser::bulk_type parser::on_blob_string(char const* data)
       return bulk_type::none;
    }
 
-   return on_blob_error_impl(data, bulk_type::blob_string);
+   return on_blob_error(data, bulk_type::blob_string);
+}
+
+void parser::on_data(type t, char const* data, std::size_t n)
+{
+   auto const sv = handle_simple_string(data, n);
+   res_->add(t, sv);
+}
+
+void parser::on_aggregate(type t, char const* data)
+{
+   int counter;
+   switch (t) {
+      case type::map:
+      case type::attribute:
+      {
+	 counter = 2;
+      } break;
+      default: counter = 1;
+   }
+
+   res_->add_aggregate(t, on_array_impl(data, counter));
 }
 
 std::size_t parser::advance(char const* data, std::size_t n)
@@ -109,22 +133,22 @@ std::size_t parser::advance(char const* data, std::size_t n)
    } else {
       if (sizes_[depth_] != 0) {
 	 switch (*data) {
-	    case '!': next = on_blob_error(data); break;
-	    case '=': next = on_verbatim_string(data); break; 
+	    case '!': next = on_blob_error(data, bulk_type::blob_error); break;
+	    case '=': next = on_blob_error(data, bulk_type::verbatim_string); break; 
 	    case '$': next = on_blob_string(data); break;
-	    case ';': next = on_streamed_string_size(data); break;
-	    case '-': on_simple_error(data, n); break;
-	    case ':': on_number(data, n); break;
-	    case ',': on_double(data, n); break;
-	    case '#': on_boolean(data, n); break;
-	    case '(': on_big_number(data, n); break;
-	    case '+': on_simple_string(data, n); break;
+	    case ';': next = on_blob_error(data, bulk_type::streamed_string_part); break;
+	    case '-': on_data(type::simple_error, data, n); break;
+	    case ':': on_data(type::number, data, n); break;
+	    case ',': on_data(type::doublean, data, n); break;
+	    case '#': on_data(type::boolean, data, n); break;
+	    case '(': on_data(type::big_number, data, n); break;
+	    case '+': on_data(type::simple_string, data, n); break;
 	    case '_': on_null(); break;
-	    case '>': on_push(data); break;
-	    case '~': on_set(data); break;
-	    case '*': on_array(data); break;
-	    case '|': on_attribute(data); break;
-	    case '%': on_map(data); break;
+	    case '>': on_aggregate(type::push, data); break;
+	    case '~': on_aggregate(type::set, data); break;
+	    case '*': on_aggregate(type::array, data); break;
+	    case '|': on_aggregate(type::attribute, data); break;
+	    case '%': on_aggregate(type::map, data); break;
 	    default: assert(false);
 	 }
       } else {

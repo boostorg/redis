@@ -8,10 +8,10 @@
 #pragma once
 
 #include <string>
-#include <vector>
 #include <iostream>
 
-namespace aedis { namespace resp3 {
+namespace aedis {
+namespace resp3 {
 
 /** Represents a node in the response tree.
  */
@@ -29,14 +29,14 @@ struct node {
    std::string data;
 };
 
-/// Equality compare for a node
+/// Equality comparison for a node.
 bool operator==(node const& a, node const& b);
 
-/// A pre-order-view of the response tree.
-using response_impl = std::vector<node>;
+/** Writes the text representation of node to the output stream.
+ *  
+ *  NOTE: Be careful when printing binary data.
+ */
+std::ostream& operator<<(std::ostream& os, node const& o);
 
 } // resp3
 } // aedis
-
-std::ostream& operator<<(std::ostream& os, aedis::resp3::node const& o);
-std::ostream& operator<<(std::ostream& os, aedis::resp3::response_impl const& r);

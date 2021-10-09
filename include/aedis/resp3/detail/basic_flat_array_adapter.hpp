@@ -23,35 +23,11 @@ struct basic_flat_array_adapter : response_adapter_base {
 
    basic_flat_array_adapter(basic_flat_array<T>* p) : result(p) {}
 
-   void add(std::string_view s = {})
-   {
-      from_string_view(s, result->at(i));
-      ++i;
-   }
+   void add(type t, std::string_view s = {})
+      { from_string_view(s, result->at(i)); ++i; }
 
-   void select_array(int n) override
-   {
-      i = 0;
-      result->resize(n);
-   }
-
-   void select_push(int n) override
-   {
-      i = 0;
-      result->resize(n);
-   }
-
-   // TODO: Call vector reserve.
-   void on_simple_string(std::string_view s) override { add(s); }
-   void on_number(std::string_view s) override { add(s); }
-   void on_double(std::string_view s) override { add(s); }
-   void on_bool(std::string_view s) override { add(s); }
-   void on_big_number(std::string_view s) override { add(s); }
-   void on_verbatim_string(std::string_view s = {}) override { add(s); }
-   void on_blob_string(std::string_view s = {}) override { add(s); }
-   void select_set(int n) override { }
-   void select_map(int n) override { }
-   void on_streamed_string_part(std::string_view s = {}) override { add(s); }
+   void add_aggregate(type t, int n) override
+      { i = 0; result->resize(n); }
 };
 
 } // detail

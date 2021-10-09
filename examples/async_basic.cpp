@@ -31,7 +31,7 @@ example(net::ip::tcp::socket& socket,
 
    for (;;) {
       auto const t = co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
-      std::cout << resp.array() << std::endl;
+      std::cout << resp << std::endl;
 
       if (t == resp3::type::push) {
          continue;

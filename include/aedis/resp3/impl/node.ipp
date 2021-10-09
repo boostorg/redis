@@ -17,24 +17,18 @@ bool operator==(node const& a, node const& b)
        && a.data == b.data;
 };
 
-} // resp3
-} // aedis
-
-std::ostream& operator<<(std::ostream& os, aedis::resp3::node const& o)
+std::ostream& operator<<(std::ostream& os, node const& o)
 {
-   std::string res(3 * o.depth, ' ');
-   res += o.data;
-   res += "(";
+   std::string res;
+   res += o.depth;
+   res += '\t';
    res += to_string(o.data_type);
-   res += ")";
+   res += '\t';
+   res += o.data;
    os << res;
    return os;
 }
 
-std::ostream& operator<<(std::ostream& os, aedis::resp3::response_impl const& r)
-{
-   for (auto const& n : r)
-      os << n << "\n";
+} // resp3
+} // aedis
 
-   return os;
-}

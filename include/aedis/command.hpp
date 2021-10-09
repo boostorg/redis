@@ -11,6 +11,7 @@
 
 namespace aedis {
 
+/// Supported redis commands.
 enum class command
 { acl_load
 , acl_save
@@ -75,8 +76,7 @@ enum class command
 };
 
 std::string to_string(command c);
+std::ostream& operator<<(std::ostream& os, command c);
 
 } // aedis
-
-std::ostream& operator<<(std::ostream& os, aedis::command c);
 
