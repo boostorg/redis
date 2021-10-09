@@ -42,7 +42,7 @@ struct response_adapter_base {
    virtual void add(type t, std::string_view s = {}) {}
 
    /** Called from the parser everytime a new RESP3 aggregate data
-    * type is received, those are
+    *  type is received, those are
     *
     *    array
     *    push

@@ -19,28 +19,28 @@ namespace detail {
 
 // This response type is able to deal with recursive redis responses
 // as in a transaction for example.
-class array_adapter: public response_adapter_base {
+class response_adapter: public response_adapter_base {
 private:
    std::vector<node>* result_;
    std::size_t depth_;
 
 public:
-   array_adapter(std::vector<node>* p = nullptr)
+   response_adapter(std::vector<node>* p)
    : result_{p}
    , depth_{0}
    { }
 
    void add_aggregate(type t, int n) override
-   {
-      result_->emplace_back(n, depth_, t, std::string{});
-      ++depth_;
-   }
+      { result_->emplace_back(n, depth_, t, std::string{}); ++depth_; }
 
    void add(type t, std::string_view s = {}) override
       { result_->emplace_back(1, depth_, t, std::string{s}); }
 
-   void pop() override { --depth_; }
-   void clear() { depth_ = 0; }
+   void pop() override
+      { --depth_; }
+
+   void clear()
+      { depth_ = 0; }
 };
 
 } // detail

@@ -11,7 +11,9 @@
 #include <aedis/resp3/response_adapter_base.hpp>
 #include <aedis/resp3/detail/adapter_utils.hpp>
 
-namespace aedis { namespace resp3 { namespace detail {
+namespace aedis {
+namespace resp3 {
+namespace detail {
 
 template <class T>
 using basic_flat_array = std::vector<T>;

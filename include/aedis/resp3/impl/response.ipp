@@ -11,15 +11,10 @@
 namespace aedis {
 namespace resp3 {
 
-response_adapter_base*
-response::select_adapter(
-   type type,
-   command cmd,
-   std::string const&)
+void response::clear()
 {
    data_.resize(0);
-   array_adapter_.clear();
-   return &array_adapter_;
+   adapter_.clear();
 }
 
 std::ostream& operator<<(std::ostream& os, response const& r)

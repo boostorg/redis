@@ -30,12 +30,12 @@ example(net::ip::tcp::socket& socket,
    resp3::consumer cs;
 
    for (;;) {
-      auto const t = co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
+      resp.clear();
+      co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
       std::cout << resp << std::endl;
 
-      if (t == resp3::type::push) {
+      if (resp.get_type() == resp3::type::push)
          continue;
-      }
 
       auto const id = requests.front().ids.front();
 

@@ -19,7 +19,8 @@
 
 #include <aedis/command.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis {
+namespace resp3 {
 
 // TODO: Move to detail.
 void add_bulk(std::string& to, std::string_view param);
@@ -126,9 +127,6 @@ public:
    /// contains.
    auto size() const noexcept
       { return std::size(ids); }
-
-   auto payload_size() const noexcept
-      { return std::size(payload); }
 
    bool empty() const noexcept
       { return std::empty(payload); };
@@ -299,14 +297,14 @@ public:
    
    /// Adds ping to the request, see https://redis.io/commands/rpush
    template <class T>
-   void rpush( std::string_view key, std::initializer_list<T> v)
+   void rpush(std::string_view key, std::initializer_list<T> v)
    {
       return rpush(key, std::cbegin(v), std::cend(v));
    }
 
    /// Adds ping to the request, see https://redis.io/commands/rpush
    template <class Range>
-   void rpush( std::string_view key, Range const& v)
+   void rpush(std::string_view key, Range const& v)
    {
       using std::cbegin;
       using std::cend;

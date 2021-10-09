@@ -10,9 +10,10 @@
 #include <aedis/command.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
-#include <aedis/resp3/detail/array_adapter.hpp>
+#include <aedis/resp3/detail/response_adapter.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis {
+namespace resp3 {
 
 /// A pre-order-view of the response tree.
 class response {
@@ -24,7 +25,7 @@ private:
    std::ostream& operator<<(std::ostream& os, response const& r);
 
    storage_type data_;
-   detail::array_adapter array_adapter_{&data_};
+   detail::response_adapter adapter_{&data_};
 
 public:
    virtual ~response() = default;
@@ -36,12 +37,29 @@ public:
    virtual
    response_adapter_base*
    select_adapter(
-      resp3::type type,
+      resp3::type t,
       command cmd = command::unknown,
-      std::string const& key = "");
+      std::string const& key = "")
+      { return &adapter_; }
+
 
    auto const& raw() const noexcept {return data_;}
    auto& raw() noexcept {return data_;}
+
+   /** Clears the internal buffers but does not release already aquired
+    *  memory. This function is usually called before reading a new
+    *  response.
+    */  
+   void clear();
+
+   /// Returns true if the response is empty.
+   auto empty() const noexcept { return std::empty(data_);}
+
+   /** Returns the RESP3 type of the response.
+    *  
+    *  Expects a non-empty response.
+    */
+   auto get_type() const noexcept { return data_.front().data_type; }
 };
 
 /** Writes the text representation of the response to the output

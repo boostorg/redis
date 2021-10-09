@@ -33,7 +33,7 @@ using flat_array_int_type = detail::basic_flat_array<int>;
 using namespace aedis;
 
 resp3::response::storage_type array_buffer;
-resp3::detail::array_adapter array_adapter{&array_buffer};
+resp3::detail::response_adapter radapter{&array_buffer};
 
 template <class T>
 void check_equal(T const& a, T const& b, std::string const& msg = "")
@@ -130,6 +130,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 
    int push_counter = 0;
    for (;;) {
+      resp.clear();
       auto const t =
         co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
 
@@ -459,14 +460,14 @@ test_list(net::ip::tcp::resolver::results_type const& results)
 
    {  // hello
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(socket, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(socket, buf, radapter);
    }
 
    {  // flushall
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(socket, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(socket, buf, radapter);
       resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "flushall");
@@ -474,10 +475,10 @@ test_list(net::ip::tcp::resolver::results_type const& results)
 
    {  // rpush
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::number, {"6"}} };
-      co_await async_read_one(socket, buf, array_adapter);
+      co_await async_read_one(socket, buf, radapter);
       check_equal(array_buffer, expected, "rpush");
    }
 
@@ -497,28 +498,28 @@ test_list(net::ip::tcp::resolver::results_type const& results)
 
    {  // ltrim
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
 
-      co_await async_read_one(socket, buf, array_adapter);
+      co_await async_read_one(socket, buf, radapter);
       check_equal(array_buffer, expected, "ltrim");
    }
 
    {  // lpop. Why a blob string instead of a number?
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {"3"}} };
 
-      co_await async_read_one(socket, buf, array_adapter);
+      co_await async_read_one(socket, buf, radapter);
       check_equal(array_buffer, expected, "lpop");
    }
 
    {  // quit
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(socket, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(socket, buf, radapter);
       resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "ltrim");
@@ -558,15 +559,15 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    std::string buf;
    {  // hello, flushall
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(socket, buf, array_adapter);
-      co_await async_read_one(socket, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(socket, buf, radapter);
+      co_await async_read_one(socket, buf, radapter);
    }
 
    {  // set
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(socket, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(socket, buf, radapter);
       resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "set1");
@@ -574,18 +575,18 @@ test_set(net::ip::tcp::resolver::results_type const& results)
 
    {  // get
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, test_bulk1} };
 
-      co_await async_read_one(socket, buf, array_adapter);
+      co_await async_read_one(socket, buf, radapter);
       check_equal(array_buffer, expected, "get1");
    }
 
    {  // set
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(socket, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(socket, buf, radapter);
       resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "ltrim");
@@ -593,17 +594,17 @@ test_set(net::ip::tcp::resolver::results_type const& results)
 
    {  // get
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, test_bulk2} };
-      co_await async_read_one(socket, buf, array_adapter);
+      co_await async_read_one(socket, buf, radapter);
       check_equal(array_buffer, expected, "get2");
    }
 
    {  // set
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(socket, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(socket, buf, radapter);
       resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "set3");
@@ -611,18 +612,18 @@ test_set(net::ip::tcp::resolver::results_type const& results)
 
    {  // get
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {}} };
 
-      co_await async_read_one(socket, buf, array_adapter);
+      co_await async_read_one(socket, buf, radapter);
       check_equal(array_buffer,  expected, "get3");
    }
 
    {  // quit
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(socket, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(socket, buf, radapter);
       resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "quit");
@@ -645,8 +646,8 @@ net::awaitable<void> test_simple_string()
       std::string cmd {"+OK\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(ts, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(ts, buf, radapter);
       resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {"OK"}} };
       check_equal(array_buffer, expected, "simple_string");
@@ -657,8 +658,8 @@ net::awaitable<void> test_simple_string()
       std::string cmd {"+\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(ts, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(ts, buf, radapter);
       resp3::response::storage_type expected
       { {1UL, 0UL, resp3::type::simple_string, {}} };
       check_equal(array_buffer, expected, "simple_string (empty)");
@@ -688,10 +689,10 @@ net::awaitable<void> test_number()
       std::string cmd {":-3\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::number, {"-3"}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "number (int)");
    }
 
@@ -699,10 +700,10 @@ net::awaitable<void> test_number()
       std::string cmd {":3\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::number, {"3"}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "number (unsigned)");
    }
 
@@ -710,10 +711,10 @@ net::awaitable<void> test_number()
       std::string cmd {":1111111\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
         { {1UL, 0UL, resp3::type::number, {"1111111"}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "number (std::size_t)");
    }
 }
@@ -726,14 +727,14 @@ net::awaitable<void> test_array()
       std::string cmd {"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {3UL, 0UL, resp3::type::array, {}}
 	 , {1UL, 1UL, resp3::type::blob_string, {"one"}}
 	 , {1UL, 1UL, resp3::type::blob_string, {"two"}}
 	 , {1UL, 1UL, resp3::type::blob_string, {"three"}}
          };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "array");
    }
 
@@ -750,10 +751,10 @@ net::awaitable<void> test_array()
       std::string cmd {"*0\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {0UL, 0UL, resp3::type::array, {}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "array (empty)");
    }
 }
@@ -766,10 +767,10 @@ net::awaitable<void> test_blob_string()
       std::string cmd {"$2\r\nhh\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {"hh"}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "blob_string");
    }
 
@@ -777,10 +778,10 @@ net::awaitable<void> test_blob_string()
       std::string cmd {"$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "blob_string (with separator)");
    }
 
@@ -788,10 +789,10 @@ net::awaitable<void> test_blob_string()
       std::string cmd {"$0\r\n\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_string, {}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "blob_string (size 0)");
    }
 }
@@ -804,10 +805,10 @@ net::awaitable<void> test_simple_error()
       std::string cmd {"-Error\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::simple_error, {"Error"}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "simple_error (message)");
    }
 }
@@ -888,10 +889,10 @@ net::awaitable<void> test_blob_error()
       std::string cmd {"!21\r\nSYNTAX invalid syntax\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_error, {"SYNTAX invalid syntax"}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "blob_error (message)");
    }
 
@@ -899,10 +900,11 @@ net::awaitable<void> test_blob_error()
       std::string cmd {"!0\r\n\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::blob_error, {}} };
-      co_await async_read_one(ts, buf, array_adapter);
+
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "blob_error (empty message)");
    }
 }
@@ -915,19 +917,19 @@ net::awaitable<void> test_verbatim_string()
       std::string cmd {"=15\r\ntxt:Some string\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::verbatim_string, {"txt:Some string"}} };
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "verbatim_string");
    }
 
    {
       std::string cmd {"=0\r\n\r\n"};
       test_tcp_socket ts {cmd};
-      co_await async_read_one(ts, buf, array_adapter);
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
+      co_await async_read_one(ts, buf, radapter);
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::verbatim_string, {}} };
       check_equal(array_buffer, expected, "verbatim_string (empty)");
@@ -952,7 +954,7 @@ net::awaitable<void> test_set2()
       , { 1UL, 1UL, resp3::type::simple_string, {"three"}}
       };
 
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "test set (1)");
    }
 
@@ -965,7 +967,7 @@ net::awaitable<void> test_set2()
       { { 0UL, 0UL, resp3::type::set, {}}
       };
 
-      co_await async_read_one(ts, buf, array_adapter);
+      co_await async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "test set (2)");
    }
 }
@@ -978,8 +980,8 @@ net::awaitable<void> test_map()
       std::string cmd {"%7\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n6.0.9\r\n$5\r\nproto\r\n:3\r\n$2\r\nid\r\n:203\r\n$4\r\nmode\r\n$10\r\nstandalone\r\n$4\r\nrole\r\n$6\r\nmaster\r\n$7\r\nmodules\r\n*0\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(ts, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(ts, buf, radapter);
 
       resp3::response::storage_type expected
       { {14UL, 0UL, resp3::type::map,    {}}
@@ -1005,8 +1007,8 @@ net::awaitable<void> test_map()
       std::string cmd {"%0\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
-      co_await async_read_one(ts, buf, array_adapter);
+      radapter.clear();
+      co_await async_read_one(ts, buf, radapter);
       resp3::response::storage_type expected
       { {0UL, 0UL, resp3::type::map, {}} };
       check_equal(array_buffer, expected, "test map (empty)");
@@ -1021,10 +1023,10 @@ net::awaitable<void> test_streamed_string()
       std::string cmd {"$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
       array_buffer.clear();
-      array_adapter.clear();
+      radapter.clear();
       resp3::response::storage_type expected
 	 { {1UL, 0UL, resp3::type::streamed_string_part, {"Hello world"}} };
-      co_await resp3::async_read_one(ts, buf, array_adapter);
+      co_await resp3::async_read_one(ts, buf, radapter);
       check_equal(array_buffer, expected, "streamed string");
    }
 
@@ -1047,7 +1049,7 @@ net::awaitable<void> offline()
    //{
    //   std::string cmd {"|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"};
    //   test_tcp_socket ts {cmd};
-   //   resp3::flat_array_adapter res;
+   //   resp3::flat_radapter res;
    //   co_await async_read_one(ts, buf, res);
    //   check_equal(res.result, {"key-popularity", "a", "0.1923", "b", "0.0012"}, "attribute");
    //}
@@ -1055,7 +1057,7 @@ net::awaitable<void> offline()
    //{
    //   std::string cmd {">4\r\n+pubsub\r\n+message\r\n+foo\r\n+bar\r\n"};
    //   test_tcp_socket ts {cmd};
-   //   resp3::flat_array_adapter res;
+   //   resp3::flat_radapter res;
    //   co_await async_read_one(ts, buf, res);
    //   check_equal(res.result, {"pubsub", "message", "foo", "bar"}, "push type");
    //}
@@ -1063,7 +1065,7 @@ net::awaitable<void> offline()
    //{
    //   std::string cmd {">0\r\n"};
    //   test_tcp_socket ts {cmd};
-   //   resp3::flat_array_adapter res;
+   //   resp3::flat_radapter res;
    //   co_await async_read_one(ts, buf, res);
    //   check_equal(res.result, {}, "push type (empty)");
    //}
