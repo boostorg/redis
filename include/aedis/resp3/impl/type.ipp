@@ -9,15 +9,8 @@
 
 #include <cassert>
 
-namespace aedis { namespace resp3 {
-
-bool operator==(node const& a, node const& b)
-{
-   return a.size == b.size
-       && a.depth == b.depth
-       && a.data_type == b.data_type
-       && a.data == b.data;
-};
+namespace aedis {
+namespace resp3 {
 
 #define EXPAND_TYPE_CASE(x) case resp3::type::x: return #x
 
@@ -25,11 +18,10 @@ std::string to_string(type t)
 {
    switch (t) {
       EXPAND_TYPE_CASE(array);
-      EXPAND_TYPE_CASE(flat_array);
       EXPAND_TYPE_CASE(push);
       EXPAND_TYPE_CASE(set);
       EXPAND_TYPE_CASE(map);
-      EXPAND_TYPE_CASE(flat_attribute);
+      EXPAND_TYPE_CASE(attribute);
       EXPAND_TYPE_CASE(simple_string);
       EXPAND_TYPE_CASE(simple_error);
       EXPAND_TYPE_CASE(number);
@@ -62,8 +54,8 @@ type to_type(char c)
       case '_': return type::null;
       case '>': return type::push;
       case '~': return type::set;
-      case '*': return type::flat_array;
-      case '|': return type::flat_attribute;
+      case '*': return type::array;
+      case '|': return type::attribute;
       case '%': return type::map;
       default: return type::invalid;
    }

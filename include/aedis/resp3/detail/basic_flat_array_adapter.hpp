@@ -14,6 +14,9 @@
 namespace aedis { namespace resp3 { namespace detail {
 
 template <class T>
+using basic_flat_array = std::vector<T>;
+
+template <class T>
 struct basic_flat_array_adapter : response_adapter_base {
    int i = 0;
    basic_flat_array<T>* result = nullptr;

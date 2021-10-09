@@ -8,6 +8,7 @@
 #pragma once
 
 #include <aedis/resp3/type.hpp>
+#include <aedis/resp3/node.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis {
@@ -18,7 +19,7 @@ namespace detail {
 // as in a transaction for example.
 class array_adapter: public response_adapter_base {
 private:
-   array_type* result_;
+   response_impl* result_;
    std::size_t depth_;
 
    void add_aggregate(int n, type t)
@@ -31,16 +32,16 @@ private:
       { result_->emplace_back(1, depth_, t, std::string{s}); }
 
 public:
-   array_adapter(array_type* p = nullptr)
+   array_adapter(response_impl* p = nullptr)
    : result_{p}
    , depth_{0}
    { }
 
-   void select_array(int n) override {add_aggregate(n, type::flat_array);}
+   void select_array(int n) override {add_aggregate(n, type::array);}
    void select_push(int n) override {add_aggregate(n, type::push);}
    void select_set(int n) override {add_aggregate(n, type::set);}
    void select_map(int n) override {add_aggregate(n, type::map);}
-   void select_attribute(int n) override {add_aggregate(n, type::flat_attribute);}
+   void select_attribute(int n) override {add_aggregate(n, type::attribute);}
 
    void on_simple_string(std::string_view s) override { add(s, type::simple_string); }
    void on_simple_error(std::string_view s) override { add(s, type::simple_error); }

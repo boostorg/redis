@@ -15,11 +15,10 @@ namespace aedis { namespace resp3 {
 
 enum class type
 { array
-, flat_array
 , push
 , set
 , map
-, flat_attribute
+, attribute
 , simple_string
 , simple_error
 , number
@@ -34,37 +33,8 @@ enum class type
 , invalid
 };
 
+std::string to_string(type t);
 type to_type(char c);
-
-template <class T>
-using basic_flat_array = std::vector<T>;
-
-/// RESP3 flat array types.
-using flat_array_type = basic_flat_array<std::string>;
-using flat_array_int_type = basic_flat_array<int>;
-
-using number_type = long long int;
-using boolean_type = bool;
-
-struct node {
-   /// The number of children node is parent of.
-   std::size_t size;
-
-   /// The depth of this node in the response tree.
-   std::size_t depth;
-
-   /// The RESP3 type  of the data in this node.
-   type data_type;
-
-   /// The data. For aggregate data types this is always empty.
-   std::string data;
-};
-
-/// Equality compare for a node
-bool operator==(node const& a, node const& b);
-
-/// A pre-order-view of the response tree.
-using array_type = std::vector<node>;
 
 } // resp3
 } // aedis

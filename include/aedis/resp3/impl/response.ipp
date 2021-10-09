@@ -11,41 +11,14 @@
 namespace aedis { namespace resp3 {
 
 response_adapter_base*
-response::select_adapter(type type, command cmd, std::string const&)
+response::select_adapter(
+   type type,
+   command cmd,
+   std::string const&)
 {
-   if (cmd == command::exec) {
-      array_.resize(0);
-      array_adapter_.clear();
-      return &array_adapter_;
-   }
-
-   switch (type) {
-      case type::doublean:
-      case type::simple_string:
-      case type::blob_string:
-      case type::simple_error:
-      case type::blob_error:
-      case type::big_number:
-      case type::verbatim_string:
-      case type::streamed_string_part:
-      case type::set:
-      case type::map:
-      case type::push:
-      {
-	 array_.resize(0);
-	 array_adapter_.clear();
-	 return &array_adapter_;
-      } 
-      case type::flat_attribute: return &flat_attribute_adapter_;
-      case type::flat_array: return &flat_array_adapter_;
-      case type::number: return &number_adapter_;
-      case type::boolean: return &boolean_adapter_;
-      case type::null: return &ignore_adapter_;
-      default: {
-	 assert(false);
-	 return nullptr;
-      }
-   }
+   array_.resize(0);
+   array_adapter_.clear();
+   return &array_adapter_;
 }
 
 } // resp3

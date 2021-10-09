@@ -10,4 +10,5 @@
 #include <aedis/resp3/impl/request.ipp>
 #include <aedis/resp3/impl/response.ipp>
 #include <aedis/resp3/impl/type.ipp>
+#include <aedis/resp3/impl/node.ipp>
 #include <aedis/resp3/detail/impl/parser.ipp>

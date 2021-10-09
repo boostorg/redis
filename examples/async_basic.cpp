@@ -9,14 +9,14 @@
 
 using namespace aedis;
 
-void print_event(resp3::type t, std::pair<command, std::string> const& p)
+void print_event(std::pair<command, std::string> const& p)
 {
    std::cout << "Event: " << p.first << ".";
 
    if (!std::empty(p.second))
       std::cout << " Key: " << p.second << ".";
 
-   std::cout << " Type: " << t << std::endl;
+   std::cout << std::endl;
 }
 
 net::awaitable<void>
@@ -31,15 +31,15 @@ example(net::ip::tcp::socket& socket,
 
    for (;;) {
       auto const t = co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
+      std::cout << resp.array() << std::endl;
 
       if (t == resp3::type::push) {
-         std::cout << "Event: " << "(" << t << ")" << std::endl;
          continue;
       }
 
       auto const id = requests.front().ids.front();
 
-      print_event(t, id);
+      print_event(id);
       switch (id.first) {
          case command::hello:
          {
