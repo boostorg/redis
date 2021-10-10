@@ -9,6 +9,9 @@
 
 #include <aedis/aedis.hpp>
 
+/* A very simple example where we connect to redis and quit.
+ */
+
 using namespace aedis;
 
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
@@ -35,33 +38,18 @@ example(
    resp3::consumer cs;
 
    for (;;) {
-      resp.clear();
       co_await cs.async_consume(socket, requests, resp);
-      std::cout << resp << std::endl;
+      auto const cmd = requests.front().ids.front().first;
+      auto const type = requests.front().ids.front().first;
 
-      if (resp.get_type() == resp3::type::push)
-         continue;
+      std::cout << cmd << "\n" << resp << std::endl;
 
-      auto const id = requests.front().ids.front();
-
-      print_event(id);
-      switch (id.first) {
-         case command::hello:
-         {
-            prepare_next(requests);
-            requests.back().ping();
-            requests.back().subscribe("some-channel");
-         } break;
-         case command::publish: break;
-         case command::quit: break;
-         case command::ping:
-         {
-            prepare_next(requests);
-            requests.back().publish("some-channel", "Some message");
-            requests.back().quit();
-         } break;
-         default: { }
+      if (cmd == command::hello) {
+	 prepare_next(requests);
+	 requests.back().quit();
       }
+
+      resp.clear();
    }
 }
 

@@ -49,7 +49,7 @@ std::size_t write(
     return bytes_transferred;
 }
 
-/** Asynchronously writes one or more requests on the stream.
+/* Asynchronously writes one or more requests on the stream.
  */
 template<class AsyncWriteStream>
 struct write_some_op {

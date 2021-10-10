@@ -47,6 +47,11 @@ async_basic_SOURCES = $(top_srcdir)/examples/async_basic.cpp
 async_basic_CPPFLAGS = $(MY_CPPFLAGS)
 async_basic_LDADD = $(MY_LDADD)
 
+noinst_PROGRAMS += hello
+hello_SOURCES = $(top_srcdir)/examples/hello.cpp
+hello_CPPFLAGS = $(MY_CPPFLAGS)
+hello_LDADD = $(MY_LDADD)
+
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp
 test_CPPFLAGS = $(MY_CPPFLAGS)

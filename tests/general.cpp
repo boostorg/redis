@@ -5,6 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <iostream>
+
 #include <aedis/aedis.hpp>
 #include <aedis/resp3/detail/read.hpp>
 
@@ -35,7 +37,7 @@ using namespace aedis;
 using namespace aedis::resp3;
 
 resp3::response::storage_type array_buffer;
-resp3::detail::response_adapter radapter{&array_buffer};
+resp3::response::adapter radapter{&array_buffer};
 
 template <class T>
 void check_equal(T const& a, T const& b, std::string const& msg = "")
