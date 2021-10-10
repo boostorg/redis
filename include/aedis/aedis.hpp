@@ -10,4 +10,5 @@
 #include <aedis/version.hpp>
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/request.hpp>
-#include <aedis/resp3/read.hpp>
+#include <aedis/resp3/consumer.hpp>
+#include <aedis/resp3/response.hpp>

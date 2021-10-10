@@ -7,93 +7,20 @@
 
 #pragma once
 
-#include <iostream>
-
 #include <aedis/net.hpp>
 
-#include <aedis/resp3/write.hpp>
 #include <aedis/resp3/request.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response.hpp>
-#include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
+#include <aedis/resp3/detail/parser.hpp>
+#include <aedis/resp3/detail/write.hpp>
 
 #include <boost/asio/yield.hpp>
 
-namespace aedis { namespace resp3 {
-
-// The parser supports up to 5 levels of nested structures. The first
-// element in the sizes stack is a sentinel and must be different from
-// 1.
-template <class AsyncReadStream, class Storage>
-class parse_op {
-private:
-   AsyncReadStream& stream_;
-   Storage* buf_ = nullptr;
-   detail::parser parser_;
-   int start_ = 1;
-
-public:
-   parse_op(AsyncReadStream& stream, Storage* buf, response_adapter_base* res)
-   : stream_ {stream}
-   , buf_ {buf}
-   , parser_ {res}
-   { }
-
-   template <class Self>
-   void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , std::size_t n = 0)
-   {
-      switch (start_) {
-         for (;;) {
-            if (parser_.bulk() == detail::parser::bulk_type::none) {
-               case 1:
-               start_ = 0;
-               net::async_read_until(
-                  stream_,
-                  net::dynamic_buffer(*buf_),
-                  "\r\n",
-                  std::move(self));
-
-               return;
-            }
-
-	    // On a bulk read we can't read until delimiter since the
-	    // payload may contain the delimiter itself so we have to
-	    // read the whole chunk. However if the bulk blob is small
-	    // enough it may be already on the buffer buf_ we read
-	    // last time. If it is, there is no need of initiating
-	    // another async op otherwise we have to read the
-	    // missing bytes.
-            if (std::ssize(*buf_) < (parser_.bulk_length() + 2)) {
-               start_ = 0;
-	       auto const s = std::ssize(*buf_);
-	       auto const l = parser_.bulk_length();
-	       auto const to_read = static_cast<std::size_t>(l + 2 - s);
-               buf_->resize(l + 2);
-               net::async_read(
-                  stream_,
-                  net::buffer(buf_->data() + s, to_read),
-                  net::transfer_all(),
-                  std::move(self));
-               return;
-            }
-
-            default:
-	    {
-	       if (ec)
-		  return self.complete(ec);
-
-	       n = parser_.advance(buf_->data(), n);
-	       buf_->erase(0, n);
-	       if (parser_.done())
-		  return self.complete({});
-	    }
-         }
-      }
-   }
-};
+namespace aedis {
+namespace resp3 {
+namespace detail {
 
 template <class SyncReadStream, class Storage>
 auto read(
@@ -102,10 +29,10 @@ auto read(
    response_adapter_base& res,
    boost::system::error_code& ec)
 {
-   detail::parser p {&res};
+   parser p {&res};
    std::size_t n = 0;
    do {
-      if (p.bulk() == detail::parser::bulk_type::none) {
+      if (p.bulk() == parser::bulk_type::none) {
 	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
 	 if (ec || n < 3)
 	    return n;
@@ -226,8 +153,9 @@ auto async_read_type(
       >(type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
 }
 
+template <class AsyncReadWriteStream>
 struct consumer_op {
-   net::ip::tcp::socket& socket;
+   AsyncReadWriteStream& stream;
    std::string& buffer;
    std::queue<request>& requests;
    response& resp;
@@ -242,7 +170,7 @@ struct consumer_op {
    {
       reenter (coro) for (;;)
       {
-         yield async_write_some(socket, requests, std::move(self));
+         yield async_write_some(stream, requests, std::move(self));
          if (ec) {
             self.complete(ec, type::invalid);
             return;
@@ -250,7 +178,7 @@ struct consumer_op {
 
          do {
             do {
-               yield async_read_type(socket, buffer, std::move(self));
+               yield async_read_type(stream, buffer, std::move(self));
                if (ec) {
                   self.complete(ec, type::invalid);
                   return;
@@ -262,11 +190,11 @@ struct consumer_op {
                {
                   if (m_type == type::push) {
 		     auto* adapter = resp.select_adapter(m_type, command::unknown, {});
-		     async_read_one(socket, buffer, *adapter, std::move(self));
+		     async_read_one(stream, buffer, *adapter, std::move(self));
 		  } else {
 		     auto const& pair = requests.front().ids.front();
 		     auto* adapter = resp.select_adapter(m_type, pair.first, pair.second);
-		     async_read_one(socket, buffer, *adapter, std::move(self));
+		     async_read_one(stream, buffer, *adapter, std::move(self));
 		  }
                }
 
@@ -287,26 +215,7 @@ struct consumer_op {
    }
 };
 
-struct consumer {
-   std::string buffer;
-   response resp;
-   net::coroutine coro = net::coroutine();
-   type t = type::invalid;
-
-   template<class CompletionToken>
-   auto async_consume(
-      net::ip::tcp::socket& socket,
-      std::queue<request>& requests,
-      response& resp,
-      CompletionToken&& token)
-   {
-     return net::async_compose<
-	CompletionToken,
-	void(boost::system::error_code, type)>(
-	   consumer_op{socket, buffer, requests, resp, t, coro}, token, socket);
-   }
-};
-
+} // detail
 } // resp3
 } // aedis
 

@@ -34,7 +34,7 @@ bool operator==(node const& a, node const& b);
 
 /** Writes the text representation of node to the output stream.
  *  
- *  NOTE: Be careful when printing binary data.
+ *  NOTE: Bonary data is not converted to text.
  */
 std::ostream& operator<<(std::ostream& os, node const& o);
 

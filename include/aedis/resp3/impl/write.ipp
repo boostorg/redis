@@ -7,7 +7,8 @@
 
 #include <aedis/resp3/write.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis {
+namespace resp3 {
 
 bool prepare_next(std::queue<request>& reqs)
 {

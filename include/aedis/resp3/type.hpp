@@ -11,7 +11,8 @@
 #include <vector>
 #include <string>
 
-namespace aedis { namespace resp3 {
+namespace aedis {
+namespace resp3 {
 
 /// RESP3 message types.
 enum class type
@@ -40,7 +41,7 @@ std::string to_string(type t);
 // TODO: Move to detail?
 type to_type(char c);
 
-/// Writes the string representation of type to the stream.
+/// Writes the string representation of type to the output stream.
 std::ostream& operator<<(std::ostream& os, type t);
 
 } // resp3

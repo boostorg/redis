@@ -15,97 +15,13 @@
 #include <boost/beast/core/stream_traits.hpp>
 #include <boost/asio/yield.hpp>
 
-namespace aedis { namespace resp3 {
+namespace aedis {
+namespace resp3 {
 
-bool prepare_next(std::queue<request>& reqs);
-
-template<class SyncWriteStream>
-std::size_t
-write(
-   SyncWriteStream& stream,
-   request& req,
-   boost::system::error_code& ec)
-{
-    static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
-       "SyncWriteStream type requirements not met");
-
-    return write(stream, net::buffer(req.payload), ec);
-}
-
-template<class SyncWriteStream>
-std::size_t write(
-   SyncWriteStream& stream,
-   request& req)
-{
-    static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
-        "SyncWriteStream type requirements not met");
-
-    boost::system::error_code ec;
-    auto const bytes_transferred = write(stream, req, ec);
-
-    if (ec)
-        BOOST_THROW_EXCEPTION(boost::system::system_error{ec});
-
-    return bytes_transferred;
-}
-
-/** Asynchronously writes one or more requests on the stream.
+/** Prepares the back of a queue to receive further commands and
+ *  returns true if a write is possible.
  */
-template<class AsyncWriteStream>
-struct write_some_op {
-   AsyncWriteStream& stream;
-   std::queue<request>& requests;
-   net::coroutine coro = net::coroutine();
-
-   void
-   operator()(
-      auto& self,
-      boost::system::error_code const& ec = {},
-      std::size_t n = 0)
-   {
-      reenter (coro) {
-	 do {
-	    assert(!std::empty(requests));
-	    assert(!std::empty(requests.front().payload));
-
-	    yield async_write(
-	       stream,
-	       net::buffer(requests.front().payload),
-	       std::move(self));
-
-	    if (ec)
-	       break;
-
-	    requests.front().sent = true;
-
-	    if (std::empty(requests.front().ids)) {
-	       // We only pop when all commands in the pipeline has push
-	       // responses like subscribe, otherwise, pop is done when the
-	       // response arrives.
-	       requests.pop();
-	    }
-	 } while (!std::empty(requests) && std::empty(requests.front().ids));
-
-         self.complete(ec);
-      }
-   }
-};
-
-template<
-  class AsyncWriteStream,
-  class CompletionToken>
-auto
-async_write_some(
-   AsyncWriteStream& stream,
-   std::queue<request>& requests,
-   CompletionToken&& token)
-{
-  return net::async_compose<
-     CompletionToken,
-     void(boost::system::error_code)>(
-	write_some_op{stream, requests},
-	token, stream);
-}
+bool prepare_next(std::queue<request>& reqs);
 
 } // resp3
 } // aedis

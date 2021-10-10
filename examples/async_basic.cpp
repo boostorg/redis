@@ -9,6 +9,8 @@
 
 using namespace aedis;
 
+using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+
 void print_event(std::pair<command, std::string> const& p)
 {
    std::cout << "Event: " << p.first << ".";
@@ -20,8 +22,9 @@ void print_event(std::pair<command, std::string> const& p)
 }
 
 net::awaitable<void>
-example(net::ip::tcp::socket& socket,
-        std::queue<resp3::request>& requests)
+example(
+   tcp_socket& socket,
+   std::queue<resp3::request>& requests)
 {
    requests.push({});
    requests.back().hello("3");
@@ -31,7 +34,7 @@ example(net::ip::tcp::socket& socket,
 
    for (;;) {
       resp.clear();
-      co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
+      co_await cs.async_consume(socket, requests, resp);
       std::cout << resp << std::endl;
 
       if (resp.get_type() == resp3::type::push)
@@ -66,7 +69,7 @@ int main()
    net::ip::tcp::resolver resolver{ioc};
    auto const res = resolver.resolve("127.0.0.1", "6379");
 
-   net::ip::tcp::socket socket{ioc};
+   tcp_socket socket{ioc};
    net::connect(socket, res);
 
    std::queue<resp3::request> requests;
