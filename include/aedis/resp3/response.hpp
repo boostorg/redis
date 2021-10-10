@@ -110,7 +110,7 @@ bool operator==(response::node const& a, response::node const& b);
 
 /** Writes the text representation of node to the output stream.
  *  
- *  NOTE: Bonary data is not converted to text.
+ *  NOTE: Binary data is not converted to text.
  */
 std::ostream& operator<<(std::ostream& os, response::node const& o);
 

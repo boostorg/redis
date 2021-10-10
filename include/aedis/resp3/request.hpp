@@ -484,5 +484,10 @@ public:
    }
 };
 
+/** Prepares the back of a queue to receive further commands and
+ *  returns true if a write is possible.
+ */
+bool prepare_next(std::queue<request>& reqs);
+
 } // resp3
 } // aedis

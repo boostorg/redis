@@ -12,7 +12,7 @@
 
 #include "test_stream.hpp"
 
-#include <aedis/resp3/detail/basic_flat_array_adapter.hpp>
+#include "basic_flat_array_adapter.hpp"
 
 // TODO: Use Beast test_stream and instantiate the test socket only
 // once.

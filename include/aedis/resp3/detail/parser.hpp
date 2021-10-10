@@ -8,6 +8,7 @@
 #pragma once
 
 #include <string_view>
+#include <aedis/net.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis {

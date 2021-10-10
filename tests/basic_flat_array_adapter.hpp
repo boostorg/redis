@@ -9,7 +9,8 @@
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
-#include <aedis/resp3/detail/adapter_utils.hpp>
+
+#include "adapter_utils.hpp"
 
 namespace aedis {
 namespace resp3 {
