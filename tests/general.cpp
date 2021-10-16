@@ -167,9 +167,9 @@ test_general(net::ip::tcp::resolver::results_type const& res)
          continue;
       }
 
-      auto const id = requests.front().ids.front();
+      auto const& elem = requests.front().elements.front();
 
-      switch (id.first) {
+      switch (elem.cmd) {
 	 case command::hello:
 	 {
 	    prepare_next(requests);
@@ -431,7 +431,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	    };
 	    check_equal(resp.raw(), expected, "smembers (value)");
 	 } break;
-	 default: { std::cout << "Error: " << resp.get_type() << " " << id.first << std::endl; }
+	 default: { std::cout << "Error: " << resp.get_type() << " " << elem.cmd << std::endl; }
       }
 
       resp.raw().clear();
@@ -1037,7 +1037,7 @@ net::awaitable<void> test_streamed_string()
       std::string cmd {"$?\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
       resp3::response resp;
-      auto* adapter = resp.select_adapter(resp3::type::streamed_string_part, command::unknown, {});
+      auto* adapter = resp.select_adapter(resp3::type::streamed_string_part);
       co_await detail::async_read_one(ts, buf, *adapter);
 
       resp3::response::storage_type expected

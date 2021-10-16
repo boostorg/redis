@@ -9,6 +9,7 @@
 
 #include <aedis/command.hpp>
 #include <aedis/resp3/type.hpp>
+#include <aedis/resp3/request.hpp>
 #include <aedis/resp3/response_adapter_base.hpp>
 
 namespace aedis {
@@ -81,10 +82,8 @@ public:
    virtual adapter*
    select_adapter(
       resp3::type t,
-      command cmd = command::unknown,
-      std::string const& key = "")
+      request::element const& e = {command::unknown, std::string{}})
       { return &adapter_; }
-
 
    auto const& raw() const noexcept {return data_;}
    auto& raw() noexcept {return data_;}

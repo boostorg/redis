@@ -5,58 +5,31 @@ providing an easy and intuitive interface.
 
 ## Example
 
-The general form of the read and write operations of a redis client
-that support push notifications and pipelines looks like the following
+Lets us see some examples with increasing order of complexity.
 
 ```cpp
-net::awaitable<void>
-example(net::ip::tcp::socket& socket, std::queue<pipeline>& pipelines)
+net::awaitable<void> ping()
 {
-   pipelines.push({});
-   pipelines.back().hello("3");
+   auto socket = co_await make_connection();
 
-   std::string buffer;
-   response_buffers buffers;
-   response_adapters adapters{buffers};
-   consumer_state cs;
+   std::queue<resp3::request> requests;
+   requests.push({});
+   requests.back().hello();
+   requests.back().ping();
+   requests.back().quit();
 
+   resp3::consumer cs;
    for (;;) {
-      auto const type =
-        co_await async_consume(
-            socket, buffer, pipelines, adapters, cs, net::use_awaitable);
-
-      if (type == resp3::type::push) {
-         // Push received.
-         continue;
-      }
-
-      auto const cmd = pipelines.front().commands.front();
-
-      // Response to a specific command.
+      resp3::response resp;
+      co_await cs.async_consume(socket, requests, resp);
+      std::cout << requests.front().elements.front() << "\n" << resp << std::endl;
    }
 }
 ```
 
 The example above will start writing the `hello` command and proceed
 reading its response. After that users can add further commands to the
-queue. See the example directory for a complete example. The main
-function looks like this
-
-```cpp
-int main()
-{
-   net::io_context ioc;
-   net::ip::tcp::resolver resolver{ioc};
-   auto const res = resolver.resolve("127.0.0.1", "6379");
-
-   net::ip::tcp::socket socket{ioc};
-   net::connect(socket, res);
-
-   std::queue<pipeline> pipelines;
-   co_spawn(ioc, example(socket, pipelines), net::detached);
-   ioc.run();
-}
-```
+queue. See the example directory for a complete example.
 
 See the `examples` directory for more examples.
 

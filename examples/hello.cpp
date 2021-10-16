@@ -9,60 +9,52 @@
 
 #include <aedis/aedis.hpp>
 
-/* A very simple example where we connect to redis and quit.
+/** A very simple example showing how to
+ * 
+ *    1. Connect to the redis server.
+ *    2. Send a ping
+ *    3. and quit.
+ *
+ *  Notice that in this example we are sending all commands in the same request
+ *  instead of waiting the response of each command.
  */
 
 using namespace aedis;
 
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+using tcp_resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 
-void print_event(std::pair<command, std::string> const& p)
+net::awaitable<tcp_socket> make_connection()
 {
-   std::cout << "Event: " << p.first << ".";
-
-   if (!std::empty(p.second))
-      std::cout << " Key: " << p.second << ".";
-
-   std::cout << std::endl;
+   auto ex = co_await net::this_coro::executor;
+   tcp_resolver resolver{ex};
+   auto const res = co_await resolver.async_resolve("127.0.0.1", "6379");
+   tcp_socket socket{ex};
+   co_await net::async_connect(socket, res);
+   co_return std::move(socket);
 }
 
-net::awaitable<void>
-example(
-   tcp_socket& socket,
-   std::queue<resp3::request>& requests)
+net::awaitable<void> ping()
 {
+   auto socket = co_await make_connection();
+
+   std::queue<resp3::request> requests;
    requests.push({});
-   requests.back().hello("3");
+   requests.back().hello();
+   requests.back().ping();
+   requests.back().quit();
 
-   resp3::response resp;
    resp3::consumer cs;
-
    for (;;) {
+      resp3::response resp;
       co_await cs.async_consume(socket, requests, resp);
-      auto const cmd = requests.front().ids.front().first;
-      auto const type = requests.front().ids.front().first;
-
-      std::cout << cmd << "\n" << resp << std::endl;
-
-      if (cmd == command::hello) {
-	 prepare_next(requests);
-	 requests.back().quit();
-      }
-
-      resp.clear();
+      std::cout << requests.front().elements.front() << "\n" << resp << std::endl;
    }
 }
 
 int main()
 {
    net::io_context ioc;
-   net::ip::tcp::resolver resolver{ioc};
-   auto const res = resolver.resolve("127.0.0.1", "6379");
-
-   tcp_socket socket{ioc};
-   net::connect(socket, res);
-
-   std::queue<resp3::request> requests;
-   co_spawn(ioc, example(socket, requests), net::detached);
+   co_spawn(ioc, ping(), net::detached);
    ioc.run();
 }
