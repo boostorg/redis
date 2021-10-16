@@ -28,21 +28,53 @@ bool operator==(response::node const& a, response::node const& b)
 std::ostream& operator<<(std::ostream& os, response::node const& o)
 {
    std::string res;
-   res += std::to_string(o.depth);
-   res += '\t';
-   res += to_string(o.data_type);
-   res += '\t';
-   res += o.data;
+   o.dump(response::node::dump_format::clean, 3, res);
    os << res;
    return os;
 }
 
 std::ostream& operator<<(std::ostream& os, response const& r)
 {
-   for (auto const& n : r.data_)
-      os << n << "\n";
-
+   os << r.dump();
    return os;
+}
+
+void response::node::dump(dump_format format, int indent, std::string& out) const
+{
+   switch (format) {
+      case response::node::dump_format::raw:
+      {
+	 out += std::to_string(depth);
+	 out += '\t';
+	 out += to_string(data_type);
+	 out += '\t';
+	 out += data;
+      } break;
+
+      case response::node::dump_format::clean:
+      {
+	 std::string prefix(indent * depth, ' ');
+	 out += prefix;
+	 out += data;
+      } break;
+
+      default: {
+      }
+   }
+}
+
+std::string
+response::dump(node::dump_format format, int indent) const
+{
+   std::string res;
+   for (auto const& n : data_) {
+      if (n.size > 1)
+	 continue;
+      n.dump(format, indent, res);
+      res += '\n';
+   }
+
+   return res;
 }
 
 } // resp3

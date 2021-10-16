@@ -25,11 +25,11 @@ bool prepare_next(std::queue<request>& reqs)
    return false;
 }
 
-std::ostream& operator<<(std::ostream& os, request::element const& r)
+std::ostream& operator<<(std::ostream& os, request::element const& e)
 {
-  os << r.cmd;
-  if (!std::empty(r.key))
-    os << "(" << r.key << ")";
+  os << e.cmd;
+  if (!std::empty(e.key))
+    os << "(" << e.key << ")";
   return os;
 }
 

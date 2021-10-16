@@ -9,25 +9,19 @@
 
 #include <aedis/aedis.hpp>
 
-using namespace aedis;
+#include "utils.ipp"
 
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using tcp_resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
+using namespace aedis;
 
 net::awaitable<void> example()
 {
-   auto ex = co_await net::this_coro::executor;
-   tcp_resolver resolver{ex};
-   auto const res = co_await resolver.async_resolve("127.0.0.1", "6379");
-   tcp_socket socket{ex};
-   co_await net::async_connect(socket, res);
+   auto socket = co_await make_connection();
 
    std::queue<resp3::request> requests;
    requests.push({});
    requests.back().hello();
 
    resp3::consumer cs;
-
    for (;;) {
       resp3::response resp;
       co_await cs.async_consume(socket, requests, resp);

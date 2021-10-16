@@ -42,15 +42,15 @@ libaedis_a_SOURCES += $(top_srcdir)/src/aedis.cpp
 libaedis_a_CPPFLAGS = $(MY_CPPFLAGS)
 
 noinst_PROGRAMS =
-noinst_PROGRAMS += async_basic
-async_basic_SOURCES = $(top_srcdir)/examples/async_basic.cpp
-async_basic_CPPFLAGS = $(MY_CPPFLAGS)
-async_basic_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += pubsub
+pubsub_SOURCES = $(top_srcdir)/examples/pubsub.cpp
+pubsub_CPPFLAGS = $(MY_CPPFLAGS)
+pubsub_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += hello
-hello_SOURCES = $(top_srcdir)/examples/hello.cpp
-hello_CPPFLAGS = $(MY_CPPFLAGS)
-hello_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += ping
+ping_SOURCES = $(top_srcdir)/examples/ping.cpp
+ping_CPPFLAGS = $(MY_CPPFLAGS)
+ping_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp

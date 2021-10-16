@@ -21,6 +21,7 @@ public:
    /** Represents a node in the response tree.
     */
    struct node {
+      enum class dump_format {raw, clean};
       /// The number of children node is parent of.
       std::size_t size;
 
@@ -32,6 +33,9 @@ public:
 
       /// The data. For aggregate data types this is always empty.
       std::string data;
+
+      /// Converts the node to a string and appends to out.
+      void dump(dump_format format, int indent, std::string& out) const;
    };
 
    using storage_type = std::vector<node>;
@@ -102,6 +106,12 @@ public:
     *  Expects a non-empty response.
     */
    auto get_type() const noexcept { return data_.front().data_type; }
+
+   /** Converts the string to string.
+    */
+   std::string
+   dump(node::dump_format format = node::dump_format::clean,
+	int indent = 3) const;
 };
 
 /// Equality comparison for a node.

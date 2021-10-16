@@ -9,30 +9,20 @@
 
 #include <aedis/aedis.hpp>
 
+#include "types.hpp"
+#include "utils.ipp"
+
 /** A very simple example showing how to
  * 
  *    1. Connect to the redis server.
- *    2. Send a ping
- *    3. and quit.
+ *    2. Send a ping.
+ *    3. Wait for a pong and quit.
  *
- *  Notice that in this example we are sending all commands in the same request
- *  instead of waiting the response of each command.
+ *  Notice that in this example we are sending all commands in the
+ *  same request instead of waiting the response of each command.
  */
 
 using namespace aedis;
-
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using tcp_resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
-
-net::awaitable<tcp_socket> make_connection()
-{
-   auto ex = co_await net::this_coro::executor;
-   tcp_resolver resolver{ex};
-   auto const res = co_await resolver.async_resolve("127.0.0.1", "6379");
-   tcp_socket socket{ex};
-   co_await net::async_connect(socket, res);
-   co_return std::move(socket);
-}
 
 net::awaitable<void> ping()
 {
@@ -48,7 +38,10 @@ net::awaitable<void> ping()
    for (;;) {
       resp3::response resp;
       co_await cs.async_consume(socket, requests, resp);
-      std::cout << requests.front().elements.front() << "\n" << resp << std::endl;
+
+      std::cout
+	 << requests.front().elements.front() << "\n"
+	 << resp << std::endl;
    }
 }
 

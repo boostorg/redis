@@ -5,35 +5,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
-
 #include <iostream>
 
-#include "type.hpp"
-#include "command.hpp"
-#include "response.hpp"
+#include <aedis/aedis.hpp>
 
-namespace aedis {
+#include "types.hpp"
 
-template <class Iter>
-void print(Iter begin, Iter end, char const* p)
+aedis::net::awaitable<tcp_socket> make_connection()
 {
-   if (p)
-     std::cout << p << ": ";
-   for (; begin != end; ++begin)
-     std::cout << *begin << " ";
-   std::cout << std::endl;
+   auto ex = co_await aedis::net::this_coro::executor;
+   tcp_resolver resolver{ex};
+   auto const res = co_await resolver.async_resolve("127.0.0.1", "6379");
+   tcp_socket socket{ex};
+   co_await aedis::net::async_connect(socket, res);
+   co_return std::move(socket);
 }
 
-template <class Range>
-void print(Range const& v, char const* p = nullptr)
-{
-   using std::cbegin;
-   using std::cend;
-   print(cbegin(v), cend(v), p);
-}
-
-inline
 void print_command_raw(std::string const& data, int n)
 {
   for (int i = 0; i < n; ++i) {
@@ -49,4 +36,3 @@ void print_command_raw(std::string const& data, int n)
   }
 }
 
-} // aedis
