@@ -11,3 +11,4 @@
 
 using tcp_socket = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
 using tcp_resolver = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::resolver>;
+using timer = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::steady_timer>;

@@ -37,7 +37,6 @@ public:
    };
    std::string payload;
    std::queue<element> elements;
-   bool sent = false;
 
 public:
    /// Return the size of the pipeline. i.e. how many commands it
@@ -138,13 +137,20 @@ public:
       elements.emplace(command::lpop, std::string{key});
    }
 
-   /// Adds ping to the request, see https://redis.io/commands/subscribe
-   void subscribe(std::string_view key)
+   /// Adds subscribe to the request, see https://redis.io/commands/subscribe
+   void subscribe(std::initializer_list<std::string_view> l)
    {
       // The response to this command is a push type.
-      detail::assemble(payload, "SUBSCRIBE", key);
+      std::initializer_list<std::string_view> dummy = {};
+      detail::assemble(payload, "SUBSCRIBE", l, std::cbegin(dummy), std::cend(dummy));
    }
 
+   void psubscribe(std::initializer_list<std::string_view> l)
+   {
+      std::initializer_list<std::string_view> dummy = {};
+      detail::assemble(payload, "PSUBSCRIBE", l, std::cbegin(dummy), std::cend(dummy));
+   }
+   
    /// Adds ping to the request, see https://redis.io/commands/unsubscribe
    void unsubscribe(std::string_view key)
    {
@@ -234,12 +240,6 @@ public:
    {
       detail::assemble(payload, "LPUSH", {key}, begin, end);
       elements.emplace(command::lpush, std::string{key});
-   }
-   
-   void psubscribe( std::initializer_list<std::string_view> l)
-   {
-      std::initializer_list<std::string_view> dummy = {};
-      detail::assemble(payload, "PSUBSCRIBE", l, std::cbegin(dummy), std::cend(dummy));
    }
    
    /// Adds ping to the request, see https://redis.io/commands/publish

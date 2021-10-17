@@ -206,10 +206,11 @@ struct consumer_op {
                yield self.complete(ec, m_type);
 
                if (m_type != type::push)
-                  requests.front().elements.pop();
+		  requests.front().elements.pop();
 
-            } while (!std::empty(requests.front().elements));
-            requests.pop();
+            } while (!std::empty(requests) && !std::empty(requests.front().elements));
+	    if (!std::empty(requests))
+	       requests.pop();
          } while (std::empty(requests));
       }
    }

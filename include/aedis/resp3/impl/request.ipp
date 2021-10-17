@@ -12,17 +12,11 @@ namespace resp3 {
 
 bool prepare_next(std::queue<request>& reqs)
 {
-   if (std::empty(reqs)) {
+   auto const cond = std::empty(reqs) || std::size(reqs) == 1;
+   if (cond)
       reqs.push({});
-      return true;
-   }
 
-   if (reqs.back().sent) {
-      reqs.push({});
-      return false;
-   }
-
-   return false;
+   return cond;
 }
 
 std::ostream& operator<<(std::ostream& os, request::element const& e)

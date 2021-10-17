@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <chrono>
 
 #include <aedis/aedis.hpp>
 
@@ -13,8 +14,28 @@
 
 using namespace aedis;
 
-net::awaitable<void> example()
+net::awaitable<void>
+publisher(tcp_socket& socket, std::queue<resp3::request>& requests)
 {
+   auto ex = net::this_coro::executor;
+   //timer st(ex);
+
+   for (auto i = 0; i < 4; ++i) {
+      if (!socket.is_open())
+         co_return;
+
+      prepare_next(requests);
+      requests.back().publish("channel1", "Message to channel1");
+      requests.back().publish("channel2", "Message to channel2");
+      //st.expires_after(std::chrono::seconds{1});
+      //co_await st.async_wait();
+      co_await resp3::detail::async_write_some(socket, requests);
+   }
+}
+
+net::awaitable<void> subscriber()
+{
+   auto ex = net::this_coro::executor;
    auto socket = co_await make_connection();
 
    std::queue<resp3::request> requests;
@@ -25,30 +46,15 @@ net::awaitable<void> example()
    for (;;) {
       resp3::response resp;
       co_await cs.async_consume(socket, requests, resp);
-      std::cout << resp << std::endl;
 
-      if (resp.get_type() == resp3::type::push)
+      if (resp.get_type() == resp3::type::push) {
+	 std::cout << "Received a server push\n" << resp << std::endl;
          continue;
+      }
 
-      auto const& elem = requests.front().elements.front();
-
-      std::cout << elem << std::endl;
-      switch (elem.cmd) {
-         case command::hello:
-         {
-            prepare_next(requests);
-            requests.back().ping();
-            requests.back().subscribe("some-channel");
-         } break;
-         case command::publish: break;
-         case command::quit: break;
-         case command::ping:
-         {
-            prepare_next(requests);
-            requests.back().publish("some-channel", "Some message");
-            requests.back().quit();
-         } break;
-         default: { }
+      if (requests.front().elements.front().cmd == command::hello) {
+	 prepare_next(requests);
+	 requests.back().subscribe({"channel1", "channel2"});
       }
    }
 }
@@ -56,6 +62,6 @@ net::awaitable<void> example()
 int main()
 {
    net::io_context ioc;
-   co_spawn(ioc, example(), net::detached);
+   co_spawn(ioc, subscriber(), net::detached);
    ioc.run();
 }

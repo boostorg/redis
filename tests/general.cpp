@@ -76,7 +76,7 @@ struct test_general_fill {
       p.get("b");
       p.append("b", "b");
       p.del("b");
-      p.subscribe("channel");
+      p.subscribe({"channel"});
       p.publish("channel", "message");
       p.incr("c");
 

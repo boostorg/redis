@@ -76,10 +76,8 @@ struct write_some_op {
 	    if (ec)
 	       break;
 
-	    requests.front().sent = true;
-
 	    if (std::empty(requests.front().elements)) {
-	       // We only pop when all commands in the pipeline has push
+	       // We only pop when all commands in the pipeline have push
 	       // responses like subscribe, otherwise, pop is done when the
 	       // response arrives.
 	       requests.pop();
@@ -93,12 +91,15 @@ struct write_some_op {
 
 template<
   class AsyncWriteStream,
-  class CompletionToken>
+  class CompletionToken =
+      net::default_completion_token_t<typename AsyncWriteStream::executor_type>
+  >
 auto
 async_write_some(
    AsyncWriteStream& stream,
    std::queue<request>& requests,
-   CompletionToken&& token)
+   CompletionToken&& token =
+      net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
 {
   return net::async_compose<
      CompletionToken,
