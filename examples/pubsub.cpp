@@ -14,26 +14,7 @@
 
 using namespace aedis;
 
-net::awaitable<void>
-publisher(tcp_socket& socket, std::queue<resp3::request>& requests)
-{
-   auto ex = net::this_coro::executor;
-   //timer st(ex);
-
-   for (auto i = 0; i < 4; ++i) {
-      if (!socket.is_open())
-         co_return;
-
-      prepare_next(requests);
-      requests.back().publish("channel1", "Message to channel1");
-      requests.back().publish("channel2", "Message to channel2");
-      //st.expires_after(std::chrono::seconds{1});
-      //co_await st.async_wait();
-      co_await resp3::detail::async_write_some(socket, requests);
-   }
-}
-
-net::awaitable<void> subscriber()
+net::awaitable<void> publisher()
 {
    auto ex = net::this_coro::executor;
    auto socket = co_await make_connection();
@@ -47,12 +28,38 @@ net::awaitable<void> subscriber()
       resp3::response resp;
       co_await cs.async_consume(socket, requests, resp);
 
+      if (requests.front().elements.front().cmd == command::hello) {
+	 prepare_next(requests);
+	 requests.back().publish("channel1", "Message to channel1");
+	 requests.back().publish("channel2", "Message to channel2");
+	 requests.back().quit();
+      }
+   }
+}
+
+net::awaitable<void> subscriber()
+{
+   auto ex = net::this_coro::executor;
+   auto socket = co_await make_connection();
+
+   std::string id;
+
+   std::queue<resp3::request> requests;
+   requests.push({});
+   requests.back().hello();
+
+   resp3::consumer cs;
+   for (;;) {
+      resp3::response resp;
+      co_await cs.async_consume(socket, requests, resp);
+
       if (resp.get_type() == resp3::type::push) {
-	 std::cout << "Received a server push\n" << resp << std::endl;
+	 std::cout << "Subscriber " << id << ":\n" << resp << std::endl;
          continue;
       }
 
       if (requests.front().elements.front().cmd == command::hello) {
+	 id = resp.raw().at(8).data;
 	 prepare_next(requests);
 	 requests.back().subscribe({"channel1", "channel2"});
       }
@@ -63,5 +70,8 @@ int main()
 {
    net::io_context ioc;
    co_spawn(ioc, subscriber(), net::detached);
+   co_spawn(ioc, subscriber(), net::detached);
+   co_spawn(ioc, subscriber(), net::detached);
+   co_spawn(ioc, publisher(), net::detached);
    ioc.run();
 }
