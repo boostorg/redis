@@ -77,7 +77,7 @@ struct test_general_fill {
       p.push(command::append, "b", "b");
       p.push(command::del, "b");
       p.subscribe({"channel"});
-      p.publish("channel", "message");
+      p.push(command::publish, "channel", "message");
       p.push(command::incr, "3");
 
       //----------------------------------

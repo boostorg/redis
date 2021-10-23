@@ -69,7 +69,8 @@ public:
       elements.emplace(c, std::string{param});
    }
 
-   void push(command c, std::string_view p1, std::string_view p2)
+   template <class T>
+   void push(command c, std::string_view p1, T const& p2)
    {
       detail::add_header(payload, 3);
       detail::add_bulk(payload, as_string(c));
@@ -96,15 +97,6 @@ public:
       detail::assemble(payload, "UNSUBSCRIBE", key);
    }
 
-   /// Adds ping to the request, see https://redis.io/commands/sentinel
-   void sentinel(std::string_view arg, std::string_view name)
-   {
-      auto const par = {name};
-      auto const args = {arg};
-      detail::assemble(payload, "SENTINEL", std::cbegin(args), std::cend(args), std::cbegin(par), std::cend(par));
-      elements.emplace(command::sentinel, std::string{});
-   }
-   
    /// Adds ping to the request, see https://redis.io/commands/bitcount
    void bitcount(std::string_view key, int start = 0, int end = -1)
    {
@@ -148,15 +140,6 @@ public:
    {
       detail::assemble(payload, "LPUSH", {key}, begin, end);
       elements.emplace(command::lpush, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/publish
-   void publish(std::string_view key, std::string_view msg)
-   {
-      auto const par = {msg};
-      auto const keys = {key};
-      detail::assemble(payload, "PUBLISH", std::cbegin(keys), std::cend(keys), std::cbegin(par), std::cend(par));
-      elements.emplace(command::publish, std::string{key});
    }
    
    /// Adds ping to the request, see https://redis.io/commands/set

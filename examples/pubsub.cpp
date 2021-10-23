@@ -30,8 +30,8 @@ net::awaitable<void> publisher()
 
       if (requests.front().elements.front().cmd == command::hello) {
 	 prepare_next(requests);
-	 requests.back().publish("channel1", "Message to channel1");
-	 requests.back().publish("channel2", "Message to channel2");
+	 requests.back().push(command::publish, "channel1", "Message to channel1");
+	 requests.back().push(command::publish, "channel2", "Message to channel2");
 	 requests.back().push(command::quit);
       }
    }
