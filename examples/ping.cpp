@@ -30,14 +30,14 @@ net::awaitable<void> ping()
 
    std::queue<resp3::request> requests;
    requests.push({});
-   requests.back().hello();
-   requests.back().ping();
-   requests.back().quit();
+   requests.back().push(command::hello, "3");
+   requests.back().push(command::ping);
+   requests.back().push(command::quit);
 
-   resp3::consumer cs;
+   resp3::connection conn;
    for (;;) {
       resp3::response resp;
-      co_await cs.async_consume(socket, requests, resp);
+      co_await conn.async_consume(socket, requests, resp);
 
       std::cout
 	 << requests.front().elements.front() << "\n"

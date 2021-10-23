@@ -38,6 +38,7 @@ public:
       void dump(dump_format format, int indent, std::string& out) const;
    };
 
+   using value_type = node;
    using storage_type = std::vector<node>;
 
 public:

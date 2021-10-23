@@ -25,30 +25,46 @@ enum class command
 , acl_whoami
 , acl_log
 , acl_help
+  /// Adds ping to the request, see https://redis.io/commands/append
 , append
+  /// Adds auth to the request, see https://redis.io/commands/bgrewriteaof
 , auth
+  /// Adds bgrewriteaof to the request, see https://redis.io/commands/bgrewriteaof
 , bgrewriteaof
+  /// Adds bgsave to the request, see //https://redis.io/commands/bgsave
 , bgsave
 , bitcount
+  /// Adds ping to the request, see https://redis.io/commands/client_id
 , client_id
+  /// Adds ping to the request, see https://redis.io/commands/del
 , del
 , exec
 , expire
+  /// Adds ping to the request, see https://redis.io/commands/flushall
 , flushall
+  /// Adds ping to the request, see https://redis.io/commands/get
 , get
+  /// Adds ping to the request, see https://redis.io/commands/hello
 , hello
 , hget
+  /// Adds ping to the request, see https://redis.io/commands/hgetall
 , hgetall
 , hincrby
+  /// Adds ping to the request, see https://redis.io/commands/hkeys
 , hkeys
+  /// Adds ping to the request, see https://redis.io/commands/hlen
 , hlen
 , hmget
 , hset
+  /// Adds ping to the request, see https://redis.io/commands/hvals
 , hvals
 , hdel
 , incr
+  /// Adds ping to the request, see https://redis.io/commands/keys
 , keys
+  /// Adds ping to the request, see https://redis.io/commands/llen
 , llen
+  /// Adds ping to the request, see https://redis.io/commands/lpop
 , lpop
 , lpush
 , lrange
@@ -58,15 +74,19 @@ enum class command
 , psubscribe
 , publish
 , quit
+  /// Adds role to the request, see https://redis.io/commands/role
 , role
 , rpush
 , sadd
+  /// Adds ping to the request, see https://redis.io/commands/scard
 , scard
 , sdiff
 , sentinel
 , set
+  /// Adds ping to the request, see https://redis.io/commands/smembers
 , smembers
 , subscribe
+  /// Adds ping to the request, see https://redis.io/commands/unsubscribe
 , unsubscribe
 , zadd
 , zrange
@@ -76,7 +96,7 @@ enum class command
 };
 
 /// Converts the command to a string.
-std::string to_string(command c);
+char const* as_string(command c);
 
 /** Writes the text representation of the command to the output
  *  stream.

@@ -5,20 +5,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/command.hpp>
+#include <aedis/resp3/detail/composer.hpp>
 
 namespace aedis {
 namespace resp3 {
 namespace detail {
-
-void add_bulk(std::string& to, std::string_view param)
-{
-   to += "$";
-   to += std::to_string(std::size(param));
-   to += "\r\n";
-   to += param;
-   to += "\r\n";
-}
 
 void add_header(std::string& to, int size)
 {
@@ -27,16 +18,13 @@ void add_header(std::string& to, int size)
    to += "\r\n";
 }
 
-void assemble(std::string& ret, std::string_view cmd)
+void add_bulk(std::string& to, std::string_view data)
 {
-   add_header(ret, 1);
-   add_bulk(ret, cmd);
-}
-
-void assemble(std::string& ret, std::string_view cmd, std::string_view key)
-{
-   std::initializer_list<std::string_view> dummy;
-   assemble(ret, cmd, {key}, std::cbegin(dummy), std::cend(dummy));
+   to += "$";
+   to += std::to_string(std::size(data));
+   to += "\r\n";
+   to += data;
+   to += "\r\n";
 }
 
 } // detail

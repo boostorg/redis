@@ -21,18 +21,18 @@ net::awaitable<void> publisher()
 
    std::queue<resp3::request> requests;
    requests.push({});
-   requests.back().hello();
+   requests.back().push(command::hello, "3");
 
-   resp3::consumer cs;
+   resp3::connection conn;
    for (;;) {
       resp3::response resp;
-      co_await cs.async_consume(socket, requests, resp);
+      co_await conn.async_consume(socket, requests, resp);
 
       if (requests.front().elements.front().cmd == command::hello) {
 	 prepare_next(requests);
 	 requests.back().publish("channel1", "Message to channel1");
 	 requests.back().publish("channel2", "Message to channel2");
-	 requests.back().quit();
+	 requests.back().push(command::quit);
       }
    }
 }
@@ -46,12 +46,12 @@ net::awaitable<void> subscriber()
 
    std::queue<resp3::request> requests;
    requests.push({});
-   requests.back().hello();
+   requests.back().push(command::hello, "3");
 
-   resp3::consumer cs;
+   resp3::connection conn;
    for (;;) {
       resp3::response resp;
-      co_await cs.async_consume(socket, requests, resp);
+      co_await conn.async_consume(socket, requests, resp);
 
       if (resp.get_type() == resp3::type::push) {
 	 std::cout << "Subscriber " << id << ":\n" << resp << std::endl;

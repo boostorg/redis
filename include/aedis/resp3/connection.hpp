@@ -19,7 +19,7 @@ namespace resp3 {
 
 /** Reads and writes redis commands.
  */
-struct consumer {
+struct connection {
    std::string buffer;
    net::coroutine coro = net::coroutine();
    type t = type::invalid;

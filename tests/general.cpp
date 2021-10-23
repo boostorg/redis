@@ -65,32 +65,32 @@ struct test_general_fill {
 
    void operator()(resp3::request& p) const
    {
-      p.flushall();
+      p.push(command::flushall);
       p.rpush("a", list_);
-      p.llen("a");
+      p.push(command::llen, "a");
       p.lrange("a");
       p.ltrim("a", 2, -2);
-      p.lpop("a");
+      p.push(command::lpop, "a");
       //p.lpop("a", 2); // Not working?
       p.set("b", {set_});
-      p.get("b");
-      p.append("b", "b");
-      p.del("b");
+      p.push(command::get, "b");
+      p.push(command::append, "b", "b");
+      p.push(command::del, "b");
       p.subscribe({"channel"});
       p.publish("channel", "message");
-      p.incr("c");
+      p.push(command::incr, "3");
 
       //----------------------------------
       // transaction
       for (auto i = 0; i < 3; ++i) {
-	 p.multi();
-	 p.ping();
+	 p.push(command::multi);
+	 p.push(command::ping);
 	 p.lrange("a");
-	 p.ping();
+	 p.push(command::ping);
 	 // TODO: It looks like we can't publish to a channel we
 	 // are already subscribed to from inside a transaction.
 	 //req.publish("some-channel", "message1");
-	 p.exec();
+	 p.push(command::exec);
       }
       //----------------------------------
 
@@ -100,7 +100,7 @@ struct test_general_fill {
 
       p.hset("d", m1);
       p.hget("d", "field2");
-      p.hgetall("d");
+      p.push(command::hgetall, "d");
       p.hdel("d", {"field1", "field2"});
       p.hincrby("e", "some-field", 10);
 
@@ -110,9 +110,9 @@ struct test_general_fill {
       p.zremrangebyscore("f", "-inf", "+inf");
 
       p.sadd("g", std::vector<int>{1, 2, 3});
-      p.smembers("g");
+      p.push(command::smembers, "g");
 
-      p.quit();
+      p.push(command::quit);
    }
 };
 
@@ -125,12 +125,12 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 
    std::queue<resp3::request> requests;
    requests.push({});
-   requests.back().hello("3");
+   requests.back().push(command::hello, "3");
 
    test_general_fill filler;
 
    resp3::response resp;
-   resp3::consumer cs;
+   resp3::connection cs;
 
    int push_counter = 0;
    for (;;) {
@@ -446,14 +446,14 @@ test_list(net::ip::tcp::resolver::results_type const& results)
    std::vector<int> list {1 ,2, 3, 4, 5, 6};
 
    resp3::request p;
-   p.hello("3");
-   p.flushall();
+   p.push(command::hello, "3");
+   p.push(command::flushall);
    p.rpush("a", list);
    p.lrange("a");
    p.lrange("a", 2, -2);
    p.ltrim("a", 2, -2);
-   p.lpop("a");
-   p.quit();
+   p.push(command::lpop, "a");
+   p.push(command::quit);
 
    auto ex = co_await this_coro::executor;
    tcp_socket socket {ex};
@@ -547,15 +547,15 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    co_await async_connect(socket, results);
 
    resp3::request p;
-   p.hello("3");
-   p.flushall();
+   p.push(command::hello, "3");
+   p.push(command::flushall);
    p.set("s", {test_bulk1});
-   p.get("s");
+   p.push(command::get, "s");
    p.set("s", {test_bulk2});
-   p.get("s");
+   p.push(command::get, "s");
    p.set("s", {""});
-   p.get("s");
-   p.quit();
+   p.push(command::get, "s");
+   p.push(command::quit);
 
    co_await async_write(socket, net::buffer(p.payload));
 
