@@ -54,41 +54,26 @@ public:
       elements = {};
    }
 
-   void push(command c)
+   template <class... Ts>
+   void push(command cmd, Ts const&... args)
    {
-      detail::add_header(payload, 1);
-      detail::add_bulk(payload, as_string(c));
-      elements.emplace(c, std::string{});
-   }
+      // TODO: Calculate the size of any pair or tuple like type to
+      // use in the header size.
 
-   template <class T>
-   void push(command c, T const& p1)
-   {
-      detail::add_header(payload, 2);
-      detail::add_bulk(payload, as_string(c));
-      detail::add_bulk(payload, p1);
-      elements.emplace(c, std::string{p1});
-   }
+      auto constexpr pack_size = sizeof...(Ts);
+      detail::add_header(payload, 1 + pack_size);
 
-   template <class T1, class T2>
-   void push(command c, T1 const& p1, T2 const& p2)
-   {
-      detail::add_header(payload, 3);
-      detail::add_bulk(payload, as_string(c));
-      detail::add_bulk(payload, p1);
-      detail::add_bulk(payload, p2);
-      elements.emplace(c, std::string{p1});
-   }
+      // TODO: as_string is not a good idea, better to_string.
+      detail::add_bulk(payload, as_string(cmd));
+      (detail::add_bulk(payload, args), ...);
 
-   template <class T1, class T2, class T3>
-   void push(command c, T1 const& p1, T2 const& p2, T3 const& p3)
-   {
-      detail::add_header(payload, 4);
-      detail::add_bulk(payload, as_string(c));
-      detail::add_bulk(payload, p1);
-      detail::add_bulk(payload, p2);
-      detail::add_bulk(payload, p3);
-      elements.emplace(c, std::string{p1});
+      // TODO: Do not assume the front is convertible to a string.
+      // TODO: Is it correct to use the front as the key.
+      std::string_view key;
+      if constexpr (pack_size != 0)
+	 key = detail::front(args...);
+
+      elements.emplace(cmd, std::string{key});
    }
 
    template <class ForwardIterator>

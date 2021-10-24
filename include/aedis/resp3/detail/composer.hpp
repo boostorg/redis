@@ -95,6 +95,12 @@ void assemble(std::string& to, std::string_view cmd, Range1 const& range1, Range
    detail::assemble(to, cmd, cbegin(range1), cend(range1), cbegin(range2), cend(range2));
 }
 
+template <class Tp, class... Us>
+constexpr decltype(auto) front(Tp&& t, Us&&...) noexcept
+{
+   return std::forward<Tp>(t);
+}
+
 } // detail
 } // resp3
 } // aedis
