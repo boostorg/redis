@@ -70,25 +70,25 @@ public:
       elements.emplace(c, std::string{p1});
    }
 
-   template <class T>
-   void push(command c, std::string_view key, T const& p)
+   template <class T1, class T2>
+   void push(command c, T1 const& p1, T2 const& p2)
    {
       detail::add_header(payload, 3);
       detail::add_bulk(payload, as_string(c));
-      detail::add_bulk(payload, key);
-      detail::add_bulk(payload, p);
-      elements.emplace(c, std::string{key});
+      detail::add_bulk(payload, p1);
+      detail::add_bulk(payload, p2);
+      elements.emplace(c, std::string{p1});
    }
 
-   template <class T1, class T2>
-   void push(command c, std::string_view key, T1 const& p1, T2 const& p2)
+   template <class T1, class T2, class T3>
+   void push(command c, T1 const& p1, T2 const& p2, T3 const& p3)
    {
       detail::add_header(payload, 4);
       detail::add_bulk(payload, as_string(c));
-      detail::add_bulk(payload, key);
       detail::add_bulk(payload, p1);
       detail::add_bulk(payload, p2);
-      elements.emplace(c, std::string{key});
+      detail::add_bulk(payload, p3);
+      elements.emplace(c, std::string{p1});
    }
 
    template <class ForwardIterator>
