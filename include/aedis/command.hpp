@@ -33,12 +33,14 @@ enum class command
 , bgrewriteaof
   /// https://redis.io/commands/bgsave
 , bgsave
+  /// Adds ping to the request, see https://redis.io/commands/bitcount
 , bitcount
   /// https://redis.io/commands/client_id
 , client_id
   /// https://redis.io/commands/del
 , del
 , exec
+  /// https://redis.io/commands/expire
 , expire
   /// https://redis.io/commands/flushall
 , flushall
@@ -46,18 +48,23 @@ enum class command
 , get
   /// https://redis.io/commands/hello
 , hello
+  /// https://redis.io/commands/hget
 , hget
   /// https://redis.io/commands/hgetall
 , hgetall
+  /// https://redis.io/commands/hincrby
 , hincrby
   /// https://redis.io/commands/hkeys
 , hkeys
   /// https://redis.io/commands/hlen
 , hlen
+  /// https://redis.io/commands/hmget
 , hmget
+  /// https://redis.io/commands/hset
 , hset
   /// https://redis.io/commands/hvals
 , hvals
+  /// https://redis.io/commands/hdel
 , hdel
 , incr
   /// https://redis.io/commands/keys
@@ -66,8 +73,11 @@ enum class command
 , llen
   /// https://redis.io/commands/lpop
 , lpop
+  /// https://redis.io/commands/lpush
 , lpush
+  /// https://redis.io/commands/lrange
 , lrange
+  /// https://redis.io/commands/ltrim
 , ltrim
 , multi
 , ping
@@ -77,22 +87,28 @@ enum class command
 , quit
   /// https://redis.io/commands/role
 , role
+  /// Adds ping to the request, see https://redis.io/commands/rpush
 , rpush
+  /// https://redis.io/commands/sadd
 , sadd
   /// https://redis.io/commands/scard
 , scard
 , sdiff
   /// https://redis.io/commands/sentinel
 , sentinel
+  /// Adds ping to the request, see https://redis.io/commands/set
 , set
   /// https://redis.io/commands/smembers
 , smembers
 , subscribe
   /// https://redis.io/commands/unsubscribe
 , unsubscribe
+  /// https://redis.io/commands/zadd
 , zadd
 , zrange
+  /// https://redis.io/commands/zrangebyscore
 , zrangebyscore
+  /// https://redis.io/commands/zremrangebyscore
 , zremrangebyscore
 , unknown
 };

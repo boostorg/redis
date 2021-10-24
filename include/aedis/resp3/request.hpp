@@ -61,22 +61,52 @@ public:
       elements.emplace(c, std::string{});
    }
 
-   void push(command c, std::string_view param)
+   template <class T>
+   void push(command c, T const& p1)
    {
       detail::add_header(payload, 2);
       detail::add_bulk(payload, as_string(c));
-      detail::add_bulk(payload, param);
-      elements.emplace(c, std::string{param});
+      detail::add_bulk(payload, p1);
+      elements.emplace(c, std::string{p1});
    }
 
    template <class T>
-   void push(command c, std::string_view p1, T const& p2)
+   void push(command c, std::string_view key, T const& p)
    {
       detail::add_header(payload, 3);
       detail::add_bulk(payload, as_string(c));
+      detail::add_bulk(payload, key);
+      detail::add_bulk(payload, p);
+      elements.emplace(c, std::string{key});
+   }
+
+   template <class T1, class T2>
+   void push(command c, std::string_view key, T1 const& p1, T2 const& p2)
+   {
+      detail::add_header(payload, 4);
+      detail::add_bulk(payload, as_string(c));
+      detail::add_bulk(payload, key);
       detail::add_bulk(payload, p1);
       detail::add_bulk(payload, p2);
-      elements.emplace(c, std::string{p1});
+      elements.emplace(c, std::string{key});
+   }
+
+   template <class ForwardIterator>
+   void push_range(command cmd, std::string_view key, ForwardIterator begin, ForwardIterator end)
+   {
+      // TODO: For hset find a way to assert the value type is a pair.
+      using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
+
+      auto constexpr size = detail::value_type_size<value_type>::size;
+      auto const distance = std::distance(begin, end);
+      detail::add_header(payload, 2 + size * distance);
+      detail::add_bulk(payload, as_string(cmd));
+      detail::add_bulk(payload, key);
+
+      for (; begin != end; ++begin)
+	 detail::add_bulk(payload, *begin);
+
+      elements.emplace(cmd, std::string{key});
    }
 
    /// Adds subscribe to the request, see https://redis.io/commands/subscribe
@@ -95,241 +125,6 @@ public:
    {
       // The response to this command is a push type.
       detail::assemble(payload, "UNSUBSCRIBE", key);
-   }
-
-   /// Adds ping to the request, see https://redis.io/commands/bitcount
-   void bitcount(std::string_view key, int start = 0, int end = -1)
-   {
-      auto const start_str = std::to_string(start);
-      auto const end_str = std::to_string(end);
-      auto const param = {start_str, end_str};
-      auto const keys = {key};
-
-      detail::assemble(payload, "BITCOUNT", keys, param);
-      elements.emplace(command::bitcount, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/rpush
-   template <class Iter>
-   void rpush(std::string_view key, Iter begin, Iter end)
-   {
-      auto const keys = {key};
-      detail::assemble(payload, "RPUSH", std::cbegin(keys), std::cend(keys), begin, end);
-      elements.emplace(command::rpush, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/rpush
-   template <class T>
-   void rpush(std::string_view key, std::initializer_list<T> v)
-   {
-      return rpush(key, std::cbegin(v), std::cend(v));
-   }
-
-   /// Adds ping to the request, see https://redis.io/commands/rpush
-   template <class Range>
-   void rpush(std::string_view key, Range const& v)
-   {
-      using std::cbegin;
-      using std::cend;
-      rpush(key, cbegin(v), cend(v));
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/lpush
-   template <class Iter>
-   void lpush(std::string_view key, Iter begin, Iter end)
-   {
-      detail::assemble(payload, "LPUSH", {key}, begin, end);
-      elements.emplace(command::lpush, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/set
-   void set(std::string_view key,
-            std::initializer_list<std::string_view> args)
-   {
-      auto const keys = {key};
-      detail::assemble(payload, "SET", std::cbegin(keys), std::cend(keys), std::cbegin(args), std::cend(args));
-      elements.emplace(command::set, std::string{key});
-   }
-
-   // TODO: Find a way to assert the value type is a pair.
-   /// Adds ping to the request, see https://redis.io/commands/hset
-   template <class Range>
-   void hset(std::string_view key, Range const& r)
-   {
-      //Note: Requires an std::pair as value type, otherwise gets
-      //error: ERR Protocol error: expected '$', got '*'
-      using std::cbegin;
-      using std::cend;
-      auto const keys = {key};
-      detail::assemble(payload, "HSET", std::cbegin(keys), std::cend(keys), std::cbegin(r), std::cend(r));
-      elements.emplace(command::hset, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/hincrby
-   void hincrby(std::string_view key, std::string_view field, int by)
-   {
-      auto const by_str = std::to_string(by);
-      std::initializer_list<std::string_view> par {field, by_str};
-      auto const keys = {key};
-      detail::assemble(payload, "HINCRBY", std::cbegin(keys), std::cend(keys),
-          std::cbegin(par), std::cend(par));
-      elements.emplace(command::hincrby, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/hget
-   void hget(std::string_view key, std::string_view field)
-   {
-      auto const par = {field};
-      auto const keys = {key};
-      detail::assemble(payload, "HGET", std::cbegin(keys), std::cend(keys), std::cbegin(par), std::cend(par));
-      elements.emplace(command::hget, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/hmget
-   void hmget(
-      std::string_view key,
-      std::initializer_list<std::string_view> fields)
-   {
-      auto const keys = {key};
-      detail::assemble( payload
-   	            , "HMGET"
-   		    , std::cbegin(keys), std::cend(keys)
-   		    , std::cbegin(fields)
-   		    , std::cend(fields));
-
-      elements.emplace(command::hmget, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/hdel
-   void
-   hdel(std::string_view key,
-        std::initializer_list<std::string_view> fields)
-   {
-      auto const keys = {key};
-      detail::assemble(
-	 payload,
-	 "HDEL",
-         std::cbegin(keys), std::cend(keys),
-	 std::cbegin(fields),
-	 std::cend(fields));
-
-      elements.emplace(command::hdel, std::string{key});
-   }
-
-   /// Adds ping to the request, see https://redis.io/commands/expire
-   void expire(std::string_view key, int secs)
-   {
-      auto const str = std::to_string(secs);
-      std::initializer_list<std::string_view> par {str};
-
-      auto const keys = {key};
-      detail::assemble(payload, "EXPIRE", std::cbegin(keys), std::cend(keys), std::cbegin(par), std::cend(par));
-      elements.emplace(command::expire, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/zadd
-   void zadd(std::string_view key, int score, std::string_view value)
-   {
-      auto const score_str = std::to_string(score);
-      std::initializer_list<std::string_view> par = {score_str, value};
-      auto const keys = {key};
-      detail::assemble(payload, "ZADD", std::cbegin(keys), std::cend(keys), std::cbegin(par), std::cend(par));
-      elements.emplace(command::zadd, std::string{key});
-   }
-   
-   /// Adds zadd to the request, see https://redis.io/commands/zadd
-   template <class Range>
-   void zadd(std::initializer_list<std::string_view> key, Range const& r)
-   {
-      detail::assemble(payload, "ZADD", key, std::cbegin(r), std::cend(r), 2);
-      elements.emplace(command::zadd, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/zrange
-   void zrange(std::string_view key, int min = 0, int max = -1)
-   {
-      auto const min_str = std::to_string(min);
-      auto const max_str = std::to_string(max);
-      std::initializer_list<std::string_view> par {min_str, max_str};
-
-      auto const keys = {key};
-      detail::assemble(payload, "ZRANGE", std::cbegin(keys), std::cend(keys), std::cbegin(par), std::cend(par));
-      elements.emplace(command::zrange, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/zrangebyscore
-   void zrangebyscore(std::string_view key, int min, int max)
-   {
-      auto max_str = std::string {"inf"};
-      if (max != -1)
-         max_str = std::to_string(max);
-   
-      auto const min_str = std::to_string(min);
-      auto par = {min_str , max_str};
-      auto const keys = {key};
-      detail::assemble(payload, "ZRANGEBYSCORE", std::cbegin(keys), std::cend(keys), std::cbegin(par), std::cend(par));
-      elements.emplace(command::zrangebyscore, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/zremrangebyscore
-   void
-   zremrangebyscore(
-      std::string_view key,
-      std::string_view min,
-      std::string_view max)
-   {
-      auto const par = {min, max};
-      auto const keys = {key};
-      detail::assemble(payload, "ZREMRANGEBYSCORE", std::cbegin(keys), std::cend(keys), std::cbegin(par), std::cend(par));
-      elements.emplace(command::zremrangebyscore, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/lrange
-   void lrange(std::string_view key, int min = 0, int max = -1)
-   {
-      auto const min_str = std::to_string(min);
-      auto const max_str = std::to_string(max);
-      std::initializer_list<std::string_view> par {min_str, max_str};
-      auto const keys = {key};
-      detail::assemble(payload, "LRANGE", std::cbegin(keys), std::cend(keys), std::cbegin(par), std::cend(par));
-      elements.emplace(command::lrange, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/ltrim
-   void ltrim(std::string_view key, int min = 0, int max = -1)
-   {
-      auto const min_str = std::to_string(min);
-      auto const max_str = std::to_string(max);
-      std::initializer_list<std::string_view> par {min_str, max_str};
-      auto const keys = {key};
-      detail::assemble(payload, "LTRIM", std::cbegin(keys), std::cend(keys), std::cbegin(par), std::cend(par));
-      elements.emplace(command::ltrim, std::string{key});
-   }
-   
-   /// Adds ping to the request, see https://redis.io/commands/sadd
-   template <class Iter>
-   void sadd(std::string_view key, Iter begin, Iter end)
-   {
-      auto const keys = {key};
-      detail::assemble(payload, "SADD", std::cbegin(keys), std::cend(keys), begin, end);
-      elements.emplace(command::sadd, std::string{key});
-   }
-
-   /// Adds ping to the request, see https://redis.io/commands/sadd
-   template <class Range>
-   void sadd(std::string_view key, Range const& r)
-   {
-      using std::cbegin;
-      using std::cend;
-      sadd(key, cbegin(r), cend(r));
-   }
-
-   /// Adds ping to the request, see https://redis.io/commands/scard
-   void scard(std::string_view key, std::initializer_list<std::string_view> l)
-   {
-      auto const keys = {key};
-      detail::assemble(payload, "SDIFF", std::cbegin(keys), std::cend(keys), std::cbegin(l), std::cend(l));
-      elements.emplace(command::sdiff, std::string{key});
    }
 };
 

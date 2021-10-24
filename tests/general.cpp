@@ -66,13 +66,13 @@ struct test_general_fill {
    void operator()(resp3::request& p) const
    {
       p.push(command::flushall);
-      p.rpush("a", list_);
+      p.push_range(command::rpush, "a", std::cbegin(list_), std::cend(list_));
       p.push(command::llen, "a");
-      p.lrange("a");
-      p.ltrim("a", 2, -2);
+      p.push(command::lrange, "a", 0, -1);
+      p.push(command::ltrim, "a", 2, -2);
       p.push(command::lpop, "a");
       //p.lpop("a", 2); // Not working?
-      p.set("b", {set_});
+      p.push(command::set, "b", set_);
       p.push(command::get, "b");
       p.push(command::append, "b", "b");
       p.push(command::del, "b");
@@ -85,7 +85,7 @@ struct test_general_fill {
       for (auto i = 0; i < 3; ++i) {
 	 p.push(command::multi);
 	 p.push(command::ping);
-	 p.lrange("a");
+	 p.push(command::lrange, "a", 0, -1);
 	 p.push(command::ping);
 	 // TODO: It looks like we can't publish to a channel we
 	 // are already subscribed to from inside a transaction.
@@ -98,18 +98,19 @@ struct test_general_fill {
       { {"field1", "value1"}
       , {"field2", "value2"}};
 
-      p.hset("d", m1);
-      p.hget("d", "field2");
+      p.push_range(command::hset, "d", std::cbegin(m1), std::cend(m1));
+      p.push(command::hget, "d", "field2");
       p.push(command::hgetall, "d");
-      p.hdel("d", {"field1", "field2"});
-      p.hincrby("e", "some-field", 10);
+      p.push(command::hdel, "d", "field1", "field2"); // TODO: Test as range too.
+      p.push(command::hincrby, "e", "some-field", 10);
 
-      p.zadd("f", 1, "Marcelo");
-      p.zrange("f");
-      p.zrangebyscore("f", 1, 1);
-      p.zremrangebyscore("f", "-inf", "+inf");
+      p.push(command::zadd, "f", 1, "Marcelo");
+      p.push(command::zrange, "f", 0, 1);
+      p.push(command::zrangebyscore, "f", 1, 1);
+      p.push(command::zremrangebyscore, "f", "-inf", "+inf");
 
-      p.sadd("g", std::vector<int>{1, 2, 3});
+      auto const v = std::vector<int>{1, 2, 3};
+      p.push_range(command::sadd, "g", std::cbegin(v), std::cend(v));
       p.push(command::smembers, "g");
 
       p.push(command::quit);
@@ -448,10 +449,10 @@ test_list(net::ip::tcp::resolver::results_type const& results)
    resp3::request p;
    p.push(command::hello, "3");
    p.push(command::flushall);
-   p.rpush("a", list);
-   p.lrange("a");
-   p.lrange("a", 2, -2);
-   p.ltrim("a", 2, -2);
+   p.push_range(command::rpush, "a", std::cbegin(list), std::cend(list));
+   p.push(command::lrange, "a", 0, -1);
+   p.push(command::lrange, "a", 2, -2);
+   p.push(command::ltrim, "a", 2, -2);
    p.push(command::lpop, "a");
    p.push(command::quit);
 
@@ -549,11 +550,11 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    resp3::request p;
    p.push(command::hello, "3");
    p.push(command::flushall);
-   p.set("s", {test_bulk1});
+   p.push(command::set, "s", test_bulk1);
    p.push(command::get, "s");
-   p.set("s", {test_bulk2});
+   p.push(command::set, "s", test_bulk2);
    p.push(command::get, "s");
-   p.set("s", {""});
+   p.push(command::set, "s", "");
    p.push(command::get, "s");
    p.push(command::quit);
 
