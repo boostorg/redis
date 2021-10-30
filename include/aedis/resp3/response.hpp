@@ -85,9 +85,7 @@ public:
     *  your own response types.
     */
    virtual adapter*
-   select_adapter(
-      resp3::type t,
-      request::element const& e = {command::unknown, std::string{}})
+   select_adapter(resp3::type t, command cmd = command::unknown)
       { return &adapter_; }
 
    auto const& raw() const noexcept {return data_;}

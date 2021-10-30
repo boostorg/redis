@@ -76,13 +76,13 @@ struct write_some_op {
 	    if (ec)
 	       break;
 
-	    if (std::empty(requests.front().elements)) {
+	    if (std::empty(requests.front().commands)) {
 	       // We only pop when all commands in the pipeline have push
 	       // responses like subscribe, otherwise, pop is done when the
 	       // response arrives.
 	       requests.pop();
 	    }
-	 } while (!std::empty(requests) && std::empty(requests.front().elements));
+	 } while (!std::empty(requests) && std::empty(requests.front().commands));
 
          self.complete(ec);
       }

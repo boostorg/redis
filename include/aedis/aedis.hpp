@@ -9,5 +9,5 @@
 
 #include <aedis/version.hpp>
 #include <aedis/resp3/request.hpp>
-#include <aedis/resp3/connection.hpp>
+#include <aedis/resp3/stream.hpp>
 #include <aedis/resp3/response.hpp>

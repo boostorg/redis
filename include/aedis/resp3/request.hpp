@@ -20,7 +20,7 @@
 namespace aedis {
 namespace resp3 {
 
-/** A Redis request also referred to as a pipeline.
+/** A Redis request (also referred to as a pipeline).
  *  
  *  A request is composed of one or more redis commands and is
  *  refered to in the redis documentation as a pipeline, see
@@ -31,19 +31,17 @@ namespace resp3 {
  */
 class request {
 public:
-   struct element {
-      command cmd;
-      std::string key;
-   };
    std::string payload;
-   std::queue<element> elements;
+   std::queue<command> commands;
 
 public:
-   /// Return the size of the pipeline. i.e. how many commands it
-   /// contains.
+   /** Returns the size of the command pipeline. i.e. how many commands it contains.
+   */
    auto size() const noexcept
-      { return std::size(elements); }
+      { return std::size(commands); }
 
+   /** Return true if the request contains no commands.
+   */
    bool empty() const noexcept
       { return std::empty(payload); };
 
@@ -51,9 +49,11 @@ public:
    void clear()
    {
       payload.clear();
-      elements = {};
+      commands = {};
    }
 
+   /** Appends a new command to the request.
+    */
    template <class... Ts>
    void push(command cmd, Ts const&... args)
    {
@@ -63,53 +63,56 @@ public:
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(payload, 1 + pack_size);
 
-      // TODO: as_string is not a good idea, better to_string.
-      detail::add_bulk(payload, as_string(cmd));
+      detail::add_bulk(payload, to_string(cmd));
       (detail::add_bulk(payload, args), ...);
 
-      // TODO: Do not assume the front is convertible to a string.
-      // TODO: Is it correct to use the front as the key.
-      std::string_view key;
-      if constexpr (pack_size != 0)
-	 key = detail::front(args...);
-
-      elements.emplace(cmd, std::string{key});
+      if (!detail::has_push_response(cmd))
+         commands.emplace(cmd);
    }
 
-   template <class ForwardIterator>
-   void push_range(command cmd, std::string_view key, ForwardIterator begin, ForwardIterator end)
+   /** Appends a new command to the request.
+    */
+   template <class Key, class ForwardIterator>
+   void push_range(command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
-      // TODO: For hset find a way to assert the value type is a pair.
+      // Note: For some commands like hset it would be a good idea to assert
+      // the value type is a pair.
+
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
 
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(payload, 2 + size * distance);
-      detail::add_bulk(payload, as_string(cmd));
+      detail::add_bulk(payload, to_string(cmd));
       detail::add_bulk(payload, key);
 
       for (; begin != end; ++begin)
 	 detail::add_bulk(payload, *begin);
 
-      elements.emplace(cmd, std::string{key});
+      if (!detail::has_push_response(cmd))
+         commands.emplace(cmd);
    }
 
-   /// Adds subscribe to the request, see https://redis.io/commands/subscribe
-   void subscribe(std::initializer_list<std::string_view> keys)
+   /** Appends a new command to the request.
+    */
+   template <class ForwardIterator>
+   void push_range(command cmd, ForwardIterator begin, ForwardIterator end)
    {
-      // The response to this command is a push type.
-      detail::assemble(payload, "SUBSCRIBE", keys);
-   }
+      // Note: For some commands like hset it would be a good idea to assert
+      // the value type is a pair.
 
-   void psubscribe(std::initializer_list<std::string_view> keys)
-   {
-      detail::assemble(payload, "PSUBSCRIBE", keys);
-   }
-   
-   void unsubscribe(std::string_view key)
-   {
-      // The response to this command is a push type.
-      detail::assemble(payload, "UNSUBSCRIBE", key);
+      using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
+
+      auto constexpr size = detail::value_type_size<value_type>::size;
+      auto const distance = std::distance(begin, end);
+      detail::add_header(payload, 1 + size * distance);
+      detail::add_bulk(payload, to_string(cmd));
+
+      for (; begin != end; ++begin)
+	 detail::add_bulk(payload, *begin);
+
+      if (!detail::has_push_response(cmd))
+         commands.emplace(cmd);
    }
 };
 
@@ -117,10 +120,6 @@ public:
  *  returns true if a write is possible.
  */
 bool prepare_next(std::queue<request>& reqs);
-
-/** Writes the request element as a string to the stream.
- */
-std::ostream& operator<<(std::ostream& os, request::element const& r);
 
 } // resp3
 } // aedis

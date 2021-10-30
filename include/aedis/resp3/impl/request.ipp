@@ -19,13 +19,5 @@ bool prepare_next(std::queue<request>& reqs)
    return cond;
 }
 
-std::ostream& operator<<(std::ostream& os, request::element const& e)
-{
-  os << e.cmd;
-  if (!std::empty(e.key))
-    os << "(" << e.key << ")";
-  return os;
-}
-
 } // resp3
 } // aedis

@@ -21,14 +21,14 @@ net::awaitable<void> publisher()
 
    std::queue<resp3::request> requests;
    requests.push({});
-   requests.back().push(command::hello, "3");
+   requests.back().push(command::hello, 3);
 
-   resp3::connection conn;
+   resp3::stream s;
    for (;;) {
       resp3::response resp;
-      co_await conn.async_consume(socket, requests, resp);
+      co_await s.async_consume(socket, requests, resp);
 
-      if (requests.front().elements.front().cmd == command::hello) {
+      if (requests.front().commands.front() == command::hello) {
 	 prepare_next(requests);
 	 requests.back().push(command::publish, "channel1", "Message to channel1");
 	 requests.back().push(command::publish, "channel2", "Message to channel2");
@@ -48,20 +48,20 @@ net::awaitable<void> subscriber()
    requests.push({});
    requests.back().push(command::hello, "3");
 
-   resp3::connection conn;
+   resp3::stream s;
    for (;;) {
       resp3::response resp;
-      co_await conn.async_consume(socket, requests, resp);
+      co_await s.async_consume(socket, requests, resp);
 
       if (resp.get_type() == resp3::type::push) {
 	 std::cout << "Subscriber " << id << ":\n" << resp << std::endl;
          continue;
       }
 
-      if (requests.front().elements.front().cmd == command::hello) {
+      if (requests.front().commands.front() == command::hello) {
 	 id = resp.raw().at(8).data;
 	 prepare_next(requests);
-	 requests.back().subscribe({"channel1", "channel2"});
+	 requests.back().push(command::subscribe, "channel1", "channel2");
       }
    }
 }

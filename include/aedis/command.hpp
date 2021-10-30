@@ -39,6 +39,7 @@ enum class command
 , client_id
   /// https://redis.io/commands/del
 , del
+  /// https://redis.io/commands/exec
 , exec
   /// https://redis.io/commands/expire
 , expire
@@ -66,6 +67,7 @@ enum class command
 , hvals
   /// https://redis.io/commands/hdel
 , hdel
+  /// https://redis.io/commands/incr
 , incr
   /// https://redis.io/commands/keys
 , keys
@@ -79,11 +81,15 @@ enum class command
 , lrange
   /// https://redis.io/commands/ltrim
 , ltrim
+  /// https://redis.io/commands/multi
 , multi
+  /// https://redis.io/commands/ping
 , ping
+  /// https://redis.io/commands/psubscribe
 , psubscribe
   /// https://redis.io/commands/publish
 , publish
+  /// https://redis.io/commands/quit
 , quit
   /// https://redis.io/commands/role
 , role
@@ -93,6 +99,7 @@ enum class command
 , sadd
   /// https://redis.io/commands/scard
 , scard
+  /// https://redis.io/commands/sdiff
 , sdiff
   /// https://redis.io/commands/sentinel
 , sentinel
@@ -100,21 +107,24 @@ enum class command
 , set
   /// https://redis.io/commands/smembers
 , smembers
+  /// https://redis.io/commands/subscribe
 , subscribe
   /// https://redis.io/commands/unsubscribe
 , unsubscribe
   /// https://redis.io/commands/zadd
 , zadd
+  /// https://redis.io/commands/zrange
 , zrange
   /// https://redis.io/commands/zrangebyscore
 , zrangebyscore
   /// https://redis.io/commands/zremrangebyscore
 , zremrangebyscore
+  /// Invalid or unknown command.
 , unknown
 };
 
 /// Converts the command to a string.
-char const* as_string(command c);
+char const* to_string(command c);
 
 /** Writes the text representation of the command to the output
  *  stream.

@@ -11,7 +11,7 @@
 
 namespace aedis {
 
-char const* as_string(command c)
+char const* to_string(command c)
 {
    static char const* table[] =
    { "ACL LOAD"
@@ -81,7 +81,7 @@ char const* as_string(command c)
 
 std::ostream& operator<<(std::ostream& os, command c)
 {
-   os << as_string(c);
+   os << to_string(c);
    return os;
 }
 

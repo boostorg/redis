@@ -192,8 +192,8 @@ struct consumer_op {
 		     auto* adapter = resp.select_adapter(m_type);
 		     async_read_one(stream, buffer, *adapter, std::move(self));
 		  } else {
-		     auto const& elem = requests.front().elements.front();
-		     auto* adapter = resp.select_adapter(m_type, elem);
+		     auto const cmd = requests.front().commands.front();
+		     auto* adapter = resp.select_adapter(m_type, cmd);
 		     async_read_one(stream, buffer, *adapter, std::move(self));
 		  }
                }
@@ -206,9 +206,9 @@ struct consumer_op {
                yield self.complete(ec, m_type);
 
                if (m_type != type::push)
-		  requests.front().elements.pop();
+		  requests.front().commands.pop();
 
-            } while (!std::empty(requests) && !std::empty(requests.front().elements));
+            } while (!std::empty(requests) && !std::empty(requests.front().commands));
 	    if (!std::empty(requests))
 	       requests.pop();
          } while (std::empty(requests));

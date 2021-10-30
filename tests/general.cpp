@@ -48,15 +48,6 @@ void check_equal(T const& a, T const& b, std::string const& msg = "")
      std::cout << "Error: " << msg << std::endl;
 }
 
-template <class T>
-void check_equal_number(T const& a, T const& b, std::string const& msg = "")
-{
-   if (a == b)
-     std::cout << "Success: " << msg << std::endl;
-   else
-     std::cout << "Error: " << a << " != " << b << " " << msg << std::endl;
-}
-
 //-------------------------------------------------------------------
 
 struct test_general_fill {
@@ -76,7 +67,7 @@ struct test_general_fill {
       p.push(command::get, "b");
       p.push(command::append, "b", "b");
       p.push(command::del, "b");
-      p.subscribe({"channel"});
+      p.push(command::subscribe, "channel");
       p.push(command::publish, "channel", "message");
       p.push(command::incr, "3");
 
@@ -126,17 +117,17 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 
    std::queue<resp3::request> requests;
    requests.push({});
-   requests.back().push(command::hello, "3");
+   requests.back().push(command::hello, 3);
 
    test_general_fill filler;
 
    resp3::response resp;
-   resp3::connection cs;
+   resp3::stream s;
 
    int push_counter = 0;
    for (;;) {
       resp.clear();
-      co_await cs.async_consume(socket, requests, resp, net::use_awaitable);
+      co_await s.async_consume(socket, requests, resp, net::use_awaitable);
 
       if (resp.get_type() == resp3::type::push) {
 	 switch (push_counter) {
@@ -168,9 +159,9 @@ test_general(net::ip::tcp::resolver::results_type const& res)
          continue;
       }
 
-      auto const& elem = requests.front().elements.front();
+      auto const cmd = requests.front().commands.front();
 
-      switch (elem.cmd) {
+      switch (cmd) {
 	 case command::hello:
 	 {
 	    prepare_next(requests);
@@ -432,7 +423,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	    };
 	    check_equal(resp.raw(), expected, "smembers (value)");
 	 } break;
-	 default: { std::cout << "Error: " << resp.get_type() << " " << elem.cmd << std::endl; }
+	 default: { std::cout << "Error: " << resp.get_type() << " " << cmd << std::endl; }
       }
 
       resp.raw().clear();
@@ -447,7 +438,7 @@ test_list(net::ip::tcp::resolver::results_type const& results)
    std::vector<int> list {1 ,2, 3, 4, 5, 6};
 
    resp3::request p;
-   p.push(command::hello, "3");
+   p.push(command::hello, 3);
    p.push(command::flushall);
    p.push_range(command::rpush, "a", std::cbegin(list), std::cend(list));
    p.push(command::lrange, "a", 0, -1);
@@ -548,7 +539,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    co_await async_connect(socket, results);
 
    resp3::request p;
-   p.push(command::hello, "3");
+   p.push(command::hello, 3);
    p.push(command::flushall);
    p.push(command::set, "s", test_bulk1);
    p.push(command::get, "s");
