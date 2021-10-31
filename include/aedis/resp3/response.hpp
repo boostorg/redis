@@ -15,13 +15,15 @@
 namespace aedis {
 namespace resp3 {
 
-/// A pre-order-view of the response tree.
+/** A pre-order-view of the response tree.
+ */
 class response {
 public:
    /** Represents a node in the response tree.
     */
    struct node {
       enum class dump_format {raw, clean};
+
       /// The number of children node is parent of.
       std::size_t size;
 
@@ -38,11 +40,17 @@ public:
       void dump(dump_format format, int indent, std::string& out) const;
    };
 
-   using value_type = node;
    using storage_type = std::vector<node>;
+   using value_type = storage_type::value_type;
+   using iterator = storage_type::iterator;
+   using const_iterator = storage_type::const_iterator;
+   using reference = storage_type::reference;
+   using const_reference = storage_type::const_reference;
+   using pointer = storage_type::pointer;
+   using size_type = storage_type::size_type;
 
 public:
-   // This response type is able to deal with recursive redis responses
+   // This adapter type is able to deal with recursive redis responses
    // as in a transaction for example.
    class adapter: public response_adapter_base {
    private:
@@ -67,14 +75,14 @@ public:
       void clear()
 	 { depth_ = 0; }
    };
-   private:
+
+private:
 
    friend
    std::ostream& operator<<(std::ostream& os, response const& r);
 
    storage_type data_;
    adapter adapter_{&data_};
-
 
 public:
    /// Destructor
@@ -101,8 +109,6 @@ public:
    auto empty() const noexcept { return std::empty(data_);}
 
    /** Returns the RESP3 type of the response.
-    *  
-    *  Expects a non-empty response.
     */
    auto get_type() const noexcept { return data_.front().data_type; }
 
@@ -111,6 +117,24 @@ public:
    std::string
    dump(node::dump_format format = node::dump_format::clean,
 	int indent = 3) const;
+
+   /** Useful only for flat aggregate types i.e. aggregate that don't 
+    *  contain aggregate themselves.
+    */
+   const_iterator cbegin() const;
+
+   /** Returns the end of the aggregate range.
+    */
+   const_iterator cend() const;
+   
+   /** Access the element at the specified position.
+    */
+   const_reference& at(size_type pos) const;
+
+   /** Returns the logical size of the struct received in the
+    * response.
+    */
+   size_type size() const noexcept;
 };
 
 /// Equality comparison for a node.

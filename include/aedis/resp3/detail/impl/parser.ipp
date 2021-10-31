@@ -41,7 +41,7 @@ void parser::init(response_adapter_base* res)
    bulk_length_ = std::numeric_limits<int>::max();
 }
 
-long long parser::on_array_impl(char const* data, int m)
+long long parser::on_array_impl(type t, char const* data)
 {
    auto const l = length(data + 1);
    if (l == 0) {
@@ -49,9 +49,18 @@ long long parser::on_array_impl(char const* data, int m)
       return l;
    }
 
-   auto const size = m * l;
-   sizes_[++depth_] = size;
-   return size;
+   int counter;
+   switch (t) {
+      case type::map:
+      case type::attribute:
+      {
+	 counter = 2;
+      } break;
+      default: counter = 1;
+   }
+
+   sizes_[++depth_] = counter * l;
+   return l;
 }
 
 void parser::on_null()
@@ -111,17 +120,7 @@ void parser::on_data(type t, char const* data, std::size_t n)
 
 void parser::on_aggregate(type t, char const* data)
 {
-   int counter;
-   switch (t) {
-      case type::map:
-      case type::attribute:
-      {
-	 counter = 2;
-      } break;
-      default: counter = 1;
-   }
-
-   res_->add_aggregate(t, on_array_impl(data, counter));
+   res_->add_aggregate(t, on_array_impl(t, data));
 }
 
 std::size_t parser::advance(char const* data, std::size_t n)

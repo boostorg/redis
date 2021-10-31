@@ -16,15 +16,15 @@ namespace resp3 {
 
 /** Response adapter base class.
  *
- *  Users are allowed to override this class.
+ *  Users are allowed to override this class to customize responses.
  */
 struct response_adapter_base {
-   /** Called by the parser when it is done at the specific depth. In
-    * other words, when it is done with an aggregate data type.
+   /** Called by the parser when it is done at the specific depth, for
+    *  example, when finished reading an aggregate data type.
     */
    virtual void pop() {}
 
-   /** Called in the parser everytime a simple (non-aggregate) data
+   /** Called by the parser everytime a simple (non-aggregate) data
     * type arrives, those are
     *
     *    simple_string
@@ -41,7 +41,7 @@ struct response_adapter_base {
     */
    virtual void add(type t, std::string_view s = {}) {}
 
-   /** Called from the parser everytime a new RESP3 aggregate data
+   /** Called by the parser everytime a new RESP3 aggregate data
     *  type is received, those are
     *
     *    array
@@ -52,7 +52,8 @@ struct response_adapter_base {
     */
    virtual void add_aggregate(type t, int n) { }
 
-   /// Destructor.
+   /** Virtual destructor to allow inheritance.
+    */
    virtual ~response_adapter_base() {}
 };
 

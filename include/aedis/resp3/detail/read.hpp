@@ -93,6 +93,29 @@ auto async_read_one(
         stream);
 }
 
+type to_type(char c)
+{
+   switch (c) {
+      case '!': return type::blob_error;
+      case '=': return type::verbatim_string;
+      case '$': return type::blob_string;
+      case ';': return type::streamed_string_part;
+      case '-': return type::simple_error;
+      case ':': return type::number;
+      case ',': return type::doublean;
+      case '#': return type::boolean;
+      case '(': return type::big_number;
+      case '+': return type::simple_string;
+      case '_': return type::null;
+      case '>': return type::push;
+      case '~': return type::set;
+      case '*': return type::array;
+      case '|': return type::attribute;
+      case '%': return type::map;
+      default: return type::invalid;
+   }
+}
+
 template <class AsyncReadStream, class Storage>
 class type_op {
 private:
@@ -128,8 +151,6 @@ public:
 
       assert(!std::empty(*buf_));
       auto const type = to_type(buf_->front());
-      // TODO: when type = type::invalid should we report an error or
-      // complete normally and let the caller check whether it is invalid.
       self.complete(ec, type);
       return;
    }

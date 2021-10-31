@@ -34,7 +34,7 @@ private:
    int bulk_length_;
 
    void init(response_adapter_base* res);
-   long long on_array_impl(char const* data, int m = 1);
+   long long on_array_impl(type t, char const* data);
    void on_aggregate(type t, char const* data);
    void on_null();
    void on_data(type t, char const* data, std::size_t n);

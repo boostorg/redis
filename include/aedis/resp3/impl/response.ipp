@@ -48,33 +48,87 @@ void response::node::dump(dump_format format, int indent, std::string& out) cons
 	 out += '\t';
 	 out += to_string(data_type);
 	 out += '\t';
-	 out += data;
+	 out += std::to_string(size);
+	 out += '\t';
+	 if (!is_aggregate(data_type))
+	    out += data;
       } break;
-
       case response::node::dump_format::clean:
       {
 	 std::string prefix(indent * depth, ' ');
 	 out += prefix;
-	 out += data;
+	 if (is_aggregate(data_type)) {
+	    out += "(";
+	    out += to_string(data_type);
+	    out += ")";
+	    if (size == 0) {
+	       std::string prefix2(indent * (depth + 1), ' ');
+	       out += "\n";
+	       out += prefix2;
+	       out += "(empty)";
+	    }
+	 } else {
+	    if (std::empty(data))
+	       out += "(empty)";
+	    else
+	       out += data;
+	 }
       } break;
-
-      default: {
-      }
+      default: { }
    }
 }
 
-std::string
-response::dump(node::dump_format format, int indent) const
+std::string response::dump(node::dump_format format, int indent) const
 {
+   if (std::empty(data_))
+      return {};
+
    std::string res;
-   for (auto const& n : data_) {
-      if (n.size > 1)
-	 continue;
-      n.dump(format, indent, res);
+   for (auto i = 0ULL; i < std::size(data_) - 1; ++i) {
+      data_[i].dump(format, indent, res);
       res += '\n';
    }
 
+   data_.back().dump(format, indent, res);
    return res;
+}
+
+
+response::const_iterator response::cbegin() const
+{
+   assert(!std::empty(data_));
+   assert(is_aggregate(data_.front().data_type));
+
+   return std::cbegin(data_) + 1;
+}
+
+response::const_iterator response::cend() const
+{
+   auto size = data_.front().size;
+   if (is_aggregate(data_.front().data_type))
+      size *= 2;
+
+   return cbegin() + size;
+}
+
+response::const_reference response::at(size_type pos) const
+{
+   if (is_aggregate(data_.front().data_type))
+      return data_.at(pos + 1);
+
+   return data_.at(pos);
+}
+
+response::size_type response::size() const noexcept
+{
+   if (is_aggregate(data_.front().data_type)) {
+      assert(std::size(data_) >= 1);
+      auto const logical_size = std::size(data_) - 1;
+      assert(data_.front().size == logical_size);
+      return data_.front().size;
+   }
+
+   return 1;
 }
 
 } // resp3

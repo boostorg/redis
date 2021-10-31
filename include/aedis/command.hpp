@@ -123,7 +123,8 @@ enum class command
 , unknown
 };
 
-/// Converts the command to a string.
+/** Converts the command to a string.
+ */
 char const* to_string(command c);
 
 /** Writes the text representation of the command to the output

@@ -12,20 +12,11 @@
 #include "types.hpp"
 #include "utils.ipp"
 
-/** A very simple example showing how to
- * 
- *    1. Connect to the redis server.
- *    2. Send a ping.
- *    3. Wait for a pong and quit.
- *
- *  Notice that in this example we are sending all commands in the
- *  same request instead of waiting the response of each command.
- */
-
 using namespace aedis;
 
 net::awaitable<void> ping()
 {
+   // Helper function to get a connected socket.
    auto socket = co_await make_connection();
 
    std::queue<resp3::request> requests;

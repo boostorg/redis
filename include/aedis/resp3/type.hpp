@@ -14,7 +14,10 @@
 namespace aedis {
 namespace resp3 {
 
-/// RESP3 message types.
+/** RESP3 types and defined in the specification
+ *
+ *  https://github.com/antirez/RESP3/blob/74adea588783e463c7e84793b325b088fe6edd1c/spec.md
+ */
 enum class type
 { array
 , push
@@ -35,14 +38,16 @@ enum class type
 , invalid
 };
 
-/// Converts a RESP3 type to a string.
-std::string to_string(type t);
+/** Converts a RESP3 type to a string.
+ */
+char const* to_string(type t);
 
-// TODO: Move to detail?
-type to_type(char c);
-
-/// Writes the string representation of type to the output stream.
+/** Writes the string representation of type to the output stream.
+ */
 std::ostream& operator<<(std::ostream& os, type t);
+
+/// Returns true for aggregate data types.
+bool is_aggregate(type t);
 
 } // resp3
 } // aedis

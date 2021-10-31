@@ -52,6 +52,11 @@ ping_SOURCES = $(top_srcdir)/examples/ping.cpp
 ping_CPPFLAGS = $(MY_CPPFLAGS)
 ping_LDADD = $(MY_LDADD)
 
+noinst_PROGRAMS += stl_containers
+stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
+stl_containers_CPPFLAGS = $(MY_CPPFLAGS)
+stl_containers_LDADD = $(MY_LDADD)
+
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp
 test_CPPFLAGS = $(MY_CPPFLAGS)

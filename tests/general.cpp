@@ -405,11 +405,11 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 	 case command::hgetall:
 	 {
 	    resp3::response::storage_type expected
-	    { { 4UL, 0UL, resp3::type::map,    {}}
-	    , { 1UL, 1UL, resp3::type::blob_string, {"field1"}}
-	    , { 1UL, 1UL, resp3::type::blob_string, {"value1"}}
-	    , { 1UL, 1UL, resp3::type::blob_string, {"field2"}}
-	    , { 1UL, 1UL, resp3::type::blob_string, {"value2"}}
+	    { {2UL, 0UL, resp3::type::map,    {}}
+	    , {1UL, 1UL, resp3::type::blob_string, {"field1"}}
+	    , {1UL, 1UL, resp3::type::blob_string, {"value1"}}
+	    , {1UL, 1UL, resp3::type::blob_string, {"field2"}}
+	    , {1UL, 1UL, resp3::type::blob_string, {"value2"}}
 	    };
 	    check_equal(resp.raw(), expected, "hgetall (value)");
 	 } break;
@@ -979,21 +979,21 @@ net::awaitable<void> test_map()
       co_await detail::async_read_one(ts, buf, radapter);
 
       resp3::response::storage_type expected
-      { {14UL, 0UL, resp3::type::map,    {}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"server"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"redis"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"version"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"6.0.9"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"proto"}}
-      , { 1UL, 1UL, resp3::type::number, {"3"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"id"}}
-      , { 1UL, 1UL, resp3::type::number, {"203"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"mode"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"standalone"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"role"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"master"}}
-      , { 1UL, 1UL, resp3::type::blob_string, {"modules"}}
-      , { 0UL, 1UL, resp3::type::array, {}}
+      { {7UL, 0UL, resp3::type::map,    {}}
+      , {1UL, 1UL, resp3::type::blob_string, {"server"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"redis"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"version"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"6.0.9"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"proto"}}
+      , {1UL, 1UL, resp3::type::number, {"3"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"id"}}
+      , {1UL, 1UL, resp3::type::number, {"203"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"mode"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"standalone"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"role"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"master"}}
+      , {1UL, 1UL, resp3::type::blob_string, {"modules"}}
+      , {0UL, 1UL, resp3::type::array, {}}
       };
       check_equal(array_buffer, expected, "test map");
    }
