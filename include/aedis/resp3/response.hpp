@@ -99,6 +99,7 @@ public:
    auto const& raw() const noexcept {return data_;}
    auto& raw() noexcept {return data_;}
 
+   /// Clears the response but does not release already acquired memory.
    /** Clears the internal buffers but does not release already aquired
     *  memory. This function is usually called before reading a new
     *  response.
@@ -108,31 +109,29 @@ public:
    /// Returns true if the response is empty.
    auto empty() const noexcept { return std::empty(data_);}
 
-   /** Returns the RESP3 type of the response.
-    */
+   /// Returns the RESP3 type of the response.
    auto get_type() const noexcept { return data_.front().data_type; }
 
-   /** Converts the string to string.
-    */
+   /// Converts the response to a string.
    std::string
    dump(node::dump_format format = node::dump_format::clean,
 	int indent = 3) const;
 
+   /// Returns the begin of aggregate data.
    /** Useful only for flat aggregate types i.e. aggregate that don't 
     *  contain aggregate themselves.
     */
    const_iterator cbegin() const;
 
-   /** Returns the end of the aggregate range.
-    */
+   /// Returns the end of aggregate data.
    const_iterator cend() const;
    
-   /** Access the element at the specified position.
-    */
+   /// Access the element at the specified position.
    const_reference& at(size_type pos) const;
 
-   /** Returns the logical size of the struct received in the
-    * response.
+   /// Logical size of the response.
+   /** For aggregate data this will be the size of the aggregate, for
+    * non-aggregate it will be alsways one.
     */
    size_type size() const noexcept;
 };
