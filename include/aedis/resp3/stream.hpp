@@ -19,28 +19,73 @@ namespace resp3 {
 
 /** Reads and writes redis commands.
  */
-struct stream {
-   std::string buffer;
-   net::coroutine coro = net::coroutine();
-   type t = type::invalid;
+template <class NextLayer>
+class stream {
+public:
+   /// The type of the next layer.
+   using next_layer_type = typename std::remove_reference<NextLayer>::type;
 
-   template<
-      class AsyncReadWriteStream,
-      class CompletionToken =
-	 net::default_completion_token_t<typename AsyncReadWriteStream::executor_type>
-   >
+   /// The type of the executor associated with the object.
+   using executor_type = typename next_layer_type::executor_type;
+
+private:
+   std::string buffer_;
+   net::coroutine coro_ = net::coroutine();
+   type type_ = type::invalid;
+   next_layer_type next_layer_;
+
+public:
+   template <class Arg>
+   stream(Arg&& arg)
+   : next_layer_(std::forward<Arg>(arg))
+   { }
+
+   stream(stream&& other) = default;
+   stream& operator=(stream&& other) = delete;
+
+   /// Get the executor associated with the object.
+   /**
+    * This function may be used to obtain the executor object that the stream
+    * uses to dispatch handlers for asynchronous operations.
+    *
+    * @return A copy of the executor that stream will use to dispatch handlers.
+    */
+   executor_type get_executor() const noexcept
+      { return next_layer_.lowest_layer().get_executor(); }
+
+   /// Get a reference to the next layer.
+   /**
+    * This function returns a reference to the next layer in a stack of
+    * stream layers.
+    *
+    * @return A reference to the next layer in the stack of stream
+    * layers.  Ownership is not transferred to the caller.
+    */
+   next_layer_type const& next_layer() const
+      { return next_layer_; }
+
+   /// Get a reference to the next layer.
+   /**
+    * This function returns a reference to the next layer in a stack
+    * of stream layers.
+    *
+    * @return A reference to the next layer in the stack of stream
+    * layers.  Ownership is not transferred to the caller.
+    */
+   next_layer_type& next_layer()
+      { return next_layer_; }
+
+   template<class CompletionToken = net::default_completion_token_t<executor_type>>
    auto async_consume(
-      AsyncReadWriteStream& stream,
       std::queue<request>& requests,
       response& resp,
-      CompletionToken&& token =
-         net::default_completion_token_t<typename AsyncReadWriteStream::executor_type>{})
+      CompletionToken&& token = net::default_completion_token_t<executor_type>{})
    {
      return net::async_compose<
-	CompletionToken,
-	void(boost::system::error_code, type)>(
-	   detail::consumer_op{stream, buffer, requests, resp, t, coro},
-	   token, stream);
+	CompletionToken, void(boost::system::error_code, type)>(
+	   detail::consumer_op
+	      {next_layer_, buffer_, requests, resp, type_, coro_},
+	   token, next_layer_);
    }
 };
 

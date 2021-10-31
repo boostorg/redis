@@ -25,10 +25,10 @@ net::awaitable<void> ping()
    requests.back().push(command::ping);
    requests.back().push(command::quit);
 
-   resp3::stream s;
+   resp3::stream<tcp_socket> stream{std::move(socket)};
    for (;;) {
       resp3::response resp;
-      co_await s.async_consume(socket, requests, resp);
+      co_await stream.async_consume(requests, resp);
 
       std::cout
 	 << requests.front().commands.front() << "\n"

@@ -22,18 +22,14 @@ net::awaitable<void> publisher()
    std::queue<resp3::request> requests;
    requests.push({});
    requests.back().push(command::hello, 3);
+   requests.back().push(command::publish, "channel1", "Message to channel1");
+   requests.back().push(command::publish, "channel2", "Message to channel2");
+   requests.back().push(command::quit);
 
-   resp3::stream s;
+   resp3::stream<tcp_socket> stream{std::move(socket)};
    for (;;) {
       resp3::response resp;
-      co_await s.async_consume(socket, requests, resp);
-
-      if (requests.front().commands.front() == command::hello) {
-	 prepare_next(requests);
-	 requests.back().push(command::publish, "channel1", "Message to channel1");
-	 requests.back().push(command::publish, "channel2", "Message to channel2");
-	 requests.back().push(command::quit);
-      }
+      co_await stream.async_consume(requests, resp);
    }
 }
 
@@ -47,21 +43,29 @@ net::awaitable<void> subscriber()
    std::queue<resp3::request> requests;
    requests.push({});
    requests.back().push(command::hello, "3");
+   requests.back().push(command::subscribe, "channel1", "channel2");
 
-   resp3::stream s;
+   resp3::stream<tcp_socket> stream{std::move(socket)};
    for (;;) {
       resp3::response resp;
-      co_await s.async_consume(socket, requests, resp);
+      co_await stream.async_consume(requests, resp);
 
       if (resp.get_type() == resp3::type::push) {
-	 std::cout << "Subscriber " << id << ":\n" << resp << std::endl;
+	 std::cout
+	    << "Subscriber " << id << "\n"
+	    << resp << std::endl;
          continue;
       }
 
-      if (requests.front().commands.front() == command::hello) {
-	 id = resp.raw().at(8).data;
-	 prepare_next(requests);
-	 requests.back().push(command::subscribe, "channel1", "channel2");
+      auto const cmd = requests.front().commands.front();
+      switch (cmd) {
+	 case command::hello:
+	    id = resp.raw().at(8).data;
+	    break;
+	 default:
+	    std::cout
+	       << cmd << "\n"
+	       << resp << std::endl;
       }
    }
 }

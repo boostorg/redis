@@ -122,12 +122,12 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    test_general_fill filler;
 
    resp3::response resp;
-   resp3::stream s;
+   resp3::stream<tcp_socket> stream{std::move(socket)};
 
    int push_counter = 0;
    for (;;) {
       resp.clear();
-      co_await s.async_consume(socket, requests, resp, net::use_awaitable);
+      co_await stream.async_consume(requests, resp, net::use_awaitable);
 
       if (resp.get_type() == resp3::type::push) {
 	 switch (push_counter) {
