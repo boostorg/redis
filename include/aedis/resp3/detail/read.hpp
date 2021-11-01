@@ -191,13 +191,18 @@ struct consumer_op {
    {
       reenter (coro) for (;;)
       {
+	 // Writes the next request in the queue and possibly some
+	 // more if they contain only push types as response.
          yield async_write_some(stream, requests, std::move(self));
          if (ec) {
             self.complete(ec, type::invalid);
             return;
          }
 
+	 // Loops on a read while there is nothing to write.
          do {
+	    // Loops until a response to each of the commands in the
+	    // pipeline has been received.
             do {
                yield async_read_type(stream, buffer, std::move(self));
                if (ec) {
@@ -230,8 +235,10 @@ struct consumer_op {
 		  requests.front().commands.pop();
 
             } while (!std::empty(requests) && !std::empty(requests.front().commands));
+
 	    if (!std::empty(requests))
 	       requests.pop();
+
          } while (std::empty(requests));
       }
    }

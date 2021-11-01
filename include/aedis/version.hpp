@@ -5,5 +5,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#define AEDIS_VERSION 5
+/** \file version.hpp
+ *
+ *  Current aedis version.
+ */
+
+/// Macro that expands to the current aedis version.
+#define AEDIS_VERSION 6
 

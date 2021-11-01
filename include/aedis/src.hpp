@@ -5,6 +5,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+/** \file src.hpp
+ *
+ *  The list of source files that must built in order to use aedis.
+ *  Include this file in no more than one source file in your
+ *  application.
+ */
+
 #include <aedis/impl/command.ipp>
 #include <aedis/resp3/impl/response.ipp>
 #include <aedis/resp3/impl/type.ipp>

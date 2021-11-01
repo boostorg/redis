@@ -9,128 +9,142 @@
 
 #include <ostream>
 
+/** \file command.hpp
+ *
+ *  This file contains the enum used to identify each redis command
+ *  and some helper functions.
+ */
+
 namespace aedis {
 
 /// List of the supported redis commands.
 enum class command
-{ acl_load
-, acl_save
-, acl_list
-, acl_users
-, acl_getuser
-, acl_setuser
-, acl_deluser
-, acl_cat
-, acl_genpass
-, acl_whoami
-, acl_log
-, acl_help
+{ /// https://redis.io/commands/acl-load
+  acl_load,
+  /// https://redis.io/commands/acl-save
+  acl_save,
+  /// https://redis.io/commands/acl-list
+  acl_list,
+  /// https://redis.io/commands/acl-users
+  acl_users,
+  /// https://redis.io/commands/acl-getuser
+  acl_getuser,
+  /// https://redis.io/commands/acl-setuser
+  acl_setuser,
+  /// https://redis.io/commands/acl-deluser
+  acl_deluser,
+  /// https://redis.io/commands/acl-cat
+  acl_cat,
+  /// https://redis.io/commands/acl-genpass
+  acl_genpass,
+  /// https://redis.io/commands/acl-whoami
+  acl_whoami,
+  /// https://redis.io/commands/acl-log
+  acl_log,
+  /// https://redis.io/commands/acl-help
+  acl_help,
   /// https://redis.io/commands/append
-, append
+  append,
   /// https://redis.io/commands/bgrewriteaof
-, auth
+  auth,
   /// https://redis.io/commands/bgrewriteaof
-, bgrewriteaof
+  bgrewriteaof,
   /// https://redis.io/commands/bgsave
-, bgsave
-  /// Adds ping to the request, see https://redis.io/commands/bitcount
-, bitcount
+  bgsave,
+  /// https://redis.io/commands/bitcount
+  bitcount,
   /// https://redis.io/commands/client_id
-, client_id
+  client_id,
   /// https://redis.io/commands/del
-, del
+  del,
   /// https://redis.io/commands/exec
-, exec
+  exec,
   /// https://redis.io/commands/expire
-, expire
+  expire,
   /// https://redis.io/commands/flushall
-, flushall
+  flushall,
   /// https://redis.io/commands/get
-, get
+  get,
   /// https://redis.io/commands/hello
-, hello
+  hello,
   /// https://redis.io/commands/hget
-, hget
+  hget,
   /// https://redis.io/commands/hgetall
-, hgetall
+  hgetall,
   /// https://redis.io/commands/hincrby
-, hincrby
+  hincrby,
   /// https://redis.io/commands/hkeys
-, hkeys
+  hkeys,
   /// https://redis.io/commands/hlen
-, hlen
+  hlen,
   /// https://redis.io/commands/hmget
-, hmget
+  hmget,
   /// https://redis.io/commands/hset
-, hset
+  hset,
   /// https://redis.io/commands/hvals
-, hvals
+  hvals,
   /// https://redis.io/commands/hdel
-, hdel
+  hdel,
   /// https://redis.io/commands/incr
-, incr
+  incr,
   /// https://redis.io/commands/keys
-, keys
+  keys,
   /// https://redis.io/commands/llen
-, llen
+  llen,
   /// https://redis.io/commands/lpop
-, lpop
+  lpop,
   /// https://redis.io/commands/lpush
-, lpush
+  lpush,
   /// https://redis.io/commands/lrange
-, lrange
+  lrange,
   /// https://redis.io/commands/ltrim
-, ltrim
+  ltrim,
   /// https://redis.io/commands/multi
-, multi
+  multi,
   /// https://redis.io/commands/ping
-, ping
+  ping,
   /// https://redis.io/commands/psubscribe
-, psubscribe
+  psubscribe,
   /// https://redis.io/commands/publish
-, publish
+  publish,
   /// https://redis.io/commands/quit
-, quit
+  quit,
   /// https://redis.io/commands/role
-, role
-  /// Adds ping to the request, see https://redis.io/commands/rpush
-, rpush
+  role,
+  /// https://redis.io/commands/rpush
+  rpush,
   /// https://redis.io/commands/sadd
-, sadd
+  sadd,
   /// https://redis.io/commands/scard
-, scard
+  scard,
   /// https://redis.io/commands/sdiff
-, sdiff
+  sdiff,
   /// https://redis.io/commands/sentinel
-, sentinel
-  /// Adds ping to the request, see https://redis.io/commands/set
-, set
+  sentinel,
+  /// https://redis.io/commands/set
+  set,
   /// https://redis.io/commands/smembers
-, smembers
+  smembers,
   /// https://redis.io/commands/subscribe
-, subscribe
+  subscribe,
   /// https://redis.io/commands/unsubscribe
-, unsubscribe
+  unsubscribe,
   /// https://redis.io/commands/zadd
-, zadd
+  zadd,
   /// https://redis.io/commands/zrange
-, zrange
+  zrange,
   /// https://redis.io/commands/zrangebyscore
-, zrangebyscore
+  zrangebyscore,
   /// https://redis.io/commands/zremrangebyscore
-, zremrangebyscore
+  zremrangebyscore,
   /// Invalid or unknown command.
-, unknown
+  unknown,
 };
 
-/** Converts the command to a string.
- */
+/// Returns the string representation of the command.
 char const* to_string(command c);
 
-/** Writes the text representation of the command to the output
- *  stream.
- */
+/// Writes the command to the output stream.
 std::ostream& operator<<(std::ostream& os, command c);
 
 } // aedis
-

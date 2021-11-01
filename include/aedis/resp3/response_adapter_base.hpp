@@ -14,7 +14,7 @@
 namespace aedis {
 namespace resp3 {
 
-/** Response adapter base class.
+/** @brief Response adapter base class.
  *
  *  Users are allowed to override this class to customize responses.
  */

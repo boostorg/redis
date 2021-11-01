@@ -21,7 +21,7 @@
 namespace aedis {
 namespace resp3 {
 
-/** A Redis request (also referred to as a pipeline).
+/** @brief A Redis request (also referred to as a pipeline).
  *  
  *  A request is composed of one or more redis commands and is
  *  referred to in the redis documentation as a pipeline, see
@@ -33,25 +33,26 @@ public:
    std::queue<command> commands;
 
 public:
-   /** Returns the size of the command pipeline. i.e. how many
-    * commands it contains.
-   */
+   /// Returns the number of commands contained in the request.
    auto size() const noexcept
       { return std::size(commands); }
 
-   /** Return true if the request contains no commands.
-   */
+   /// Return true if the request contains no commands.
    bool empty() const noexcept
       { return std::empty(payload); };
 
-   /// Clears the request.
+   /** Clears the request.
+    *  
+    *  Note: Already acquired memory won't be released. The is useful
+    *  to reusing memory insteam of allocating again each time.
+    */
    void clear()
    {
       payload.clear();
       commands = {};
    }
 
-   /** Appends a new command to the request.
+   /** @brief Appends a new command to end of the request.
     *
     *  Non-string types will be converted to string by using
     *  to_string which must be made available by the user.
@@ -73,7 +74,22 @@ public:
          commands.emplace(cmd);
    }
 
-   /** Appends a new command to the request.
+   /** @brief Appends a new command to end of the request.
+       
+       This overload is useful for commands that have a key. For example
+     
+       \code{.cpp}
+
+	  std::map<std::string, std::string> map
+	     { {"key1", "value1"}
+	     , {"key2", "value2"}
+	     , {"key3", "value3"}
+	     };
+
+	  request req;
+	  req.push_range(command::hset, "key", std::cbegin(map), std::cend(map));
+
+       \endcode
     */
    template <class Key, class ForwardIterator>
    void push_range(command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
@@ -96,7 +112,20 @@ public:
          commands.emplace(cmd);
    }
 
-   /** Appends a new command to the request.
+   /** @brief Appends a new command to end of the request.
+     
+       This overload is useful for commands that don't have a key. For
+       example
+     
+       \code{.cpp}
+
+	  std::set<std::string> channels
+	     { "channel1" , "channel2" , "channel3" }
+
+	  request req;
+	  req.push(command::subscribe, std::cbegin(channels), std::cedn(channels));
+
+       \endcode
     */
    template <class ForwardIterator>
    void push_range(command cmd, ForwardIterator begin, ForwardIterator end)
@@ -119,7 +148,9 @@ public:
    }
 };
 
-/** Prepares the back of a queue to receive further commands.
+// TODO: Incorporate this function in the documentation.
+
+/** @brief Prepares the back of the queue to receive further commands. 
  *
  *  If true is returned the request in the front of the queue can be
  *  sent to the server. See async_write_some.

@@ -14,39 +14,57 @@
 namespace aedis {
 namespace resp3 {
 
-/** RESP3 types and defined in the specification
- *
- *  https://github.com/antirez/RESP3/blob/74adea588783e463c7e84793b325b088fe6edd1c/spec.md
+/** \file type.hpp
+  
+    This file contains the enum used to identify the redis data type
+    and some helper functions.
+  
+    The RESP3 specification can be found at https://github.com/antirez/RESP3/blob/74adea588783e463c7e84793b325b088fe6edd1c/spec.md
  */
 enum class type
-{ array
-, push
-, set
-, map
-, attribute
-, simple_string
-, simple_error
-, number
-, doublean
-, boolean
-, big_number
-, null
-, blob_error
-, verbatim_string
-, blob_string
-, streamed_string_part
-, invalid
+{ /// Array data type (aggregate).
+  array,
+  /// Push data type (aggregate).
+  push,
+  /// Set data type (aggregate).
+  set,
+  /// Map data type (aggregate).
+  map,
+  /// Attribute data type (aggregate).
+  attribute,
+  /// Simple-string data type.
+  simple_string,
+  /// Simple-error data type.
+  simple_error,
+  /// Number data type.
+  number,
+  /// Double data type.
+  doublean,
+  /// Boolean data type.
+  boolean,
+  /// Big-number data type.
+  big_number,
+  /// Null data type.
+  null,
+  /// Blob-error data type.
+  blob_error,
+  /// Verbatim-string data type.
+  verbatim_string,
+  /// Blob-string data type.
+  blob_string,
+  /// Streamed-string-part data type.
+  streamed_string_part,
+  /// Represents an invalid data type.
+  invalid,
 };
 
-/** Converts a RESP3 type to a string.
- */
+/// Returns the string representation of the type.
 char const* to_string(type t);
 
-/** Writes the string representation of type to the output stream.
- */
+/// Writes the type to the output stream.
 std::ostream& operator<<(std::ostream& os, type t);
 
-/// Returns true for aggregate data types.
+/// Returns true if the data type is an aggregate.
 bool is_aggregate(type t);
 
 } // resp3

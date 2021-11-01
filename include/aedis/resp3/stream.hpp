@@ -75,8 +75,20 @@ public:
    next_layer_type& next_layer()
       { return next_layer_; }
 
-   template<class CompletionToken = net::default_completion_token_t<executor_type>>
-   auto async_consume(
+   /// Writes and reads requests.
+   /** Performs the following operations
+    *
+    *  1. Write one or more requests in the queue (see async_write_some)
+    *  2. Reads the responses for each command in the request
+    *     individually, returning control to the users.
+    *
+    *  When there is no more requests to be written it will wait on a
+    *  read.
+    */
+   template<
+      class CompletionToken = net::default_completion_token_t<executor_type>>
+   auto
+   async_consume(
       std::queue<request>& requests,
       response& resp,
       CompletionToken&& token = net::default_completion_token_t<executor_type>{})
@@ -85,6 +97,26 @@ public:
 	CompletionToken, void(boost::system::error_code, type)>(
 	   detail::consumer_op
 	      {next_layer_, buffer_, requests, resp, type_, coro_},
+	   token, next_layer_);
+   }
+
+   /** @brief Writes one or more requests to the stream.
+    *
+    * Sends the last request in the input queue to the server. If the
+    * next request happens to contain commands the have a push type as
+    * a response (see subscribe) they will also be sent.
+    */
+   template<
+      class CompletionToken = net::default_completion_token_t<executor_type>>
+   auto
+   async_write_some(
+      std::queue<request>& requests,
+      CompletionToken&& token = net::default_completion_token_t<executor_type>{})
+   {
+     return net::async_compose<
+	CompletionToken,
+	void(boost::system::error_code)>(
+	   detail::write_some_op{next_layer_, requests},
 	   token, next_layer_);
    }
 };
