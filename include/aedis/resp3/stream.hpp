@@ -29,7 +29,8 @@ public:
    using executor_type = typename next_layer_type::executor_type;
 
 private:
-   std::string buffer_;
+   using buffer_type = std::string;
+   buffer_type buffer_;
    net::coroutine coro_ = net::coroutine();
    type type_ = type::invalid;
    next_layer_type next_layer_;
@@ -85,18 +86,15 @@ public:
     *  When there is no more requests to be written it will wait on a
     *  read.
     */
-   template<
-      class CompletionToken = net::default_completion_token_t<executor_type>>
-   auto
-   async_consume(
+   template<class CompletionToken = net::default_completion_token_t<executor_type>>
+   auto async_consume(
       std::queue<request>& requests,
       response& resp,
       CompletionToken&& token = net::default_completion_token_t<executor_type>{})
    {
      return net::async_compose<
 	CompletionToken, void(boost::system::error_code, type)>(
-	   detail::consumer_op
-	      {next_layer_, buffer_, requests, resp, type_, coro_},
+	   detail::consumer_op {next_layer_, buffer_, requests, resp, type_, coro_},
 	   token, next_layer_);
    }
 
@@ -106,10 +104,8 @@ public:
     * next request happens to contain commands the have a push type as
     * a response (see subscribe) they will also be sent.
     */
-   template<
-      class CompletionToken = net::default_completion_token_t<executor_type>>
-   auto
-   async_write_some(
+   template<class CompletionToken = net::default_completion_token_t<executor_type>>
+   auto async_write_some(
       std::queue<request>& requests,
       CompletionToken&& token = net::default_completion_token_t<executor_type>{})
    {
@@ -118,6 +114,30 @@ public:
 	void(boost::system::error_code)>(
 	   detail::write_some_op{next_layer_, requests},
 	   token, next_layer_);
+   }
+
+   /** @brief Reads one command from the redis response
+    *
+    *  Note: This function has to be called once for each command.
+    */
+   template <class CompletionToken = net::default_completion_token_t<executor_type>>
+   auto async_read(
+      response& resp,
+      CompletionToken&& token = net::default_completion_token_t<executor_type>{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::parse_op<NextLayer, buffer_type> {next_layer_, &buffer_, &resp},
+           token, next_layer_);
+   }
+
+   template <class CompletionToken = net::default_completion_token_t<executor_type>>
+   auto async_write(
+      request& req,
+      CompletionToken&& token = net::default_completion_token_t<executor_type>{})
+   {
+      return net::async_write(next_layer_, net::buffer(req.payload), token);
    }
 };
 

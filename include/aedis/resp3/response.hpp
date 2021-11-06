@@ -17,7 +17,7 @@ namespace resp3 {
 
 /** A pre-order-view of the response tree.
  */
-class response {
+class response : public response_adapter_base {
 public:
    /** Represents a node in the response tree.
     */
@@ -49,52 +49,16 @@ public:
    using pointer = storage_type::pointer;
    using size_type = storage_type::size_type;
 
-public:
-   // This adapter type is able to deal with recursive redis responses
-   // as in a transaction for example.
-   class adapter: public response_adapter_base {
-   private:
-      storage_type* result_;
-      std::size_t depth_;
-
-   public:
-      adapter(storage_type* p)
-      : result_{p}
-      , depth_{0}
-      { }
-
-      void add_aggregate(type t, int n) override
-	 { result_->emplace_back(n, depth_, t, std::string{}); ++depth_; }
-
-      void add(type t, std::string_view s = {}) override
-	 { result_->emplace_back(1, depth_, t, std::string{s}); }
-
-      void pop() override
-	 { --depth_; }
-
-      void clear()
-	 { depth_ = 0; }
-   };
-
 private:
 
    friend
    std::ostream& operator<<(std::ostream& os, response const& r);
 
    storage_type data_;
-   adapter adapter_{&data_};
 
 public:
    /// Destructor
    virtual ~response() = default;
-
-   /** Returns the response adapter suitable to construct this
-    *  response type from the wire format. Override this function for
-    *  your own response types.
-    */
-   virtual adapter*
-   select_adapter(resp3::type t, command cmd = command::unknown)
-      { return &adapter_; }
 
    auto const& raw() const noexcept {return data_;}
    auto& raw() noexcept {return data_;}
@@ -134,6 +98,9 @@ public:
     * non-aggregate it will be alsways one.
     */
    size_type size() const noexcept;
+
+   void add(type t, int n, int depth, std::string_view s = {}) override
+      { data_.emplace_back(n, depth, t, std::string{s}); }
 };
 
 /// Equality comparison for a node.

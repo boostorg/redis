@@ -19,38 +19,7 @@ namespace resp3 {
  *  Users are allowed to override this class to customize responses.
  */
 struct response_adapter_base {
-   /** Called by the parser when it is done at the specific depth, for
-    *  example, when finished reading an aggregate data type.
-    */
-   virtual void pop() {}
-
-   /** Called by the parser everytime a simple (non-aggregate) data
-    * type arrives, those are
-    *
-    *    simple_string
-    *    simple_error
-    *    number
-    *    null
-    *    double
-    *    bool
-    *    big_number
-    *    blob_error
-    *    blob_string
-    *    verbatim_string
-    *    streamed_string_part
-    */
-   virtual void add(type t, std::string_view s = {}) {}
-
-   /** Called by the parser everytime a new RESP3 aggregate data
-    *  type is received, those are
-    *
-    *    array
-    *    push
-    *    set
-    *    map
-    *    attribute
-    */
-   virtual void add_aggregate(type t, int n) { }
+   virtual void add(type t, int n, int depth, std::string_view s = {}) {}
 
    /** Virtual destructor to allow inheritance.
     */

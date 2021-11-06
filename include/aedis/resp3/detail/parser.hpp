@@ -34,14 +34,12 @@ private:
    int bulk_length_;
 
    void init(response_adapter_base* res);
-   long long on_array_impl(type t, char const* data);
    void on_aggregate(type t, char const* data);
    void on_null();
    void on_data(type t, char const* data, std::size_t n);
    void on_bulk(bulk_type b, std::string_view s = {});
-   bulk_type on_blob_error(char const* data, bulk_type b);
-   bulk_type on_blob_string(char const* data);
-   std::string_view handle_simple_string(char const* data, std::size_t n);
+   void on_blob(char const* data, bulk_type b);
+   void on_blob_string(char const* data);
 
 public:
    parser(response_adapter_base* res);

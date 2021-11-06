@@ -17,24 +17,22 @@ the example directory for a complete example.
 
 
 ```cpp
-net::awaitable<void> ping()
+net::awaitable<void> ping2()
 {
    auto socket = co_await make_connection();
+   resp3::stream<tcp_socket> stream{std::move(socket)};
 
-   std::queue<resp3::request> requests;
-   requests.push({});
-   requests.back().push(command::hello, 3);
-   requests.back().push(command::ping);
-   requests.back().push(command::quit);
+   resp3::request req;
+   req.push(command::hello, 3);
+   req.push(command::ping);
+   req.push(command::quit);
+   co_await stream.async_write(req);
 
-   resp3::stream s;
-   for (;;) {
+   while (!std::empty(req.commands)) {
       resp3::response resp;
-      co_await s.async_consume(socket, requests, resp);
-
-      std::cout
-	 << requests.front().commands.front() << "\n"
-	 << resp << std::endl;
+      co_await stream.async_read(resp);
+      req.commands.pop();
+      std::cout << resp << std::endl;
    }
 }
 ```

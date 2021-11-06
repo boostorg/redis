@@ -81,14 +81,14 @@ template <
 auto async_read_one(
    AsyncReadStream& stream,
    Storage& buffer,
-   response_adapter_base& res,
+   response& resp,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(parse_op<AsyncReadStream, Storage> {stream, &buffer, &res},
+      >(parse_op<AsyncReadStream, Storage> {stream, &buffer, &resp},
         token,
         stream);
 }
@@ -212,17 +212,7 @@ struct consumer_op {
 
                m_type = t;
 
-               yield
-               {
-                  if (m_type == type::push) {
-		     auto* adapter = resp.select_adapter(m_type);
-		     async_read_one(stream, buffer, *adapter, std::move(self));
-		  } else {
-		     auto const cmd = requests.front().commands.front();
-		     auto* adapter = resp.select_adapter(m_type, cmd);
-		     async_read_one(stream, buffer, *adapter, std::move(self));
-		  }
-               }
+               yield async_read_one(stream, buffer, resp, std::move(self));
 
                if (ec) {
                   self.complete(ec, type::invalid);

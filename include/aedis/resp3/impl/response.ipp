@@ -14,7 +14,6 @@ namespace resp3 {
 void response::clear()
 {
    data_.resize(0);
-   adapter_.clear();
 }
 
 bool operator==(response::node const& a, response::node const& b)

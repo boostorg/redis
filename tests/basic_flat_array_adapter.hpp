@@ -26,11 +26,16 @@ struct basic_flat_array_adapter : response_adapter_base {
 
    basic_flat_array_adapter(basic_flat_array<T>* p) : result(p) {}
 
-   void add(type t, std::string_view s = {})
-      { from_string_view(s, result->at(i)); ++i; }
-
-   void add_aggregate(type t, int n) override
-      { i = 0; result->resize(n); }
+   void add(type t, int n, int depth, std::string_view s = {}) override
+   {
+      if (is_aggregate(t)) {
+         i = 0;
+         result->resize(n);
+      } else {
+         from_string_view(s, result->at(i));
+         ++i;
+      }
+   }
 };
 
 } // detail
