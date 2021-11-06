@@ -47,10 +47,25 @@ pubsub_SOURCES = $(top_srcdir)/examples/pubsub.cpp
 pubsub_CPPFLAGS = $(MY_CPPFLAGS)
 pubsub_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += ping
-ping_SOURCES = $(top_srcdir)/examples/ping.cpp
-ping_CPPFLAGS = $(MY_CPPFLAGS)
-ping_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += advanced
+advanced_SOURCES = $(top_srcdir)/examples/advanced.cpp
+advanced_CPPFLAGS = $(MY_CPPFLAGS)
+advanced_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += basic1
+basic1_SOURCES = $(top_srcdir)/examples/basic1.cpp
+basic1_CPPFLAGS = $(MY_CPPFLAGS)
+basic1_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += basic2
+basic2_SOURCES = $(top_srcdir)/examples/basic2.cpp
+basic2_CPPFLAGS = $(MY_CPPFLAGS)
+basic2_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += basic3
+basic3_SOURCES = $(top_srcdir)/examples/basic3.cpp
+basic3_CPPFLAGS = $(MY_CPPFLAGS)
+basic3_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += stl_containers
 stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
