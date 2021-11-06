@@ -36,7 +36,7 @@ net::awaitable<void> ping1()
    std::cout << resp << std::endl;
 }
 
-/* Like obove but uses a while loop to read the commands.
+/* Like above but uses a while loop to read the commands.
  */
 net::awaitable<void> ping2()
 {
@@ -128,7 +128,11 @@ private:
 public:
    explicit state(tcp_socket socket)
    : stream_(std::move(socket))
-   { }
+   {
+      requests_.push({});
+      requests_.back().push(command::hello, 3);
+      requests_.back().push(command::subscribe, "channel");
+   }
 
    void start()
    {
@@ -157,17 +161,22 @@ public:
 	 << ":\n" << resp << std::endl;
    }
 
-   // This reader supports many features of the resp3 protocol.
    net::awaitable<void> reader()
    {
-      requests_.push({});
-      requests_.back().push(command::hello, 3);
-      requests_.back().push(command::subscribe, "channel");
-
       // Writes and reads continuosly from the socket.
       for (;;) {
-	 // Writes the first outstanding connection.
-	 co_await stream_.async_write(requests_.front());
+	 // Writes the first request in queue and all subsequent
+	 // ones that have no response.
+	 do {
+	    co_await stream_.async_write(requests_.front());
+
+	    // Some commands don't have a response or their responses
+	    // are push types. In such cases we should pop them from
+	    // queue.
+	    if (std::empty(requests_.front().commands))
+	       requests_.pop();
+
+	 } while (!std::empty(requests_) && std::empty(requests_.front().commands));
 
 	 // Keeps reading while there is no message to be sent.
 	 do {
