@@ -132,6 +132,8 @@ public:
            token, next_layer_);
    }
 
+   /** @brief Sends the request to the server.
+    */
    template <class CompletionToken = net::default_completion_token_t<executor_type>>
    auto async_write(
       request& req,
@@ -139,6 +141,21 @@ public:
    {
       return net::async_write(next_layer_, net::buffer(req.payload), token);
    }
+
+   /** @brief Reads the type of the next request.
+    */
+   template <
+      class CompletionToken = net::default_completion_token_t<executor_type>
+   >
+   auto async_read_type(
+      CompletionToken&& token = net::default_completion_token_t<executor_type>{})
+   {
+      return net::async_compose
+	 < CompletionToken
+	 , void(boost::system::error_code, type)
+	 >(detail::type_op<NextLayer, buffer_type> {next_layer_, &buffer_}, token, next_layer_);
+   }
+
 };
 
 } // resp3

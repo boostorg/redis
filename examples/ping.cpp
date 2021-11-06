@@ -136,35 +136,63 @@ public:
          [self = shared_from_this()]{ return self->reader(); },
          net::detached);
 
-     co_spawn(stream_.get_executor(),
-         [self = shared_from_this()]{ return self->writer("Writer 1"); },
-         net::detached);
-
-     co_spawn(stream_.get_executor(),
-         [self = shared_from_this()]{ return self->writer("Writer 2"); },
-         net::detached);
-
-     co_spawn(stream_.get_executor(),
-         [self = shared_from_this()]{ return self->writer("Writer 3"); },
-         net::detached);
+     for (auto i = 0; i < 100; ++i) {
+	std::string msg = "Writer ";
+	msg += std::to_string(i);
+	co_spawn(stream_.get_executor(),
+	    [msg, self = shared_from_this()]{ return self->writer(msg); },
+	    net::detached);
+     }
    }
 
+   void process_push(resp3::response const& resp)
+   {
+      std::cout << resp << std::endl;
+   }
+
+   void process_resp(resp3::response const& resp)
+   {
+      std::cout
+	 << requests_.front().commands.front()
+	 << ":\n" << resp << std::endl;
+   }
+
+   // This reader supports many features of the resp3 protocol.
    net::awaitable<void> reader()
    {
       requests_.push({});
       requests_.back().push(command::hello, 3);
-      //requests_.back().push(command::subscribe, "channel");
+      requests_.back().push(command::subscribe, "channel");
 
+      // Writes and reads continuosly from the socket.
       for (;;) {
+	 // Writes the first outstanding connection.
 	 co_await stream_.async_write(requests_.front());
+
+	 // Keeps reading while there is no message to be sent.
 	 do {
-	   do {
-	      resp3::response resp;
-	      co_await stream_.async_read(resp);
-	      std::cout << requests_.front().commands.front() << ":\n" << resp << std::endl;
-	      requests_.front().commands.pop();
-	   } while (!std::empty(requests_.front().commands));
-	   requests_.pop();
+	    // We have to consume the responses to all commands in the
+	    // request.
+	    do {
+	       // Reads the response to one command.
+	       resp3::response resp;
+	       co_await stream_.async_read(resp);
+	       if (resp.get_type() == resp3::type::push) {
+		  // Server push.
+		  process_push(resp);
+	       } else {
+		  // Prints the command and the response to it.
+		  process_resp(resp);
+		  requests_.front().commands.pop();
+	       }
+	    } while (!std::empty(requests_) && !std::empty(requests_.front().commands));
+
+	    // We may exit the loop above either because we are done
+	    // with the response or because we received a server push
+	    // while the queue was empty.
+	    if (!std::empty(requests_))
+	       requests_.pop();
+
 	 } while (std::empty(requests_));
       }
    }
@@ -175,9 +203,12 @@ public:
       net::steady_timer t{ex};
 
       while (stream_.next_layer().is_open()) {
-	 t.expires_after(std::chrono::seconds{3});
+	 t.expires_after(std::chrono::milliseconds{100});
 	 co_await t.async_wait(net::use_awaitable);
+
 	 auto const can_write = prepare_next(requests_);
+	 requests_.back().push(command::publish, "channel", message);
+	 requests_.back().push(command::publish, "channel", message);
 	 requests_.back().push(command::publish, "channel", message);
 	 if (can_write)
 	    co_await stream_.async_write(requests_.front());
