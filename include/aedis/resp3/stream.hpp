@@ -37,7 +37,7 @@ private:
 
 public:
    template <class Arg>
-   stream(Arg&& arg)
+   explicit stream(Arg&& arg)
    : next_layer_(std::forward<Arg>(arg))
    { }
 
@@ -51,8 +51,8 @@ public:
     *
     * @return A copy of the executor that stream will use to dispatch handlers.
     */
-   executor_type get_executor() const noexcept
-      { return next_layer_.lowest_layer().get_executor(); }
+   executor_type get_executor() noexcept
+      { return next_layer_.get_executor(); }
 
    /// Get a reference to the next layer.
    /**

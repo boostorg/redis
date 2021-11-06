@@ -158,11 +158,17 @@ public:
 template <class Queue>
 bool prepare_next(Queue& reqs)
 {
-   auto const cond = std::empty(reqs) || std::size(reqs) == 1;
-   if (cond)
+   if (std::empty(reqs)) {
       reqs.push({});
+      return true;
+   }
 
-   return cond;
+   if (std::size(reqs) == 1) {
+      reqs.push({});
+      return false;
+   }
+
+   return false;
 }
 
 } // resp3
