@@ -34,124 +34,105 @@ bool prepare_next(std::queue<resp3::request>& reqs)
    return false;
 }
 
-/* More realistic usage example. Like above but we keep reading from
- * the socket in order to implement a full-duplex communication
- */
-class state : public std::enable_shared_from_this<state> {
-private:
-   resp3::stream<tcp_socket> stream_;
-   std::queue<resp3::request> requests_;
+net::awaitable<void>
+writer(tcp_socket& socket, std::queue<resp3::request>& reqs, std::string message)
+{
+   auto ex = co_await aedis::net::this_coro::executor;
+   net::steady_timer t{ex};
 
-public:
-   explicit state(tcp_socket socket)
-   : stream_(std::move(socket))
-   {
-      requests_.push({});
-      requests_.back().push(command::hello, 3);
-      requests_.back().push(command::subscribe, "channel");
+   while (socket.is_open()) {
+      t.expires_after(std::chrono::milliseconds{100});
+      co_await t.async_wait(net::use_awaitable);
+
+      auto const can_write = prepare_next(reqs);
+      reqs.back().push(command::publish, "channel", message);
+      reqs.back().push(command::publish, "channel", message);
+      reqs.back().push(command::publish, "channel", message);
+      if (can_write)
+	 co_await async_write(socket, reqs.front());
    }
+}
 
-   void start()
-   {
-     co_spawn(stream_.get_executor(),
-         [self = shared_from_this()]{ return self->reader(); },
-         net::detached);
+net::awaitable<void> reader(tcp_socket& socket, std::queue<resp3::request>& reqs)
+{
+   // Auxiliary buffer.
+   std::string buffer;
 
-     for (auto i = 0; i < 100; ++i) {
-	std::string msg = "Writer ";
-	msg += std::to_string(i);
-	co_spawn(stream_.get_executor(),
-	    [msg, self = shared_from_this()]{ return self->writer(msg); },
-	    net::detached);
-     }
-   }
+   // Writes and reads continuosly from the socket.
+   for (;;) {
+      // Writes the first request in queue and all subsequent
+      // ones that have no response.
+      do {
+	 co_await async_write(socket, reqs.front());
 
-   void process_push(resp3::response const& resp)
-   {
-      std::cout << resp << std::endl;
-   }
+	 // Some commands don't have a response or their responses
+	 // are push types. In such cases we should pop them from
+	 // queue.
+	 if (std::empty(reqs.front().commands))
+	    reqs.pop();
 
-   void process_resp(resp3::response const& resp)
-   {
-      std::cout
-	 << requests_.front().commands.front()
-	 << ":\n" << resp << std::endl;
-   }
+      } while (!std::empty(reqs) && std::empty(reqs.front().commands));
 
-   net::awaitable<void> reader()
-   {
-      // Writes and reads continuosly from the socket.
-      for (;;) {
-	 // Writes the first request in queue and all subsequent
-	 // ones that have no response.
+      // Keeps reading while there is no message to be sent.
+      do {
+	 // We have to consume the responses to all commands in the
+	 // request.
 	 do {
-	    co_await stream_.async_write(requests_.front());
+	    // Reads the response to one command.
+	    resp3::response resp;
+	    co_await async_read(socket, buffer, resp);
+	    if (resp.get_type() == resp3::type::push) {
+	       // Server push.
+	       std::cout << resp << std::endl;
+	    } else {
+	       // Prints the command and the response to it.
+	       switch (reqs.front().commands.front()) {
+		  case command::hello:
+		  {
+		     for (auto i = 0; i < 100; ++i) {
+			std::string msg = "Writer ";
+			msg += std::to_string(i);
+			co_spawn(socket.get_executor(), writer(socket, reqs, msg), net::detached);
+		     }
+		  } break;
 
-	    // Some commands don't have a response or their responses
-	    // are push types. In such cases we should pop them from
-	    // queue.
-	    if (std::empty(requests_.front().commands))
-	       requests_.pop();
-
-	 } while (!std::empty(requests_) && std::empty(requests_.front().commands));
-
-	 // Keeps reading while there is no message to be sent.
-	 do {
-	    // We have to consume the responses to all commands in the
-	    // request.
-	    do {
-	       // Reads the response to one command.
-	       resp3::response resp;
-	       co_await stream_.async_read(resp);
-	       if (resp.get_type() == resp3::type::push) {
-		  // Server push.
-		  process_push(resp);
-	       } else {
-		  // Prints the command and the response to it.
-		  process_resp(resp);
-		  requests_.front().commands.pop();
+		  default: {}
 	       }
-	    } while (!std::empty(requests_) && !std::empty(requests_.front().commands));
 
-	    // We may exit the loop above either because we are done
-	    // with the response or because we received a server push
-	    // while the queue was empty.
-	    if (!std::empty(requests_))
-	       requests_.pop();
+	       std::cout
+		  << reqs.front().commands.front() << ":\n"
+		  << resp << std::endl;
 
-	 } while (std::empty(requests_));
-      }
+	       // Done with this command, pop.
+	       reqs.front().commands.pop();
+	    }
+	 } while (!std::empty(reqs) && !std::empty(reqs.front().commands));
+
+	 // We may exit the loop above either because we are done
+	 // with the response or because we received a server push
+	 // while the queue was empty.
+	 if (!std::empty(reqs))
+	    reqs.pop();
+
+      } while (std::empty(reqs));
    }
+}
 
-   net::awaitable<void> writer(std::string message)
-   {
-      auto ex = co_await aedis::net::this_coro::executor;
-      net::steady_timer t{ex};
-
-      while (stream_.next_layer().is_open()) {
-	 t.expires_after(std::chrono::milliseconds{100});
-	 co_await t.async_wait(net::use_awaitable);
-
-	 auto const can_write = prepare_next(requests_);
-	 requests_.back().push(command::publish, "channel", message);
-	 requests_.back().push(command::publish, "channel", message);
-	 requests_.back().push(command::publish, "channel", message);
-	 if (can_write)
-	    co_await stream_.async_write(requests_.front());
-      }
-   }
-
-};
-
-net::awaitable<void> ping()
+net::awaitable<void> advanced()
 {
    auto socket = co_await make_connection();
-   std::make_shared<state>(std::move(socket))->start();
+
+   std::queue<resp3::request> reqs;
+   reqs.push({});
+   reqs.back().push(command::hello, 3);
+   reqs.back().push(command::subscribe, "channel");
+
+   co_await co_spawn(socket.get_executor(), reader(socket, reqs), net::use_awaitable);
 }
 
 int main()
 {
    net::io_context ioc;
-   co_spawn(ioc, ping(), net::detached);
+   co_spawn(ioc, advanced(), net::detached);
    ioc.run();
 }
