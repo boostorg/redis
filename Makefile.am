@@ -72,6 +72,11 @@ stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
 stl_containers_CPPFLAGS = $(MY_CPPFLAGS)
 stl_containers_LDADD = $(MY_LDADD)
 
+noinst_PROGRAMS += fast1
+fast1_SOURCES = $(top_srcdir)/examples/fast1.cpp
+fast1_CPPFLAGS = $(MY_CPPFLAGS)
+fast1_LDADD = $(MY_LDADD)
+
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp
 test_CPPFLAGS = $(MY_CPPFLAGS)

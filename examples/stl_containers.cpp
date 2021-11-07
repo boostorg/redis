@@ -23,74 +23,32 @@ net::awaitable<void> stl_containers()
    // Helper function to get a connected socket.
    auto socket = co_await make_connection();
 
-   std::vector<int> v
+   std::vector<int> vec
       {1, 2, 3, 4, 5, 6};
 
-   std::set<std::string> s
+   std::set<std::string> set
       {"one", "two", "three"};
 
-   std::map<std::string, std::string> m
+   std::map<std::string, std::string> map
       { {"key1", "value1"}
       , {"key2", "value2"}
       , {"key3", "value3"}
       };
 
-   std::queue<resp3::request> requests;
-   requests.push({});
-   requests.back().push(command::hello, 3);
-   requests.back().push(command::flushall);
-   requests.back().push_range(command::rpush, "vector", std::cbegin(v), std::cend(v));
-   requests.back().push_range(command::sadd, "set", std::cbegin(s), std::cend(s));
-   requests.back().push_range(command::hset, "map", std::cbegin(m), std::cend(m));
+   resp3::request req;
+   req.push(command::hello, 3);
+   req.push(command::flushall);
+   req.push_range(command::rpush, "vector", std::cbegin(vec), std::cend(vec));
+   req.push_range(command::sadd, "set", std::cbegin(set), std::cend(set));
+   req.push_range(command::hset, "map", std::cbegin(map), std::cend(map));
+   co_await async_write(socket, req);
 
-   resp3::stream<tcp_socket> stream{std::move(socket)};
-   for (;;) {
+   std::string buffer;
+   while (!std::empty(req.commands)) {
       resp3::response resp;
-      co_await stream.async_consume(requests, resp);
-
-      // We are not expecting a push from the server.
-      assert(resp.get_type() != resp3::type::push);
-
-      auto const cmd = requests.front().commands.front();
-      switch (cmd) {
-	 case command::rpush:
-	 {
-	    std::cout
-	       << "Length of vector: " << resp.at(0).data
-	       << std::endl;
-
-	    // Retrieve the list again.
-	    prepare_next(requests);
-	    requests.back().push(command::lrange, "vector", 0, -1);
-	 } break;
-	 case command::sadd:
-	 {
-	    std::cout
-	       << "Number of elements added to set: " << resp.at(0).data
-	       << std::endl;
-
-	    // Retrieve the set again.
-	    prepare_next(requests);
-	    requests.back().push(command::smembers, "set");
-	 } break;
-	 case command::hset:
-	 {
-	    std::cout
-	       << "Number of fields added to map: " << resp.at(0).data
-	       << std::endl;
-
-	    // Retrieve the map again.
-	    prepare_next(requests);
-	    requests.back().push(command::hgetall, "map");
-	 } break;
-	 default:
-	 {
-	    std::cout 
-	       << cmd << "\n"
-	       << resp
-	       << std::endl;
-	 }
-      }
+      co_await async_read(socket, buffer, resp);
+      std::cout << req.commands.front() << ":\n" << resp << std::endl;
+      req.commands.pop();
    }
 }
 
