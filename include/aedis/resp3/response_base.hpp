@@ -18,12 +18,12 @@ namespace resp3 {
  *
  *  Users are allowed to override this class to customize responses.
  */
-struct response_adapter_base {
+struct response_base {
    virtual void add(type t, int n, int depth, std::string_view s = {}) {}
 
    /** Virtual destructor to allow inheritance.
     */
-   virtual ~response_adapter_base() {}
+   virtual ~response_base() {}
 };
 
 } // resp3

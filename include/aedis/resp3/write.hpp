@@ -17,7 +17,6 @@
 
 namespace aedis {
 namespace resp3 {
-namespace detail {
 
 template<class SyncWriteStream>
 std::size_t
@@ -108,7 +107,21 @@ async_write_some(
 	token, stream);
 }
 
-} // detail
+template<
+  class AsyncWriteStream,
+  class CompletionToken =
+      net::default_completion_token_t<typename AsyncWriteStream::executor_type>
+  >
+auto
+async_write(
+   AsyncWriteStream& stream,
+   request const& req,
+   CompletionToken&& token =
+      net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
+{
+   return net::async_write(stream, net::buffer(req.payload), token);
+}
+
 } // resp3
 } // aedis
 

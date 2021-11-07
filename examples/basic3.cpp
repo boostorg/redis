@@ -30,21 +30,21 @@ void prepare_next(std::queue<resp3::request>& reqs)
 }
 
 void process_response(
-   std::queue<resp3::request>& requests,
+   std::queue<resp3::request>& reqs,
    resp3::response& resp)
 {
    std::cout
-      << requests.front().commands.front() << ":\n"
+      << reqs.front().commands.front() << ":\n"
       << resp << std::endl;
 
-   switch (requests.front().commands.front()) {
+   switch (reqs.front().commands.front()) {
       case command::hello:
-         prepare_next(requests);
-         requests.back().push(command::ping);
+         prepare_next(reqs);
+         reqs.back().push(command::ping);
          break;
       case command::ping:
-         prepare_next(requests);
-         requests.back().push(command::quit);
+         prepare_next(reqs);
+         reqs.back().push(command::quit);
          break;
       default: {};
    }
@@ -53,22 +53,23 @@ void process_response(
 net::awaitable<void> ping()
 {
    auto socket = co_await make_connection();
-   resp3::stream<tcp_socket> stream{std::move(socket)};
 
-   std::queue<resp3::request> requests;
-   requests.push({});
-   requests.back().push(command::hello, 3);
+   std::string buffer;
 
-   while (!std::empty(requests)) {
-      co_await stream.async_write(requests.front());
-      while (!std::empty(requests.front().commands)) {
+   std::queue<resp3::request> reqs;
+   reqs.push({});
+   reqs.back().push(command::hello, 3);
+
+   while (!std::empty(reqs)) {
+      co_await async_write(socket, reqs.front());
+      while (!std::empty(reqs.front().commands)) {
          resp3::response resp;
-         co_await stream.async_read(resp);
-         process_response(requests, resp);
-         requests.front().commands.pop();
+	 co_await async_read(socket, buffer, resp);
+         process_response(reqs, resp);
+         reqs.front().commands.pop();
       }
 
-      requests.pop();
+      reqs.pop();
    }
 }
 

@@ -14,59 +14,52 @@
 
 using namespace aedis;
 
+/** A simple coroutine used to pusblish on a channel and exit.
+ */
 net::awaitable<void> publisher()
 {
-   auto ex = net::this_coro::executor;
    auto socket = co_await make_connection();
 
-   std::queue<resp3::request> requests;
-   requests.push({});
-   requests.back().push(command::hello, 3);
-   requests.back().push(command::publish, "channel1", "Message to channel1");
-   requests.back().push(command::publish, "channel2", "Message to channel2");
-   requests.back().push(command::quit);
+   resp3::request req;
+   req.push(command::hello, 3);
+   req.push(command::publish, "channel1", "Message to channel1");
+   req.push(command::publish, "channel2", "Message to channel2");
+   req.push(command::quit);
+   co_await async_write(socket, req);
 
-   resp3::stream<tcp_socket> stream{std::move(socket)};
-   for (;;) {
-      resp3::response resp;
-      co_await stream.async_consume(requests, resp);
-   }
+   std::string buffer;
+   resp3::response_base ignore;
+   co_await async_read(socket, buffer, ignore);
+   co_await async_read(socket, buffer, ignore);
+   co_await async_read(socket, buffer, ignore);
 }
 
 net::awaitable<void> subscriber()
 {
-   auto ex = net::this_coro::executor;
    auto socket = co_await make_connection();
 
-   std::string id;
+   resp3::request req;
+   req.push(command::hello, "3");
+   req.push(command::subscribe, "channel1", "channel2");
+   co_await async_write(socket, req);
 
-   std::queue<resp3::request> requests;
-   requests.push({});
-   requests.back().push(command::hello, "3");
-   requests.back().push(command::subscribe, "channel1", "channel2");
+   std::string buffer;
+   resp3::response resp;
 
-   resp3::stream<tcp_socket> stream{std::move(socket)};
+   // Reads the response to the hello command.
+   co_await async_read(socket, buffer, resp);
+
+   // Saves the id of this connection.
+   auto const id = resp.raw().at(8).data;
+
+   // Reads the response to the subscribe command.
+   co_await async_read(socket, buffer, resp);
+
+   // Loops to receive server pushes.
    for (;;) {
-      resp3::response resp;
-      co_await stream.async_consume(requests, resp);
-
-      if (resp.get_type() == resp3::type::push) {
-	 std::cout
-	    << "Subscriber " << id << "\n"
-	    << resp << std::endl;
-         continue;
-      }
-
-      auto const cmd = requests.front().commands.front();
-      switch (cmd) {
-	 case command::hello:
-	    id = resp.raw().at(8).data;
-	    break;
-	 default:
-	    std::cout
-	       << cmd << "\n"
-	       << resp << std::endl;
-      }
+      resp.clear();
+      co_await async_read(socket, buffer, resp);
+      std::cout << "Subscriber " << id << ":\n" << resp << std::endl;
    }
 }
 

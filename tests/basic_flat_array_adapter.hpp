@@ -8,7 +8,7 @@
 #pragma once
 
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/response_adapter_base.hpp>
+#include <aedis/resp3/response_base.hpp>
 
 #include "adapter_utils.hpp"
 
@@ -20,7 +20,7 @@ template <class T>
 using basic_flat_array = std::vector<T>;
 
 template <class T>
-struct basic_flat_array_adapter : response_adapter_base {
+struct basic_flat_array_adapter : response_base {
    int i = 0;
    basic_flat_array<T>* result = nullptr;
 

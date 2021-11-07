@@ -23,10 +23,10 @@ long long length(char const* p)
    return len;
 }
 
-parser::parser(response_adapter_base* res)
+parser::parser(response_base* res)
    { init(res); }
 
-void parser::init(response_adapter_base* res)
+void parser::init(response_base* res)
 {
    res_ = res;
    depth_ = 0;

@@ -22,18 +22,17 @@ using namespace aedis;
 net::awaitable<void> ping()
 {
    auto socket = co_await make_connection();
-   resp3::stream<tcp_socket> stream{std::move(socket)};
 
    resp3::request req;
    req.push(command::hello, 3);
    req.push(command::ping);
    req.push(command::quit);
+   co_await async_write(socket, req);
 
-   co_await stream.async_write(req);
-
+   std::string buffer;
    while (!std::empty(req.commands)) {
       resp3::response resp;
-      co_await stream.async_read(resp);
+      co_await async_read(socket, buffer, resp);
       std::cout << req.commands.front() << ":\n" << resp << std::endl;
       req.commands.pop();
    }

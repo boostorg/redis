@@ -12,7 +12,7 @@
 #include <aedis/resp3/request.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response.hpp>
-#include <aedis/resp3/detail/read.hpp>
+#include <aedis/resp3/read.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -94,7 +94,7 @@ public:
    {
      return net::async_compose<
 	CompletionToken, void(boost::system::error_code, type)>(
-	   detail::consumer_op {next_layer_, buffer_, requests, resp, type_, coro_},
+	   consumer_op {next_layer_, buffer_, requests, resp, type_, coro_},
 	   token, next_layer_);
    }
 
@@ -112,14 +112,10 @@ public:
      return net::async_compose<
 	CompletionToken,
 	void(boost::system::error_code)>(
-	   detail::write_some_op{next_layer_, requests},
+	   write_some_op{next_layer_, requests},
 	   token, next_layer_);
    }
 
-   /** @brief Reads one command from the redis response
-    *
-    *  Note: This function has to be called once for each command.
-    */
    template <class CompletionToken = net::default_completion_token_t<executor_type>>
    auto async_read(
       response& resp,
@@ -153,7 +149,7 @@ public:
       return net::async_compose
 	 < CompletionToken
 	 , void(boost::system::error_code, type)
-	 >(detail::type_op<NextLayer, buffer_type> {next_layer_, &buffer_}, token, next_layer_);
+	 >(type_op<NextLayer, buffer_type> {next_layer_, &buffer_}, token, next_layer_);
    }
 
 };

@@ -7,6 +7,13 @@
 
 #pragma once
 
+#include <aedis/version.hpp>
+#include <aedis/resp3/read.hpp>
+#include <aedis/resp3/write.hpp>
+#include <aedis/resp3/request.hpp>
+#include <aedis/resp3/stream.hpp>
+#include <aedis/resp3/response.hpp>
+
 /** \mainpage My Personal Index Page
   
    \section intro_sec Introduction
@@ -61,7 +68,3 @@
  *  aedis.
  */
 
-#include <aedis/version.hpp>
-#include <aedis/resp3/request.hpp>
-#include <aedis/resp3/stream.hpp>
-#include <aedis/resp3/response.hpp>

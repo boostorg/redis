@@ -10,14 +10,14 @@
 #include <aedis/command.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/request.hpp>
-#include <aedis/resp3/response_adapter_base.hpp>
+#include <aedis/resp3/response_base.hpp>
 
 namespace aedis {
 namespace resp3 {
 
 /** A pre-order-view of the response tree.
  */
-class response : public response_adapter_base {
+class response : public response_base {
 public:
    /** Represents a node in the response tree.
     */

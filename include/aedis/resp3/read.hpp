@@ -12,27 +12,26 @@
 #include <aedis/resp3/request.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response.hpp>
-#include <aedis/resp3/response_adapter_base.hpp>
+#include <aedis/resp3/response_base.hpp>
 #include <aedis/resp3/detail/parser.hpp>
-#include <aedis/resp3/detail/write.hpp>
+#include <aedis/resp3/write.hpp>
 
 #include <boost/asio/yield.hpp>
 
 namespace aedis {
 namespace resp3 {
-namespace detail {
 
 template <class SyncReadStream, class Storage>
 auto read(
    SyncReadStream& stream,
    Storage& buf,
-   response_adapter_base& res,
+   response_base& res,
    boost::system::error_code& ec)
 {
-   parser p {&res};
+   detail::parser p {&res};
    std::size_t n = 0;
    do {
-      if (p.bulk() == parser::bulk_type::none) {
+      if (p.bulk() == detail::parser::bulk_type::none) {
 	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
 	 if (ec || n < 3)
 	    return n;
@@ -61,7 +60,7 @@ std::size_t
 read(
    SyncReadStream& stream,
    Storage& buf,
-   response_adapter_base& res)
+   response_base& res)
 {
    boost::system::error_code ec;
    auto const n = read(stream, buf, res, ec);
@@ -72,23 +71,28 @@ read(
    return n;
 }
 
+/** @brief Reads one command from the redis response
+ *
+ *  Note: This function has to be called once for each command.
+ */
 template <
    class AsyncReadStream,
+   class Response,
    class Storage,
    class CompletionToken =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
-auto async_read_one(
+auto async_read(
    AsyncReadStream& stream,
    Storage& buffer,
-   response& resp,
+   Response& resp,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(parse_op<AsyncReadStream, Storage> {stream, &buffer, &resp},
+      >(detail::parse_op<AsyncReadStream, Storage> {stream, &buffer, &resp},
         token,
         stream);
 }
@@ -174,12 +178,15 @@ auto async_read_type(
       >(type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
 }
 
-template <class AsyncReadWriteStream>
+template <
+   class AsyncReadWriteStream,
+   class Response
+>
 struct consumer_op {
    AsyncReadWriteStream& stream;
    std::string& buffer;
    std::queue<request>& requests;
-   response& resp;
+   Response& resp;
    type& m_type;
    net::coroutine& coro;
 
@@ -212,7 +219,7 @@ struct consumer_op {
 
                m_type = t;
 
-               yield async_read_one(stream, buffer, resp, std::move(self));
+               yield async_read(stream, buffer, resp, std::move(self));
 
                if (ec) {
                   self.complete(ec, type::invalid);
@@ -234,7 +241,6 @@ struct consumer_op {
    }
 };
 
-} // detail
 } // resp3
 } // aedis
 

@@ -9,7 +9,7 @@
 
 #include <string_view>
 #include <aedis/net.hpp>
-#include <aedis/resp3/response_adapter_base.hpp>
+#include <aedis/resp3/response_base.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -27,13 +27,13 @@ public:
    };
 
 private:
-   response_adapter_base* res_;
+   response_base* res_;
    int depth_;
    int sizes_[6]; // Streaming will require a bigger integer.
    bulk_type bulk_;
    int bulk_length_;
 
-   void init(response_adapter_base* res);
+   void init(response_base* res);
    void on_aggregate(type t, char const* data);
    void on_null();
    void on_data(type t, char const* data, std::size_t n);
@@ -42,7 +42,7 @@ private:
    void on_blob_string(char const* data);
 
 public:
-   parser(response_adapter_base* res);
+   parser(response_base* res);
    std::size_t advance(char const* data, std::size_t n);
    auto done() const noexcept { return depth_ == 0 && bulk_ == bulk_type::none; }
    auto bulk() const noexcept { return bulk_; }
@@ -61,7 +61,7 @@ private:
    int start_ = 1;
 
 public:
-   parse_op(AsyncReadStream& stream, Storage* buf, response_adapter_base* res)
+   parse_op(AsyncReadStream& stream, Storage* buf, response_base* res)
    : stream_ {stream}
    , buf_ {buf}
    , parser_ {res}
