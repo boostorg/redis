@@ -55,5 +55,14 @@ bool is_aggregate(type t)
    }
 }
 
+std::size_t element_multiplicity(type t)
+{
+   switch (t) {
+      case type::map:
+      case type::attribute: return 2ULL;
+      default: return 1ULL;
+   }
+}
+
 } // resp3
 } // aedis

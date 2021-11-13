@@ -14,12 +14,14 @@
 
 using namespace aedis;
 
-/* A more elaborate way sending requests where a new request is sent
- * only after the last one has arrived. This can be used as a starting
- * point for more complex applications.
+/* A slightly more elaborate way dealing with requests and responses.
  *
- * We also separate the application logic out out the coroutine for
+ * This time we send the ping + quit only after the hello command has
+ * arrived.  We also separate the application logic out the coroutine for
  * clarity.
+ *
+ * This can be used as a starting point for more complex applications.
+ *
  */
 
 // Adds a new element in the queue if necessary.
@@ -41,9 +43,6 @@ void process_response(
       case command::hello:
          prepare_next(reqs);
          reqs.back().push(command::ping);
-         break;
-      case command::ping:
-         prepare_next(reqs);
          reqs.back().push(command::quit);
          break;
       default: {};
@@ -52,13 +51,12 @@ void process_response(
 
 net::awaitable<void> ping()
 {
-   auto socket = co_await make_connection();
-
-   std::string buffer;
-
    std::queue<resp3::request> reqs;
    reqs.push({});
    reqs.back().push(command::hello, 3);
+
+   auto socket = co_await make_connection();
+   std::string buffer;
 
    while (!std::empty(reqs)) {
       co_await async_write(socket, reqs.front());

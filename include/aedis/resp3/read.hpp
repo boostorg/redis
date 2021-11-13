@@ -31,7 +31,7 @@ auto read(
    detail::parser p {&res};
    std::size_t n = 0;
    do {
-      if (p.bulk() == detail::parser::bulk_type::none) {
+      if (p.bulk() == type::invalid) {
 	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
 	 if (ec || n < 3)
 	    return n;

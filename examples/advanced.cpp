@@ -55,54 +55,54 @@ writer(tcp_socket& socket, std::queue<resp3::request>& reqs, std::string message
 
 net::awaitable<void> reader(tcp_socket& socket, std::queue<resp3::request>& reqs)
 {
-   // Auxiliary buffer.
-   std::string buffer;
-
    // Writes and reads continuosly from the socket.
-   for (;;) {
+   for (std::string buffer;;) {
       // Writes the first request in queue and all subsequent
-      // ones that have no response.
+      // ones that have no response e.g. subscribe.
       do {
 	 co_await async_write(socket, reqs.front());
 
-	 // Some commands don't have a response or their responses
-	 // are push types. In such cases we should pop them from
-	 // queue.
+         // Pops the request if no response is expected.
 	 if (std::empty(reqs.front().commands))
 	    reqs.pop();
 
       } while (!std::empty(reqs) && std::empty(reqs.front().commands));
 
-      // Keeps reading while there is no message to be sent.
+      // Keeps reading while there is no messages queued waiting to be sent.
       do {
-	 // We have to consume the responses to all commands in the
-	 // request.
+         // Loops to consume the response to all commands in the request.
 	 do {
-	    // Reads the response to one command.
-	    resp3::response resp;
-	    co_await async_read(socket, buffer, resp);
-	    if (resp.get_type() == resp3::type::push) {
-	       // Server push.
+            // Reads the type of the incoming response.
+            auto const t = co_await resp3::async_read_type(socket, buffer);
+
+	    if (t == resp3::type::push) {
+               resp3::response resp;
+               co_await async_read(socket, buffer, resp);
 	       std::cout << resp << std::endl;
 	    } else {
 	       // Prints the command and the response to it.
 	       switch (reqs.front().commands.front()) {
 		  case command::hello:
 		  {
+                     resp3::response resp;
+                     co_await async_read(socket, buffer, resp);
+
 		     for (auto i = 0; i < 100; ++i) {
 			std::string msg = "Writer ";
 			msg += std::to_string(i);
 			co_spawn(socket.get_executor(), writer(socket, reqs, msg), net::detached);
 		     }
 		  } break;
+		  default:
+                  {
+                     resp3::response resp;
+                     co_await async_read(socket, buffer, resp);
 
-		  default: {}
+                     std::cout
+                        << reqs.front().commands.front() << ":\n"
+                        << resp << std::endl;
+                  }
 	       }
-
-	       std::cout
-		  << reqs.front().commands.front() << ":\n"
-		  << resp << std::endl;
-
 	       // Done with this command, pop.
 	       reqs.front().commands.pop();
 	    }

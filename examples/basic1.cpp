@@ -15,30 +15,44 @@
 
 using namespace aedis;
 
-/* A very simple example to illustrate the basic principles. It adds
- * three commands to the request and reads the response one after the
- * other.
+/** A simple example that illustrates the basic principles. Three commands are
+ *  sent in the same request
  *
- * Notice the responses are read in the same object for
- * simplification.
+ *     1. hello (always required)
+ *     2. ping
+ *     3. quit
+ *
+ *  The responses are then read in sequence. For simplification we read all
+ *  responses on the same object.
  */
 net::awaitable<void> ping()
 {
-   auto socket = co_await make_connection();
+   try {
+      resp3::request req;
+      req.push(command::hello, 3);
+      req.push(command::ping);
+      req.push(command::quit);
 
-   resp3::request req;
-   req.push(command::hello, 3);
-   req.push(command::ping);
-   req.push(command::quit);
-   co_await async_write(socket, req);
+      auto socket = co_await make_connection();
+      co_await async_write(socket, req);
 
-   std::string buffer;
-   resp3::response resp;
-   co_await async_read(socket, buffer, resp);
-   co_await async_read(socket, buffer, resp);
-   co_await async_read(socket, buffer, resp);
+      std::string buffer;
+      resp3::response resp;
 
-   std::cout << resp << std::endl;
+      // hello
+      co_await async_read(socket, buffer, resp);
+
+      // ping
+      co_await async_read(socket, buffer, resp);
+
+      // quit
+      co_await async_read(socket, buffer, resp);
+
+      std::cout << resp << std::endl;
+
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
+   }
 }
 
 int main()

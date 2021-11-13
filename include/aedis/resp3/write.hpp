@@ -28,7 +28,7 @@ write(
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
        "SyncWriteStream type requirements not met");
 
-    return write(stream, net::buffer(req.payload), ec);
+    return net::write(stream, net::buffer(req.payload), ec);
 }
 
 template<class SyncWriteStream>

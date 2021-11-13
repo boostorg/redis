@@ -12,10 +12,34 @@ namespace aedis {
 namespace resp3 {
 namespace detail {
 
-// Converts a decimal number in ascii format to an integer.
-long long length(char const* p)
+
+type to_type(char c)
 {
-   long long len = 0;
+   switch (c) {
+      case '!': return type::blob_error;
+      case '=': return type::verbatim_string;
+      case '$': return type::blob_string;
+      case ';': return type::streamed_string_part;
+      case '-': return type::simple_error;
+      case ':': return type::number;
+      case ',': return type::doublean;
+      case '#': return type::boolean;
+      case '(': return type::big_number;
+      case '+': return type::simple_string;
+      case '_': return type::null;
+      case '>': return type::push;
+      case '~': return type::set;
+      case '*': return type::array;
+      case '|': return type::attribute;
+      case '%': return type::map;
+      default: return type::invalid;
+   }
+}
+
+// Converts a decimal number in ascii format to an integer.
+std::size_t length(char const* p)
+{
+   std::size_t len = 0;
    while (*p != '\r') {
        len = (10 * len) + (*p - '0');
        p++;
@@ -37,106 +61,84 @@ void parser::init(response_base* res)
    sizes_[4] = 1;
    sizes_[5] = 1;
    sizes_[6] = 1;
-   bulk_ = bulk_type::none;
-   bulk_length_ = std::numeric_limits<int>::max();
-}
-
-void parser::on_null()
-{
-   res_->add(type::null, 1, depth_);
-   --sizes_[depth_];
-}
-
-void parser::on_bulk(parser::bulk_type b, std::string_view s)
-{
-   switch (b) {
-      case bulk_type::blob_error: res_->add(type::blob_error, 1, depth_, s); break;
-      case bulk_type::verbatim_string: res_->add(type::verbatim_string, 1, depth_, s); break;
-      case bulk_type::blob_string: res_->add(type::blob_string, 1, depth_, s); break;
-      case bulk_type::streamed_string_part:
-      {
-	if (std::empty(s)) {
-	   sizes_[depth_] = 1;
-	} else {
-	   res_->add(type::streamed_string_part, 1, depth_, s);
-	}
-      } break;
-      default: assert(false);
-   }
-
-   --sizes_[depth_];
-}
-
-void parser::on_blob(char const* data, parser::bulk_type b)
-{
-   bulk_length_ = length(data + 1);
-   bulk_ = b;
-}
-
-void parser::on_blob_string(char const* data)
-{
-   if (*(data + 1) == '?') {
-      sizes_[++depth_] = std::numeric_limits<int>::max();
-      return;
-   }
-
-   on_blob(data, bulk_type::blob_string);
-}
-
-void parser::on_data(type t, char const* data, std::size_t n)
-{
-   --sizes_[depth_];
-   res_->add(t, 1, depth_, {data + 1, n - 3});
-}
-
-void parser::on_aggregate(type t, char const* data)
-{
-   auto const l = length(data + 1);
-   if (l == 0) {
-      --sizes_[depth_];
-      res_->add(t, 0, depth_);
-      return;
-   }
-
-   int counter;
-   switch (t) {
-      case type::map:
-      case type::attribute:
-      {
-	 counter = 2;
-      } break;
-      default: counter = 1;
-   }
-
-   res_->add(t, l, depth_, {});
-   sizes_[++depth_] = counter * l;
+   bulk_ = type::invalid;
+   bulk_length_ = std::numeric_limits<std::size_t>::max();
 }
 
 std::size_t parser::advance(char const* data, std::size_t n)
 {
-   if (bulk_ != bulk_type::none) {
+   if (bulk_ != type::invalid) {
       n = bulk_length_ + 2;
-      on_bulk(bulk_, {data, (std::size_t)bulk_length_});
-      bulk_ = bulk_type::none;
+      switch (bulk_) {
+         case type::streamed_string_part:
+         {
+           if (bulk_length_ == 0) {
+              sizes_[depth_] = 1;
+           } else {
+              res_->add(bulk_, 1, depth_, data, bulk_length_);
+           }
+         } break;
+         default: res_->add(bulk_, 1, depth_, data, bulk_length_);
+      }
+
+      bulk_ = type::invalid;
+      --sizes_[depth_];
+
    } else if (sizes_[depth_] != 0) {
-      switch (*data) {
-         case '!': on_blob(data, bulk_type::blob_error); break;
-         case '=': on_blob(data, bulk_type::verbatim_string); break; 
-         case '$': on_blob_string(data); break;
-         case ';': on_blob(data, bulk_type::streamed_string_part); break;
-         case '-': on_data(type::simple_error, data, n); break;
-         case ':': on_data(type::number, data, n); break;
-         case ',': on_data(type::doublean, data, n); break;
-         case '#': on_data(type::boolean, data, n); break;
-         case '(': on_data(type::big_number, data, n); break;
-         case '+': on_data(type::simple_string, data, n); break;
-         case '_': on_null(); break;
-         case '>': on_aggregate(type::push, data); break;
-         case '~': on_aggregate(type::set, data); break;
-         case '*': on_aggregate(type::array, data); break;
-         case '|': on_aggregate(type::attribute, data); break;
-         case '%': on_aggregate(type::map, data); break;
-         default: assert(false);
+      auto const t = to_type(*data);
+      switch (t) {
+         case type::blob_error:
+         case type::verbatim_string:
+         case type::streamed_string_part:
+         {
+            bulk_length_ = length(data + 1);
+            bulk_ = t;
+         } break;
+         case type::blob_string:
+         {
+            if (*(data + 1) == '?') {
+               sizes_[++depth_] = std::numeric_limits<std::size_t>::max();
+            } else {
+               bulk_length_ = length(data + 1);
+               bulk_ = type::blob_string;
+            }
+         } break;
+         case type::simple_error:
+         case type::number:
+         case type::doublean:
+         case type::boolean:
+         case type::big_number:
+         case type::simple_string:
+         {
+            res_->add(t, 1, depth_, data + 1, n - 3);
+            --sizes_[depth_];
+         } break;
+         case type::null:
+         {
+            res_->add(type::null, 1, depth_);
+            --sizes_[depth_];
+         } break;
+         case type::push:
+         case type::set:
+         case type::array:
+         case type::attribute:
+         case type::map:
+         {
+            auto const l = length(data + 1);
+            res_->add(t, l, depth_);
+
+            if (l == 0) {
+               --sizes_[depth_];
+            } else {
+               auto const m = element_multiplicity(t);
+               sizes_[++depth_] = m * l;
+            }
+         } break;
+         default:
+         {
+            // TODO: This should cause an error not an assert.
+            assert(false);
+         }
       }
    }
    

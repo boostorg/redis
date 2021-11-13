@@ -21,12 +21,12 @@ using namespace aedis;
  */
 net::awaitable<void> ping()
 {
-   auto socket = co_await make_connection();
-
    resp3::request req;
    req.push(command::hello, 3);
    req.push(command::ping);
    req.push(command::quit);
+
+   auto socket = co_await make_connection();
    co_await async_write(socket, req);
 
    std::string buffer;

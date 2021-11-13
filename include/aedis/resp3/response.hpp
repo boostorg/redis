@@ -99,8 +99,8 @@ public:
     */
    size_type size() const noexcept;
 
-   void add(type t, int n, int depth, std::string_view s = {}) override
-      { data_.emplace_back(n, depth, t, std::string{s}); }
+   void add(type t, std::size_t n, std::size_t depth, char const* data = nullptr, std::size_t size = 0) override
+      { data_.emplace_back(n, depth, t, std::string{data, size}); }
 };
 
 /// Equality comparison for a node.

@@ -67,15 +67,20 @@ basic3_SOURCES = $(top_srcdir)/examples/basic3.cpp
 basic3_CPPFLAGS = $(MY_CPPFLAGS)
 basic3_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += stl_containers
-stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
-stl_containers_CPPFLAGS = $(MY_CPPFLAGS)
-stl_containers_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += containers
+containers_SOURCES = $(top_srcdir)/examples/containers.cpp
+containers_CPPFLAGS = $(MY_CPPFLAGS)
+containers_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += fast1
-fast1_SOURCES = $(top_srcdir)/examples/fast1.cpp
-fast1_CPPFLAGS = $(MY_CPPFLAGS)
-fast1_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += custom_response1
+custom_response1_SOURCES = $(top_srcdir)/examples/custom_response1.cpp
+custom_response1_CPPFLAGS = $(MY_CPPFLAGS)
+custom_response1_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += custom_response2
+custom_response2_SOURCES = $(top_srcdir)/examples/custom_response2.cpp
+custom_response2_CPPFLAGS = $(MY_CPPFLAGS)
+custom_response2_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp

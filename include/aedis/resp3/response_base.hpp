@@ -19,7 +19,7 @@ namespace resp3 {
  *  Users are allowed to override this class to customize responses.
  */
 struct response_base {
-   virtual void add(type t, int n, int depth, std::string_view s = {}) {}
+   virtual void add(type t, std::size_t n, std::size_t depth, char const* data = nullptr, std::size_t size = 0) {}
 
    /** Virtual destructor to allow inheritance.
     */

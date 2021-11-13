@@ -17,35 +17,30 @@ namespace detail {
 
 // resp3 parser.
 class parser {
-public:
-   enum class bulk_type
-   { blob_error
-   , verbatim_string 
-   , blob_string
-   , streamed_string_part
-   , none
-   };
-
 private:
    response_base* res_;
-   int depth_;
-   int sizes_[6]; // Streaming will require a bigger integer.
-   bulk_type bulk_;
-   int bulk_length_;
+   std::size_t depth_;
+   std::size_t sizes_[6];
+   std::size_t bulk_length_;
+   type bulk_;
 
    void init(response_base* res);
-   void on_aggregate(type t, char const* data);
-   void on_null();
-   void on_data(type t, char const* data, std::size_t n);
-   void on_bulk(bulk_type b, std::string_view s = {});
-   void on_blob(char const* data, bulk_type b);
-   void on_blob_string(char const* data);
 
 public:
    parser(response_base* res);
+
+   // Returns the number of bytes in data that have been consumed.
    std::size_t advance(char const* data, std::size_t n);
-   auto done() const noexcept { return depth_ == 0 && bulk_ == bulk_type::none; }
+
+   // returns true when the parser is done with the current message.
+   auto done() const noexcept
+      { return depth_ == 0 && bulk_ == type::invalid; }
+
+   // The bulk type expected in the next read. If none is expected returns
+   // type::invalid.
    auto bulk() const noexcept { return bulk_; }
+
+   // The lenght of the next expected bulk_length.
    auto bulk_length() const noexcept { return bulk_length_; }
 };
 
@@ -74,7 +69,7 @@ public:
    {
       switch (start_) {
          for (;;) {
-            if (parser_.bulk() == detail::parser::bulk_type::none) {
+            if (parser_.bulk() == type::invalid) {
                case 1:
                start_ = 0;
                net::async_read_until(

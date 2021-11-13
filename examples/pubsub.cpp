@@ -14,17 +14,17 @@
 
 using namespace aedis;
 
-/** A simple coroutine used to pusblish on a channel and exit.
+/** Publisher: A coroutine that will pusblish on two channels and exit.
  */
 net::awaitable<void> publisher()
 {
-   auto socket = co_await make_connection();
-
    resp3::request req;
    req.push(command::hello, 3);
    req.push(command::publish, "channel1", "Message to channel1");
    req.push(command::publish, "channel2", "Message to channel2");
    req.push(command::quit);
+
+   auto socket = co_await make_connection();
    co_await async_write(socket, req);
 
    std::string buffer;
@@ -34,13 +34,16 @@ net::awaitable<void> publisher()
    co_await async_read(socket, buffer, ignore);
 }
 
+/** Subscriber: Will subscribe  to two channels and listen for messages
+ *  indefinitely.
+ */
 net::awaitable<void> subscriber()
 {
-   auto socket = co_await make_connection();
-
    resp3::request req;
    req.push(command::hello, "3");
    req.push(command::subscribe, "channel1", "channel2");
+
+   auto socket = co_await make_connection();
    co_await async_write(socket, req);
 
    std::string buffer;

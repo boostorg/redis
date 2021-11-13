@@ -26,13 +26,15 @@ struct basic_flat_array_adapter : response_base {
 
    basic_flat_array_adapter(basic_flat_array<T>* p) : result(p) {}
 
-   void add(type t, int n, int depth, std::string_view s = {}) override
+   void add(type t, int n, int depth, char const* data = nullptr, std::size_t size = 0) override
    {
       if (is_aggregate(t)) {
          i = 0;
          result->resize(n);
       } else {
-         from_string_view(s, result->at(i));
+         auto r = std::from_chars(data, data + size, result->at(i));
+         if (r.ec == std::errc::invalid_argument)
+            throw std::runtime_error("from_chars: Unable to convert");
          ++i;
       }
    }

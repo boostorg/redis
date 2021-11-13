@@ -67,5 +67,11 @@ std::ostream& operator<<(std::ostream& os, type t);
 /// Returns true if the data type is an aggregate.
 bool is_aggregate(type t);
 
+/** @brief Returns the element multilicity.
+ *
+ *  For type map and attribute this value is 2, all other types have 1.
+*/
+std::size_t element_multiplicity(type t);
+
 } // resp3
 } // aedis
