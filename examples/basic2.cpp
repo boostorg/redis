@@ -12,29 +12,38 @@
 #include "types.hpp"
 #include "utils.ipp"
 
-using namespace aedis;
+using aedis::command;
+using aedis::resp3::request;
+using aedis::resp3::response;
+using aedis::resp3::async_read;
+
+namespace net = aedis::net;
 
 /* Similar to the basic1 example but
  *
  * 1. Reads the response in a loop.
- * 2. Prints the command to which the response belongs.
+ * 2. Prints the command to which the response belongs to.
  */
 net::awaitable<void> ping()
 {
-   resp3::request req;
-   req.push(command::hello, 3);
-   req.push(command::ping);
-   req.push(command::quit);
+   try {
+      request req;
+      req.push(command::hello, 3);
+      req.push(command::ping);
+      req.push(command::quit);
 
-   auto socket = co_await make_connection();
-   co_await async_write(socket, req);
+      auto socket = co_await make_connection();
+      co_await async_write(socket, req);
 
-   std::string buffer;
-   while (!std::empty(req.commands)) {
-      resp3::response resp;
-      co_await async_read(socket, buffer, resp);
-      std::cout << req.commands.front() << ":\n" << resp << std::endl;
-      req.commands.pop();
+      std::string buffer;
+      while (!std::empty(req.commands)) {
+	 response resp;
+	 co_await async_read(socket, buffer, resp);
+	 std::cout << req.commands.front() << "\n" << resp << std::endl;
+	 req.commands.pop();
+      }
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
    }
 }
 

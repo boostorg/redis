@@ -12,7 +12,12 @@
 #include "types.hpp"
 #include "utils.ipp"
 
-using namespace aedis;
+using aedis::command;
+using aedis::resp3::request;
+using aedis::resp3::response;
+using aedis::resp3::async_read;
+
+namespace net = aedis::net;
 
 /* A slightly more elaborate way dealing with requests and responses.
  *
@@ -21,19 +26,16 @@ using namespace aedis;
  * clarity.
  *
  * This can be used as a starting point for more complex applications.
- *
  */
 
 // Adds a new element in the queue if necessary.
-void prepare_next(std::queue<resp3::request>& reqs)
+void prepare_next(std::queue<request>& reqs)
 {
    if (std::empty(reqs) || std::size(reqs) == 1)
       reqs.push({});
 }
 
-void process_response(
-   std::queue<resp3::request>& reqs,
-   resp3::response& resp)
+void process_response(std::queue<request>& reqs, response& resp)
 {
    std::cout
       << reqs.front().commands.front() << ":\n"
@@ -51,23 +53,28 @@ void process_response(
 
 net::awaitable<void> ping()
 {
-   std::queue<resp3::request> reqs;
-   reqs.push({});
-   reqs.back().push(command::hello, 3);
+   try {
+      std::queue<request> reqs;
+      reqs.push({});
+      reqs.back().push(command::hello, 3);
 
-   auto socket = co_await make_connection();
-   std::string buffer;
+      auto socket = co_await make_connection();
+      std::string buffer;
 
-   while (!std::empty(reqs)) {
-      co_await async_write(socket, reqs.front());
-      while (!std::empty(reqs.front().commands)) {
-         resp3::response resp;
-	 co_await async_read(socket, buffer, resp);
-         process_response(reqs, resp);
-         reqs.front().commands.pop();
+      while (!std::empty(reqs)) {
+	 co_await async_write(socket, reqs.front());
+	 while (!std::empty(reqs.front().commands)) {
+	    response resp;
+	    co_await async_read(socket, buffer, resp);
+	    process_response(reqs, resp);
+	    reqs.front().commands.pop();
+	 }
+
+	 reqs.pop();
       }
 
-      reqs.pop();
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
    }
 }
 

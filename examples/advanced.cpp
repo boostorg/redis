@@ -12,14 +12,22 @@
 #include "types.hpp"
 #include "utils.ipp"
 
-using namespace aedis;
+using aedis::command;
+using aedis::resp3::request;
+using aedis::resp3::type;
+using aedis::resp3::response;
+using aedis::resp3::async_read;
+using aedis::resp3::async_read_type;
+
+namespace net = aedis::net;
+
 
 /* A more elaborate way of doing what has been done above where we send a new
  * command only after the last one has arrived. This is usually the starting
  * point for more complex applications. Here we also separate the application
  * logic out out the coroutine for clarity.
  */
-bool prepare_next(std::queue<resp3::request>& reqs)
+bool prepare_next(std::queue<request>& reqs)
 {
    if (std::empty(reqs)) {
       reqs.push({});
@@ -35,7 +43,7 @@ bool prepare_next(std::queue<resp3::request>& reqs)
 }
 
 net::awaitable<void>
-writer(tcp_socket& socket, std::queue<resp3::request>& reqs, std::string message)
+writer(tcp_socket& socket, std::queue<request>& reqs, std::string message)
 {
    auto ex = co_await aedis::net::this_coro::executor;
    net::steady_timer t{ex};
@@ -53,7 +61,7 @@ writer(tcp_socket& socket, std::queue<resp3::request>& reqs, std::string message
    }
 }
 
-net::awaitable<void> reader(tcp_socket& socket, std::queue<resp3::request>& reqs)
+net::awaitable<void> reader(tcp_socket& socket, std::queue<request>& reqs)
 {
    // Writes and reads continuosly from the socket.
    for (std::string buffer;;) {
@@ -73,10 +81,10 @@ net::awaitable<void> reader(tcp_socket& socket, std::queue<resp3::request>& reqs
          // Loops to consume the response to all commands in the request.
 	 do {
             // Reads the type of the incoming response.
-            auto const t = co_await resp3::async_read_type(socket, buffer);
+            auto const t = co_await async_read_type(socket, buffer);
 
-	    if (t == resp3::type::push) {
-               resp3::response resp;
+	    if (t == type::push) {
+               response resp;
                co_await async_read(socket, buffer, resp);
 	       std::cout << resp << std::endl;
 	    } else {
@@ -84,7 +92,7 @@ net::awaitable<void> reader(tcp_socket& socket, std::queue<resp3::request>& reqs
 	       switch (reqs.front().commands.front()) {
 		  case command::hello:
 		  {
-                     resp3::response resp;
+                     response resp;
                      co_await async_read(socket, buffer, resp);
 
 		     for (auto i = 0; i < 100; ++i) {
@@ -95,7 +103,7 @@ net::awaitable<void> reader(tcp_socket& socket, std::queue<resp3::request>& reqs
 		  } break;
 		  default:
                   {
-                     resp3::response resp;
+                     response resp;
                      co_await async_read(socket, buffer, resp);
 
                      std::cout
@@ -122,7 +130,7 @@ net::awaitable<void> advanced()
 {
    auto socket = co_await make_connection();
 
-   std::queue<resp3::request> reqs;
+   std::queue<request> reqs;
    reqs.push({});
    reqs.back().push(command::hello, 3);
    reqs.back().push(command::subscribe, "channel");

@@ -13,7 +13,12 @@
 #include "types.hpp"
 #include "utils.ipp"
 
-using namespace aedis;
+using aedis::command;
+using aedis::resp3::request;
+using aedis::resp3::response;
+using aedis::resp3::async_read;
+
+namespace net = aedis::net;
 
 /** A simple example that illustrates the basic principles. Three commands are
  *  sent in the same request
@@ -28,7 +33,7 @@ using namespace aedis;
 net::awaitable<void> ping()
 {
    try {
-      resp3::request req;
+      request req;
       req.push(command::hello, 3);
       req.push(command::ping);
       req.push(command::quit);
@@ -37,7 +42,7 @@ net::awaitable<void> ping()
       co_await async_write(socket, req);
 
       std::string buffer;
-      resp3::response resp;
+      response resp;
 
       // hello
       co_await async_read(socket, buffer, resp);
