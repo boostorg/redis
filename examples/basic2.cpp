@@ -21,7 +21,7 @@ namespace net = aedis::net;
 
 /* Similar to the basic1 example but
  *
- * 1. Reads the response in a loop.
+ * 1. Reads the responses in a loop.
  * 2. Prints the command to which the response belongs to.
  */
 net::awaitable<void> ping()
@@ -32,14 +32,18 @@ net::awaitable<void> ping()
       req.push(command::ping);
       req.push(command::quit);
 
-      auto socket = co_await make_connection();
+      auto socket = co_await make_connection("127.0.0.1", "6379");
       co_await async_write(socket, req);
 
       std::string buffer;
       while (!std::empty(req.commands)) {
 	 response resp;
 	 co_await async_read(socket, buffer, resp);
-	 std::cout << req.commands.front() << "\n" << resp << std::endl;
+
+	 std::cout
+	    << req.commands.front() << "\n"
+	    << resp << std::endl;
+
 	 req.commands.pop();
       }
    } catch (std::exception const& e) {

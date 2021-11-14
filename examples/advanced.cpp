@@ -128,7 +128,7 @@ net::awaitable<void> reader(tcp_socket& socket, std::queue<request>& reqs)
 
 net::awaitable<void> advanced()
 {
-   auto socket = co_await make_connection();
+   auto socket = co_await make_connection("127.0.0.1", "6379");
 
    std::queue<request> reqs;
    reqs.push({});

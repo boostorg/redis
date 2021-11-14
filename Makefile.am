@@ -42,11 +42,6 @@ libaedis_a_SOURCES += $(top_srcdir)/src/aedis.cpp
 libaedis_a_CPPFLAGS = $(MY_CPPFLAGS)
 
 noinst_PROGRAMS =
-noinst_PROGRAMS += pubsub
-pubsub_SOURCES = $(top_srcdir)/examples/pubsub.cpp
-pubsub_CPPFLAGS = $(MY_CPPFLAGS)
-pubsub_LDADD = $(MY_LDADD)
-
 noinst_PROGRAMS += advanced
 advanced_SOURCES = $(top_srcdir)/examples/advanced.cpp
 advanced_CPPFLAGS = $(MY_CPPFLAGS)
@@ -66,6 +61,11 @@ noinst_PROGRAMS += basic3
 basic3_SOURCES = $(top_srcdir)/examples/basic3.cpp
 basic3_CPPFLAGS = $(MY_CPPFLAGS)
 basic3_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += basic4
+basic4_SOURCES = $(top_srcdir)/examples/basic4.cpp
+basic4_CPPFLAGS = $(MY_CPPFLAGS)
+basic4_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += containers
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp

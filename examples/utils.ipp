@@ -11,28 +11,16 @@
 
 #include "types.hpp"
 
-aedis::net::awaitable<tcp_socket> make_connection()
+aedis::net::awaitable<tcp_socket>
+make_connection(
+   std::string const& host,
+   std::string const& port)
 {
    auto ex = co_await aedis::net::this_coro::executor;
    tcp_resolver resolver{ex};
-   auto const res = co_await resolver.async_resolve("127.0.0.1", "6379");
+   auto const res = co_await resolver.async_resolve(host, port);
    tcp_socket socket{ex};
    co_await aedis::net::async_connect(socket, res);
    co_return std::move(socket);
-}
-
-void print_command_raw(std::string const& data, int n)
-{
-  for (int i = 0; i < n; ++i) {
-    if (data[i] == '\n') {
-      std::cout << "\\n";
-      continue;
-    }
-    if (data[i] == '\r') {
-      std::cout << "\\r";
-      continue;
-    }
-    std::cout << data[i];
-  }
 }
 

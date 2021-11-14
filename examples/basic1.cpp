@@ -20,15 +20,15 @@ using aedis::resp3::async_read;
 
 namespace net = aedis::net;
 
-/** A simple example that illustrates the basic principles. Three commands are
- *  sent in the same request
+/** A simple example that illustrates the basic principles. Three
+ * commands are sent in the same request
  *
  *     1. hello (always required)
  *     2. ping
  *     3. quit
  *
- *  The responses are then read in sequence. For simplification we read all
- *  responses on the same object.
+ *  The responses are then read individually and for simplification in
+ *  the same response object.
  */
 net::awaitable<void> ping()
 {
@@ -38,7 +38,7 @@ net::awaitable<void> ping()
       req.push(command::ping);
       req.push(command::quit);
 
-      auto socket = co_await make_connection();
+      auto socket = co_await make_connection("127.0.0.1", "6379");
       co_await async_write(socket, req);
 
       std::string buffer;

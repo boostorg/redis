@@ -14,28 +14,24 @@
 
 using namespace aedis;
 
-/** Publisher: A coroutine that will pusblish on two channels and exit.
- */
-net::awaitable<void> publisher()
-{
-   resp3::request req;
-   req.push(command::hello, 3);
-   req.push(command::publish, "channel1", "Message to channel1");
-   req.push(command::publish, "channel2", "Message to channel2");
-   req.push(command::quit);
-
-   auto socket = co_await make_connection();
-   co_await async_write(socket, req);
-
-   std::string buffer;
-   resp3::response_base ignore;
-   co_await async_read(socket, buffer, ignore);
-   co_await async_read(socket, buffer, ignore);
-   co_await async_read(socket, buffer, ignore);
-}
-
-/** Subscriber: Will subscribe  to two channels and listen for messages
+/** In previous examples we sent the command we were interested in and
+ *  quit (closed) the connection. In this example we send a
+ *  subscription to a channel and start reading for message
  *  indefinitely.
+ *
+ *  Notice we store the id of the connection as seem by redis to be
+ *  able to identify it.
+ *
+ *  After starting the example you can send messages with the
+ *  redis-client like this
+ *
+ *  $ redis-cli -3
+ *  127.0.0.1:6379> PUBLISH channel1 mmmm
+ *  (integer) 3
+ *  127.0.0.1:6379>
+ *
+ *  The messages will then appear on the terminal you are running the
+ *  example.
  */
 net::awaitable<void> subscriber()
 {
@@ -43,7 +39,7 @@ net::awaitable<void> subscriber()
    req.push(command::hello, "3");
    req.push(command::subscribe, "channel1", "channel2");
 
-   auto socket = co_await make_connection();
+   auto socket = co_await make_connection("127.0.0.1", "6379");
    co_await async_write(socket, req);
 
    std::string buffer;
@@ -62,7 +58,10 @@ net::awaitable<void> subscriber()
    for (;;) {
       resp.clear();
       co_await async_read(socket, buffer, resp);
-      std::cout << "Subscriber " << id << ":\n" << resp << std::endl;
+
+      std::cout
+	 << "Subscriber " << id << ":\n"
+	 << resp << std::endl;
    }
 }
 
@@ -72,6 +71,5 @@ int main()
    co_spawn(ioc, subscriber(), net::detached);
    co_spawn(ioc, subscriber(), net::detached);
    co_spawn(ioc, subscriber(), net::detached);
-   co_spawn(ioc, publisher(), net::detached);
    ioc.run();
 }

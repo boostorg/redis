@@ -21,20 +21,21 @@ namespace net = aedis::net;
 
 /* A slightly more elaborate way dealing with requests and responses.
  *
- * This time we send the ping + quit only after the hello command has
- * arrived.  We also separate the application logic out the coroutine for
- * clarity.
- *
- * This can be used as a starting point for more complex applications.
+ * This time we send the ping + quit only after the response to the
+ * hello command has been received.  We also separate the application
+ * logic out the coroutine for clarity.
  */
 
-// Adds a new element in the queue if necessary.
+/// Adds a new element in the queue if necessary.
 void prepare_next(std::queue<request>& reqs)
 {
    if (std::empty(reqs) || std::size(reqs) == 1)
       reqs.push({});
 }
 
+/** The function that processes the response has been factored out of
+ *  the coroutine to simplify application logic.
+ */
 void process_response(std::queue<request>& reqs, response& resp)
 {
    std::cout
@@ -58,7 +59,7 @@ net::awaitable<void> ping()
       reqs.push({});
       reqs.back().push(command::hello, 3);
 
-      auto socket = co_await make_connection();
+      auto socket = co_await make_connection("127.0.0.1", "6379");
       std::string buffer;
 
       while (!std::empty(reqs)) {
