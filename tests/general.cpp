@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <map>
 
 #include <aedis/aedis.hpp>
 
