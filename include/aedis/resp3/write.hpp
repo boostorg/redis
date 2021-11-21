@@ -18,6 +18,11 @@
 namespace aedis {
 namespace resp3 {
 
+/** \file write.hpp
+ *
+ *  Write utility functions.
+ */
+
 template<class SyncWriteStream>
 std::size_t
 write(
@@ -48,13 +53,14 @@ std::size_t write(
     return bytes_transferred;
 }
 
-/* Asynchronously writes one or more requests on the stream.
- */
-template<class AsyncWriteStream>
+template<
+   class AsyncWriteStream,
+   class Queue
+>
 struct write_some_op {
    AsyncWriteStream& stream;
-   std::queue<request>& requests;
-   net::coroutine coro = net::coroutine();
+   Queue& reqs;
+   net::coroutine coro_ = net::coroutine();
 
    void
    operator()(
@@ -62,48 +68,49 @@ struct write_some_op {
       boost::system::error_code const& ec = {},
       std::size_t n = 0)
    {
-      reenter (coro) {
+      reenter (coro_) {
 	 do {
-	    assert(!std::empty(requests));
-	    assert(!std::empty(requests.front().payload));
+	    assert(!std::empty(reqs));
+	    assert(!std::empty(reqs.front().payload));
 
 	    yield async_write(
 	       stream,
-	       net::buffer(requests.front().payload),
+	       net::buffer(reqs.front().payload),
 	       std::move(self));
 
 	    if (ec)
 	       break;
 
-	    if (std::empty(requests.front().commands)) {
-	       // We only pop when all commands in the pipeline have push
-	       // responses like subscribe, otherwise, pop is done when the
-	       // response arrives.
-	       requests.pop();
-	    }
-	 } while (!std::empty(requests) && std::empty(requests.front().commands));
+            // Pops the request if no response is expected.
+	    if (std::empty(reqs.front().commands))
+	       reqs.pop();
+
+	 } while (!std::empty(reqs) && std::empty(reqs.front().commands));
 
          self.complete(ec);
       }
    }
 };
 
+/** @brief Writes the some request from the queue in the stream.
+ */
 template<
   class AsyncWriteStream,
+  class Queue,
   class CompletionToken =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>
   >
 auto
 async_write_some(
    AsyncWriteStream& stream,
-   std::queue<request>& requests,
+   Queue& reqs,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
 {
   return net::async_compose<
      CompletionToken,
      void(boost::system::error_code)>(
-	write_some_op{stream, requests},
+	write_some_op<AsyncWriteStream, Queue>{stream, reqs},
 	token, stream);
 }
 

@@ -21,6 +21,11 @@
 namespace aedis {
 namespace resp3 {
 
+/** \file read.hpp
+ *
+ *  Read utility functions.
+ */
+
 template <class SyncReadStream, class Storage>
 auto read(
    SyncReadStream& stream,
@@ -71,9 +76,10 @@ read(
    return n;
 }
 
-/** @brief Reads one command from the redis response
+/** @brief Reads the next command from a redis response
  *
- *  Note: This function has to be called once for each command.
+ *  This function has to be called once for each command until the whole
+ *  response has been cosumed.
  */
 template <
    class AsyncReadStream,
@@ -160,6 +166,8 @@ public:
    }
 };
 
+/** \brief Asynchronously reads the type of the next incomming request.
+ */
 template <
    class AsyncReadStream,
    class Storage,
@@ -177,69 +185,6 @@ auto async_read_type(
       , void(boost::system::error_code, type)
       >(type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
 }
-
-template <
-   class AsyncReadWriteStream,
-   class Response
->
-struct consumer_op {
-   AsyncReadWriteStream& stream;
-   std::string& buffer;
-   std::queue<request>& requests;
-   Response& resp;
-   type& m_type;
-   net::coroutine& coro;
-
-   template <class Self>
-   void operator()(
-      Self& self,
-      boost::system::error_code const& ec = {},
-      type t = type::invalid)
-   {
-      reenter (coro) for (;;)
-      {
-	 // Writes the next request in the queue and possibly some
-	 // more if they contain only push types as response.
-         yield async_write_some(stream, requests, std::move(self));
-         if (ec) {
-            self.complete(ec, type::invalid);
-            return;
-         }
-
-	 // Loops on a read while there is nothing to write.
-         do {
-	    // Loops until a response to each of the commands in the
-	    // pipeline has been received.
-            do {
-               yield async_read_type(stream, buffer, std::move(self));
-               if (ec) {
-                  self.complete(ec, type::invalid);
-                  return;
-               }
-
-               m_type = t;
-
-               yield async_read(stream, buffer, resp, std::move(self));
-
-               if (ec) {
-                  self.complete(ec, type::invalid);
-                  return;
-               }
-
-               yield self.complete(ec, m_type);
-
-               if (m_type != type::push)
-		  requests.front().commands.pop();
-
-            } while (!std::empty(requests) && !std::empty(requests.front().commands));
-
-	    if (!std::empty(requests))
-	       requests.pop();
-
-         } while (std::empty(requests));
-      }
-   }
-};
 
 } // resp3
 } // aedis

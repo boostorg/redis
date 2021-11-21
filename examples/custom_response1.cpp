@@ -23,12 +23,12 @@ using aedis::resp3::response_base;
 
 namespace net = aedis::net;
 
-/** Illustrates how to write a custom response.  Useful to users
+/* Illustrates how to write a custom response.  Useful to users
  *  seeking to improve performance and reduce latency.
  */
 
 
-/** A response that parses the result of a response directly in an int
+/* A response that parses the result of a response directly in an int
  *  variable. The same reasoning can be applied for keys containing
  *  e.g. json strings.
  *
@@ -49,10 +49,10 @@ struct response_int : response_base {
    }
 };
 
-/// To ignore the reponse of a command use the response base class.
+// To ignore the reponse of a command use the response base class.
 using response_ignore = response_base;
 
-/** This coroutine avoids reading the response to a get command in a
+/* This coroutine avoids reading the response to a get command in a
  *  temporary buffer by using a custom response. This is always
  *  possible when the application knows the data type being stored in
  *  a specific key.
@@ -99,3 +99,5 @@ int main()
    co_spawn(ioc, example(), net::detached);
    ioc.run();
 }
+
+/// \example custom_response1.cpp

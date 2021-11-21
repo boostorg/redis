@@ -15,6 +15,7 @@ namespace aedis {
 namespace resp3 {
 
 /** \file type.hpp
+    \brief Enum that describes the redis data types and some helper functions.
   
     This file contains the enum used to identify the redis data type
     and some helper functions.

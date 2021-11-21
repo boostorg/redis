@@ -20,16 +20,16 @@ using aedis::resp3::async_read;
 
 namespace net = aedis::net;
 
-/** A simple example that illustrates the basic principles. Three
- * commands are sent in the same request
- *
- *     1. hello (always required)
- *     2. ping
- *     3. quit
- *
- *  The responses are then read individually and for simplification in
- *  the same response object.
- */
+/* A simple example that illustrates the basic principles. Three
+   commands are sent in the same request
+  
+      1. hello (always required)
+      2. ping
+      3. quit
+  
+   The responses are then read individually and for simplification in
+   the same response object.
+*/
 net::awaitable<void> ping()
 {
    try {
@@ -60,9 +60,12 @@ net::awaitable<void> ping()
    }
 }
 
+/// The main function that starts the coroutine.
 int main()
 {
    net::io_context ioc;
    co_spawn(ioc, ping(), net::detached);
    ioc.run();
 }
+
+/// \example basic1.cpp

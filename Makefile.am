@@ -42,11 +42,6 @@ libaedis_a_SOURCES += $(top_srcdir)/src/aedis.cpp
 libaedis_a_CPPFLAGS = $(MY_CPPFLAGS)
 
 noinst_PROGRAMS =
-noinst_PROGRAMS += advanced
-advanced_SOURCES = $(top_srcdir)/examples/advanced.cpp
-advanced_CPPFLAGS = $(MY_CPPFLAGS)
-advanced_LDADD = $(MY_LDADD)
-
 noinst_PROGRAMS += basic1
 basic1_SOURCES = $(top_srcdir)/examples/basic1.cpp
 basic1_CPPFLAGS = $(MY_CPPFLAGS)
@@ -82,6 +77,11 @@ custom_response2_SOURCES = $(top_srcdir)/examples/custom_response2.cpp
 custom_response2_CPPFLAGS = $(MY_CPPFLAGS)
 custom_response2_LDADD = $(MY_LDADD)
 
+noinst_PROGRAMS += myclient1
+myclient1_SOURCES = $(top_srcdir)/examples/myclient1.cpp
+myclient1_CPPFLAGS = $(MY_CPPFLAGS)
+myclient1_LDADD = $(MY_LDADD)
+
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp
 test_CPPFLAGS = $(MY_CPPFLAGS)
@@ -95,6 +95,11 @@ EXTRA_DIST += $(top_srcdir)/README.md
 
 CLEANFILES =
 CLEANFILES += Makefile.dep
+
+.PHONY: doc
+doc:
+	rm -rf /tmp/aedis
+	doxygen doc/Doxyfile
 
 .PHONY: deb
 deb: dist

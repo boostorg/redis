@@ -23,14 +23,16 @@ using aedis::resp3::response_base;
 
 namespace net = aedis::net;
 
-/** Similar to custon_response1 but handles aggregagate data types.
- *
- *  Instead of reading a response into a std::vector<std::string> and
- *  then converting to a std::vector<int> we parse the ints form the
- *  read buffer directly into an int.
+/* \brief An example response class for aggregate data types.
+  
+    Similar to custon_response1 but handles aggregagate data types.
+  
+    Instead of reading a response into a std::vector<std::string> and
+    then converting to a std::vector<int> we parse the ints form the
+    read buffer directly into an int.
  */
 
-/** A response type that parses the response directly in a
+/* A response type that parses the response directly in a
  *  std::vector<int>
  */
 class response_vector : public response_base {
@@ -106,3 +108,5 @@ int main()
    co_spawn(ioc, ping(), net::detached);
    ioc.run();
 }
+
+/// \example custom_response2.cpp

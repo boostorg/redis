@@ -33,7 +33,7 @@ void prepare_next(std::queue<request>& reqs)
       reqs.push({});
 }
 
-/** The function that processes the response has been factored out of
+/* The function that processes the response has been factored out of
  *  the coroutine to simplify application logic.
  */
 void process_response(std::queue<request>& reqs, response& resp)
@@ -85,3 +85,5 @@ int main()
    co_spawn(ioc, ping(), net::detached);
    ioc.run();
 }
+
+/// \example basic3.cpp

@@ -14,24 +14,24 @@
 
 using namespace aedis;
 
-/** In previous examples we sent the command we were interested in and
- *  quit (closed) the connection. In this example we send a
- *  subscription to a channel and start reading for message
- *  indefinitely.
- *
- *  Notice we store the id of the connection as seem by redis to be
- *  able to identify it.
- *
- *  After starting the example you can send messages with the
- *  redis-client like this
- *
- *  $ redis-cli -3
- *  127.0.0.1:6379> PUBLISH channel1 mmmm
- *  (integer) 3
- *  127.0.0.1:6379>
- *
- *  The messages will then appear on the terminal you are running the
- *  example.
+/* In previous examples we sent the command we were interested in and
+    quit (closed) the connection. In this example we send a
+    subscription to a channel and start reading for message
+    indefinitely.
+  
+    Notice we store the id of the connection as seem by redis to be
+    able to identify it.
+  
+    After starting the example you can send messages with the
+    redis-client like this
+  
+    $ redis-cli -3
+    127.0.0.1:6379> PUBLISH channel1 mmmm
+    (integer) 3
+    127.0.0.1:6379>
+  
+    The messages will then appear on the terminal you are running the
+    example.
  */
 net::awaitable<void> subscriber()
 {
@@ -73,3 +73,5 @@ int main()
    co_spawn(ioc, subscriber(), net::detached);
    ioc.run();
 }
+
+/// \example basic4.cpp

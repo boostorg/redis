@@ -13,8 +13,8 @@
 
 aedis::net::awaitable<tcp_socket>
 make_connection(
-   std::string const& host,
-   std::string const& port)
+   std::string host,
+   std::string port)
 {
    auto ex = co_await aedis::net::this_coro::executor;
    tcp_resolver resolver{ex};

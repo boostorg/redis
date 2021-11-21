@@ -16,42 +16,66 @@
 #include "types.hpp"
 #include "utils.ipp"
 
-using namespace aedis;
+using aedis::command;
+using aedis::resp3::request;
+using aedis::resp3::response;
+using aedis::resp3::async_read;
+using aedis::resp3::async_write;
+
+namespace net = aedis::net;
 
 net::awaitable<void> stl_containers()
 {
-   std::vector<int> vec
-      {1, 2, 3, 4, 5, 6};
+   try {
+      auto socket = co_await make_connection("127.0.0.1", "6379");
 
-   std::set<std::string> set
-      {"one", "two", "three"};
+      request req;
 
-   std::map<std::string, std::string> map
-      { {"key1", "value1"}
-      , {"key2", "value2"}
-      , {"key3", "value3"}
-      };
+      // hello with version 3 is always required.
+      req.push(command::hello, 3);
 
-   resp3::request req;
-   req.push(command::hello, 3);
-   req.push(command::flushall);
-   req.push_range(command::rpush, "vector", std::cbegin(vec), std::cend(vec));
-   req.push_range(command::sadd, "set", std::cbegin(set), std::cend(set));
-   req.push_range(command::hset, "map", std::cbegin(map), std::cend(map));
+      // Sends a flushall to avoid hitting an existing that happen to contain a
+      // different data type.
+      req.push(command::flushall);
 
-   auto socket = co_await make_connection("127.0.0.1", "6379");
-   co_await async_write(socket, req);
+      // rpush with a vector.
+      std::vector<int> vec
+         {1, 2, 3, 4, 5, 6};
 
-   std::string buffer;
-   while (!std::empty(req.commands)) {
-      resp3::response resp;
-      co_await async_read(socket, buffer, resp);
+      req.push_range(command::rpush, "key1", std::cbegin(vec), std::cend(vec));
 
-      std::cout
-	 << req.commands.front() << ":\n"
-	 << resp << std::endl;
+      // sadd with a set.
+      std::set<std::string> set
+         {"one", "two", "three"};
 
-      req.commands.pop();
+      req.push_range(command::sadd, "key2", std::cbegin(set), std::cend(set));
+      std::cout << "cc" << std::endl;
+
+      // hset with a map.
+      std::map<std::string, std::string> map
+         { {"key1", "value1"}
+         , {"key2", "value2"}
+         , {"key3", "value3"}
+         };
+
+      req.push_range(command::hset, "key3", std::cbegin(map), std::cend(map));
+
+      // Communication with the redis server starts here.
+      co_await async_write(socket, req);
+
+      std::string buffer;
+      while (!std::empty(req.commands)) {
+         response resp;
+         co_await async_read(socket, buffer, resp);
+
+         std::cout
+            << req.commands.front() << ":\n"
+            << resp << std::endl;
+
+         req.commands.pop();
+      }
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
    }
 }
 
@@ -61,3 +85,6 @@ int main()
    co_spawn(ioc, stl_containers(), net::detached);
    ioc.run();
 }
+
+
+/// \example containers.cpp

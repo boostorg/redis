@@ -109,23 +109,24 @@ struct test_general_fill {
 net::awaitable<void>
 test_general(net::ip::tcp::resolver::results_type const& res)
 {
+   std::queue<resp3::request> requests;
+   requests.push({});
+   requests.back().push(command::hello, 3);
+   test_general_fill filler;
+   filler(requests.back());
+
    auto ex = co_await this_coro::executor;
    net::ip::tcp::socket socket{ex};
    co_await net::async_connect(socket, res, net::use_awaitable);
 
-   std::queue<resp3::request> requests;
-   requests.push({});
-   requests.back().push(command::hello, 3);
+   co_await async_write(socket, requests.back(), net::use_awaitable);
 
-   test_general_fill filler;
-
+   std::string buffer;
    resp3::response resp;
-   resp3::stream<tcp_socket> stream{std::move(socket)};
-
    int push_counter = 0;
    for (;;) {
       resp.clear();
-      co_await stream.async_consume(requests, resp, net::use_awaitable);
+      co_await resp3::async_read(socket, buffer, resp, net::use_awaitable);
 
       if (resp.get_type() == resp3::type::push) {
 	 switch (push_counter) {
@@ -158,12 +159,11 @@ test_general(net::ip::tcp::resolver::results_type const& res)
       }
 
       auto const cmd = requests.front().commands.front();
+      requests.front().commands.pop();
 
       switch (cmd) {
 	 case command::hello:
 	 {
-	    prepare_next(requests);
-	    filler(requests.back());
 	 } break;
 	 case command::multi:
 	 {
@@ -519,16 +519,12 @@ net::awaitable<void>
 test_set(net::ip::tcp::resolver::results_type const& results)
 {
    using namespace aedis;
-   auto ex = co_await this_coro::executor;
 
    // Tests whether the parser can handle payloads that contain the separator.
    test_bulk1[30] = '\r';
    test_bulk1[31] = '\n';
 
    std::string test_bulk2 = "aaaaa";
-
-   tcp_socket socket {ex};
-   co_await async_connect(socket, results);
 
    resp3::request p;
    p.push(command::hello, 3);
@@ -540,6 +536,10 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    p.push(command::set, "s", "");
    p.push(command::get, "s");
    p.push(command::quit);
+
+   auto ex = co_await this_coro::executor;
+   tcp_socket socket {ex};
+   co_await async_connect(socket, results);
 
    co_await async_write(socket, net::buffer(p.payload));
 
@@ -608,14 +608,6 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       check_equal(gresp.raw(), expected, "quit");
    }
 }
-
-struct test_handler {
-   void operator()(boost::system::error_code ec) const
-   {
-      if (ec)
-         std::cout << ec.message() << std::endl;
-   }
-};
 
 net::awaitable<void> test_simple_string()
 {

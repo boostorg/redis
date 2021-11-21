@@ -15,11 +15,14 @@
 namespace aedis {
 namespace resp3 {
 
-/** A pre-order-view of the response tree.
+/** \brief A general pupose redis response class
+  
+    A pre-order-view of the response tree.
+
  */
 class response : public response_base {
 public:
-   /** Represents a node in the response tree.
+   /** \brief A node in the response tree.
     */
    struct node {
       enum class dump_format {raw, clean};
