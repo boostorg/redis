@@ -19,7 +19,8 @@ using namespace aedis::net::experimental::awaitable_operators;
 namespace aedis {
 namespace resp3 {
 
-/* A general purpose full-duplex redis client
+/* A general purpose redis client that supports reads and writes on
+ * the same connection.
  */
 class client_base : public std::enable_shared_from_this<client_base> {
 protected:
@@ -27,9 +28,14 @@ protected:
 
 private:
    tcp_socket socket_;
+
+   // A timer used to inform the write coroutine that there is one
+   // message awaiting to be send to redis.
    net::steady_timer timer_;
    std::queue<request> reqs_;
 
+   // A coroutine that keeps reading the socket. When a message
+   // arrives it calls on_event.
    net::awaitable<void> reader()
    {
       // Writes and reads continuosly from the socket.
@@ -62,6 +68,8 @@ private:
       }
    }
 
+   // Write coroutine. It is kept suspended until there are messages
+   // that can be sent.
    net::awaitable<void> writer()
    {
       for (;;) {
@@ -75,6 +83,8 @@ private:
       }
    }
 
+   // The connection manager. It keeps trying the reconnect to the
+   // server when the connection is lost.
    net::awaitable<void> conn_manager()
    {
       for (;;) {

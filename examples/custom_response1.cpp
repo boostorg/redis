@@ -29,9 +29,8 @@ namespace net = aedis::net;
 
 
 /* A response that parses the result of a response directly in an int
- *  variable. The same reasoning can be applied for keys containing
- *  e.g. json strings.
- *
+   variable thus avoiding unnecessary copies. The same reasoning can
+   be applied for keys containing e.g. json strings.
  */
 struct response_int : response_base {
    int result;
@@ -53,9 +52,9 @@ struct response_int : response_base {
 using response_ignore = response_base;
 
 /* This coroutine avoids reading the response to a get command in a
- *  temporary buffer by using a custom response. This is always
- *  possible when the application knows the data type being stored in
- *  a specific key.
+   temporary buffer by using a custom response. This is always
+   possible when the application knows the data type being stored in a
+   specific key.
  */
 net::awaitable<void> example()
 {

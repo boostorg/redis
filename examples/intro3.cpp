@@ -6,10 +6,7 @@
  */
 
 #include <iostream>
-
 #include <aedis/aedis.hpp>
-
-#include "types.hpp"
 #include "utils.ipp"
 
 using aedis::command;
@@ -20,13 +17,13 @@ using aedis::resp3::async_read;
 namespace net = aedis::net;
 
 /* A slightly more elaborate way dealing with requests and responses.
- *
- * This time we send the ping + quit only after the response to the
- * hello command has been received.  We also separate the application
- * logic out the coroutine for clarity.
+  
+   This time we send the ping + quit only after the response to the
+   hello command has been received.  We also separate the application
+   logic out the coroutine for clarity.
  */
 
-/// Adds a new element in the queue if necessary.
+// Adds a new element in the queue if necessary.
 void prepare_next(std::queue<request>& reqs)
 {
    if (std::empty(reqs) || std::size(reqs) == 1)
@@ -34,7 +31,7 @@ void prepare_next(std::queue<request>& reqs)
 }
 
 /* The function that processes the response has been factored out of
- *  the coroutine to simplify application logic.
+   the coroutine to simplify application logic.
  */
 void process_response(std::queue<request>& reqs, response& resp)
 {
@@ -86,4 +83,4 @@ int main()
    ioc.run();
 }
 
-/// \example basic3.cpp
+/// \example intro3.cpp

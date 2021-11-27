@@ -42,30 +42,30 @@ libaedis_a_SOURCES += $(top_srcdir)/src/aedis.cpp
 libaedis_a_CPPFLAGS = $(MY_CPPFLAGS)
 
 noinst_PROGRAMS =
-noinst_PROGRAMS += basic1
-basic1_SOURCES = $(top_srcdir)/examples/basic1.cpp
-basic1_CPPFLAGS = $(MY_CPPFLAGS)
-basic1_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += intro1
+intro1_SOURCES = $(top_srcdir)/examples/intro1.cpp
+intro1_CPPFLAGS = $(MY_CPPFLAGS)
+intro1_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += basic2
-basic2_SOURCES = $(top_srcdir)/examples/basic2.cpp
-basic2_CPPFLAGS = $(MY_CPPFLAGS)
-basic2_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += intro2
+intro2_SOURCES = $(top_srcdir)/examples/intro2.cpp
+intro2_CPPFLAGS = $(MY_CPPFLAGS)
+intro2_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += basic3
-basic3_SOURCES = $(top_srcdir)/examples/basic3.cpp
-basic3_CPPFLAGS = $(MY_CPPFLAGS)
-basic3_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += intro3
+intro3_SOURCES = $(top_srcdir)/examples/intro3.cpp
+intro3_CPPFLAGS = $(MY_CPPFLAGS)
+intro3_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += basic4
-basic4_SOURCES = $(top_srcdir)/examples/basic4.cpp
-basic4_CPPFLAGS = $(MY_CPPFLAGS)
-basic4_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += intro4
+intro4_SOURCES = $(top_srcdir)/examples/intro4.cpp
+intro4_CPPFLAGS = $(MY_CPPFLAGS)
+intro4_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += basic5
-basic5_SOURCES = $(top_srcdir)/examples/basic5.cpp
-basic5_CPPFLAGS = $(MY_CPPFLAGS)
-basic5_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += intro5
+intro5_SOURCES = $(top_srcdir)/examples/intro5.cpp
+intro5_CPPFLAGS = $(MY_CPPFLAGS)
+intro5_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += containers
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp

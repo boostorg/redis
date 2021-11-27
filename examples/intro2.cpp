@@ -1,16 +1,13 @@
 /* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/// \example basic1.cpp
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <string>
 #include <iostream>
-
 #include <aedis/aedis.hpp>
-
-#include "types.hpp"
 #include "utils.ipp"
 
 using aedis::command;
@@ -20,16 +17,14 @@ using aedis::resp3::async_read;
 
 namespace net = aedis::net;
 
-/* A simple example that illustrates the basic principles. Three
-   commands are sent in the same request
+/* Similar to the basic1 example but
   
-      1. hello (always required)
-      2. ping
-      3. quit
-  
-   The responses are then read individually and for simplification in
-   the same response object.
-*/
+     1. Reads the responses in a loop.
+     2. Prints the command to which the response belongs to.
+
+   The request class maintains a queue of commands that have been
+   added to the request.
+ */
 net::awaitable<void> ping()
 {
    try {
@@ -42,25 +37,21 @@ net::awaitable<void> ping()
       co_await async_write(socket, req);
 
       std::string buffer;
-      response resp;
+      while (!std::empty(req.commands)) {
+	 response resp;
+	 co_await async_read(socket, buffer, resp);
 
-      // hello
-      co_await async_read(socket, buffer, resp);
+	 std::cout
+	    << req.commands.front() << "\n"
+	    << resp << std::endl;
 
-      // ping
-      co_await async_read(socket, buffer, resp);
-
-      // quit
-      co_await async_read(socket, buffer, resp);
-
-      std::cout << resp << std::endl;
-
+	 req.commands.pop();
+      }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }
 }
 
-/// The main function that starts the coroutine.
 int main()
 {
    net::io_context ioc;
@@ -68,4 +59,4 @@ int main()
    ioc.run();
 }
 
-/// \example basic1.cpp
+/// \example intro2.cpp
