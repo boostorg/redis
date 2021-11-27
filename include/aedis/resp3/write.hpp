@@ -19,10 +19,18 @@ namespace aedis {
 namespace resp3 {
 
 /** \file write.hpp
- *
- *  Write utility functions.
+    \brief Write utility functions.
+  
+    Both synchronous and asynchronous functions are offered.
  */
 
+/** @brief Writes a request to and stream.
+ *
+ *  \param stream Sync stream where the request will be written.
+ *  \param req Sync stream where the request will be written.
+ *  \param ec Variable where an error is written if one occurs.
+ *  \returns The number of bytes that have been written to the stream.
+ */
 template<class SyncWriteStream>
 std::size_t
 write(
@@ -33,9 +41,15 @@ write(
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
        "SyncWriteStream type requirements not met");
 
-    return net::write(stream, net::buffer(req.payload), ec);
+    return net::write(stream, net::buffer(req.payload()), ec);
 }
 
+/** @brief Writes a request to and stream.
+ *
+ *  \param stream Sync stream where the request will be written.
+ *  \param req Sync stream where the request will be written.
+ *  \returns The number of bytes that have been written to the stream.
+ */
 template<class SyncWriteStream>
 std::size_t write(
    SyncWriteStream& stream,
@@ -71,11 +85,11 @@ struct write_some_op {
       reenter (coro_) {
 	 do {
 	    assert(!std::empty(reqs));
-	    assert(!std::empty(reqs.front().payload));
+	    assert(!std::empty(reqs.front().payload()));
 
-	    yield async_write(
+	    yield net::async_write(
 	       stream,
-	       net::buffer(reqs.front().payload),
+	       net::buffer(reqs.front().payload()),
 	       std::move(self));
 
 	    if (ec)
@@ -114,6 +128,8 @@ async_write_some(
 	token, stream);
 }
 
+/** @brief Writes the request to the stream.
+ */
 template<
   class AsyncWriteStream,
   class CompletionToken =
@@ -126,7 +142,7 @@ async_write(
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
 {
-   return net::async_write(stream, net::buffer(req.payload), token);
+   return net::async_write(stream, net::buffer(req.payload()), token);
 }
 
 } // resp3

@@ -10,6 +10,7 @@
 #include <ostream>
 
 /** \file command.hpp
+ *  \brief Enum of all redis commands.
  *
  *  This file contains the enum used to identify each redis command
  *  and some helper functions.
@@ -141,7 +142,7 @@ enum class command
   unknown,
 };
 
-/// Returns the string representation of the command.
+/// Returns the string representation of a command.
 char const* to_string(command c);
 
 /// Writes the command to the output stream.

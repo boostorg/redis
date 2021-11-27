@@ -9,6 +9,12 @@
 
 #include <boost/asio.hpp>
 
+/** \file net.hpp
+ *  \brief The network library used in redis.
+ *
+ *  At the moment only boost ASIO is supported. In the future we may add support to standalone ASIO.
+ */
+
 namespace aedis {
 namespace net = boost::asio;
 }

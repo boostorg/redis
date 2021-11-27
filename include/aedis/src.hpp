@@ -6,10 +6,9 @@
  */
 
 /** \file src.hpp
+ *  \brief A list of source files that must built in order to use aedis.
  *
- *  The list of source files that must built in order to use aedis.
- *  Include this file in no more than one source file in your
- *  application.
+ *  Include this file in no more than one source file in your application.
  */
 
 #include <aedis/impl/command.ipp>

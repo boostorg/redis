@@ -6,8 +6,7 @@
  */
 
 /** \file version.hpp
- *
- *  Current aedis version.
+ *  \brief Current aedis version.
  */
 
 /// Macro that expands to the current aedis version.

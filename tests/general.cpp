@@ -542,7 +542,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    tcp_socket socket {ex};
    co_await async_connect(socket, results);
 
-   co_await async_write(socket, net::buffer(p.payload));
+   co_await async_write(socket, net::buffer(p.payload()));
 
    std::string buf;
    {  // hello, flushall

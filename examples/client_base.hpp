@@ -10,66 +10,43 @@
 #include <queue>
 
 #include <aedis/aedis.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include "types.hpp"
+
+using namespace aedis::net::experimental::awaitable_operators;
 
 namespace aedis {
 namespace resp3 {
 
-/* An example redis client.
+/* A general purpose full-duplex redis client
  */
 class client_base : public std::enable_shared_from_this<client_base> {
+protected:
+   response resp_;
+
 private:
    tcp_socket socket_;
    net::steady_timer timer_;
    std::queue<request> reqs_;
 
-   // Prepares the back of the request queue for new requests.  Returns true
-   // when the front of the queue can be sent to the redis server.
-   bool prepare_next()
-   {
-      if (std::empty(reqs_)) {
-         // We are not waiting any response.
-         reqs_.push({});
-         return true;
-      }
-
-      // A non-empty queue means we are waiting for a response. Since the
-      // reader will automatically send any outstanding requests when the
-      // response arrives, we have to return false hier.
-
-      if (std::size(reqs_) == 1) {
-         // The user should not append any new commands to this request as it
-         // has been already sent to redis.
-         reqs_.push({});
-      }
-
-      return false;
-   }
-
    net::awaitable<void> reader()
    {
       // Writes and reads continuosly from the socket.
       for (std::string buffer;;) {
-         // Writes the first request in queue and all subsequent ones that have
-         // no response e.g. subscribe.
+         // Writes the request in the socket.
          co_await async_write_some(socket_, reqs_);
 
          // Keeps reading while there is no messages queued waiting to be sent.
          do {
             // Loops to consume the response to all commands in the request.
             do {
-               // Reads the type of the incoming response.
-               auto const t = co_await async_read_type(socket_, buffer);
+               co_await async_read(socket_, buffer, resp_);
 
-               if (t == type::push) {
-                  auto& resp = get_response(t);
-                  co_await async_read(socket_, buffer, resp);
-                  on_event(t);
+               if (resp_.get_type() == type::push) {
+                  on_event(command::unknown);
                } else {
-                  auto& resp = get_response(t, reqs_.front().commands.front());
-                  co_await async_read(socket_, buffer, resp);
-                  on_event(t, reqs_.front().commands.front());
+                  on_event(reqs_.front().commands.front());
                   reqs_.front().commands.pop();
                }
 
@@ -100,23 +77,24 @@ private:
 
    net::awaitable<void> conn_manager()
    {
-      tcp_resolver resolver{socket_.get_executor()};
-      auto const res = co_await resolver.async_resolve("127.0.0.1", "6379");
-      co_await aedis::net::async_connect(socket_, res);
+      for (;;) {
+         tcp_resolver resolver{socket_.get_executor()};
+         auto const res = co_await resolver.async_resolve("127.0.0.1", "6379");
+         co_await aedis::net::async_connect(socket_, res);
 
-      reqs_.push({});
-      reqs_.back().push(command::hello, 3);
+         reqs_.push({});
+         reqs_.back().push(command::hello, 3);
 
-      co_spawn(socket_.get_executor(),
-               [self = shared_from_this()]{ return self->writer(); },
-               net::detached);
+         timer_.expires_at(std::chrono::steady_clock::time_point::max());
+         co_await (reader() && writer());
 
-      co_await co_spawn(socket_.get_executor(),
-                        [self = shared_from_this()]{ return self->reader(); },
-                        net::use_awaitable);
+         socket_.close();
+         timer_.cancel();
 
-      socket_.close();
-      timer_.cancel_one();
+         timer_.expires_after(std::chrono::seconds{1});
+         boost::system::error_code ec;
+         co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));
+      }
    }
 
 public:
@@ -124,7 +102,6 @@ public:
    : socket_{ex}
    , timer_{ex}
    {
-      timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
    ~client_base()
@@ -133,11 +110,7 @@ public:
       timer_.cancel();
    }
 
-   net::any_io_executor get_executor()
-   {
-      return socket_.get_executor();
-   }
-
+   // Starts the client coroutines.
    void start()
    {
       net::co_spawn(socket_.get_executor(),
@@ -145,13 +118,12 @@ public:
           net::detached);
    }
 
-   /* Adds commands the requests queue and sends if possible.
-    */
+   // Adds commands the requests queue and sends if possible.
    template <class Filler>
    void send(Filler filler)
    {
       // Prepares the back of the queue for a new command.
-      auto const can_write = prepare_next();
+      auto const can_write = prepare_next(reqs_);
 
       filler(reqs_.back());
 
@@ -159,21 +131,8 @@ public:
          timer_.cancel_one();
    }
 
-   /* @brief Returns the response object the the used wishes to use
-    */ 
-   virtual response_base&
-   get_response(type t, command cmd = command::unknown) = 0;
-
-   /* Function called when data has been aready.
-    */
-   virtual void
-   on_event(type t, command cmd = command::unknown) = 0;
-
-   template <typename Derived>
-   std::shared_ptr<Derived> shared_from_base()
-   {
-       return std::static_pointer_cast<Derived>(shared_from_this());
-   }
+   // Function called when data has been received.
+   virtual void on_event(command cmd) = 0;
 };
 
 } // resp3

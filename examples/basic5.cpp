@@ -24,16 +24,7 @@ namespace net = aedis::net;
 
 class myclient : public client_base {
 private:
-   response resp_;
-
-   response_base&
-   get_response(type t, command cmd) override
-   {
-      return resp_;
-   }
-
-   void
-   on_event(type t, command cmd) override
+   void on_event(command cmd) override
    {
       std::cout << cmd << ":\n" << resp_ << std::endl;
       resp_.clear();
@@ -44,7 +35,7 @@ public:
    : client_base(ex) { }
 };
 
-// A coroutine that will send command to redis every second.
+// A coroutine that will call the filler every second.
 template <class Filler>
 net::awaitable<void>
 event_simulator(std::shared_ptr<myclient> rclient, Filler filler)
@@ -66,7 +57,11 @@ int main()
    rclient->start();
 
    auto filler = [](auto& req)
-     { req.push(command::ping); };
+   {
+     req.push(command::incr, "key");
+     req.push(command::quit);
+     req.push(command::incr, "key");
+   };
 
    for (auto i = 0; i < 1; ++i)
       co_spawn(ioc.get_executor(), event_simulator(rclient, filler), net::detached);
@@ -74,4 +69,4 @@ int main()
    ioc.run();
 }
 
-/// \example myclient1.cpp
+/// \example basic5.cpp

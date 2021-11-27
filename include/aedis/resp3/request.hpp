@@ -28,19 +28,14 @@ namespace resp3 {
  *  https://redis.io/topics/pipelining.
  */
 class request {
+private:
+   std::string payload_;
+
 public:
-   std::string payload;
+   /// The commands that have been queued in this request.
    std::queue<command> commands;
 
 public:
-   /// Returns the number of commands contained in the request.
-   auto size() const noexcept
-      { return std::size(commands); }
-
-   /// Return true if the request contains no commands.
-   bool empty() const noexcept
-      { return std::empty(payload); };
-
    /** Clears the request.
     *  
     *  Note: Already acquired memory won't be released. The is useful
@@ -48,9 +43,13 @@ public:
     */
    void clear()
    {
-      payload.clear();
+      payload_.clear();
       commands = {};
    }
+
+   /** \brief Returns the payload the is written to the socket.
+    */
+   auto const& payload() const noexcept {return payload_;}
 
    /** @brief Appends a new command to end of the request.
     *
@@ -65,10 +64,10 @@ public:
       // this?
 
       auto constexpr pack_size = sizeof...(Ts);
-      detail::add_header(payload, 1 + pack_size);
+      detail::add_header(payload_, 1 + pack_size);
 
-      detail::add_bulk(payload, to_string(cmd));
-      (detail::add_bulk(payload, args), ...);
+      detail::add_bulk(payload_, to_string(cmd));
+      (detail::add_bulk(payload_, args), ...);
 
       if (!detail::has_push_response(cmd))
          commands.emplace(cmd);
@@ -101,12 +100,12 @@ public:
 
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(payload, 2 + size * distance);
-      detail::add_bulk(payload, to_string(cmd));
-      detail::add_bulk(payload, key);
+      detail::add_header(payload_, 2 + size * distance);
+      detail::add_bulk(payload_, to_string(cmd));
+      detail::add_bulk(payload_, key);
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(payload, *begin);
+	 detail::add_bulk(payload_, *begin);
 
       if (!detail::has_push_response(cmd))
          commands.emplace(cmd);
@@ -137,11 +136,11 @@ public:
 
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(payload, 1 + size * distance);
-      detail::add_bulk(payload, to_string(cmd));
+      detail::add_header(payload_, 1 + size * distance);
+      detail::add_bulk(payload_, to_string(cmd));
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(payload, *begin);
+	 detail::add_bulk(payload_, *begin);
 
       if (!detail::has_push_response(cmd))
          commands.emplace(cmd);

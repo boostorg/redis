@@ -62,6 +62,11 @@ basic4_SOURCES = $(top_srcdir)/examples/basic4.cpp
 basic4_CPPFLAGS = $(MY_CPPFLAGS)
 basic4_LDADD = $(MY_LDADD)
 
+noinst_PROGRAMS += basic5
+basic5_SOURCES = $(top_srcdir)/examples/basic5.cpp
+basic5_CPPFLAGS = $(MY_CPPFLAGS)
+basic5_LDADD = $(MY_LDADD)
+
 noinst_PROGRAMS += containers
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 containers_CPPFLAGS = $(MY_CPPFLAGS)
@@ -76,11 +81,6 @@ noinst_PROGRAMS += custom_response2
 custom_response2_SOURCES = $(top_srcdir)/examples/custom_response2.cpp
 custom_response2_CPPFLAGS = $(MY_CPPFLAGS)
 custom_response2_LDADD = $(MY_LDADD)
-
-noinst_PROGRAMS += myclient1
-myclient1_SOURCES = $(top_srcdir)/examples/myclient1.cpp
-myclient1_CPPFLAGS = $(MY_CPPFLAGS)
-myclient1_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp

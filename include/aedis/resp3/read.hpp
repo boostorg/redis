@@ -22,8 +22,9 @@ namespace aedis {
 namespace resp3 {
 
 /** \file read.hpp
- *
- *  Read utility functions.
+    \brief Read utility functions.
+  
+    Synchronous and asynchronous utility functions.
  */
 
 template <class SyncReadStream, class Storage>
@@ -60,6 +61,12 @@ auto read(
    return n;
 }
 
+/** \brief Redis a reponse to a command.
+ *  
+ *  \param stream Synchronous read stream from which the response will be read.
+ *  \param buf Buffer for temporary storage e.g. std::string or std::vector<char>.
+ *  \returns The number of bytes that have been read.
+ */
 template<class SyncReadStream, class Storage>
 std::size_t
 read(
@@ -103,6 +110,7 @@ auto async_read(
         stream);
 }
 
+// TODO: Move to detail.
 type to_type(char c)
 {
    switch (c) {
@@ -126,6 +134,7 @@ type to_type(char c)
    }
 }
 
+// TODO: Move to detail.
 template <class AsyncReadStream, class Storage>
 class type_op {
 private:
