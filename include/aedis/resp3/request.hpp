@@ -15,7 +15,6 @@
 #include <ostream>
 #include <iterator>
 
-#include <aedis/command.hpp>
 #include <aedis/resp3/detail/composer.hpp>
 
 namespace aedis {
@@ -27,13 +26,14 @@ namespace resp3 {
  *  referred to in the redis documentation as a pipeline, see
  *  https://redis.io/topics/pipelining.
  */
+template <class Command>
 class request {
 private:
    std::string payload_;
 
 public:
    /// The commands that have been queued in this request.
-   std::queue<command> commands;
+   std::queue<Command> commands;
 
 public:
    /** Clears the request.
@@ -57,7 +57,7 @@ public:
     *  to_string which must be made available by the user.
     */
    template <class... Ts>
-   void push(command cmd, Ts const&... args)
+   void push(Command cmd, Ts const&... args)
    {
       // Note: Should we detect any std::pair in the type in the pack
       // to calculate the herader size correctly or let users handle
@@ -91,7 +91,7 @@ public:
        \endcode
     */
    template <class Key, class ForwardIterator>
-   void push_range(command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void push_range(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would helpful to users
       // to assert the value type is a pair.
@@ -127,7 +127,7 @@ public:
        \endcode
     */
    template <class ForwardIterator>
-   void push_range(command cmd, ForwardIterator begin, ForwardIterator end)
+   void push_range(Command cmd, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would be a good idea to assert
       // the value type is a pair.

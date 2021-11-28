@@ -33,7 +33,7 @@ using namespace aedis;
  */
 net::awaitable<void> subscriber()
 {
-   resp3::request req;
+   resp3::request<command> req;
    req.push(command::hello, "3");
    req.push(command::subscribe, "channel1", "channel2");
 

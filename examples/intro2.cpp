@@ -28,7 +28,7 @@ namespace net = aedis::net;
 net::awaitable<void> ping()
 {
    try {
-      request req;
+      request<command> req;
       req.push(command::hello, 3);
       req.push(command::ping);
       req.push(command::quit);

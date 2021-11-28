@@ -53,7 +53,7 @@ struct test_general_fill {
    std::vector<int> list_ {1 ,2, 3, 4, 5, 6};
    std::string set_ {"aaa"};
 
-   void operator()(resp3::request& p) const
+   void operator()(resp3::request<command>& p) const
    {
       p.push(command::flushall);
       p.push_range(command::rpush, "a", std::cbegin(list_), std::cend(list_));
@@ -110,7 +110,7 @@ struct test_general_fill {
 net::awaitable<void>
 test_general(net::ip::tcp::resolver::results_type const& res)
 {
-   std::queue<resp3::request> requests;
+   std::queue<resp3::request<command>> requests;
    requests.push({});
    requests.back().push(command::hello, 3);
    test_general_fill filler;
@@ -527,7 +527,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
 
    std::string test_bulk2 = "aaaaa";
 
-   resp3::request p;
+   resp3::request<command> p;
    p.push(command::hello, 3);
    p.push(command::flushall);
    p.push(command::set, "s", test_bulk1);
@@ -542,7 +542,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    tcp_socket socket {ex};
    co_await async_connect(socket, results);
 
-   co_await async_write(socket, net::buffer(p.payload()));
+   co_await async_write(socket, p);
 
    std::string buf;
    {  // hello, flushall

@@ -29,7 +29,7 @@ net::awaitable<void> stl_containers()
    try {
       auto socket = co_await make_connection("127.0.0.1", "6379");
 
-      request req;
+      request<command> req;
 
       // hello with version 3 is always required.
       req.push(command::hello, 3);

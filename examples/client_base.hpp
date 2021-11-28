@@ -25,6 +25,7 @@ namespace resp3 {
 class client_base : public std::enable_shared_from_this<client_base> {
 protected:
    response resp_;
+   std::queue<request<command>> reqs_;
 
 private:
    tcp_socket socket_;
@@ -32,7 +33,6 @@ private:
    // A timer used to inform the write coroutine that there is one
    // message awaiting to be send to redis.
    net::steady_timer timer_;
-   std::queue<request> reqs_;
 
    // A coroutine that keeps reading the socket. When a message
    // arrives it calls on_event.
@@ -50,9 +50,9 @@ private:
                co_await async_read(socket_, buffer, resp_);
 
                if (resp_.get_type() == type::push) {
-                  on_event(command::unknown);
+                  on_event();
                } else {
-                  on_event(reqs_.front().commands.front());
+                  on_event();
                   reqs_.front().commands.pop();
                }
 
@@ -142,7 +142,7 @@ public:
    }
 
    // Function called when data has been received.
-   virtual void on_event(command cmd) = 0;
+   virtual void on_event() = 0;
 };
 
 } // resp3

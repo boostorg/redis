@@ -31,11 +31,14 @@ namespace resp3 {
  *  \param ec Variable where an error is written if one occurs.
  *  \returns The number of bytes that have been written to the stream.
  */
-template<class SyncWriteStream>
+template<
+   class SyncWriteStream,
+   class Request
+>
 std::size_t
 write(
    SyncWriteStream& stream,
-   request& req,
+   Request& req,
    boost::system::error_code& ec)
 {
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
@@ -50,10 +53,13 @@ write(
  *  \param req Sync stream where the request will be written.
  *  \returns The number of bytes that have been written to the stream.
  */
-template<class SyncWriteStream>
+template <
+   class SyncWriteStream,
+   class Request
+>
 std::size_t write(
    SyncWriteStream& stream,
-   request& req)
+   Request& req)
 {
     static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
         "SyncWriteStream type requirements not met");
@@ -132,13 +138,14 @@ async_write_some(
  */
 template<
   class AsyncWriteStream,
+  class Request,
   class CompletionToken =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>
   >
 auto
 async_write(
    AsyncWriteStream& stream,
-   request const& req,
+   Request const& req,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
 {

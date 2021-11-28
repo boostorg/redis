@@ -66,7 +66,7 @@ using response_ignore = response_base;
 net::awaitable<void> ping()
 {
    try {
-      request req;
+      request<command> req;
       req.push(command::hello, 3);
 
       std::vector<int> vec {1, 2, 3, 4, 5, 6};

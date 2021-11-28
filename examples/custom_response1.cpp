@@ -59,7 +59,7 @@ using response_ignore = response_base;
 net::awaitable<void> example()
 {
    try {
-      request req;
+      request<command> req;
       req.push(command::hello, 3);
 
       req.push(command::set, "key", 42);

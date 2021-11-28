@@ -24,7 +24,7 @@ namespace net = aedis::net;
  */
 
 // Adds a new element in the queue if necessary.
-void prepare_next(std::queue<request>& reqs)
+void prepare_next(std::queue<request<command>>& reqs)
 {
    if (std::empty(reqs) || std::size(reqs) == 1)
       reqs.push({});
@@ -33,7 +33,7 @@ void prepare_next(std::queue<request>& reqs)
 /* The function that processes the response has been factored out of
    the coroutine to simplify application logic.
  */
-void process_response(std::queue<request>& reqs, response& resp)
+void process_response(std::queue<request<command>>& reqs, response& resp)
 {
    std::cout
       << reqs.front().commands.front() << ":\n"
@@ -52,7 +52,7 @@ void process_response(std::queue<request>& reqs, response& resp)
 net::awaitable<void> ping()
 {
    try {
-      std::queue<request> reqs;
+      std::queue<request<command>> reqs;
       reqs.push({});
       reqs.back().push(command::hello, 3);
 

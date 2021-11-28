@@ -24,9 +24,16 @@ namespace net = aedis::net;
 
 class myclient : public client_base {
 private:
-   void on_event(command cmd) override
+   void on_event() override
    {
-      std::cout << cmd << ":\n" << resp_ << std::endl;
+      if (resp_.get_type() == type::push) {
+	 std::cout << resp_ << std::endl;
+      } else {
+	 std::cout
+	    << reqs_.front().commands.front() << ":\n"
+	    << resp_ << std::endl;
+      }
+
       resp_.clear();
    }
 
