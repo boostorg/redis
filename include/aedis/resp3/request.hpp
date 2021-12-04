@@ -25,15 +25,39 @@ namespace resp3 {
  *  A request is composed of one or more redis commands and is
  *  referred to in the redis documentation as a pipeline, see
  *  https://redis.io/topics/pipelining.
+ *
+ *  The class maintains a queue of already added commands that is useful in
+ *  async code. The Queue element type is the request template parameter. In
+ *  most cases users will use a command as the element, in other cases however
+ *  you may need to keep more information around for when the response arrives,
+ *  like pointers to http sessions. For example
+ *
+ *  @code
+ *  request<command> req;
+ *
+ *  struct queue_elem {
+ *     command cmd;
+ *     std::weak_ptr<my_http_session> session;
+ *  };
+ *  @endcode
+ *
+ *  The implemtation will access the command in custom queue elements (anything
+ *  other than comamnd) by calling
+ *
+ *  @code
+ *  auto const cmd = get_command(your_obj)
+ *  @endcode
+ *
+ *  which means users will have to define that function.
  */
-template <class Command>
+template <class QueueElem>
 class request {
 private:
    std::string payload_;
 
 public:
    /// The commands that have been queued in this request.
-   std::queue<Command> commands;
+   std::queue<QueueElem> commands;
 
 public:
    /** Clears the request.
@@ -57,7 +81,7 @@ public:
     *  to_string which must be made available by the user.
     */
    template <class... Ts>
-   void push(Command cmd, Ts const&... args)
+   void push(QueueElem qelem, Ts const&... args)
    {
       // Note: Should we detect any std::pair in the type in the pack
       // to calculate the herader size correctly or let users handle
@@ -66,11 +90,12 @@ public:
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(payload_, 1 + pack_size);
 
+      auto const cmd = get_command(qelem);
       detail::add_bulk(payload_, to_string(cmd));
       (detail::add_bulk(payload_, args), ...);
 
       if (!detail::has_push_response(cmd))
-         commands.emplace(cmd);
+         commands.emplace(qelem);
    }
 
    /** @brief Appends a new command to end of the request.
@@ -91,7 +116,7 @@ public:
        \endcode
     */
    template <class Key, class ForwardIterator>
-   void push_range(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void push_range(QueueElem qelem, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would helpful to users
       // to assert the value type is a pair.
@@ -101,6 +126,7 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(payload_, 2 + size * distance);
+      auto const cmd = get_command(qelem);
       detail::add_bulk(payload_, to_string(cmd));
       detail::add_bulk(payload_, key);
 
@@ -108,7 +134,7 @@ public:
 	 detail::add_bulk(payload_, *begin);
 
       if (!detail::has_push_response(cmd))
-         commands.emplace(cmd);
+         commands.emplace(qelem);
    }
 
    /** @brief Appends a new command to end of the request.
@@ -127,7 +153,7 @@ public:
        \endcode
     */
    template <class ForwardIterator>
-   void push_range(Command cmd, ForwardIterator begin, ForwardIterator end)
+   void push_range(QueueElem qelem, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would be a good idea to assert
       // the value type is a pair.
@@ -137,38 +163,16 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(payload_, 1 + size * distance);
+      auto const cmd = get_command(qelem);
       detail::add_bulk(payload_, to_string(cmd));
 
       for (; begin != end; ++begin)
 	 detail::add_bulk(payload_, *begin);
 
       if (!detail::has_push_response(cmd))
-         commands.emplace(cmd);
+         commands.emplace(qelem);
    }
 };
-
-// TODO: Incorporate this function in the documentation.
-
-/** @brief Prepares the back of the queue to receive further commands. 
- *
- *  If true is returned the request in the front of the queue can be
- *  sent to the server. See async_write_some.
- */
-template <class Queue>
-bool prepare_next(Queue& reqs)
-{
-   if (std::empty(reqs)) {
-      reqs.push({});
-      return true;
-   }
-
-   if (std::size(reqs) == 1) {
-      reqs.push({});
-      return false;
-   }
-
-   return false;
-}
 
 } // resp3
 } // aedis

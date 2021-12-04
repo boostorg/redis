@@ -148,4 +148,8 @@ char const* to_string(command c);
 /// Writes the command to the output stream.
 std::ostream& operator<<(std::ostream& os, command c);
 
+// TODO: Move to detail.
+inline auto get_command(command cmd)
+  { return cmd; }
+
 } // aedis

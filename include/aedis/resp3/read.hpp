@@ -65,6 +65,7 @@ auto read(
  *  
  *  \param stream Synchronous read stream from which the response will be read.
  *  \param buf Buffer for temporary storage e.g. std::string or std::vector<char>.
+ *  \param res Reference to the response.
  *  \returns The number of bytes that have been read.
  */
 template<class SyncReadStream, class Storage>
