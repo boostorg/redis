@@ -16,39 +16,62 @@
 #include <iterator>
 
 #include <aedis/resp3/detail/composer.hpp>
+#include <aedis/command.hpp>
 
 namespace aedis {
 namespace resp3 {
 
-/** @brief A Redis request (also referred to as a pipeline).
+// TODO: move to detail directory.
+namespace detail {
+
+template <class T>
+struct request_get_command {
+   static command apply(T const& e) noexcept
+      { return e.get_command(); }
+};
+
+template <>
+struct request_get_command<command> {
+   static command apply(command e) noexcept
+      { return e; }
+};
+
+} // detail
+
+/** @brief A Redis request
  *  
- *  A request is composed of one or more redis commands and is
- *  referred to in the redis documentation as a pipeline, see
+ *  This class offers functions to serialize user data into a redis
+ *  request. A request is composed of one or more redis commands and
+ *  is referred to in the redis documentation as a pipeline, see
  *  https://redis.io/topics/pipelining.
  *
- *  The class maintains a queue of already added commands that is useful in
- *  async code. The Queue element type is the request template parameter. In
- *  most cases users will use a command as the element, in other cases however
- *  you may need to keep more information around for when the response arrives,
- *  like pointers to http sessions. For example
+ *  The class maintains an internal queue of already added commands to
+ *  assist users processing the response to each individual command
+ *  contained in the request.
+ *
+ *  The element type of this queue is passed as a template parameter
+ *  in the request class. For example
  *
  *  @code
- *  request<command> req;
+ *     request<command> req;
+ *  @endcode
  *
- *  struct queue_elem {
+ *  In some cases users need keep more information around for when the
+ *  response arrives, like pointers to http sessions, etc.
+ *
+ *  @code
+ *  struct element {
  *     command cmd;
  *     std::weak_ptr<my_http_session> session;
+ *
+ *     // Required member function. 
+ *     command get_command() const noexcept
+ *        {return cmd;}
  *  };
  *  @endcode
  *
- *  The implemtation will access the command in custom queue elements (anything
- *  other than comamnd) by calling
- *
- *  @code
- *  auto const cmd = get_command(your_obj)
- *  @endcode
- *
- *  which means users will have to define that function.
+ *  Notice users will be required to define the get_command member
+ *  function for their custom types.
  */
 template <class QueueElem>
 class request {
@@ -90,7 +113,7 @@ public:
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(payload_, 1 + pack_size);
 
-      auto const cmd = get_command(qelem);
+      auto const cmd = detail::request_get_command<QueueElem>::apply(qelem);
       detail::add_bulk(payload_, to_string(cmd));
       (detail::add_bulk(payload_, args), ...);
 
@@ -126,7 +149,7 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(payload_, 2 + size * distance);
-      auto const cmd = get_command(qelem);
+      auto const cmd = detail::request_get_command<QueueElem>::apply(qelem);
       detail::add_bulk(payload_, to_string(cmd));
       detail::add_bulk(payload_, key);
 
@@ -163,7 +186,7 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(payload_, 1 + size * distance);
-      auto const cmd = get_command(qelem);
+      auto const cmd = detail::request_get_command<QueueElem>::apply(qelem);
       detail::add_bulk(payload_, to_string(cmd));
 
       for (; begin != end; ++begin)

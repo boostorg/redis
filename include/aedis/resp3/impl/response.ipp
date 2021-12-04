@@ -11,11 +11,6 @@
 namespace aedis {
 namespace resp3 {
 
-void response::clear()
-{
-   data_.resize(0);
-}
-
 bool operator==(response::node const& a, response::node const& b)
 {
    return a.size == b.size
@@ -79,55 +74,17 @@ void response::node::dump(dump_format format, int indent, std::string& out) cons
 
 std::string response::dump(node::dump_format format, int indent) const
 {
-   if (std::empty(data_))
+   if (std::empty(result))
       return {};
 
    std::string res;
-   for (auto i = 0ULL; i < std::size(data_) - 1; ++i) {
-      data_[i].dump(format, indent, res);
+   for (auto i = 0ULL; i < std::size(result) - 1; ++i) {
+      result[i].dump(format, indent, res);
       res += '\n';
    }
 
-   data_.back().dump(format, indent, res);
+   result.back().dump(format, indent, res);
    return res;
-}
-
-
-response::const_iterator response::cbegin() const
-{
-   assert(!std::empty(data_));
-   assert(is_aggregate(data_.front().data_type));
-
-   return std::cbegin(data_) + 1;
-}
-
-response::const_iterator response::cend() const
-{
-   auto size = data_.front().size;
-   if (is_aggregate(data_.front().data_type))
-      size *= 2;
-
-   return cbegin() + size;
-}
-
-response::const_reference response::at(size_type pos) const
-{
-   if (is_aggregate(data_.front().data_type))
-      return data_.at(pos + 1);
-
-   return data_.at(pos);
-}
-
-response::size_type response::size() const noexcept
-{
-   if (is_aggregate(data_.front().data_type)) {
-      assert(std::size(data_) >= 1);
-      auto const logical_size = std::size(data_) - 1;
-      assert(data_.front().size == logical_size);
-      return data_.front().size;
-   }
-
-   return 1;
 }
 
 } // resp3

@@ -20,18 +20,16 @@ using tcp_acceptor = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::
 using namespace aedis::net::experimental::awaitable_operators;
 
 struct user_session_base {
-  virtual ~user_session_base() {}
-  virtual void on_event(command cmd) = 0;
+   virtual ~user_session_base() {}
+   virtual void on_event(command cmd) = 0;
 };
 
 struct queue_elem {
-  command cmd = command::unknown;
-  response_base* resp = nullptr;
-  std::weak_ptr<user_session_base> session = std::shared_ptr<user_session_base>{nullptr};
+   command cmd = command::unknown;
+   response_base* resp = nullptr;
+   std::weak_ptr<user_session_base> session = std::shared_ptr<user_session_base>{nullptr};
+   auto get_command() const noexcept { return cmd; }
 };
-
-auto get_command(queue_elem const& e)
-  { return e.cmd; }
 
 class my_redis_client : public client_base<queue_elem> {
 private:
@@ -76,8 +74,8 @@ public:
    void on_event(command cmd) override
    {
       assert(cmd == command::ping);
-      deliver(resp_.raw().back().data);
-      resp_.clear();
+      deliver(resp_.result.back().data);
+      resp_.result.clear();
    }
 
 private:

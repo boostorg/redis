@@ -47,14 +47,14 @@ net::awaitable<void> subscriber()
    co_await async_read(socket, buffer, resp);
 
    // Saves the id of this connection.
-   auto const id = resp.raw().at(8).data;
+   auto const id = resp.result.at(8).data;
 
    // Reads the response to the subscribe command.
    co_await async_read(socket, buffer, resp);
 
    // Loops to receive server pushes.
    for (;;) {
-      resp.clear();
+      resp.result.clear();
       co_await async_read(socket, buffer, resp);
 
       std::cout

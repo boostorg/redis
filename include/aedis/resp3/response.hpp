@@ -16,12 +16,8 @@ namespace aedis {
 namespace resp3 {
 
 /** \brief A general pupose redis response class
-  
-    A pre-order-view of the response tree.
-
  */
-class response : public response_base {
-public:
+struct response : response_base {
    /** \brief A node in the response tree.
     */
    struct node {
@@ -43,80 +39,32 @@ public:
       void dump(dump_format format, int indent, std::string& out) const;
    };
 
+   /// The container used to store the response.
    using storage_type = std::vector<node>;
-   using value_type = storage_type::value_type;
-   using iterator = storage_type::iterator;
-   using const_iterator = storage_type::const_iterator;
-   using reference = storage_type::reference;
-   using const_reference = storage_type::const_reference;
-   using pointer = storage_type::pointer;
-   using size_type = storage_type::size_type;
 
-private:
-
-   friend
-   std::ostream& operator<<(std::ostream& os, response const& r);
-
-   storage_type data_;
-
-public:
-   /// Destructor
-   virtual ~response() = default;
-
-   auto const& raw() const noexcept {return data_;}
-   auto& raw() noexcept {return data_;}
-
-   /// Clears the response but does not release already acquired memory.
-   /** Clears the internal buffers but does not release already aquired
-    *  memory. This function is usually called before reading a new
-    *  response.
-    */  
-   void clear();
-
-   /// Returns true if the response is empty.
-   auto empty() const noexcept { return std::empty(data_);}
-
-   /// Returns the RESP3 type of the response.
-   auto get_type() const noexcept { return data_.front().data_type; }
+   /// Variable that stores the response in pre-order.
+   storage_type result;
 
    /// Converts the response to a string.
    std::string
    dump(node::dump_format format = node::dump_format::clean,
 	int indent = 3) const;
 
-   /// Returns the begin of aggregate data.
-   /** Useful only for flat aggregate types i.e. aggregate that don't 
-    *  contain aggregate themselves.
-    */
-   const_iterator cbegin() const;
-
-   /// Returns the end of aggregate data.
-   const_iterator cend() const;
-   
-   /// Access the element at the specified position.
-   const_reference& at(size_type pos) const;
-
-   /// Logical size of the response.
-   /** For aggregate data this will be the size of the aggregate, for
-    * non-aggregate it will be alsways one.
-    */
-   size_type size() const noexcept;
-
+   /// Overrides the base class add function.
    void add(type t, std::size_t n, std::size_t depth, char const* data = nullptr, std::size_t size = 0) override
-      { data_.emplace_back(n, depth, t, std::string{data, size}); }
+      { result.emplace_back(n, depth, t, std::string{data, size}); }
 };
 
 /// Equality comparison for a node.
 bool operator==(response::node const& a, response::node const& b);
 
-/** Writes the text representation of node to the output stream.
+/** \brief Writes node text to the output stream.
  *  
  *  NOTE: Binary data is not converted to text.
  */
 std::ostream& operator<<(std::ostream& os, response::node const& o);
 
-/** Writes the text representation of the response to the output
- *  stream the response to the output stream.
+/** \brief Writes the response text to the output stream.
  */
 std::ostream& operator<<(std::ostream& os, response const& r);
 

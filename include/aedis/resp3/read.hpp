@@ -24,7 +24,7 @@ namespace resp3 {
 /** \file read.hpp
     \brief Read utility functions.
   
-    Synchronous and asynchronous utility functions.
+    Synchronous and asynchronous to read responses to redis commands.
  */
 
 template <class SyncReadStream, class Storage>
