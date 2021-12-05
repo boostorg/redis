@@ -10,14 +10,13 @@
 #include <aedis/command.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/request.hpp>
-#include <aedis/resp3/response_base.hpp>
 
 namespace aedis {
 namespace resp3 {
 
 /** \brief A general pupose redis response class
  */
-struct response : response_base {
+struct response {
    /** \brief A node in the response tree.
     */
    struct node {
@@ -50,8 +49,23 @@ struct response : response_base {
    dump(node::dump_format format = node::dump_format::clean,
 	int indent = 3) const;
 
-   /// Overrides the base class add function.
-   void add(type t, std::size_t n, std::size_t depth, char const* data = nullptr, std::size_t size = 0) override
+   /** @brief Function called by the parser when new data has been processed.
+    *  
+    *  Users who what to customize their response types are required
+    *  to define this function, see examples.
+    *
+    *  \param t The RESP3 type of the data.
+    *
+    *  \param n When t is an aggregate data type this will contain its size
+    *     (see also element_multiplicity) for simple data types this is always 1.
+    *
+    *  \param depth The element depth in the tree.
+    *
+    *  \param data A pointer to the data.
+    *
+    *  \param size The size of data.
+    */
+   void add(type t, std::size_t n, std::size_t depth, char const* data = nullptr, std::size_t size = 0)
       { result.emplace_back(n, depth, t, std::string{data, size}); }
 };
 

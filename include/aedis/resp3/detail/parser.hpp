@@ -9,28 +9,127 @@
 
 #include <string_view>
 #include <aedis/net.hpp>
-#include <aedis/resp3/response_base.hpp>
 
 namespace aedis {
 namespace resp3 {
 namespace detail {
 
+type to_type(char c);
+std::size_t length(char const* p);
+
 // resp3 parser.
+template <class ResponseAdapter>
 class parser {
 private:
-   response_base* res_;
+   ResponseAdapter* res_;
    std::size_t depth_;
    std::size_t sizes_[6];
    std::size_t bulk_length_;
    type bulk_;
 
-   void init(response_base* res);
+   void init(ResponseAdapter* res)
+   {
+      res_ = res;
+      depth_ = 0;
+      sizes_[0] = 2;
+      sizes_[1] = 1;
+      sizes_[2] = 1;
+      sizes_[3] = 1;
+      sizes_[4] = 1;
+      sizes_[5] = 1;
+      sizes_[6] = 1;
+      bulk_ = type::invalid;
+      bulk_length_ = std::numeric_limits<std::size_t>::max();
+   }
 
 public:
-   parser(response_base* res);
+   parser(ResponseAdapter* res)
+      { init(res); }
 
    // Returns the number of bytes in data that have been consumed.
-   std::size_t advance(char const* data, std::size_t n);
+   std::size_t advance(char const* data, std::size_t n)
+   {
+      if (bulk_ != type::invalid) {
+	 n = bulk_length_ + 2;
+	 switch (bulk_) {
+	    case type::streamed_string_part:
+	    {
+	      if (bulk_length_ == 0) {
+		 sizes_[depth_] = 1;
+	      } else {
+		 res_->add(bulk_, 1, depth_, data, bulk_length_);
+	      }
+	    } break;
+	    default: res_->add(bulk_, 1, depth_, data, bulk_length_);
+	 }
+
+	 bulk_ = type::invalid;
+	 --sizes_[depth_];
+
+      } else if (sizes_[depth_] != 0) {
+	 auto const t = to_type(*data);
+	 switch (t) {
+	    case type::blob_error:
+	    case type::verbatim_string:
+	    case type::streamed_string_part:
+	    {
+	       bulk_length_ = length(data + 1);
+	       bulk_ = t;
+	    } break;
+	    case type::blob_string:
+	    {
+	       if (*(data + 1) == '?') {
+		  sizes_[++depth_] = std::numeric_limits<std::size_t>::max();
+	       } else {
+		  bulk_length_ = length(data + 1);
+		  bulk_ = type::blob_string;
+	       }
+	    } break;
+	    case type::simple_error:
+	    case type::number:
+	    case type::doublean:
+	    case type::boolean:
+	    case type::big_number:
+	    case type::simple_string:
+	    {
+	       res_->add(t, 1, depth_, data + 1, n - 3);
+	       --sizes_[depth_];
+	    } break;
+	    case type::null:
+	    {
+	       res_->add(type::null, 1, depth_, nullptr, 0);
+	       --sizes_[depth_];
+	    } break;
+	    case type::push:
+	    case type::set:
+	    case type::array:
+	    case type::attribute:
+	    case type::map:
+	    {
+	       auto const l = length(data + 1);
+	       res_->add(t, l, depth_, nullptr, 0);
+
+	       if (l == 0) {
+		  --sizes_[depth_];
+	       } else {
+		  auto const m = element_multiplicity(t);
+		  sizes_[++depth_] = m * l;
+	       }
+	    } break;
+	    default:
+	    {
+	       // TODO: This should cause an error not an assert.
+	       assert(false);
+	    }
+	 }
+      }
+      
+      while (sizes_[depth_] == 0)
+	 --sizes_[--depth_];
+      
+      return n;
+   }
+
 
    // returns true when the parser is done with the current message.
    auto done() const noexcept
@@ -47,16 +146,20 @@ public:
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
 // 1.
-template <class AsyncReadStream, class Storage>
+template <
+   class AsyncReadStream,
+   class Storage,
+   class ResponseAdapter
+>
 class parse_op {
 private:
    AsyncReadStream& stream_;
    Storage* buf_ = nullptr;
-   detail::parser parser_;
+   detail::parser<ResponseAdapter> parser_;
    int start_ = 1;
 
 public:
-   parse_op(AsyncReadStream& stream, Storage* buf, response_base* res)
+   parse_op(AsyncReadStream& stream, Storage* buf, ResponseAdapter* res)
    : stream_ {stream}
    , buf_ {buf}
    , parser_ {res}

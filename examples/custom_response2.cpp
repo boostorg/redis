@@ -19,7 +19,6 @@ using aedis::resp3::type;
 using aedis::resp3::request;
 using aedis::resp3::response;
 using aedis::resp3::async_read;
-using aedis::resp3::response_base;
 
 namespace net = aedis::net;
 
@@ -35,7 +34,7 @@ namespace net = aedis::net;
 /* A response type that parses the response directly in a
  *  std::vector<int>
  */
-class response_vector : public response_base {
+class response_vector {
 private:
    int i_ = 0;
 
@@ -47,7 +46,7 @@ public:
        std::size_t aggregate_size,
        std::size_t depth,
        char const* data,
-       std::size_t data_size) override
+       std::size_t data_size)
    {
       if (is_aggregate(t)) {
          auto const m = element_multiplicity(t);
@@ -61,7 +60,16 @@ public:
    }
 };
 
-using response_ignore = response_base;
+struct response_ignore {
+
+   void
+   add(type t,
+       std::size_t aggregate_size,
+       std::size_t depth,
+       char const* data = nullptr,
+       std::size_t data_size = 0u) { }
+};
+
 
 net::awaitable<void> ping()
 {

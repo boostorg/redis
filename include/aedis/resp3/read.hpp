@@ -12,7 +12,6 @@
 #include <aedis/resp3/request.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response.hpp>
-#include <aedis/resp3/response_base.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/write.hpp>
 
@@ -27,14 +26,20 @@ namespace resp3 {
     Synchronous and asynchronous to read responses to redis commands.
  */
 
-template <class SyncReadStream, class Storage>
+/** \brief Reads a response synchronously.
+ */
+template <
+   class SyncReadStream,
+   class Storage,
+   class ResponseAdapter
+>
 auto read(
    SyncReadStream& stream,
    Storage& buf,
-   response_base& res,
+   ResponseAdapter& res,
    boost::system::error_code& ec)
 {
-   detail::parser p {&res};
+   detail::parser<ResponseAdapter> p {&res};
    std::size_t n = 0;
    do {
       if (p.bulk() == type::invalid) {
@@ -68,12 +73,16 @@ auto read(
  *  \param res Reference to the response.
  *  \returns The number of bytes that have been read.
  */
-template<class SyncReadStream, class Storage>
+template <
+   class SyncReadStream,
+   class Storage,
+   class Response
+   >
 std::size_t
 read(
    SyncReadStream& stream,
    Storage& buf,
-   response_base& res)
+   Response& res)
 {
    boost::system::error_code ec;
    auto const n = read(stream, buf, res, ec);
@@ -91,22 +100,23 @@ read(
  */
 template <
    class AsyncReadStream,
-   class Response,
    class Storage,
+   class ResponseAdapter,
    class CompletionToken =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(
    AsyncReadStream& stream,
    Storage& buffer,
-   Response& resp,
+   ResponseAdapter& resp,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(detail::parse_op<AsyncReadStream, Storage> {stream, &buffer, &resp},
+      >(detail::parse_op<AsyncReadStream, Storage, ResponseAdapter>
+	    {stream, &buffer, &resp},
         token,
         stream);
 }

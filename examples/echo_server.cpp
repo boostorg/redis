@@ -10,7 +10,6 @@ using aedis::command;
 using aedis::resp3::request;
 using aedis::resp3::type;
 using aedis::resp3::response;
-using aedis::resp3::response_base;
 using aedis::resp3::client_base;
 
 using tcp_socket = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
@@ -26,7 +25,7 @@ struct user_session_base {
 
 struct queue_elem {
    command cmd = command::unknown;
-   response_base* resp = nullptr;
+   response* resp = nullptr;
    std::weak_ptr<user_session_base> session = std::shared_ptr<user_session_base>{nullptr};
    auto get_command() const noexcept { return cmd; }
 };

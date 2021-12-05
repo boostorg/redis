@@ -19,7 +19,6 @@ using aedis::resp3::type;
 using aedis::resp3::request;
 using aedis::resp3::response;
 using aedis::resp3::async_read;
-using aedis::resp3::response_base;
 
 namespace net = aedis::net;
 
@@ -32,15 +31,15 @@ namespace net = aedis::net;
    variable thus avoiding unnecessary copies. The same reasoning can
    be applied for keys containing e.g. json strings.
  */
-struct response_int : response_base {
+struct response_int {
    int result;
 
    void
    add(type t,
        std::size_t aggregate_size,
        std::size_t depth,
-       char const* data,
-       std::size_t data_size) override
+       char const* data = nullptr,
+       std::size_t data_size = 0)
    {
       auto r = std::from_chars(data, data + data_size, result);
       if (r.ec == std::errc::invalid_argument)
@@ -49,7 +48,16 @@ struct response_int : response_base {
 };
 
 // To ignore the reponse of a command use the response base class.
-using response_ignore = response_base;
+struct response_ignore {
+
+   void
+   add(type t,
+       std::size_t aggregate_size,
+       std::size_t depth,
+       char const* data = nullptr,
+       std::size_t data_size = 0u) { }
+};
+
 
 /* This coroutine avoids reading the response to a get command in a
    temporary buffer by using a custom response. This is always
