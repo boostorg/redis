@@ -25,7 +25,7 @@ struct basic_flat_array_adapter {
 
    basic_flat_array_adapter(basic_flat_array<T>* p) : result(p) {}
 
-   void add(type t, int n, int depth, char const* data = nullptr, std::size_t size = 0) override
+   void operator()(type t, int n, int depth, char const* data = nullptr, std::size_t size = 0) override
    {
       if (is_aggregate(t)) {
          i = 0;

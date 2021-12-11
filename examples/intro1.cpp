@@ -12,48 +12,40 @@
 
 using aedis::command;
 using aedis::resp3::request;
-using aedis::resp3::response;
 using aedis::resp3::async_read;
+using aedis::resp3::adapt;
 
 namespace net = aedis::net;
 
-/* A simple example that illustrates the basic principles. Three
-   commands are sent to redis in the same request
+/** A simple example that illustrates the basic principles.
+    We send three commands in the same request and read the responses
+    one after the other
   
-      1. hello
-      2. ping
-      3. quit
-  
-   The responses are then read individually and for simplification in
-   the same response object.
+    1. hello: Must be be the first command after the connection has been
+       stablished. We ignore its response here for simplicity.
+
+    2. ping
+
+    3. quit: Asks the redis server to send the requests after processinf the
+       request.
 */
 net::awaitable<void> ping()
 {
    try {
+      auto socket = co_await connect();
+
       request<command> req;
       req.push(command::hello, 3);
       req.push(command::ping);
       req.push(command::quit);
-
-      // Helper function form utils.ipp.
-      auto socket = co_await make_connection("127.0.0.1", "6379");
-
-      // Writes to the stream (sends to redis)
       co_await async_write(socket, req);
 
-      // Read auxiliary buffer.
       std::string buffer;
+      std::string resp;
 
-      response resp;
-
-      // Reads the response to hello
-      co_await async_read(socket, buffer, resp);
-
-      // Reads the response to ping
-      co_await async_read(socket, buffer, resp);
-
-      // Reads the response to quit
-      co_await async_read(socket, buffer, resp);
+      co_await async_read(socket, buffer); // hello
+      co_await async_read(socket, buffer, adapt(resp)); // ping
+      co_await async_read(socket, buffer); // quit
 
       std::cout << resp << std::endl;
 

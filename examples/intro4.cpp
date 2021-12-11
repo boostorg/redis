@@ -37,25 +37,26 @@ net::awaitable<void> subscriber()
    req.push(command::hello, "3");
    req.push(command::subscribe, "channel1", "channel2");
 
-   auto socket = co_await make_connection("127.0.0.1", "6379");
+   auto socket = co_await connect();
    co_await async_write(socket, req);
 
    std::string buffer;
-   resp3::response resp;
+   std::vector<resp3::node> resp;
+   auto adapter = resp3::response_adapter(&resp);
 
    // Reads the response to the hello command.
-   co_await async_read(socket, buffer, resp);
+   co_await async_read(socket, buffer, adapter);
 
    // Saves the id of this connection.
-   auto const id = resp.result.at(8).data;
+   auto const id = resp.at(8).data;
 
    // Reads the response to the subscribe command.
-   co_await async_read(socket, buffer, resp);
+   co_await async_read(socket, buffer, adapter);
 
    // Loops to receive server pushes.
    for (;;) {
-      resp.result.clear();
-      co_await async_read(socket, buffer, resp);
+      resp.clear();
+      co_await async_read(socket, buffer, adapter);
 
       std::cout
 	 << "Subscriber " << id << ":\n"

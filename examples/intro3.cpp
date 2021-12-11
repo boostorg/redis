@@ -11,8 +11,9 @@
 
 using aedis::command;
 using aedis::resp3::request;
-using aedis::resp3::response;
 using aedis::resp3::async_read;
+using aedis::resp3::node;
+using aedis::resp3::response_adapter;
 
 namespace net = aedis::net;
 
@@ -33,7 +34,7 @@ void prepare_next(std::queue<request<command>>& reqs)
 /* The function that processes the response has been factored out of
    the coroutine to simplify application logic.
  */
-void process_response(std::queue<request<command>>& reqs, response& resp)
+void process_response(std::queue<request<command>>& reqs, std::vector<node> const& resp)
 {
    std::cout
       << reqs.front().commands.front() << ":\n"
@@ -56,14 +57,16 @@ net::awaitable<void> ping()
       reqs.push({});
       reqs.back().push(command::hello, 3);
 
-      auto socket = co_await make_connection("127.0.0.1", "6379");
+      auto socket = co_await connect();
       std::string buffer;
 
       while (!std::empty(reqs)) {
 	 co_await async_write(socket, reqs.front());
 	 while (!std::empty(reqs.front().commands)) {
-	    response resp;
-	    co_await async_read(socket, buffer, resp);
+            std::vector<node> resp;
+            auto adapter = response_adapter(&resp);
+
+	    co_await async_read(socket, buffer, adapter);
 	    process_response(reqs, resp);
 	    reqs.front().commands.pop();
 	 }

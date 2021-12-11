@@ -9,8 +9,9 @@ namespace net = aedis::net;
 using aedis::command;
 using aedis::resp3::request;
 using aedis::resp3::type;
-using aedis::resp3::response;
 using aedis::resp3::client_base;
+using aedis::resp3::response_adapter;
+using aedis::resp3::node;
 
 using tcp_socket = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
 using tcp_resolver = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::resolver>;
@@ -19,13 +20,13 @@ using tcp_acceptor = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::
 using namespace aedis::net::experimental::awaitable_operators;
 
 struct user_session_base {
-   virtual ~user_session_base() {}
-   virtual void on_event(command cmd) = 0;
+  virtual ~user_session_base() {}
+  virtual void on_event(command cmd) = 0;
 };
 
 struct queue_elem {
    command cmd = command::unknown;
-   response* resp = nullptr;
+   response_adapter adapter;
    std::weak_ptr<user_session_base> session = std::shared_ptr<user_session_base>{nullptr};
    auto get_command() const noexcept { return cmd; }
 };
@@ -73,8 +74,8 @@ public:
    void on_event(command cmd) override
    {
       assert(cmd == command::ping);
-      deliver(resp_.result.back().data);
-      resp_.result.clear();
+      deliver(resp_.back().data);
+      resp_.clear();
    }
 
 private:
@@ -86,7 +87,7 @@ private:
             co_await net::async_read_until(socket_, net::dynamic_buffer(msg, 1024), "\n");
 
          auto filler = [self = shared_from_this(), &msg](auto& req)
-            { req.push({command::ping, &self->resp_, self}, msg); };
+            { req.push({command::ping, response_adapter(&self->resp_), self}, msg); };
 
          rclient_->send(filler);
 
@@ -130,7 +131,7 @@ private:
    net::steady_timer timer_;
    std::deque<std::string> write_msgs_;
    std::shared_ptr<my_redis_client> rclient_;
-   response resp_;
+   std::vector<node> resp_;
 };
 
 // Start this after the connection to the database has been stablished.

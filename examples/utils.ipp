@@ -12,9 +12,9 @@
 #include "types.hpp"
 
 aedis::net::awaitable<tcp_socket>
-make_connection(
-   std::string host,
-   std::string port)
+connect(
+   std::string host = "127.0.0.1",
+   std::string port = "6379")
 {
    auto ex = co_await aedis::net::this_coro::executor;
    tcp_resolver resolver{ex};

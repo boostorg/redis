@@ -27,7 +27,7 @@ template <class QueueElem>
 class client_base : public std::enable_shared_from_this<client_base<QueueElem>> {
 protected:
    /// The response used for push types.
-   response push_resp_;
+  std::vector<node> push_resp_;
 
 private:
    std::queue<request<QueueElem>> reqs_;
@@ -50,11 +50,12 @@ private:
                auto const t = co_await async_read_type(socket_, buffer);
 
                if (t == type::push) {
-                  co_await async_read(socket_, buffer, push_resp_);
+                  auto adapter = response_adapter(&push_resp_);
+                  co_await async_read(socket_, buffer, adapter);
                   on_push();
                } else {
-                  auto* resp = reqs_.front().commands.front().resp;
-                  co_await async_read(socket_, buffer, *resp);
+                  auto adapter = reqs_.front().commands.front().adapter;
+                  co_await async_read(socket_, buffer, adapter);
                   on_event(reqs_.front().commands.front());
                   reqs_.front().commands.pop();
                }
@@ -91,9 +92,9 @@ private:
       req.push(command::hello, 3);
       co_await async_write(socket_, req);
 
-      response resp;
+      adapter_ignore ignore;
       std::string buffer;
-      co_await async_read(socket_, buffer, resp);
+      co_await async_read(socket_, buffer, ignore);
       // TODO: Set the information retrieved from hello.
    }
 

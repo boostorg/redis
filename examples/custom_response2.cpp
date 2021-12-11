@@ -17,93 +17,78 @@
 using aedis::command;
 using aedis::resp3::type;
 using aedis::resp3::request;
-using aedis::resp3::response;
 using aedis::resp3::async_read;
+using aedis::resp3::node;
+using aedis::resp3::response_adapter;
+using aedis::resp3::adapter_ignore;
+using aedis::resp3::adapt;
 
 namespace net = aedis::net;
 
-/* \brief An example response class for aggregate data types.
-  
-    Similar to custon_response1 but handles aggregagate data types.
-  
-    Instead of reading a response into a std::vector<std::string> and
-    then converting to a std::vector<int> we parse the ints form the
-    read buffer directly into an int.
- */
+request<command>
+make_request()
+{
+  std::vector<int> vec {1, 2, 3, 4, 5, 6};
 
-/* A response type that parses the response directly in a
- *  std::vector<int>
- */
-class response_vector {
-private:
-   int i_ = 0;
+  request<command> req;
+  req.push(command::hello, 3);
+  req.push_range(command::rpush, "key2", std::cbegin(vec), std::cend(vec));
+  req.push(command::lrange, "key2", 0, -1);
+  req.push(command::lrange, "key2", 0, -1);
+  req.push(command::lrange, "key2", 0, -1);
+  req.push(command::lrange, "key2", 0, -1);
+  req.push(command::lrange, "key2", 0, -1);
+  req.push(command::lrange, "key2", 0, -1);
+  req.push(command::quit);
 
-public:
-   std::vector<int> result;
-
-   void
-   add(type t,
-       std::size_t aggregate_size,
-       std::size_t depth,
-       char const* data,
-       std::size_t data_size)
-   {
-      if (is_aggregate(t)) {
-         auto const m = element_multiplicity(t);
-         result.resize(m * aggregate_size);
-      } else {
-         auto r = std::from_chars(data, data + data_size, result.at(i_));
-         if (r.ec == std::errc::invalid_argument)
-            throw std::runtime_error("from_chars: Unable to convert");
-         ++i_;
-      }
-   }
-};
-
-struct response_ignore {
-
-   void
-   add(type t,
-       std::size_t aggregate_size,
-       std::size_t depth,
-       char const* data = nullptr,
-       std::size_t data_size = 0u) { }
-};
-
+  return req;
+}
 
 net::awaitable<void> ping()
 {
    try {
-      request<command> req;
-      req.push(command::hello, 3);
+      auto socket = co_await connect();
+      auto req = make_request();
 
-      std::vector<int> vec {1, 2, 3, 4, 5, 6};
-      req.push_range(command::rpush, "key2", std::cbegin(vec), std::cend(vec));
-
-      req.push(command::lrange, "key2", 0, -1);
-      req.push(command::quit);
-
-      auto socket = co_await make_connection("127.0.0.1", "6379");
       co_await async_write(socket, req);
 
       std::string buffer;
-      response_ignore ignore;
 
-      // hello
-      co_await async_read(socket, buffer, ignore);
+      co_await async_read(socket, buffer); // hello
+      co_await async_read(socket, buffer); // rpush
 
-      // rpush
-      co_await async_read(socket, buffer, ignore);
+      std::vector<std::string> svec; // Response as std::vector<std::string>.
+      co_await async_read(socket, buffer, adapt(svec)); // lrange
 
-      // lrange
-      response_vector vec_resp;
-      co_await async_read(socket, buffer, vec_resp);
+      std::list<std::string> slist; // Response as list.
+      co_await async_read(socket, buffer, adapt(slist)); // lrange
 
-      for (auto e: vec_resp.result)
-         std::cout << e << std::endl;
+      std::deque<std::string> sdeq; // Response as list.
+      co_await async_read(socket, buffer, adapt(sdeq)); // lrange
 
-      // quit.
-      co_await async_read(socket, buffer, ignore);
+      std::list<int> list; // Response as list.
+      co_await async_read(socket, buffer, adapt(list)); // lrange
+
+      std::vector<int> vec; // Response as vector.
+      co_await async_read(socket, buffer, adapt(vec)); // lrange
+
+      std::deque<int> deq; // Response as deque.
+      co_await async_read(socket, buffer, adapt(deq)); // lrange
+
+      for (auto e: svec) std::cout << e << " ";
+      std::cout << std::endl;
+      for (auto e: slist) std::cout << e << " ";
+      std::cout << std::endl;
+      for (auto e: list) std::cout << e << " ";
+      std::cout << std::endl;
+      for (auto e: vec) std::cout << e << " ";
+      std::cout << std::endl;
+      for (auto e: sdeq) std::cout << e << " ";
+      std::cout << std::endl;
+      for (auto e: deq) std::cout << e << " ";
+      std::cout << std::endl;
+
+      co_await async_read(socket, buffer); // quit.
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

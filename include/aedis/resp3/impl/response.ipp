@@ -11,7 +11,7 @@
 namespace aedis {
 namespace resp3 {
 
-bool operator==(response::node const& a, response::node const& b)
+bool operator==(node const& a, node const& b)
 {
    return a.size == b.size
        && a.depth == b.depth
@@ -19,24 +19,24 @@ bool operator==(response::node const& a, response::node const& b)
        && a.data == b.data;
 };
 
-std::ostream& operator<<(std::ostream& os, response::node const& o)
+std::ostream& operator<<(std::ostream& os, node const& o)
 {
    std::string res;
-   o.dump(response::node::dump_format::clean, 3, res);
+   o.dump(node::dump_format::clean, 3, res);
    os << res;
    return os;
 }
 
-std::ostream& operator<<(std::ostream& os, response const& r)
+std::ostream& operator<<(std::ostream& os, storage_type const& r)
 {
-   os << r.dump();
+   os << dump(r);
    return os;
 }
 
-void response::node::dump(dump_format format, int indent, std::string& out) const
+void node::dump(dump_format format, int indent, std::string& out) const
 {
    switch (format) {
-      case response::node::dump_format::raw:
+      case node::dump_format::raw:
       {
 	 out += std::to_string(depth);
 	 out += '\t';
@@ -47,7 +47,7 @@ void response::node::dump(dump_format format, int indent, std::string& out) cons
 	 if (!is_aggregate(data_type))
 	    out += data;
       } break;
-      case response::node::dump_format::clean:
+      case node::dump_format::clean:
       {
 	 std::string prefix(indent * depth, ' ');
 	 out += prefix;
@@ -72,18 +72,18 @@ void response::node::dump(dump_format format, int indent, std::string& out) cons
    }
 }
 
-std::string response::dump(node::dump_format format, int indent) const
+std::string dump(storage_type const& obj, node::dump_format format, int indent)
 {
-   if (std::empty(result))
+   if (std::empty(obj))
       return {};
 
    std::string res;
-   for (auto i = 0ULL; i < std::size(result) - 1; ++i) {
-      result[i].dump(format, indent, res);
+   for (auto i = 0ULL; i < std::size(obj) - 1; ++i) {
+      obj[i].dump(format, indent, res);
       res += '\n';
    }
 
-   result.back().dump(format, indent, res);
+   obj.back().dump(format, indent, res);
    return res;
 }
 

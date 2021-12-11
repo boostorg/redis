@@ -12,8 +12,9 @@
 
 using aedis::command;
 using aedis::resp3::request;
-using aedis::resp3::response;
 using aedis::resp3::async_read;
+using aedis::resp3::node;
+using aedis::resp3::response_adapter;
 
 namespace net = aedis::net;
 
@@ -33,13 +34,15 @@ net::awaitable<void> ping()
       req.push(command::ping);
       req.push(command::quit);
 
-      auto socket = co_await make_connection("127.0.0.1", "6379");
+      auto socket = co_await connect();
       co_await async_write(socket, req);
 
       std::string buffer;
       while (!std::empty(req.commands)) {
-	 response resp;
-	 co_await async_read(socket, buffer, resp);
+         std::vector<node> resp;
+         auto adapter = response_adapter(&resp);
+
+	 co_await async_read(socket, buffer, adapter);
 
 	 std::cout
 	    << req.commands.front() << "\n"

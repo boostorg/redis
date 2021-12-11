@@ -11,9 +11,9 @@
 
 #include <aedis/resp3/request.hpp>
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/response.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/write.hpp>
+#include <aedis/resp3/response.hpp>
 
 #include <boost/asio/yield.hpp>
 
@@ -23,23 +23,21 @@ namespace resp3 {
 /** \file read.hpp
     \brief Read utility functions.
   
-    Synchronous and asynchronous to read responses to redis commands.
+    Synchronous and asynchronous utility functions.
  */
 
-/** \brief Reads a response synchronously.
- */
 template <
-   class SyncReadStream,
-   class Storage,
-   class ResponseAdapter
->
+  class SyncReadStream,
+  class Storage,
+  class ResponseAdapter
+  >
 auto read(
    SyncReadStream& stream,
    Storage& buf,
-   ResponseAdapter& res,
+   ResponseAdapter adapter,
    boost::system::error_code& ec)
 {
-   detail::parser<ResponseAdapter> p {&res};
+   detail::parser p {adapter};
    std::size_t n = 0;
    do {
       if (p.bulk() == type::invalid) {
@@ -70,22 +68,21 @@ auto read(
  *  
  *  \param stream Synchronous read stream from which the response will be read.
  *  \param buf Buffer for temporary storage e.g. std::string or std::vector<char>.
- *  \param res Reference to the response.
+ *  \param adapter Reference to the response.
  *  \returns The number of bytes that have been read.
  */
-template <
+template<
    class SyncReadStream,
    class Storage,
-   class Response
-   >
+   class ResponseAdapter>
 std::size_t
 read(
    SyncReadStream& stream,
    Storage& buf,
-   Response& res)
+   ResponseAdapter adapter)
 {
    boost::system::error_code ec;
-   auto const n = read(stream, buf, res, ec);
+   auto const n = read(stream, buf, adapter, ec);
 
    if (ec)
        BOOST_THROW_EXCEPTION(boost::system::system_error{ec});
@@ -93,98 +90,31 @@ read(
    return n;
 }
 
-/** @brief Reads the next command from a redis response
+/** @brief Reads the response to a reads command.
  *
- *  This function has to be called once for each command until the whole
- *  response has been cosumed.
+ *  This function has to be called once for each command in the request until
+ *  the whole request has been consumed.
  */
 template <
    class AsyncReadStream,
    class Storage,
-   class ResponseAdapter,
-   class CompletionToken =
-      net::default_completion_token_t<typename AsyncReadStream::executor_type>
+   class ResponseAdapter = adapter_ignore,
+   class CompletionToken = net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(
    AsyncReadStream& stream,
    Storage& buffer,
-   ResponseAdapter& resp,
+   ResponseAdapter adapter = ResponseAdapter{},
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(detail::parse_op<AsyncReadStream, Storage, ResponseAdapter>
-	    {stream, &buffer, &resp},
+      >(detail::parse_op<AsyncReadStream, Storage, ResponseAdapter> {stream, &buffer, adapter},
         token,
         stream);
 }
-
-// TODO: Move to detail.
-type to_type(char c)
-{
-   switch (c) {
-      case '!': return type::blob_error;
-      case '=': return type::verbatim_string;
-      case '$': return type::blob_string;
-      case ';': return type::streamed_string_part;
-      case '-': return type::simple_error;
-      case ':': return type::number;
-      case ',': return type::doublean;
-      case '#': return type::boolean;
-      case '(': return type::big_number;
-      case '+': return type::simple_string;
-      case '_': return type::null;
-      case '>': return type::push;
-      case '~': return type::set;
-      case '*': return type::array;
-      case '|': return type::attribute;
-      case '%': return type::map;
-      default: return type::invalid;
-   }
-}
-
-// TODO: Move to detail.
-template <class AsyncReadStream, class Storage>
-class type_op {
-private:
-   AsyncReadStream& stream_;
-   Storage* buf_ = nullptr;
-
-public:
-   type_op(AsyncReadStream& stream, Storage* buf)
-   : stream_ {stream}
-   , buf_ {buf}
-   {
-      assert(buf_);
-   }
-
-   template <class Self>
-   void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , std::size_t n = 0)
-   {
-      if (ec) {
-	 self.complete(ec, type::invalid);
-         return;
-      }
-
-      if (std::empty(*buf_)) {
-	 net::async_read_until(
-	    stream_,
-	    net::dynamic_buffer(*buf_),
-	    "\r\n",
-	    std::move(self));
-	 return;
-      }
-
-      assert(!std::empty(*buf_));
-      auto const type = to_type(buf_->front());
-      self.complete(ec, type);
-      return;
-   }
-};
 
 /** \brief Asynchronously reads the type of the next incomming request.
  */
@@ -203,7 +133,7 @@ auto async_read_type(
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code, type)
-      >(type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
+      >(detail::type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
 }
 
 } // resp3
