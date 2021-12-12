@@ -53,7 +53,7 @@ struct test_general_fill {
    std::vector<int> list_ {1 ,2, 3, 4, 5, 6};
    std::string set_ {"aaa"};
 
-   void operator()(resp3::request<command>& p) const
+   void operator()(resp3::serializer<command>& p) const
    {
       p.push(command::flushall);
       p.push_range(command::rpush, "a", std::cbegin(list_), std::cend(list_));
@@ -110,17 +110,18 @@ struct test_general_fill {
 net::awaitable<void>
 test_general(net::ip::tcp::resolver::results_type const& res)
 {
-   std::queue<resp3::request<command>> requests;
-   requests.push({});
-   requests.back().push(command::hello, 3);
+   std::queue<resp3::serializer<command>> srs;
+   srs.push({});
+   srs.back().push(command::hello, 3);
    test_general_fill filler;
-   filler(requests.back());
+   filler(srs.back());
 
    auto ex = co_await this_coro::executor;
    net::ip::tcp::socket socket{ex};
    co_await net::async_connect(socket, res, net::use_awaitable);
 
-   co_await async_write(socket, requests.back(), net::use_awaitable);
+   co_await net::async_write(
+      socket, net::buffer(srs.back().request()), net::use_awaitable);
 
    std::string buffer;
    std::vector<node> resp;
@@ -160,8 +161,8 @@ test_general(net::ip::tcp::resolver::results_type const& res)
          continue;
       }
 
-      auto const cmd = requests.front().commands.front();
-      requests.front().commands.pop();
+      auto const cmd = srs.front().commands.front();
+      srs.front().commands.pop();
 
       switch (cmd) {
 	 case command::hello:
@@ -437,7 +438,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 //{
 //   std::vector<int> list {1 ,2, 3, 4, 5, 6};
 //
-//   resp3::request p;
+//   resp3::serializer p;
 //   p.push(command::hello, 3);
 //   p.push(command::flushall);
 //   p.push_range(command::rpush, "a", std::cbegin(list), std::cend(list));
@@ -528,22 +529,22 @@ test_set(net::ip::tcp::resolver::results_type const& results)
 
    std::string test_bulk2 = "aaaaa";
 
-   resp3::request<command> p;
-   p.push(command::hello, 3);
-   p.push(command::flushall);
-   p.push(command::set, "s", test_bulk1);
-   p.push(command::get, "s");
-   p.push(command::set, "s", test_bulk2);
-   p.push(command::get, "s");
-   p.push(command::set, "s", "");
-   p.push(command::get, "s");
-   p.push(command::quit);
+   resp3::serializer<command> sr;
+   sr.push(command::hello, 3);
+   sr.push(command::flushall);
+   sr.push(command::set, "s", test_bulk1);
+   sr.push(command::get, "s");
+   sr.push(command::set, "s", test_bulk2);
+   sr.push(command::get, "s");
+   sr.push(command::set, "s", "");
+   sr.push(command::get, "s");
+   sr.push(command::quit);
 
    auto ex = co_await this_coro::executor;
    tcp_socket socket {ex};
    co_await async_connect(socket, results);
 
-   co_await async_write(socket, p);
+   co_await net::async_write(socket, net::buffer(sr.request()));
 
    std::string buf;
    {  // hello, flushall

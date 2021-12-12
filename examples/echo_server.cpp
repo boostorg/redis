@@ -7,7 +7,7 @@
 namespace net = aedis::net;
 
 using aedis::command;
-using aedis::resp3::request;
+using aedis::resp3::serializer;
 using aedis::resp3::type;
 using aedis::resp3::client_base;
 using aedis::resp3::response_adapter;

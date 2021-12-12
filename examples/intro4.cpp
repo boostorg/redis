@@ -11,6 +11,8 @@
 #include "utils.ipp"
 
 using namespace aedis;
+using net::async_write;
+using net::buffer;
 
 /* In previous examples we sent some commands (ping) to redis and
    quit (closed) the connection. In this example we send a
@@ -33,12 +35,12 @@ using namespace aedis;
  */
 net::awaitable<void> subscriber()
 {
-   resp3::request<command> req;
-   req.push(command::hello, "3");
-   req.push(command::subscribe, "channel1", "channel2");
+   resp3::serializer<command> sr;
+   sr.push(command::hello, "3");
+   sr.push(command::subscribe, "channel1", "channel2");
 
    auto socket = co_await connect();
-   co_await async_write(socket, req);
+   co_await async_write(socket, buffer(sr.request()));
 
    std::string buffer;
    std::vector<resp3::node> resp;

@@ -16,7 +16,7 @@
 
 using aedis::command;
 using aedis::resp3::type;
-using aedis::resp3::request;
+using aedis::resp3::serializer;
 using aedis::resp3::async_read;
 using aedis::resp3::node;
 using aedis::resp3::response_adapter;
@@ -24,24 +24,25 @@ using aedis::resp3::adapter_ignore;
 using aedis::resp3::adapt;
 
 namespace net = aedis::net;
+using net::async_write;
+using net::buffer;
 
-request<command>
-make_request()
+std::string make_request()
 {
   std::vector<int> vec {1, 2, 3, 4, 5, 6};
 
-  request<command> req;
-  req.push(command::hello, 3);
-  req.push_range(command::rpush, "key2", std::cbegin(vec), std::cend(vec));
-  req.push(command::lrange, "key2", 0, -1);
-  req.push(command::lrange, "key2", 0, -1);
-  req.push(command::lrange, "key2", 0, -1);
-  req.push(command::lrange, "key2", 0, -1);
-  req.push(command::lrange, "key2", 0, -1);
-  req.push(command::lrange, "key2", 0, -1);
-  req.push(command::quit);
+  serializer<command> sr;
+  sr.push(command::hello, 3);
+  sr.push_range(command::rpush, "key2", std::cbegin(vec), std::cend(vec));
+  sr.push(command::lrange, "key2", 0, -1);
+  sr.push(command::lrange, "key2", 0, -1);
+  sr.push(command::lrange, "key2", 0, -1);
+  sr.push(command::lrange, "key2", 0, -1);
+  sr.push(command::lrange, "key2", 0, -1);
+  sr.push(command::lrange, "key2", 0, -1);
+  sr.push(command::quit);
 
-  return req;
+  return sr.request();
 }
 
 net::awaitable<void> ping()
@@ -50,30 +51,30 @@ net::awaitable<void> ping()
       auto socket = co_await connect();
       auto req = make_request();
 
-      co_await async_write(socket, req);
+      co_await async_write(socket, buffer(req));
 
-      std::string buffer;
+      std::string rbuffer;
 
-      co_await async_read(socket, buffer); // hello
-      co_await async_read(socket, buffer); // rpush
+      co_await async_read(socket, rbuffer); // hello
+      co_await async_read(socket, rbuffer); // rpush
 
       std::vector<std::string> svec; // Response as std::vector<std::string>.
-      co_await async_read(socket, buffer, adapt(svec)); // lrange
+      co_await async_read(socket, rbuffer, adapt(svec)); // lrange
 
       std::list<std::string> slist; // Response as list.
-      co_await async_read(socket, buffer, adapt(slist)); // lrange
+      co_await async_read(socket, rbuffer, adapt(slist)); // lrange
 
       std::deque<std::string> sdeq; // Response as list.
-      co_await async_read(socket, buffer, adapt(sdeq)); // lrange
+      co_await async_read(socket, rbuffer, adapt(sdeq)); // lrange
 
       std::list<int> list; // Response as list.
-      co_await async_read(socket, buffer, adapt(list)); // lrange
+      co_await async_read(socket, rbuffer, adapt(list)); // lrange
 
       std::vector<int> vec; // Response as vector.
-      co_await async_read(socket, buffer, adapt(vec)); // lrange
+      co_await async_read(socket, rbuffer, adapt(vec)); // lrange
 
       std::deque<int> deq; // Response as deque.
-      co_await async_read(socket, buffer, adapt(deq)); // lrange
+      co_await async_read(socket, rbuffer, adapt(deq)); // lrange
 
       for (auto e: svec) std::cout << e << " ";
       std::cout << std::endl;
@@ -88,7 +89,7 @@ net::awaitable<void> ping()
       for (auto e: deq) std::cout << e << " ";
       std::cout << std::endl;
 
-      co_await async_read(socket, buffer); // quit.
+      co_await async_read(socket, rbuffer); // quit.
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

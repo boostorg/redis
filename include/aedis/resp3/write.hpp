@@ -10,68 +10,13 @@
 #include <chrono>
 
 #include <aedis/net.hpp>
-#include <aedis/resp3/request.hpp>
+#include <aedis/resp3/serializer.hpp>
 
 #include <boost/beast/core/stream_traits.hpp>
 #include <boost/asio/yield.hpp>
 
 namespace aedis {
 namespace resp3 {
-
-/** \file write.hpp
-    \brief Write utility functions.
-  
-    Both synchronous and asynchronous functions are offered.
- */
-
-/** @brief Writes a request to and stream.
- *
- *  \param stream Sync stream where the request will be written.
- *  \param req Sync stream where the request will be written.
- *  \param ec Variable where an error is written if one occurs.
- *  \returns The number of bytes that have been written to the stream.
- */
-template<
-   class SyncWriteStream,
-   class Request
->
-std::size_t
-write(
-   SyncWriteStream& stream,
-   Request& req,
-   boost::system::error_code& ec)
-{
-    static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
-       "SyncWriteStream type requirements not met");
-
-    return net::write(stream, net::buffer(req.payload()), ec);
-}
-
-/** @brief Writes a request to and stream.
- *
- *  \param stream Sync stream where the request will be written.
- *  \param req Sync stream where the request will be written.
- *  \returns The number of bytes that have been written to the stream.
- */
-template <
-   class SyncWriteStream,
-   class Request
->
-std::size_t write(
-   SyncWriteStream& stream,
-   Request& req)
-{
-    static_assert(boost::beast::is_sync_write_stream<SyncWriteStream>::value,
-        "SyncWriteStream type requirements not met");
-
-    boost::system::error_code ec;
-    auto const bytes_transferred = write(stream, req, ec);
-
-    if (ec)
-        BOOST_THROW_EXCEPTION(boost::system::system_error{ec});
-
-    return bytes_transferred;
-}
 
 template<
    class AsyncWriteStream,
@@ -91,11 +36,11 @@ struct write_some_op {
       reenter (coro_) {
 	 do {
 	    assert(!std::empty(reqs));
-	    assert(!std::empty(reqs.front().payload()));
+	    assert(!std::empty(reqs.front().request()));
 
 	    yield net::async_write(
 	       stream,
-	       net::buffer(reqs.front().payload()),
+	       net::buffer(reqs.front().request()),
 	       std::move(self));
 
 	    if (ec)
@@ -132,24 +77,6 @@ async_write_some(
      void(boost::system::error_code)>(
 	write_some_op<AsyncWriteStream, Queue>{stream, reqs},
 	token, stream);
-}
-
-/** @brief Writes the request to the stream.
- */
-template<
-  class AsyncWriteStream,
-  class Request,
-  class CompletionToken =
-      net::default_completion_token_t<typename AsyncWriteStream::executor_type>
-  >
-auto
-async_write(
-   AsyncWriteStream& stream,
-   Request const& req,
-   CompletionToken&& token =
-      net::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
-{
-   return net::async_write(stream, net::buffer(req.payload()), token);
 }
 
 } // resp3

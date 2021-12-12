@@ -11,12 +11,14 @@
 #include "utils.ipp"
 
 using aedis::command;
-using aedis::resp3::request;
+using aedis::resp3::serializer;
 using aedis::resp3::async_read;
 using aedis::resp3::node;
 using aedis::resp3::response_adapter;
 
 namespace net = aedis::net;
+using net::async_write;
+using net::buffer;
 
 /* Similar to the basic1 example but
   
@@ -29,26 +31,26 @@ namespace net = aedis::net;
 net::awaitable<void> ping()
 {
    try {
-      request<command> req;
-      req.push(command::hello, 3);
-      req.push(command::ping);
-      req.push(command::quit);
+      serializer<command> sr;
+      sr.push(command::hello, 3);
+      sr.push(command::ping);
+      sr.push(command::quit);
 
       auto socket = co_await connect();
-      co_await async_write(socket, req);
+      co_await async_write(socket, buffer(sr.request()));
 
       std::string buffer;
-      while (!std::empty(req.commands)) {
+      while (!std::empty(sr.commands)) {
          std::vector<node> resp;
          auto adapter = response_adapter(&resp);
 
 	 co_await async_read(socket, buffer, adapter);
 
 	 std::cout
-	    << req.commands.front() << "\n"
+	    << sr.commands.front() << "\n"
 	    << resp << std::endl;
 
-	 req.commands.pop();
+	 sr.commands.pop();
       }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

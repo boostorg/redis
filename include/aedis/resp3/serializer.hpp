@@ -38,7 +38,7 @@ struct request_get_command<command> {
 
 } // detail
 
-/** @brief A Redis request
+/** @brief Serializers user data into a redis request.
  *  
  *  This class offers functions to serialize user data into a redis
  *  request. A request is composed of one or more redis commands and
@@ -74,29 +74,29 @@ struct request_get_command<command> {
  *  function for their custom types.
  */
 template <class QueueElem>
-class request {
+class serializer {
 private:
-   std::string payload_;
+   std::string request_;
 
 public:
    /// The commands that have been queued in this request.
    std::queue<QueueElem> commands;
 
 public:
-   /** Clears the request.
+   /** Clears the serializer.
     *  
     *  Note: Already acquired memory won't be released. The is useful
     *  to reusing memory insteam of allocating again each time.
     */
    void clear()
    {
-      payload_.clear();
+      request_.clear();
       commands = {};
    }
 
-   /** \brief Returns the payload the is written to the socket.
+   /** \brief Returns the request in RESP3 format.
     */
-   auto const& payload() const noexcept {return payload_;}
+   auto const& request() const noexcept {return request_;}
 
    /** @brief Appends a new command to end of the request.
     *
@@ -111,11 +111,11 @@ public:
       // this?
 
       auto constexpr pack_size = sizeof...(Ts);
-      detail::add_header(payload_, 1 + pack_size);
+      detail::add_header(request_, 1 + pack_size);
 
       auto const cmd = detail::request_get_command<QueueElem>::apply(qelem);
-      detail::add_bulk(payload_, to_string(cmd));
-      (detail::add_bulk(payload_, args), ...);
+      detail::add_bulk(request_, to_string(cmd));
+      (detail::add_bulk(request_, args), ...);
 
       if (!detail::has_push_response(cmd))
          commands.emplace(qelem);
@@ -148,13 +148,13 @@ public:
 
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(payload_, 2 + size * distance);
+      detail::add_header(request_, 2 + size * distance);
       auto const cmd = detail::request_get_command<QueueElem>::apply(qelem);
-      detail::add_bulk(payload_, to_string(cmd));
-      detail::add_bulk(payload_, key);
+      detail::add_bulk(request_, to_string(cmd));
+      detail::add_bulk(request_, key);
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(payload_, *begin);
+	 detail::add_bulk(request_, *begin);
 
       if (!detail::has_push_response(cmd))
          commands.emplace(qelem);
@@ -185,12 +185,12 @@ public:
 
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(payload_, 1 + size * distance);
+      detail::add_header(request_, 1 + size * distance);
       auto const cmd = detail::request_get_command<QueueElem>::apply(qelem);
-      detail::add_bulk(payload_, to_string(cmd));
+      detail::add_bulk(request_, to_string(cmd));
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(payload_, *begin);
+	 detail::add_bulk(request_, *begin);
 
       if (!detail::has_push_response(cmd))
          commands.emplace(qelem);

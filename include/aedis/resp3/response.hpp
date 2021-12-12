@@ -9,7 +9,7 @@
 
 #include <aedis/command.hpp>
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/request.hpp>
+#include <aedis/resp3/serializer.hpp>
 
 #include <set>
 #include <list>

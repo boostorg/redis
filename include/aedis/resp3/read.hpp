@@ -9,7 +9,7 @@
 
 #include <aedis/net.hpp>
 
-#include <aedis/resp3/request.hpp>
+#include <aedis/resp3/serializer.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/write.hpp>

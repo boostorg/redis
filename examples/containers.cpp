@@ -17,19 +17,19 @@
 #include "utils.ipp"
 
 using aedis::command;
-using aedis::resp3::request;
+using aedis::resp3::serializer;
 using aedis::resp3::async_read;
-using aedis::resp3::async_write;
 using aedis::resp3::node;
 using aedis::resp3::adapt;
 
 namespace net = aedis::net;
+using net::async_write;
+using net::buffer;
 
 /** An example on how to serialize containers in a request and read them back.
  */
 
-request<command>
-make_request()
+std::string make_request()
 {
    std::vector<int> vec
       {1, 2, 3, 4, 5, 6};
@@ -43,21 +43,21 @@ make_request()
       , {"key3", "value3"}
       };
 
-   request<command> req;
-   req.push(command::hello, 3);
-   req.push(command::flushall);
+   serializer<command> sr;
+   sr.push(command::hello, 3);
+   sr.push(command::flushall);
 
    // Set the containers in some of the redis built-in data structures.
-   req.push_range(command::rpush, "key1", std::cbegin(vec), std::cend(vec));
-   req.push_range(command::sadd, "key2", std::cbegin(set), std::cend(set));
-   req.push_range(command::hset, "key3", std::cbegin(map), std::cend(map));
+   sr.push_range(command::rpush, "key1", std::cbegin(vec), std::cend(vec));
+   sr.push_range(command::sadd, "key2", std::cbegin(set), std::cend(set));
+   sr.push_range(command::hset, "key3", std::cbegin(map), std::cend(map));
 
    // Retrieves the containers back from redis.
-   req.push(command::lrange, "key1", 0, -1);
-   req.push(command::smembers, "key2");
+   sr.push(command::lrange, "key1", 0, -1);
+   sr.push(command::smembers, "key2");
 
    // TODO: Request the other containers.
-   return req;
+   return sr.request();
 }
 
 net::awaitable<void> stl_containers()
@@ -66,7 +66,7 @@ net::awaitable<void> stl_containers()
       auto socket = co_await connect();
       auto const req = make_request();
 
-      co_await async_write(socket, req);
+      co_await async_write(socket, buffer(req));
 
       // The responses
       int rpush, sadd, hset;

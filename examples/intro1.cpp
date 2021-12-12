@@ -11,13 +11,16 @@
 #include "utils.ipp"
 
 using aedis::command;
-using aedis::resp3::request;
+using aedis::resp3::serializer;
 using aedis::resp3::async_read;
 using aedis::resp3::adapt;
 
 namespace net = aedis::net;
+using net::async_write;
+using net::buffer;
 
-/** A simple example that illustrates the basic principles.
+/** \brief A simple example that illustrates the basic principles.
+ 
     We send three commands in the same request and read the responses
     one after the other
   
@@ -34,20 +37,27 @@ net::awaitable<void> ping()
    try {
       auto socket = co_await connect();
 
-      request<command> req;
-      req.push(command::hello, 3);
-      req.push(command::ping);
-      req.push(command::quit);
-      co_await async_write(socket, req);
+      serializer<command> sr;
+      sr.push(command::hello, 3);
+      sr.push(command::ping);
+      sr.push(command::quit);
+      co_await async_write(socket, buffer(sr.request()));
 
       std::string buffer;
-      std::string resp;
 
-      co_await async_read(socket, buffer); // hello
-      co_await async_read(socket, buffer, adapt(resp)); // ping
-      co_await async_read(socket, buffer); // quit
+      // Expected responses types.
+      std::string ping, quit;
 
-      std::cout << resp << std::endl;
+      // Reads the responses.
+      co_await async_read(socket, buffer);
+      co_await async_read(socket, buffer, adapt(ping));
+      co_await async_read(socket, buffer, adapt(quit));
+
+      // Print the responses.
+      std::cout
+	 << "Ping: " << ping << "\n"
+	 << "Quit: " << quit
+	 << std::endl;
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

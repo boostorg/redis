@@ -10,12 +10,14 @@
 #include "utils.ipp"
 
 using aedis::command;
-using aedis::resp3::request;
+using aedis::resp3::serializer;
 using aedis::resp3::async_read;
 using aedis::resp3::node;
 using aedis::resp3::response_adapter;
 
 namespace net = aedis::net;
+using net::async_write;
+using net::buffer;
 
 /* A slightly more elaborate way dealing with requests and responses.
   
@@ -25,26 +27,26 @@ namespace net = aedis::net;
  */
 
 // Adds a new element in the queue if necessary.
-void prepare_next(std::queue<request<command>>& reqs)
+void prepare_next(std::queue<serializer<command>>& srs)
 {
-   if (std::empty(reqs) || std::size(reqs) == 1)
-      reqs.push({});
+   if (std::empty(srs) || std::size(srs) == 1)
+      srs.push({});
 }
 
 /* The function that processes the response has been factored out of
    the coroutine to simplify application logic.
  */
-void process_response(std::queue<request<command>>& reqs, std::vector<node> const& resp)
+void process_response(std::queue<serializer<command>>& srs, std::vector<node> const& resp)
 {
    std::cout
-      << reqs.front().commands.front() << ":\n"
+      << srs.front().commands.front() << ":\n"
       << resp << std::endl;
 
-   switch (reqs.front().commands.front()) {
+   switch (srs.front().commands.front()) {
       case command::hello:
-         prepare_next(reqs);
-         reqs.back().push(command::ping);
-         reqs.back().push(command::quit);
+         prepare_next(srs);
+         srs.back().push(command::ping);
+         srs.back().push(command::quit);
          break;
       default: {};
    }
@@ -53,25 +55,25 @@ void process_response(std::queue<request<command>>& reqs, std::vector<node> cons
 net::awaitable<void> ping()
 {
    try {
-      std::queue<request<command>> reqs;
-      reqs.push({});
-      reqs.back().push(command::hello, 3);
+      std::queue<serializer<command>> srs;
+      srs.push({});
+      srs.back().push(command::hello, 3);
 
       auto socket = co_await connect();
-      std::string buffer;
+      std::string read_buffer;
 
-      while (!std::empty(reqs)) {
-	 co_await async_write(socket, reqs.front());
-	 while (!std::empty(reqs.front().commands)) {
+      while (!std::empty(srs)) {
+	 co_await async_write(socket, buffer(srs.front().request()));
+	 while (!std::empty(srs.front().commands)) {
             std::vector<node> resp;
             auto adapter = response_adapter(&resp);
 
-	    co_await async_read(socket, buffer, adapter);
-	    process_response(reqs, resp);
-	    reqs.front().commands.pop();
+	    co_await async_read(socket, read_buffer, adapter);
+	    process_response(srs, resp);
+	    srs.front().commands.pop();
 	 }
 
-	 reqs.pop();
+	 srs.pop();
       }
 
    } catch (std::exception const& e) {

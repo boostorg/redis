@@ -16,7 +16,7 @@
 
 using aedis::command;
 using aedis::resp3::type;
-using aedis::resp3::request;
+using aedis::resp3::serializer;
 using aedis::resp3::async_read;
 using aedis::resp3::node;
 using aedis::resp3::response_adapter;
@@ -24,6 +24,8 @@ using aedis::resp3::adapter_ignore;
 using aedis::resp3::adapt;
 
 namespace net = aedis::net;
+using net::async_write;
+using net::buffer;
 
 /* Illustrates how to write a custom response.  Useful to users
  *  seeking to improve performance and reduce latency.
@@ -37,28 +39,28 @@ namespace net = aedis::net;
 net::awaitable<void> example()
 {
    try {
-      request<command> req;
-      req.push(command::hello, 3);
+      serializer<command> sr;
+      sr.push(command::hello, 3);
 
-      req.push(command::set, "key", 42);
-      req.push(command::get, "key");
-      req.push(command::quit);
+      sr.push(command::set, "key", 42);
+      sr.push(command::get, "key");
+      sr.push(command::quit);
 
       auto socket = co_await connect();
-      co_await async_write(socket, req);
+      co_await async_write(socket, buffer(sr.request()));
 
-      std::string buffer;
+      std::string read_buffer;
 
-      co_await async_read(socket, buffer); // hello
-      co_await async_read(socket, buffer); // set
+      co_await async_read(socket, read_buffer); // hello
+      co_await async_read(socket, read_buffer); // set
 
       int value;
-      co_await async_read(socket, buffer, adapt(value)); // get
+      co_await async_read(socket, read_buffer, adapt(value)); // get
 
       std::cout << value << std::endl;
 
       // quit.
-      co_await async_read(socket, buffer);
+      co_await async_read(socket, read_buffer);
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
