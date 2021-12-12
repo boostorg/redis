@@ -13,7 +13,7 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/write.hpp>
-#include <aedis/resp3/response.hpp>
+#include <aedis/resp3/adapt.hpp>
 
 #include <boost/asio/yield.hpp>
 

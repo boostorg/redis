@@ -13,7 +13,7 @@ using aedis::command;
 using aedis::resp3::serializer;
 using aedis::resp3::async_read;
 using aedis::resp3::node;
-using aedis::resp3::response_adapter;
+using aedis::resp3::adapt;
 
 namespace net = aedis::net;
 using net::async_write;
@@ -62,13 +62,11 @@ net::awaitable<void> ping()
       auto socket = co_await connect();
       std::string read_buffer;
 
+      std::vector<node> resp;
       while (!std::empty(srs)) {
 	 co_await async_write(socket, buffer(srs.front().request()));
 	 while (!std::empty(srs.front().commands)) {
-            std::vector<node> resp;
-            auto adapter = response_adapter(&resp);
-
-	    co_await async_read(socket, read_buffer, adapter);
+	    co_await async_read(socket, read_buffer, adapt(resp));
 	    process_response(srs, resp);
 	    srs.front().commands.pop();
 	 }

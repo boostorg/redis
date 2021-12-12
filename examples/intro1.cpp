@@ -14,6 +14,7 @@ using aedis::command;
 using aedis::resp3::serializer;
 using aedis::resp3::async_read;
 using aedis::resp3::adapt;
+using aedis::resp3::node;
 
 namespace net = aedis::net;
 using net::async_write;
@@ -45,15 +46,20 @@ net::awaitable<void> ping()
 
       std::string buffer;
 
-      // Expected responses types.
+      // Expected responses.
+      std::vector<node> hello;
       std::string ping, quit;
 
       // Reads the responses.
-      co_await async_read(socket, buffer);
+      co_await async_read(socket, buffer, adapt(hello));
       co_await async_read(socket, buffer, adapt(ping));
       co_await async_read(socket, buffer, adapt(quit));
 
       // Print the responses.
+      std::cout << "Hello: ";
+      for (auto const& e: hello) std::cout << e << " ";
+      std::cout << "\n";
+
       std::cout
 	 << "Ping: " << ping << "\n"
 	 << "Quit: " << quit

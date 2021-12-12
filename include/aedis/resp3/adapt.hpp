@@ -9,6 +9,7 @@
 
 #include <aedis/command.hpp>
 #include <aedis/resp3/type.hpp>
+#include <aedis/resp3/node.hpp>
 #include <aedis/resp3/serializer.hpp>
 
 #include <set>
@@ -20,36 +21,17 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief A node in the response tree.
- */
-struct node {
-   enum class dump_format {raw, clean};
-
-   /// The number of children node is parent of.
-   std::size_t size;
-
-   /// The depth of this node in the response tree.
-   std::size_t depth;
-
-   /// The RESP3 type  of the data in this node.
-   type data_type;
-
-   /// The data. For aggregate data types this is always empty.
-   std::string data;
-
-   /// Converts the node to a string and appends to out.
-   void dump(dump_format format, int indent, std::string& out) const;
-};
-
 using storage_type = std::vector<node>;
 
 /** \brief A general pupose redis response class
   
     A pre-order-view of the response tree.
-
  */
-struct response_adapter {
-   storage_type* data_;
+template <class Container>
+struct adapter_general {
+   Container* cont;
+
+   adapter_general(Container* c = nullptr): cont(c) {}
 
    /** @brief Function called by the parser when new data has been processed.
     *  
@@ -68,7 +50,7 @@ struct response_adapter {
     *  \param size The size of data.
     */
    void operator()(type t, std::size_t n, std::size_t depth, char const* data, std::size_t size)
-      { data_->emplace_back(n, depth, t, std::string{data, size}); }
+      { cont->emplace_back(n, depth, t, std::string{data, size}); }
 };
 
 std::string
@@ -279,6 +261,15 @@ struct adapter_factory<std::vector<T, Allocator>>
      { return type{v}; }
 };
 
+template <class Allocator>
+struct adapter_factory<std::vector<node, Allocator>>
+{
+   using type = adapter_general<std::vector<node, Allocator>>;
+
+   static auto make(std::vector<node, Allocator>& v) noexcept
+     { return type{&v}; }
+};
+
 template <class T, class Allocator>
 struct adapter_factory<std::list<T, Allocator>>
 {
@@ -315,6 +306,12 @@ struct adapter_factory<void>
      { return type{}; }
 };
 
+/** \brief Creates a void adapter
+  
+    The adapter returned by this function ignores any data and is
+    useful to avoid wasting time with responses on which the user is
+    insterested in.
+ */
 inline
 adapter_factory<void>::type
 adapt() noexcept
@@ -322,6 +319,14 @@ adapt() noexcept
   return adapter_factory<void>::make();
 }
 
+/** \brief Adapts user data to the resp3 parser.
+  
+    The supported types are.
+  
+    1. Integers: int, unsigned etc.
+    2. std::string
+    3. STL containers.
+ */
 template<class T>
 adapter_factory<T>::type
 adapt(T& t) noexcept

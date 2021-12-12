@@ -44,21 +44,20 @@ net::awaitable<void> subscriber()
 
    std::string buffer;
    std::vector<resp3::node> resp;
-   auto adapter = resp3::response_adapter(&resp);
 
    // Reads the response to the hello command.
-   co_await async_read(socket, buffer, adapter);
+   co_await async_read(socket, buffer, adapt(resp));
 
    // Saves the id of this connection.
    auto const id = resp.at(8).data;
 
    // Reads the response to the subscribe command.
-   co_await async_read(socket, buffer, adapter);
+   co_await async_read(socket, buffer, adapt(resp));
 
    // Loops to receive server pushes.
    for (;;) {
       resp.clear();
-      co_await async_read(socket, buffer, adapter);
+      co_await async_read(socket, buffer, adapt(resp));
 
       std::cout
 	 << "Subscriber " << id << ":\n"

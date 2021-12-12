@@ -50,8 +50,7 @@ private:
                auto const t = co_await async_read_type(socket_, buffer);
 
                if (t == type::push) {
-                  auto adapter = response_adapter(&push_resp_);
-                  co_await async_read(socket_, buffer, adapter);
+                  co_await async_read(socket_, buffer, adapt(push_resp_));
                   on_push();
                } else {
                   auto adapter = srs_.front().commands.front().adapter;

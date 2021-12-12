@@ -19,8 +19,6 @@ using aedis::resp3::type;
 using aedis::resp3::serializer;
 using aedis::resp3::async_read;
 using aedis::resp3::node;
-using aedis::resp3::response_adapter;
-using aedis::resp3::adapter_ignore;
 using aedis::resp3::adapt;
 
 namespace net = aedis::net;

@@ -5,33 +5,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/resp3/response.hpp>
-#include <aedis/command.hpp>
+#pragma once
+
+#include <aedis/resp3/node.hpp>
 
 namespace aedis {
 namespace resp3 {
-
-bool operator==(node const& a, node const& b)
-{
-   return a.size == b.size
-       && a.depth == b.depth
-       && a.data_type == b.data_type
-       && a.data == b.data;
-};
-
-std::ostream& operator<<(std::ostream& os, node const& o)
-{
-   std::string res;
-   o.dump(node::dump_format::clean, 3, res);
-   os << res;
-   return os;
-}
-
-std::ostream& operator<<(std::ostream& os, storage_type const& r)
-{
-   os << dump(r);
-   return os;
-}
 
 void node::dump(dump_format format, int indent, std::string& out) const
 {
@@ -72,19 +51,20 @@ void node::dump(dump_format format, int indent, std::string& out) const
    }
 }
 
-std::string dump(storage_type const& obj, node::dump_format format, int indent)
+bool operator==(node const& a, node const& b)
 {
-   if (std::empty(obj))
-      return {};
+   return a.size == b.size
+       && a.depth == b.depth
+       && a.data_type == b.data_type
+       && a.data == b.data;
+};
 
+std::ostream& operator<<(std::ostream& os, node const& o)
+{
    std::string res;
-   for (auto i = 0ULL; i < std::size(obj) - 1; ++i) {
-      obj[i].dump(format, indent, res);
-      res += '\n';
-   }
-
-   obj.back().dump(format, indent, res);
-   return res;
+   o.dump(node::dump_format::clean, 3, res);
+   os << res;
+   return os;
 }
 
 } // resp3
