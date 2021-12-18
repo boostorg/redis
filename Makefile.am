@@ -52,10 +52,15 @@ subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 subscriber_CPPFLAGS = $(MY_CPPFLAGS)
 subscriber_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += containers
-containers_SOURCES = $(top_srcdir)/examples/containers.cpp
-containers_CPPFLAGS = $(MY_CPPFLAGS)
-containers_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += sets
+sets_SOURCES = $(top_srcdir)/examples/sets.cpp
+sets_CPPFLAGS = $(MY_CPPFLAGS)
+sets_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += maps
+maps_SOURCES = $(top_srcdir)/examples/maps.cpp
+maps_CPPFLAGS = $(MY_CPPFLAGS)
+maps_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += serialization
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp

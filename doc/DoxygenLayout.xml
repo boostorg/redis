@@ -5,10 +5,10 @@
     <tab type="mainpage" visible="yes" title=""/>
     <tab type="pages" visible="yes" title="" intro=""/>
     <tab type="modules" visible="yes" title="" intro=""/>
-    <!--tab type="namespaces" visible="yes" title="">
+    <tab type="namespaces" visible="yes" title="">
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="yes" title="" intro=""/>
-    </tab-->
+    </tab>
     <tab type="interfaces" visible="yes" title="">
       <tab type="interfacelist" visible="yes" title="" intro=""/>
       <tab type="interfaceindex" visible="$ALPHABETICAL_INDEX" title=""/> 

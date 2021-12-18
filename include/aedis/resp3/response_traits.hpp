@@ -9,9 +9,7 @@
 
 #include <aedis/command.hpp>
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/node.hpp>
-#include <aedis/resp3/serializer.hpp>
-#include <aedis/resp3/detail/adapters.hpp>
+#include <aedis/resp3/detail/response_adapters.hpp>
 
 #include <set>
 #include <unordered_set>
@@ -23,10 +21,9 @@
 namespace aedis {
 namespace resp3 {
 
-template <class>
-struct response_traits;
-
-// Adaptor for some non-aggregate data types.
+/** \brief Adapts C++ data structures to resp3 parser.
+ *
+ */
 template <class T>
 struct response_traits
 {
@@ -87,6 +84,14 @@ template <class Key, class T, class Compare, class Allocator>
 struct response_traits<std::map<Key, T, Compare, Allocator>>
 {
    using response_type = std::map<Key, T, Compare, Allocator>;
+   using adapter_type = detail::adapter_map<response_type>;
+   static auto adapt(response_type& s) noexcept { return adapter_type{s}; }
+};
+
+template <class Key, class Hash, class KeyEqual, class Allocator>
+struct response_traits<std::unordered_map<Key, Hash, KeyEqual, Allocator>>
+{
+   using response_type = std::unordered_map<Key, Hash, KeyEqual, Allocator>;
    using adapter_type = detail::adapter_map<response_type>;
    static auto adapt(response_type& s) noexcept { return adapter_type{s}; }
 };

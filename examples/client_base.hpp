@@ -12,8 +12,6 @@
 #include <aedis/aedis.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
-#include "types.hpp"
-
 using namespace aedis::net::experimental::awaitable_operators;
 
 namespace aedis {
@@ -30,6 +28,7 @@ protected:
   std::vector<node> push_resp_;
 
 private:
+   using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
    std::queue<serializer<QueueElem>> srs_;
    tcp_socket socket_;
 
@@ -101,6 +100,7 @@ private:
    // server when the connection is lost.
    net::awaitable<void> connection_manager()
    {
+      using tcp_resolver = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::resolver>;
       for (;;) {
          tcp_resolver resolver{socket_.get_executor()};
          auto const res = co_await resolver.async_resolve("127.0.0.1", "6379");

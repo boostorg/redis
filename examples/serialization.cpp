@@ -5,13 +5,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <aedis/aedis.hpp>
+
 #include <string>
 #include <iostream>
 #include <charconv>
 
-#include <aedis/aedis.hpp>
-
-#include "types.hpp"
 #include "utils.ipp"
 
 using aedis::command;

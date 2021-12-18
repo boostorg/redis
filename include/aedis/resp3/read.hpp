@@ -13,7 +13,7 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/write.hpp>
-#include <aedis/resp3/adapt.hpp>
+#include <aedis/resp3/response_traits.hpp>
 
 #include <boost/asio/yield.hpp>
 
@@ -98,13 +98,13 @@ read(
 template <
    class AsyncReadStream,
    class Storage,
-   class ResponseAdapter = detail::adapter_ignore,
+   class ResponseAdapter = response_traits<void>::adapter_type,
    class CompletionToken = net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(
    AsyncReadStream& stream,
    Storage& buffer,
-   ResponseAdapter adapter = ResponseAdapter{},
+   ResponseAdapter adapter = adapt(),
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
