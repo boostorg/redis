@@ -42,55 +42,45 @@ libaedis_a_SOURCES += $(top_srcdir)/src/aedis.cpp
 libaedis_a_CPPFLAGS = $(MY_CPPFLAGS)
 
 noinst_PROGRAMS =
-noinst_PROGRAMS += intro1
-intro1_SOURCES = $(top_srcdir)/examples/intro1.cpp
-intro1_CPPFLAGS = $(MY_CPPFLAGS)
-intro1_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += intro
+intro_SOURCES = $(top_srcdir)/examples/intro.cpp
+intro_CPPFLAGS = $(MY_CPPFLAGS)
+intro_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += intro2
-intro2_SOURCES = $(top_srcdir)/examples/intro2.cpp
-intro2_CPPFLAGS = $(MY_CPPFLAGS)
-intro2_LDADD = $(MY_LDADD)
-
-noinst_PROGRAMS += intro3
-intro3_SOURCES = $(top_srcdir)/examples/intro3.cpp
-intro3_CPPFLAGS = $(MY_CPPFLAGS)
-intro3_LDADD = $(MY_LDADD)
-
-noinst_PROGRAMS += intro4
-intro4_SOURCES = $(top_srcdir)/examples/intro4.cpp
-intro4_CPPFLAGS = $(MY_CPPFLAGS)
-intro4_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += subscriber
+subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
+subscriber_CPPFLAGS = $(MY_CPPFLAGS)
+subscriber_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += containers
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 containers_CPPFLAGS = $(MY_CPPFLAGS)
 containers_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += custom_serialization
-custom_serialization_SOURCES = $(top_srcdir)/examples/custom_serialization.cpp
-custom_serialization_CPPFLAGS = $(MY_CPPFLAGS)
-custom_serialization_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += serialization
+serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
+serialization_CPPFLAGS = $(MY_CPPFLAGS)
+serialization_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += non_flat_response
 non_flat_response_SOURCES = $(top_srcdir)/examples/non_flat_response.cpp
 non_flat_response_CPPFLAGS = $(MY_CPPFLAGS)
 non_flat_response_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += custom_response2
-custom_response2_SOURCES = $(top_srcdir)/examples/custom_response2.cpp
-custom_response2_CPPFLAGS = $(MY_CPPFLAGS)
-custom_response2_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += lists
+lists_SOURCES = $(top_srcdir)/examples/lists.cpp
+lists_CPPFLAGS = $(MY_CPPFLAGS)
+lists_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += echo_server
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 echo_server_CPPFLAGS = $(MY_CPPFLAGS)
 echo_server_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += helper_queue1
-helper_queue1_SOURCES = $(top_srcdir)/examples/helper_queue1.cpp
-helper_queue1_CPPFLAGS = $(MY_CPPFLAGS)
-helper_queue1_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += response_queue
+response_queue_SOURCES = $(top_srcdir)/examples/response_queue.cpp
+response_queue_CPPFLAGS = $(MY_CPPFLAGS)
+response_queue_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp

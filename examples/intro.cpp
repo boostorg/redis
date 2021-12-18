@@ -78,4 +78,4 @@ int main()
    ioc.run();
 }
 
-/// \example intro1.cpp
+/// \example intro.cpp

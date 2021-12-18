@@ -76,4 +76,4 @@ int main()
    ioc.run();
 }
 
-/// \example intro4.cpp
+/// \example subscriber.cpp

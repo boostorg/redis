@@ -112,4 +112,4 @@ int main()
    ioc.run();
 }
 
-/// \example custom_serialization.cpp
+/// \example serialization.cpp

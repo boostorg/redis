@@ -26,14 +26,12 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/** An example on how to serialize containers in a request and read them back.
+/** An example on how to serialize containers in a request and read
+    them back.
  */
 
 std::string make_request()
 {
-   std::vector<int> vec
-      {1, 2, 3, 4, 5, 6};
-
    std::set<std::string> set
       {"one", "two", "three", "four"};
 
@@ -48,12 +46,10 @@ std::string make_request()
    sr.push(command::flushall);
 
    // Set the containers in some of the redis built-in data structures.
-   sr.push_range(command::rpush, "key1", std::cbegin(vec), std::cend(vec));
    sr.push_range(command::sadd, "key2", std::cbegin(set), std::cend(set));
    sr.push_range(command::hset, "key3", std::cbegin(map), std::cend(map));
 
    // Retrieves the containers back from redis.
-   sr.push(command::lrange, "key1", 0, -1);
    sr.push(command::smembers, "key2");
    sr.push(command::smembers, "key2");
    sr.push(command::hgetall, "key3");
@@ -71,8 +67,7 @@ net::awaitable<void> containers()
       co_await async_write(socket, buffer(req));
 
       // The expected responses
-      int rpush, sadd, hset;
-      std::vector<int> lrange;
+      int sadd, hset;
       std::set<std::string> smembers1;
       std::unordered_set<std::string> smembers2;
       std::map<std::string, int> hgetall;
@@ -81,24 +76,17 @@ net::awaitable<void> containers()
       std::string buffer;
       co_await async_read(socket, buffer); // hello
       co_await async_read(socket, buffer); // flushall
-      co_await async_read(socket, buffer, adapt(rpush)); // rpush
       co_await async_read(socket, buffer, adapt(sadd)); // sadd
       co_await async_read(socket, buffer, adapt(hset)); // hset
-      co_await async_read(socket, buffer, adapt(lrange)); // lrange
       co_await async_read(socket, buffer, adapt(smembers1)); // smembers
       co_await async_read(socket, buffer, adapt(smembers2)); // smembers
       co_await async_read(socket, buffer, adapt(hgetall)); // hgetall
 
       // Prints the responses.
       std::cout
-         << "rpush: " << rpush << "\n"
          << "sadd: " << sadd << "\n"
          << "hset: " << hset << "\n"
       ;
-
-      std::cout << "lrange: ";
-      for (auto const& e: lrange) std::cout << e << " ";
-      std::cout << std::endl;
 
       std::cout << "smembers1: ";
       for (auto const& e: smembers1) std::cout << e << " ";

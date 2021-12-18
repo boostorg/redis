@@ -50,27 +50,22 @@ net::awaitable<void> ping()
       auto req = make_request();
       co_await async_write(socket, buffer(req));
 
-      std::string rbuffer;
+      // Responses.
+      std::vector<std::string> svec;
+      std::list<std::string> slist;
+      std::deque<std::string> sdeq;
+      std::list<int> list;
+      std::vector<int> vec;
+      std::deque<int> deq;
 
+      std::string rbuffer;
       co_await async_read(socket, rbuffer); // hello
       co_await async_read(socket, rbuffer); // rpush
-
-      std::vector<std::string> svec; // Response as std::vector<std::string>.
       co_await async_read(socket, rbuffer, adapt(svec)); // lrange
-
-      std::list<std::string> slist; // Response as list.
       co_await async_read(socket, rbuffer, adapt(slist)); // lrange
-
-      std::deque<std::string> sdeq; // Response as list.
       co_await async_read(socket, rbuffer, adapt(sdeq)); // lrange
-
-      std::list<int> list; // Response as list.
       co_await async_read(socket, rbuffer, adapt(list)); // lrange
-
-      std::vector<int> vec; // Response as vector.
       co_await async_read(socket, rbuffer, adapt(vec)); // lrange
-
-      std::deque<int> deq; // Response as deque.
       co_await async_read(socket, rbuffer, adapt(deq)); // lrange
 
       for (auto e: svec) std::cout << e << " ";
@@ -100,4 +95,4 @@ int main()
    ioc.run();
 }
 
-/// \example custom_response2.cpp
+/// \example lists.cpp
