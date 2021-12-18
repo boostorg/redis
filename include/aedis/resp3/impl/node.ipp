@@ -67,5 +67,26 @@ std::ostream& operator<<(std::ostream& os, node const& o)
    return os;
 }
 
+std::string dump(storage_type const& obj, node::dump_format format, int indent)
+{
+   if (std::empty(obj))
+      return {};
+
+   std::string res;
+   for (auto i = 0ULL; i < std::size(obj) - 1; ++i) {
+      obj[i].dump(format, indent, res);
+      res += '\n';
+   }
+
+   obj.back().dump(format, indent, res);
+   return res;
+}
+
+std::ostream& operator<<(std::ostream& os, storage_type const& r)
+{
+   os << dump(r);
+   return os;
+}
+
 } // resp3
 } // aedis

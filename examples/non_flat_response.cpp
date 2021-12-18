@@ -14,26 +14,14 @@ using aedis::command;
 using aedis::resp3::serializer;
 using aedis::resp3::async_read;
 using aedis::resp3::adapt;
+using aedis::resp3::node;
 
 namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/** \brief A simple example that illustrates the basic principles.
+/** \brief Shows how to read non-flat responses.
  
-    We send three commands in the same request and read the responses
-    one after the other
-  
-    1. hello: Must be be the first command after the connection has been
-       stablished. We ignore its response here for simplicity, see
-       non_flat_response.cpp
-
-    2. ping
-
-    3. incr
-
-    4. quit: Asks the redis server to close the requests after it has been
-       processed.
 */
 net::awaitable<void> ping()
 {
@@ -42,28 +30,19 @@ net::awaitable<void> ping()
 
       serializer<command> sr;
       sr.push(command::hello, 3);
-      sr.push(command::ping);
-      sr.push(command::incr, "key");
-      sr.push(command::quit);
       co_await async_write(socket, buffer(sr.request()));
 
-      // Expected responses.
-      std::string ping, quit;
-      int incr;
+      // Expected response.
+      std::vector<node> hello;
 
-      // Reads the responses.
+      // Reads the response.
       std::string buffer;
-      co_await async_read(socket, buffer); // Ignores
-      co_await async_read(socket, buffer, adapt(ping));
-      co_await async_read(socket, buffer, adapt(incr));
-      co_await async_read(socket, buffer, adapt(quit));
+      co_await async_read(socket, buffer, adapt(hello));
 
       // Print the responses.
-      std::cout
-	 << "ping: " << ping << "\n"
-	 << "incr: " << incr << "\n"
-	 << "quit: " << quit
-	 << std::endl;
+      std::cout << "hello: ";
+      for (auto const& e: hello) std::cout << e << " ";
+      std::cout << "\n";
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

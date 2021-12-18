@@ -91,9 +91,8 @@ private:
       sr.push(command::hello, 3);
       co_await async_write(socket_, net::buffer(sr.request()));
 
-      adapter_ignore ignore;
       std::string buffer;
-      co_await async_read(socket_, buffer, ignore);
+      co_await async_read(socket_, buffer, adapt());
       // TODO: Set the information retrieved from hello.
    }
 

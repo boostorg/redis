@@ -41,5 +41,29 @@ bool operator==(node const& a, node const& b);
 /// Writes the node to the stream.
 std::ostream& operator<<(std::ostream& os, node const& o);
 
+using storage_type = std::vector<node>;
+
+std::string
+dump(
+   storage_type const& obj,
+   node::dump_format format = node::dump_format::clean,
+   int indent = 3);
+
+/// Equality comparison for a node.
+bool operator==(node const& a, node const& b);
+
+/** Writes the text representation of node to the output stream.
+ *  
+ *  NOTE: Binary data is not converted to text.
+ */
+std::ostream& operator<<(std::ostream& os, node const& o);
+
+/** Writes the text representation of the response to the output
+ *  stream the response to the output stream.
+ */
+std::ostream& operator<<(std::ostream& os, storage_type const& r);
+
+std::ostream& operator<<(std::ostream& os, storage_type const& r);
+
 } // resp3
 } // aedis

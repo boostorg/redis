@@ -48,7 +48,6 @@ net::awaitable<void> ping()
    try {
       auto socket = co_await connect();
       auto req = make_request();
-
       co_await async_write(socket, buffer(req));
 
       std::string rbuffer;

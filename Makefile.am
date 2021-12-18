@@ -67,10 +67,15 @@ containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 containers_CPPFLAGS = $(MY_CPPFLAGS)
 containers_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += custom_response1
-custom_response1_SOURCES = $(top_srcdir)/examples/custom_response1.cpp
-custom_response1_CPPFLAGS = $(MY_CPPFLAGS)
-custom_response1_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += custom_serialization
+custom_serialization_SOURCES = $(top_srcdir)/examples/custom_serialization.cpp
+custom_serialization_CPPFLAGS = $(MY_CPPFLAGS)
+custom_serialization_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += non_flat_response
+non_flat_response_SOURCES = $(top_srcdir)/examples/non_flat_response.cpp
+non_flat_response_CPPFLAGS = $(MY_CPPFLAGS)
+non_flat_response_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += custom_response2
 custom_response2_SOURCES = $(top_srcdir)/examples/custom_response2.cpp
@@ -81,6 +86,11 @@ noinst_PROGRAMS += echo_server
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 echo_server_CPPFLAGS = $(MY_CPPFLAGS)
 echo_server_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += helper_queue1
+helper_queue1_SOURCES = $(top_srcdir)/examples/helper_queue1.cpp
+helper_queue1_CPPFLAGS = $(MY_CPPFLAGS)
+helper_queue1_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp

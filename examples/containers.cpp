@@ -35,12 +35,12 @@ std::string make_request()
       {1, 2, 3, 4, 5, 6};
 
    std::set<std::string> set
-      {"one", "two", "three"};
+      {"one", "two", "three", "four"};
 
-   std::map<std::string, std::string> map
-      { {"key1", "value1"}
-      , {"key2", "value2"}
-      , {"key3", "value3"}
+   std::map<std::string, int> map
+      { {"key1", 1}
+      , {"key2", 2}
+      , {"key3", 3}
       };
 
    serializer<command> sr;
@@ -55,24 +55,29 @@ std::string make_request()
    // Retrieves the containers back from redis.
    sr.push(command::lrange, "key1", 0, -1);
    sr.push(command::smembers, "key2");
+   sr.push(command::smembers, "key2");
+   sr.push(command::hgetall, "key3");
 
-   // TODO: Request the other containers.
    return sr.request();
 }
 
-net::awaitable<void> stl_containers()
+net::awaitable<void> containers()
 {
    try {
       auto socket = co_await connect();
-      auto const req = make_request();
 
+      // Sends the request to redis.
+      auto const req = make_request();
       co_await async_write(socket, buffer(req));
 
-      // The responses
+      // The expected responses
       int rpush, sadd, hset;
       std::vector<int> lrange;
-      std::set<std::string> smembers;
+      std::set<std::string> smembers1;
+      std::unordered_set<std::string> smembers2;
+      std::map<std::string, int> hgetall;
 
+      // Reads the responses.
       std::string buffer;
       co_await async_read(socket, buffer); // hello
       co_await async_read(socket, buffer); // flushall
@@ -80,8 +85,11 @@ net::awaitable<void> stl_containers()
       co_await async_read(socket, buffer, adapt(sadd)); // sadd
       co_await async_read(socket, buffer, adapt(hset)); // hset
       co_await async_read(socket, buffer, adapt(lrange)); // lrange
-      co_await async_read(socket, buffer, adapt(smembers)); // smembers
+      co_await async_read(socket, buffer, adapt(smembers1)); // smembers
+      co_await async_read(socket, buffer, adapt(smembers2)); // smembers
+      co_await async_read(socket, buffer, adapt(hgetall)); // hgetall
 
+      // Prints the responses.
       std::cout
          << "rpush: " << rpush << "\n"
          << "sadd: " << sadd << "\n"
@@ -89,11 +97,19 @@ net::awaitable<void> stl_containers()
       ;
 
       std::cout << "lrange: ";
-      for (auto e: lrange) std::cout << e << " ";
+      for (auto const& e: lrange) std::cout << e << " ";
       std::cout << std::endl;
 
-      std::cout << "smembers: ";
-      for (auto e: smembers) std::cout << e << " ";
+      std::cout << "smembers1: ";
+      for (auto const& e: smembers1) std::cout << e << " ";
+      std::cout << std::endl;
+
+      std::cout << "smembers2: ";
+      for (auto const& e: smembers2) std::cout << e << " ";
+      std::cout << std::endl;
+
+      std::cout << "hgetall: ";
+      for (auto const& e: hgetall) std::cout << e.first << " ==> " << e.second << "; ";
       std::cout << std::endl;
 
    } catch (std::exception const& e) {
@@ -104,7 +120,7 @@ net::awaitable<void> stl_containers()
 int main()
 {
    net::io_context ioc;
-   co_spawn(ioc, stl_containers(), net::detached);
+   co_spawn(ioc, containers(), net::detached);
    ioc.run();
 }
 

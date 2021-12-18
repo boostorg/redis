@@ -12,8 +12,6 @@
 
 #include "test_stream.hpp"
 
-#include "basic_flat_array_adapter.hpp"
-
 // TODO: Use Beast test_stream and instantiate the test socket only
 // once.
 
@@ -23,15 +21,6 @@ using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
 using test_tcp_socket = net::use_awaitable_t<>::as_default_on_t<aedis::test_stream<aedis::net::system_executor>>;
 
 namespace this_coro = net::this_coro;
-
-namespace aedis {
-namespace resp3 {
-using flat_array_adapter = detail::basic_flat_array_adapter<std::string>;
-using flat_array_int_adapter = detail::basic_flat_array_adapter<int>;
-using flat_array_int_type = detail::basic_flat_array<int>;
-
-} // resp3
-} // aedis
 
 using namespace aedis;
 using namespace aedis::resp3;

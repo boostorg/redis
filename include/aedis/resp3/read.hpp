@@ -98,7 +98,7 @@ read(
 template <
    class AsyncReadStream,
    class Storage,
-   class ResponseAdapter = adapter_ignore,
+   class ResponseAdapter = detail::adapter_ignore,
    class CompletionToken = net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(

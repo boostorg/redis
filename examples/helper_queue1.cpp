@@ -1,40 +1,34 @@
 /* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/// \example basic1.cpp
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/aedis.hpp>
 #include <iostream>
-
+#include <aedis/aedis.hpp>
 #include "utils.ipp"
 
 using aedis::command;
 using aedis::resp3::serializer;
 using aedis::resp3::async_read;
+using aedis::resp3::node;
 using aedis::resp3::adapt;
 
 namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/** \brief A simple example that illustrates the basic principles.
+/* \brief Processes the responses in a loop using the helper queue.
  
-    We send three commands in the same request and read the responses
-    one after the other
-  
-    1. hello: Must be be the first command after the connection has been
-       stablished. We ignore its response here for simplicity, see
-       non_flat_response.cpp
+   In most cases commands will be added dynamically in the request for example
+   as users interact with the code. In order to process the responses
+   asynchronously users have to keep a queue of the expected commands or use
+   the one provided by the serializer class.
 
-    2. ping
-
-    3. incr
-
-    4. quit: Asks the redis server to close the requests after it has been
-       processed.
-*/
+   The example below shows how to do it.
+ */
 net::awaitable<void> ping()
 {
    try {
@@ -43,26 +37,33 @@ net::awaitable<void> ping()
       serializer<command> sr;
       sr.push(command::hello, 3);
       sr.push(command::ping);
-      sr.push(command::incr, "key");
       sr.push(command::quit);
       co_await async_write(socket, buffer(sr.request()));
 
-      // Expected responses.
+      // Expected responses (ignoring hello).
       std::string ping, quit;
-      int incr;
 
       // Reads the responses.
       std::string buffer;
-      co_await async_read(socket, buffer); // Ignores
-      co_await async_read(socket, buffer, adapt(ping));
-      co_await async_read(socket, buffer, adapt(incr));
-      co_await async_read(socket, buffer, adapt(quit));
+      while (!std::empty(sr.commands)) {
+         switch (sr.commands.front()) {
+            case command::ping:
+               co_await async_read(socket, buffer, adapt(ping));
+               break;
+            case command::quit:
+               co_await async_read(socket, buffer, adapt(quit));
+               break;
+            default:
+               co_await async_read(socket, buffer);
+         }
+
+	 sr.commands.pop();
+      }
 
       // Print the responses.
       std::cout
-	 << "ping: " << ping << "\n"
-	 << "incr: " << incr << "\n"
-	 << "quit: " << quit
+	 << "Ping: " << ping << "\n"
+	 << "Quit: " << quit
 	 << std::endl;
 
    } catch (std::exception const& e) {
@@ -70,7 +71,6 @@ net::awaitable<void> ping()
    }
 }
 
-/// The main function that starts the coroutine.
 int main()
 {
    net::io_context ioc;
@@ -78,4 +78,4 @@ int main()
    ioc.run();
 }
 
-/// \example intro1.cpp
+/// \example helper_queue1.cpp
