@@ -12,6 +12,8 @@
 #include <system_error>
 #include <limits>
 
+#include <aedis/resp3/error.hpp>
+
 namespace aedis {
 namespace resp3 {
 namespace detail {
@@ -85,7 +87,7 @@ public:
                auto const r =
 		  std::from_chars(data + 1, data + n - 2, bulk_length_);
 	       if (r.ec != std::errc()) {
-		  ec = std::make_error_code(r.ec);
+		  ec = error::not_an_int;
 		  return 0;
 	       }
 
@@ -99,7 +101,7 @@ public:
 		  auto const r =
 		     std::from_chars(data + 1, data + n - 2, bulk_length_);
 		  if (r.ec != std::errc()) {
-		     ec = std::make_error_code(r.ec);
+		     ec = error::not_an_int;
 		     return 0;
 		  }
 
@@ -136,7 +138,7 @@ public:
 	       std::size_t l;
                auto const r = std::from_chars(data + 1, data + n - 2, l);
 	       if (r.ec != std::errc()) {
-		  ec = std::make_error_code(r.ec);
+		  ec = error::not_an_int;
 		  return 0;
 	       }
 
@@ -153,8 +155,8 @@ public:
             } break;
             default:
             {
-               // TODO: Remove the assert and set an error.
-               assert(false);
+	       ec = error::invalid_type;
+	       return 0;
             }
          }
       }
@@ -164,7 +166,6 @@ public:
       
       return n;
    }
-
 
    // returns true when the parser is done with the current message.
    auto done() const noexcept
