@@ -11,9 +11,10 @@
 
 #include <aedis/resp3/serializer.hpp>
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/response_traits.hpp>
+#include <aedis/resp3/detail/parser.hpp>
+#include <aedis/resp3/detail/read_ops.hpp>
 
 #include <boost/asio/yield.hpp>
 
@@ -28,12 +29,12 @@ namespace resp3 {
 
 template <
   class SyncReadStream,
-  class Storage,
+  class Buffer,
   class ResponseAdapter
   >
 auto read(
    SyncReadStream& stream,
-   Storage& buf,
+   Buffer& buf,
    ResponseAdapter adapter,
    boost::system::error_code& ec)
 {
@@ -64,7 +65,7 @@ auto read(
    return n;
 }
 
-/** \brief Redis a reponse to a command.
+/** \brief Reads the reponse to a command.
  *  
  *  \param stream Synchronous read stream from which the response will be read.
  *  \param buf Buffer for temporary storage e.g. std::string or std::vector<char>.
@@ -73,12 +74,12 @@ auto read(
  */
 template<
    class SyncReadStream,
-   class Storage,
+   class Buffer,
    class ResponseAdapter>
 std::size_t
 read(
    SyncReadStream& stream,
-   Storage& buf,
+   Buffer& buf,
    ResponseAdapter adapter)
 {
    boost::system::error_code ec;
@@ -97,13 +98,13 @@ read(
  */
 template <
    class AsyncReadStream,
-   class Storage,
+   class Buffer,
    class ResponseAdapter = response_traits<void>::adapter_type,
    class CompletionToken = net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(
    AsyncReadStream& stream,
-   Storage& buffer,
+   Buffer& buffer,
    ResponseAdapter adapter = adapt(),
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
@@ -111,7 +112,7 @@ auto async_read(
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(detail::parse_op<AsyncReadStream, Storage, ResponseAdapter> {stream, &buffer, adapter},
+      >(detail::parse_op<AsyncReadStream, Buffer, ResponseAdapter> {stream, &buffer, adapter},
         token,
         stream);
 }
@@ -120,20 +121,20 @@ auto async_read(
  */
 template <
    class AsyncReadStream,
-   class Storage,
+   class Buffer,
    class CompletionToken =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read_type(
    AsyncReadStream& stream,
-   Storage& buffer,
+   Buffer& buffer,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code, type)
-      >(detail::type_op<AsyncReadStream, Storage> {stream, &buffer}, token, stream);
+      >(detail::type_op<AsyncReadStream, Buffer> {stream, &buffer}, token, stream);
 }
 
 } // resp3

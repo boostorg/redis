@@ -57,20 +57,20 @@ sets_SOURCES = $(top_srcdir)/examples/sets.cpp
 sets_CPPFLAGS = $(MY_CPPFLAGS)
 sets_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += maps
-maps_SOURCES = $(top_srcdir)/examples/maps.cpp
-maps_CPPFLAGS = $(MY_CPPFLAGS)
-maps_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += hashes
+hashes_SOURCES = $(top_srcdir)/examples/hashes.cpp
+hashes_CPPFLAGS = $(MY_CPPFLAGS)
+hashes_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += serialization
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
 serialization_CPPFLAGS = $(MY_CPPFLAGS)
 serialization_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += non_flat_response
-non_flat_response_SOURCES = $(top_srcdir)/examples/non_flat_response.cpp
-non_flat_response_CPPFLAGS = $(MY_CPPFLAGS)
-non_flat_response_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += nested_response
+nested_response_SOURCES = $(top_srcdir)/examples/nested_response.cpp
+nested_response_CPPFLAGS = $(MY_CPPFLAGS)
+nested_response_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += lists
 lists_SOURCES = $(top_srcdir)/examples/lists.cpp
@@ -86,6 +86,16 @@ noinst_PROGRAMS += response_queue
 response_queue_SOURCES = $(top_srcdir)/examples/response_queue.cpp
 response_queue_CPPFLAGS = $(MY_CPPFLAGS)
 response_queue_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += key_expiration
+key_expiration_SOURCES = $(top_srcdir)/examples/key_expiration.cpp
+key_expiration_CPPFLAGS = $(MY_CPPFLAGS)
+key_expiration_LDADD = $(MY_LDADD)
+
+noinst_PROGRAMS += response_adapter
+response_adapter_SOURCES = $(top_srcdir)/examples/response_adapter.cpp
+response_adapter_CPPFLAGS = $(MY_CPPFLAGS)
+response_adapter_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp

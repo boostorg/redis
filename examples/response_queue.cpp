@@ -20,12 +20,12 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/* \brief Processes the responses in a loop using the helper queue.
+/* Processes the responses in a loop using the helper queue.
  
-   In most cases commands will be added dynamically in the request for example
-   as users interact with the code. In order to process the responses
-   asynchronously users have to keep a queue of the expected commands or use
-   the one provided by the serializer class.
+   In most cases commands will be added dynamically in the request for
+   example as users interact with the code. In order to process the
+   responses asynchronously users have to keep a queue of the expected
+   commands or use the one provided by the serializer class.
 
    The example below shows how to do it.
  */
@@ -78,4 +78,4 @@ int main()
    ioc.run();
 }
 
-/// \example helper_queue1.cpp
+/// \example response_queue.cpp

@@ -20,41 +20,45 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/** \brief Shows how to read non-flat responses.
- 
+/* Shows how to read nested responses.
 */
-net::awaitable<void> ping()
+
+net::awaitable<void> nested_response()
 {
    try {
       auto socket = co_await connect();
 
       serializer<command> sr;
       sr.push(command::hello, 3);
+      sr.push(command::ping);
+      sr.push(command::quit);
       co_await async_write(socket, buffer(sr.request()));
 
-      // Expected response.
+      // Expected responses.
+      node ping;
       std::vector<node> hello;
 
       // Reads the response.
       std::string buffer;
       co_await async_read(socket, buffer, adapt(hello));
+      co_await async_read(socket, buffer, adapt(ping));
+      co_await async_read(socket, buffer);
 
       // Print the responses.
       std::cout << "hello: ";
       for (auto const& e: hello) std::cout << e << " ";
-      std::cout << "\n";
+      std::cout << "\nPing: " << ping;
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }
 }
 
-/// The main function that starts the coroutine.
 int main()
 {
    net::io_context ioc;
-   co_spawn(ioc, ping(), net::detached);
+   co_spawn(ioc, nested_response(), net::detached);
    ioc.run();
 }
 
-/// \example non_flat_response.cpp
+/// \example nested_response.cpp

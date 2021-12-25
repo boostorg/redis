@@ -981,33 +981,33 @@ net::awaitable<void> test_streamed_string()
    }
 }
 
-net::awaitable<void> offline()
-{
-   std::string buf;
-   //{
-   //   std::string cmd {"|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"};
-   //   test_tcp_socket ts {cmd};
-   //   resp3::flat_radapter res;
-   //   co_await async_read(ts, buf, res);
-   //   check_equal(res.result, {"key-popularity", "a", "0.1923", "b", "0.0012"}, "attribute");
-   //}
-
-   //{
-   //   std::string cmd {">4\r\n+pubsub\r\n+message\r\n+foo\r\n+bar\r\n"};
-   //   test_tcp_socket ts {cmd};
-   //   resp3::flat_radapter res;
-   //   co_await async_read(ts, buf, res);
-   //   check_equal(res.result, {"pubsub", "message", "foo", "bar"}, "push type");
-   //}
-
-   //{
-   //   std::string cmd {">0\r\n"};
-   //   test_tcp_socket ts {cmd};
-   //   resp3::flat_radapter res;
-   //   co_await async_read(ts, buf, res);
-   //   check_equal(res.result, {}, "push type (empty)");
-   //}
-}
+//net::awaitable<void> offline()
+//{
+//   std::string buf;
+//   //{
+//   //   std::string cmd {"|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"};
+//   //   test_tcp_socket ts {cmd};
+//   //   resp3::flat_radapter res;
+//   //   co_await async_read(ts, buf, res);
+//   //   check_equal(res.result, {"key-popularity", "a", "0.1923", "b", "0.0012"}, "attribute");
+//   //}
+//
+//   //{
+//   //   std::string cmd {">4\r\n+pubsub\r\n+message\r\n+foo\r\n+bar\r\n"};
+//   //   test_tcp_socket ts {cmd};
+//   //   resp3::flat_radapter res;
+//   //   co_await async_read(ts, buf, res);
+//   //   check_equal(res.result, {"pubsub", "message", "foo", "bar"}, "push type");
+//   //}
+//
+//   //{
+//   //   std::string cmd {">0\r\n"};
+//   //   test_tcp_socket ts {cmd};
+//   //   resp3::flat_radapter res;
+//   //   co_await async_read(ts, buf, res);
+//   //   check_equal(res.result, {}, "push type (empty)");
+//   //}
+//}
 
 int main(int argc, char* argv[])
 {

@@ -10,7 +10,13 @@
 #include <aedis/aedis.hpp>
 #include "utils.ipp"
 
-using namespace aedis;
+using aedis::command;
+using aedis::resp3::serializer;
+using aedis::resp3::async_read;
+using aedis::resp3::adapt;
+using aedis::resp3::node;
+
+namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
@@ -35,24 +41,22 @@ using net::buffer;
  */
 net::awaitable<void> subscriber()
 {
-   resp3::serializer<command> sr;
+   auto socket = co_await connect();
+
+   serializer<command> sr;
    sr.push(command::hello, "3");
    sr.push(command::subscribe, "channel1", "channel2");
-
-   auto socket = co_await connect();
    co_await async_write(socket, buffer(sr.request()));
 
-   std::string buffer;
-   std::vector<resp3::node> resp;
+   std::vector<node> resp;
 
    // Reads the response to the hello command.
+   std::string buffer;
    co_await async_read(socket, buffer, adapt(resp));
+   co_await async_read(socket, buffer);
 
    // Saves the id of this connection.
    auto const id = resp.at(8).data;
-
-   // Reads the response to the subscribe command.
-   co_await async_read(socket, buffer, adapt(resp));
 
    // Loops to receive server pushes.
    for (;;) {
@@ -68,8 +72,6 @@ net::awaitable<void> subscriber()
 int main()
 {
    net::io_context ioc;
-
-   // Starts some subscribers.
    co_spawn(ioc, subscriber(), net::detached);
    co_spawn(ioc, subscriber(), net::detached);
    co_spawn(ioc, subscriber(), net::detached);

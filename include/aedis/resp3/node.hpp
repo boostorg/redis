@@ -20,7 +20,7 @@ struct node {
    enum class dump_format {raw, clean};
 
    /// The number of children node is parent of.
-   std::size_t size;
+   std::size_t size; // TODO: Rename to aggregate_size
 
    /// The depth of this node in the response tree.
    std::size_t depth;
@@ -32,7 +32,7 @@ struct node {
    std::string data;
 
    /// Converts the node to a string and appends to out.
-   void dump(dump_format format, int indent, std::string& out) const;
+   void dump(std::string& out, dump_format format = dump_format::raw, int indent = 3) const;
 };
 
 /// Compares a node for equality.
@@ -41,13 +41,25 @@ bool operator==(node const& a, node const& b);
 /// Writes the node to the stream.
 std::ostream& operator<<(std::ostream& os, node const& o);
 
-using storage_type = std::vector<node>;
-
-std::string
-dump(
-   storage_type const& obj,
+template <class ForwardIterator>
+std::string dump(
+   ForwardIterator begin,
+   ForwardIterator end,
    node::dump_format format = node::dump_format::clean,
-   int indent = 3);
+   int indent = 3)
+{
+   if (begin == end)
+      return {};
+
+   std::string res;
+   for (; begin != std::prev(end); ++begin) {
+      begin->dump(res, format, indent);
+      res += '\n';
+   }
+
+   begin->dump(res, format, indent);
+   return res;
+}
 
 /// Equality comparison for a node.
 bool operator==(node const& a, node const& b);
@@ -61,9 +73,7 @@ std::ostream& operator<<(std::ostream& os, node const& o);
 /** Writes the text representation of the response to the output
  *  stream the response to the output stream.
  */
-std::ostream& operator<<(std::ostream& os, storage_type const& r);
-
-std::ostream& operator<<(std::ostream& os, storage_type const& r);
+std::ostream& operator<<(std::ostream& os, std::vector<node> const& r);
 
 } // resp3
 } // aedis

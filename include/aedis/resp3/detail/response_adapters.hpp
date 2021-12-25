@@ -13,6 +13,7 @@
 #include <aedis/resp3/serializer.hpp>
 
 #include <set>
+#include <optional>
 #include <map>
 #include <list>
 #include <deque>
@@ -80,6 +81,30 @@ public:
 };
 
 // Adapter for simple data types.
+template <class Node>
+class adapter_node {
+private:
+   Node* result_;
+
+public:
+   adapter_node(Node& t) : result_(&t) {}
+
+   void
+   operator()(
+      type t,
+      std::size_t aggregate_size,
+      std::size_t depth,
+      char const* data,
+      std::size_t data_size)
+   {
+     result_->size = aggregate_size;
+     result_->depth = depth;
+     result_->data_type = t;
+     result_->data.assign(data, data_size);
+   }
+};
+
+// Adapter for simple data types.
 template <class T>
 class adapter_simple {
 private:
@@ -98,6 +123,34 @@ public:
    {
      assert(!is_aggregate(t));
      from_string(*result_, data, data_size);
+   }
+};
+
+template <class T>
+class adapter_optional_simple {
+private:
+  std::optional<T>* result_;
+
+public:
+   adapter_optional_simple(std::optional<T>& o) : result_(&o) {}
+
+   void
+   operator()(
+      type t,
+      std::size_t aggregate_size,
+      std::size_t depth,
+      char const* data,
+      std::size_t data_size)
+   {
+     assert(!is_aggregate(t));
+
+     if (t == type::null)
+       return;
+
+     if (!result_->has_value())
+       *result_ = T{};
+
+     from_string(result_->value(), data, data_size);
    }
 };
 

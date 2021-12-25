@@ -23,7 +23,7 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/** An example on how to read maps into C++ containers.
+/* Shows how to serialize and read redis hashes in C++ containers.
  */
 
 net::awaitable<void> containers()
@@ -37,6 +37,7 @@ net::awaitable<void> containers()
 	 , {"key3", "value3"}
 	 };
 
+      // Creates and sends the request.
       serializer<command> sr;
       sr.push(command::hello, 3);
       sr.push(command::flushall);
@@ -64,14 +65,12 @@ net::awaitable<void> containers()
       co_await async_read(socket, buffer);
 
       // Prints the responses.
-      std::cout << "hset: " << hset << "\n";
-      std::cout << "hgetall (as vector): ";
+      std::cout << "hset: " << hset;
+      std::cout << "\nhgetall (as vector): ";
       for (auto const& e: hgetall1) std::cout << e << ", ";
-      std::cout << "\n";
-      std::cout << "hgetall (as map): ";
+      std::cout << "\nhgetall (as map): ";
       for (auto const& e: hgetall2) std::cout << e.first << " ==> " << e.second << "; ";
-      std::cout << "\n";
-      std::cout << "hgetall (as unordered_map): ";
+      std::cout << "\nhgetall (as unordered_map): ";
       for (auto const& e: hgetall3) std::cout << e.first << " ==> " << e.second << "; ";
       std::cout << "\n";
 
@@ -87,4 +86,4 @@ int main()
    ioc.run();
 }
 
-/// \example sets.cpp
+/// \example hashes.cpp

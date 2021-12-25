@@ -13,14 +13,18 @@
 #include <aedis/resp3/response_traits.hpp>
 #include <aedis/resp3/serializer.hpp>
 
-/** \mainpage Aedis
-  
-   \section intro_sec Introduction
-  
-   Aedis is an async redis client built on top of Boost.Asio.
+//\tableofcontents
 
-   \section usage_sec Usage
+/** \mainpage Manual
+  
+    Some text.
 
+    - \subpage usage
+    - \subpage tutorial
+ */
+
+/** \page usage Usage
+  
    Aedis is a header only library. You only need to include the header
 
    @code
@@ -28,21 +32,22 @@
    @endcode
 
    in one of your source files.
+ */
 
-   \section other_dbs Other databases
+/** \page tutorial Tutorial
+  
+    Some info
 
-   The resp3 protocol is used not only by redis but by other databases as well, for example
+    \section requests Requests
 
-   1. KeyDb
-   2. ScyllaDB
-   3. Redis alternatives.
+    Some text
 
-   Although we test this project against official open source redis only, we
-   expected it to work with these databases as well.
+    \section responses Responses
 
+    Some text
  */
 
 /** \file aedis.hpp
- *  \brief Includes all headers that are necessary to use aedis.
+ *  \brief Includes all headers that are necessary in order to use aedis.
  */
 

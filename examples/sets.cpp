@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/aedis.hpp>
-
 #include <iostream>
+
+#include <aedis/aedis.hpp>
 #include <set>
 #include <vector>
 #include <unordered_map>
@@ -23,7 +23,7 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/* An example on how to read sets in C++ containers.
+/* Shows how to serialize and read redis sets in C++ containers.
  */
 
 net::awaitable<void> containers()
@@ -34,6 +34,7 @@ net::awaitable<void> containers()
       std::set<std::string> set
 	 {"one", "two", "three", "four"};
 
+      // Creates and sends the request.
       serializer<command> sr;
       sr.push(command::hello, 3);
       sr.push(command::flushall);
@@ -44,7 +45,7 @@ net::awaitable<void> containers()
       sr.push(command::quit);
       co_await async_write(socket, buffer(sr.request()));
 
-      // Objects to hold the responses.
+      // Expected responses.
       int sadd;
       std::vector<std::string> smembers1;
       std::set<std::string> smembers2;
@@ -61,14 +62,12 @@ net::awaitable<void> containers()
       co_await async_read(socket, buffer);
 
       // Prints the responses.
-      std::cout << "sadd: " << sadd << "\n" ;
-      std::cout << "smembers (as vector): ";
+      std::cout << "sadd: " << sadd;
+      std::cout << "\nsmembers (as vector): ";
       for (auto const& e: smembers1) std::cout << e << " ";
-      std::cout << "\n";
-      std::cout << "smembers (as set): ";
+      std::cout << "\nsmembers (as set): ";
       for (auto const& e: smembers2) std::cout << e << " ";
-      std::cout << "\n";
-      std::cout << "smembers (as unordered_set): ";
+      std::cout << "\nsmembers (as unordered_set): ";
       for (auto const& e: smembers3) std::cout << e << " ";
       std::cout << "\n";
 

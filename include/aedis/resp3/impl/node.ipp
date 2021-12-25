@@ -12,7 +12,7 @@
 namespace aedis {
 namespace resp3 {
 
-void node::dump(dump_format format, int indent, std::string& out) const
+void node::dump(std::string& out, dump_format format, int indent) const
 {
    switch (format) {
       case node::dump_format::raw:
@@ -62,29 +62,14 @@ bool operator==(node const& a, node const& b)
 std::ostream& operator<<(std::ostream& os, node const& o)
 {
    std::string res;
-   o.dump(node::dump_format::clean, 3, res);
+   o.dump(res, node::dump_format::clean, 3);
    os << res;
    return os;
 }
 
-std::string dump(storage_type const& obj, node::dump_format format, int indent)
+std::ostream& operator<<(std::ostream& os, std::vector<node> const& r)
 {
-   if (std::empty(obj))
-      return {};
-
-   std::string res;
-   for (auto i = 0ULL; i < std::size(obj) - 1; ++i) {
-      obj[i].dump(format, indent, res);
-      res += '\n';
-   }
-
-   obj.back().dump(format, indent, res);
-   return res;
-}
-
-std::ostream& operator<<(std::ostream& os, storage_type const& r)
-{
-   os << dump(r);
+   os << dump(std::cbegin(r), std::cend(r));
    return os;
 }
 

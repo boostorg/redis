@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/aedis.hpp>
 #include <iostream>
+#include <aedis/aedis.hpp>
 
 #include "utils.ipp"
 
@@ -19,27 +19,22 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/** \brief A simple example that illustrates the basic principles.
+/* Illustrates the basic principles.
  
-    We send three commands in the same request and read the responses
-    one after the other
+   Sends some commands to the redis server and read the responses
+   back. The hello command is always required after the connection has
+   been stablished.
   
-    1. hello: Must be be the first command after the connection has been
-       stablished. We ignore its response here for simplicity, see
-       non_flat_response.cpp
-
-    2. ping
-
-    3. incr
-
-    4. quit: Asks the redis server to close the requests after it has been
-       processed.
+   Note: In general connections will be kept open and used for
+   multiple requests, see for example echo_server.cpp.
 */
+
 net::awaitable<void> ping()
 {
    try {
       auto socket = co_await connect();
 
+      // Creates and sends the request.
       serializer<command> sr;
       sr.push(command::hello, 3);
       sr.push(command::ping);
@@ -48,12 +43,12 @@ net::awaitable<void> ping()
       co_await async_write(socket, buffer(sr.request()));
 
       // Expected responses.
-      std::string ping, quit;
       int incr;
+      std::string ping, quit;
 
       // Reads the responses.
       std::string buffer;
-      co_await async_read(socket, buffer); // Ignores
+      co_await async_read(socket, buffer); // hello (ignored)
       co_await async_read(socket, buffer, adapt(ping));
       co_await async_read(socket, buffer, adapt(incr));
       co_await async_read(socket, buffer, adapt(quit));
@@ -70,7 +65,6 @@ net::awaitable<void> ping()
    }
 }
 
-/// The main function that starts the coroutine.
 int main()
 {
    net::io_context ioc;

@@ -7,17 +7,10 @@
 namespace net = aedis::net;
 
 using aedis::command;
-using aedis::resp3::serializer;
 using aedis::resp3::type;
 using aedis::resp3::client_base;
 using aedis::resp3::response_traits;
 using aedis::resp3::node;
-
-using tcp_socket = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
-using tcp_resolver = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::resolver>;
-using timer = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::steady_timer>;
-using tcp_acceptor = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::acceptor>;
-using namespace aedis::net::experimental::awaitable_operators;
 
 struct user_session_base {
   virtual ~user_session_base() {}
@@ -52,6 +45,8 @@ class user_session:
    public user_session_base,
    public std::enable_shared_from_this<user_session> {
 public:
+   using tcp_socket = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
+
    user_session(tcp_socket socket, std::shared_ptr<my_redis_client> rclient)
    : socket_(std::move(socket))
    , timer_(socket_.get_executor())
@@ -137,6 +132,8 @@ private:
 // Start this after the connection to the database has been stablished.
 net::awaitable<void> listener()
 {
+   using tcp_acceptor = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::acceptor>;
+
    auto ex = co_await net::this_coro::executor;
    tcp_acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});
    

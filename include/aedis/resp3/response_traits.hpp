@@ -27,8 +27,21 @@ namespace resp3 {
 template <class T>
 struct response_traits
 {
+   /// The response type.
    using response_type = T;
+
+   /// The adapter type.
    using adapter_type = detail::adapter_simple<response_type>;
+
+   /// Returns an adapter for the reponse r
+   static auto adapt(response_type& r) noexcept { return adapter_type{r}; }
+};
+
+template <class T>
+struct response_traits<std::optional<T>>
+{
+   using response_type = std::optional<T>;
+   using adapter_type = detail::adapter_optional_simple<typename response_type::value_type>;
    static auto adapt(response_type& i) noexcept { return adapter_type{i}; }
 };
 
@@ -37,6 +50,14 @@ struct response_traits<std::vector<T, Allocator>>
 {
    using response_type = std::vector<T, Allocator>;
    using adapter_type = detail::adapter_vector<response_type>;
+   static auto adapt(response_type& v) noexcept { return adapter_type{v}; }
+};
+
+template <>
+struct response_traits<node>
+{
+   using response_type = node;
+   using adapter_type = detail::adapter_node<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{v}; }
 };
 

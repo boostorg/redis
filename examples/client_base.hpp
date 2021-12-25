@@ -17,14 +17,14 @@ using namespace aedis::net::experimental::awaitable_operators;
 namespace aedis {
 namespace resp3 {
 
-/** \brief A general purpose redis client.
+/* Example: A general purpose redis client.
  *
  *  This client supports many features.
  */
 template <class QueueElem>
 class client_base : public std::enable_shared_from_this<client_base<QueueElem>> {
 protected:
-   /// The response used for push types.
+   // The response used for push types.
   std::vector<node> push_resp_;
 
 private:
@@ -141,16 +141,16 @@ private:
    }
 
 public:
-   /// Constructor.
+   // Constructor.
    client_base(net::any_io_executor ex)
    : socket_{ex}
    , timer_{ex}
    { }
 
-   /// Destructor.
+   // Destructor.
    virtual ~client_base() { }
 
-   /** \brief Starts the client.
+   /* \brief Starts the client.
     *
     *  Stablishes a connection with the redis server and keeps waiting for messages to send.
     */
@@ -161,7 +161,7 @@ public:
           net::detached);
    }
 
-   /** \brief Adds commands the requests queue and sends if possible.
+   /* \brief Adds commands the requests queue and sends if possible.
     *
     *  The filler callable get a request by reference, for example
     *
@@ -188,13 +188,13 @@ public:
          timer_.cancel_one();
    }
 
-   /** \brief Called when the response to a specific command is received.
+   /* \brief Called when the response to a specific command is received.
     *
     *  Override this function to receive events in your derived class.
     */
    virtual void on_event(QueueElem qe) {};
 
-   /** \brief Called when server push is received.
+   /* \brief Called when server push is received.
     *
     *  Override this function to receive push events in the derived class.
     */
