@@ -8,7 +8,9 @@
 #pragma once
 
 #include <string_view>
-#include <aedis/net.hpp>
+#include <charconv>
+#include <system_error>
+#include <limits>
 
 namespace aedis {
 namespace resp3 {
@@ -16,9 +18,6 @@ namespace detail {
 
 // Converts a wire-format char to a resp3 type.
 type to_type(char c);
-
-// Converts a decimal number in ascii format to an integer.
-std::size_t length(char const* p);
 
 template <class ResponseAdapter>
 class parser {
@@ -40,7 +39,7 @@ private:
       sizes_[5] = 1;
       sizes_[6] = 1;
       bulk_ = type::invalid;
-      bulk_length_ = std::numeric_limits<std::size_t>::max();
+      bulk_length_ = (std::numeric_limits<std::size_t>::max)();
    }
 
 public:
@@ -48,8 +47,9 @@ public:
    : adapter_{adapter}
    { init(); }
 
-   // Returns the number of bytes in data that have been consumed.
-   std::size_t advance(char const* data, std::size_t n)
+   // Returns the number of bytes that have been consumed.
+   std::size_t
+   advance(char const* data, std::size_t n, std::error_code& ec)
    {
       if (bulk_ != type::invalid) {
          n = bulk_length_ + 2;
@@ -75,15 +75,27 @@ public:
             case type::verbatim_string:
             case type::streamed_string_part:
             {
-               bulk_length_ = length(data + 1);
+               auto const r =
+		  std::from_chars(data + 1, data + n - 2, bulk_length_);
+	       if (r.ec != std::errc()) {
+		  ec = std::make_error_code(r.ec);
+		  return 0;
+	       }
+
                bulk_ = t;
             } break;
             case type::blob_string:
             {
                if (*(data + 1) == '?') {
-                  sizes_[++depth_] = std::numeric_limits<std::size_t>::max();
+                  sizes_[++depth_] = (std::numeric_limits<std::size_t>::max)();
                } else {
-                  bulk_length_ = length(data + 1);
+		  auto const r =
+		     std::from_chars(data + 1, data + n - 2, bulk_length_);
+		  if (r.ec != std::errc()) {
+		     ec = std::make_error_code(r.ec);
+		     return 0;
+		  }
+
                   bulk_ = type::blob_string;
                }
             } break;
@@ -108,7 +120,13 @@ public:
             case type::attribute:
             case type::map:
             {
-               auto const l = length(data + 1);
+	       std::size_t l;
+               auto const r = std::from_chars(data + 1, data + n - 2, l);
+	       if (r.ec != std::errc()) {
+		  ec = std::make_error_code(r.ec);
+		  return 0;
+	       }
+
                adapter_(t, l, depth_, nullptr, 0);
 
                if (l == 0) {

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <string_view>
+#include <aedis/net.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 
 namespace aedis {
@@ -81,14 +82,23 @@ public:
 
             default:
 	    {
-	       if (ec)
-		  return self.complete(ec, 0);
+	       if (ec) {
+		  self.complete(ec, 0);
+		  return;
+	       }
 
-	       n = parser_.advance(buf_->data(), n);
+	       n = parser_.advance(buf_->data(), n, ec);
+	       if (ec) {
+		  self.complete(ec, 0);
+		  return;
+	       }
+
 	       buf_->erase(0, n);
 	       consumed_ += n;
-	       if (parser_.done())
-		  return self.complete({}, consumed_);
+	       if (parser_.done()) {
+		  self.complete({}, consumed_);
+		  return;
+	       }
 	    }
          }
       }

@@ -35,17 +35,6 @@ type to_type(char c)
    }
 }
 
-// Converts a decimal number in ascii format to an integer.
-std::size_t length(char const* p)
-{
-   std::size_t len = 0;
-   while (*p != '\r') {
-       len = (10 * len) + (*p - '0');
-       p++;
-   }
-   return len;
-}
-
 } // detail
 } // resp3
 } // aedis
