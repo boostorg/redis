@@ -7,18 +7,22 @@
 
 #pragma once
 
-#include <aedis/command.hpp>
-#include <aedis/resp3/type.hpp>
-#include <aedis/resp3/node.hpp>
-#include <aedis/resp3/serializer.hpp>
-
 #include <set>
 #include <optional>
+#include <system_error>
 #include <map>
 #include <list>
 #include <deque>
 #include <vector>
 #include <charconv>
+
+#include <aedis/command.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/node.hpp>
+#include <aedis/resp3/serializer.hpp>
+
+// TODO: Add error code for parsing redis-values with its own error
+// category.
 
 namespace aedis {
 namespace resp3 {
@@ -27,7 +31,10 @@ namespace detail
 {
 
 struct adapter_ignore {
-   void operator()(type, std::size_t, std::size_t, char const*, std::size_t) { }
+   void
+   operator()(
+      type, std::size_t, std::size_t, char const*, std::size_t,
+      std::error_code&) { }
 };
 
 template <class T>
@@ -76,8 +83,17 @@ public:
     *
     *  \param size The size of data.
     */
-   void operator()(type t, std::size_t n, std::size_t depth, char const* data, std::size_t size)
-      { result_->emplace_back(n, depth, t, std::string{data, size}); }
+   void
+   operator()(
+      type t,
+      std::size_t n,
+      std::size_t depth,
+      char const* data,
+      std::size_t size,
+      std::error_code&)
+      {
+	 result_->emplace_back(n, depth, t, std::string{data, size});
+      }
 };
 
 // Adapter for simple data types.
@@ -95,7 +111,8 @@ public:
       std::size_t aggregate_size,
       std::size_t depth,
       char const* data,
-      std::size_t data_size)
+      std::size_t data_size,
+      std::error_code&)
    {
      result_->size = aggregate_size;
      result_->depth = depth;
@@ -119,7 +136,8 @@ public:
       std::size_t aggregate_size,
       std::size_t depth,
       char const* data,
-      std::size_t data_size)
+      std::size_t data_size,
+      std::error_code&)
    {
      assert(!is_aggregate(t));
      assert(aggregate_size == 1);
@@ -142,7 +160,8 @@ public:
       std::size_t aggregate_size,
       std::size_t depth,
       char const* data,
-      std::size_t data_size)
+      std::size_t data_size,
+      std::error_code&)
    {
       assert(!is_aggregate(t));
       assert(aggregate_size == 1);
@@ -158,7 +177,7 @@ public:
    }
 };
 
-/** A response type that parses the response directly in a
+/* A response type that parses the response directly in a vector.
  */
 template <class Container>
 class adapter_vector {
@@ -174,7 +193,8 @@ public:
        std::size_t aggregate_size,
        std::size_t depth,
        char const* data,
-       std::size_t data_size)
+       std::size_t data_size,
+       std::error_code&)
    {
       if (is_aggregate(t)) {
 	 assert(depth == 0);
@@ -202,7 +222,8 @@ public:
        std::size_t aggregate_size,
        std::size_t depth,
        char const* data,
-       std::size_t data_size)
+       std::size_t data_size,
+       std::error_code&)
    {
       if (is_aggregate(t)) {
         assert(depth == 0);
@@ -233,7 +254,8 @@ public:
        std::size_t aggregate_size,
        std::size_t depth,
        char const* data,
-       std::size_t data_size)
+       std::size_t data_size,
+       std::error_code&)
    {
       if (t == type::set) {
         assert(depth == 0);
@@ -274,7 +296,8 @@ public:
        std::size_t aggregate_size,
        std::size_t depth,
        char const* data,
-       std::size_t data_size)
+       std::size_t data_size,
+       std::error_code&)
    {
       if (t == type::map) {
         assert(depth == 0);

@@ -34,7 +34,8 @@ struct myadapter {
       std::size_t aggregate_size,
       std::size_t depth,
       char const* data,
-      std::size_t size)
+      std::size_t size,
+      std::error_code&)
       {
          std::cout
             << "Type: " << t << "\n"

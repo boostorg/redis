@@ -59,10 +59,17 @@ public:
               if (bulk_length_ == 0) {
                  sizes_[depth_] = 1;
               } else {
-                 adapter_(bulk_, 1, depth_, data, bulk_length_);
+                 adapter_(bulk_, 1, depth_, data, bulk_length_, ec);
+		 if (ec)
+		    return 0;
               }
             } break;
-            default: adapter_(bulk_, 1, depth_, data, bulk_length_);
+            default:
+	    {
+	       adapter_(bulk_, 1, depth_, data, bulk_length_, ec);
+	       if (ec)
+		  return 0;
+	    }
          }
 
          bulk_ = type::invalid;
@@ -106,12 +113,18 @@ public:
             case type::big_number:
             case type::simple_string:
             {
-               adapter_(t, 1, depth_, data + 1, n - 3);
+               adapter_(t, 1, depth_, data + 1, n - 3, ec);
+	       if (ec)
+		  return 0;
+
                --sizes_[depth_];
             } break;
             case type::null:
             {
-               adapter_(type::null, 1, depth_, nullptr, 0);
+               adapter_(type::null, 1, depth_, nullptr, 0, ec);
+	       if (ec)
+		  return 0;
+
                --sizes_[depth_];
             } break;
             case type::push:
@@ -127,7 +140,9 @@ public:
 		  return 0;
 	       }
 
-               adapter_(t, l, depth_, nullptr, 0);
+               adapter_(t, l, depth_, nullptr, 0, ec);
+	       if (ec)
+		  return 0;
 
                if (l == 0) {
                   --sizes_[depth_];
@@ -138,7 +153,7 @@ public:
             } break;
             default:
             {
-               // TODO: This should cause an error not an assert.
+               // TODO: Remove the assert and set an error.
                assert(false);
             }
          }
