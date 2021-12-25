@@ -21,7 +21,7 @@ void node::dump(std::string& out, dump_format format, int indent) const
 	 out += '\t';
 	 out += to_string(data_type);
 	 out += '\t';
-	 out += std::to_string(size);
+	 out += std::to_string(aggregate_size);
 	 out += '\t';
 	 if (!is_aggregate(data_type))
 	    out += data;
@@ -34,7 +34,7 @@ void node::dump(std::string& out, dump_format format, int indent) const
 	    out += "(";
 	    out += to_string(data_type);
 	    out += ")";
-	    if (size == 0) {
+	    if (aggregate_size == 0) {
 	       std::string prefix2(indent * (depth + 1), ' ');
 	       out += "\n";
 	       out += prefix2;
@@ -53,7 +53,7 @@ void node::dump(std::string& out, dump_format format, int indent) const
 
 bool operator==(node const& a, node const& b)
 {
-   return a.size == b.size
+   return a.aggregate_size == b.aggregate_size
        && a.depth == b.depth
        && a.data_type == b.data_type
        && a.data == b.data;

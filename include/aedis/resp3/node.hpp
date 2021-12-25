@@ -19,16 +19,16 @@ namespace resp3 {
 struct node {
    enum class dump_format {raw, clean};
 
-   /// The number of children node is parent of.
-   std::size_t size; // TODO: Rename to aggregate_size
+   /// The RESP3 type  of the data in this node.
+   type data_type;
+
+   /// The number of children this node is parent of.
+   std::size_t aggregate_size;
 
    /// The depth of this node in the response tree.
    std::size_t depth;
 
-   /// The RESP3 type  of the data in this node.
-   type data_type;
-
-   /// The data. For aggregate data types this is always empty.
+   /// The actual data. For aggregate data types this is always empty.
    std::string data;
 
    /// Converts the node to a string and appends to out.

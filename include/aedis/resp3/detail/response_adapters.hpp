@@ -55,7 +55,7 @@ from_string(
   s.assign(data, data_size);
 }
 
-/** \brief A general pupose redis response class
+/** A general pupose redis response class
   
     A pre-order-view of the response tree.
  */
@@ -92,7 +92,7 @@ public:
       std::size_t size,
       std::error_code&)
       {
-	 result_->emplace_back(n, depth, t, std::string{data, size});
+	 result_->emplace_back(t, n, depth, std::string{data, size});
       }
 };
 
@@ -114,9 +114,9 @@ public:
       std::size_t data_size,
       std::error_code&)
    {
-     result_->size = aggregate_size;
-     result_->depth = depth;
      result_->data_type = t;
+     result_->aggregate_size = aggregate_size;
+     result_->depth = depth;
      result_->data.assign(data, data_size);
    }
 };
