@@ -17,6 +17,7 @@ namespace detail {
 // The parser supports up to 5 levels of nested structures. The first
 // element in the sizes stack is a sentinel and must be different from
 // 1.
+// TODO: Use asio::coroutine.
 template <
    class AsyncReadStream,
    class Buffer,
@@ -24,15 +25,18 @@ template <
 class parse_op {
 private:
    AsyncReadStream& stream_;
-   Buffer* buf_ = nullptr;
+   Buffer* buf_;
    parser<ResponseAdapter> parser_;
-   int start_ = 1;
+   std::size_t consumed_;
+   int start_;
 
 public:
    parse_op(AsyncReadStream& stream, Buffer* buf, ResponseAdapter adapter)
    : stream_ {stream}
    , buf_ {buf}
    , parser_ {adapter}
+   , consumed_{0}
+   , start_{1}
    { }
 
    template <class Self>
@@ -61,7 +65,7 @@ public:
 	    // last time. If it is, there is no need of initiating
 	    // another async op otherwise we have to read the
 	    // missing bytes.
-            if (std::ssize(*buf_) < (parser_.bulk_length() + 2)) {
+            if (std::size(*buf_) < (parser_.bulk_length() + 2)) {
                start_ = 0;
 	       auto const s = std::ssize(*buf_);
 	       auto const l = parser_.bulk_length();
@@ -78,12 +82,13 @@ public:
             default:
 	    {
 	       if (ec)
-		  return self.complete(ec);
+		  return self.complete(ec, 0);
 
 	       n = parser_.advance(buf_->data(), n);
 	       buf_->erase(0, n);
+	       consumed_ += n;
 	       if (parser_.done())
-		  return self.complete({});
+		  return self.complete({}, consumed_);
 	    }
          }
       }
@@ -109,6 +114,8 @@ public:
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
+      boost::ignore_unused(n);
+
       if (ec) {
 	 self.complete(ec, type::invalid);
          return;

@@ -12,21 +12,39 @@ using aedis::resp3::client_base;
 using aedis::resp3::response_traits;
 using aedis::resp3::node;
 
+// Base class for user sessions.
 struct user_session_base {
   virtual ~user_session_base() {}
   virtual void on_event(command cmd) = 0;
 };
 
-struct queue_elem {
+// struct to hold information that we need when the response to a
+// command is received. See client_base.hpp for more details on the
+// required fields in this struct.
+struct response_id {
+   // The type of the adapter that should be used to deserialize the
+   // response.
+   using adapter_type = response_traits<std::vector<node>>::adapter_type;
+
+   // The type of the session pointer.
+   using session_ptr = std::weak_ptr<user_session_base>;
+
+   // The redis command that was send in the request.
    command cmd = command::unknown;
-   response_traits<std::vector<node>>::adapter_type adapter;
-   std::weak_ptr<user_session_base> session = std::shared_ptr<user_session_base>{nullptr};
+
+   // The adapter.
+   adapter_type adapter;
+
+   // The pointer to the session the request belong to.
+   session_ptr session = std::shared_ptr<user_session_base>{nullptr};
+
+   // Required from client_base.hpp.
    auto get_command() const noexcept { return cmd; }
 };
 
-class my_redis_client : public client_base<queue_elem> {
+class my_redis_client : public client_base<response_id> {
 private:
-   void on_event(queue_elem qe) override
+   void on_event(response_id qe) override
    {
       if (auto session = qe.session.lock()) {
          session->on_event(qe.cmd);
@@ -37,7 +55,7 @@ private:
 
 public:
    my_redis_client(net::any_io_executor ex)
-   : client_base<queue_elem>(ex)
+   : client_base<response_id>(ex)
    {}
 };
 

@@ -22,7 +22,7 @@ using net::buffer;
 
 /* Processes the responses in a loop using the helper queue.
  
-   In most cases commands will be added dynamically in the request for
+   In most cases commands will be added dynamically to the request for
    example as users interact with the code. In order to process the
    responses asynchronously users have to keep a queue of the expected
    commands or use the one provided by the serializer class.
@@ -40,7 +40,7 @@ net::awaitable<void> ping()
       sr.push(command::quit);
       co_await async_write(socket, buffer(sr.request()));
 
-      // Expected responses (ignoring hello).
+      // Expected responses
       std::string ping, quit;
 
       // Reads the responses.

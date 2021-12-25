@@ -18,6 +18,7 @@
 namespace aedis {
 namespace resp3 {
 
+// TODO: return the number of bytes written.
 template<
    class AsyncWriteStream,
    class Queue
@@ -33,6 +34,8 @@ struct write_some_op {
       boost::system::error_code const& ec = {},
       std::size_t n = 0)
    {
+      boost::ignore_unused(n);
+
       reenter (coro_) {
 	 do {
 	    assert(!std::empty(reqs));

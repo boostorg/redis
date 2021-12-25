@@ -37,6 +37,7 @@ net::awaitable<void> ping()
       // Creates and sends the request.
       serializer<command> sr;
       sr.push(command::hello, 3);
+      sr.push(command::flushall);
       sr.push(command::ping);
       sr.push(command::incr, "key");
       sr.push(command::quit);
@@ -44,21 +45,22 @@ net::awaitable<void> ping()
 
       // Expected responses.
       int incr;
-      std::string ping, quit;
+      std::string ping;
 
       // Reads the responses.
       std::string buffer;
-      co_await async_read(socket, buffer); // hello (ignored)
-      co_await async_read(socket, buffer, adapt(ping));
-      co_await async_read(socket, buffer, adapt(incr));
-      co_await async_read(socket, buffer, adapt(quit));
+      std::size_t n = 0;
+      n += co_await async_read(socket, buffer); // hello (ignored)
+      n += co_await async_read(socket, buffer); // flushall
+      n += co_await async_read(socket, buffer, adapt(ping));
+      n += co_await async_read(socket, buffer, adapt(incr));
+      n += co_await async_read(socket, buffer);
 
       // Print the responses.
       std::cout
+	 << "Bytes read: " << n << "\n"
 	 << "ping: " << ping << "\n"
-	 << "incr: " << incr << "\n"
-	 << "quit: " << quit
-	 << std::endl;
+	 << "incr: " << incr << "\n";
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

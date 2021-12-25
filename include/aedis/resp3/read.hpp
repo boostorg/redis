@@ -91,10 +91,10 @@ read(
    return n;
 }
 
-/** @brief Reads the response to a reads command.
- *
- *  This function has to be called once for each command in the request until
- *  the whole request has been consumed.
+/** @brief Reads the response to a Redis command.
+  
+    This function has to be called once for each command in the
+    request until the whole request has been consumed.
  */
 template <
    class AsyncReadStream,
@@ -111,7 +111,7 @@ auto async_read(
 {
    return net::async_compose
       < CompletionToken
-      , void(boost::system::error_code)
+      , void(boost::system::error_code, std::size_t)
       >(detail::parse_op<AsyncReadStream, Buffer, ResponseAdapter> {stream, &buffer, adapter},
         token,
         stream);

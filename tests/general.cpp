@@ -1009,7 +1009,7 @@ net::awaitable<void> test_streamed_string()
 //   //}
 //}
 
-int main(int argc, char* argv[])
+int main()
 {
    net::io_context ioc {1};
    tcp::resolver resv(ioc);

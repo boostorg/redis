@@ -22,7 +22,9 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/* When accessing a key that does not exist, for example due to
+/* Shows how to deal with keys that may not exist.
+  
+   When accessing a key that does not exist, for example due to
    expiration, redis will return null. Aedis supports these usecases
    through std::optional.
  */

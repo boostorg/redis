@@ -17,23 +17,34 @@ using namespace aedis::net::experimental::awaitable_operators;
 namespace aedis {
 namespace resp3 {
 
-/* Example: A general purpose redis client.
- *
- *  This client supports many features.
+/*  Example: A general purpose redis client.
+  
+    This class is meant to be an example. Users are meant to derive
+    from this class and override 
+  
+       1. on_event.
+       2. on_push.
+  
+    The ReponseId type is required to provide the get_command() member
+    function.
  */
-template <class QueueElem>
-class client_base : public std::enable_shared_from_this<client_base<QueueElem>> {
+template <class ResponseId>
+class client_base
+   : public std::enable_shared_from_this<client_base<ResponseId>> {
 protected:
    // The response used for push types.
-  std::vector<node> push_resp_;
+   std::vector<node> push_resp_;
+
+   // Hello response.
+   std::vector<node> hello_;
 
 private:
    using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-   std::queue<serializer<QueueElem>> srs_;
+   std::queue<serializer<ResponseId>> srs_;
    tcp_socket socket_;
 
-   // A timer used to inform the write coroutine that it can write the next
-   // message in the output queue.
+   // Timer used to inform the write coroutine that it can write the
+   // next message in the output queue.
    net::steady_timer timer_;
 
    // A coroutine that keeps reading the socket. When a message
@@ -91,10 +102,8 @@ private:
       co_await async_write(socket_, net::buffer(sr.request()));
 
       std::string buffer;
-      co_await async_read(socket_, buffer, adapt());
-      // TODO: Set the information retrieved from hello.
+      co_await async_read(socket_, buffer, adapt(hello_));
    }
-
 
    // The connection manager. It keeps trying the reconnect to the
    // server when the connection is lost.
@@ -125,7 +134,7 @@ private:
     * If true is returned the request in the front of the queue can be
     * sent to the server. See async_write_some.
     */
-   bool prepare_next(std::queue<serializer<QueueElem>>& reqs)
+   bool prepare_next(std::queue<serializer<ResponseId>>& reqs)
    {
       if (std::empty(reqs)) {
          reqs.push({});
@@ -150,7 +159,7 @@ public:
    // Destructor.
    virtual ~client_base() { }
 
-   /* \brief Starts the client.
+   /* Starts the client.
     *
     *  Stablishes a connection with the redis server and keeps waiting for messages to send.
     */
@@ -192,7 +201,7 @@ public:
     *
     *  Override this function to receive events in your derived class.
     */
-   virtual void on_event(QueueElem qe) {};
+   virtual void on_event(ResponseId) {};
 
    /* \brief Called when server push is received.
     *

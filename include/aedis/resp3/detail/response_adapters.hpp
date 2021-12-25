@@ -122,6 +122,8 @@ public:
       std::size_t data_size)
    {
      assert(!is_aggregate(t));
+     assert(aggregate_size == 1);
+     assert(depth == 0);
      from_string(*result_, data, data_size);
    }
 };
@@ -142,15 +144,17 @@ public:
       char const* data,
       std::size_t data_size)
    {
-     assert(!is_aggregate(t));
+      assert(!is_aggregate(t));
+      assert(aggregate_size == 1);
+      assert(depth == 0);
 
-     if (t == type::null)
-       return;
+      if (t == type::null)
+         return;
 
-     if (!result_->has_value())
-       *result_ = T{};
+      if (!result_->has_value())
+        *result_ = T{};
 
-     from_string(result_->value(), data, data_size);
+      from_string(result_->value(), data, data_size);
    }
 };
 
@@ -173,9 +177,12 @@ public:
        std::size_t data_size)
    {
       if (is_aggregate(t)) {
+	 assert(depth == 0);
          auto const m = element_multiplicity(t);
          result_->resize(m * aggregate_size);
       } else {
+	 assert(depth == 1);
+	 assert(aggregate_size == 1);
          from_string(result_->at(i_), data, data_size);
          ++i_;
       }
