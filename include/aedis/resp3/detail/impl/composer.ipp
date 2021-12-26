@@ -32,8 +32,11 @@ bool has_push_response(command cmd)
    switch (cmd) {
       case command::subscribe:
       case command::unsubscribe:
-      case command::psubscribe: return true;
-      default: return false;
+      case command::psubscribe:
+      return true;
+
+      default:
+      return false;
    }
 };
 

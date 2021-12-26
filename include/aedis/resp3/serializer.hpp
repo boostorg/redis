@@ -21,23 +21,6 @@
 namespace aedis {
 namespace resp3 {
 
-// TODO: move to detail directory.
-namespace detail {
-
-template <class T>
-struct request_get_command {
-   static command apply(T const& e) noexcept
-      { return e.get_command(); }
-};
-
-template <>
-struct request_get_command<command> {
-   static command apply(command e) noexcept
-      { return e; }
-};
-
-} // detail
-
 /** @brief Serializers user data into a redis request.
  *  
  *  This class offers functions to serialize user data into a redis
@@ -73,14 +56,14 @@ struct request_get_command<command> {
  *  Notice users will be required to define the get_command member
  *  function for their custom types.
  */
-template <class QueueElem>
+template <class ResponseId>
 class serializer {
 private:
    std::string request_;
 
 public:
    /// The commands that have been queued in this request.
-   std::queue<QueueElem> commands;
+   std::queue<ResponseId> commands;
 
 public:
    /** Clears the serializer.
@@ -104,7 +87,7 @@ public:
     *  to_string which must be made available by the user.
     */
    template <class... Ts>
-   void push(QueueElem qelem, Ts const&... args)
+   void push(ResponseId qelem, Ts const&... args)
    {
       // Note: Should we detect any std::pair in the type in the pack
       // to calculate the herader size correctly or let users handle
@@ -113,7 +96,7 @@ public:
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(request_, 1 + pack_size);
 
-      auto const cmd = detail::request_get_command<QueueElem>::apply(qelem);
+      auto const cmd = detail::request_get_command<ResponseId>::apply(qelem);
       detail::add_bulk(request_, to_string(cmd));
       (detail::add_bulk(request_, args), ...);
 
@@ -139,7 +122,7 @@ public:
        \endcode
     */
    template <class Key, class ForwardIterator>
-   void push_range(QueueElem qelem, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void push_range(ResponseId qelem, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would helpful to users
       // to assert the value type is a pair.
@@ -149,7 +132,7 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(request_, 2 + size * distance);
-      auto const cmd = detail::request_get_command<QueueElem>::apply(qelem);
+      auto const cmd = detail::request_get_command<ResponseId>::apply(qelem);
       detail::add_bulk(request_, to_string(cmd));
       detail::add_bulk(request_, key);
 
@@ -176,7 +159,7 @@ public:
        \endcode
     */
    template <class ForwardIterator>
-   void push_range(QueueElem qelem, ForwardIterator begin, ForwardIterator end)
+   void push_range(ResponseId qelem, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would be a good idea to assert
       // the value type is a pair.
@@ -186,7 +169,7 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(request_, 1 + size * distance);
-      auto const cmd = detail::request_get_command<QueueElem>::apply(qelem);
+      auto const cmd = detail::request_get_command<ResponseId>::apply(qelem);
       detail::add_bulk(request_, to_string(cmd));
 
       for (; begin != end; ++begin)

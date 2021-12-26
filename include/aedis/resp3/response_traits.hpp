@@ -21,8 +21,33 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief Adapts C++ data structures to resp3 parser.
+/** \brief Adapts C++ data structures to read operations.
  *
+ *  This class adapts C++ types to read operations. Users are advised
+ *  to use `adapt()` function below for type deduction. The following
+ *  types are supported.
+ *
+ *  1. Integer data types e.g. `int`, `unsigned`, etc.
+ *
+ *  1. `std::string`
+ *
+ *  We also support the following C++ containers
+ *
+ *  1. `std::vector<T>`. Can be used with any RESP3 aggregate type.
+ *
+ *  1. `std::deque<T>`. Can be used with any RESP3 aggregate type.
+ *
+ *  1. `std::list<T>`. Can be used with any RESP3 aggregate type.
+ *
+ *  1. `std::set<T>`. Can be used with RESP3 set type.
+ *
+ *  1. `std::unordered_set<T>`. Can be used with RESP3 set type.
+ *
+ *  1. `std::map<T>`. Can be used with RESP3 hash type.
+ *
+ *  1. `std::unordered_map<T>`. Can be used with RESP3 hash type.
+ *
+ *  All these types can be wrapped in an `std::optional<T>`.
  */
 template <class T>
 struct response_traits
