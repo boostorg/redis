@@ -48,15 +48,28 @@ std::string to_string(mydata const& obj)
 }
 
 // Deserializes TSV.
-void from_string(mydata& obj, char const* data, std::size_t size)
+void
+from_string(
+   mydata& obj,
+   char const* data,
+   std::size_t size,
+   std::error_code& ec)
 {
    auto const* end = data + size;
    auto const* pos = std::find(data, end, '\t');
-   assert(pos != end);
-   auto const r1 = std::from_chars(data, pos, obj.a);
-   auto const r2 = std::from_chars(pos + 1, end, obj.b);
-   assert(r1.ec != std::errc::invalid_argument);
-   assert(r2.ec != std::errc::invalid_argument);
+   assert(pos != end); // Or use your own error code.
+
+   auto const res1 = std::from_chars(data, pos, obj.a);
+   if (res1.ec != std::errc()) {
+      ec = std::make_error_code(res1.ec);
+      return;
+   }
+
+   auto const res2 = std::from_chars(pos + 1, end, obj.b);
+   if (res2.ec != std::errc()) {
+      ec = std::make_error_code(res2.ec);
+      return;
+   }
 }
 
 net::awaitable<void> serialization()

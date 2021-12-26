@@ -20,9 +20,7 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/resp3/serializer.hpp>
-
-// TODO: Add error code for parsing redis-values with its own error
-// category.
+#include <aedis/resp3/adapter_error.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -39,10 +37,15 @@ struct adapter_ignore {
 
 template <class T>
 typename std::enable_if<std::is_integral<T>::value, void>::type
-from_string(T& i, char const* data, std::size_t data_size)
+from_string(
+   T& i,
+   char const* data,
+   std::size_t data_size,
+   std::error_code& ec)
 {
-  auto const r = std::from_chars(data, data + data_size, i);
-  assert(r.ec != std::errc::invalid_argument);
+   auto const res = std::from_chars(data, data + data_size, i);
+   if (res.ec != std::errc())
+      ec = std::make_error_code(res.ec);
 }
 
 template <class CharT, class Traits, class Allocator>
@@ -50,9 +53,23 @@ void
 from_string(
    std::basic_string<CharT, Traits, Allocator>& s,
    char const* data,
-   std::size_t data_size)
+   std::size_t data_size,
+   std::error_code&)
 {
   s.assign(data, data_size);
+}
+
+void set_on_resp3_error(type t, std::error_code& ec)
+{
+   switch (t) {
+      case type::simple_error:
+	 ec = adapter_error::simple_error;
+	 return;
+      case type::blob_error:
+	 ec = adapter_error::blob_error;
+	 return;
+      default: return;
+   }
 }
 
 /** A general pupose redis response class
@@ -137,12 +154,23 @@ public:
       std::size_t depth,
       char const* data,
       std::size_t data_size,
-      std::error_code&)
+      std::error_code& ec)
    {
-     assert(!is_aggregate(t));
-     assert(aggregate_size == 1);
-     assert(depth == 0);
-     from_string(*result_, data, data_size);
+      set_on_resp3_error(t, ec);
+
+      if (is_aggregate(t)) {
+	 ec == adapter_error::expects_simple_type;
+	 return;
+      }
+
+      assert(aggregate_size == 1);
+
+      if (depth != 0) {
+	 ec == adapter_error::nested_unsupported;
+	 return;
+      }
+
+      from_string(*result_, data, data_size, ec);
    }
 };
 
@@ -161,11 +189,21 @@ public:
       std::size_t depth,
       char const* data,
       std::size_t data_size,
-      std::error_code&)
+      std::error_code& ec)
    {
-      assert(!is_aggregate(t));
+      set_on_resp3_error(t, ec);
+
+      if (is_aggregate(t)) {
+	 ec == adapter_error::expects_simple_type;
+	 return;
+      }
+
       assert(aggregate_size == 1);
-      assert(depth == 0);
+
+      if (depth != 0) {
+	 ec == adapter_error::nested_unsupported;
+	 return;
+      }
 
       if (t == type::null)
          return;
@@ -173,7 +211,7 @@ public:
       if (!result_->has_value())
         *result_ = T{};
 
-      from_string(result_->value(), data, data_size);
+      from_string(result_->value(), data, data_size, ec);
    }
 };
 
@@ -182,7 +220,7 @@ public:
 template <class Container>
 class adapter_vector {
 private:
-   int i_ = 0;
+   int i_ = -1;
    Container* result_;
 
 public:
@@ -194,16 +232,28 @@ public:
        std::size_t depth,
        char const* data,
        std::size_t data_size,
-       std::error_code&)
+       std::error_code& ec)
    {
+      set_on_resp3_error(t, ec);
+
       if (is_aggregate(t)) {
-	 assert(depth == 0);
+	 if (depth != 0 || i_ != -1) {
+	    ec == adapter_error::nested_unsupported;
+	    return;
+	 }
+
          auto const m = element_multiplicity(t);
          result_->resize(m * aggregate_size);
+         ++i_;
       } else {
-	 assert(depth == 1);
+	 if (depth != 1) {
+	    ec == adapter_error::nested_unsupported;
+	    return;
+	 }
+
 	 assert(aggregate_size == 1);
-         from_string(result_->at(i_), data, data_size);
+
+         from_string(result_->at(i_), data, data_size, ec);
          ++i_;
       }
    }
@@ -223,17 +273,27 @@ public:
        std::size_t depth,
        char const* data,
        std::size_t data_size,
-       std::error_code&)
+       std::error_code& ec)
    {
+      set_on_resp3_error(t, ec);
+
       if (is_aggregate(t)) {
-        assert(depth == 0);
-        return;
+	 if (depth != 0) {
+	    ec == adapter_error::nested_unsupported;
+	    return;
+	 }
+         return;
       }
 
-      assert(depth == 1);
       assert(aggregate_size == 1);
+
+      if (depth != 1) {
+	 ec == adapter_error::nested_unsupported;
+	 return;
+      }
+
       result_->push_back({});
-      from_string(result_->back(), data, data_size);
+      from_string(result_->back(), data, data_size, ec);
    }
 };
 
@@ -255,8 +315,10 @@ public:
        std::size_t depth,
        char const* data,
        std::size_t data_size,
-       std::error_code&)
+       std::error_code& ec)
    {
+      set_on_resp3_error(t, ec);
+
       if (t == type::set) {
         assert(depth == 0);
         return;
@@ -268,7 +330,7 @@ public:
       assert(aggregate_size == 1);
 
       typename Container::key_type obj;
-      from_string(obj, data, data_size);
+      from_string(obj, data, data_size, ec);
       if (hint_ == std::end(*result_)) {
          auto const ret = result_->insert(std::move(obj));
          hint_ = ret.first;
@@ -297,8 +359,10 @@ public:
        std::size_t depth,
        char const* data,
        std::size_t data_size,
-       std::error_code&)
+       std::error_code& ec)
    {
+      set_on_resp3_error(t, ec);
+
       if (t == type::map) {
         assert(depth == 0);
         return;
@@ -310,11 +374,11 @@ public:
 
       if (on_key_) {
          typename Container::key_type obj;
-         from_string(obj, data, data_size);
+         from_string(obj, data, data_size, ec);
          current_ = result_->insert(current_, {std::move(obj), {}});
       } else {
          typename Container::mapped_type obj;
-         from_string(obj, data, data_size);
+         from_string(obj, data, data_size, ec);
          current_->second = std::move(obj);
       }
 

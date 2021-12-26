@@ -2,18 +2,20 @@
 
 # include <system_error>
 
-// Errors that may occurr while parsing resp3 messages.
+/** \file error.hpp
+ *  \brief Errors that may occurr while parsing resp3 messages.
+ */
 
 namespace aedis {
 namespace resp3 {
 
-/// Error from RESP3 parser.
+/// Error that may occurr when parsing from RESP3.
 enum class error
 {
    /// Invalid RESP3 type.
    invalid_type = 1,
 
-   /// Can't parse the string in an integer.
+   /// Can't parse the string as an integer.
    not_an_int,
 };
 
@@ -22,7 +24,7 @@ namespace detail {
 struct error_category_impl : std::error_category {
 
    char const* name() const noexcept override
-      { return "aedis"; }
+      { return "aedis.resp3"; }
 
    std::string message(int ev) const override
    {
@@ -64,4 +66,3 @@ template<>
 struct is_error_code_enum<::aedis::resp3::error> : std::true_type {};
 
 } // std
-
