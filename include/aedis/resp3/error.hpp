@@ -2,21 +2,25 @@
 
 # include <system_error>
 
-/** \file error.hpp
- *  \brief Errors that may occurr while parsing resp3 messages.
- */
+/// \file error.hpp
 
 namespace aedis {
 namespace resp3 {
 
-/// Error that may occurr when parsing from RESP3.
+/** \brief Error that may occurr when parsing from RESP3.
+ *
+ *  The errors that may occurr when parsing from RESP3.
+ */
 enum class error
 {
    /// Invalid RESP3 type.
    invalid_type = 1,
 
    /// Can't parse the string as an integer.
-   not_an_int,
+   not_a_number,
+
+   /// Received less bytes than expected.
+   unexpected_read_size
 };
 
 namespace detail {
@@ -29,7 +33,9 @@ struct error_category_impl : std::error_category {
    std::string message(int ev) const override
    {
       switch(static_cast<error>(ev)) {
-	 case error::invalid_type: return "Invalid resp3 type";
+	 case error::invalid_type: return "Invalid resp3 type.";
+	 case error::not_a_number: return "Can't convert string to number.";
+	 case error::unexpected_read_size: return "Unexpected read size.";
 	 default: assert(false);
       }
    }
@@ -44,6 +50,7 @@ std::error_category const& category()
 
 } // detail
 
+/// Converts an error in an std::error_code object.
 inline
 std::error_code make_error_code(error e)
 {

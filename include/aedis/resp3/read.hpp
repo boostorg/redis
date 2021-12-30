@@ -18,21 +18,33 @@
 
 #include <boost/asio/yield.hpp>
 
-namespace aedis {
-namespace resp3 {
-
 /** \file read.hpp
     \brief Read utility functions.
   
     Synchronous and asynchronous utility functions.
  */
+namespace aedis {
+namespace resp3 {
 
+/** \brief Read the response to a command sychronously.
+ *
+ *  This function has to be called once for each command in the
+ *  request until the whole request has been read.
+ *
+ *  \param stream The stream from which to read.
+ *  \param buf Auxiliary read buffer, usually a `std::string`.
+ *  \param adapter The response adapter, see adapt.
+ *  \param ec Error if any.
+ *  \returns The number of bytes that have been consumed from the
+ *  auxiliary buffer.
+ */
 template <
   class SyncReadStream,
   class Buffer,
   class ResponseAdapter
   >
-auto read(
+std::size_t
+read(
    SyncReadStream& stream,
    Buffer& buf,
    ResponseAdapter adapter,
@@ -40,11 +52,17 @@ auto read(
 {
    detail::parser p {adapter};
    std::size_t n = 0;
+   std::size_t consumed = 0;
    do {
       if (p.bulk() == type::invalid) {
 	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
-	 if (ec || n < 3)
-	    return n;
+	 if (ec)
+	    return 0;
+
+	 if (n < 3) {
+            ec = error::unexpected_read_size;
+            return 0;
+         }
       } else {
 	 auto const s = std::ssize(buf);
 	 auto const l = p.bulk_length();
@@ -52,35 +70,48 @@ auto read(
 	    buf.resize(l + 2);
 	    auto const to_read = static_cast<std::size_t>(l + 2 - s);
 	    n = net::read(stream, net::buffer(buf.data() + s, to_read));
-	    assert(n >= to_read);
 	    if (ec)
-	       return n;
+	       return 0;
+
+            if (n < to_read) {
+               ec = error::unexpected_read_size;
+               return 0;
+            }
 	 }
       }
 
-      n = p.advance(buf.data(), n);
+      std::error_code ec;
+      n = p.advance(buf.data(), n, ec);
+      if (ec)
+         return 0;
+
       buf.erase(0, n);
+      consumed += n;
    } while (!p.done());
 
-   return n;
+   return consumed;
 }
 
 /** \brief Reads the reponse to a command.
  *  
- *  \param stream Synchronous read stream from which the response will be read.
- *  \param buf Buffer for temporary storage e.g. std::string or std::vector<char>.
- *  \param adapter Reference to the response.
- *  \returns The number of bytes that have been read.
+ *  This function has to be called once for each command in the
+ *  request until the whole request has been read.
+ *
+ *  \param stream The stream from which to read.
+ *  \param buf Auxiliary read buffer, usually a `std::string`.
+ *  \param adapter The response adapter, see adapt.
+ *  \returns The number of bytes that have been consumed from the
+ *  auxiliary buffer.
  */
 template<
    class SyncReadStream,
    class Buffer,
-   class ResponseAdapter>
+   class ResponseAdapter = response_traits<void>::adapter_type>
 std::size_t
 read(
    SyncReadStream& stream,
    Buffer& buf,
-   ResponseAdapter adapter)
+   ResponseAdapter adapter = adapt())
 {
    boost::system::error_code ec;
    auto const n = read(stream, buf, adapter, ec);
@@ -91,10 +122,24 @@ read(
    return n;
 }
 
-/** @brief Reads the response to a Redis command.
-  
-    This function has to be called once for each command in the
-    request until the whole request has been consumed.
+/** @brief Reads the response to a Redis command asynchronously.
+ *
+ *  This function has to be called once for each command in the
+ *  request until the whole request has been read.
+ *
+ *  The completion handler must have the following signature.
+ *
+ *  @code
+ *  void(boost::system::error_code, std::size_t)
+ *  @endcode
+ *
+ *  The second argumet to the completion handler is the number of
+ *  bytes that have been consumed in the read operation.
+ *
+ *  \param stream The stream from which to read.
+ *  \param buffer Auxiliary read buffer, usually a `std::string`.
+ *  \param adapter The response adapter, see adapt.
+ *  \param token The completion token.
  */
 template <
    class AsyncReadStream,
@@ -117,7 +162,18 @@ auto async_read(
         stream);
 }
 
-/** \brief Asynchronously reads the type of the next incomming request.
+/** \brief Reads the RESP3 type of the next incomming.
+ *
+ *  This function won't consume any data from the buffer. The
+ *  completion handler must have the following signature.
+ *
+ *  @code
+    void(boost::system::error_code, type)
+ *  @endcode
+ *  
+ *  \param stream The stream from which to read.
+ *  \param buffer Auxiliary read buffer, usually a `std::string`.
+ *  \param token The completion token.
  */
 template <
    class AsyncReadStream,

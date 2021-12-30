@@ -13,67 +13,212 @@ namespace aedis {
 
 char const* to_string(command c)
 {
-   static char const* table[] =
-   { "ACL LOAD"
-   , "ACL SAVE"
-   , "ACL LIST"
-   , "ACL USERS"
-   , "ACL GETUSER"
-   , "ACL SETUSER"
-   , "ACL DELUSER"
-   , "ACL CAT"
-   , "ACL GENPASS"
-   , "ACL WHOAMI"
-   , "ACL LOG"
-   , "ACL HELP"
-   , "APPEND"
-   , "AUTH"
-   , "BGREWRITEAOF"
-   , "BGSAVE"
-   , "BITCOUNT"
-   , "CLIENT_ID"
-   , "DEL"
-   , "EXEC"
-   , "EXPIRE"
-   , "FLUSHALL"
-   , "GET"
-   , "HELLO"
-   , "HGET"
-   , "HGETALL"
-   , "HINCRBY"
-   , "HKEYS"
-   , "HLEN"
-   , "HMGET"
-   , "HSET"
-   , "HVALS"
-   , "HDEL"
-   , "INCR"
-   , "KEYS"
-   , "LLEN"
-   , "LPOP"
-   , "LPUSH"
-   , "LRANGE"
-   , "LTRIM"
-   , "MULTI"
-   , "PING"
-   , "PSUBSCRIBE"
-   , "PUBLISH"
-   , "QUIT"
-   , "ROLE"
-   , "RPUSH"
-   , "SADD"
-   , "SCARD"
-   , "SDIFF"
-   , "SENTINEL"
-   , "SET"
-   , "SMEMBERS"
-   , "SUBSCRIBE"
-   , "UNSUBSCRIBE"
-   , "ZADD"
-   , "ZRANGE"
-   , "ZRANGEBYSCORE"
-   , "ZREMRANGEBYSCORE"
-   , "UNKNOWN"
+   static char const* table[] = {
+      "ACL",
+      "APPEND",
+      "ASKING",
+      "AUTH",
+      "BGREWRITEAOF",
+      "BGSAVE",
+      "BITCOUNT",
+      "BITFIELD",
+      "BITFIELD_RO",
+      "BITOP",
+      "BITPOS",
+      "BLPOP",
+      "BRPOP",
+      "BRPOPLPUSH",
+      "BZPOPMAX",
+      "BZPOPMIN",
+      "CLIENT",
+      "CLUSTER",
+      "COMMAND",
+      "CONFIG",
+      "DBSIZE",
+      "DEBUG",
+      "DECR",
+      "DECRBY",
+      "DEL",
+      "DISCARD",
+      "DUMP",
+      "ECHO",
+      "EVAL",
+      "EVALSHA",
+      "EXEC",
+      "EXISTS",
+      "EXPIRE",
+      "EXPIREAT",
+      "FLUSHALL",
+      "FLUSHDB",
+      "GEOADD",
+      "GEODIST",
+      "GEOHASH",
+      "GEOPOS",
+      "GEORADIUS",
+      "GEORADIUS_RO",
+      "GEORADIUSBYMEMBER",
+      "GEORADIUSBYMEMBER_RO",
+      "GET",
+      "GETBIT",
+      "GETRANGE",
+      "GETSET",
+      "HDEL",
+      "HELLO",
+      "HEXISTS",
+      "HGET",
+      "HGETALL",
+      "HINCRBY",
+      "HINCRBYFLOAT",
+      "HKEYS",
+      "HLEN",
+      "HMGET",
+      "HMSET",
+      "HOST:",
+      "HSCAN",
+      "HSET",
+      "HSETNX",
+      "HSTRLEN",
+      "HVALS",
+      "INCR",
+      "INCRBY",
+      "INCRBYFLOAT",
+      "INFO",
+      "KEYS",
+      "LASTSAVE",
+      "LATENCY",
+      "LINDEX",
+      "LINSERT",
+      "LLEN",
+      "LOLWUT",
+      "LPOP",
+      "LPOS",
+      "LPUSH",
+      "LPUSHX",
+      "LRANGE",
+      "LREM",
+      "LSET",
+      "LTRIM",
+      "MEMORY",
+      "MGET",
+      "MIGRATE",
+      "MODULE",
+      "MONITOR",
+      "MOVE",
+      "MSET",
+      "MSETNX",
+      "MULTI",
+      "OBJECT",
+      "PERSIST",
+      "PEXPIRE",
+      "PEXPIREAT",
+      "PFADD",
+      "PFCOUNT",
+      "PFDEBUG",
+      "PFMERGE",
+      "PFSELFTEST",
+      "PING",
+      "POST",
+      "PSETEX",
+      "PSUBSCRIBE",
+      "PSYNC",
+      "PTTL",
+      "PUBLISH",
+      "PUBSUB",
+      "PUNSUBSCRIBE",
+      "RANDOMKEY",
+      "READONLY",
+      "READWRITE",
+      "RENAME",
+      "RENAMENX",
+      "REPLCONF",
+      "REPLICAOF",
+      "RESTORE",
+      "ROLE",
+      "RPOP",
+      "RPOPLPUSH",
+      "RPUSH",
+      "RPUSHX",
+      "SADD",
+      "SAVE",
+      "SCAN",
+      "SCARD",
+      "SCRIPT",
+      "SDIFF",
+      "SDIFFSTORE",
+      "SELECT",
+      "SET",
+      "SETBIT",
+      "SETEX",
+      "SETNX",
+      "SETRANGE",
+      "SHUTDOWN",
+      "SINTER",
+      "SINTERSTORE",
+      "SISMEMBER",
+      "SLAVEOF",
+      "SLOWLOG",
+      "SMEMBERS",
+      "SMOVE",
+      "SORT",
+      "SPOP",
+      "SRANDMEMBER",
+      "SREM",
+      "SSCAN",
+      "STRALGO",
+      "STRLEN",
+      "SUBSCRIBE",
+      "SUBSTR",
+      "SUNION",
+      "SUNIONSTORE",
+      "SWAPDB",
+      "SYNC",
+      "TIME",
+      "TOUCH",
+      "TTL",
+      "TYPE",
+      "UNLINK",
+      "QUIT",
+      "UNSUBSCRIBE",
+      "UNWATCH",
+      "WAIT",
+      "WATCH",
+      "XACK",
+      "XADD",
+      "XCLAIM",
+      "XDEL",
+      "XGROUP",
+      "XINFO",
+      "XLEN",
+      "XPENDING",
+      "XRANGE",
+      "XREAD",
+      "XREADGROUP",
+      "XREVRANGE",
+      "XSETID",
+      "XTRIM",
+      "ZADD",
+      "ZCARD",
+      "ZCOUNT",
+      "ZINCRBY",
+      "ZINTERSTORE",
+      "ZLEXCOUNT",
+      "ZPOPMAX",
+      "ZPOPMIN",
+      "ZRANGE",
+      "ZRANGEBYLEX",
+      "ZRANGEBYSCORE",
+      "ZRANK",
+      "ZREM",
+      "ZREMRANGEBYLEX",
+      "ZREMRANGEBYRANK",
+      "ZREMRANGEBYSCORE",
+      "ZREVRANGE",
+      "ZREVRANGEBYLEX",
+      "ZREVRANGEBYSCORE",
+      "ZREVRANK",
+      "ZSCAN",
+      "ZSCORE",
+      "ZUNIONSTORE",
    };
 
    return table[static_cast<int>(c)];

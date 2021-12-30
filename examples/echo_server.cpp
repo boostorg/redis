@@ -35,7 +35,7 @@ struct response_id {
    // The adapter.
    adapter_type adapter;
 
-   // The pointer to the session the request belong to.
+   // The pointer to the session the request belongs to.
    session_ptr session = std::shared_ptr<user_session_base>{nullptr};
 
    // Required from client_base.hpp.

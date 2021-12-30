@@ -3,13 +3,15 @@
 # include <system_error>
 
 
-/** \file adapter_error.hpp
- *  \brief Errors that may occurr while parsing resp3 messages.
- */
+/// \file adapter_error.hpp
+
 namespace aedis {
 namespace resp3 {
 
-/// Error that may occurr while processing a response.
+/** \brief Error that may occurr while processing a response.
+ *
+ *  The errors that may occurr while processing a response.
+ */
 enum class adapter_error
 {
    /// Expects a simple RESP3 type but e.g. got an aggregate.
@@ -29,6 +31,7 @@ namespace detail {
 
 struct adapter_error_category_impl : std::error_category {
 
+   /// \todo Fix string lifetime.
    char const* name() const noexcept override
       { return "aedis.response_adapter"; }
 
@@ -37,6 +40,8 @@ struct adapter_error_category_impl : std::error_category {
       switch(static_cast<adapter_error>(ev)) {
 	 case adapter_error::expects_simple_type: return "Expects a simple RESP3 type";
 	 case adapter_error::nested_unsupported: return "Nested response elements are unsupported.";
+	 case adapter_error::simple_error: return "Got RESP3 simple-error type.";
+	 case adapter_error::blob_error: return "Got RESP3 blob-error type.";
 	 default: assert(false);
       }
    }

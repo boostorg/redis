@@ -102,6 +102,11 @@ test_SOURCES = $(top_srcdir)/tests/general.cpp
 test_CPPFLAGS = $(MY_CPPFLAGS)
 test_LDADD = $(MY_LDADD)
 
+noinst_PROGRAMS += commands
+commands_SOURCES = $(top_srcdir)/tools/commands.cpp
+commands_CPPFLAGS = $(MY_CPPFLAGS)
+commands_LDADD = $(MY_LDADD)
+
 TESTS = test
 
 EXTRA_DIST =
