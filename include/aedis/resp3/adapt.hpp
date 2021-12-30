@@ -9,11 +9,12 @@
 
 #include <aedis/resp3/detail/response_traits.hpp>
 
-/** \file adapt.hpp
- */
-
 namespace aedis {
 namespace resp3 {
+
+/** \ingroup functions
+ *  @{
+ */
 
 /** \brief Creates a void adapter
   
@@ -42,6 +43,8 @@ auto adapt() noexcept
 template<class T>
 auto adapt(T& t) noexcept
    { return response_traits<T>::adapt(t); }
+
+/*! @} */
 
 } // resp3
 } // aedis

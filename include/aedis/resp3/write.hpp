@@ -11,11 +11,12 @@
 #include <aedis/resp3/detail/write_ops.hpp>
 #include <boost/beast/core/stream_traits.hpp>
 
-/** \file write.hpp
- */
-
 namespace aedis {
 namespace resp3 {
+
+/** \ingroup functions
+ *  @{
+ */
 
 /** @brief Writes requests from the queue to the stream.
   
@@ -39,6 +40,8 @@ async_write_some(
 	detail::write_some_op<AsyncWriteStream, Queue>{stream, reqs},
 	token, stream);
 }
+
+/*! @} */
 
 } // resp3
 } // aedis

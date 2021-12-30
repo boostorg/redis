@@ -18,13 +18,12 @@
 
 #include <boost/asio/yield.hpp>
 
-/** \file read.hpp
-    \brief Read utility functions.
-  
-    Synchronous and asynchronous utility functions.
- */
 namespace aedis {
 namespace resp3 {
+
+/** \ingroup functions
+ *  @{
+ */
 
 /** \brief Read the response to a command sychronously.
  *
@@ -192,6 +191,8 @@ auto async_read_type(
       , void(boost::system::error_code, type)
       >(detail::type_op<AsyncReadStream, Buffer> {stream, &buffer}, token, stream);
 }
+
+/*! @} */
 
 } // resp3
 } // aedis

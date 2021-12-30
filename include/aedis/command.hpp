@@ -9,12 +9,10 @@
 
 #include <ostream>
 
-/** \file command.hpp
- */
-
 namespace aedis {
 
 /** \brief Enum of all redis commands.
+ *  \ingroup enums Library enums
  */
 enum class command {
    /// https://redis.io/commands/acl
@@ -428,6 +426,10 @@ enum class command {
    unknown
 };
 
+/** \ingroup functions Library functions
+ *  @{
+ */
+
 /** Converts a command to a string
  *
  *  \param c The command to convert.
@@ -436,5 +438,7 @@ char const* to_string(command c);
 
 /// Write the text for a command name to an output stream.
 std::ostream& operator<<(std::ostream& os, command c);
+
+/*! @} */
 
 } // aedis

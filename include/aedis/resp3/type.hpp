@@ -11,13 +11,11 @@
 #include <vector>
 #include <string>
 
-/** \file type.hpp
- */
-
 namespace aedis {
 namespace resp3 {
 
 /** \brief Enum that describes the redis data types and some helper functions.
+    \ingroup enums
   
     This file contains the enum used to identify the redis data type
     and some helper functions.
@@ -61,6 +59,10 @@ enum class type
   invalid,
 };
 
+/** \ingroup functions
+ *  @{
+ */
+
 /// Returns the string representation of the type.
 char const* to_string(type t);
 
@@ -75,6 +77,8 @@ bool is_aggregate(type t);
  *  For type map and attribute this value is 2, all other types have 1.
 */
 std::size_t element_multiplicity(type t);
+
+/*! @} */
 
 } // resp3
 } // aedis

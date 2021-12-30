@@ -9,6 +9,7 @@ namespace aedis {
 namespace resp3 {
 
 /** \brief Error that may occurr while processing a response.
+ *  \ingroup enums
  *
  *  The errors that may occurr while processing a response.
  */

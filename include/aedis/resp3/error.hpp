@@ -8,6 +8,7 @@ namespace aedis {
 namespace resp3 {
 
 /** \brief Error that may occurr when parsing from RESP3.
+ *  \ingroup enums
  *
  *  The errors that may occurr when parsing from RESP3.
  */
