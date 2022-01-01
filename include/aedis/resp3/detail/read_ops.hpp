@@ -11,6 +11,8 @@
 #include <aedis/net.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 
+#include <boost/core/ignore_unused.hpp>
+
 namespace aedis {
 namespace resp3 {
 namespace detail {

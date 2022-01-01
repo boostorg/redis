@@ -22,6 +22,7 @@ namespace aedis {
 namespace resp3 {
 
 /** \brief Adapts C++ data structures to read operations.
+ *  \ingroup classes
  *
  *  This class adapts C++ types to read operations. Users are advised
  *  to use `adapt()` function below for type deduction. The following
@@ -149,34 +150,6 @@ struct response_traits<void>
    using adapter_type = detail::adapter_ignore;
    static auto adapt() noexcept { return adapter_type{}; }
 };
-
-/** \brief Creates a void adapter
-  
-    The adapter returned by this function ignores any data and is
-    useful to avoid wasting time with responses on which the user is
-    insterested in.
- */
-inline
-response_traits<void>::adapter_type
-adapt() noexcept
-{
-  return response_traits<void>::adapt();
-}
-
-/** \brief Adapts user data to the resp3 parser.
-  
-    The supported types are.
-  
-    1. Integers: int, unsigned etc.
-    2. std::string
-    3. STL containers.
- */
-template<class T>
-response_traits<T>::adapter_type
-adapt(T& t) noexcept
-{
-  return response_traits<T>::adapt(t);
-}
 
 } // resp3
 } // aedis

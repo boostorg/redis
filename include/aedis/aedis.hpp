@@ -57,3 +57,7 @@
 /** \defgroup functions Library functions.
  *  \brief All functions defined by this library.
  */
+
+/** \defgroup classes Library classes.
+ *  \brief All classes (and structs) defined by this library.
+ */

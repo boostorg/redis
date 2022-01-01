@@ -15,6 +15,7 @@ namespace aedis {
 namespace resp3 {
 
 /** \brief A node in the response tree.
+ *  \ingroup classes
  */
 struct node {
    enum class dump_format {raw, clean};
@@ -34,6 +35,10 @@ struct node {
    /// Converts the node to a string and appends to out.
    void dump(std::string& out, dump_format format = dump_format::raw, int indent = 3) const;
 };
+
+/** \ingroup functions
+ *  @{
+ */
 
 /// Compares a node for equality.
 bool operator==(node const& a, node const& b);
@@ -74,6 +79,8 @@ std::ostream& operator<<(std::ostream& os, node const& o);
  *  stream the response to the output stream.
  */
 std::ostream& operator<<(std::ostream& os, std::vector<node> const& r);
+
+/*! @} */
 
 } // resp3
 } // aedis

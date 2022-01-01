@@ -73,7 +73,6 @@ char const* to_string(command c)
       "HLEN",
       "HMGET",
       "HMSET",
-      "HOST:",
       "HSCAN",
       "HSET",
       "HSETNX",

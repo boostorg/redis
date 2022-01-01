@@ -9,10 +9,9 @@
 
 #include <aedis/net.hpp>
 
-#include <aedis/resp3/serializer.hpp>
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/write.hpp>
 #include <aedis/resp3/response_traits.hpp>
+#include <aedis/resp3/adapt.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/detail/read_ops.hpp>
 
@@ -63,7 +62,7 @@ read(
             return 0;
          }
       } else {
-	 auto const s = std::ssize(buf);
+	 auto const s = std::size(buf);
 	 auto const l = p.bulk_length();
 	 if (s < (l + 2)) {
 	    buf.resize(l + 2);

@@ -18,7 +18,7 @@ namespace aedis {
 namespace resp3 {
 namespace detail {
 
-// Converts a wire-format char to a resp3 type.
+// Converts a wire-format RESP3 type (char) to a resp3 type.
 type to_type(char c);
 
 template <class ResponseAdapter>

@@ -22,6 +22,7 @@ namespace aedis {
 namespace resp3 {
 
 /** @brief Serializers user data into a redis request.
+ *  \ingroup classes
  *  
  *  This class offers functions to serialize user data into a redis
  *  request. A request is composed of one or more redis commands and
