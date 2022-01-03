@@ -20,17 +20,10 @@ namespace detail {
 template <class>
 struct needs_to_string : std::true_type {};
 
-template <>
-struct needs_to_string<std::string> : std::false_type {};
-
-template <>
-struct needs_to_string<std::string_view> : std::false_type {};
-
-template <>
-struct needs_to_string<char const*> : std::false_type {};
-
-template <>
-struct needs_to_string<char*> : std::false_type {};
+template <> struct needs_to_string<std::string> : std::false_type {};
+template <> struct needs_to_string<std::string_view> : std::false_type {};
+template <> struct needs_to_string<char const*> : std::false_type {};
+template <> struct needs_to_string<char*> : std::false_type {};
 
 template <std::size_t N>
 struct needs_to_string<char[N]> : std::false_type {};

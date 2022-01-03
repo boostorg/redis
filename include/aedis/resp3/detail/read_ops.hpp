@@ -17,9 +17,6 @@ namespace aedis {
 namespace resp3 {
 namespace detail {
 
-// The parser supports up to 5 levels of nested structures. The first
-// element in the sizes stack is a sentinel and must be different from
-// 1.
 // TODO: Use asio::coroutine.
 template <
    class AsyncReadStream,

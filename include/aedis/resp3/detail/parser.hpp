@@ -24,30 +24,33 @@ type to_type(char c);
 template <class ResponseAdapter>
 class parser {
 private:
-   ResponseAdapter adapter_;
-   std::size_t depth_;
-   std::size_t sizes_[6];
-   std::size_t bulk_length_;
-   type bulk_;
+   static constexpr std::size_t max_embedded_depth = 5;
 
-   void init()
-   {
-      depth_ = 0;
-      sizes_[0] = 2;
-      sizes_[1] = 1;
-      sizes_[2] = 1;
-      sizes_[3] = 1;
-      sizes_[4] = 1;
-      sizes_[5] = 1;
-      sizes_[6] = 1;
-      bulk_ = type::invalid;
-      bulk_length_ = (std::numeric_limits<std::size_t>::max)();
-   }
+   ResponseAdapter adapter_;
+
+   // The current depth. Simple data types will have depth 0, whereas
+   // the elements of aggregates will have depth 1. Embedded types
+   // will have increasing depth.
+   std::size_t depth_ = 0;
+
+   // The parser supports up to 5 levels of nested structures. The
+   // first element in the sizes stack is a sentinel and must be
+   // different from 1.
+   std::size_t sizes_[max_embedded_depth + 1] = {1};
+
+   // Contains the length expected in the next bulk read.
+   std::size_t bulk_length_ = (std::numeric_limits<std::size_t>::max)();
+
+   // The type of the next bulk. Contains type::invalid if no bulk is
+   // expected.
+   type bulk_ = type::invalid;
 
 public:
    parser(ResponseAdapter adapter)
    : adapter_{adapter}
-   { init(); }
+   {
+      sizes_[0] = 2; // The sentinel must be more than 1.
+   }
 
    // Returns the number of bytes that have been consumed.
    std::size_t
@@ -96,6 +99,7 @@ public:
             case type::blob_string:
             {
                if (*(data + 1) == '?') {
+		  // TODO: Document and clarify this tricky.
                   sizes_[++depth_] = (std::numeric_limits<std::size_t>::max)();
                } else {
 		  auto const r =
@@ -149,8 +153,14 @@ public:
                if (l == 0) {
                   --sizes_[depth_];
                } else {
-                  auto const m = element_multiplicity(t);
-                  sizes_[++depth_] = m * l;
+		  if (depth_ == max_embedded_depth) {
+		     ec = error::exceeeds_max_nested_depth;
+		     return 0;
+		  }
+
+                  ++depth_;
+
+                  sizes_[depth_] = l * element_multiplicity(t);
                }
             } break;
             default:
@@ -161,13 +171,15 @@ public:
          }
       }
       
-      while (sizes_[depth_] == 0)
-         --sizes_[--depth_];
+      while (sizes_[depth_] == 0) {
+         --depth_;
+         --sizes_[depth_];
+      }
       
       return n;
    }
 
-   // returns true when the parser is done with the current message.
+   // Returns true when the parser is done with the current message.
    auto done() const noexcept
       { return depth_ == 0 && bulk_ == type::invalid; }
 
@@ -175,7 +187,7 @@ public:
    // type::invalid.
    auto bulk() const noexcept { return bulk_; }
 
-   // The lenght of the next expected bulk_length.
+   // The length expected in the the next bulk.
    auto bulk_length() const noexcept { return bulk_length_; }
 };
 

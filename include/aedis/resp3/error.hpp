@@ -7,10 +7,8 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief Error that may occurr when parsing from RESP3.
+/** \brief Errors that may occurr when parsing RESP3 messages.
  *  \ingroup enums
- *
- *  The errors that may occurr when parsing from RESP3.
  */
 enum class error
 {
@@ -21,7 +19,10 @@ enum class error
    not_a_number,
 
    /// Received less bytes than expected.
-   unexpected_read_size
+   unexpected_read_size,
+
+   /// The maximum depth of embedded types has beed exceeded.
+   exceeeds_max_nested_depth
 };
 
 namespace detail {
@@ -37,6 +38,7 @@ struct error_category_impl : std::error_category {
 	 case error::invalid_type: return "Invalid resp3 type.";
 	 case error::not_a_number: return "Can't convert string to number.";
 	 case error::unexpected_read_size: return "Unexpected read size.";
+	 case error::exceeeds_max_nested_depth: return "Exceeds the maximum number of nested responses.";
 	 default: assert(false);
       }
    }
