@@ -2,18 +2,16 @@
 
 # include <system_error>
 
-
-/// \file adapter_error.hpp
-
 namespace aedis {
 namespace resp3 {
+namespace adapter {
 
 /** \brief Error that may occurr while processing a response.
  *  \ingroup enums
  *
  *  The errors that may occurr while processing a response.
  */
-enum class adapter_error
+enum class error
 {
    /// Expects a simple RESP3 type but e.g. got an aggregate.
    expects_simple_type = 1,
@@ -30,7 +28,7 @@ enum class adapter_error
 
 namespace detail {
 
-struct adapter_error_category_impl : std::error_category {
+struct error_category_impl : std::error_category {
 
    /// \todo Fix string lifetime.
    char const* name() const noexcept override
@@ -38,11 +36,11 @@ struct adapter_error_category_impl : std::error_category {
 
    std::string message(int ev) const override
    {
-      switch(static_cast<adapter_error>(ev)) {
-	 case adapter_error::expects_simple_type: return "Expects a simple RESP3 type";
-	 case adapter_error::nested_unsupported: return "Nested response elements are unsupported.";
-	 case adapter_error::simple_error: return "Got RESP3 simple-error type.";
-	 case adapter_error::blob_error: return "Got RESP3 blob-error type.";
+      switch(static_cast<error>(ev)) {
+	 case error::expects_simple_type: return "Expects a simple RESP3 type";
+	 case error::nested_unsupported: return "Nested responses unsupported.";
+	 case error::simple_error: return "RESP3 simple-error type.";
+	 case error::blob_error: return "RESP3 blob-error type.";
 	 default: assert(false);
       }
    }
@@ -51,31 +49,32 @@ struct adapter_error_category_impl : std::error_category {
 inline
 std::error_category const& adapter_category()
 {
-  static adapter_error_category_impl instance;
+  static error_category_impl instance;
   return instance;
 }
 
 } // detail
 
 inline
-std::error_code make_error_code(adapter_error e)
+std::error_code make_error_code(error e)
 {
-    static detail::adapter_error_category_impl const eci{};
+    static detail::error_category_impl const eci{};
     return std::error_code{static_cast<int>(e), detail::adapter_category()};
 }
 
 inline
-std::error_condition make_error_condition(adapter_error e)
+std::error_condition make_error_condition(error e)
 {
   return std::error_condition(static_cast<int>(e), detail::adapter_category());
 }
 
+} // adapter
 } // resp3
 } // aedis
 
 namespace std {
 
 template<>
-struct is_error_code_enum<::aedis::resp3::adapter_error> : std::true_type {};
+struct is_error_code_enum<::aedis::resp3::adapter::error> : std::true_type {};
 
 } // std

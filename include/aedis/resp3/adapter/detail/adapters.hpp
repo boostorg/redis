@@ -20,10 +20,11 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/resp3/serializer.hpp>
-#include <aedis/resp3/adapter_error.hpp>
+#include <aedis/resp3/adapter/error.hpp>
 
 namespace aedis {
 namespace resp3 {
+namespace adapter {
 
 namespace detail
 {
@@ -63,10 +64,10 @@ void set_on_resp3_error(type t, std::error_code& ec)
 {
    switch (t) {
       case type::simple_error:
-	 ec = adapter_error::simple_error;
+	 ec = adapter::error::simple_error;
 	 return;
       case type::blob_error:
-	 ec = adapter_error::blob_error;
+	 ec = adapter::error::blob_error;
 	 return;
       default: return;
    }
@@ -159,14 +160,14 @@ public:
       set_on_resp3_error(t, ec);
 
       if (is_aggregate(t)) {
-	 ec == adapter_error::expects_simple_type;
+	 ec == adapter::error::expects_simple_type;
 	 return;
       }
 
       assert(aggregate_size == 1);
 
       if (depth != 0) {
-	 ec == adapter_error::nested_unsupported;
+	 ec == adapter::error::nested_unsupported;
 	 return;
       }
 
@@ -194,14 +195,14 @@ public:
       set_on_resp3_error(t, ec);
 
       if (is_aggregate(t)) {
-	 ec == adapter_error::expects_simple_type;
+	 ec == adapter::error::expects_simple_type;
 	 return;
       }
 
       assert(aggregate_size == 1);
 
       if (depth != 0) {
-	 ec == adapter_error::nested_unsupported;
+	 ec == adapter::error::nested_unsupported;
 	 return;
       }
 
@@ -238,7 +239,7 @@ public:
 
       if (is_aggregate(t)) {
 	 if (depth != 0 || i_ != -1) {
-	    ec == adapter_error::nested_unsupported;
+	    ec == adapter::error::nested_unsupported;
 	    return;
 	 }
 
@@ -247,7 +248,7 @@ public:
          ++i_;
       } else {
 	 if (depth != 1) {
-	    ec == adapter_error::nested_unsupported;
+	    ec == adapter::error::nested_unsupported;
 	    return;
 	 }
 
@@ -279,7 +280,7 @@ public:
 
       if (is_aggregate(t)) {
 	 if (depth != 0) {
-	    ec == adapter_error::nested_unsupported;
+	    ec == adapter::error::nested_unsupported;
 	    return;
 	 }
          return;
@@ -288,7 +289,7 @@ public:
       assert(aggregate_size == 1);
 
       if (depth != 1) {
-	 ec == adapter_error::nested_unsupported;
+	 ec == adapter::error::nested_unsupported;
 	 return;
       }
 
@@ -387,5 +388,6 @@ public:
 };
 
 } // detail
+} // adapter
 } // resp3
 } // aedis
