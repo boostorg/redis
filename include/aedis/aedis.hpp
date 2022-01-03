@@ -50,14 +50,14 @@
  *  \brief Includes all headers that are necessary in order to use aedis.
  */
 
-/** \defgroup enums Library enums.
+/** \defgroup enums Enums.
  *  \brief All enums defined by this library.
  */
 
-/** \defgroup functions Library functions.
+/** \defgroup functions Free functions.
  *  \brief All functions defined by this library.
  */
 
-/** \defgroup classes Library classes.
+/** \defgroup classes Classes and structs.
  *  \brief All classes (and structs) defined by this library.
  */
