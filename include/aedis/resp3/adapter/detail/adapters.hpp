@@ -25,16 +25,7 @@
 namespace aedis {
 namespace resp3 {
 namespace adapter {
-
-namespace detail
-{
-
-struct adapter_ignore {
-   void
-   operator()(
-      type, std::size_t, std::size_t, char const*, std::size_t,
-      std::error_code&) { }
-};
+namespace detail {
 
 template <class T>
 typename std::enable_if<std::is_integral<T>::value, void>::type
@@ -73,17 +64,21 @@ void set_on_resp3_error(type t, std::error_code& ec)
    }
 }
 
-/** A general pupose redis response class
-  
-    A pre-order-view of the response tree.
- */
+// Adapter that ignores responses.
+struct ignore {
+   void
+   operator()(
+      type, std::size_t, std::size_t, char const*, std::size_t,
+      std::error_code&) { }
+};
+
 template <class Container>
-class adapter_general {
+class general {
 private:
    Container* result_;
 
 public:
-   adapter_general(Container& c = nullptr): result_(&c) {}
+   general(Container& c = nullptr): result_(&c) {}
 
    /** @brief Function called by the parser when new data has been processed.
     *  
@@ -104,17 +99,16 @@ public:
    void
    operator()(
       type t,
-      std::size_t n,
+      std::size_t aggregate_size,
       std::size_t depth,
       char const* data,
       std::size_t size,
       std::error_code&)
       {
-	 result_->emplace_back(t, n, depth, std::string{data, size});
+	 result_->emplace_back(t, aggregate_size, depth, std::string{data, size});
       }
 };
 
-// Adapter for simple data types.
 template <class Node>
 class adapter_node {
 private:
@@ -139,14 +133,14 @@ public:
    }
 };
 
-// Adapter for simple data types.
+// Adapter for RESP3 simple data types.
 template <class T>
-class adapter_simple {
+class simple {
 private:
    T* result_;
 
 public:
-   adapter_simple(T& t) : result_(&t) {}
+   simple(T& t) : result_(&t) {}
 
    void
    operator()(
@@ -176,12 +170,12 @@ public:
 };
 
 template <class T>
-class adapter_optional_simple {
+class simple_optional {
 private:
   std::optional<T>* result_;
 
 public:
-   adapter_optional_simple(std::optional<T>& o) : result_(&o) {}
+   simple_optional(std::optional<T>& o) : result_(&o) {}
 
    void
    operator()(
@@ -216,16 +210,16 @@ public:
    }
 };
 
-/* A response type that parses the response directly in a vector.
+/* A std::vector adapter.
  */
 template <class Container>
-class adapter_vector {
+class vector {
 private:
    int i_ = -1;
    Container* result_;
 
 public:
-   adapter_vector(Container& v) : result_{&v} {}
+   vector(Container& v) : result_{&v} {}
 
    void
    operator()(type t,
@@ -261,12 +255,12 @@ public:
 };
 
 template <class Container>
-class adapter_list {
+class list {
 private:
    Container* result_;
 
 public:
-   adapter_list(Container& ref): result_(&ref) {}
+   list(Container& ref): result_(&ref) {}
 
    void
    operator()(type t,
@@ -299,13 +293,13 @@ public:
 };
 
 template <class Container>
-class adapter_set {
+class set {
 private:
    Container* result_;
    Container::iterator hint_;
 
 public:
-   adapter_set(Container& c)
+   set(Container& c)
    : result_(&c)
    , hint_(std::end(c))
    {}
@@ -342,14 +336,14 @@ public:
 };
 
 template <class Container>
-class adapter_map {
+class map {
 private:
    Container* result_;
    Container::iterator current_;
    bool on_key_ = true;
 
 public:
-   adapter_map(Container& c)
+   map(Container& c)
    : result_(&c)
    , current_(std::end(c))
    {}

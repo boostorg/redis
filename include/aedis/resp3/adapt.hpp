@@ -12,15 +12,14 @@
 namespace aedis {
 namespace resp3 {
 
-/** \ingroup functions
- *  @{
- */
-
 /** \brief Creates a void adapter
+    \ingroup functions
   
     The adapter returned by this function ignores any data and is
     useful to avoid wasting time with responses on which the user is
     insterested in.
+
+    Example usage:
 
     @code
     co_await async_read(socket, buffer, adapt());
@@ -31,9 +30,12 @@ auto adapt() noexcept
    { return response_traits<void>::adapt(); }
 
 /** \brief Adapts user data to the resp3 parser.
+    \ingroup functions
   
     For the types supported by this function see `response_traits`.
     For example
+
+    Example usage:
 
     @code
     std::unordered_map<std::string, std::string> cont;
@@ -43,8 +45,6 @@ auto adapt() noexcept
 template<class T>
 auto adapt(T& t) noexcept
    { return response_traits<T>::adapt(t); }
-
-/*! @} */
 
 } // resp3
 } // aedis
