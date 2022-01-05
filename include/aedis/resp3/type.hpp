@@ -14,71 +14,70 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief Enum that describes the redis data types and some helper functions.
+/** \brief RESP3 types
     \ingroup enums
   
-    This file contains the enum used to identify the redis data type
-    and some helper functions.
-  
-    The RESP3 specification can be found at https://github.com/antirez/RESP3/blob/74adea588783e463c7e84793b325b088fe6edd1c/spec.md
+    The RESP3 full specification can be found at https://github.com/antirez/RESP3/blob/74adea588783e463c7e84793b325b088fe6edd1c/spec.md
  */
 enum class type
-{ /// Array data type (aggregate).
+{ /// Aggregate
   array,
-  /// Push data type (aggregate).
+  /// Aaggregate
   push,
-  /// Set data type (aggregate).
+  /// Aggregate
   set,
-  /// Map data type (aggregate).
+  /// Aggregate
   map,
-  /// Attribute data type (aggregate).
+  /// Aggregate
   attribute,
-  /// Simple-string data type.
+  /// Simple
   simple_string,
-  /// Simple-error data type.
+  /// Simple
   simple_error,
-  /// Number data type.
+  /// Simple
   number,
-  /// Double data type.
+  /// Simple
   doublean,
-  /// Boolean data type.
+  /// Simple
   boolean,
-  /// Big-number data type.
+  /// Simple
   big_number,
-  /// Null data type.
+  /// Simple
   null,
-  /// Blob-error data type.
+  /// Simple
   blob_error,
-  /// Verbatim-string data type.
+  /// Simple
   verbatim_string,
-  /// Blob-string data type.
+  /// Simple
   blob_string,
-  /// Streamed-string-part data type.
+  /// Simple
   streamed_string_part,
-  /// Represents an invalid data type.
-  invalid,
+  /// Invalid
+  invalid
 };
 
-/** \ingroup functions
- *  @{
+/** \brief Returns the string representation of the type.
+ *  \ingroup functions
  */
-
-/// Returns the string representation of the type.
 char const* to_string(type t);
 
-/// Writes the type to the output stream.
+/** \brief Writes the type to the output stream.
+ *  \ingroup operators
+ */
 std::ostream& operator<<(std::ostream& os, type t);
 
-/// Returns true if the data type is an aggregate.
+/** \brief Returns true if the data type is an aggregate.
+ *  \ingroup functions
+ */
 bool is_aggregate(type t);
 
 /** @brief Returns the element multilicity.
+ *  \ingroup functions
  *
- *  For type map and attribute this value is 2, all other types have 1.
-*/
+ *  For type map and attribute this value is 2, all other types have
+ *  1.
+ */
 std::size_t element_multiplicity(type t);
-
-/*! @} */
 
 } // resp3
 } // aedis

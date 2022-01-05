@@ -14,12 +14,20 @@
 
 //\tableofcontents
 
-/** \mainpage Manual
+/** \mainpage
   
     Some text.
 
     - \subpage usage
     - \subpage tutorial
+
+    Reference
+
+    - \subpage enums
+    - \subpage classes
+    - \subpage operators
+    - \subpage read_write_ops
+    - \subpage functions
  */
 
 /** \page usage Usage
@@ -50,14 +58,27 @@
  *  \brief Includes all headers that are necessary in order to use aedis.
  */
 
-/** \defgroup enums Enums.
- *  \brief All enums defined by this library.
+
+/** \defgroup enums Enums
+ *  \brief Enums defined by this library.
  */
 
-/** \defgroup functions Free functions.
+
+/** \defgroup classes Classes
+ *  \brief Classes defined by this library.
+ */
+
+
+/** \defgroup functions Free functions (other)
  *  \brief All functions defined by this library.
  */
 
-/** \defgroup classes Classes and structs.
- *  \brief All classes (and structs) defined by this library.
+
+/** \defgroup read_write_ops Free functions (read/write operations)
+ *  \brief alkjd ajs
+ */
+
+
+/** \defgroup operators Operators
+ *  \brief alkjd ajs
  */

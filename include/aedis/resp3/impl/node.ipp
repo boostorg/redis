@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 - 2022 Marcelo Zimbres Silva (mzimbres at gmail dot com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,43 +12,19 @@
 namespace aedis {
 namespace resp3 {
 
-void node::dump(std::string& out, dump_format format, int indent) const
+std::string to_string(node const& in)
 {
-   switch (format) {
-      case node::dump_format::raw:
-      {
-	 out += std::to_string(depth);
-	 out += '\t';
-	 out += to_string(data_type);
-	 out += '\t';
-	 out += std::to_string(aggregate_size);
-	 out += '\t';
-	 if (!is_aggregate(data_type))
-	    out += data;
-      } break;
-      case node::dump_format::clean:
-      {
-	 std::string prefix(indent * depth, ' ');
-	 out += prefix;
-	 if (is_aggregate(data_type)) {
-	    out += "(";
-	    out += to_string(data_type);
-	    out += ")";
-	    if (aggregate_size == 0) {
-	       std::string prefix2(indent * (depth + 1), ' ');
-	       out += "\n";
-	       out += prefix2;
-	       out += "(empty)";
-	    }
-	 } else {
-	    if (std::empty(data))
-	       out += "(empty)";
-	    else
-	       out += data;
-	 }
-      } break;
-      default: { }
-   }
+   std::string out;
+   out += std::to_string(in.depth);
+   out += '\t';
+   out += to_string(in.data_type);
+   out += '\t';
+   out += std::to_string(in.aggregate_size);
+   out += '\t';
+   if (!is_aggregate(in.data_type))
+      out += in.data;
+
+   return out;
 }
 
 bool operator==(node const& a, node const& b)
@@ -61,17 +37,30 @@ bool operator==(node const& a, node const& b)
 
 std::ostream& operator<<(std::ostream& os, node const& o)
 {
-   std::string res;
-   o.dump(res, node::dump_format::clean, 3);
-   os << res;
+   os << to_string(o);
    return os;
 }
 
 std::ostream& operator<<(std::ostream& os, std::vector<node> const& r)
 {
-   os << dump(std::cbegin(r), std::cend(r));
+   os << to_string(r);
    return os;
 }
 
+std::string to_string(std::vector<node> const& vec)
+{
+   if (std::empty(vec))
+      return {};
+
+   auto begin = std::cbegin(vec);
+   std::string res;
+   for (; begin != std::prev(std::cend(vec)); ++begin) {
+      res += to_string(*begin);
+      res += '\n';
+   }
+
+   res += to_string(*begin);
+   return res;
+}
 } // resp3
 } // aedis

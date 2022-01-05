@@ -6,23 +6,21 @@ namespace aedis {
 namespace resp3 {
 namespace adapter {
 
-/** \brief Error that may occurr while processing a response.
+/** \brief Errors that may occurr while processing a response.
  *  \ingroup enums
- *
- *  The errors that may occurr while processing a response.
  */
 enum class error
 {
-   /// Expects a simple RESP3 type but e.g. got an aggregate.
+   /// Expects a simple RESP3 type but got an e.g. aggregate.
    expects_simple_type = 1,
 
-   /// Unexpect depth in the response tree.
+   /// Nested response not supported.
    nested_unsupported,
 
-   /// RESP3 simple error.
+   /// Got RESP3 simple error.
    simple_error,
 
-   /// RESP3 blob_error.
+   /// Got RESP3 blob_error.
    blob_error
 };
 

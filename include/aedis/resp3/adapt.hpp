@@ -12,11 +12,11 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief Creates a void adapter
+/** \brief Creates a void response adapter.
     \ingroup functions
   
-    The adapter returned by this function ignores any data and is
-    useful to avoid wasting time with responses on which the user is
+    The adapter returned by this function ignores responses and is
+    useful to avoid wasting time with responses which the user is
     insterested in.
 
     Example usage:

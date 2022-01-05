@@ -7,7 +7,7 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief Errors that may occurr when parsing RESP3 messages.
+/** \brief RESP3 parsing errors.
  *  \ingroup enums
  */
 enum class error
@@ -21,7 +21,7 @@ enum class error
    /// Received less bytes than expected.
    unexpected_read_size,
 
-   /// The maximum depth of embedded types has beed exceeded.
+   /// The maximum depth of a nested response was exceeded.
    exceeeds_max_nested_depth
 };
 
@@ -53,7 +53,9 @@ std::error_category const& category()
 
 } // detail
 
-/// Converts an error in an std::error_code object.
+/** \brief Converts an error in an std::error_code object.
+ *  \ingroup functions
+ */
 inline
 std::error_code make_error_code(error e)
 {

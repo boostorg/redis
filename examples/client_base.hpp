@@ -17,28 +17,29 @@ using namespace aedis::net::experimental::awaitable_operators;
 namespace aedis {
 namespace resp3 {
 
-/*  Example: A general purpose redis client.
+/**  \brief Example: A general purpose redis client.
+ *   \ingroup classes
   
-    This class is meant to be an example. Users are meant to derive
-    from this class and override 
+     This class is meant to be an example. Users are meant to derive
+     from this class and override 
   
-       1. on_event.
-       2. on_push.
+        1. on_event.
+        2. on_push.
   
-    The ReponseId type is required to provide the get_command() member
-    function.
+     The ReponseId type is required to provide the get_command() member
+     function.
  */
 template <class ResponseId>
 class client_base
    : public std::enable_shared_from_this<client_base<ResponseId>> {
 protected:
-   // The response used for push types.
+   /// The response used for push types.
    std::vector<node> push_resp_;
 
+private:
    // Hello response.
    std::vector<node> hello_;
 
-private:
    using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
    std::queue<serializer<ResponseId>> srs_;
    tcp_socket socket_;
@@ -150,18 +151,18 @@ private:
    }
 
 public:
-   // Constructor.
+   /// Constructor.
    client_base(net::any_io_executor ex)
    : socket_{ex}
    , timer_{ex}
    { }
 
-   // Destructor.
+   /// Destructor.
    virtual ~client_base() { }
 
-   /* Starts the client.
+   /** \brief Starts the client.
     *
-    *  Stablishes a connection with the redis server and keeps waiting for messages to send.
+    *   Stablishes a connection with the redis server and keeps waiting for messages to send.
     */
    void start()
    {
@@ -170,7 +171,7 @@ public:
           net::detached);
    }
 
-   /* \brief Adds commands the requests queue and sends if possible.
+   /** \brief Adds commands the requests queue and sends if possible.
     *
     *  The filler callable get a request by reference, for example
     *
@@ -197,13 +198,13 @@ public:
          timer_.cancel_one();
    }
 
-   /* \brief Called when the response to a specific command is received.
+   /** \brief Called when the response to a specific command is received.
     *
     *  Override this function to receive events in your derived class.
     */
    virtual void on_event(ResponseId) {};
 
-   /* \brief Called when server push is received.
+   /** \brief Called when server push is received.
     *
     *  Override this function to receive push events in the derived class.
     */

@@ -14,7 +14,7 @@
 namespace aedis {
 namespace resp3 {
 
-/** \ingroup functions
+/** \ingroup read_write_ops
  *  @{
  */
 

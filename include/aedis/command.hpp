@@ -11,8 +11,8 @@
 
 namespace aedis {
 
-/** \brief Enum of all redis commands.
- *  \ingroup enums Library enums
+/** \brief Redis commands.
+ *  \ingroup enums
  */
 enum class command {
    /// https://redis.io/commands/acl
@@ -426,19 +426,16 @@ enum class command {
    unknown
 };
 
-/** \ingroup functions Library functions
- *  @{
- */
-
-/** Converts a command to a string
+/** \brief Converts a command to a string
+ *  \ingroup functions
  *
  *  \param c The command to convert.
  */
 char const* to_string(command c);
 
-/// Write the text for a command name to an output stream.
+/** \brief Write the text for a command name to an output stream.
+ *  \ingroup operators
+ */
 std::ostream& operator<<(std::ostream& os, command c);
-
-/*! @} */
 
 } // aedis

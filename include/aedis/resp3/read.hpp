@@ -20,11 +20,8 @@
 namespace aedis {
 namespace resp3 {
 
-/** \ingroup functions
- *  @{
- */
-
 /** \brief Read the response to a command sychronously.
+ *  \ingroup read_write_ops
  *
  *  This function has to be called once for each command in the
  *  request until the whole request has been read.
@@ -91,6 +88,7 @@ read(
 }
 
 /** \brief Reads the reponse to a command.
+ *  \ingroup read_write_ops
  *  
  *  This function has to be called once for each command in the
  *  request until the whole request has been read.
@@ -121,6 +119,7 @@ read(
 }
 
 /** @brief Reads the response to a Redis command asynchronously.
+ *  \ingroup read_write_ops
  *
  *  This function has to be called once for each command in the
  *  request until the whole request has been read.
@@ -161,6 +160,7 @@ auto async_read(
 }
 
 /** \brief Reads the RESP3 type of the next incomming.
+ *  \ingroup read_write_ops
  *
  *  This function won't consume any data from the buffer. The
  *  completion handler must have the following signature.
@@ -190,8 +190,6 @@ auto async_read_type(
       , void(boost::system::error_code, type)
       >(detail::type_op<AsyncReadStream, Buffer> {stream, &buffer}, token, stream);
 }
-
-/*! @} */
 
 } // resp3
 } // aedis

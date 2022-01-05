@@ -21,20 +21,18 @@
 namespace aedis {
 namespace resp3 {
 
-/** @brief Serializers user data into a redis request.
+/** @brief Serializes user data into a redis request.
  *  \ingroup classes
  *  
- *  This class offers functions to serialize user data into a redis
- *  request. A request is composed of one or more redis commands and
- *  is referred to in the redis documentation as a pipeline, see
+ *  A request is composed of one or more redis commands and is
+ *  referred to in the redis documentation as a pipeline, see
  *  https://redis.io/topics/pipelining.
  *
- *  The class maintains an internal queue of already added commands to
- *  assist users processing the response to each individual command
- *  contained in the request.
- *
- *  The element type of this queue is passed as a template parameter
- *  in the request class. For example
+ *  This class also maintains an internal queue of already added
+ *  commands to assist users processing the response to each
+ *  individual command contained in the request. The element type of
+ *  this queue is passed as a template parameter in the request class.
+ *  For example
  *
  *  @code
  *     request<command> req;
@@ -67,7 +65,7 @@ public:
    std::queue<ResponseId> commands;
 
 public:
-   /** Clears the serializer.
+   /** \brief Clears the serializer.
     *  
     *  Note: Already acquired memory won't be released. The is useful
     *  to reusing memory insteam of allocating again each time.
@@ -82,17 +80,16 @@ public:
     */
    auto const& request() const noexcept {return request_;}
 
-   /** @brief Appends a new command to end of the request.
+   /** @brief Appends a new command to the end of the request.
     *
     *  Non-string types will be converted to string by using
-    *  to_string which must be made available by the user.
+    *  to_string, which must be made available by the user.
     */
    template <class... Ts>
    void push(ResponseId qelem, Ts const&... args)
    {
-      // Note: Should we detect any std::pair in the type in the pack
-      // to calculate the herader size correctly or let users handle
-      // this?
+      // TODO: Should we detect any std::pair in the type in the pack
+      // to calculate the herader size correctly?
 
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(request_, 1 + pack_size);
@@ -105,7 +102,7 @@ public:
          commands.emplace(qelem);
    }
 
-   /** @brief Appends a new command to end of the request.
+   /** @brief Appends a new command to the end of the request.
        
        This overload is useful for commands that have a key. For example
      
@@ -144,7 +141,7 @@ public:
          commands.emplace(qelem);
    }
 
-   /** @brief Appends a new command to end of the request.
+   /** @brief Appends a new command to the end of the request.
      
        This overload is useful for commands that don't have a key. For
        example
