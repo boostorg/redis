@@ -58,21 +58,26 @@ enum class type
 
 /** \brief Returns the string representation of the type.
  *  \ingroup functions
+ *  \param t RESP3 type.
  */
 char const* to_string(type t);
 
 /** \brief Writes the type to the output stream.
  *  \ingroup operators
+ *  \param os Output stream.
+ *  \param t RESP3 type.
  */
 std::ostream& operator<<(std::ostream& os, type t);
 
 /** \brief Returns true if the data type is an aggregate.
  *  \ingroup functions
+ *  \param t RESP3 type.
  */
 bool is_aggregate(type t);
 
 /** @brief Returns the element multilicity.
  *  \ingroup functions
+ *  \param t RESP3 type.
  *
  *  For type map and attribute this value is 2, all other types have
  *  1.

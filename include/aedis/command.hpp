@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -435,6 +435,9 @@ char const* to_string(command c);
 
 /** \brief Write the text for a command name to an output stream.
  *  \ingroup operators
+ *
+ *  \param os Output stream.
+ *  \param c Redis command
  */
 std::ostream& operator<<(std::ostream& os, command c);
 

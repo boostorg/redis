@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,23 +11,35 @@
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/response_traits.hpp>
 #include <aedis/resp3/serializer.hpp>
+#include <aedis/resp3/client_base.hpp>
 
-//\tableofcontents
 
 /** \mainpage
+    \tableofcontents
   
-    Some text.
-
-    - \subpage usage
-    - \subpage tutorial
-
-    Reference
+    \section reference Reference
 
     - \subpage enums
     - \subpage classes
     - \subpage operators
     - \subpage read_write_ops
     - \subpage functions
+
+    \section documentation Documentation
+
+    - \subpage usage
+    - \subpage tutorial
+
+    \section overview Overview
+
+    Aedis is a redis client designed for scalability and performance
+    while providing an easy and intuitive interface. Some of the features
+    are
+
+    - First class support to STL containers and C++ built-in types.
+    - Support for pipelining, trasactions and TLS.
+    - Serialization and deserializaiton of your own types.
+    - First class async support with ASIO.
  */
 
 /** \page usage Usage
