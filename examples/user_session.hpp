@@ -8,38 +8,29 @@
 namespace net = aedis::net;
 
 using aedis::command;
-using aedis::resp3::node;
-using aedis::resp3::response_traits;
 using aedis::resp3::client_base;
 
-// Base class for user sessions.
-struct user_session_base {
-  virtual ~user_session_base() {}
-  virtual void on_event(command cmd) = 0;
-};
+struct user_session_base;
 
 // struct to hold information that we need when the response to a
 // command is received. See client_base.hpp for more details on the
 // required fields in this struct.
 struct response_id {
-   // The type of the adapter that should be used to deserialize the
-   // response.
-   using adapter_type = response_traits<std::vector<node>>::adapter_type;
-
-   // The type of the session pointer.
-   using session_ptr = std::weak_ptr<user_session_base>;
-
    // The redis command that was send in the request.
    command cmd = command::unknown;
 
-   // The adapter.
-   adapter_type adapter;
+   // Pointer to the response.
+   std::string* resp;
 
    // The pointer to the session the request belongs to.
-   session_ptr session = std::shared_ptr<user_session_base>{nullptr};
+   std::weak_ptr<user_session_base> session =
+      std::shared_ptr<user_session_base>{nullptr};
+};
 
-   // Required from client_base.hpp.
-   auto get_command() const noexcept { return cmd; }
+// Base class for user sessions.
+struct user_session_base {
+  virtual ~user_session_base() {}
+  virtual void on_event(response_id id) = 0;
 };
 
 using client_base_type = client_base<response_id>;
@@ -55,30 +46,26 @@ public:
    , timer_(socket_.get_executor())
    , rclient_{rclient}
    {
-     timer_.expires_at(std::chrono::steady_clock::time_point::max());
+      timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
-   void start()
+   template <class Filler>
+   void start(Filler filler)
    {
-     response_id id{command::ping, adapt(resp_), shared_from_this()};
+      co_spawn(socket_.get_executor(),
+          [self = shared_from_this(), filler]{ return self->reader(filler); },
+          net::detached);
 
-     auto filler = [id](auto& req, auto const& msg)
-        { req.push(id, msg);};
-
-     co_spawn(socket_.get_executor(),
-         [self = shared_from_this(), filler]{ return self->reader(filler); },
-         net::detached);
-
-     co_spawn(socket_.get_executor(),
-         [self = shared_from_this()]{ return self->writer(); },
-         net::detached);
+      co_spawn(socket_.get_executor(),
+          [self = shared_from_this()]{ return self->writer(); },
+          net::detached);
    }
 
-   void on_event(command cmd) override
+   void on_event(response_id id) override
    {
-      assert(cmd == command::ping);
-      deliver(resp_.back().data);
-      resp_.clear();
+      write_msgs_.push_back(*id.resp);
+      id.resp->clear();
+      timer_.cancel_one();
    }
 
 private:
@@ -119,12 +106,6 @@ private:
      }
    }
 
-   void deliver(const std::string& msg)
-   {
-     write_msgs_.push_back(msg);
-     timer_.cancel_one();
-   }
-
    void stop()
    {
      socket_.close();
@@ -135,6 +116,5 @@ private:
    net::steady_timer timer_;
    std::deque<std::string> write_msgs_;
    std::shared_ptr<client_base_type> rclient_;
-   std::vector<node> resp_;
 };
 

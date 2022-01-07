@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <aedis/resp3/response_traits.hpp>
+#include <aedis/resp3/detail/response_traits.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -27,7 +27,7 @@ namespace resp3 {
  */
 inline
 auto adapt() noexcept
-   { return response_traits<void>::adapt(); }
+   { return detail::response_traits<void>::adapt(); }
 
 /** \brief Adapts user data to the resp3 parser.
     \ingroup functions
@@ -44,7 +44,7 @@ auto adapt() noexcept
  */
 template<class T>
 auto adapt(T& t) noexcept
-   { return response_traits<T>::adapt(t); }
+   { return detail::response_traits<T>::adapt(t); }
 
 } // resp3
 } // aedis

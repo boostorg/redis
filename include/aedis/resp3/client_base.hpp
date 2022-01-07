@@ -24,8 +24,7 @@ namespace resp3 {
         1. on_event.
         2. on_push.
   
-     The ReponseId type is required to provide the get_command() member
-     function.
+     The ReponseId type is required to provide the cmd member.
  */
 template <class ResponseId>
 class client_base
@@ -62,7 +61,7 @@ private:
                   co_await async_read(socket_, buffer, adapt(push_resp_));
                   on_push();
                } else {
-                  auto adapter = srs_.front().commands.front().adapter;
+                  auto adapter = adapt(*srs_.front().commands.front().resp);
                   co_await async_read(socket_, buffer, adapter);
                   on_event(srs_.front().commands.front());
                   srs_.front().commands.pop();

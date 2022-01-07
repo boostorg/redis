@@ -20,6 +20,7 @@
 
 namespace aedis {
 namespace resp3 {
+namespace detail {
 
 /** \brief Adapts C++ built-in types to RESP3 read operations.
  *  \ingroup classes
@@ -152,5 +153,6 @@ struct response_traits<void>
    static auto adapt() noexcept { return adapter_type{}; }
 };
 
+} // detail
 } // resp3
 } // aedis

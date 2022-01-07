@@ -66,7 +66,7 @@ bool has_push_response(command cmd);
 template <class T>
 struct request_get_command {
    static command apply(T const& e) noexcept
-      { return e.get_command(); }
+      { return e.cmd; }
 };
 
 template <>

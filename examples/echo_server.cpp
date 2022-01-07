@@ -8,10 +8,10 @@ using tcp_acceptor = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::
 
 class my_redis_client : public client_base_type {
 private:
-   void on_event(response_id qe) override
+   void on_event(response_id id) override
    {
-      if (auto session = qe.session.lock()) {
-         session->on_event(qe.cmd);
+      if (auto session = id.session.lock()) {
+         session->on_event(id);
       } else {
          std::cout << "Session expired." << std::endl;
       }
@@ -31,10 +31,17 @@ net::awaitable<void> listener()
    auto rclient = std::make_shared<my_redis_client>(ex);
    rclient->start();
 
+   std::string resp; // TODO: Use a shared_ptr.
+
    for (;;) {
       auto socket = co_await acceptor.async_accept();
       auto session = std::make_shared<user_session>(std::move(socket), rclient);
-      session->start();
+
+      response_id id{command::ping, &resp, session};
+      auto filler = [id](auto& req, auto const& msg)
+	 { req.push(id, msg); };
+
+      session->start(filler);
    }
 }
 

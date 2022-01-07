@@ -9,10 +9,8 @@
 
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/write.hpp>
-#include <aedis/resp3/response_traits.hpp>
 #include <aedis/resp3/serializer.hpp>
 #include <aedis/resp3/client_base.hpp>
-
 
 /** \mainpage
     \tableofcontents
