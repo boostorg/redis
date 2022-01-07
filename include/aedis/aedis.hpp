@@ -10,23 +10,14 @@
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/serializer.hpp>
-#include <aedis/resp3/client_base.hpp>
 
 /** \mainpage
     \tableofcontents
   
-    \section reference Reference
-
-    - \subpage enums
-    - \subpage classes
-    - \subpage operators
-    - \subpage read_write_ops
-    - \subpage functions
-
     \section documentation Documentation
 
-    - \subpage usage
-    - \subpage tutorial
+    - \subpage reference
+    - \subpage examples
 
     \section overview Overview
 
@@ -40,34 +31,86 @@
     - First class async support with ASIO.
  */
 
-/** \page usage Usage
+//---------------------------------------------------------
+// Pages
+
+/** \page examples Examples
   
-   Aedis is a header only library. You only need to include the header
+    \b Basics
 
-   @code
-   #include <aedis/src.hpp>
-   @endcode
+    - intro.cpp
 
-   in one of your source files.
+      Illustrates the basic usage.
+
+    - key_expiration.cpp
+      
+      Shows how to use \c std::optional to deal with keys that may
+      have expired or do not exist.
+
+    - nested_response.cpp
+      
+      When the data-structure returned by Redis cannot be translated
+      in a C++ built-in type like STL containers, std::string, etc.
+
+    - subscriber.cpp
+
+      Shows how channel subscription works.
+
+    - response_queue.cpp
+
+      Shows how to process responses asynchronously.
+
+    \b STL \b Containers: Many of the Redis data structures can be directly translated in to STL containers. The example bellow shows how to do that. The list of Redis data types can be found at https://redis.io/topics/data-types.
+
+    - hashes.cpp
+
+      Shows how to read Redis hashes in a \c std::map, \c std::unordered_map and \c std::vector.
+
+    - lists.cpp
+
+      Shows how to read Redis lists in \c std::list, \c std::deque, \c std::vector. It also illustrates basic serialization.
+
+    - sets.cpp
+
+      Shows how to read Redis sets in a \c std::set, \c std::unordered_set and \c std::vector.
+
+    \b Customization \b points
+
+    - serialization.cpp
+
+      Shows how to de/serialize your own (simple) data-structures.
+
+    - response_adapter.cpp
+
+      Customization point for users that want to de/serialize their
+      own containers.
+
+    \b Adavanced: The main difference the examples bellow and the
+    others above is that they user long lasting connections to Redis.
+    This is the desired way to communicate with redis.
+
+    - echo_server.cpp
+
+      Shows the basic principles behind async communication with a database in a tcp server. In this case, the server is a proxy between the user and the database.
  */
 
-/** \page tutorial Tutorial
+/** \page reference Reference
+ *
+ *  Aedis source code reference.
   
-    Some info
-
-    \section requests Requests
-
-    Some text
-
-    \section responses Responses
-
-    Some text
+    - \subpage enums
+    - \subpage classes
+    - \subpage operators
+    - \subpage read_write_ops
+    - \subpage functions
  */
 
 /** \file aedis.hpp
  *  \brief Includes all headers that are necessary in order to use aedis.
  */
 
+//---------------------------------------------------------
+// Groups
 
 /** \defgroup enums Enums
  *  \brief Enums defined by this library.

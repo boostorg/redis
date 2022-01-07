@@ -85,5 +85,3 @@ int main()
    co_spawn(ioc, containers(), net::detached);
    ioc.run();
 }
-
-/// \example hashes.cpp

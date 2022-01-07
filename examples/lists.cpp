@@ -92,5 +92,3 @@ int main()
    co_spawn(ioc, ping(), net::detached);
    ioc.run();
 }
-
-/// \example lists.cpp

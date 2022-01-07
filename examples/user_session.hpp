@@ -12,15 +12,15 @@ using aedis::resp3::client_base;
 
 struct user_session_base;
 
-// struct to hold information that we need when the response to a
-// command is received. See client_base.hpp for more details on the
+// Holds the information that is needed when a response to a
+// request arrives. See client_base.hpp for more details on the
 // required fields in this struct.
 struct response_id {
-   // The redis command that was send in the request.
+   // The redis command that corresponds to this command. 
    command cmd = command::unknown;
 
    // Pointer to the response.
-   std::string* resp;
+   std::shared_ptr<std::string> resp;
 
    // The pointer to the session the request belongs to.
    std::weak_ptr<user_session_base> session =
@@ -30,7 +30,7 @@ struct response_id {
 // Base class for user sessions.
 struct user_session_base {
   virtual ~user_session_base() {}
-  virtual void on_event(response_id id) = 0;
+  virtual void deliver(std::string const& msg) = 0;
 };
 
 using client_base_type = client_base<response_id>;
@@ -61,10 +61,9 @@ public:
           net::detached);
    }
 
-   void on_event(response_id id) override
+   void deliver(std::string const& msg) override
    {
-      write_msgs_.push_back(*id.resp);
-      id.resp->clear();
+      write_msgs_.push_back(msg);
       timer_.cancel_one();
    }
 
