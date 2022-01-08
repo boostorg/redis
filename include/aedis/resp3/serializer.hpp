@@ -21,39 +21,27 @@
 namespace aedis {
 namespace resp3 {
 
-/** @brief Serializes user data into a redis request.
+/** @brief Creates a RESP3 request from user data.
  *  \ingroup classes
  *  
  *  A request is composed of one or more redis commands and is
  *  referred to in the redis documentation as a pipeline, see
- *  https://redis.io/topics/pipelining.
+ *  https://redis.io/topics/pipelining, for example
+ *
+ *  @code
+ *  serializer<command> sr;
+ *  sr.push(command::hello, 3);
+ *  sr.push(command::flushall);
+ *  sr.push(command::ping);
+ *  sr.push(command::incr, "key");
+ *  sr.push(command::quit);
+ *  co_await async_write(socket, buffer(sr.request()));
+ *  @endcode
  *
  *  This class also maintains an internal queue of already added
  *  commands to assist users processing the response to each
- *  individual command contained in the request. The element type of
- *  this queue is passed as a template parameter in the request class.
- *  For example
- *
- *  @code
- *     request<command> req;
- *  @endcode
- *
- *  In some cases users need keep more information around for when the
- *  response arrives, like pointers to http sessions, etc.
- *
- *  @code
- *  struct element {
- *     command cmd;
- *     std::weak_ptr<my_http_session> session;
- *
- *     // Required member function. 
- *     command get_command() const noexcept
- *        {return cmd;}
- *  };
- *  @endcode
- *
- *  Notice users will be required to define the get_command member
- *  function for their custom types.
+ *  individual command contained in the request see response_queue.cpp
+ *  for simple usage and echo_server.cpp for adavanced usage.
  */
 template <class ResponseId>
 class serializer {
@@ -67,7 +55,7 @@ public:
 public:
    /** \brief Clears the serializer.
     *  
-    *  Note: Already acquired memory won't be released. The is useful
+    *  \remark Already acquired memory won't be released. The is useful
     *  to reusing memory insteam of allocating again each time.
     */
    void clear()
@@ -83,13 +71,13 @@ public:
    /** @brief Appends a new command to the end of the request.
     *
     *  Non-string types will be converted to string by using
-    *  to_string, which must be made available by the user.
+    *  \c to_string, which must be made available by the user by ADL.
     */
    template <class... Ts>
    void push(ResponseId qelem, Ts const&... args)
    {
       // TODO: Should we detect any std::pair in the type in the pack
-      // to calculate the herader size correctly?
+      // to calculate the header size correctly?
 
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(request_, 1 + pack_size);
@@ -107,16 +95,14 @@ public:
        This overload is useful for commands that have a key. For example
      
        \code{.cpp}
+       std::map<std::string, std::string> map
+	  { {"key1", "value1"}
+	  , {"key2", "value2"}
+	  , {"key3", "value3"}
+	  };
 
-	  std::map<std::string, std::string> map
-	     { {"key1", "value1"}
-	     , {"key2", "value2"}
-	     , {"key3", "value3"}
-	     };
-
-	  request req;
-	  req.push_range(command::hset, "key", std::cbegin(map), std::cend(map));
-
+       request req;
+       req.push_range(command::hset, "key", std::cbegin(map), std::cend(map));
        \endcode
     */
    template <class Key, class ForwardIterator>
@@ -147,13 +133,11 @@ public:
        example
      
        \code{.cpp}
+       std::set<std::string> channels
+	  { "channel1" , "channel2" , "channel3" }
 
-	  std::set<std::string> channels
-	     { "channel1" , "channel2" , "channel3" }
-
-	  request req;
-	  req.push(command::subscribe, std::cbegin(channels), std::cedn(channels));
-
+       request req;
+       req.push(command::subscribe, std::cbegin(channels), std::cedn(channels));
        \endcode
     */
    template <class ForwardIterator>

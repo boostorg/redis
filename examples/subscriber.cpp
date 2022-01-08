@@ -26,7 +26,7 @@ using net::buffer;
    indefinitely.
   
    Notice we store the id of the connection (attributed by the redis
-   server) to be able to identify it (in logs for example).
+   server) to be able to identify it (in the logs for example).
   
    After starting the example you can test it by sending messages with
    the redis-client like this

@@ -6,7 +6,7 @@ namespace aedis {
 namespace resp3 {
 namespace adapter {
 
-/** \brief Errors that may occurr while processing a response.
+/** \brief Errors that may occurr whe deserializing a response.
  *  \ingroup enums
  */
 enum class error
@@ -21,7 +21,10 @@ enum class error
    simple_error,
 
    /// Got RESP3 blob_error.
-   blob_error
+   blob_error,
+
+   /// Got RESP3 null but the response type does not support it.
+   null,
 };
 
 namespace detail {

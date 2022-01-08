@@ -20,15 +20,7 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/* Processes the responses in a loop using the helper queue.
- 
-   In most cases commands will be added dynamically to the request for
-   example as users interact with the code. In order to process the
-   responses asynchronously users have to keep a queue of the expected
-   commands or use the one provided by the serializer class.
-
-   The example below shows how to do it.
- */
+/// Processes the responses in a loop using the helper queue.
 net::awaitable<void> ping()
 {
    try {

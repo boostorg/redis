@@ -35,12 +35,14 @@
 // Pages
 
 /** \page examples Examples
-  
-    \b Basics
+ *
+    \b Basics: Focuses on small code snipets that show basic usage of
+    the library.
 
     - intro.cpp
 
-      Illustrates the basic usage.
+      Users should start here. Some commands are sent to the Redis
+      server and the responses are printed to screen.
 
     - key_expiration.cpp
       
@@ -49,8 +51,9 @@
 
     - nested_response.cpp
       
-      When the data-structure returned by Redis cannot be translated
-      in a C++ built-in type like STL containers, std::string, etc.
+      Shows how to read responses to commands that cannot be
+      translated in a C++ built-in type like std::string or STL
+      containers.
 
     - subscriber.cpp
 
@@ -58,40 +61,52 @@
 
     - response_queue.cpp
 
-      Shows how to process responses asynchronously.
+      In most cases commands will be added dynamically to the request
+      for example as users interact with app. In order to process the
+      responses asynchronously users have to keep a queue of the
+      expected commands or use the one provided by the serializer
+      class. This example shows how to do it.
 
-    \b STL \b Containers: Many of the Redis data structures can be directly translated in to STL containers. The example bellow shows how to do that. The list of Redis data types can be found at https://redis.io/topics/data-types.
+    \b STL \b Containers: Many of the Redis data structures can be
+    directly translated in to STL containers. The examples bellow show
+    how to do that. The list of Redis data types can be found at
+    https://redis.io/topics/data-types.
 
     - hashes.cpp
 
-      Shows how to read Redis hashes in a \c std::map, \c std::unordered_map and \c std::vector.
+      Shows how to read Redis hashes in a \c std::map, \c
+      std::unordered_map and \c std::vector.
 
     - lists.cpp
 
-      Shows how to read Redis lists in \c std::list, \c std::deque, \c std::vector. It also illustrates basic serialization.
+      Shows how to read Redis lists in \c std::list,
+      \c std::deque, \c std::vector. It also illustrates basic serialization.
 
     - sets.cpp
 
-      Shows how to read Redis sets in a \c std::set, \c std::unordered_set and \c std::vector.
+      Shows how to read Redis sets in a \c std::set, \c std::unordered_set
+      and \c std::vector.
 
     \b Customization \b points
 
     - serialization.cpp
 
-      Shows how to de/serialize your own (simple) data-structures.
+      Shows how to de/serialize your own non-aggregate data-structures.
 
     - response_adapter.cpp
 
       Customization point for users that want to de/serialize their
-      own containers.
+      own data-structures.
 
-    \b Adavanced: The main difference the examples bellow and the
+    \b Adavanced: The main difference the examples below and the
     others above is that they user long lasting connections to Redis.
     This is the desired way to communicate with redis.
 
     - echo_server.cpp
 
-      Shows the basic principles behind async communication with a database in a tcp server. In this case, the server is a proxy between the user and the database.
+      Shows the basic principles behind async communication with a
+      database in a tcp server. In this case, the server is a proxy
+      between the user and the database.
  */
 
 /** \page reference Reference
@@ -128,10 +143,10 @@
 
 
 /** \defgroup read_write_ops Free functions (read/write operations)
- *  \brief alkjd ajs
+ *  \brief RESP3 read and write functions.
  */
 
 
 /** \defgroup operators Operators
- *  \brief alkjd ajs
+ *  \brief Operators defined in Aedis
  */

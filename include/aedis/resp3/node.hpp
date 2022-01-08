@@ -17,6 +17,9 @@ namespace resp3 {
 
 /** \brief A node in the response tree.
  *  \ingroup classes
+ *
+ *  Redis responses are the pre-order view of the response tree (see
+ *  https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR).
  */
 struct node {
    /// The RESP3 type of the data in this node.

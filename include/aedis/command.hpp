@@ -13,6 +13,10 @@ namespace aedis {
 
 /** \brief Redis commands.
  *  \ingroup enums
+ *
+ *  For a full list of commands see https://redis.io/commands. The
+ *  list of commands below are read from Redis with the \c command
+ *  command
  */
 enum class command {
    /// https://redis.io/commands/acl

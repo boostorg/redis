@@ -20,8 +20,7 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 
-/* Shows how to read nested responses.
-*/
+/// Shows how to read nested responses.
 
 net::awaitable<void> nested_response()
 {
@@ -44,7 +43,7 @@ net::awaitable<void> nested_response()
       co_await async_read(socket, buffer, adapt(ping));
       co_await async_read(socket, buffer);
 
-      // Print the responses.
+      // Prints the responses.
       std::cout << "hello: ";
       for (auto const& e: hello) std::cout << e << " ";
       std::cout << "\nPing: " << ping;
