@@ -67,6 +67,10 @@
       expected commands or use the one provided by the serializer
       class. This example shows how to do it.
 
+    - sync.cpp
+      
+      Aedis also offers a synchronous api, this example shows how to use it.
+
     \b STL \b Containers: Many of the Redis data structures can be
     directly translated in to STL containers. The examples bellow show
     how to do that. The list of Redis data types can be found at

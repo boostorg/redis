@@ -97,6 +97,11 @@ response_adapter_SOURCES = $(top_srcdir)/examples/response_adapter.cpp
 response_adapter_CPPFLAGS = $(MY_CPPFLAGS)
 response_adapter_LDADD = $(MY_LDADD)
 
+noinst_PROGRAMS += sync
+sync_SOURCES = $(top_srcdir)/examples/sync.cpp
+sync_CPPFLAGS = $(MY_CPPFLAGS)
+sync_LDADD = $(MY_LDADD)
+
 noinst_PROGRAMS += test
 test_SOURCES = $(top_srcdir)/tests/general.cpp
 test_CPPFLAGS = $(MY_CPPFLAGS)

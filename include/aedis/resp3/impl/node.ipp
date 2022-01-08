@@ -47,6 +47,7 @@ std::ostream& operator<<(std::ostream& os, std::vector<node> const& r)
    return os;
 }
 
+// TODO: Output like in redis-cli.
 std::string to_string(std::vector<node> const& vec)
 {
    if (std::empty(vec))

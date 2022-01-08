@@ -99,7 +99,10 @@ public:
             case type::blob_string:
             {
                if (*(data + 1) == '?') {
-		  // TODO: Document and clarify this tricky.
+		  // Trick: A streamed string is read as an aggregate
+		  // of infinite lenght. When the streaming is done
+		  // the server is supposed to send a part with lenght
+		  // 0.
                   sizes_[++depth_] = (std::numeric_limits<std::size_t>::max)();
                } else {
 		  auto const r =
