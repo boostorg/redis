@@ -23,12 +23,7 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-/* Shows how to deal with keys that may not exist.
-  
-   When accessing a key that does not exist, for example due to
-   expiration, redis will return null. Aedis supports these usecases
-   through std::optional.
- */
+/// Shows how to deal with keys that may not exist.
 
 net::awaitable<void> key_expiration()
 {
@@ -61,17 +56,27 @@ net::awaitable<void> key_expiration()
       timer tm{socket.get_executor(), std::chrono::seconds{3}};
       co_await tm.async_wait();
 
-      // Creates and sends the second request, after expiration.
+      // Creates a request to get after expiration.
       get.reset(); sr.clear();
+      sr.push(command::get, "key");
       sr.push(command::get, "key");
       sr.push(command::quit);
       co_await async_write(socket, buffer(sr.request()));
 
       // Reads the response to the second request.
       co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(get));
+
+      // Reading without an optional will result in an error.
+      std::string str;
+      boost::system::error_code ec;
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer),
+	          adapt(str), net::redirect_error(net::use_awaitable, ec));
+
+      // Quit
       co_await resp3::async_read(socket, dynamic_buffer(rbuffer));
 
-      std::cout << "After expiration: " << get.has_value() << "\n";
+      std::cout << "After expiration (optional): " << get.has_value() << "\n";
+      std::cout << "After expiration (non-optional): " << ec.message() << "\n";
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

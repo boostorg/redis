@@ -16,7 +16,16 @@
   
     \section documentation Documentation
 
-    - \subpage reference
+    Reference
+
+    - \subpage enums
+    - \subpage classes
+    - \subpage read_write_ops
+    - \subpage functions
+    - \subpage operators
+
+    Other
+
     - \subpage examples
 
     \section overview Overview
@@ -37,7 +46,8 @@
 /** \page examples Examples
  *
     \b Basics: Focuses on small code snipets that show basic usage of
-    the library.
+    the library. For example: How to create a request and read resp,
+    how to deal with keys that may not exist, etc.
 
     - intro.cpp
 
@@ -111,21 +121,6 @@
       Shows the basic principles behind async communication with a
       database in a tcp server. In this case, the server is a proxy
       between the user and the database.
- */
-
-/** \page reference Reference
- *
- *  Aedis source code reference.
-  
-    - \subpage enums
-    - \subpage classes
-    - \subpage operators
-    - \subpage read_write_ops
-    - \subpage functions
- */
-
-/** \file aedis.hpp
- *  \brief Includes all headers that are necessary in order to use aedis.
  */
 
 //---------------------------------------------------------

@@ -102,17 +102,17 @@ sync_SOURCES = $(top_srcdir)/examples/sync.cpp
 sync_CPPFLAGS = $(MY_CPPFLAGS)
 sync_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += test
-test_SOURCES = $(top_srcdir)/tests/general.cpp
-test_CPPFLAGS = $(MY_CPPFLAGS)
-test_LDADD = $(MY_LDADD)
+noinst_PROGRAMS += test_offline
+test_offline_SOURCES = $(top_srcdir)/tests/offline.cpp
+test_offline_CPPFLAGS = $(MY_CPPFLAGS)
+test_offline_LDADD = $(MY_LDADD)
 
 noinst_PROGRAMS += commands
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 commands_CPPFLAGS = $(MY_CPPFLAGS)
 commands_LDADD = $(MY_LDADD)
 
-TESTS = test
+TESTS = test_offline
 
 EXTRA_DIST =
 EXTRA_DIST += $(top_srcdir)/debian

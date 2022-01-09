@@ -54,12 +54,19 @@ from_string(
 void set_on_resp3_error(type t, std::error_code& ec)
 {
    switch (t) {
-      case type::simple_error:
-	 ec = adapter::error::simple_error;
-	 return;
-      case type::blob_error:
-	 ec = adapter::error::blob_error;
-	 return;
+      case type::simple_error: ec = adapter::error::simple_error; return;
+      case type::blob_error: ec = adapter::error::blob_error; return;
+      case type::null: ec = adapter::error::null; return;
+      default: return;
+   }
+}
+
+// For optional responses.
+void set_on_resp3_error2(type t, std::error_code& ec)
+{
+   switch (t) {
+      case type::simple_error: ec = adapter::error::simple_error; return;
+      case type::blob_error: ec = adapter::error::blob_error; return;
       default: return;
    }
 }
@@ -186,7 +193,7 @@ public:
       std::size_t data_size,
       std::error_code& ec)
    {
-      set_on_resp3_error(t, ec);
+      set_on_resp3_error2(t, ec);
 
       if (is_aggregate(t)) {
 	 ec == adapter::error::expects_simple_type;
