@@ -30,30 +30,81 @@ std::vector<node> gresp;
 
 //-------------------------------------------------------------------
 
-net::awaitable<void> test_simple_string()
+void simple_string_sync()
 {
-   using namespace aedis;
-   {  // Small string
-      std::string buf;
-      std::string cmd {"+OK\r\n"};
-      test_tcp_socket ts {cmd};
-      gresp.clear();
-      co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
-      std::vector<node> expected
-      { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
-      check_equal(gresp, expected, "simple_string");
+   test_tcp_socket ts {"+OK\r\n"};
+   std::string rbuffer;
+   auto dbuffer = net::dynamic_buffer(rbuffer);
+
+   {  
+      node result;
+      resp3::read(ts, dbuffer, adapt(result));
+      node expected {resp3::type::simple_string, 1UL, 0UL, {"OK"}};
+      check_equal(result, expected, "simple_string (node-sync)");
    }
 
-   {  // empty
+   {  
+      std::string result;
+      resp3::read(ts, dbuffer, adapt(result));
+      std::string expected {"OK"};
+      check_equal(result, expected, "simple_string (string-sync)");
+   }
+
+   {  
+      std::optional<std::string> result;
+      resp3::read(ts, dbuffer, adapt(result));
+      std::optional<std::string> expected {"OK"};
+      check_equal(result, expected, "simple_string (optional-string-sync)");
+   }
+}
+
+void simple_string_sync_empty()
+{
+   test_tcp_socket ts {"+\r\n"};
+   std::string rbuffer;
+   auto dbuffer = net::dynamic_buffer(rbuffer);
+
+   {  
+      node result;
+      resp3::read(ts, dbuffer, adapt(result));
+      node expected {resp3::type::simple_string, 1UL, 0UL, {""}};
+      check_equal(result, expected, "simple_string (empty-node-sync)");
+   }
+
+   {  
+      std::string result;
+      resp3::read(ts, dbuffer, adapt(result));
+      std::string expected {""};
+      check_equal(result, expected, "simple_string (empty-string-sync)");
+   }
+
+   {  
+      std::optional<std::string> result;
+      resp3::read(ts, dbuffer, adapt(result));
+      std::optional<std::string> expected {""};
+      check_equal(result, expected, "simple_string (empty-optional-string-sync)");
+   }
+}
+
+net::awaitable<void> simple_string_async()
+{
+   {  // Small string (node-async)
       std::string buf;
-      std::string cmd {"+\r\n"};
-      test_tcp_socket ts {cmd};
+      test_tcp_socket ts {"+OK\r\n"};
+      node result;
+      co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(result));
+      node expected {resp3::type::simple_string, 1UL, 0UL, {"OK"}};
+      check_equal(result, expected, "simple_string (async)");
+   }
+
+   {  // Empty string
+      std::string buf;
+      test_tcp_socket ts {"+\r\n"};
       gresp.clear();
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
       std::vector<node> expected
-      { {resp3::type::simple_string, 1UL, 0UL, {}} };
+	 { {resp3::type::simple_string, 1UL, 0UL, {}} };
       check_equal(gresp, expected, "simple_string (empty)");
-      //check_equal(res.attribute.value, {}, "simple_string (empty attribute)");
    }
 
    //{  // Large String (Failing because of my test stream)
@@ -441,9 +492,12 @@ net::awaitable<void> test_streamed_string()
 
 int main()
 {
+   simple_string_sync();
+   simple_string_sync_empty();
+
    net::io_context ioc {1};
 
-   co_spawn(ioc, test_simple_string(), net::detached);
+   co_spawn(ioc, simple_string_async(), net::detached);
    co_spawn(ioc, test_number(), net::detached);
    co_spawn(ioc, test_array(), net::detached);
    co_spawn(ioc, test_blob_string(), net::detached);

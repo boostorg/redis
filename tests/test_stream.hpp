@@ -51,7 +51,7 @@ struct initiate_async_receive {
 
 template <class Executor>
 struct test_stream {
-   std::string payload;
+   std::string const payload;
 
    using executor_type = Executor;
 
@@ -71,8 +71,35 @@ struct test_stream {
            handler, buffers);
     }
 
-    executor_type get_executor() noexcept
-       { return aedis::net::system_executor(); }
+   template<class MutableBufferSequence>
+   std::size_t read_some(
+      MutableBufferSequence const& buffers,
+      boost::system::error_code&)
+   {
+      if (std::size(buffers) == 0)
+        return 0;
+
+      boost::system::error_code ec;
+      auto pbegin = std::cbegin(payload);
+      auto pend = std::cend(payload);
+
+      auto begin = boost::asio::buffer_sequence_begin(buffers);
+      auto end = boost::asio::buffer_sequence_end(buffers);
+
+      std::size_t transferred = 0;
+      while (begin != end) {
+        auto const min = std::min(std::ssize(*begin), pend - pbegin);
+        std::copy(pbegin, pbegin + min, static_cast<char*>(begin->data()));
+        std::advance(pbegin, min);
+        transferred += min;
+        ++begin;
+      }
+
+      return transferred;
+   }
+
+   executor_type get_executor() noexcept
+      { return aedis::net::system_executor(); }
 
      template<class Executor1>
      struct rebind_executor {
