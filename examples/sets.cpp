@@ -14,17 +14,17 @@
 
 #include "utils.ipp"
 
+namespace resp3 = aedis::resp3;
 using aedis::command;
-using aedis::resp3::serializer;
-using aedis::resp3::async_read;
-using aedis::resp3::adapt;
+using resp3::serializer;
+using resp3::adapt;
 
 namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
+using net::dynamic_buffer;
 
-/* Shows how to serialize and read redis sets in C++ containers.
- */
+/// Shows how to serialize and read redis sets in C++ containers.
 
 net::awaitable<void> containers()
 {
@@ -53,13 +53,13 @@ net::awaitable<void> containers()
 
       // Reads the responses.
       std::string buffer;
-      co_await async_read(socket, buffer); // hello
-      co_await async_read(socket, buffer); // flushall
-      co_await async_read(socket, buffer, adapt(sadd));
-      co_await async_read(socket, buffer, adapt(smembers1));
-      co_await async_read(socket, buffer, adapt(smembers2));
-      co_await async_read(socket, buffer, adapt(smembers3));
-      co_await async_read(socket, buffer);
+      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello
+      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // flushall
+      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(sadd));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(smembers1));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(smembers2));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(smembers3));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer));
 
       // Prints the responses.
       std::cout << "sadd: " << sadd;

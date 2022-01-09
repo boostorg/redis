@@ -11,15 +11,16 @@
 #include <aedis/aedis.hpp>
 #include "utils.ipp"
 
+namespace resp3 = aedis::resp3;
 using aedis::command;
-using aedis::resp3::type;
-using aedis::resp3::serializer;
-using aedis::resp3::async_read;
-using aedis::resp3::adapt;
+using resp3::type;
+using resp3::serializer;
+using resp3::adapt;
 
 namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
+using net::dynamic_buffer;
 
 /* In the serialization.cpp example we saw how to serialize and
    deserialize Redis responses in user custom types. When serializing
@@ -64,11 +65,11 @@ net::awaitable<void> adapter_example()
 
       // Reads the responses.
       std::string rbuffer;
-      co_await async_read(socket, rbuffer); // hello
-      co_await async_read(socket, rbuffer); // flushall
-      co_await async_read(socket, rbuffer); // rpush
-      co_await async_read(socket, rbuffer, myadapter{}); // lrange
-      co_await async_read(socket, rbuffer); // quit
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // hello
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // flushall
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // rpush
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer), myadapter{}); // lrange
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // quit
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

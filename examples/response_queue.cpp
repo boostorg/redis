@@ -1,5 +1,4 @@
-/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres at gmail dot com)
-/// \example basic1.cpp
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,15 +9,16 @@
 #include <aedis/aedis.hpp>
 #include "utils.ipp"
 
+namespace resp3 = aedis::resp3;
 using aedis::command;
-using aedis::resp3::serializer;
-using aedis::resp3::async_read;
-using aedis::resp3::node;
-using aedis::resp3::adapt;
+using resp3::serializer;
+using resp3::node;
+using resp3::adapt;
 
 namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
+using net::dynamic_buffer;
 
 /// Processes the responses in a loop using the helper queue.
 net::awaitable<void> ping()
@@ -40,13 +40,13 @@ net::awaitable<void> ping()
       while (!std::empty(sr.commands)) {
          switch (sr.commands.front()) {
             case command::ping:
-               co_await async_read(socket, buffer, adapt(ping));
+               co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(ping));
                break;
             case command::quit:
-               co_await async_read(socket, buffer, adapt(quit));
+               co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(quit));
                break;
             default:
-               co_await async_read(socket, buffer);
+               co_await resp3::async_read(socket, dynamic_buffer(buffer));
          }
 
 	 sr.commands.pop();

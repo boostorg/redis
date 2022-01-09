@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,13 +35,13 @@ namespace resp3 {
  */
 template <
   class SyncReadStream,
-  class Buffer,
+  class DynamicBuffer,
   class ResponseAdapter
   >
 std::size_t
 read(
    SyncReadStream& stream,
-   Buffer& buf,
+   DynamicBuffer buf,
    ResponseAdapter adapter,
    boost::system::error_code& ec)
 {
@@ -50,7 +50,7 @@ read(
    std::size_t consumed = 0;
    do {
       if (p.bulk() == type::invalid) {
-	 n = net::read_until(stream, net::dynamic_buffer(buf), "\r\n", ec);
+	 n = net::read_until(stream, buf, "\r\n", ec);
 	 if (ec)
 	    return 0;
 
@@ -62,9 +62,9 @@ read(
 	 auto const s = std::size(buf);
 	 auto const l = p.bulk_length();
 	 if (s < (l + 2)) {
-	    buf.resize(l + 2);
-	    auto const to_read = static_cast<std::size_t>(l + 2 - s);
-	    n = net::read(stream, net::buffer(buf.data() + s, to_read));
+	    auto const to_read = l + 2 - s;
+	    buf.grow(to_read);
+	    n = net::read(stream, buf.data(s, to_read), ec);
 	    if (ec)
 	       return 0;
 
@@ -76,11 +76,12 @@ read(
       }
 
       std::error_code ec;
-      n = p.advance(buf.data(), n, ec);
+      auto const* data = (char const*) buf.data(0, n).data();
+      n = p.advance(data, n, ec);
       if (ec)
          return 0;
 
-      buf.erase(0, n);
+      buf.consume(n);
       consumed += n;
    } while (!p.done());
 
@@ -101,16 +102,16 @@ read(
  */
 template<
    class SyncReadStream,
-   class Buffer,
+   class DynamicBuffer,
    class ResponseAdapter = detail::response_traits<void>::adapter_type>
 std::size_t
 read(
    SyncReadStream& stream,
-   Buffer& buf,
+   DynamicBuffer buf,
    ResponseAdapter adapter = adapt())
 {
    boost::system::error_code ec;
-   auto const n = read(stream, buf, adapter, ec);
+   auto const n = resp3::read(stream, buf, adapter, ec);
 
    if (ec)
        BOOST_THROW_EXCEPTION(boost::system::system_error{ec});
@@ -140,13 +141,13 @@ read(
  */
 template <
    class AsyncReadStream,
-   class Buffer,
+   class DynamicBuffer,
    class ResponseAdapter = detail::response_traits<void>::adapter_type,
    class CompletionToken = net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(
    AsyncReadStream& stream,
-   Buffer& buffer,
+   DynamicBuffer buffer,
    ResponseAdapter adapter = adapt(),
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
@@ -154,7 +155,7 @@ auto async_read(
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code, std::size_t)
-      >(detail::parse_op<AsyncReadStream, Buffer, ResponseAdapter> {stream, &buffer, adapter},
+      >(detail::parse_op<AsyncReadStream, DynamicBuffer, ResponseAdapter> {stream, buffer, adapter},
         token,
         stream);
 }
@@ -175,20 +176,20 @@ auto async_read(
  */
 template <
    class AsyncReadStream,
-   class Buffer,
+   class DynamicBuffer,
    class CompletionToken =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read_type(
    AsyncReadStream& stream,
-   Buffer& buffer,
+   DynamicBuffer buffer,
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code, type)
-      >(detail::type_op<AsyncReadStream, Buffer> {stream, &buffer}, token, stream);
+      >(detail::type_op<AsyncReadStream, DynamicBuffer> {stream, buffer}, token, stream);
 }
 
 } // resp3

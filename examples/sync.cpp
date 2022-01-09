@@ -8,16 +8,16 @@
 #include <iostream>
 #include <aedis/aedis.hpp>
 
+namespace resp3 = aedis::resp3;
 using aedis::command;
 using aedis::resp3::serializer;
-using aedis::resp3::read;
 using aedis::resp3::adapt;
 using aedis::resp3::node;
 
 namespace net = aedis::net;
 using net::ip::tcp;
-using net::write;
 using net::buffer;
+using net::dynamic_buffer;
 
 /* Aedis supports synchronous communication too.
  */
@@ -35,14 +35,14 @@ int main()
      sr.push(command::hello, 3);
      sr.push(command::command);
      sr.push(command::quit);
-     write(socket, buffer(sr.request()));
+     net::write(socket, buffer(sr.request()));
 
      std::vector<node> resp;
 
      std::string buffer;
-     read(socket, buffer);
-     read(socket, buffer, adapt(resp));
-     read(socket, buffer);
+     resp3::read(socket, dynamic_buffer(buffer));
+     resp3::read(socket, dynamic_buffer(buffer), adapt(resp));
+     resp3::read(socket, dynamic_buffer(buffer));
 
      std::cout << resp << std::endl;
 

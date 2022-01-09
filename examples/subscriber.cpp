@@ -10,15 +10,16 @@
 #include <aedis/aedis.hpp>
 #include "utils.ipp"
 
+namespace resp3 = aedis::resp3;
 using aedis::command;
-using aedis::resp3::serializer;
-using aedis::resp3::async_read;
-using aedis::resp3::adapt;
-using aedis::resp3::node;
+using resp3::serializer;
+using resp3::adapt;
+using resp3::node;
 
 namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
+using net::dynamic_buffer;
 
 /* In previous examples we sent some commands (ping) to redis and
    quit (closed) the connection. In this example we send a
@@ -52,8 +53,8 @@ net::awaitable<void> subscriber()
 
    // Reads the response to the hello command.
    std::string buffer;
-   co_await async_read(socket, buffer, adapt(resp));
-   co_await async_read(socket, buffer);
+   co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
+   co_await resp3::async_read(socket, dynamic_buffer(buffer));
 
    // Saves the id of this connection.
    auto const id = resp.at(8).data;
@@ -61,7 +62,7 @@ net::awaitable<void> subscriber()
    // Loops to receive server pushes.
    for (;;) {
       resp.clear();
-      co_await async_read(socket, buffer, adapt(resp));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
 
       std::cout
 	 << "Subscriber " << id << ":\n"

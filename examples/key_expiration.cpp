@@ -12,15 +12,16 @@
 
 #include "utils.ipp"
 
+namespace resp3 = aedis::resp3;
 using aedis::command;
-using aedis::resp3::serializer;
-using aedis::resp3::async_read;
-using aedis::resp3::adapt;
-using aedis::resp3::node;
+using resp3::serializer;
+using resp3::adapt;
+using resp3::node;
 
 namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
+using net::dynamic_buffer;
 
 /* Shows how to deal with keys that may not exist.
   
@@ -46,11 +47,11 @@ net::awaitable<void> key_expiration()
       std::optional<std::string> get;
 
       // Reads the responses.
-      std::string aux_buffer;
-      co_await async_read(socket, aux_buffer); // hello
-      co_await async_read(socket, aux_buffer); // flushall
-      co_await async_read(socket, aux_buffer);
-      co_await async_read(socket, aux_buffer, adapt(get));
+      std::string rbuffer;
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // hello
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // flushall
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer));
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(get));
 
       std::cout
         << "Before expiration: " << get.has_value() << ", "
@@ -67,8 +68,8 @@ net::awaitable<void> key_expiration()
       co_await async_write(socket, buffer(sr.request()));
 
       // Reads the response to the second request.
-      co_await async_read(socket, aux_buffer, adapt(get));
-      co_await async_read(socket, aux_buffer);
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(get));
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer));
 
       std::cout << "After expiration: " << get.has_value() << "\n";
 

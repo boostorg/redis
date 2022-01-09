@@ -15,14 +15,15 @@
 
 #include "utils.ipp"
 
+namespace resp3 = aedis::resp3;
 using aedis::command;
-using aedis::resp3::serializer;
-using aedis::resp3::async_read;
-using aedis::resp3::adapt;
+using resp3::serializer;
+using resp3::adapt;
 
 namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
+using net::dynamic_buffer;
 
 /* Shows how to work with redis lists.
  
@@ -60,14 +61,14 @@ net::awaitable<void> ping()
 
       // Reads the responses.
       std::string rbuffer;
-      co_await async_read(socket, rbuffer); // hello
-      co_await async_read(socket, rbuffer); // flushall
-      co_await async_read(socket, rbuffer, adapt(rpush)); // rpush
-      co_await async_read(socket, rbuffer, adapt(svec));
-      co_await async_read(socket, rbuffer, adapt(slist));
-      co_await async_read(socket, rbuffer, adapt(sdeq));
-      co_await async_read(socket, rbuffer, adapt(ivec));
-      co_await async_read(socket, rbuffer); // quit
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // hello
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // flushall
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(rpush)); // rpush
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(svec));
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(slist));
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(sdeq));
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(ivec));
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // quit
 
       // Prints the responses.
       std::cout << "rpush: " << rpush;

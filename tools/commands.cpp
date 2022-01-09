@@ -11,16 +11,17 @@
 
 #include <aedis/aedis.hpp>
 
+namespace resp3 = aedis::resp3;
 using aedis::command;
-using aedis::resp3::serializer;
-using aedis::resp3::read;
-using aedis::resp3::adapt;
-using aedis::resp3::node;
+using resp3::serializer;
+using resp3::adapt;
+using resp3::node;
 
 namespace net = aedis::net;
 using net::ip::tcp;
 using net::write;
 using net::buffer;
+using net::dynamic_buffer;
 
 std::string toupper(std::string s)
 {
@@ -87,9 +88,9 @@ int main()
      std::vector<node> resp;
 
      std::string buffer;
-     read(socket, buffer);
-     read(socket, buffer, adapt(resp));
-     read(socket, buffer);
+     resp3::read(socket, dynamic_buffer(buffer));
+     resp3::read(socket, dynamic_buffer(buffer), adapt(resp));
+     resp3::read(socket, dynamic_buffer(buffer));
 
      auto const cmds = get_cmd_names(resp);
      print_cmds_enum(cmds);

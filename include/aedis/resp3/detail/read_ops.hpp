@@ -20,18 +20,18 @@ namespace detail {
 // TODO: Use asio::coroutine.
 template <
    class AsyncReadStream,
-   class Buffer,
+   class DynamicBuffer,
    class ResponseAdapter>
 class parse_op {
 private:
    AsyncReadStream& stream_;
-   Buffer* buf_;
+   DynamicBuffer buf_;
    parser<ResponseAdapter> parser_;
    std::size_t consumed_;
    int start_;
 
 public:
-   parse_op(AsyncReadStream& stream, Buffer* buf, ResponseAdapter adapter)
+   parse_op(AsyncReadStream& stream, DynamicBuffer buf, ResponseAdapter adapter)
    : stream_ {stream}
    , buf_ {buf}
    , parser_ {adapter}
@@ -49,33 +49,24 @@ public:
             if (parser_.bulk() == type::invalid) {
                case 1:
                start_ = 0;
-               net::async_read_until(
-                  stream_,
-                  net::dynamic_buffer(*buf_),
-                  "\r\n",
-                  std::move(self));
-
+               net::async_read_until(stream_, buf_, "\r\n", std::move(self));
                return;
             }
 
 	    // On a bulk read we can't read until delimiter since the
 	    // payload may contain the delimiter itself so we have to
 	    // read the whole chunk. However if the bulk blob is small
-	    // enough it may be already on the buffer buf_ we read
-	    // last time. If it is, there is no need of initiating
-	    // another async op otherwise we have to read the
-	    // missing bytes.
-            if (std::size(*buf_) < (parser_.bulk_length() + 2)) {
+	    // enough it may be already on the buffer (from the last
+	    // read), in which case there is no need of initiating
+	    // another async op, otherwise we have to read the missing
+	    // bytes.
+            if (std::size(buf_) < (parser_.bulk_length() + 2)) {
                start_ = 0;
-	       auto const s = std::ssize(*buf_);
+	       auto const s = std::size(buf_);
 	       auto const l = parser_.bulk_length();
-	       auto const to_read = static_cast<std::size_t>(l + 2 - s);
-               buf_->resize(l + 2);
-               net::async_read(
-                  stream_,
-                  net::buffer(buf_->data() + s, to_read),
-                  net::transfer_all(),
-                  std::move(self));
+	       auto const to_read = l + 2 - s;
+               buf_.grow(to_read);
+               net::async_read(stream_, buf_.data(s, to_read), net::transfer_all(), std::move(self));
                return;
             }
 
@@ -86,13 +77,13 @@ public:
 		  return;
 	       }
 
-	       n = parser_.advance(buf_->data(), n, ec);
+	       n = parser_.advance((char const*)buf_.data(0, n).data(), n, ec);
 	       if (ec) {
 		  self.complete(ec, 0);
 		  return;
 	       }
 
-	       buf_->erase(0, n);
+	       buf_.consume(n);
 	       consumed_ += n;
 	       if (parser_.done()) {
 		  self.complete({}, consumed_);
@@ -104,19 +95,18 @@ public:
    }
 };
 
-template <class AsyncReadStream, class Buffer>
+// TODO: Use asio::coroutine.
+template <class AsyncReadStream, class DynamicBuffer>
 class type_op {
 private:
    AsyncReadStream& stream_;
-   Buffer* buf_ = nullptr;
+   DynamicBuffer buf_;
 
 public:
-   type_op(AsyncReadStream& stream, Buffer* buf)
+   type_op(AsyncReadStream& stream, DynamicBuffer buf)
    : stream_ {stream}
    , buf_ {buf}
-   {
-      assert(buf_);
-   }
+   { }
 
    template <class Self>
    void operator()( Self& self
@@ -130,17 +120,13 @@ public:
          return;
       }
 
-      if (std::empty(*buf_)) {
-	 net::async_read_until(
-	    stream_,
-	    net::dynamic_buffer(*buf_),
-	    "\r\n",
-	    std::move(self));
+      if (std::size(buf_) == 0) {
+	 net::async_read_until(stream_, buf_, "\r\n", std::move(self));
 	 return;
       }
 
-      assert(!std::empty(*buf_));
-      auto const type = to_type(buf_->front());
+      auto const* data = (char const*)buf_.data(0, n).data();
+      auto const type = to_type(*data);
       self.complete(ec, type);
       return;
    }

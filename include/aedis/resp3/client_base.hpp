@@ -55,14 +55,15 @@ private:
          do {
             // Loops to consume the response to all commands in the request.
             do {
-               auto const t = co_await async_read_type(socket_, buffer);
+               auto const t =
+		  co_await async_read_type(socket_, net::dynamic_buffer(buffer));
 
                if (t == type::push) {
-                  co_await async_read(socket_, buffer, adapt(push_resp_));
+                  co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapt(push_resp_));
                   on_push();
                } else {
                   auto adapter = adapt(*srs_.front().commands.front().resp);
-                  co_await async_read(socket_, buffer, adapter);
+                  co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter);
                   on_event(srs_.front().commands.front());
                   srs_.front().commands.pop();
                }
@@ -97,10 +98,10 @@ private:
    {
       serializer<command> sr;
       sr.push(command::hello, 3);
-      co_await async_write(socket_, net::buffer(sr.request()));
+      co_await net::async_write(socket_, net::buffer(sr.request()));
 
       std::string buffer;
-      co_await async_read(socket_, buffer, adapt(hello_));
+      co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapt(hello_));
    }
 
    // The connection manager. It keeps trying the reconnect to the
@@ -113,7 +114,7 @@ private:
       for (;;) {
          tcp_resolver resolver{socket_.get_executor()};
          auto const res = co_await resolver.async_resolve("127.0.0.1", "6379");
-         co_await aedis::net::async_connect(socket_, res);
+         co_await net::async_connect(socket_, res);
 
          co_await say_hello();
 

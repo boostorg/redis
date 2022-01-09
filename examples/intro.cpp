@@ -10,14 +10,15 @@
 
 #include "utils.ipp"
 
+namespace resp3 = aedis::resp3;
 using aedis::command;
-using aedis::resp3::serializer;
-using aedis::resp3::async_read;
-using aedis::resp3::adapt;
+using resp3::serializer;
+using resp3::adapt;
 
 namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
+using net::dynamic_buffer;
 
 /* Illustrates the basic principles.
  
@@ -49,16 +50,14 @@ net::awaitable<void> ping()
 
       // Reads the responses.
       std::string buffer;
-      std::size_t n = 0;
-      n += co_await async_read(socket, buffer); // hello (ignored)
-      n += co_await async_read(socket, buffer); // flushall
-      n += co_await async_read(socket, buffer, adapt(ping));
-      n += co_await async_read(socket, buffer, adapt(incr));
-      n += co_await async_read(socket, buffer);
+      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello (ignored)
+      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // flushall
+      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(ping));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(incr));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer));
 
       // Print the responses.
       std::cout
-	 << "Bytes read: " << n << "\n"
 	 << "ping: " << ping << "\n"
 	 << "incr: " << incr << "\n";
 
