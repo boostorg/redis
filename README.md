@@ -37,68 +37,6 @@ net::awaitable<void> ping2()
 }
 ```
 
-### Pubsub
-
-Publisher-subscriber in redis.
-
-```cpp
-net::awaitable<void> subscriber()
-{
-   auto ex = net::this_coro::executor;
-   auto socket = co_await make_connection();
-
-   std::string id;
-
-   std::queue<resp3::request> requests;
-   requests.push({});
-   requests.back().hello();
-
-   resp3::consumer cs;
-   for (;;) {
-      resp3::response resp;
-      co_await cs.async_consume(socket, requests, resp);
-
-      if (resp.get_type() == resp3::type::push) {
-	 std::cout << "Subscriber " << id << ":\n" << resp << std::endl;
-         continue;
-      }
-
-      if (requests.front().elements.front().cmd == command::hello) {
-	 id = resp.raw().at(8).data;
-	 prepare_next(requests);
-	 requests.back().subscribe({"channel1", "channel2"});
-      }
-   }
-}
-```
-
-The publisher looks like the following.
-
-```cpp
-net::awaitable<void> publisher()
-{
-   auto ex = net::this_coro::executor;
-   auto socket = co_await make_connection();
-
-   std::queue<resp3::request> requests;
-   requests.push({});
-   requests.back().hello();
-
-   resp3::consumer cs;
-   for (;;) {
-      resp3::response resp;
-      co_await cs.async_consume(socket, requests, resp);
-
-      if (requests.front().elements.front().cmd == command::hello) {
-	 prepare_next(requests);
-	 requests.back().publish("channel1", "Message to channel1");
-	 requests.back().publish("channel2", "Message to channel2");
-	 requests.back().quit();
-      }
-   }
-}
-```
-
 ## Installation
 
 This library is header only. To install it run

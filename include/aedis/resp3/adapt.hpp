@@ -29,18 +29,40 @@ inline
 auto adapt() noexcept
    { return detail::response_traits<void>::adapt(); }
 
-/** \brief Adapts user data to the resp3 parser.
-    \ingroup functions
-  
-    For the types supported by this function see `response_traits`.
-    For example
-
-    Example usage:
-
-    @code
-    std::unordered_map<std::string, std::string> cont;
-    co_await async_read(socket, buffer, adapt(cont));
-    @endcode
+/** \brief Adapts user data to read operations.
+ *  \ingroup functions
+ *
+ *  For example
+ *  The following types are supported.
+ *
+ *  1. Integer data types e.g. `int`, `unsigned`, etc.
+ *
+ *  1. `std::string`
+ *
+ *  We also support the following C++ containers
+ *
+ *  1. `std::vector<T>`. Can be used with any RESP3 aggregate type.
+ *
+ *  1. `std::deque<T>`. Can be used with any RESP3 aggregate type.
+ *
+ *  1. `std::list<T>`. Can be used with any RESP3 aggregate type.
+ *
+ *  1. `std::set<T>`. Can be used with RESP3 set type.
+ *
+ *  1. `std::unordered_set<T>`. Can be used with RESP3 set type.
+ *
+ *  1. `std::map<T>`. Can be used with RESP3 hash type.
+ *
+ *  1. `std::unordered_map<T>`. Can be used with RESP3 hash type.
+ *
+ *  All these types can be wrapped in an `std::optional<T>`.
+ *
+ *  Example usage:
+ *
+ *  @code
+ *  std::unordered_map<std::string, std::string> cont;
+ *  co_await async_read(socket, buffer, adapt(cont));
+ *  @endcode
  */
 template<class T>
 auto adapt(T& t) noexcept

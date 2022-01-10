@@ -30,14 +30,30 @@
 
     \section overview Overview
 
-    Aedis is a redis client designed for scalability and performance
-    while providing an easy and intuitive interface. Some of the features
+    Aedis is a library that provides low-level communication with a
+    Redis server over its native protocl RESP3. Some of its featues
     are
 
     - First class support to STL containers and C++ built-in types.
     - Support for pipelining, trasactions and TLS.
     - Serialization and deserializaiton of your own types.
-    - First class async support with ASIO.
+    - First class support to async programming through ASIO.
+    
+    \section installation Installation
+
+    This library is header only. To install it run
+
+    ```cpp
+    $ sudo make install
+    ```
+
+    or copy the include folder to the location you want.  You will
+    also need to include the following header in one of your source
+    files e.g. `aedis.cpp`
+
+    ```cpp
+    #include <aedis/impl/src.hpp>
+    ```
  */
 
 //---------------------------------------------------------
@@ -101,7 +117,7 @@
       Shows how to read Redis sets in a \c std::set, \c std::unordered_set
       and \c std::vector.
 
-    \b Customization \b points
+    \b Customization \b points: Shows how de/serialize user types avoiding copies. This is specially useful for low latency applicaitons.
 
     - serialization.cpp
 

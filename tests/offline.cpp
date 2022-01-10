@@ -213,43 +213,47 @@ net::awaitable<void> test_number()
 
 //-------------------------------------------------------------------------
 
-net::awaitable<void> test_array()
+net::awaitable<void> array_async()
 {
-   using namespace aedis;
+   test_tcp_socket ts {"*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n"};
    std::string buf;
-   {  // String
-      std::string cmd {"*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n"};
-      test_tcp_socket ts {cmd};
-      gresp.clear();
-      std::vector<node> expected
-	 { {resp3::type::array,       3UL, 0UL, {}}
-	 , {resp3::type::blob_string, 1UL, 1UL, {"one"}}
-	 , {resp3::type::blob_string, 1UL, 1UL, {"two"}}
-	 , {resp3::type::blob_string, 1UL, 1UL, {"three"}}
-         };
-      co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
-      check_equal(gresp, expected, "array");
-   }
-
-   //{  // int
-   //   std::string cmd {"*3\r\n$1\r\n1\r\n$1\r\n2\r\n$1\r\n3\r\n"};
-   //   test_tcp_socket ts {cmd};
-   //   resp3::flat_array_int_type buffer;
-   //   resp3::flat_array_int_adapter res{&buffer};
-   //   co_await async_read(ts, buf, res);
-   //   check_equal(buffer, {1, 2, 3}, "array (int)");
-   //}
+   auto dbuf = net::dynamic_buffer(buf);
 
    {
-      std::string cmd {"*0\r\n"};
-      test_tcp_socket ts {cmd};
-      gresp.clear();
+      std::vector<node> result;
+      boost::system::error_code ec;
+      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
+
       std::vector<node> expected
-	 { {resp3::type::array, 0UL, 0UL, {}} };
-      co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
-      check_equal(gresp, expected, "array (empty)");
+	 { {resp3::type::array,       3UL, 0UL, {}}
+	 , {resp3::type::blob_string, 1UL, 1UL, {"11"}}
+	 , {resp3::type::blob_string, 1UL, 1UL, {"22"}}
+	 , {resp3::type::blob_string, 1UL, 1UL, {"3"}}
+         };
+
+      check_equal(result, expected, "array (node-async)");
+   }
+
+   {
+      std::vector<int> result;
+      co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(result));
+
+      std::vector<int> expected {11, 22, 3};
+      check_equal(result, expected, "array (int-async)");
+   }
+
+   {
+      test_tcp_socket ts {"*0\r\n"};
+
+      std::vector<int> result;
+      co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(result));
+
+      std::vector<int> expected;
+      check_equal(result, expected, "array (empty)");
    }
 }
+
+//-------------------------------------------------------------------------
 
 net::awaitable<void> test_blob_string()
 {
@@ -577,6 +581,45 @@ net::awaitable<void> test_streamed_string()
 //   //}
 //}
 
+net::awaitable<void> optional_async()
+{
+   test_tcp_socket ts {"_\r\n"};
+   std::string buf;
+   auto dbuf = net::dynamic_buffer(buf);
+
+   {
+      node result;
+      co_await resp3::async_read(ts, dbuf, adapt(result));
+      node expected {resp3::type::null, 1UL, 0UL, {""}};
+      check_equal(result, expected, "optional (node-async)");
+   }
+
+   {
+      int result;
+      boost::system::error_code ec;
+      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
+
+      //auto const expected = make_error_code(adapter::error::null);
+      //std::cout << expected.message() << std::endl;
+      // TODO: Convert to std::error_code.
+      //check_equal(ec, expected, "optional (int-async)");
+   }
+
+   {
+      std::optional<int> result;
+      co_await resp3::async_read(ts, dbuf, adapt(result));
+      std::optional<int> expected;
+      check_equal(result, expected, "optional (optional-int-async)");
+   }
+
+   {
+      std::optional<std::string> result;
+      co_await resp3::async_read(ts, dbuf, adapt(result));
+      std::optional<std::string> expected;
+      check_equal(result, expected, "optional (optional-int-async)");
+   }
+}
+
 int main()
 {
    simple_string_sync();
@@ -590,8 +633,9 @@ int main()
    co_spawn(ioc, test_number(), net::detached);
    co_spawn(ioc, test_map(), net::detached);
    co_spawn(ioc, test_flat_map_async(), net::detached);
+   co_spawn(ioc, optional_async(), net::detached);
 
-   co_spawn(ioc, test_array(), net::detached);
+   co_spawn(ioc, array_async(), net::detached);
    co_spawn(ioc, test_blob_string(), net::detached);
    co_spawn(ioc, test_floating_point(), net::detached);
    co_spawn(ioc, test_boolean(), net::detached);
