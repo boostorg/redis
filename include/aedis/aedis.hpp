@@ -12,9 +12,12 @@
 #include <aedis/resp3/serializer.hpp>
 
 /** \mainpage
-    \tableofcontents
   
-    \section documentation Documentation
+    Introduction
+
+    - \subpage overview
+    - \subpage installation
+    - \subpage examples
 
     Reference
 
@@ -23,41 +26,21 @@
     - \subpage read_write_ops
     - \subpage functions
     - \subpage operators
-
-    Other
-
-    - \subpage examples
-
-    \section overview Overview
-
-    Aedis is a library that provides low-level communication with a
-    Redis server over its native protocl RESP3. Some of its featues
-    are
-
-    - First class support to STL containers and C++ built-in types.
-    - Support for pipelining, trasactions and TLS.
-    - Serialization and deserializaiton of your own types.
-    - First class support to async programming through ASIO.
-    
-    \section installation Installation
-
-    This library is header only. To install it run
-
-    ```cpp
-    $ sudo make install
-    ```
-
-    or copy the include folder to the location you want.  You will
-    also need to include the following header in one of your source
-    files e.g. `aedis.cpp`
-
-    ```cpp
-    #include <aedis/impl/src.hpp>
-    ```
  */
 
 //---------------------------------------------------------
 // Pages
+
+/** \page overview Overview
+ *
+ *  Aedis provides low-level communication with a Redis server over
+ *  its native protocl RESP3. Some of its featues are
+ *
+ *  - First class support to STL containers and C++ built-in types.
+ *  - Support for pipelining, trasactions and TLS.
+ *  - Serialization and deserializaiton of your own types.
+ *  - First class support to async programming through ASIO.
+ */
 
 /** \page examples Examples
  *
@@ -137,6 +120,23 @@
       Shows the basic principles behind async communication with a
       database in a tcp server. In this case, the server is a proxy
       between the user and the database.
+ */
+
+/** \page installation Intallation
+ *
+ *  This library is header only. To install it run
+ *
+ *  ```cpp
+ *  $ sudo make install
+ *  ```
+ *
+ *  or copy the include folder to the location you want.  You will
+ *  also need to include the following header in one of your source
+ *  files e.g. `aedis.cpp`
+ *
+ *  ```cpp
+ *  #include <aedis/impl/src.hpp>
+ *  ```
  */
 
 //---------------------------------------------------------

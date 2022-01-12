@@ -11,8 +11,8 @@
 #include <list>
 #include <deque>
 
+#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
-
 #include "utils.ipp"
 
 namespace resp3 = aedis::resp3;

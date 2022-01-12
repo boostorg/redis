@@ -6,6 +6,8 @@
  */
 
 #include <iostream>
+
+#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
 #include "utils.ipp"
 

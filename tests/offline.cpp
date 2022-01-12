@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,13 +8,13 @@
 #include <iostream>
 #include <map>
 
+#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
-
 #include "test_stream.hpp"
 #include "check.hpp"
 
-// TODO: Use Beast test_stream and instantiate the test socket only
-// once.
+// Consider using Beast test_stream and instantiate the test socket
+// only once.
 
 namespace net = aedis::net;
 using tcp = net::ip::tcp;

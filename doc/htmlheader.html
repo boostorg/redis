@@ -11,19 +11,9 @@
 <link href="$relpath^tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="$relpath^jquery.js"></script>
 <script type="text/javascript" src="$relpath^dynsections.js"></script>
-$treeview
 $search
-$mathjax
 <link href="$relpath^$stylesheet" rel="stylesheet" type="text/css" />
 $extrastylesheet
-
-<!-- BEGIN version select -->
-
-<link rel="stylesheet" type="text/css" href="https://root.cern/doc/dropdown.css">
-<!--script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
-</script-->
-
-<!-- END version select -->
 
 </head>
 <body>
@@ -31,20 +21,10 @@ $extrastylesheet
 
 <!--BEGIN TITLEAREA-->
 <div id="titlearea">
-<table bgcolor="#346295" cellspacing="0" cellpadding="0">
+<table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <!--td> <a href="https://root.cern"> <img style="height:90px;vertical-align:bottom" alt="Logo" src="$relpath^$projectlogo"/> </a></td-->
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">$projectname</font> &#160;
-  <!-- BEGIN version select -->
-<div class="dropdown">
-   <button class="dropbtn">$projectnumber</button>
-   <div class="dropdown-content">
-   </div>
-</div>
-<script type="text/javascript" src="../selectversion.js"></script>
-<!-- END version select -->
-  <br> $projectbrief </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">$projectname</font> &#160; <br> $projectbrief </td>
   <td style="width:100%"> $searchbox </td>
  </tr>
  </tbody>

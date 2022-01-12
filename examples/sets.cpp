@@ -6,12 +6,12 @@
  */
 
 #include <iostream>
-
-#include <aedis/aedis.hpp>
 #include <set>
 #include <vector>
 #include <unordered_map>
 
+#include <aedis/src.hpp>
+#include <aedis/aedis.hpp>
 #include "utils.ipp"
 
 namespace resp3 = aedis::resp3;

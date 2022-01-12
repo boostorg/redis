@@ -5,9 +5,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/aedis.hpp>
 #include <iostream>
 
+#include <aedis/src.hpp>
+#include <aedis/aedis.hpp>
 #include "utils.ipp"
 
 namespace resp3 = aedis::resp3;

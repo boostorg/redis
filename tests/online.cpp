@@ -8,8 +8,8 @@
 #include <iostream>
 #include <map>
 
+#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
-
 #include "test_stream.hpp"
 #include "check.hpp"
 

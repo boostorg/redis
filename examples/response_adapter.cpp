@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string_view>
 
+#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
 #include "utils.ipp"
 

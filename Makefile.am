@@ -13,33 +13,7 @@ MY_CPPFLAGS += $(BOOST_CPPFLAGS)
 MY_CPPFLAGS += -I$(top_srcdir)/include
 
 MY_LDADD =
-MY_LDADD += libaedis.a
 MY_LDADD += -lpthread
-
-noinst_LIBRARIES = libaedis.a
-libaedis_a_SOURCES =
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/aedis.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/buffers.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/net.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/connection.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/pipeline.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/type.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/command.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/version.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/impl/connection.ipp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/impl/src.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/impl/type.ipp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/impl/command.ipp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/write.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/read.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/parser.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/response_adapter_base.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/responses.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/utils.hpp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/impl/read.ipp
-libaedis_a_SOURCES += $(top_srcdir)/include/aedis/detail/impl/parser.ipp
-libaedis_a_SOURCES += $(top_srcdir)/src/aedis.cpp
-libaedis_a_CPPFLAGS = $(MY_CPPFLAGS)
 
 noinst_PROGRAMS =
 noinst_PROGRAMS += intro

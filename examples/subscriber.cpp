@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <chrono>
+
+#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
 #include "utils.ipp"
 

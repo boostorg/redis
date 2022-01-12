@@ -19,7 +19,7 @@ namespace resp3 {
  *   \ingroup classes
   
      This class is meant to be an example. Users are meant to derive
-     from this class and override 
+     from this class and override its virtual functions.
   
         1. on_event.
         2. on_push.
@@ -34,10 +34,11 @@ protected:
    std::vector<node> push_resp_;
 
 private:
+   using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+
    // Hello response.
    std::vector<node> hello_;
 
-   using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
    std::queue<serializer<ResponseId>> srs_;
    tcp_socket socket_;
 
@@ -51,7 +52,7 @@ private:
    {
       // Writes and reads continuosly from the socket.
       for (std::string buffer;;) {
-         // Keeps reading while there is no messages queued waiting to be sent.
+         // Keeps reading while there are no messages queued waiting to be sent.
          do {
             // Loops to consume the response to all commands in the request.
             do {
@@ -101,6 +102,7 @@ private:
       co_await net::async_write(socket_, net::buffer(sr.request()));
 
       std::string buffer;
+      hello_.clear();
       co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapt(hello_));
    }
 
@@ -162,7 +164,8 @@ public:
 
    /** \brief Starts the client.
     *
-    *   Stablishes a connection with the redis server and keeps waiting for messages to send.
+    *   Stablishes a connection with the redis server and keeps
+    *   waiting for messages to send.
     */
    void start()
    {
@@ -171,7 +174,7 @@ public:
           net::detached);
    }
 
-   /** \brief Adds commands the requests queue and sends if possible.
+   /** \brief Adds commands to the request queue and sends if possible.
     *
     *  The filler callable get a request by reference, for example
     *

@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
 #include <aedis/resp3/client_base.hpp>
 #include "user_session.hpp"
