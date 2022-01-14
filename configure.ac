@@ -1,7 +1,7 @@
 AC_PREREQ([2.69])
 AC_INIT([aedis], [1.0.0], [mzimbres@gmail.com])
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_SRCDIR([src/aedis.cpp])
+#AC_CONFIG_SRCDIR([src/aedis.cpp])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall foreign])
 

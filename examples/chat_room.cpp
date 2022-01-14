@@ -37,7 +37,7 @@ public:
    {}
 };
 
-struct on_user_msg {
+struct on_message {
    std::shared_ptr<std::string> resp;
    std::shared_ptr<my_redis_client> client;
    std::shared_ptr<user_session> session;
@@ -67,19 +67,19 @@ net::awaitable<void> listener()
    for (;;) {
       auto socket = co_await acceptor.async_accept();
       auto session = std::make_shared<user_session>(std::move(socket));
-      session->start(on_user_msg{resp, client, session});
+      session->start(on_message{resp, client, session});
    }
 }
 
 int main()
 {
-   try {
-      net::io_context ioc{1};
-      net::signal_set signals(ioc, SIGINT, SIGTERM);
-      signals.async_wait([&](auto, auto){ ioc.stop(); });
-      co_spawn(ioc, listener(), net::detached);
-      ioc.run();
-   } catch (std::exception const& e) {
-      std::cerr << e.what() << std::endl;
-   }
+  try {
+    net::io_context io_context(1);
+    net::signal_set signals(io_context, SIGINT, SIGTERM);
+    signals.async_wait([&](auto, auto){ io_context.stop(); });
+    co_spawn(io_context, listener(), net::detached);
+    io_context.run();
+  } catch (std::exception& e) {
+     std::cerr << e.what() << std::endl;
+  }
 }

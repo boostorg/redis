@@ -34,7 +34,7 @@
 /** \page overview Overview
  *
  *  Aedis provides low-level communication with a Redis server over
- *  its native protocl RESP3. Some of its featues are
+ *  its native protocol RESP3. Some of its featues are
  *
  *  - First class support to STL containers and C++ built-in types.
  *  - Support for pipelining, trasactions and TLS.
@@ -111,15 +111,21 @@
       Customization point for users that want to de/serialize their
       own data-structures.
 
-    \b Adavanced: The main difference the examples below and the
-    others above is that they user long lasting connections to Redis.
-    This is the desired way to communicate with redis.
+    \b Adavanced: Contains some non-trivial examples that user
+    long-lasting TCP connections to the Redis server. This is the
+    desired way to communicate with redis. Some of the source code is
+    contained in \c lib sub-directory.
 
     - echo_server.cpp
 
       Shows the basic principles behind async communication with a
-      database in a tcp server. In this case, the server is a proxy
-      between the user and the database.
+      database in an asynchronous server. In this case, the server is
+      a proxy between the user and the database.
+
+    - chat_room.cpp
+
+      Shows how to build a scallable chat room where you can scale to
+      millions of users.
  */
 
 /** \page installation Intallation

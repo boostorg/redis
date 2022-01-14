@@ -56,6 +56,11 @@ echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 echo_server_CPPFLAGS = $(MY_CPPFLAGS)
 echo_server_LDADD = $(MY_LDADD)
 
+noinst_PROGRAMS += chat_room
+chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
+chat_room_CPPFLAGS = $(MY_CPPFLAGS)
+chat_room_LDADD = $(MY_LDADD)
+
 noinst_PROGRAMS += response_queue
 response_queue_SOURCES = $(top_srcdir)/examples/response_queue.cpp
 response_queue_CPPFLAGS = $(MY_CPPFLAGS)

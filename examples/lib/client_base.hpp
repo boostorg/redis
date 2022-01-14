@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,8 +12,25 @@
 #include <aedis/aedis.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
+#include "user_session.hpp"
+
 namespace aedis {
 namespace resp3 {
+
+// Holds the information that is needed when a response to a
+// request arrives. See client_base.hpp for more details on the
+// required fields in this struct.
+struct response_id {
+   // The redis command that corresponds to this command. 
+   command cmd = command::unknown;
+
+   // Pointer to the response.
+   std::shared_ptr<std::string> resp;
+
+   // The pointer to the session the request belongs to.
+   std::weak_ptr<user_session_base> session =
+      std::shared_ptr<user_session_base>{nullptr};
+};
 
 /**  \brief Example: A general purpose redis client.
  *   \ingroup classes
