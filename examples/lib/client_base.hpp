@@ -17,37 +17,21 @@
 namespace aedis {
 namespace resp3 {
 
-// Holds the information that is needed when a response to a
-// request arrives. See client_base.hpp for more details on the
-// required fields in this struct.
-struct response_id {
-   // The redis command that corresponds to this command. 
-   command cmd = command::unknown;
-
-   // Pointer to the response.
-   std::shared_ptr<std::string> resp;
-
-   // The pointer to the session the request belongs to.
-   std::weak_ptr<user_session_base> session =
-      std::shared_ptr<user_session_base>{nullptr};
-};
-
-/**  \brief Example: A general purpose redis client.
- *   \ingroup classes
-  
-     This class is meant to be an example. Users are meant to derive
-     from this class and override its virtual functions.
-  
-        1. on_event.
-        2. on_push.
-  
-     The ReponseId type is required to provide the cmd member.
+/*  Example: A general purpose redis client.
+ *
+ *   This class is meant to be an example. Users are meant to derive
+ *   from this class and override its virtual functions.
+ *
+ *      1. on_message.
+ *      2. on_push.
+ *
+ *   The ReponseId type is required to provide the cmd member.
  */
 template <class ResponseId>
 class client_base
    : public std::enable_shared_from_this<client_base<ResponseId>> {
 protected:
-   /// The response used for push types.
+   // The response used for push types.
    std::vector<node> push_resp_;
 
 private:
@@ -64,11 +48,15 @@ private:
    net::steady_timer timer_;
 
    // A coroutine that keeps reading the socket. When a message
-   // arrives it calls on_event.
+   // arrives it calls on_message.
    net::awaitable<void> reader()
    {
       // Writes and reads continuosly from the socket.
       for (std::string buffer;;) {
+         // Writes the next request in the socket.
+	 if (!std::empty(srs_))
+	    co_await async_write_some(socket_, srs_);
+
          // Keeps reading while there are no messages queued waiting to be sent.
          do {
             // Loops to consume the response to all commands in the request.
@@ -82,7 +70,7 @@ private:
                } else {
                   auto adapter = adapt(*srs_.front().commands.front().resp);
                   co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter);
-                  on_event(srs_.front().commands.front());
+                  on_message(srs_.front().commands.front());
                   srs_.front().commands.pop();
                }
 
@@ -95,9 +83,6 @@ private:
                srs_.pop();
 
          } while (std::empty(srs_));
-
-         // Writes the request in the socket.
-         co_await async_write_some(socket_, srs_);
       }
    }
 
@@ -170,19 +155,17 @@ private:
    }
 
 public:
-   /// Constructor.
    client_base(net::any_io_executor ex)
    : socket_{ex}
    , timer_{ex}
    { }
 
-   /// Destructor.
    virtual ~client_base() { }
 
-   /** \brief Starts the client.
+   /*  Starts the client.
     *
-    *   Stablishes a connection with the redis server and keeps
-    *   waiting for messages to send.
+    *  Stablishes a connection with the redis server and keeps
+    *  waiting for messages to send.
     */
    void start()
    {
@@ -191,20 +174,20 @@ public:
           net::detached);
    }
 
-   /** \brief Adds commands to the request queue and sends if possible.
+   /* Adds commands to the request queue and sends if possible.
     *
-    *  The filler callable get a request by reference, for example
+    * The filler callable get a request by reference, for example
     *
-    *  @code
-    *  void f(serializer& req)
-    *  {
-    *     req.push(command::ping);
-    *     ...
-    *  }
-    *  @endcode
+    * @code
+    * void f(serializer& req)
+    * {
+    *    req.push(command::ping);
+    *    ...
+    * }
+    * @endcode
     *
-    *  It will be called with the request that is at the back of the queue of
-    *  outgoing requests.
+    * It will be called with the request that is at the back of the queue of
+    * outgoing requests.
     */
    template <class Filler>
    void send(Filler filler)
@@ -218,15 +201,15 @@ public:
          timer_.cancel_one();
    }
 
-   /** \brief Called when the response to a specific command is received.
+   /* Called when the response to a specific command is received.
     *
-    *  Override this function to receive events in your derived class.
+    * Override this function to receive events in your derived class.
     */
-   virtual void on_event(ResponseId) {};
+   virtual void on_message(ResponseId) {};
 
-   /** \brief Called when server push is received.
+   /* Called when server push is received.
     *
-    *  Override this function to receive push events in the derived class.
+    * Override this function to receive push events in the derived class.
     */
    virtual void on_push() {};
 };

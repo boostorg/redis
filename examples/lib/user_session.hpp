@@ -26,10 +26,7 @@ class user_session:
    public user_session_base,
    public std::enable_shared_from_this<user_session> {
 public:
-   using tcp_socket =
-      net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
-
-   user_session(tcp_socket socket);
+   user_session(net::ip::tcp::socket socket);
    void start(std::function<void(std::string const&)> on_msg);
    void deliver(std::string const& msg);
 
@@ -37,7 +34,7 @@ private:
    net::awaitable<void> reader(std::function<void(std::string const&)> on_msg);
    net::awaitable<void> writer();
    void stop();
-   tcp_socket socket_;
+   net::ip::tcp::socket socket_;
    net::steady_timer timer_;
    std::deque<std::string> write_msgs_;
 };

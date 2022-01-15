@@ -10,7 +10,7 @@
 namespace aedis
 {
 
-user_session::user_session(tcp_socket socket)
+user_session::user_session(net::ip::tcp::socket socket)
 : socket_(std::move(socket))
 , timer_(socket_.get_executor())
    { timer_.expires_at(std::chrono::steady_clock::time_point::max()); }
@@ -23,7 +23,7 @@ net::awaitable<void> user_session::writer()
 	    boost::system::error_code ec;
 	    co_await timer_.async_wait(redirect_error(net::use_awaitable, ec));
 	 } else {
-	    co_await net::async_write(socket_, net::buffer(write_msgs_.front()));
+	    co_await net::async_write(socket_, net::buffer(write_msgs_.front()), net::use_awaitable);
 	    write_msgs_.pop_front();
 	 }
       }
@@ -60,7 +60,7 @@ user_session::reader(std::function<void(std::string const&)> on_msg)
 {
    try {
       for (std::string msg;;) {
-	 auto const n = co_await net::async_read_until(socket_, net::dynamic_buffer(msg, 1024), "\n");
+	 auto const n = co_await net::async_read_until(socket_, net::dynamic_buffer(msg, 1024), "\n", net::use_awaitable);
 	 on_msg(msg);
 	 msg.erase(0, n);
       }
