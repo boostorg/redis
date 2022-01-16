@@ -445,4 +445,9 @@ char const* to_string(command c);
  */
 std::ostream& operator<<(std::ostream& os, command c);
 
+/** \brief Returns true for commands with push response.
+ *  \ingroup functions
+ */
+bool has_push_response(command cmd);
+
 } // aedis

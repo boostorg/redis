@@ -68,14 +68,6 @@
 
       Shows how channel subscription works.
 
-    - response_queue.cpp
-
-      In most cases commands will be added dynamically to the request
-      for example as users interact with app. In order to process the
-      responses asynchronously users have to keep a queue of the
-      expected commands or use the one provided by the serializer
-      class. This example shows how to do it.
-
     - sync.cpp
       
       Aedis also offers a synchronous api, this example shows how to use it.

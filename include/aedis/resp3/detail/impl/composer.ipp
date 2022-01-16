@@ -27,19 +27,6 @@ void add_bulk(std::string& to, std::string_view data)
    to += "\r\n";
 }
 
-bool has_push_response(command cmd)
-{
-   switch (cmd) {
-      case command::subscribe:
-      case command::unsubscribe:
-      case command::psubscribe:
-      return true;
-
-      default:
-      return false;
-   }
-};
-
 } // detail
 } // resp3
 } // aedis

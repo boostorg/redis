@@ -14,7 +14,7 @@
 
 namespace resp3 = aedis::resp3;
 using aedis::command;
-using resp3::serializer;
+using resp3::make_serializer;
 using resp3::adapt;
 using resp3::node;
 
@@ -80,11 +80,12 @@ int main()
      tcp::socket socket{ioc};
      connect(socket, res);
 
-     serializer<command> sr;
+     std::string request;
+     auto sr = make_serializer<command>(request);
      sr.push(command::hello, 3);
      sr.push(command::command);
      sr.push(command::quit);
-     write(socket, buffer(sr.request()));
+     write(socket, buffer(request));
 
      std::vector<node> resp;
 

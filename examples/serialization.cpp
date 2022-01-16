@@ -15,7 +15,7 @@
 
 namespace resp3 = aedis::resp3;
 using aedis::command;
-using resp3::serializer;
+using resp3::make_serializer;
 using resp3::adapt;
 
 namespace net = aedis::net;
@@ -80,13 +80,14 @@ net::awaitable<void> serialization()
 
       mydata obj{21, 22};
 
-      serializer<command> sr;
+      std::string request;
+      auto sr = make_serializer<command>(request);
       sr.push(command::hello, 3);
       sr.push(command::flushall);
       sr.push(command::set, "key", obj);
       sr.push(command::get, "key");
       sr.push(command::quit);
-      co_await async_write(socket, buffer(sr.request()));
+      co_await async_write(socket, buffer(request));
 
       // The response.
       mydata get;

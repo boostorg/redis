@@ -16,7 +16,7 @@
 
 namespace resp3 = aedis::resp3;
 using aedis::command;
-using resp3::serializer;
+using resp3::make_serializer;
 using resp3::adapt;
 
 namespace net = aedis::net;
@@ -35,7 +35,8 @@ net::awaitable<void> containers()
 	 {"one", "two", "three", "four"};
 
       // Creates and sends the request.
-      serializer<command> sr;
+      std::string request;
+      auto sr = make_serializer<command>(request);
       sr.push(command::hello, 3);
       sr.push(command::flushall);
       sr.push_range(command::sadd, "key", std::cbegin(set), std::cend(set));
@@ -43,7 +44,7 @@ net::awaitable<void> containers()
       sr.push(command::smembers, "key");
       sr.push(command::smembers, "key");
       sr.push(command::quit);
-      co_await async_write(socket, buffer(sr.request()));
+      co_await async_write(socket, buffer(request));
 
       // Expected responses.
       int sadd;

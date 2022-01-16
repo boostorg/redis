@@ -61,11 +61,6 @@ chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
 chat_room_CPPFLAGS = $(MY_CPPFLAGS)
 chat_room_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += response_queue
-response_queue_SOURCES = $(top_srcdir)/examples/response_queue.cpp
-response_queue_CPPFLAGS = $(MY_CPPFLAGS)
-response_queue_LDADD = $(MY_LDADD)
-
 noinst_PROGRAMS += key_expiration
 key_expiration_SOURCES = $(top_srcdir)/examples/key_expiration.cpp
 key_expiration_CPPFLAGS = $(MY_CPPFLAGS)

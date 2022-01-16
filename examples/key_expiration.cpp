@@ -15,7 +15,7 @@
 
 namespace resp3 = aedis::resp3;
 using aedis::command;
-using resp3::serializer;
+using resp3::make_serializer;
 using resp3::adapt;
 using resp3::node;
 
@@ -32,12 +32,13 @@ net::awaitable<void> key_expiration()
       auto socket = co_await connect();
 
       // Creates and sends the first request.
-      serializer<command> sr;
+      std::string request;
+      auto sr = make_serializer<command>(request);
       sr.push(command::hello, 3);
       sr.push(command::flushall);
       sr.push(command::set, "key", "Some payload", "EX", "2");
       sr.push(command::get, "key");
-      co_await async_write(socket, buffer(sr.request()));
+      co_await async_write(socket, buffer(request));
 
       // Will hold the response to get.
       std::optional<std::string> get;
@@ -58,11 +59,11 @@ net::awaitable<void> key_expiration()
       co_await tm.async_wait();
 
       // Creates a request to get after expiration.
-      get.reset(); sr.clear();
+      get.reset(); request.clear();
       sr.push(command::get, "key");
       sr.push(command::get, "key");
       sr.push(command::quit);
-      co_await async_write(socket, buffer(sr.request()));
+      co_await async_write(socket, buffer(request));
 
       // Reads the response to the second request.
       co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(get));

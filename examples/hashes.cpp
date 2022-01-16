@@ -16,7 +16,7 @@
 
 namespace resp3 = aedis::resp3;
 using aedis::command;
-using resp3::serializer;
+using resp3::make_serializer;
 using resp3::adapt;
 
 namespace net = aedis::net;
@@ -24,9 +24,7 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-/* Shows how to serialize and read redis hashes in C++ containers.
- */
-
+// Shows how to serialize and read redis hashes in C++ containers.
 net::awaitable<void> containers()
 {
    try {
@@ -39,7 +37,8 @@ net::awaitable<void> containers()
 	 };
 
       // Creates and sends the request.
-      serializer<command> sr;
+      std::string request;
+      auto sr = make_serializer<command>(request);
       sr.push(command::hello, 3);
       sr.push(command::flushall);
       sr.push_range(command::hset, "key", std::cbegin(map), std::cend(map));
@@ -47,7 +46,7 @@ net::awaitable<void> containers()
       sr.push(command::hgetall, "key");
       sr.push(command::hgetall, "key");
       sr.push(command::quit);
-      co_await async_write(socket, buffer(sr.request()));
+      co_await async_write(socket, buffer(request));
 
       // The expected responses
       int hset;

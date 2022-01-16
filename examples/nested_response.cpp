@@ -13,7 +13,7 @@
 
 namespace resp3 = aedis::resp3;
 using aedis::command;
-using resp3::serializer;
+using resp3::make_serializer;
 using resp3::adapt;
 using resp3::node;
 
@@ -29,10 +29,11 @@ net::awaitable<void> nested_response()
    try {
       auto socket = co_await connect();
 
-      serializer<command> sr;
+      std::string request;
+      auto sr = make_serializer<command>(request);
       sr.push(command::hello, 3);
       sr.push(command::quit);
-      co_await async_write(socket, buffer(sr.request()));
+      co_await async_write(socket, buffer(request));
 
       // Expected responses.
       node ping;

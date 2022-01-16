@@ -61,8 +61,6 @@ struct value_type_size<std::pair<T, U>> {
   static constexpr auto size = 2U;
 };
 
-bool has_push_response(command cmd);
-
 template <class T>
 struct request_get_command {
    static command apply(T const& e) noexcept

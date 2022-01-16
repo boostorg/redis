@@ -40,7 +40,10 @@ private:
    // Hello response.
    std::vector<node> hello_;
 
-   std::queue<serializer<ResponseId>> srs_;
+   // We are in the middle of a refactoring and there is some mess.
+   std::string requests_;
+   std::queue<serializer<std::string, ResponseId>> srs_;
+   std::queue<std::size_t> req_sizes_;
    tcp_socket socket_;
 
    // Timer used to inform the write coroutine that it can write the
@@ -54,8 +57,17 @@ private:
       // Writes and reads continuosly from the socket.
       for (std::string buffer;;) {
          // Writes the next request in the socket.
-	 if (!std::empty(srs_))
-	    co_await async_write_some(socket_, srs_);
+	 while (!std::empty(srs_)) {
+	    co_await net::async_write(socket_, net::buffer(requests_.data(), req_sizes_.front()));
+	    requests_.erase(0, req_sizes_.front());
+	    req_sizes_.pop();
+
+	    if (!std::empty(srs_.front().commands))
+	       break; // We must await the responses.
+
+	    // Pops the request if no response is expected.
+	    srs_.pop();
+	 }
 
          // Keeps reading while there are no messages queued waiting to be sent.
          do {
@@ -93,15 +105,26 @@ private:
       while (socket_.is_open()) {
          boost::system::error_code ec;
          co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));
-         co_await async_write_some(socket_, srs_);
+	 do {
+	    co_await net::async_write(socket_, net::buffer(requests_.data(), req_sizes_.front()));
+	    requests_.erase(0, req_sizes_.front());
+	    req_sizes_.pop();
+
+	    if (!std::empty(srs_.front().commands))
+	       break; // We must await the responses.
+
+	    // Pops the request if no response is expected.
+	    srs_.pop();
+	 } while (!std::empty(srs_));
       }
    }
 
    net::awaitable<void> say_hello()
    {
-      serializer<command> sr;
+      std::string request;
+      auto sr = make_serializer<command>(request);
       sr.push(command::hello, 3);
-      co_await net::async_write(socket_, net::buffer(sr.request()));
+      co_await net::async_write(socket_, net::buffer(request));
 
       std::string buffer;
       hello_.clear();
@@ -139,15 +162,17 @@ private:
     * If true is returned the request in the front of the queue can be
     * sent to the server. See async_write_some.
     */
-   bool prepare_next(std::queue<serializer<ResponseId>>& reqs)
+   bool prepare_next()
    {
-      if (std::empty(reqs)) {
-         reqs.push({});
+      if (std::empty(srs_)) {
+         srs_.push({requests_});
+	 req_sizes_.push(0);
          return true;
       }
 
-      if (std::size(reqs) == 1) {
-         reqs.push({});
+      if (std::size(srs_) == 1) {
+         srs_.push({requests_});
+	 req_sizes_.push(0);
          return false;
       }
 
@@ -170,8 +195,8 @@ public:
    void start()
    {
       net::co_spawn(socket_.get_executor(),
-          [self = this->shared_from_this()]{ return self->connection_manager(); },
-          net::detached);
+         [self = this->shared_from_this()]{ return self->connection_manager(); },
+         net::detached);
    }
 
    /* Adds commands to the request queue and sends if possible.
@@ -192,10 +217,13 @@ public:
    template <class Filler>
    void send(Filler filler)
    {
-      // Prepares the back of the queue for a new command.
-      auto const can_write = prepare_next(srs_);
+      // Prepares the back of the queue for a new request.
+      auto const can_write = prepare_next();
 
+      auto const before = std::size(requests_);
       filler(srs_.back());
+      auto const after = std::size(requests_);
+      req_sizes_.front() += after - before;;
 
       if (can_write)
          timer_.cancel_one();

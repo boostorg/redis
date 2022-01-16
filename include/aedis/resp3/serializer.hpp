@@ -43,16 +43,19 @@ namespace resp3 {
  *  individual command contained in the request see response_queue.cpp
  *  for simple usage and echo_server.cpp for adavanced usage.
  */
-template <class ResponseId>
+template <class Container, class ResponseId>
 class serializer {
 private:
-   std::string request_;
+   Container* request_;
 
 public:
    /// The commands that have been queued in this request.
    std::queue<ResponseId> commands;
 
 public:
+   /// Constructor
+   serializer(Container& container) : request_(&container) {}
+
    /** \brief Clears the serializer.
     *  
     *  \remark Already acquired memory won't be released. The is useful
@@ -60,13 +63,9 @@ public:
     */
    void clear()
    {
-      request_.clear();
+      request_->clear();
       commands = {};
    }
-
-   /** \brief Returns the request in RESP3 format.
-    */
-   auto const& request() const noexcept {return request_;}
 
    /** @brief Appends a new command to the end of the request.
     *
@@ -80,13 +79,13 @@ public:
       // to calculate the header size correctly?
 
       auto constexpr pack_size = sizeof...(Ts);
-      detail::add_header(request_, 1 + pack_size);
+      detail::add_header(*request_, 1 + pack_size);
 
       auto const cmd = detail::request_get_command<ResponseId>::apply(qelem);
-      detail::add_bulk(request_, to_string(cmd));
-      (detail::add_bulk(request_, args), ...);
+      detail::add_bulk(*request_, to_string(cmd));
+      (detail::add_bulk(*request_, args), ...);
 
-      if (!detail::has_push_response(cmd))
+      if (!has_push_response(cmd))
          commands.emplace(qelem);
    }
 
@@ -115,15 +114,15 @@ public:
 
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(request_, 2 + size * distance);
+      detail::add_header(*request_, 2 + size * distance);
       auto const cmd = detail::request_get_command<ResponseId>::apply(qelem);
-      detail::add_bulk(request_, to_string(cmd));
-      detail::add_bulk(request_, key);
+      detail::add_bulk(*request_, to_string(cmd));
+      detail::add_bulk(*request_, key);
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(request_, *begin);
+	 detail::add_bulk(*request_, *begin);
 
-      if (!detail::has_push_response(cmd))
+      if (!has_push_response(cmd))
          commands.emplace(qelem);
    }
 
@@ -150,17 +149,26 @@ public:
 
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(request_, 1 + size * distance);
+      detail::add_header(*request_, 1 + size * distance);
       auto const cmd = detail::request_get_command<ResponseId>::apply(qelem);
-      detail::add_bulk(request_, to_string(cmd));
+      detail::add_bulk(*request_, to_string(cmd));
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(request_, *begin);
+	 detail::add_bulk(*request_, *begin);
 
-      if (!detail::has_push_response(cmd))
+      if (!has_push_response(cmd))
          commands.emplace(qelem);
    }
 };
+
+/** \brief Creates a serializer from a container.
+ *  \ingroup functions
+ */
+template <class ResponseId>
+auto make_serializer(std::string& container)
+{
+   return serializer<std::string, ResponseId>(container);
+}
 
 } // resp3
 } // aedis

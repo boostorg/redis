@@ -14,7 +14,7 @@
 
 namespace resp3 = aedis::resp3;
 using aedis::command;
-using resp3::serializer;
+using resp3::make_serializer;
 using resp3::adapt;
 using resp3::node;
 
@@ -44,31 +44,36 @@ using net::dynamic_buffer;
  */
 net::awaitable<void> subscriber()
 {
-   auto socket = co_await connect();
+   try {
+      auto socket = co_await connect();
 
-   serializer<command> sr;
-   sr.push(command::hello, "3");
-   sr.push(command::subscribe, "channel1", "channel2");
-   co_await async_write(socket, buffer(sr.request()));
+      std::string request;
+      auto sr = make_serializer<command>(request);
+      sr.push(command::hello, "3");
+      sr.push(command::subscribe, "channel1", "channel2");
+      co_await async_write(socket, buffer(request));
 
-   std::vector<node> resp;
+      std::vector<node> resp;
 
-   // Reads the response to the hello command.
-   std::string buffer;
-   co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
-   co_await resp3::async_read(socket, dynamic_buffer(buffer));
-
-   // Saves the id of this connection.
-   auto const id = resp.at(8).data;
-
-   // Loops to receive server pushes.
-   for (;;) {
-      resp.clear();
+      // Reads the response to the hello command.
+      std::string buffer;
       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer));
 
-      std::cout
-	 << "Subscriber " << id << ":\n"
-	 << resp << std::endl;
+      // Saves the id of this connection.
+      auto const id = resp.at(8).data;
+
+      // Loops to receive server pushes.
+      for (;;) {
+	 resp.clear();
+	 co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
+
+	 std::cout
+	    << "Subscriber " << id << ":\n"
+	    << resp << std::endl;
+      }
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
    }
 }
 

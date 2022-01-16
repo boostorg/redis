@@ -17,7 +17,7 @@
 
 namespace resp3 = aedis::resp3;
 using aedis::command;
-using resp3::serializer;
+using resp3::make_serializer;
 using resp3::adapt;
 
 namespace net = aedis::net;
@@ -41,7 +41,8 @@ net::awaitable<void> ping()
 
       // Creates and sends the request.
       auto vec  = {1, 2, 3, 4, 5, 6};
-      serializer<command> sr;
+      std::string request;
+      auto sr = make_serializer<command>(request);
       sr.push(command::hello, 3);
       sr.push(command::flushall);
       sr.push_range(command::rpush, "key", std::cbegin(vec), std::cend(vec));
@@ -50,7 +51,7 @@ net::awaitable<void> ping()
       sr.push(command::lrange, "key", 0, -1);
       sr.push(command::lrange, "key", 0, -1);
       sr.push(command::quit);
-      co_await async_write(socket, buffer(sr.request()));
+      co_await async_write(socket, buffer(request));
 
       // Expected responses.
       int rpush;
