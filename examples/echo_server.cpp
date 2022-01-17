@@ -14,64 +14,73 @@
 #include "lib/user_session.hpp"
 #include "src.hpp"
 
+namespace net = aedis::net;
 using aedis::resp3::client_base;
 using aedis::command;
 using aedis::user_session;
 using aedis::user_session_base;
+using aedis::resp3::adapt;
+using aedis::resp3::detail::response_traits;
+using aedis::resp3::node;
+using aedis::resp3::type;
 
-namespace net = aedis::net;
-using aedis::resp3::client_base;
+// TODO: Use all necessary data types.
+struct adapter_helper {
+   using adapter_type = response_traits<std::vector<node>>::adapter_type;
+   adapter_type adapter;
 
-// Holds the information that is needed when a response to a
-// request arrives. See client_base.hpp for more details on the
-// required fields in this struct.
-struct response_id {
-   // The redis command that corresponds to this command. 
-   command cmd = command::unknown;
-
-   // Pointer to the response.
-   std::shared_ptr<std::string> resp;
-
-   // The pointer to the session the request belongs to.
-   std::weak_ptr<user_session_base> session =
-      std::shared_ptr<user_session_base>{nullptr};
+   void
+   operator()(
+      command,
+      type t,
+      std::size_t aggregate_size,
+      std::size_t depth,
+      char const* data,
+      std::size_t size,
+      std::error_code& ec)
+   {
+      adapter(t, aggregate_size, depth, data, size, ec);
+   }
 };
 
-using client_base_type = client_base<response_id>;
-
-class my_redis_client : public client_base_type {
+class my_redis_client : public client_base {
 private:
-   void on_message(response_id id) override
+   std::vector<node> resp_;
+   std::queue<std::weak_ptr<user_session_base>> sessions_;
+
+   void on_message(command cmd) override
    {
-      // If the user connections is still alive when the response
-      // arrives we send the echo message to the user, otherwise we
-      // just log it has expired.
-      if (auto session = id.session.lock()) {
-         session->deliver(*id.resp);
-	 id.resp->clear();
-      } else {
-         std::cout << "Session expired." << std::endl;
+      switch (cmd) {
+	 case command::ping:
+	 {
+	    if (auto session = sessions_.front().lock()) {
+	       session->deliver(resp_.front().data);
+	    } else {
+	       std::cout << "Session expired." << std::endl;
+	    }
+
+	    sessions_.pop();
+	    resp_.clear();
+	 } break;
+	 case command::incr:
+	 {
+	    std::cout << "Echos so far: " << resp_.front().data << std::endl;
+	    resp_.clear();
+	 } break;
+         default:
+         {
+	    assert(false);
+	 }
       }
    }
 
 public:
    my_redis_client(net::any_io_executor ex)
-   : client_base_type(ex)
+   : client_base(ex, adapter_helper{adapt(resp_)})
    {}
-};
 
-struct on_user_msg {
-   std::shared_ptr<std::string> resp;
-   std::shared_ptr<my_redis_client> client;
-   std::shared_ptr<user_session> session;
-
-   void operator()(std::string const& msg) const
-   {
-      auto filler = [this, &msg](auto& req)
-	 { req.push(response_id{command::ping, resp, session}, msg); };
-
-      client->send(filler);
-   }
+   void add_user_session(std::shared_ptr<user_session_base> session)
+      { sessions_.push(session); }
 };
 
 net::awaitable<void> listener()
@@ -79,18 +88,21 @@ net::awaitable<void> listener()
    auto ex = co_await net::this_coro::executor;
    net::ip::tcp::acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});
    
-   // The redis client instance.
    auto client = std::make_shared<my_redis_client>(ex);
    client->start();
 
-   // The response is shared by all connections.
-   auto resp = std::make_shared<std::string>();
-
-   // Loops accepting connections.
    for (;;) {
       auto socket = co_await acceptor.async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
-      session->start(on_user_msg{resp, client, session});
+
+      auto on_msg = [client, session](std::string const& msg)
+      {
+	 client->send(command::ping, msg);
+	 client->add_user_session(session);
+	 client->send(command::incr, "echo-counter");
+      };
+
+      session->start(on_msg);
    }
 }
 

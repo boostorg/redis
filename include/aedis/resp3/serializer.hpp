@@ -37,35 +37,15 @@ namespace resp3 {
  *  sr.push(command::quit);
  *  co_await async_write(socket, buffer(sr.request()));
  *  @endcode
- *
- *  This class also maintains an internal queue of already added
- *  commands to assist users processing the response to each
- *  individual command contained in the request see response_queue.cpp
- *  for simple usage and echo_server.cpp for adavanced usage.
  */
-template <class Container, class ResponseId>
+template <class Container, class Command>
 class serializer {
 private:
    Container* request_;
 
 public:
-   /// The commands that have been queued in this request.
-   std::queue<ResponseId> commands;
-
-public:
    /// Constructor
    serializer(Container& container) : request_(&container) {}
-
-   /** \brief Clears the serializer.
-    *  
-    *  \remark Already acquired memory won't be released. The is useful
-    *  to reusing memory insteam of allocating again each time.
-    */
-   void clear()
-   {
-      request_->clear();
-      commands = {};
-   }
 
    /** @brief Appends a new command to the end of the request.
     *
@@ -73,7 +53,7 @@ public:
     *  \c to_string, which must be made available by the user by ADL.
     */
    template <class... Ts>
-   void push(ResponseId qelem, Ts const&... args)
+   void push(Command qelem, Ts const&... args)
    {
       // TODO: Should we detect any std::pair in the type in the pack
       // to calculate the header size correctly?
@@ -81,12 +61,9 @@ public:
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(*request_, 1 + pack_size);
 
-      auto const cmd = detail::request_get_command<ResponseId>::apply(qelem);
+      auto const cmd = detail::request_get_command<Command>::apply(qelem);
       detail::add_bulk(*request_, to_string(cmd));
       (detail::add_bulk(*request_, args), ...);
-
-      if (!has_push_response(cmd))
-         commands.emplace(qelem);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -105,7 +82,7 @@ public:
        \endcode
     */
    template <class Key, class ForwardIterator>
-   void push_range(ResponseId qelem, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void push_range(Command qelem, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would helpful to users
       // to assert the value type is a pair.
@@ -115,15 +92,12 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(*request_, 2 + size * distance);
-      auto const cmd = detail::request_get_command<ResponseId>::apply(qelem);
+      auto const cmd = detail::request_get_command<Command>::apply(qelem);
       detail::add_bulk(*request_, to_string(cmd));
       detail::add_bulk(*request_, key);
 
       for (; begin != end; ++begin)
 	 detail::add_bulk(*request_, *begin);
-
-      if (!has_push_response(cmd))
-         commands.emplace(qelem);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -140,7 +114,7 @@ public:
        \endcode
     */
    template <class ForwardIterator>
-   void push_range(ResponseId qelem, ForwardIterator begin, ForwardIterator end)
+   void push_range(Command qelem, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would be a good idea to assert
       // the value type is a pair.
@@ -150,24 +124,22 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(*request_, 1 + size * distance);
-      auto const cmd = detail::request_get_command<ResponseId>::apply(qelem);
+      auto const cmd = detail::request_get_command<Command>::apply(qelem);
       detail::add_bulk(*request_, to_string(cmd));
 
       for (; begin != end; ++begin)
 	 detail::add_bulk(*request_, *begin);
-
-      if (!has_push_response(cmd))
-         commands.emplace(qelem);
    }
 };
 
 /** \brief Creates a serializer from a container.
  *  \ingroup functions
+ *  TODO: Add the string template parameters.
  */
-template <class ResponseId>
+template <class Command>
 auto make_serializer(std::string& container)
 {
-   return serializer<std::string, ResponseId>(container);
+   return serializer<std::string, Command>(container);
 }
 
 } // resp3

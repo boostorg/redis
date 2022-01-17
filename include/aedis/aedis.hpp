@@ -23,7 +23,6 @@
 
     - \subpage enums
     - \subpage classes
-    - \subpage read_write_ops
     - \subpage functions
     - \subpage operators
  */
@@ -150,13 +149,8 @@
  */
 
 
-/** \defgroup functions Free functions (other)
+/** \defgroup functions Free functions
  *  \brief All functions defined by this library.
- */
-
-
-/** \defgroup read_write_ops Free functions (read/write operations)
- *  \brief RESP3 read and write functions.
  */
 
 

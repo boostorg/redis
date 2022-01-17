@@ -16,73 +16,64 @@
 #include "lib/user_session.hpp"
 #include "src.hpp"
 
+namespace net = aedis::net;
 using aedis::resp3::client_base;
 using aedis::command;
 using aedis::user_session;
 using aedis::user_session_base;
+using aedis::resp3::node;
+using aedis::resp3::detail::response_traits;
+using aedis::resp3::type;
 
-namespace net = aedis::net;
-using aedis::resp3::client_base;
+// TODO: Use all necessary data types.
+struct adapter_helper {
+   using adapter_type = response_traits<std::vector<node>>::adapter_type;
+   adapter_type adapter;
 
-// Holds the information that is needed when a response to a
-// request arrives. See client_base.hpp for more details on the
-// required fields in this struct.
-struct response_id {
-   // The redis command that corresponds to this command. 
-   command cmd = command::unknown;
-
-   // Pointer to the response.
-   // TODO: Not needed here. Fix client_base and remove this.
-   std::shared_ptr<std::string> resp;
+   void
+   operator()(
+      command,
+      type t,
+      std::size_t aggregate_size,
+      std::size_t depth,
+      char const* data,
+      std::size_t size,
+      std::error_code& ec)
+   {
+      adapter(t, aggregate_size, depth, data, size, ec);
+   }
 };
 
-using client_base_type = client_base<response_id>;
-
-class my_redis_client : public client_base_type {
+class my_redis_client : public client_base {
 private:
+   std::vector<node> resp_;
    std::vector<std::weak_ptr<user_session_base>> sessions_;
 
-   void on_message(response_id id) override
+   void on_message(command) override
    {
-      id.resp->clear();
+      resp_.clear();
    }
 
    void on_push() override
    {
       for (auto& weak: sessions_) {
 	 if (auto session = weak.lock()) {
-	    session->deliver(push_resp_.at(3).data);
+	    session->deliver(resp_.at(3).data);
 	 } else {
 	    std::cout << "Session expired." << std::endl;
 	 }
       }
 
-      push_resp_.clear();
+      resp_.clear();
    }
 
 public:
    my_redis_client(net::any_io_executor ex)
-   : client_base_type(ex)
+   : client_base(ex, adapter_helper{adapt(resp_)})
    {}
 
    auto subscribe(std::shared_ptr<user_session_base> session)
       { sessions_.push_back(session); }
-};
-
-struct on_user_msg {
-   std::shared_ptr<std::string> resp;
-   std::shared_ptr<my_redis_client> client;
-
-   void operator()(std::string const& msg)
-   {
-      auto filler = [this, &msg](auto& req)
-      {
-	 response_id id{command::publish, resp};
-	 req.push(id, "channel", msg);
-      };
-
-      client->send(filler);
-   }
 };
 
 net::awaitable<void> listener()
@@ -90,23 +81,19 @@ net::awaitable<void> listener()
    auto ex = co_await net::this_coro::executor;
    net::ip::tcp::acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});
 
-   // The response is shared by all connections.
-   auto resp = std::make_shared<std::string>();
-   
-   // The redis client instance.
    auto client = std::make_shared<my_redis_client>(ex);
    client->start();
-
-   auto filler = [resp](auto& req)
-      { req.push(response_id{command::subscribe, resp}, "channel"); };
-
-   client->send(filler);
+   client->send(command::subscribe, "channel");
 
    for (;;) {
       auto socket = co_await acceptor.async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
       client->subscribe(session);
-      session->start(on_user_msg{resp, client});
+
+      auto on_msg = [client](std::string const& msg)
+	 { client->send(command::publish, "channel", msg); };
+
+      session->start(on_msg);
    }
 }
 

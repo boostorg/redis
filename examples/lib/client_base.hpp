@@ -8,6 +8,7 @@
 #pragma once
 
 #include <queue>
+#include <functional>
 
 #include <aedis/aedis.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
@@ -27,29 +28,44 @@ namespace resp3 {
  *
  *   The ReponseId type is required to provide the cmd member.
  */
-template <class ResponseId>
-class client_base
-   : public std::enable_shared_from_this<client_base<ResponseId>> {
+class client_base : public std::enable_shared_from_this<client_base> {
+public:
+   using adapter_type = std::function<void(command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
+
 protected:
-   std::vector<node> push_resp_; // push types.
+   // TODO: Remove this.
    std::vector<node> hello_; // Hello.
 
 private:
    using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-   struct helper {
+
+   struct request_info {
+      // Request size in bytes.
       std::size_t size = 0;
+
+      // The number of commands it contains excluding commands that
+      // have push types as responses, see has_push_response.
       std::size_t cmds = 0;
    };
 
-   // We are in the middle of a refactoring and there is some mess.
+   // Requests payload.
    std::string requests_;
-   std::queue<serializer<std::string, ResponseId>> srs_;
-   std::queue<helper> req_info_;
+
+   // The commands contained in the requests.
+   std::queue<command> commands_;
+
+   // Info about the requests.
+   std::queue<request_info> req_info_;
+
+   // The stream.
    tcp_socket socket_;
 
    // Timer used to inform the write coroutine that it can write the
    // next message in the output queue.
    net::steady_timer timer_;
+
+   // Adapter
+   adapter_type adapter_;
 
    // A coroutine that keeps reading the socket. When a message
    // arrives it calls on_message.
@@ -57,66 +73,62 @@ private:
    {
       // Writes and reads continuosly from the socket.
       for (std::string buffer;;) {
-         // Writes the next request in the socket.
-	 while (!std::empty(srs_)) {
+	 while (!std::empty(req_info_)) {
 	    co_await net::async_write(socket_, net::buffer(requests_.data(), req_info_.front().size));
-	    requests_.erase(0, req_info_.front().size);
-	    req_info_.pop();
 
-	    if (!std::empty(srs_.front().commands))
+	    requests_.erase(0, req_info_.front().size);
+
+	    if (req_info_.front().cmds != 0)
 	       break; // We must await the responses.
 
-	    // Pops the request if no response is expected.
-	    srs_.pop();
+	    req_info_.pop();
 	 }
 
-         // Keeps reading while there are no messages queued waiting to be sent.
-         do {
-            // Loops to consume the response to all commands in the request.
-            do {
-               auto const t =
-		  co_await async_read_type(socket_, net::dynamic_buffer(buffer));
-
+         do { // Keeps reading while there are no messages queued waiting to be sent.
+            do { // Consumes the responses to all commands in the request.
+               auto const t = co_await async_read_type(socket_, net::dynamic_buffer(buffer));
                if (t == type::push) {
-                  co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapt(push_resp_));
+		  auto adapter = [this](type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec){adapter_(command::unknown, t, aggregate_size, depth, data, size, ec);};
+                  co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter);
                   on_push();
                } else {
-                  auto adapter = adapt(*srs_.front().commands.front().resp);
+		  auto adapter = [this](type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec){adapter_(commands_.front(), t, aggregate_size, depth, data, size, ec);};
                   co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter);
-                  on_message(srs_.front().commands.front());
-                  srs_.front().commands.pop();
+                  on_message(commands_.front());
+		  commands_.pop();
+		  --req_info_.front().cmds;
                }
 
-            } while (!std::empty(srs_) && !std::empty(srs_.front().commands));
+            } while (!std::empty(req_info_) && req_info_.front().cmds != 0);
 
-            // We may exit the loop above either because we are done
-            // with the response or because we received a server push
-            // while the queue was empty.
-            if (!std::empty(srs_))
-               srs_.pop();
+	    // We may exit the loop above either because we are done
+	    // with the response or because we received a server push
+	    // while the queue was empty so we have to check before
+	    // poping..
+            if (!std::empty(req_info_))
+               req_info_.pop();
 
-         } while (std::empty(srs_));
+         } while (std::empty(req_info_));
       }
    }
 
    // Write coroutine. It is kept suspended until there are messages
-   // that can be sent.
+   // to be sent.
    net::awaitable<void> writer()
    {
       while (socket_.is_open()) {
          boost::system::error_code ec;
          co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));
 	 do {
+	    assert(!std::empty(req_info_));
 	    co_await net::async_write(socket_, net::buffer(requests_.data(), req_info_.front().size));
 	    requests_.erase(0, req_info_.front().size);
+
+	    if (req_info_.front().cmds != 0)
+	       break;
+
 	    req_info_.pop();
-
-	    if (!std::empty(srs_.front().commands))
-	       break; // We must await the responses.
-
-	    // Pops the request if no response is expected.
-	    srs_.pop();
-	 } while (!std::empty(srs_));
+	 } while (!std::empty(req_info_));
       }
    }
 
@@ -165,14 +177,12 @@ private:
     */
    bool prepare_next()
    {
-      if (std::empty(srs_)) {
-         srs_.push({requests_});
+      if (std::empty(req_info_)) {
 	 req_info_.push({});
          return true;
       }
 
-      if (std::size(srs_) == 1) {
-         srs_.push({requests_});
+      if (std::size(req_info_) == 1) {
 	 req_info_.push({});
          return false;
       }
@@ -181,9 +191,11 @@ private:
    }
 
 public:
-   client_base(net::any_io_executor ex)
+   // Constructor
+   client_base(net::any_io_executor ex, adapter_type adapter = [](command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&) {})
    : socket_{ex}
    , timer_{ex}
+   , adapter_{adapter}
    { }
 
    virtual ~client_base() { }
@@ -200,31 +212,21 @@ public:
          net::detached);
    }
 
-   /* Adds commands to the request queue and sends if possible.
-    *
-    * The filler callable get a request by reference, for example
-    *
-    * @code
-    * void f(serializer& req)
-    * {
-    *    req.push(command::ping);
-    *    ...
-    * }
-    * @endcode
-    *
-    * It will be called with the request that is at the back of the queue of
-    * outgoing requests.
-    */
-   template <class Filler>
-   void send(Filler filler)
+   template <class... Ts>
+   void send(command cmd, Ts const&... args)
    {
-      // Prepares the back of the queue for a new request.
       auto const can_write = prepare_next();
 
+      auto sr = make_serializer<command>(requests_);
       auto const before = std::size(requests_);
-      filler(srs_.back());
+      sr.push(cmd, args...);
       auto const after = std::size(requests_);
       req_info_.front().size += after - before;;
+
+      if (!has_push_response(cmd)) {
+         commands_.emplace(cmd);
+	 ++req_info_.front().cmds;
+      }
 
       if (can_write)
          timer_.cancel_one();
@@ -234,9 +236,9 @@ public:
     *
     * Override this function to receive events in your derived class.
     */
-   virtual void on_message(ResponseId) {};
+   virtual void on_message(command) {};
 
-   /* Called when server push is received.
+   /* Called when a server push is received.
     *
     * Override this function to receive push events in the derived class.
     */
