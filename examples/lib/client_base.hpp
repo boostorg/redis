@@ -31,19 +31,20 @@ template <class ResponseId>
 class client_base
    : public std::enable_shared_from_this<client_base<ResponseId>> {
 protected:
-   // The response used for push types.
-   std::vector<node> push_resp_;
+   std::vector<node> push_resp_; // push types.
+   std::vector<node> hello_; // Hello.
 
 private:
    using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-
-   // Hello response.
-   std::vector<node> hello_;
+   struct helper {
+      std::size_t size = 0;
+      std::size_t cmds = 0;
+   };
 
    // We are in the middle of a refactoring and there is some mess.
    std::string requests_;
    std::queue<serializer<std::string, ResponseId>> srs_;
-   std::queue<std::size_t> req_sizes_;
+   std::queue<helper> req_info_;
    tcp_socket socket_;
 
    // Timer used to inform the write coroutine that it can write the
@@ -58,9 +59,9 @@ private:
       for (std::string buffer;;) {
          // Writes the next request in the socket.
 	 while (!std::empty(srs_)) {
-	    co_await net::async_write(socket_, net::buffer(requests_.data(), req_sizes_.front()));
-	    requests_.erase(0, req_sizes_.front());
-	    req_sizes_.pop();
+	    co_await net::async_write(socket_, net::buffer(requests_.data(), req_info_.front().size));
+	    requests_.erase(0, req_info_.front().size);
+	    req_info_.pop();
 
 	    if (!std::empty(srs_.front().commands))
 	       break; // We must await the responses.
@@ -106,9 +107,9 @@ private:
          boost::system::error_code ec;
          co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));
 	 do {
-	    co_await net::async_write(socket_, net::buffer(requests_.data(), req_sizes_.front()));
-	    requests_.erase(0, req_sizes_.front());
-	    req_sizes_.pop();
+	    co_await net::async_write(socket_, net::buffer(requests_.data(), req_info_.front().size));
+	    requests_.erase(0, req_info_.front().size);
+	    req_info_.pop();
 
 	    if (!std::empty(srs_.front().commands))
 	       break; // We must await the responses.
@@ -166,13 +167,13 @@ private:
    {
       if (std::empty(srs_)) {
          srs_.push({requests_});
-	 req_sizes_.push(0);
+	 req_info_.push({});
          return true;
       }
 
       if (std::size(srs_) == 1) {
          srs_.push({requests_});
-	 req_sizes_.push(0);
+	 req_info_.push({});
          return false;
       }
 
@@ -223,7 +224,7 @@ public:
       auto const before = std::size(requests_);
       filler(srs_.back());
       auto const after = std::size(requests_);
-      req_sizes_.front() += after - before;;
+      req_info_.front().size += after - before;;
 
       if (can_write)
          timer_.cancel_one();
