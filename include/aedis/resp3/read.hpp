@@ -8,12 +8,11 @@
 #pragma once
 
 #include <aedis/net.hpp>
-
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/adapt.hpp>
+#include <aedis/resp3/response_traits.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/detail/read_ops.hpp>
-#include <aedis/resp3/detail/response_traits.hpp>
 
 #include <boost/asio/yield.hpp>
 
@@ -103,7 +102,7 @@ read(
 template<
    class SyncReadStream,
    class DynamicBuffer,
-   class ResponseAdapter = detail::response_traits<void>::adapter_type>
+   class ResponseAdapter = response_traits<void>::adapter_type>
 std::size_t
 read(
    SyncReadStream& stream,
@@ -142,7 +141,7 @@ read(
 template <
    class AsyncReadStream,
    class DynamicBuffer,
-   class ResponseAdapter = detail::response_traits<void>::adapter_type,
+   class ResponseAdapter = response_traits<void>::adapter_type,
    class CompletionToken = net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(

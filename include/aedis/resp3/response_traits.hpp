@@ -20,7 +20,6 @@
 
 namespace aedis {
 namespace resp3 {
-namespace detail {
 
 template <class T>
 struct response_traits
@@ -123,6 +122,5 @@ struct response_traits<void>
    static auto adapt() noexcept { return adapter_type{}; }
 };
 
-} // detail
 } // resp3
 } // aedis

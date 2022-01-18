@@ -10,28 +10,28 @@
 #include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
 
-#include "lib/client_base.hpp"
+#include "lib/client.hpp"
 #include "lib/user_session.hpp"
 #include "src.hpp"
 
 namespace net = aedis::net;
-using aedis::resp3::client_base;
 using aedis::command;
 using aedis::user_session;
 using aedis::user_session_base;
+using aedis::resp3::client;
 using aedis::resp3::adapt;
-using aedis::resp3::detail::response_traits;
-using aedis::resp3::node;
+using aedis::resp3::response_traits;
 using aedis::resp3::type;
 
-// TODO: Use all necessary data types.
-struct adapter_helper {
-   using adapter_type = response_traits<std::vector<node>>::adapter_type;
-   adapter_type adapter;
+// In the echo_server we will be sending ping and incr commands to
+// redis. 
+struct adapter_wrapper {
+   response_traits<std::string>::adapter_type str_adapter;
+   response_traits<int>::adapter_type int_adapter;
 
    void
    operator()(
-      command,
+      command cmd,
       type t,
       std::size_t aggregate_size,
       std::size_t depth,
@@ -39,13 +39,22 @@ struct adapter_helper {
       std::size_t size,
       std::error_code& ec)
    {
-      adapter(t, aggregate_size, depth, data, size, ec);
+      // Handles only the commands we are interested in and ignores
+      // the rest.
+      switch (cmd) {
+	 case command::ping: str_adapter(t, aggregate_size, depth, data, size, ec); return;
+	 case command::incr: int_adapter(t, aggregate_size, depth, data, size, ec); return;
+         default: {} // Ignore.
+      }
    }
 };
 
-class my_redis_client : public client_base {
+class my_redis_client : public client {
 private:
-   std::vector<node> resp_;
+   // Objects to hold the responses.
+   std::string resp_str_;
+   int resp_int_;
+
    std::queue<std::weak_ptr<user_session_base>> sessions_;
 
    void on_message(command cmd) override
@@ -54,29 +63,25 @@ private:
 	 case command::ping:
 	 {
 	    if (auto session = sessions_.front().lock()) {
-	       session->deliver(resp_.front().data);
+	       session->deliver(resp_str_);
 	    } else {
 	       std::cout << "Session expired." << std::endl;
 	    }
 
 	    sessions_.pop();
-	    resp_.clear();
+	    resp_str_.clear();
 	 } break;
 	 case command::incr:
 	 {
-	    std::cout << "Echos so far: " << resp_.front().data << std::endl;
-	    resp_.clear();
+	    std::cout << "Echos so far: " << resp_int_ << std::endl;
 	 } break;
-         default:
-         {
-	    assert(false);
-	 }
+         default: { assert(false); }
       }
    }
 
 public:
    my_redis_client(net::any_io_executor ex)
-   : client_base(ex, adapter_helper{adapt(resp_)})
+   : client(ex, adapter_wrapper{adapt(resp_str_), adapt(resp_int_)})
    {}
 
    void add_user_session(std::shared_ptr<user_session_base> session)

@@ -7,9 +7,14 @@
 
 #pragma once
 
+#include <aedis/net.hpp>
+#include <aedis/command.hpp>
+#include <aedis/resp3/type.hpp>
 #include <aedis/resp3/read.hpp>
-#include <aedis/resp3/write.hpp>
+#include <aedis/resp3/adapt.hpp>
+#include <aedis/resp3/error.hpp>
 #include <aedis/resp3/serializer.hpp>
+#include <aedis/resp3/response_traits.hpp>
 
 /** \mainpage
   

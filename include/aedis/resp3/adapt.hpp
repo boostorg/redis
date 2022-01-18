@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <aedis/resp3/detail/response_traits.hpp>
+#include <aedis/resp3/response_traits.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -27,7 +27,7 @@ namespace resp3 {
  */
 inline
 auto adapt() noexcept
-   { return detail::response_traits<void>::adapt(); }
+   { return response_traits<void>::adapt(); }
 
 /** \brief Adapts user data to read operations.
  *  \ingroup functions
@@ -66,7 +66,7 @@ auto adapt() noexcept
  */
 template<class T>
 auto adapt(T& t) noexcept
-   { return detail::response_traits<T>::adapt(t); }
+   { return response_traits<T>::adapt(t); }
 
 } // resp3
 } // aedis

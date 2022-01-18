@@ -28,13 +28,9 @@ namespace resp3 {
  *
  *   The ReponseId type is required to provide the cmd member.
  */
-class client_base : public std::enable_shared_from_this<client_base> {
+class client : public std::enable_shared_from_this<client> {
 public:
    using adapter_type = std::function<void(command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
-
-protected:
-   // TODO: Remove this.
-   std::vector<node> hello_; // Hello.
 
 private:
    using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
@@ -140,8 +136,9 @@ private:
       co_await net::async_write(socket_, net::buffer(request));
 
       std::string buffer;
-      hello_.clear();
-      co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapt(hello_));
+      auto adapter = [this](type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec)
+         {adapter_(command::hello, t, aggregate_size, depth, data, size, ec);};
+      co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter);
    }
 
    // The connection manager. It keeps trying the reconnect to the
@@ -192,13 +189,13 @@ private:
 
 public:
    // Constructor
-   client_base(net::any_io_executor ex, adapter_type adapter = [](command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&) {})
+   client(net::any_io_executor ex, adapter_type adapter = [](command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&) {})
    : socket_{ex}
    , timer_{ex}
    , adapter_{adapter}
    { }
 
-   virtual ~client_base() { }
+   virtual ~client() { }
 
    /*  Starts the client.
     *
