@@ -16,10 +16,10 @@ namespace aedis {
 namespace resp3 {
 namespace experimental {
 
-/**  \brief Example: A high level redis client.
+/**  \brief A high level redis client.
  *   \ingroup classes
  *
- *   This class is meant to be an example.
+ *   This client keeps a connection to the database open.
  */
 class client : public std::enable_shared_from_this<client> {
 public:
@@ -27,7 +27,7 @@ public:
    using adapter_type = std::function<void(command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
 
    /// The type of the message callback.
-   using on_message_type = std::function<void(command, std::shared_ptr<client>)>;
+   using on_message_type = std::function<void(std::error_code ec, command, std::shared_ptr<client>)>;
 
 private:
    using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;

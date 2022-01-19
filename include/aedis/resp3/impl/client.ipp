@@ -27,8 +27,8 @@ client::client(
 
 net::awaitable<void> client::reader()
 {
-   auto on_msg = [self = shared_from_this()](command cmd)
-      { self->on_msg_(cmd, self); };
+   auto on_msg = [self = shared_from_this()](std::error_code ec, command cmd)
+      { self->on_msg_(ec, cmd, self); };
 
    // Writes and reads continuosly from the socket.
    for (std::string buffer;;) {
@@ -50,14 +50,16 @@ net::awaitable<void> client::reader()
 	       auto adapter = [this](type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec)
 		  {adapter_(command::unknown, t, aggregate_size, depth, data, size, ec);};
 
-	       co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter);
-	       on_msg(command::unknown);
+	       boost::system::error_code ec;
+	       co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));
+	       on_msg(ec, command::unknown);
 	    } else {
 	       auto adapter = [this](type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec)
 		  {adapter_(commands_.front(), t, aggregate_size, depth, data, size, ec);};
 
-	       co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter);
-	       on_msg(commands_.front());
+	       boost::system::error_code ec;
+	       co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));
+	       on_msg(ec, commands_.front());
 	       commands_.pop();
 	       --req_info_.front().cmds;
 	    }

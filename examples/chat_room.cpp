@@ -20,67 +20,43 @@ using aedis::command;
 using aedis::user_session;
 using aedis::user_session_base;
 using aedis::resp3::experimental::client;
-using aedis::resp3::node;
-using aedis::resp3::response_traits;
-using aedis::resp3::type;
-using aedis::resp3::adapt;
 
-struct adapter_wrapper {
-   response_traits<std::vector<node>>::adapter_type push_adapter;
-   response_traits<int>::adapter_type int_adapter;
-
-   void
-   operator()(
-      command cmd,
-      type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* data,
-      std::size_t size,
-      std::error_code& ec)
-   {
-      // Handles only the commands we are interested in and ignores
-      // the rest.
-      switch (cmd) {
-         case command::unknown: push_adapter(t, aggregate_size, depth, data, size, ec); return;
-	 case command::incr: int_adapter(t, aggregate_size, depth, data, size, ec); return;
-         default: {} // Ignore.
-      }
-   }
-};
-
-class db : public std::enable_shared_from_this<db> {
+class receiver : public std::enable_shared_from_this<receiver> {
 private:
-   std::vector<node> resp_push_;
-   int resp_int_;
+   responses resps_;
    std::vector<std::weak_ptr<user_session_base>> sessions_;
 
 public:
    auto get_adapter()
-      { return adapter_wrapper{adapt(resp_push_), adapt(resp_int_)}; }
+      { return adapter_wrapper{resps_}; }
 
-   auto subscribe(std::shared_ptr<user_session_base> session)
+   auto add(std::shared_ptr<user_session_base> session)
       { sessions_.push_back(session); }
 
-   void on_message(command cmd, std::shared_ptr<client>)
+   void on_message(std::error_code ec, command cmd, std::shared_ptr<client>)
    {
+      if (ec) {
+	 std::cerr << "Error: " << ec.message() << std::endl;
+	 return;
+      }
+
       switch (cmd) {
 	 case command::incr:
 	 {
-	    std::cout << "Message so far: " << resp_int_ << std::endl;
+	    std::cout << "Message so far: " << resps_.number << std::endl;
 	 } break;
 	 case command::unknown: // Push
 	 {
 	    // TODO: Delete sessions lazily on traversal.
 	    for (auto& weak: sessions_) {
 	       if (auto session = weak.lock()) {
-		  session->deliver(resp_push_.at(3).data);
+		  session->deliver(resps_.general.at(3).data);
 	       } else {
 		  std::cout << "Session expired." << std::endl;
 	       }
 	    }
 
-	    resp_push_.clear();
+	    resps_.general.clear();
 	 } break;
          default: { /* Ignore */ }
       }
@@ -92,24 +68,24 @@ net::awaitable<void> listener()
    auto ex = co_await net::this_coro::executor;
    net::ip::tcp::acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});
 
-   auto rdb = std::make_shared<db>();
-   auto on_message = [rdb](command cmd, std::shared_ptr<client> cl)
-      { rdb->on_message(cmd, cl); };
+   auto recv = std::make_shared<receiver>();
+   auto on_db_msg = [recv](std::error_code ec, command cmd, std::shared_ptr<client> cl)
+      { recv->on_message(ec, cmd, cl); };
 
-   auto redis = std::make_shared<client>(ex, rdb->get_adapter(), on_message);
-   redis->send(command::subscribe, "channel");
-   redis->start();
+   auto db = std::make_shared<client>(ex, recv->get_adapter(), on_db_msg);
+   db->send(command::subscribe, "channel");
+   db->start();
 
-   auto on_user_msg = [redis](std::string const& msg)
+   auto on_user_msg = [db](std::string const& msg)
    {
-      redis->send(command::publish, "channel", msg);
-      redis->send(command::incr, "message-counter");
+      db->send(command::publish, "channel", msg);
+      db->send(command::incr, "message-counter");
    };
 
    for (;;) {
       auto socket = co_await acceptor.async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
-      rdb->subscribe(session);
+      recv->add(session);
       session->start(on_user_msg);
    }
 }

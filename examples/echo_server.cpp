@@ -12,6 +12,7 @@
 #include <aedis/resp3/client.hpp>
 
 #include "lib/user_session.hpp"
+#include "lib/responses.hpp"
 #include "src.hpp"
 
 namespace net = aedis::net;
@@ -19,65 +20,41 @@ using aedis::command;
 using aedis::user_session;
 using aedis::user_session_base;
 using aedis::resp3::experimental::client;
-using aedis::resp3::adapt;
-using aedis::resp3::response_traits;
-using aedis::resp3::type;
 
-// Uses one adapter for each different command.
-struct adapter_wrapper {
-   response_traits<std::string>::adapter_type str_adapter;
-   response_traits<int>::adapter_type int_adapter;
-
-   void
-   operator()(
-      command cmd,
-      type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* data,
-      std::size_t size,
-      std::error_code& ec)
-   {
-      // Handles only the commands we are interested in and ignores
-      // the rest.
-      switch (cmd) {
-	 case command::ping: str_adapter(t, aggregate_size, depth, data, size, ec); return;
-	 case command::incr: int_adapter(t, aggregate_size, depth, data, size, ec); return;
-         default: {} // Ignore.
-      }
-   }
-};
-
-class db : public std::enable_shared_from_this<db> {
+class receiver : public std::enable_shared_from_this<receiver> {
 private:
-   std::string resp_str_;
-   int resp_int_;
+   responses resps_;
    std::queue<std::weak_ptr<user_session_base>> sessions_;
 
 public:
    auto get_adapter()
-      { return adapter_wrapper{adapt(resp_str_), adapt(resp_int_)}; }
+      { return adapter_wrapper{resps_}; }
 
    void add_user_session(std::shared_ptr<user_session_base> session)
       { sessions_.push(session); }
 
-   void on_message(command cmd, std::shared_ptr<client>)
+   void on_message(std::error_code ec, command cmd, std::shared_ptr<client>)
    {
+      if (ec) {
+	 std::cerr << "Error: " << ec.message() << std::endl;
+	 return;
+      }
+
       switch (cmd) {
 	 case command::ping:
 	 {
 	    if (auto session = sessions_.front().lock()) {
-	       session->deliver(resp_str_);
+	       session->deliver(resps_.simple_string);
 	    } else {
 	       std::cout << "Session expired." << std::endl;
 	    }
 
 	    sessions_.pop();
-	    resp_str_.clear();
+	    resps_.simple_string.clear();
 	 } break;
 	 case command::incr:
 	 {
-	    std::cout << "Echos so far: " << resp_int_ << std::endl;
+	    std::cout << "Echos so far: " << resps_.number << std::endl;
 	 } break;
          default: { assert(false); }
       }
@@ -89,25 +66,25 @@ net::awaitable<void> listener()
    auto ex = co_await net::this_coro::executor;
    net::ip::tcp::acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});
    
-   auto rdb = std::make_shared<db>();
-   auto on_message = [rdb](command cmd, std::shared_ptr<client> cl)
-      { rdb->on_message(cmd, cl); };
+   auto recv = std::make_shared<receiver>();
+   auto on_db_msg = [recv](std::error_code ec, command cmd, std::shared_ptr<client> cl)
+      { recv->on_message(ec, cmd, cl); };
 
-   auto redis = std::make_shared<client>(ex, rdb->get_adapter(), on_message);
-   redis->start();
+   auto db = std::make_shared<client>(ex, recv->get_adapter(), on_db_msg);
+   db->start();
 
    for (;;) {
       auto socket = co_await acceptor.async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
 
-      auto on_msg = [redis, rdb, session](std::string const& msg)
+      auto on_user_msg = [db, recv, session](std::string const& msg)
       {
-	 redis->send(command::ping, msg);
-	 rdb->add_user_session(session);
-	 redis->send(command::incr, "echo-counter");
+	 db->send(command::ping, msg);
+	 db->send(command::incr, "echo-counter");
+	 recv->add_user_session(session);
       };
 
-      session->start(on_msg);
+      session->start(on_user_msg);
    }
 }
 

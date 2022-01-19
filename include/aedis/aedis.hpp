@@ -108,10 +108,9 @@
       Customization point for users that want to de/serialize their
       own data-structures.
 
-    \b Adavanced: Contains some non-trivial examples that user
-    long-lasting TCP connections to the Redis server. This is the
-    desired way to communicate with redis. Some of the source code is
-    contained in \c lib sub-directory.
+    \b Asynchronous servers: Contains some non-trivial examples
+    servers that interact with users and Redis asynchronously over
+    long lasting connections.
 
     - echo_server.cpp
 
