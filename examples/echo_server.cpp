@@ -23,8 +23,7 @@ using aedis::resp3::adapt;
 using aedis::resp3::response_traits;
 using aedis::resp3::type;
 
-// In the echo_server we will be sending ping and incr commands to
-// redis. 
+// Uses one adapter for each different command.
 struct adapter_wrapper {
    response_traits<std::string>::adapter_type str_adapter;
    response_traits<int>::adapter_type int_adapter;
@@ -49,15 +48,20 @@ struct adapter_wrapper {
    }
 };
 
-class my_redis_client : public client {
+class db : public std::enable_shared_from_this<db> {
 private:
-   // Objects to hold the responses.
    std::string resp_str_;
    int resp_int_;
-
    std::queue<std::weak_ptr<user_session_base>> sessions_;
 
-   void on_message(command cmd) override
+public:
+   auto get_adapter()
+      { return adapter_wrapper{adapt(resp_str_), adapt(resp_int_)}; }
+
+   void add_user_session(std::shared_ptr<user_session_base> session)
+      { sessions_.push(session); }
+
+   void on_message(command cmd, std::shared_ptr<client>)
    {
       switch (cmd) {
 	 case command::ping:
@@ -78,14 +82,6 @@ private:
          default: { assert(false); }
       }
    }
-
-public:
-   my_redis_client(net::any_io_executor ex)
-   : client(ex, adapter_wrapper{adapt(resp_str_), adapt(resp_int_)})
-   {}
-
-   void add_user_session(std::shared_ptr<user_session_base> session)
-      { sessions_.push(session); }
 };
 
 net::awaitable<void> listener()
@@ -93,18 +89,22 @@ net::awaitable<void> listener()
    auto ex = co_await net::this_coro::executor;
    net::ip::tcp::acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});
    
-   auto client = std::make_shared<my_redis_client>(ex);
-   client->start();
+   auto rdb = std::make_shared<db>();
+   auto on_message = [rdb](command cmd, std::shared_ptr<client> cl)
+      { rdb->on_message(cmd, cl); };
+
+   auto redis = std::make_shared<client>(ex, rdb->get_adapter(), on_message);
+   redis->start();
 
    for (;;) {
       auto socket = co_await acceptor.async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
 
-      auto on_msg = [client, session](std::string const& msg)
+      auto on_msg = [redis, rdb, session](std::string const& msg)
       {
-	 client->send(command::ping, msg);
-	 client->add_user_session(session);
-	 client->send(command::incr, "echo-counter");
+	 redis->send(command::ping, msg);
+	 rdb->add_user_session(session);
+	 redis->send(command::incr, "echo-counter");
       };
 
       session->start(on_msg);

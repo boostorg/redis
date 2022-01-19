@@ -50,46 +50,42 @@ struct adapter_wrapper {
    }
 };
 
-class my_redis_client : public client {
+class db : public std::enable_shared_from_this<db> {
 private:
-   // Objects to hold the responses.
    std::vector<node> resp_push_;
    int resp_int_;
-
-   // Store sessions on a vector for fast traversal.
    std::vector<std::weak_ptr<user_session_base>> sessions_;
 
-   void on_message(command cmd) override
+public:
+   auto get_adapter()
+      { return adapter_wrapper{adapt(resp_push_), adapt(resp_int_)}; }
+
+   auto subscribe(std::shared_ptr<user_session_base> session)
+      { sessions_.push_back(session); }
+
+   void on_message(command cmd, std::shared_ptr<client>)
    {
       switch (cmd) {
 	 case command::incr:
 	 {
 	    std::cout << "Message so far: " << resp_int_ << std::endl;
 	 } break;
+	 case command::unknown: // Push
+	 {
+	    // TODO: Delete sessions lazily on traversal.
+	    for (auto& weak: sessions_) {
+	       if (auto session = weak.lock()) {
+		  session->deliver(resp_push_.at(3).data);
+	       } else {
+		  std::cout << "Session expired." << std::endl;
+	       }
+	    }
+
+	    resp_push_.clear();
+	 } break;
          default: { /* Ignore */ }
       }
    }
-   void on_push() override
-   {
-      // TODO: Delete sessions lazily on traversal.
-      for (auto& weak: sessions_) {
-	 if (auto session = weak.lock()) {
-	    session->deliver(resp_push_.at(3).data);
-	 } else {
-	    std::cout << "Session expired." << std::endl;
-	 }
-      }
-
-      resp_push_.clear();
-   }
-
-public:
-   my_redis_client(net::any_io_executor ex)
-   : client(ex, adapter_wrapper{adapt(resp_push_), adapt(resp_int_)})
-   {}
-
-   auto subscribe(std::shared_ptr<user_session_base> session)
-      { sessions_.push_back(session); }
 };
 
 net::awaitable<void> listener()
@@ -97,22 +93,25 @@ net::awaitable<void> listener()
    auto ex = co_await net::this_coro::executor;
    net::ip::tcp::acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});
 
-   auto client = std::make_shared<my_redis_client>(ex);
-   client->start();
-   client->send(command::subscribe, "channel");
+   auto rdb = std::make_shared<db>();
+   auto on_message = [rdb](command cmd, std::shared_ptr<client> cl)
+      { rdb->on_message(cmd, cl); };
+
+   auto redis = std::make_shared<client>(ex, rdb->get_adapter(), on_message);
+   redis->send(command::subscribe, "channel");
+   redis->start();
+
+   auto on_user_msg = [redis](std::string const& msg)
+   {
+      redis->send(command::publish, "channel", msg);
+      redis->send(command::incr, "message-counter");
+   };
 
    for (;;) {
       auto socket = co_await acceptor.async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
-      client->subscribe(session);
-
-      auto on_msg = [client](std::string const& msg)
-      {
-         client->send(command::publish, "channel", msg);
-         client->send(command::incr, "message-counter");
-      };
-
-      session->start(on_msg);
+      rdb->subscribe(session);
+      session->start(on_user_msg);
    }
 }
 
