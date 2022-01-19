@@ -9,8 +9,8 @@
 
 #include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
+#include <aedis/resp3/client.hpp>
 
-#include "lib/client.hpp"
 #include "lib/user_session.hpp"
 #include "src.hpp"
 
@@ -18,7 +18,7 @@ namespace net = aedis::net;
 using aedis::command;
 using aedis::user_session;
 using aedis::user_session_base;
-using aedis::resp3::client;
+using aedis::resp3::experimental::client;
 using aedis::resp3::adapt;
 using aedis::resp3::response_traits;
 using aedis::resp3::type;

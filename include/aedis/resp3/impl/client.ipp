@@ -7,13 +7,13 @@
 
 #pragma once
 
-#include "client.hpp"
-#include "user_session.hpp"
+#include <aedis/resp3/client.hpp>
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
 namespace aedis {
 namespace resp3 {
+namespace experimental {
 
 client::client(
    net::any_io_executor ex,
@@ -153,6 +153,7 @@ void client::start()
       net::detached);
 }
 
+} // experimental
 } // resp3
 } // aedis
 

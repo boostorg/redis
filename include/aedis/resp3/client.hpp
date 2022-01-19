@@ -14,14 +14,19 @@
 
 namespace aedis {
 namespace resp3 {
+namespace experimental {
 
-/*  Example: A high level redis client.
+/**  \brief Example: A high level redis client.
+ *   \ingroup classes
  *
- *  This class is meant to be an example.
+ *   This class is meant to be an example.
  */
 class client : public std::enable_shared_from_this<client> {
 public:
+   /// The response adapter type.
    using adapter_type = std::function<void(command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
+
+   /// The type of the message callback.
    using on_message_type = std::function<void(command, std::shared_ptr<client>)>;
 
 private:
@@ -80,20 +85,20 @@ private:
    bool prepare_next();
 
 public:
-   // Constructor
+   /// Constructor
    client(
       net::any_io_executor ex,
       adapter_type adapter,
       on_message_type on_msg);
 
-   /*  Starts the client.
+   /** \brief Starts the client.
     *
     *  Stablishes a connection with the redis server and keeps
     *  waiting for messages to send.
     */
    void start();
 
-   /* Adds a command to the command queue.
+   /** \brief Adds a command to the command queue.
     */
    template <class... Ts>
    void send(command cmd, Ts const&... args);
@@ -119,5 +124,6 @@ void client::send(command cmd, Ts const&... args)
       timer_.cancel_one();
 }
 
+} // experimental
 } // resp3
 } // aedis
