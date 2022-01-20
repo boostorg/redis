@@ -77,6 +77,10 @@
       
       Aedis also offers a synchronous api, this example shows how to use it.
 
+    - redis_client.cpp
+
+      Shows how to use and experimental high level redis client that keeps a long lasting connections to a redis server.
+
     \b STL \b Containers: Many of the Redis data structures can be
     directly translated in to STL containers. The examples bellow show
     how to do that. The list of Redis data types can be found at
@@ -108,7 +112,7 @@
       Customization point for users that want to de/serialize their
       own data-structures.
 
-    \b Asynchronous servers: Contains some non-trivial examples
+    \b Asynchronous \b servers: Contains some non-trivial examples
     servers that interact with users and Redis asynchronously over
     long lasting connections.
 

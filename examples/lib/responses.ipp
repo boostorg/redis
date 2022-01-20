@@ -31,9 +31,19 @@ void adapter_wrapper::operator()(
    // Handles only the commands we are interested in the examples and
    // ignores the rest.
    switch (cmd) {
-      case command::ping: str_adapter_(t, aggregate_size, depth, data, size, ec); return;
-      case command::incr: number_adapter_(t, aggregate_size, depth, data, size, ec); return;
-      case command::unknown: general_adapter_(t, aggregate_size, depth, data, size, ec); return;
+      case command::quit:
+      case command::ping:
+      str_adapter_(t, aggregate_size, depth, data, size, ec);
+      return;
+
+      case command::incr:
+      number_adapter_(t, aggregate_size, depth, data, size, ec);
+      return;
+
+      case command::unknown:
+      general_adapter_(t, aggregate_size, depth, data, size, ec);
+      return;
+
       default: {} // Ignore.
    }
 }

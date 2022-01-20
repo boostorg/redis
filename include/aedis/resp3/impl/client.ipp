@@ -15,21 +15,13 @@ namespace aedis {
 namespace resp3 {
 namespace experimental {
 
-client::client(
-   net::any_io_executor ex,
-   adapter_type adapter,
-   on_message_type on_msg)
+client::client(net::any_io_executor ex)
 : socket_{ex}
 , timer_{ex}
-, adapter_{adapter}
-, on_msg_{on_msg}
 { }
 
 net::awaitable<void> client::reader()
 {
-   auto on_msg = [self = shared_from_this()](std::error_code ec, command cmd)
-      { self->on_msg_(ec, cmd, self); };
-
    // Writes and reads continuosly from the socket.
    for (std::string buffer;;) {
       while (!std::empty(req_info_)) {
@@ -52,14 +44,14 @@ net::awaitable<void> client::reader()
 
 	       boost::system::error_code ec;
 	       co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));
-	       on_msg(ec, command::unknown);
+	       on_msg_(ec, command::unknown);
 	    } else {
 	       auto adapter = [this](type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec)
 		  {adapter_(commands_.front(), t, aggregate_size, depth, data, size, ec);};
 
 	       boost::system::error_code ec;
 	       co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));
-	       on_msg(ec, commands_.front());
+	       on_msg_(ec, commands_.front());
 	       commands_.pop();
 	       --req_info_.front().cmds;
 	    }
@@ -82,16 +74,15 @@ net::awaitable<void> client::writer()
    while (socket_.is_open()) {
       boost::system::error_code ec;
       co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));
-      do {
-	 assert(!std::empty(req_info_));
-	 co_await net::async_write(socket_, net::buffer(requests_.data(), req_info_.front().size));
-	 requests_.erase(0, req_info_.front().size);
-
-	 if (req_info_.front().cmds != 0)
-	    break;
-
-	 req_info_.pop();
-      } while (!std::empty(req_info_));
+      while (!std::empty(req_info_)) {
+         co_await net::async_write(socket_, net::buffer(requests_.data(), req_info_.front().size));
+         requests_.erase(0, req_info_.front().size);
+         
+         if (req_info_.front().cmds != 0)
+            break;
+         
+         req_info_.pop();
+      }
    }
 }
 
@@ -153,6 +144,16 @@ void client::start()
    net::co_spawn(socket_.get_executor(),
       [self = this->shared_from_this()]{ return self->connection_manager(); },
       net::detached);
+}
+
+void client::set_adapter(adapter_type adapter)
+{
+   adapter_ = adapter;
+}
+
+void client::set_msg_callback(on_message_type on_msg)
+{
+   on_msg_ = on_msg;
 }
 
 } // experimental

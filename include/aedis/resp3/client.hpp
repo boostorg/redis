@@ -27,7 +27,7 @@ public:
    using adapter_type = std::function<void(command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
 
    /// The type of the message callback.
-   using on_message_type = std::function<void(std::error_code ec, command, std::shared_ptr<client>)>;
+   using on_message_type = std::function<void(std::error_code ec, command)>;
 
 private:
    using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
@@ -57,10 +57,10 @@ private:
    // next message in the output queue.
    net::steady_timer timer_;
 
-   // Response adapter
+   // Response adapter. TODO: Set a default adapter.
    adapter_type adapter_;
 
-   // Message callback.
+   // Message callback. TODO: Set a default callback.
    on_message_type on_msg_;
 
    // A coroutine that keeps reading the socket. When a message
@@ -86,15 +86,13 @@ private:
 
 public:
    /// Constructor
-   client(
-      net::any_io_executor ex,
-      adapter_type adapter,
-      on_message_type on_msg);
+   client(net::any_io_executor ex);
 
    /** \brief Starts the client.
     *
     *  Stablishes a connection with the redis server and keeps
     *  waiting for messages to send.
+    *  TODO: Rename to prepare.
     */
    void start();
 
@@ -102,6 +100,12 @@ public:
     */
    template <class... Ts>
    void send(command cmd, Ts const&... args);
+
+   /// Sets the response adapter.
+   void set_adapter(adapter_type adapter);
+
+   /// Sets the message callback;
+   void set_msg_callback(on_message_type on_msg);
 };
 
 template <class... Ts>

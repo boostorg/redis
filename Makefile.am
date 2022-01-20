@@ -76,6 +76,11 @@ sync_SOURCES = $(top_srcdir)/examples/sync.cpp
 sync_CPPFLAGS = $(MY_CPPFLAGS)
 sync_LDADD = $(MY_LDADD)
 
+noinst_PROGRAMS += redis_client
+redis_client_SOURCES = $(top_srcdir)/examples/redis_client.cpp
+redis_client_CPPFLAGS = $(MY_CPPFLAGS)
+redis_client_LDADD = $(MY_LDADD)
+
 noinst_PROGRAMS += commands
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 commands_CPPFLAGS = $(MY_CPPFLAGS)

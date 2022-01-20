@@ -6,10 +6,10 @@
  */
 
 #include <iostream>
+#include <queue>
 
 #include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
-#include <aedis/resp3/client.hpp>
 
 #include "lib/user_session.hpp"
 #include "lib/responses.hpp"
@@ -33,7 +33,7 @@ public:
    void add_user_session(std::shared_ptr<user_session_base> session)
       { sessions_.push(session); }
 
-   void on_message(std::error_code ec, command cmd, std::shared_ptr<client>)
+   void on_message(std::error_code ec, command cmd)
    {
       if (ec) {
 	 std::cerr << "Error: " << ec.message() << std::endl;
@@ -65,12 +65,14 @@ net::awaitable<void> listener()
 {
    auto ex = co_await net::this_coro::executor;
    net::ip::tcp::acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});
-   
-   auto recv = std::make_shared<receiver>();
-   auto on_db_msg = [recv](std::error_code ec, command cmd, std::shared_ptr<client> cl)
-      { recv->on_message(ec, cmd, cl); };
 
-   auto db = std::make_shared<client>(ex, recv->get_adapter(), on_db_msg);
+   auto recv = std::make_shared<receiver>();
+   auto on_db_msg = [recv](std::error_code ec, command cmd)
+      { recv->on_message(ec, cmd); };
+
+   auto db = std::make_shared<client>(ex);
+   db->set_adapter(recv->get_adapter());
+   db->set_msg_callback(on_db_msg);
    db->start();
 
    for (;;) {
