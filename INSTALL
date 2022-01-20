@@ -1,1 +1,7 @@
 CC=/opt/gcc-10.2.0/bin/gcc-10.2.0 CXX=/opt/gcc-10.2.0/bin/g++-10.2.0  CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror"  ./configure --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib
+
+CPPFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror"
+BOOST_LDFLAGS = -L/opt/boost_1_78_0/lib
+BOOST_CPPFLAGS = -I/opt/boost_1_78_0/include
+export CPPFLAGS="$(BOOST_CPPFLAGS) $(CPPFLAGS)"
+export LDFLAGS="$(BOOST_LDFLAGS)"
