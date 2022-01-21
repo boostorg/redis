@@ -31,11 +31,34 @@ struct needs_to_string<char[N]> : std::false_type {};
 template <std::size_t N>
 struct needs_to_string<char const[N]> : std::false_type {};
 
-void add_header(std::string& to, int size);
-void add_bulk(std::string& to, std::string_view param);
+template <class Storage>
+void add_header(Storage& to, int size)
+{
+   // std::string does not support allocators.
+   using std::to_string;
+   auto const str = to_string(size);
 
-template <class T>
-void add_bulk(std::string& to, T const& data, typename std::enable_if<needs_to_string<T>::value, bool>::type = false)
+   to += "*";
+   to.append(std::cbegin(str), std::cend(str));
+   to += "\r\n";
+}
+
+template <class Storage>
+void add_bulk(Storage& to, std::string_view data)
+{
+   // std::string does not support allocators.
+   using std::to_string;
+   auto const str = to_string(std::size(data));
+
+   to += "$";
+   to.append(std::cbegin(str), std::cend(str));
+   to += "\r\n";
+   to += data;
+   to += "\r\n";
+}
+
+template <class Storage, class T>
+void add_bulk(Storage& to, T const& data, typename std::enable_if<needs_to_string<T>::value, bool>::type = false)
 {
   using std::to_string;
   auto const s = to_string(data);
@@ -44,8 +67,8 @@ void add_bulk(std::string& to, T const& data, typename std::enable_if<needs_to_s
 
 // Overload for pairs.
 // TODO: Overload for tuples.
-template <class T1, class T2>
-void add_bulk(std::string& to, std::pair<T1, T2> const& pair)
+template <class Storage, class T1, class T2>
+void add_bulk(Storage& to, std::pair<T1, T2> const& pair)
 {
   add_bulk(to, pair.first);
   add_bulk(to, pair.second);

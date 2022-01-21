@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,16 +7,10 @@
 
 #pragma once
 
-#include <queue>
-#include <vector>
 #include <string>
-#include <string_view>
-#include <utility>
-#include <ostream>
-#include <iterator>
 
-#include <aedis/resp3/detail/composer.hpp>
 #include <aedis/command.hpp>
+#include <aedis/resp3/detail/composer.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -38,14 +32,14 @@ namespace resp3 {
  *  co_await async_write(socket, buffer(sr.request()));
  *  @endcode
  */
-template <class Container, class Command>
+template <class Storage, class Command>
 class serializer {
 private:
-   Container* request_;
+   Storage* request_;
 
 public:
    /// Constructor
-   serializer(Container& container) : request_(&container) {}
+   serializer(Storage& storage) : request_(&storage) {}
 
    /** @brief Appends a new command to the end of the request.
     *
@@ -132,14 +126,14 @@ public:
    }
 };
 
-/** \brief Creates a serializer from a container.
+/** \brief Creates a serializer for a \c std::string.
  *  \ingroup functions
- *  TODO: Add the string template parameters.
+ *  \param storage The string.
  */
-template <class Command>
-auto make_serializer(std::string& container)
+template<class Command>
+auto make_serializer(std::string& storage)
 {
-   return serializer<std::string, Command>(container);
+   return serializer<std::string, Command>(storage);
 }
 
 } // resp3

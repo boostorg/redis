@@ -112,7 +112,6 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/resp3/read.hpp\
   $(top_srcdir)/aedis/impl/command.ipp\
   $(top_srcdir)/aedis/resp3/detail/impl/parser.ipp\
-  $(top_srcdir)/aedis/resp3/detail/impl/composer.ipp\
   $(top_srcdir)/aedis/resp3/impl/type.ipp\
   $(top_srcdir)/aedis/resp3/impl/client.ipp\
   $(top_srcdir)/aedis/resp3/impl/node.ipp
@@ -156,6 +155,5 @@ deb: dist
 	cd tmp &&\
 	ln $(distdir)-1.tar.gz $(PACKAGE)_$(VERSION).orig.tar.gz &&\
 	tar -xvvzf $(distdir)-1.tar.gz &&\
-	mkdir -p debian
 	cd $(distdir)/debian; debuild --no-sign -j1
 
