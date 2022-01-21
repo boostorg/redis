@@ -6,12 +6,12 @@ namespace aedis {
 namespace resp3 {
 namespace adapter {
 
-/** \brief Errors that may occurr whe deserializing a response.
+/** \brief Errors that may occurr when reading a response.
  *  \ingroup enums
  */
 enum class error
 {
-   /// Expects a simple RESP3 type but got an e.g. aggregate.
+   /// Expects a simple RESP3 type but got an aggregate.
    expects_simple_type = 1,
 
    /// Nested response not supported.
@@ -23,7 +23,7 @@ enum class error
    /// Got RESP3 blob_error.
    blob_error,
 
-   /// Got RESP3 null but the response type does not support it.
+   /// Got RESP3 null type.
    null,
 };
 

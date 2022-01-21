@@ -15,39 +15,66 @@
 namespace aedis {
 namespace resp3 {
 
-/** @brief Creates a RESP3 request from user data.
+/** @brief Creates a Redis request from user data.
  *  \ingroup classes
  *  
  *  A request is composed of one or more redis commands and is
  *  referred to in the redis documentation as a pipeline, see
- *  https://redis.io/topics/pipelining, for example
+ *  https://redis.io/topics/pipelining.
+ *
+ *  For example
  *
  *  @code
- *  serializer<command> sr;
+ *  std::string request;
+ *  auto sr = make_serializer(request);
  *  sr.push(command::hello, 3);
  *  sr.push(command::flushall);
  *  sr.push(command::ping);
  *  sr.push(command::incr, "key");
  *  sr.push(command::quit);
- *  co_await async_write(socket, buffer(sr.request()));
+ *  co_await async_write(socket, buffer(request));
  *  @endcode
+ *
+ *  \tparam Storage The storage type. This is currently a \c std::string.
+ *  \tparam Command The command to serialize.
+ *
+ *  \remarks  Non-string types will be converted to string by using \c
+ *  to_string, which must be made available over ADL.
  */
+
+// TODO: Add an overload for containers.
 template <class Storage, class Command>
 class serializer {
 private:
    Storage* request_;
 
 public:
-   /// Constructor
+   /** \brief Constructor
+    *  
+    *  \param storage Object where the serialized request will be
+    *  stored.
+    */
    serializer(Storage& storage) : request_(&storage) {}
 
    /** @brief Appends a new command to the end of the request.
     *
-    *  Non-string types will be converted to string by using
-    *  \c to_string, which must be made available by the user by ADL.
+    *  For example
+    *
+    *  \code
+    *  std::string request;
+    *  auto sr = make_serializer<command>(request);
+    *  sr.push(command::set, "key", "some string", "EX", "2");
+    *  \endcode
+    *
+    *  will add the \c set command with payload "some string" and an
+    *  expiration of 2 seconds.
+    *
+    *  \param cmd The redis command.
+    *  \param args The arguments of the Redis command.
+    *
     */
    template <class... Ts>
-   void push(Command qelem, Ts const&... args)
+   void push(Command cmd, Ts const&... args)
    {
       // TODO: Should we detect any std::pair in the type in the pack
       // to calculate the header size correctly?
@@ -55,28 +82,32 @@ public:
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(*request_, 1 + pack_size);
 
-      auto const cmd = detail::request_get_command<Command>::apply(qelem);
       detail::add_bulk(*request_, to_string(cmd));
       (detail::add_bulk(*request_, args), ...);
    }
 
    /** @brief Appends a new command to the end of the request.
-       
-       This overload is useful for commands that have a key. For example
-     
-       \code{.cpp}
-       std::map<std::string, std::string> map
-	  { {"key1", "value1"}
-	  , {"key2", "value2"}
-	  , {"key3", "value3"}
-	  };
-
-       request req;
-       req.push_range(command::hset, "key", std::cbegin(map), std::cend(map));
-       \endcode
+    *  
+    *  This overload is useful for commands that require a key. For example
+    *
+    *  \code{.cpp}
+    *  std::map<std::string, std::string> map
+    *     { {"key1", "value1"}
+    *     , {"key2", "value2"}
+    *     , {"key3", "value3"}
+    *     };
+    *
+    *  request req;
+    *  req.push_range(command::hset, "key", std::cbegin(map), std::cend(map));
+    *  \endcode
+    *  
+    *  \param cmd The Redis command
+    *  \param key The key the Redis command refers to.
+    *  \param begin Iterator to the begin of the range.
+    *  \param end Iterator to the end of the range.
     */
    template <class Key, class ForwardIterator>
-   void push_range(Command qelem, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void push_range(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would helpful to users
       // to assert the value type is a pair.
@@ -86,7 +117,6 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(*request_, 2 + size * distance);
-      auto const cmd = detail::request_get_command<Command>::apply(qelem);
       detail::add_bulk(*request_, to_string(cmd));
       detail::add_bulk(*request_, key);
 
@@ -95,20 +125,24 @@ public:
    }
 
    /** @brief Appends a new command to the end of the request.
-     
-       This overload is useful for commands that don't have a key. For
-       example
-     
-       \code{.cpp}
-       std::set<std::string> channels
-	  { "channel1" , "channel2" , "channel3" }
-
-       request req;
-       req.push(command::subscribe, std::cbegin(channels), std::cedn(channels));
-       \endcode
+    *
+    *  This overload is useful for commands that don't have a key. For
+    *  example
+    *
+    *  \code
+    *  std::set<std::string> channels
+    *     { "channel1" , "channel2" , "channel3" }
+    *
+    *  request req;
+    *  req.push(command::subscribe, std::cbegin(channels), std::cedn(channels));
+    *  \endcode
+    *
+    *  \param cmd The Redis command
+    *  \param begin Iterator to the begin of the range.
+    *  \param end Iterator to the end of the range.
     */
    template <class ForwardIterator>
-   void push_range(Command qelem, ForwardIterator begin, ForwardIterator end)
+   void push_range(Command cmd, ForwardIterator begin, ForwardIterator end)
    {
       // Note: For some commands like hset it would be a good idea to assert
       // the value type is a pair.
@@ -118,7 +152,6 @@ public:
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
       detail::add_header(*request_, 1 + size * distance);
-      auto const cmd = detail::request_get_command<Command>::apply(qelem);
       detail::add_bulk(*request_, to_string(cmd));
 
       for (; begin != end; ++begin)

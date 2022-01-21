@@ -25,7 +25,7 @@ struct node {
    /// The RESP3 type of the data in this node.
    type data_type;
 
-   /// The number of children this node is parent of.
+   /// The number of elements of an aggregate.
    std::size_t aggregate_size;
 
    /// The depth of this node in the response tree.

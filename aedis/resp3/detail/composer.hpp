@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -82,18 +82,6 @@ struct value_type_size {
 template <class T, class U>
 struct value_type_size<std::pair<T, U>> {
   static constexpr auto size = 2U;
-};
-
-template <class T>
-struct request_get_command {
-   static command apply(T const& e) noexcept
-      { return e.cmd; }
-};
-
-template <>
-struct request_get_command<command> {
-   static command apply(command e) noexcept
-      { return e; }
 };
 
 } // detail

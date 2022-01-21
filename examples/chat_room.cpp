@@ -76,7 +76,7 @@ net::awaitable<void> listener()
    db->set_adapter(recv->get_adapter());
    db->set_msg_callback(on_db_msg);
    db->send(command::subscribe, "channel");
-   db->start();
+   db->prepare();
 
    auto on_user_msg = [db](std::string const& msg)
    {

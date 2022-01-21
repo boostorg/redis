@@ -73,7 +73,7 @@ net::awaitable<void> listener()
    auto db = std::make_shared<client>(ex);
    db->set_adapter(recv->get_adapter());
    db->set_msg_callback(on_db_msg);
-   db->start();
+   db->prepare();
 
    for (;;) {
       auto socket = co_await acceptor.async_accept(net::use_awaitable);

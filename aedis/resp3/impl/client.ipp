@@ -139,7 +139,7 @@ bool client::prepare_next()
    return false;
 }
 
-void client::start()
+void client::prepare()
 {
    net::co_spawn(socket_.get_executor(),
       [self = this->shared_from_this()]{ return self->connection_manager(); },

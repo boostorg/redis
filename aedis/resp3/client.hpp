@@ -85,18 +85,21 @@ private:
    bool prepare_next();
 
 public:
-   /// Constructor
+   /** \brief Client constructor.
+    *
+    *  Constructos the client from an executor.
+    *
+    *  \param ex The executor.
+    */
    client(net::any_io_executor ex);
 
-   /** \brief Starts the client.
-    *
-    *  Stablishes a connection with the redis server and keeps
-    *  waiting for messages to send.
-    *  TODO: Rename to prepare.
+   /** \brief Prepares the client for execution.
     */
-   void start();
+   void prepare();
 
    /** \brief Adds a command to the command queue.
+    *
+    *  \sa serializer.hpp
     */
    template <class... Ts>
    void send(command cmd, Ts const&... args);

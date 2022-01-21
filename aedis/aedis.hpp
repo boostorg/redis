@@ -148,8 +148,8 @@
 //---------------------------------------------------------
 // Groups
 
-/** \defgroup enums Enums
- *  \brief Enums defined by this library.
+/** \defgroup enums Enumerations
+ *  \brief Enumerations defined by this library.
  */
 
 

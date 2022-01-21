@@ -56,7 +56,7 @@ int main()
       db->send(command::ping, "O rato roeu a roupa do rei de Roma");
       db->send(command::incr, "redis-client-counter");
       db->send(command::quit);
-      db->start();
+      db->prepare();
 
       ioc.run();
    } catch (std::exception const& e) {
