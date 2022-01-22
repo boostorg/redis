@@ -42,21 +42,21 @@
  *  its native protocol RESP3. Some of its featues are
  *
  *  - First class support to STL containers and C++ built-in types.
- *  - Support for pipelining, trasactions and TLS.
- *  - Serialization and deserializaiton of your own types.
+ *  - Support for pipelining, transactions and TLS.
+ *  - Serialization and de-serialization of your own types.
  *  - First class support to async programming through ASIO.
  */
 
 /** \page examples Examples
  *
-    \b Basics: Focuses on small code snipets that show basic usage of
-    the library. For example: How to create a request and read resp,
-    how to deal with keys that may not exist, etc.
+    \b Basics: Focuses on small code snippets that show basic usage of
+    the library, for example: how to make a request and read the
+    response, how to deal with keys that may not exist, etc.
 
     - intro.cpp
 
-      Users should start here. Some commands are sent to the Redis
-      server and the responses are printed to screen.
+      Some commands are sent to the Redis server and the responses are
+      printed to screen.
 
     - key_expiration.cpp
       
@@ -71,19 +71,20 @@
 
     - subscriber.cpp
 
-      Shows how channel subscription works.
+      Shows how channel subscription works at a low level.
 
     - sync.cpp
       
-      Aedis also offers a synchronous api, this example shows how to use it.
+      Shows hot to use the Aedis synchronous api.
 
     - redis_client.cpp
 
-      Shows how to use and experimental high level redis client that keeps a long lasting connections to a redis server.
+      Shows how to use and experimental high level redis client that
+      keeps a long lasting connections to a redis server.
 
     \b STL \b Containers: Many of the Redis data structures can be
-    directly translated in to STL containers. The examples bellow show
-    how to do that. The list of Redis data types can be found at
+    directly translated in to STL containers, below you will find some
+    example code. For a list of Redis data types see
     https://redis.io/topics/data-types.
 
     - hashes.cpp
@@ -101,7 +102,9 @@
       Shows how to read Redis sets in a \c std::set, \c std::unordered_set
       and \c std::vector.
 
-    \b Customization \b points: Shows how de/serialize user types avoiding copies. This is specially useful for low latency applicaitons.
+    \b Customization \b points: Shows how de/serialize user types
+    avoiding copies. This is particularly useful for low latency
+    applications.
 
     - serialization.cpp
 
@@ -114,21 +117,21 @@
 
     \b Asynchronous \b servers: Contains some non-trivial examples
     servers that interact with users and Redis asynchronously over
-    long lasting connections.
+    long lasting connections using a higher level API.
 
     - echo_server.cpp
 
-      Shows the basic principles behind async communication with a
-      database in an asynchronous server. In this case, the server is
-      a proxy between the user and the database.
+      Shows the basic principles behind asynchronous communication
+      with a database in an asynchronous server. In this case, the
+      server is a proxy between the user and the database.
 
     - chat_room.cpp
 
-      Shows how to build a scallable chat room where you can scale to
+      Shows how to build a scalable chat room that scales to
       millions of users.
  */
 
-/** \page installation Intallation
+/** \page installation Installation
  *
  *  This library is header only. To install it run
  *

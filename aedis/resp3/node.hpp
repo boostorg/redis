@@ -37,6 +37,8 @@ struct node {
 
 /** \brief Converts the node to a string.
  *  \ingroup functions
+ *
+ *  \param obj The node object.
  */
 std::string to_string(node const& obj);
 

@@ -19,7 +19,8 @@ namespace experimental {
 /**  \brief A high level redis client.
  *   \ingroup classes
  *
- *   This client keeps a connection to the database open.
+ *   This Redis client keeps a connection to the database open and
+ *   manage reconnections.
  */
 class client : public std::enable_shared_from_this<client> {
 public:
