@@ -49,6 +49,7 @@ net::awaitable<void> nested_response()
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
+      exit(EXIT_FAILURE);
    }
 }
 

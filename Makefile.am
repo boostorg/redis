@@ -11,86 +11,87 @@ MY_CPPFLAGS += -I$(top_srcdir)/
 MY_LDADD =
 MY_LDADD += -lpthread
 
-noinst_PROGRAMS =
-noinst_PROGRAMS += intro
+check_PROGRAMS =
+check_PROGRAMS += intro
 intro_SOURCES = $(top_srcdir)/examples/intro.cpp
 intro_CPPFLAGS = $(MY_CPPFLAGS)
 intro_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += subscriber
-subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
-subscriber_CPPFLAGS = $(MY_CPPFLAGS)
-subscriber_LDADD = $(MY_LDADD)
-
-noinst_PROGRAMS += sets
+check_PROGRAMS += sets
 sets_SOURCES = $(top_srcdir)/examples/sets.cpp
 sets_CPPFLAGS = $(MY_CPPFLAGS)
 sets_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += hashes
+check_PROGRAMS += hashes
 hashes_SOURCES = $(top_srcdir)/examples/hashes.cpp
 hashes_CPPFLAGS = $(MY_CPPFLAGS)
 hashes_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += serialization
+check_PROGRAMS += serialization
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
 serialization_CPPFLAGS = $(MY_CPPFLAGS)
 serialization_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += nested_response
+check_PROGRAMS += nested_response
 nested_response_SOURCES = $(top_srcdir)/examples/nested_response.cpp
 nested_response_CPPFLAGS = $(MY_CPPFLAGS)
 nested_response_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += lists
+check_PROGRAMS += lists
 lists_SOURCES = $(top_srcdir)/examples/lists.cpp
 lists_CPPFLAGS = $(MY_CPPFLAGS)
 lists_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += echo_server
-echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
-echo_server_CPPFLAGS = $(MY_CPPFLAGS)
-echo_server_LDADD = $(MY_LDADD)
-
-noinst_PROGRAMS += chat_room
-chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
-chat_room_CPPFLAGS = $(MY_CPPFLAGS)
-chat_room_LDADD = $(MY_LDADD)
-
-noinst_PROGRAMS += key_expiration
+check_PROGRAMS += key_expiration
 key_expiration_SOURCES = $(top_srcdir)/examples/key_expiration.cpp
 key_expiration_CPPFLAGS = $(MY_CPPFLAGS)
 key_expiration_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += response_adapter
+check_PROGRAMS += response_adapter
 response_adapter_SOURCES = $(top_srcdir)/examples/response_adapter.cpp
 response_adapter_CPPFLAGS = $(MY_CPPFLAGS)
 response_adapter_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += sync
+check_PROGRAMS += sync
 sync_SOURCES = $(top_srcdir)/examples/sync.cpp
 sync_CPPFLAGS = $(MY_CPPFLAGS)
 sync_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += redis_client
+check_PROGRAMS += redis_client
 redis_client_SOURCES = $(top_srcdir)/examples/redis_client.cpp
 redis_client_CPPFLAGS = $(MY_CPPFLAGS)
 redis_client_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += commands
+check_PROGRAMS += commands
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 commands_CPPFLAGS = $(MY_CPPFLAGS)
 commands_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += test_offline
+check_PROGRAMS += test_offline
 test_offline_SOURCES = $(top_srcdir)/tests/offline.cpp
 test_offline_CPPFLAGS = $(MY_CPPFLAGS)
 test_offline_LDADD = $(MY_LDADD)
 
-noinst_PROGRAMS += test_online
+check_PROGRAMS += test_online
 test_online_SOURCES = $(top_srcdir)/tests/online.cpp
 test_online_CPPFLAGS = $(MY_CPPFLAGS)
 test_online_LDADD = $(MY_LDADD)
+
+EXTRA_PROGRAMS =
+EXTRA_PROGRAMS += subscriber
+subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
+subscriber_CPPFLAGS = $(MY_CPPFLAGS)
+subscriber_LDADD = $(MY_LDADD)
+
+EXTRA_PROGRAMS += echo_server
+echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
+echo_server_CPPFLAGS = $(MY_CPPFLAGS)
+echo_server_LDADD = $(MY_LDADD)
+
+EXTRA_PROGRAMS += chat_room
+chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
+chat_room_CPPFLAGS = $(MY_CPPFLAGS)
+chat_room_LDADD = $(MY_LDADD)
 
 nobase_include_HEADERS =\
   $(top_srcdir)/aedis/src.hpp\
@@ -126,7 +127,7 @@ nobase_noinst_HEADERS =\
   $(top_srcdir)/tests/check.hpp\
   $(top_srcdir)/tests/test_stream.hpp
 
-TESTS = test_offline test_offline
+TESTS = $(check_PROGRAMS)
 
 EXTRA_DIST =
 EXTRA_DIST += $(top_srcdir)/README.md

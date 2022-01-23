@@ -76,6 +76,7 @@ net::awaitable<void> containers()
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
+      exit(EXIT_FAILURE);
    }
 }
 
