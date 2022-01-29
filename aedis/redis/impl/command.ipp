@@ -1,15 +1,14 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <aedis/command.hpp>
-
-#include <cassert>
+#include <aedis/redis/command.hpp>
 
 namespace aedis {
+namespace redis {
 
 char const* to_string(command c)
 {
@@ -242,4 +241,5 @@ bool has_push_response(command cmd)
    }
 }
 
+} // redis
 } // aedis

@@ -11,13 +11,14 @@
 #include <list>
 #include <deque>
 
-#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
-#include "utils.ipp"
+#include <aedis/src.hpp>
+
+#include "lib/net_utils.hpp"
 
 namespace resp3 = aedis::resp3;
-using aedis::command;
-using resp3::make_serializer;
+using aedis::redis::command;
+using aedis::redis::make_serializer;
 using resp3::adapt;
 
 namespace net = aedis::net;
@@ -42,7 +43,7 @@ net::awaitable<void> ping()
       // Creates and sends the request.
       auto vec  = {1, 2, 3, 4, 5, 6};
       std::string request;
-      auto sr = make_serializer<command>(request);
+      auto sr = make_serializer(request);
       sr.push(command::hello, 3);
       sr.push(command::flushall);
       sr.push_range(command::rpush, "key", std::cbegin(vec), std::cend(vec));

@@ -8,9 +8,9 @@
 #pragma once
 
 #include <string_view>
-#include <aedis/net.hpp>
-#include <aedis/resp3/detail/parser.hpp>
 
+#include <aedis/config.hpp>
+#include <aedis/resp3/detail/parser.hpp>
 #include <boost/core/ignore_unused.hpp>
 
 namespace aedis {

@@ -9,7 +9,7 @@
 
 #include <functional>
 
-#include <aedis/net.hpp>
+#include <aedis/config.hpp>
 
 // An example user session.
 
@@ -26,14 +26,66 @@ class user_session:
    public user_session_base,
    public std::enable_shared_from_this<user_session> {
 public:
-   user_session(net::ip::tcp::socket socket);
-   void start(std::function<void(std::string const&)> on_msg);
-   void deliver(std::string const& msg);
+   user_session(net::ip::tcp::socket socket)
+   : socket_(std::move(socket))
+   , timer_(socket_.get_executor())
+      { timer_.expires_at(std::chrono::steady_clock::time_point::max()); }
+
+   void start(std::function<void(std::string const&)> on_msg)
+   {
+      co_spawn(socket_.get_executor(),
+          [self = shared_from_this(), on_msg]{ return self->reader(on_msg); },
+          net::detached);
+
+      co_spawn(socket_.get_executor(),
+          [self = shared_from_this()]{ return self->writer(); },
+          net::detached);
+   }
+
+   void deliver(std::string const& msg)
+   {
+      write_msgs_.push_back(msg);
+      timer_.cancel_one();
+   }
 
 private:
-   net::awaitable<void> reader(std::function<void(std::string const&)> on_msg);
-   net::awaitable<void> writer();
-   void stop();
+   net::awaitable<void>
+   reader(std::function<void(std::string const&)> on_msg)
+   {
+      try {
+         for (std::string msg;;) {
+            auto const n = co_await net::async_read_until(socket_, net::dynamic_buffer(msg, 1024), "\n", net::use_awaitable);
+            on_msg(msg);
+            msg.erase(0, n);
+         }
+      } catch (std::exception&) {
+         stop();
+      }
+   }
+
+   net::awaitable<void> writer()
+   {
+      try {
+         while (socket_.is_open()) {
+            if (write_msgs_.empty()) {
+               boost::system::error_code ec;
+               co_await timer_.async_wait(redirect_error(net::use_awaitable, ec));
+            } else {
+               co_await net::async_write(socket_, net::buffer(write_msgs_.front()), net::use_awaitable);
+               write_msgs_.pop_front();
+            }
+         }
+      } catch (std::exception&) {
+        stop();
+      }
+   }
+
+   void stop()
+   {
+      socket_.close();
+      timer_.cancel();
+   }
+
    net::ip::tcp::socket socket_;
    net::steady_timer timer_;
    std::deque<std::string> write_msgs_;

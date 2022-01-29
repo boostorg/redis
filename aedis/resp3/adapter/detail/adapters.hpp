@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,7 +16,6 @@
 #include <vector>
 #include <charconv>
 
-#include <aedis/command.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/resp3/serializer.hpp>
@@ -85,7 +84,7 @@ private:
    Container* result_;
 
 public:
-   general(Container& c = nullptr): result_(&c) {}
+   general(Container* c = nullptr): result_(c) {}
 
    /** @brief Function called by the parser when new data has been processed.
     *  
@@ -122,7 +121,7 @@ private:
    Node* result_;
 
 public:
-   adapter_node(Node& t) : result_(&t) {}
+   adapter_node(Node* t = nullptr) : result_(t) {}
 
    void
    operator()(
@@ -147,7 +146,7 @@ private:
    T* result_;
 
 public:
-   simple(T& t) : result_(&t) {}
+   simple(T* t = nullptr) : result_(t) {}
 
    void
    operator()(
@@ -166,12 +165,6 @@ public:
       }
 
       assert(aggregate_size == 1);
-
-      if (depth != 0) {
-	 ec == adapter::error::nested_unsupported;
-	 return;
-      }
-
       from_string(*result_, data, data_size, ec);
    }
 };
@@ -182,7 +175,7 @@ private:
   std::optional<T>* result_;
 
 public:
-   simple_optional(std::optional<T>& o) : result_(&o) {}
+   simple_optional(std::optional<T>* o = nullptr) : result_(o) {}
 
    void
    operator()(
@@ -226,7 +219,7 @@ private:
    Container* result_;
 
 public:
-   vector(Container& v) : result_{&v} {}
+   vector(Container* v = nullptr) : result_{v} {}
 
    void
    operator()(type t,
@@ -239,7 +232,7 @@ public:
       set_on_resp3_error(t, ec);
 
       if (is_aggregate(t)) {
-	 if (depth != 0 || i_ != -1) {
+	 if (i_ != -1) {
 	    ec == adapter::error::nested_unsupported;
 	    return;
 	 }
@@ -248,11 +241,6 @@ public:
          result_->resize(m * aggregate_size);
          ++i_;
       } else {
-	 if (depth != 1) {
-	    ec == adapter::error::nested_unsupported;
-	    return;
-	 }
-
 	 assert(aggregate_size == 1);
 
          from_string(result_->at(i_), data, data_size, ec);
@@ -267,7 +255,7 @@ private:
    Container* result_;
 
 public:
-   list(Container& ref): result_(&ref) {}
+   list(Container* ref = nullptr): result_(ref) {}
 
    void
    operator()(type t,
@@ -306,9 +294,9 @@ private:
    Container::iterator hint_;
 
 public:
-   set(Container& c)
-   : result_(&c)
-   , hint_(std::end(c))
+   set(Container* c = nullptr)
+   : result_(c)
+   , hint_(std::end(*c))
    {}
 
    void
@@ -350,9 +338,9 @@ private:
    bool on_key_ = true;
 
 public:
-   map(Container& c)
-   : result_(&c)
-   , current_(std::end(c))
+   map(Container* c = nullptr)
+   : result_(c)
+   , current_(std::end(*c))
    {}
 
    void

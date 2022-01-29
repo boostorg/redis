@@ -11,11 +11,12 @@
 
 #include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
-#include "utils.ipp"
+
+#include "lib/net_utils.hpp"
 
 namespace resp3 = aedis::resp3;
-using aedis::command;
-using resp3::make_serializer;
+using aedis::redis::command;
+using aedis::redis::make_serializer;
 using resp3::adapt;
 using resp3::node;
 
@@ -33,7 +34,7 @@ net::awaitable<void> key_expiration()
 
       // Creates and sends the first request.
       std::string request;
-      auto sr = make_serializer<command>(request);
+      auto sr = make_serializer(request);
       sr.push(command::hello, 3);
       sr.push(command::flushall);
       sr.push(command::set, "key", "Some payload", "EX", "2");

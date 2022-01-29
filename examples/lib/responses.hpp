@@ -10,7 +10,7 @@
 #include <aedis/aedis.hpp>
 
 namespace net = aedis::net;
-using aedis::command;
+using aedis::redis::command;
 using aedis::resp3::adapt;
 using aedis::resp3::response_traits;
 using aedis::resp3::type;
@@ -31,15 +31,40 @@ private:
    response_traits<std::vector<node>>::adapter_type general_adapter_;
 
 public:
-   adapter_wrapper(responses& resps);
+   adapter_wrapper(responses& resps)
+   : number_adapter_{adapt(resps.number)}
+   , str_adapter_{adapt(resps.simple_string)}
+   , general_adapter_{adapt(resps.general)}
+   {}
 
-   void operator()(
+   void
+   operator()(
       command cmd,
       type t,
       std::size_t aggregate_size,
       std::size_t depth,
       char const* data,
       std::size_t size,
-      std::error_code& ec);
+      std::error_code& ec)
+   {
+      // Handles only the commands we are interested in the examples and
+      // ignores the rest.
+      switch (cmd) {
+         case command::quit:
+         case command::ping:
+         str_adapter_(t, aggregate_size, depth, data, size, ec);
+         return;
+
+         case command::incr:
+         number_adapter_(t, aggregate_size, depth, data, size, ec);
+         return;
+
+         case command::unknown:
+         general_adapter_(t, aggregate_size, depth, data, size, ec);
+         return;
+
+         default: {} // Ignore.
+      }
+   }
 };
 

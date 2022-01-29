@@ -8,8 +8,12 @@
 #pragma once
 
 #include <ostream>
+#include <string>
+
+#include <aedis/resp3/serializer.hpp>
 
 namespace aedis {
+namespace redis {
 
 /** \brief Redis commands.
  *  \ingroup enums
@@ -451,4 +455,16 @@ std::ostream& operator<<(std::ostream& os, command c);
  */
 bool has_push_response(command cmd);
 
+/** \brief Creates a serializer for a \c std::string.
+ *  \ingroup functions
+ *  \param storage The string.
+ */
+template <class CharT, class Traits, class Allocator>
+resp3::serializer<std::string, command>
+make_serializer(std::basic_string<CharT, Traits, Allocator>& storage)
+{
+   return resp3::serializer<std::basic_string<CharT, Traits, Allocator>, command>(storage);
+}
+
+} // redis
 } // aedis

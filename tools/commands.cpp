@@ -9,12 +9,12 @@
 #include <algorithm>
 #include <cctype>
 
-#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
+#include <aedis/src.hpp>
 
 namespace resp3 = aedis::resp3;
-using aedis::command;
-using resp3::make_serializer;
+using aedis::redis::command;
+using aedis::redis::make_serializer;
 using resp3::adapt;
 using resp3::node;
 
@@ -81,7 +81,7 @@ int main()
      connect(socket, res);
 
      std::string request;
-     auto sr = make_serializer<command>(request);
+     auto sr = make_serializer(request);
      sr.push(command::hello, 3);
      sr.push(command::command);
      sr.push(command::quit);

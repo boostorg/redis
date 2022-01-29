@@ -11,8 +11,6 @@
 #include <string_view>
 #include <utility>
 
-#include <aedis/command.hpp>
-
 namespace aedis {
 namespace resp3 {
 namespace detail {

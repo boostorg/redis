@@ -8,8 +8,8 @@
 #include <iostream>
 #include <map>
 
-#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
+#include <aedis/src.hpp>
 #include "test_stream.hpp"
 #include "check.hpp"
 
@@ -22,6 +22,8 @@ namespace this_coro = net::this_coro;
 
 using namespace aedis;
 using namespace aedis::resp3;
+using aedis::redis::command;
+using aedis::redis::make_serializer;
 
 std::vector<node> gresp;
 
@@ -37,7 +39,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 
    //----------------------------------
    std::string request;
-   auto sr = make_serializer<command>(request);
+   auto sr = make_serializer(request);
    sr.push(command::hello, 3);
    sr.push(command::flushall);
    sr.push_range(command::rpush, "a", std::cbegin(list_), std::cend(list_));
@@ -482,7 +484,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
    std::string test_bulk2 = "aaaaa";
 
    std::string request;
-   auto sr = make_serializer<command>(request);
+   auto sr = make_serializer(request);
    sr.push(command::hello, 3);
    sr.push(command::flushall);
    sr.push(command::set, "s", test_bulk1);

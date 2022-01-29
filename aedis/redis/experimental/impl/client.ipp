@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <aedis/resp3/client.hpp>
+#include <aedis/redis/experimental/client.hpp>
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
@@ -40,11 +40,11 @@ net::awaitable<void> client::reader()
 	    auto const t = co_await async_read_type(socket_, net::dynamic_buffer(buffer));
 	    if (t == type::push) {
 	       auto adapter = [this](type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec)
-		  {adapter_(command::unknown, t, aggregate_size, depth, data, size, ec);};
+		  {adapter_(redis::command::unknown, t, aggregate_size, depth, data, size, ec);};
 
 	       boost::system::error_code ec;
 	       co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));
-	       on_msg_(ec, command::unknown);
+	       on_msg_(ec, redis::command::unknown);
 	    } else {
 	       auto adapter = [this](type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec)
 		  {adapter_(commands_.front(), t, aggregate_size, depth, data, size, ec);};
@@ -89,13 +89,13 @@ net::awaitable<void> client::writer()
 net::awaitable<void> client::say_hello()
 {
    std::string request;
-   auto sr = make_serializer<command>(request);
-   sr.push(command::hello, 3);
+   auto sr = redis::make_serializer(request);
+   sr.push(redis::command::hello, 3);
    co_await net::async_write(socket_, net::buffer(request));
 
    std::string buffer;
    auto adapter = [this](type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec)
-      {adapter_(command::hello, t, aggregate_size, depth, data, size, ec);};
+      {adapter_(redis::command::hello, t, aggregate_size, depth, data, size, ec);};
    co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter);
 }
 

@@ -11,10 +11,9 @@
 #include <aedis/src.hpp>
 
 #include "lib/responses.hpp"
-#include "src.hpp"
 
 namespace net = aedis::net;
-using aedis::command;
+using aedis::redis::command;
 using aedis::resp3::experimental::client;
 
 int main()

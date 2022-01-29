@@ -11,6 +11,7 @@
 #include <functional>
 
 #include <aedis/aedis.hpp>
+#include <aedis/redis/command.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -25,10 +26,10 @@ namespace experimental {
 class client : public std::enable_shared_from_this<client> {
 public:
    /// The response adapter type.
-   using adapter_type = std::function<void(command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
+   using adapter_type = std::function<void(redis::command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
 
    /// The type of the message callback.
-   using on_message_type = std::function<void(std::error_code ec, command)>;
+   using on_message_type = std::function<void(std::error_code ec, redis::command)>;
 
 private:
    using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
@@ -46,7 +47,7 @@ private:
    std::string requests_;
 
    // The commands contained in the requests.
-   std::queue<command> commands_;
+   std::queue<redis::command> commands_;
 
    // Info about the requests.
    std::queue<request_info> req_info_;
@@ -103,7 +104,7 @@ public:
     *  \sa serializer.hpp
     */
    template <class... Ts>
-   void send(command cmd, Ts const&... args);
+   void send(redis::command cmd, Ts const&... args);
 
    /// Sets the response adapter.
    void set_adapter(adapter_type adapter);
@@ -113,11 +114,11 @@ public:
 };
 
 template <class... Ts>
-void client::send(command cmd, Ts const&... args)
+void client::send(redis::command cmd, Ts const&... args)
 {
    auto const can_write = prepare_next();
 
-   auto sr = make_serializer<command>(requests_);
+   auto sr = redis::make_serializer(requests_);
    auto const before = std::size(requests_);
    sr.push(cmd, args...);
    auto const after = std::size(requests_);

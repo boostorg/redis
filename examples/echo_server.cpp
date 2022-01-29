@@ -8,15 +8,14 @@
 #include <iostream>
 #include <queue>
 
-#include <aedis/src.hpp>
 #include <aedis/aedis.hpp>
+#include <aedis/src.hpp>
 
 #include "lib/user_session.hpp"
 #include "lib/responses.hpp"
-#include "src.hpp"
 
 namespace net = aedis::net;
-using aedis::command;
+using aedis::redis::command;
 using aedis::user_session;
 using aedis::user_session_base;
 using aedis::resp3::experimental::client;

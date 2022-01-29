@@ -7,45 +7,43 @@
 
 #pragma once
 
-#include <aedis/net.hpp>
-#include <aedis/command.hpp>
+#include <aedis/config.hpp>
+#include <aedis/redis/command.hpp>
+#include <aedis/sentinel/command.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/adapt.hpp>
 #include <aedis/resp3/error.hpp>
 #include <aedis/resp3/serializer.hpp>
 #include <aedis/resp3/response_traits.hpp>
-#include <aedis/resp3/client.hpp>
+#include <aedis/redis/experimental/client.hpp>
 
 /** \mainpage
-  
-    Introduction
-
-    - \subpage overview
-    - \subpage installation
-    - \subpage examples
-
-    Reference
-
-    - \subpage enums
-    - \subpage classes
-    - \subpage functions
-    - \subpage operators
+ *
+ *  \b Overview
+ *
+ *  Aedis is low-level redis client built on top of Boost.Asio that
+ *  implements communication with a Redis server over its native
+ *  protocol RESP3. It has first-class support for STL containers and
+ *  C++ built in types. You will be able to implement your own redis
+ *  client or use a general purpose provided by the library. For more
+ *  information about Redis see https://redis.io/
+ *
+ *  \b Using \b Aedis
+ *
+ *  - \subpage installation
+ *  - \subpage examples
+ *
+ *  \b Reference
+ *
+ *  - \subpage enums
+ *  - \subpage classes
+ *  - \subpage functions
+ *  - \subpage operators
  */
 
 //---------------------------------------------------------
 // Pages
-
-/** \page overview Overview
- *
- *  Aedis provides low-level communication with a Redis server over
- *  its native protocol RESP3. Some of its featues are
- *
- *  - First class support to STL containers and C++ built-in types.
- *  - Support for pipelining, transactions and TLS.
- *  - Serialization and de-serialization of your own types.
- *  - First class support to async programming through ASIO.
- */
 
 /** \page examples Examples
  *
@@ -67,7 +65,8 @@
       
       Shows how to read responses to commands that cannot be
       translated in a C++ built-in type like std::string or STL
-      containers.
+      containers, for example all commands contained in a transaction
+      will be nested by Redis in a single response.
 
     - subscriber.cpp
 
@@ -76,11 +75,6 @@
     - sync.cpp
       
       Shows hot to use the Aedis synchronous api.
-
-    - redis_client.cpp
-
-      Shows how to use and experimental high level redis client that
-      keeps a long lasting connections to a redis server.
 
     \b STL \b Containers: Many of the Redis data structures can be
     directly translated in to STL containers, below you will find some
@@ -119,6 +113,12 @@
     servers that interact with users and Redis asynchronously over
     long lasting connections using a higher level API.
 
+    - redis_client.cpp
+
+      Shows how to use and experimental high level redis client that
+      keeps a long lasting connections to a redis server. This is the
+      starting point for the next examples.
+
     - echo_server.cpp
 
       Shows the basic principles behind asynchronous communication
@@ -133,18 +133,84 @@
 
 /** \page installation Installation
  *
- *  This library is header only. To install it run
+ *  \section Requirements
  *
- *  ```cpp
+ *  To use Aedis you will need
+ *
+ *  Required
+ *
+ *  - \b C++20 with \b coroutine support.
+ *  - \b Boost \b 1.78 or greater.
+ *  - \b Redis \b server.
+ *  - \b Bash to configure that package for installation.
+ *
+ *  Optional
+ *
+ *  - \b Redis \b Sentinel \b server: used in some examples..
+ *  - \b Redis \b client: used in some examples.
+ *  - \b Make to build the examples and tests.
+ *
+ *  \section Installing
+ *
+ *  Download
+ *
+ *  Get the latest release and follow the steps
+ *
+ *  ```bash
+ *  # Download the libray on github.
+ *  $ wget github-link
+ *
+ *  # Uncompress the tarball and cd into the dir
+ *  $ tar -xzvf aedis-1.0.0.tar.gz && cd aedis-1.0.0
+ *
+ *  # Run configure with appropriate C++ flags and your boost installation, for example
+ *  $ CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage"\
+ *  ./configure  --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib
+ *
+ *  ```
+ *
+ *  Install
+ *
+ *  ```bash
+ *  # Optional: Build aedis examples.
+ *  $ make examples
+ *
+ *  # Optional: Test aedis in your machine.
+ *  $ make check
+ *
+ *  # Install the aedis.
  *  $ sudo make install
  *  ```
  *
- *  or copy the include folder to the location you want.  You will
- *  also need to include the following header in one of your source
- *  files e.g. `aedis.cpp`
+ *  \section using Using Aedis
+ *
+ *  This library in not header-only. You have to include the following
+ *  header 
  *
  *  ```cpp
- *  #include <aedis/impl/src.hpp>
+ *  #include <aedis/src.hpp>
+ *  ```
+ *
+ *  in exactly one source file in your applications.
+ *
+ *  \section Developers
+ *
+ *  Aedis uses Autotools for its build system. To generate the build
+ *  system run
+ *
+ *  ```bash
+ *  $ autoreconf -i
+ *  ```
+ *
+ *  After that you will have a config in the project dir that you can
+ *  run as explained above, for example, to use a compiler other that
+ *  the system compiler use
+ *
+ *  ```bash
+ *  CC=/opt/gcc-10.2.0/bin/gcc-10.2.0\
+ *  CXX=/opt/gcc-10.2.0/bin/g++-10.2.0\
+ *  CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror"\
+ *  ./configure ...
  *  ```
  */
 

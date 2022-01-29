@@ -7,9 +7,6 @@
 
 #pragma once
 
-#include <string>
-
-#include <aedis/command.hpp>
 #include <aedis/resp3/detail/composer.hpp>
 
 namespace aedis {
@@ -158,16 +155,6 @@ public:
 	 detail::add_bulk(*request_, *begin);
    }
 };
-
-/** \brief Creates a serializer for a \c std::string.
- *  \ingroup functions
- *  \param storage The string.
- */
-template<class Command>
-auto make_serializer(std::string& storage)
-{
-   return serializer<std::string, Command>(storage);
-}
 
 } // resp3
 } // aedis
