@@ -160,7 +160,7 @@ public:
       set_on_resp3_error(t, ec);
 
       if (is_aggregate(t)) {
-	 ec == adapter::error::expects_simple_type;
+	 ec = adapter::error::expects_simple_type;
 	 return;
       }
 
@@ -189,14 +189,14 @@ public:
       set_on_resp3_error2(t, ec);
 
       if (is_aggregate(t)) {
-	 ec == adapter::error::expects_simple_type;
+	 ec = adapter::error::expects_simple_type;
 	 return;
       }
 
       assert(aggregate_size == 1);
 
       if (depth != 0) {
-	 ec == adapter::error::nested_unsupported;
+	 ec = adapter::error::nested_unsupported;
 	 return;
       }
 
@@ -233,7 +233,7 @@ public:
 
       if (is_aggregate(t)) {
 	 if (i_ != -1) {
-	    ec == adapter::error::nested_unsupported;
+	    ec = adapter::error::nested_unsupported;
 	    return;
 	 }
 
@@ -269,7 +269,7 @@ public:
 
       if (is_aggregate(t)) {
 	 if (depth != 0) {
-	    ec == adapter::error::nested_unsupported;
+	    ec = adapter::error::nested_unsupported;
 	    return;
 	 }
          return;
@@ -278,7 +278,7 @@ public:
       assert(aggregate_size == 1);
 
       if (depth != 1) {
-	 ec == adapter::error::nested_unsupported;
+	 ec = adapter::error::nested_unsupported;
 	 return;
       }
 

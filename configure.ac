@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([aedis], [0.1.0], [mzimbres@gmail.com])
+AC_INIT([aedis], [1.0.0], [mzimbres@gmail.com])
 AC_CONFIG_MACRO_DIR([m4])
 #AC_CONFIG_SRCDIR([src/aedis.cpp])
 AC_CONFIG_HEADERS([config.h])
@@ -12,7 +12,7 @@ AC_PROG_LN_S
 AC_PROG_RANLIB
 AM_PROG_AR
 
-AX_BOOST_BASE([1.75],, AC_MSG_ERROR[Boost not found])
+AX_BOOST_BASE([1.78],, AC_MSG_ERROR[Boost not found])
 
 AC_CHECK_HEADER_STDBOOL
 AC_TYPE_UINT64_T
