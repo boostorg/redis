@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <string>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
@@ -14,15 +15,10 @@ namespace resp3 = aedis::resp3;
 using aedis::redis::command;
 using aedis::redis::make_serializer;
 using aedis::resp3::adapt;
-using aedis::resp3::node;
 
 namespace net = aedis::net;
-using net::ip::tcp;
-using net::buffer;
 using net::dynamic_buffer;
-
-/* Aedis supports synchronous communication too.
- */
+using net::ip::tcp;
 
 int main()
 {
@@ -33,21 +29,24 @@ int main()
       tcp::socket socket{ioc};
       connect(socket, res);
 
+      // Creates and sends the request to redis.
       std::string request;
       auto sr = make_serializer(request);
       sr.push(command::hello, 3);
-      sr.push(command::command);
+      sr.push(command::ping);
       sr.push(command::quit);
-      net::write(socket, buffer(request));
+      net::write(socket, net::buffer(request));
 
-      std::vector<node> resp;
+      // Will store the response to ping.
+      std::string resp;
 
+      // Reads the responses to all commands in the request.
       std::string buffer;
-      resp3::read(socket, dynamic_buffer(buffer));
+      resp3::read(socket, dynamic_buffer(buffer)); // hello (ignored)
       resp3::read(socket, dynamic_buffer(buffer), adapt(resp));
-      resp3::read(socket, dynamic_buffer(buffer));
+      resp3::read(socket, dynamic_buffer(buffer)); // quit (ignored)
 
-      std::cout << resp << std::endl;
+      std::cout << "Ping: " << resp << std::endl;
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

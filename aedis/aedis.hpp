@@ -61,6 +61,13 @@
       Shows how to use \c std::optional to deal with keys that may
       have expired or do not exist.
 
+    - transaction.cpp
+
+      Shows how to read the responses to all commands inside a
+      trasaction efficiently. At the moment this feature supports only
+      transactions that contain simple types or aggregates that don't
+      contain aggregates themselves (as in most cases).
+
     - nested_response.cpp
       
       Shows how to read responses to commands that cannot be

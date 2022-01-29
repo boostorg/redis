@@ -23,8 +23,11 @@ enum class error
    /// Got RESP3 blob_error.
    blob_error,
 
+   /// The tuple used as response has incompatible size.
+   incompatible_tuple_size,
+
    /// Got RESP3 null type.
-   null,
+   null
 };
 
 namespace detail {
@@ -35,6 +38,7 @@ struct error_category_impl : std::error_category {
    char const* name() const noexcept override
       { return "aedis.response_adapter"; }
 
+   // TODO: Move to .ipp
    std::string message(int ev) const override
    {
       switch(static_cast<error>(ev)) {
@@ -42,6 +46,7 @@ struct error_category_impl : std::error_category {
 	 case error::nested_unsupported: return "Nested responses unsupported.";
 	 case error::simple_error: return "Got RESP3 simple-error.";
 	 case error::blob_error: return "Got RESP3 blob-error.";
+	 case error::incompatible_tuple_size: return "The tuple used as response has incompatible size.";
 	 case error::null: return "Got RESP3 null.";
 	 default: assert(false);
       }

@@ -22,20 +22,10 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-/* Illustrates the basic principles.
- 
-   Sends some commands to the redis server and read the responses
-   back. The hello command is always required after the connection has
-   been stablished.
-  
-   Note: In general connections will be kept open and used for
-   multiple requests, see for example echo_server.cpp.
-*/
-
 net::awaitable<void> ping()
 {
    try {
-      auto socket = co_await connect();
+      auto socket = co_await connect(); // See lib/net_utils.hpp
 
       // Creates and sends the request.
       std::string request;

@@ -23,6 +23,7 @@ check_PROGRAMS += sync
 check_PROGRAMS += redis_client
 check_PROGRAMS += test_offline
 check_PROGRAMS += test_online
+check_PROGRAMS += transaction
 
 EXTRA_PROGRAMS =
 EXTRA_PROGRAMS += subscriber
@@ -49,6 +50,7 @@ test_online_SOURCES = $(top_srcdir)/tests/online.cpp
 subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
+transaction_SOURCES = $(top_srcdir)/examples/transaction.cpp
 
 nobase_nodist_include_HEADERS =\
   $(top_srcdir)/aedis/config.hpp
