@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,15 +25,6 @@ namespace net = aedis::net;
 using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
-
-/* Shows how to work with redis lists.
- 
-   First we store a list of elements in a redis list, then the list is
-   read back in different C++ containers to give the user a feeling of
-   what is possible.
-
-   To store your own types in the lists see serialization.cpp.
-*/
 
 net::awaitable<void> ping()
 {

@@ -22,12 +22,13 @@
  *
  *  \b Overview
  *
- *  Aedis is low-level redis client built on top of Boost.Asio that
- *  implements communication with a Redis server over its native
+ *  Aedis is low-level redis client library built on top of Boost.Asio
+ *  that implements communication with a Redis server over its native
  *  protocol RESP3. It has first-class support for STL containers and
- *  C++ built in types. You will be able to implement your own redis
- *  client or use a general purpose provided by the library. For more
- *  information about Redis see https://redis.io/
+ *  C++ built in types among other things. You will be able to
+ *  implement your own redis client or use a general purpose provided
+ *  by the library. For more information about Redis see
+ *  https://redis.io/
  *
  *  \b Using \b Aedis
  *
@@ -54,12 +55,7 @@
     - intro.cpp
 
       Some commands are sent to the Redis server and the responses are
-      printed to screen.
-
-    - key_expiration.cpp
-      
-      Shows how to use \c std::optional to deal with keys that may
-      have expired or do not exist.
+      printed to screen. A good starting point.
 
     - transaction.cpp
 
@@ -73,7 +69,8 @@
       Shows how to read responses to commands that cannot be
       translated in a C++ built-in type like std::string or STL
       containers, for example all commands contained in a transaction
-      will be nested by Redis in a single response.
+      will be nested by Redis in a single response. Users may have to
+      convert into their own desired format.
 
     - subscriber.cpp
 
@@ -82,6 +79,11 @@
     - sync.cpp
       
       Shows hot to use the Aedis synchronous api.
+
+    - key_expiration.cpp
+      
+      Shows how to use \c std::optional to deal with keys that may
+      have expired or do not exist.
 
     \b STL \b Containers: Many of the Redis data structures can be
     directly translated in to STL containers, below you will find some
@@ -105,7 +107,8 @@
 
     \b Customization \b points: Shows how de/serialize user types
     avoiding copies. This is particularly useful for low latency
-    applications.
+    applications that want to avoid unneeded copies, for examples when
+    storing json strings in Redis keys.
 
     - serialization.cpp
 
@@ -114,7 +117,7 @@
     - response_adapter.cpp
 
       Customization point for users that want to de/serialize their
-      own data-structures.
+      own data-structures like containers for example.
 
     \b Asynchronous \b servers: Contains some non-trivial examples
     servers that interact with users and Redis asynchronously over
@@ -130,7 +133,7 @@
 
       Shows the basic principles behind asynchronous communication
       with a database in an asynchronous server. In this case, the
-      server is a proxy between the user and the database.
+      server is a proxy between the user and Redis.
 
     - chat_room.cpp
 
@@ -139,31 +142,31 @@
  */
 
 /** \page installation Installation
+ *  \tableofcontents
  *
  *  \section Requirements
  *
- *  To use Aedis you will need
+ *  Aedis installation requires
  *
- *  Required
+ *  - \b Boost \b 1.78 or greater
+ *  - \b Unix \b Shell
+ *  - \b Make
+ *
+ *  To use Aedis and build its examples and tests you will need
  *
  *  - \b C++20 with \b coroutine support.
- *  - \b Boost \b 1.78 or greater.
  *  - \b Redis \b server.
- *  - \b Bash to configure that package for installation.
  *
- *  Optional
+ *  Some examples will also require interaction with
  *
- *  - \b Redis \b Sentinel \b server: used in some examples..
- *  - \b Redis \b client: used in some examples.
- *  - \b Make to build the examples and tests.
+ *  - \b Redis-client: used in on example.
+ *  - \b Redis \b Sentinel \b server: used in some examples.
  *
  *  \section Installing
  *
- *  Download
- *
  *  Get the latest release and follow the steps
  *
- *  ```bash
+ *  ```
  *  # Download the libray on github.
  *  $ wget github-link
  *
@@ -176,17 +179,22 @@
  *
  *  ```
  *
- *  Install
+ *  To install the library run
  *
- *  ```bash
- *  # Optional: Build aedis examples.
+ *  ```
+ *  # Install Aedis in the path specified in --prefix
+ *  $ sudo make install
+ *
+ *  ```
+ *
+ *  To build the examples and test the library in your machine
+ *
+ *  ```
+ *  # Build aedis examples.
  *  $ make examples
  *
- *  # Optional: Test aedis in your machine.
+ *  # Test aedis in your machine.
  *  $ make check
- *
- *  # Install the aedis.
- *  $ sudo make install
  *  ```
  *
  *  \section using Using Aedis
@@ -205,7 +213,7 @@
  *  Aedis uses Autotools for its build system. To generate the build
  *  system run
  *
- *  ```bash
+ *  ```
  *  $ autoreconf -i
  *  ```
  *
@@ -213,11 +221,10 @@
  *  run as explained above, for example, to use a compiler other that
  *  the system compiler use
  *
- *  ```bash
+ *  ```
  *  CC=/opt/gcc-10.2.0/bin/gcc-10.2.0\
  *  CXX=/opt/gcc-10.2.0/bin/g++-10.2.0\
- *  CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror"\
- *  ./configure ...
+ *  CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror"  ./configure ...
  *  ```
  */
 

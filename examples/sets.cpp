@@ -25,15 +25,13 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-/// Shows how to serialize and read redis sets in C++ containers.
-
 net::awaitable<void> containers()
 {
    try {
       auto socket = co_await connect();
 
       std::set<std::string> set
-	 {"one", "two", "three", "four"};
+         {"one", "two", "three", "four"};
 
       // Creates and sends the request.
       std::string request;
@@ -61,7 +59,7 @@ net::awaitable<void> containers()
       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(smembers1));
       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(smembers2));
       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(smembers3));
-      co_await resp3::async_read(socket, dynamic_buffer(buffer));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // quit
 
       // Prints the responses.
       std::cout << "sadd: " << sadd;

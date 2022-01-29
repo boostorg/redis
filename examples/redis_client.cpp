@@ -23,28 +23,28 @@ int main()
 
       auto on_msg = [&resps](std::error_code ec, command cmd)
       {
-	 if (ec) {
-	    std::cerr << "Error: " << ec.message() << std::endl;
-	    return;
-	 }
+         if (ec) {
+            std::cerr << "Error: " << ec.message() << std::endl;
+            return;
+         }
 
-	 switch (cmd) {
-	    case command::ping:
-	    {
-	       std::cout << "ping: " << resps.simple_string << std::endl;
-	       resps.simple_string.clear();
-	    } break;
-	    case command::quit:
-	    {
-	       std::cout << "quit: " << resps.simple_string << std::endl;
-	       resps.simple_string.clear();
-	    } break;
-	    case command::incr:
-	    {
-	       std::cout << "incr: " << resps.number << std::endl;
-	    } break;
-	    default: { assert(false); }
-	 }
+         switch (cmd) {
+            case command::ping:
+            {
+               std::cout << "ping: " << resps.simple_string << std::endl;
+               resps.simple_string.clear();
+            } break;
+            case command::quit:
+            {
+               std::cout << "quit: " << resps.simple_string << std::endl;
+               resps.simple_string.clear();
+            } break;
+            case command::incr:
+            {
+               std::cout << "incr: " << resps.number << std::endl;
+            } break;
+            default: { assert(false); }
+         }
       };
 
       net::io_context ioc{1};

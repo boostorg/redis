@@ -35,28 +35,28 @@ public:
    void on_message(std::error_code ec, command cmd)
    {
       if (ec) {
-	 std::cerr << "Error: " << ec.message() << std::endl;
-	 return;
+         std::cerr << "Error: " << ec.message() << std::endl;
+         return;
       }
 
       switch (cmd) {
-	 case command::incr:
-	 {
-	    std::cout << "Message so far: " << resps_.number << std::endl;
-	 } break;
-	 case command::unknown: // Push
-	 {
-	    // TODO: Delete sessions lazily on traversal.
-	    for (auto& weak: sessions_) {
-	       if (auto session = weak.lock()) {
-		  session->deliver(resps_.general.at(3).data);
-	       } else {
-		  std::cout << "Session expired." << std::endl;
-	       }
-	    }
+         case command::incr:
+         {
+            std::cout << "Message so far: " << resps_.number << std::endl;
+         } break;
+         case command::unknown: // Push
+         {
+            // TODO: Delete sessions lazily on traversal.
+            for (auto& weak: sessions_) {
+               if (auto session = weak.lock()) {
+                  session->deliver(resps_.general.at(3).data);
+               } else {
+                  std::cout << "Session expired." << std::endl;
+               }
+            }
 
-	    resps_.general.clear();
-	 } break;
+            resps_.general.clear();
+         } break;
          default: { /* Ignore */ }
       }
    }

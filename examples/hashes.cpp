@@ -25,17 +25,16 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-// Shows how to serialize and read redis hashes in C++ containers.
 net::awaitable<void> containers()
 {
    try {
       auto socket = co_await connect();
 
       std::map<std::string, std::string> map
-	 { {"key1", "value1"}
-	 , {"key2", "value2"}
-	 , {"key3", "value3"}
-	 };
+         { {"key1", "value1"}
+         , {"key2", "value2"}
+         , {"key3", "value3"}
+         };
 
       // Creates and sends the request.
       std::string request;
@@ -63,7 +62,7 @@ net::awaitable<void> containers()
       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(hgetall1));
       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(hgetall2));
       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(hgetall3));
-      co_await resp3::async_read(socket, dynamic_buffer(buffer));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // quit
 
       // Prints the responses.
       std::cout << "hset: " << hset;

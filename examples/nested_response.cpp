@@ -26,9 +26,6 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-// Reads the response to a transaction in a general format that is
-// suitable for all kinds of responses, but which users may have to
-// convert into their own desired format.
 net::awaitable<void> nested_response()
 {
    try {

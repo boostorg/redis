@@ -25,8 +25,6 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-/// Shows how to deal with keys that may not exist.
-
 net::awaitable<void> key_expiration()
 {
    try {
@@ -48,12 +46,12 @@ net::awaitable<void> key_expiration()
       std::string rbuffer;
       co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // hello
       co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // flushall
-      co_await resp3::async_read(socket, dynamic_buffer(rbuffer));
+      co_await resp3::async_read(socket, dynamic_buffer(rbuffer)); // set
       co_await resp3::async_read(socket, dynamic_buffer(rbuffer), adapt(get));
 
       std::cout
         << "Before expiration: " << get.has_value() << ", "
-        << *get << "\n";
+        << *get << std::endl;
 
       // Waits some seconds for the key to expire.
       timer tm{socket.get_executor(), std::chrono::seconds{3}};

@@ -24,17 +24,8 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-/* Illustrates how to serialize your own data.
-   
-   Some use cases for this functionality are
-  
-   1. Improve performance and reduce latency by avoiding copies.
-   2. Store json objets in redis.
-   3. etc.
-  
-   Proceedure: Define the to_string and from_string functions for your
-   own data types.
- */
+// Define the to_string and from_string functions for your own data
+// types.
 
 // The struct we would like to store in redis using our own
 // serialization.

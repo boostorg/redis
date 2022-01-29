@@ -35,26 +35,26 @@ public:
    void on_message(std::error_code ec, command cmd)
    {
       if (ec) {
-	 std::cerr << "Error: " << ec.message() << std::endl;
-	 return;
+         std::cerr << "Error: " << ec.message() << std::endl;
+         return;
       }
 
       switch (cmd) {
-	 case command::ping:
-	 {
-	    if (auto session = sessions_.front().lock()) {
-	       session->deliver(resps_.simple_string);
-	    } else {
-	       std::cout << "Session expired." << std::endl;
-	    }
+         case command::ping:
+         {
+            if (auto session = sessions_.front().lock()) {
+               session->deliver(resps_.simple_string);
+            } else {
+               std::cout << "Session expired." << std::endl;
+            }
 
-	    sessions_.pop();
-	    resps_.simple_string.clear();
-	 } break;
-	 case command::incr:
-	 {
-	    std::cout << "Echos so far: " << resps_.number << std::endl;
-	 } break;
+            sessions_.pop();
+            resps_.simple_string.clear();
+         } break;
+         case command::incr:
+         {
+            std::cout << "Echos so far: " << resps_.number << std::endl;
+         } break;
          default: { assert(false); }
       }
    }
@@ -80,9 +80,9 @@ net::awaitable<void> listener()
 
       auto on_user_msg = [db, recv, session](std::string const& msg)
       {
-	 db->send(command::ping, msg);
-	 db->send(command::incr, "echo-counter");
-	 recv->add_user_session(session);
+         db->send(command::ping, msg);
+         db->send(command::incr, "echo-counter");
+         recv->add_user_session(session);
       };
 
       session->start(on_user_msg);

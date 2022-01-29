@@ -24,16 +24,14 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-/* In previous examples we sent some commands (ping) to redis and
-   quit (closed) the connection. In this example we send a
-   subscription to a channel and start reading server side messages
-   indefinitely.
+/* In this example we send a subscription to a channel and start
+   reading server side messages indefinitely.
   
    Notice we store the id of the connection (attributed by the redis
    server) to be able to identify it (in the logs for example).
   
    After starting the example you can test it by sending messages with
-   the redis-client like this
+   redis-cli like this
   
       $ redis-cli -3
       127.0.0.1:6379> PUBLISH channel1 some-message
@@ -66,12 +64,12 @@ net::awaitable<void> subscriber()
 
       // Loops to receive server pushes.
       for (;;) {
-	 resp.clear();
-	 co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
+         resp.clear();
+         co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
 
-	 std::cout
-	    << "Subscriber " << id << ":\n"
-	    << resp << std::endl;
+         std::cout
+            << "Subscriber " << id << ":\n"
+            << resp << std::endl;
       }
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

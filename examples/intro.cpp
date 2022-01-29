@@ -37,17 +37,17 @@ net::awaitable<void> ping()
       sr.push(command::quit);
       co_await async_write(socket, buffer(request));
 
-      // Expected responses.
+      // Responses we are interested in.
       int incr;
       std::string ping;
 
-      // Reads the responses.
+      // Reads the responses to ping and incr, ignore the others.
       std::string buffer;
-      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello (ignored)
-      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // flushall
+      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello
+      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // flushall 
       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(ping));
       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(incr));
-      co_await resp3::async_read(socket, dynamic_buffer(buffer));
+      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // quit
 
       // Print the responses.
       std::cout

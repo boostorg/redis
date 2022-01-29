@@ -24,12 +24,6 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
-/* In the serialization.cpp example we saw how to serialize and
-   deserialize Redis responses in user custom types. When serializing
-   in custom containers users have to define their own response
-   adapter. This example illustrates how to do this.
-*/
-
 // An adapter that prints the data it receives in the screen.
 struct myadapter {
    void operator()(

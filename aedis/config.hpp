@@ -7,8 +7,6 @@
 
 #pragma once
 
-#define AEDIS_VERSION @PACKAGE_VERSION@
-
 #include <boost/asio.hpp>
 
 namespace aedis {

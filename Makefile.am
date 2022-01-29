@@ -31,6 +31,9 @@ EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += chat_room
 EXTRA_PROGRAMS += commands
 
+CLEANFILES =
+CLEANFILES += $(EXTRA_PROGRAMS)
+
 .PHONY: all
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
@@ -52,10 +55,8 @@ echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
 transaction_SOURCES = $(top_srcdir)/examples/transaction.cpp
 
-nobase_nodist_include_HEADERS =\
-  $(top_srcdir)/aedis/config.hpp
-
 nobase_include_HEADERS =\
+  $(top_srcdir)/aedis/config.hpp\
   $(top_srcdir)/aedis/src.hpp\
   $(top_srcdir)/aedis/redis/command.hpp\
   $(top_srcdir)/aedis/sentinel/command.hpp\
@@ -96,8 +97,6 @@ EXTRA_DIST += $(top_srcdir)/doc/DoxygenLayout.xml
 EXTRA_DIST += $(top_srcdir)/doc/aedis.css
 EXTRA_DIST += $(top_srcdir)/doc/htmlfooter.html
 EXTRA_DIST += $(top_srcdir)/doc/htmlheader.html
-
-CLEANFILES =
 
 .PHONY: doc
 doc:

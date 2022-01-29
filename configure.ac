@@ -18,5 +18,5 @@ AC_CHECK_HEADER_STDBOOL
 AC_TYPE_UINT64_T
 AC_CHECK_TYPES([ptrdiff_t])
 
-AC_CONFIG_FILES([Makefile aedis/config.hpp])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

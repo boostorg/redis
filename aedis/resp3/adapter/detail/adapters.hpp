@@ -291,7 +291,7 @@ template <class Container>
 class set {
 private:
    Container* result_;
-   Container::iterator hint_;
+   typename Container::iterator hint_;
 
 public:
    set(Container* c = nullptr)
@@ -334,7 +334,7 @@ template <class Container>
 class map {
 private:
    Container* result_;
-   Container::iterator current_;
+   typename Container::iterator current_;
    bool on_key_ = true;
 
 public:
