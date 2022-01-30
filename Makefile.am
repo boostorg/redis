@@ -83,7 +83,6 @@ nobase_include_HEADERS =\
 
 nobase_noinst_HEADERS =\
   $(top_srcdir)/examples/lib/net_utils.hpp\
-  $(top_srcdir)/examples/lib/responses.hpp\
   $(top_srcdir)/examples/lib/user_session.hpp\
   $(top_srcdir)/tests/check.hpp\
   $(top_srcdir)/tests/test_stream.hpp

@@ -7,31 +7,28 @@
 
 #include <iostream>
 #include <queue>
+#include <vector>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
 #include "lib/user_session.hpp"
-#include "lib/responses.hpp"
 
 namespace net = aedis::net;
 using aedis::redis::command;
 using aedis::user_session;
 using aedis::user_session_base;
+using aedis::resp3::node;
+using aedis::resp3::adapt;
 using aedis::resp3::experimental::client;
+using aedis::resp3::type;
 
 class receiver : public std::enable_shared_from_this<receiver> {
 private:
-   responses resps_;
+   std::vector<node> resps_;
    std::queue<std::weak_ptr<user_session_base>> sessions_;
 
 public:
-   auto get_adapter()
-      { return adapter_wrapper{resps_}; }
-
-   void add_user_session(std::shared_ptr<user_session_base> session)
-      { sessions_.push(session); }
-
    void on_message(std::error_code ec, command cmd)
    {
       if (ec) {
@@ -43,21 +40,31 @@ public:
          case command::ping:
          {
             if (auto session = sessions_.front().lock()) {
-               session->deliver(resps_.simple_string);
+               session->deliver(resps_.front().data);
             } else {
                std::cout << "Session expired." << std::endl;
             }
 
             sessions_.pop();
-            resps_.simple_string.clear();
          } break;
          case command::incr:
          {
-            std::cout << "Echos so far: " << resps_.number << std::endl;
+            std::cout << "Echos so far: " << resps_.front().data << std::endl;
          } break;
          default: { assert(false); }
       }
+
+      resps_.clear();
    }
+
+   auto get_adapter()
+   {
+      return [adapter = adapt(resps_)](command, type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable
+         { return adapter(t, aggregate_size, depth, data, size, ec); };
+   }
+
+   void add_user_session(std::shared_ptr<user_session_base> session)
+      { sessions_.push(session); }
 };
 
 net::awaitable<void> listener()

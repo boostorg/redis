@@ -162,7 +162,7 @@
  *  - \b Redis-client: used in on example.
  *  - \b Redis \b Sentinel \b server: used in some examples.
  *
- *  \section Installing
+ *  \section Installation
  *
  *  Get the latest release and follow the steps
  *
@@ -196,6 +196,12 @@
  *  # Test aedis in your machine.
  *  $ make check
  *  ```
+ *
+ *  \subsection Windows
+ *
+ *  Windows users can use aedis by either adding the project root
+ *  directory to their include path or manually copying to another
+ *  location. 
  *
  *  \section using Using Aedis
  *

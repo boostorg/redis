@@ -12,26 +12,24 @@
 #include <aedis/src.hpp>
 
 #include "lib/user_session.hpp"
-#include "lib/responses.hpp"
 
 namespace net = aedis::net;
 using aedis::redis::command;
+using aedis::resp3::adapt;
+using aedis::resp3::experimental::client;
+using aedis::resp3::node;
+using aedis::resp3::type;
 using aedis::user_session;
 using aedis::user_session_base;
-using aedis::resp3::experimental::client;
 
+// TODO: Delete sessions that have expired.
 class receiver : public std::enable_shared_from_this<receiver> {
+public:
 private:
-   responses resps_;
+   std::vector<node> resps_;
    std::vector<std::weak_ptr<user_session_base>> sessions_;
 
 public:
-   auto get_adapter()
-      { return adapter_wrapper{resps_}; }
-
-   auto add(std::shared_ptr<user_session_base> session)
-      { sessions_.push_back(session); }
-
    void on_message(std::error_code ec, command cmd)
    {
       if (ec) {
@@ -42,24 +40,33 @@ public:
       switch (cmd) {
          case command::incr:
          {
-            std::cout << "Message so far: " << resps_.number << std::endl;
+            std::cout << "Message so far: " << resps_.front().data << std::endl;
          } break;
          case command::unknown: // Push
          {
-            // TODO: Delete sessions lazily on traversal.
             for (auto& weak: sessions_) {
                if (auto session = weak.lock()) {
-                  session->deliver(resps_.general.at(3).data);
+                  session->deliver(resps_.at(3).data);
                } else {
                   std::cout << "Session expired." << std::endl;
                }
             }
 
-            resps_.general.clear();
          } break;
          default: { /* Ignore */ }
       }
+
+      resps_.clear();
    }
+
+   auto get_adapter()
+   {
+      return [adapter = adapt(resps_)](command, type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable
+         { return adapter(t, aggregate_size, depth, data, size, ec); };
+   }
+
+   auto add(std::shared_ptr<user_session_base> session)
+      { sessions_.push_back(session); }
 };
 
 net::awaitable<void> listener()

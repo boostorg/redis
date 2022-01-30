@@ -39,7 +39,13 @@ namespace resp3 {
  *  to_string, which must be made available over ADL.
  */
 
-// TODO: Add an overload for containers.
+// NOTE: Consider adding an overload for containers.
+//
+// TODO: Should we detect any std::pair or tuple in the type in the parameter
+// pack to calculate the header size correctly?
+//
+// NOTE: For some commands like hset it would be a good idea to assert
+// the value type is a pair.
 template <class Storage, class Command>
 class serializer {
 private:
@@ -73,9 +79,6 @@ public:
    template <class... Ts>
    void push(Command cmd, Ts const&... args)
    {
-      // TODO: Should we detect any std::pair in the type in the pack
-      // to calculate the header size correctly?
-
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(*request_, 1 + pack_size);
 
@@ -106,9 +109,6 @@ public:
    template <class Key, class ForwardIterator>
    void push_range(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
-      // Note: For some commands like hset it would helpful to users
-      // to assert the value type is a pair.
-
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
 
       auto constexpr size = detail::value_type_size<value_type>::size;
@@ -141,9 +141,6 @@ public:
    template <class ForwardIterator>
    void push_range(Command cmd, ForwardIterator begin, ForwardIterator end)
    {
-      // Note: For some commands like hset it would be a good idea to assert
-      // the value type is a pair.
-
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
 
       auto constexpr size = detail::value_type_size<value_type>::size;

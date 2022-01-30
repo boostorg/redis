@@ -59,11 +59,11 @@ private:
    // next message in the output queue.
    net::steady_timer timer_;
 
-   // Response adapter. TODO: Set a default adapter.
-   adapter_type adapter_;
+   // Response adapter.
+   adapter_type adapter_ = [](redis::command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&) {};
 
-   // Message callback. TODO: Set a default callback.
-   on_message_type on_msg_;
+   // Message callback.
+   on_message_type on_msg_ = [](std::error_code ec, redis::command) {};
 
    // A coroutine that keeps reading the socket. When a message
    // arrives it calls on_message.
