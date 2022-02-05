@@ -16,7 +16,7 @@ namespace aedis {
 namespace redis {
 
 /** \brief Redis commands.
- *  \ingroup enums
+ *  \ingroup any
  *
  *  For a full list of commands see https://redis.io/commands.
  *
@@ -437,7 +437,7 @@ enum class command {
 };
 
 /** \brief Converts a command to a string
- *  \ingroup functions
+ *  \ingroup any
  *
  *  \param c The command to convert.
  */
@@ -452,12 +452,12 @@ char const* to_string(command c);
 std::ostream& operator<<(std::ostream& os, command c);
 
 /** \brief Returns true for commands with push response.
- *  \ingroup functions
+ *  \ingroup any
  */
 bool has_push_response(command cmd);
 
 /** \brief Creates a serializer for a \c std::string.
- *  \ingroup functions
+ *  \ingroup any
  *  \param storage The string.
  */
 template <class CharT, class Traits, class Allocator>

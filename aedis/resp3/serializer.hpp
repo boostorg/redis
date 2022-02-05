@@ -13,7 +13,7 @@ namespace aedis {
 namespace resp3 {
 
 /** @brief Creates a Redis request from user data.
- *  \ingroup classes
+ *  \ingroup any
  *  
  *  A request is composed of one or more redis commands and is
  *  referred to in the redis documentation as a pipeline, see

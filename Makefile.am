@@ -15,12 +15,12 @@ check_PROGRAMS += intro
 check_PROGRAMS += sets
 check_PROGRAMS += hashes
 check_PROGRAMS += serialization
-check_PROGRAMS += nested_response
+check_PROGRAMS += multipurpose_response
 check_PROGRAMS += lists
 check_PROGRAMS += key_expiration
 check_PROGRAMS += response_adapter
 check_PROGRAMS += sync
-check_PROGRAMS += redis_client
+check_PROGRAMS += multipurpose_client
 check_PROGRAMS += test_offline
 check_PROGRAMS += test_online
 check_PROGRAMS += transaction
@@ -41,12 +41,12 @@ intro_SOURCES = $(top_srcdir)/examples/intro.cpp
 sets_SOURCES = $(top_srcdir)/examples/sets.cpp
 hashes_SOURCES = $(top_srcdir)/examples/hashes.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
-nested_response_SOURCES = $(top_srcdir)/examples/nested_response.cpp
+multipurpose_response_SOURCES = $(top_srcdir)/examples/multipurpose_response.cpp
 lists_SOURCES = $(top_srcdir)/examples/lists.cpp
 key_expiration_SOURCES = $(top_srcdir)/examples/key_expiration.cpp
 response_adapter_SOURCES = $(top_srcdir)/examples/response_adapter.cpp
 sync_SOURCES = $(top_srcdir)/examples/sync.cpp
-redis_client_SOURCES = $(top_srcdir)/examples/redis_client.cpp
+multipurpose_client_SOURCES = $(top_srcdir)/examples/multipurpose_client.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 test_offline_SOURCES = $(top_srcdir)/tests/offline.cpp
 test_online_SOURCES = $(top_srcdir)/tests/online.cpp
@@ -91,7 +91,6 @@ TESTS = $(check_PROGRAMS)
 
 EXTRA_DIST =
 EXTRA_DIST += $(top_srcdir)/README.md
-EXTRA_DIST += $(top_srcdir)/doc/Doxyfile
 EXTRA_DIST += $(top_srcdir)/doc/DoxygenLayout.xml
 EXTRA_DIST += $(top_srcdir)/doc/aedis.css
 EXTRA_DIST += $(top_srcdir)/doc/htmlfooter.html
@@ -99,6 +98,6 @@ EXTRA_DIST += $(top_srcdir)/doc/htmlheader.html
 
 .PHONY: doc
 doc:
-	rm -rf /tmp/aedis
+	rm -rf ../aedis-gh-pages/*
 	doxygen doc/Doxyfile
 

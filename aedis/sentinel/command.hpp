@@ -13,7 +13,7 @@ namespace aedis {
 namespace sentinel {
 
 /** \brief Sentinel commands.
- *  \ingroup enums
+ *  \ingroup any
  *
  *  For a full list of commands see https://redis.io/topics/sentinel
  *
@@ -56,7 +56,7 @@ enum class command {
 };
 
 /** \brief Converts a sentinel command to a string
- *  \ingroup functions
+ *  \ingroup any
  *
  *  \param c The command to convert.
  */
@@ -71,7 +71,7 @@ char const* to_string(command c);
 std::ostream& operator<<(std::ostream& os, command c);
 
 /** \brief Returns true for sentinel commands with push response.
- *  \ingroup functions
+ *  \ingroup any
  */
 bool has_push_response(command cmd);
 

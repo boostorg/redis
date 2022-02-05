@@ -8,7 +8,7 @@ namespace aedis {
 namespace resp3 {
 
 /** \brief RESP3 parsing errors.
- *  \ingroup enums
+ *  \ingroup any
  */
 enum class error
 {
@@ -54,7 +54,7 @@ std::error_category const& category()
 } // detail
 
 /** \brief Converts an error in an std::error_code object.
- *  \ingroup functions
+ *  \ingroup any
  */
 inline
 std::error_code make_error_code(error e)

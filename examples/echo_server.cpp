@@ -13,6 +13,7 @@
 #include <aedis/src.hpp>
 
 #include "lib/user_session.hpp"
+#include "lib/net_utils.hpp"
 
 namespace net = aedis::net;
 using aedis::redis::command;
@@ -51,13 +52,13 @@ public:
          {
             std::cout << "Echos so far: " << resps_.front().data << std::endl;
          } break;
-         default: { assert(false); }
+         default: { /* Ignore */; }
       }
 
       resps_.clear();
    }
 
-   auto get_adapter()
+   auto get_extended_adapter()
    {
       return [adapter = adapt(resps_)](command, type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable
          { return adapter(t, aggregate_size, depth, data, size, ec); };
@@ -66,6 +67,16 @@ public:
    void add_user_session(std::shared_ptr<user_session_base> session)
       { sessions_.push(session); }
 };
+
+net::awaitable<void> connection_manager(std::shared_ptr<client> db)
+{
+   try {
+      auto socket = co_await connect();
+      co_await db->engage(std::move(socket));
+   } catch (std::exception const& e) {
+      std::cerr << "Error: " << e.what() << std::endl;
+   }
+}
 
 net::awaitable<void> listener()
 {
@@ -77,9 +88,9 @@ net::awaitable<void> listener()
       { recv->on_message(ec, cmd); };
 
    auto db = std::make_shared<client>(ex);
-   db->set_adapter(recv->get_adapter());
+   db->set_extended_adapter(recv->get_extended_adapter());
    db->set_msg_callback(on_db_msg);
-   db->prepare();
+   net::co_spawn(ex, connection_manager(db), net::detached);
 
    for (;;) {
       auto socket = co_await acceptor.async_accept(net::use_awaitable);

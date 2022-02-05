@@ -7,6 +7,7 @@
 
 #pragma once
 
+// TODO: Remove this.
 #include <boost/asio.hpp>
 
 namespace aedis {

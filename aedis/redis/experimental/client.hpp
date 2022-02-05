@@ -18,22 +18,33 @@ namespace resp3 {
 namespace experimental {
 
 /**  \brief A high level redis client.
- *   \ingroup classes
+ *   \ingroup any
  *
  *   This Redis client keeps a connection to the database open and
- *   manage reconnections.
+ *   uses it for all communication with Redis. For examples on how to
+ *   use see the examples chat_room.cpp, echo_server.cpp and redis_client.cpp.
+ *
+ *   \remarks This class reuses its internal buffers for requests and
+ *   for reading Redis responses. With time it will allocate less and
+ *   less.
  */
 class client : public std::enable_shared_from_this<client> {
 public:
-   /// The response adapter type.
-   using adapter_type = std::function<void(redis::command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
+   /** \brief The extended response adapter type.
+    *
+    *  The difference between the adapter and extended_adapter
+    *  concepts is that the extended get a command redis::parameter.
+    */
+   using extented_adapter_type = std::function<void(redis::command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
 
    /// The type of the message callback.
    using on_message_type = std::function<void(std::error_code ec, redis::command)>;
 
-private:
-   using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+   /// The type of the socket used by the client.
+   //using socket_type = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+   using socket_type = net::ip::tcp::socket;
 
+private:
    struct request_info {
       // Request size in bytes.
       std::size_t size = 0;
@@ -53,17 +64,20 @@ private:
    std::queue<request_info> req_info_;
 
    // The stream.
-   tcp_socket socket_;
+   socket_type socket_;
 
    // Timer used to inform the write coroutine that it can write the
    // next message in the output queue.
    net::steady_timer timer_;
 
    // Response adapter.
-   adapter_type adapter_ = [](redis::command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&) {};
+   extented_adapter_type extended_adapter_ = [](redis::command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&) {};
 
    // Message callback.
    on_message_type on_msg_ = [](std::error_code ec, redis::command) {};
+
+   // Set when the writer coroutine should stop.
+   bool stop_writer_ = false;
 
    // A coroutine that keeps reading the socket. When a message
    // arrives it calls on_message.
@@ -72,12 +86,6 @@ private:
    // Write coroutine. It is kept suspended until there are messages
    // to be sent.
    net::awaitable<void> writer();
-
-   net::awaitable<void> say_hello();
-
-   // The connection manager. It keeps trying the reconnect to the
-   // server when the connection is lost.
-   net::awaitable<void> connection_manager();
 
    /* Prepares the back of the queue to receive further commands. 
     *
@@ -95,9 +103,21 @@ public:
     */
    client(net::any_io_executor ex);
 
-   /** \brief Prepares the client for execution.
+   /// Returns the executor used for I/O with Redis.
+   auto get_executor() {return socket_.get_executor();}
+
+   /** \brief Starts communication with Redis.
+    *
+    *  This functions will send the hello command to Redis and spawn
+    *  the read and write coroutines.
+    *
+    *  \param socket A socket that is connected to redis.
+    *
+    *  \returns This function returns an awaitable on which users should \c
+    *  co_await. When the communication with Redis is lost the
+    *  coroutine will finally co_return.
     */
-   void prepare();
+   net::awaitable<void> engage(socket_type socket);
 
    /** \brief Adds a command to the command queue.
     *
@@ -106,8 +126,8 @@ public:
    template <class... Ts>
    void send(redis::command cmd, Ts const&... args);
 
-   /// Sets the response adapter.
-   void set_adapter(adapter_type adapter);
+   /// Sets an extended response adapter.
+   void set_extended_adapter(extented_adapter_type adapter);
 
    /// Sets the message callback;
    void set_msg_callback(on_message_type on_msg);

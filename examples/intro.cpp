@@ -51,8 +51,8 @@ net::awaitable<void> ping()
 
       // Print the responses.
       std::cout
-	 << "ping: " << ping << "\n"
-	 << "incr: " << incr << "\n";
+         << "ping: " << ping << "\n"
+         << "incr: " << incr << "\n";
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

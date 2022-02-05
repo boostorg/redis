@@ -15,7 +15,7 @@ namespace aedis {
 namespace resp3 {
 
 /** \brief RESP3 types
-    \ingroup enums
+    \ingroup any
   
     The RESP3 full specification can be found at https://github.com/antirez/RESP3/blob/74adea588783e463c7e84793b325b088fe6edd1c/spec.md
  */
@@ -57,7 +57,7 @@ enum class type
 };
 
 /** \brief Returns the string representation of the type.
- *  \ingroup functions
+ *  \ingroup any
  *  \param t RESP3 type.
  */
 char const* to_string(type t);
@@ -70,13 +70,13 @@ char const* to_string(type t);
 std::ostream& operator<<(std::ostream& os, type t);
 
 /** \brief Returns true if the data type is an aggregate.
- *  \ingroup functions
+ *  \ingroup any
  *  \param t RESP3 type.
  */
 bool is_aggregate(type t);
 
 /** @brief Returns the element multilicity.
- *  \ingroup functions
+ *  \ingroup any
  *  \param t RESP3 type.
  *
  *  For type map and attribute this value is 2, all other types have

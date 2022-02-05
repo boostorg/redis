@@ -7,7 +7,7 @@ namespace resp3 {
 namespace adapter {
 
 /** \brief Errors that may occurr when reading a response.
- *  \ingroup enums
+ *  \ingroup any
  */
 enum class error
 {

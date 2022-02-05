@@ -16,7 +16,7 @@ namespace aedis {
 namespace resp3 {
 
 /** \brief A node in the response tree.
- *  \ingroup classes
+ *  \ingroup any
  *
  *  Redis responses are the pre-order view of the response tree (see
  *  https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR).
@@ -36,31 +36,31 @@ struct node {
 };
 
 /** \brief Converts the node to a string.
- *  \ingroup functions
+ *  \ingroup any
  *
  *  \param obj The node object.
  */
 std::string to_string(node const& obj);
 
 /** \brief Compares a node for equality.
- *  \ingroup operators
+ *  \ingroup any
  */
 bool operator==(node const& a, node const& b);
 
 /** \brief Writes the node to the stream.
- *  \ingroup operators
+ *  \ingroup any
  *
  *  NOTE: Binary data is not converted to text.
  */
 std::ostream& operator<<(std::ostream& os, node const& o);
 
 /** \brief Writes the response to the output stream
- *  \ingroup functions
+ *  \ingroup any
  */
 std::string to_string(std::vector<node> const& vec);
 
 /** \brief Writes the response to the output stream
- *  \ingroup operators
+ *  \ingroup any
  */
 std::ostream& operator<<(std::ostream& os, std::vector<node> const& r);
 

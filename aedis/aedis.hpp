@@ -18,240 +18,187 @@
 #include <aedis/resp3/response_traits.hpp>
 #include <aedis/redis/experimental/client.hpp>
 
-/** \mainpage
- *
- *  \b Overview
- *
- *  Aedis is low-level redis client library built on top of Boost.Asio
- *  that implements communication with a Redis server over its native
- *  protocol RESP3. It has first-class support for STL containers and
- *  C++ built in types among other things. You will be able to
- *  implement your own redis client or use a general purpose provided
- *  by the library. For more information about Redis see
- *  https://redis.io/
- *
- *  \b Using \b Aedis
- *
- *  - \subpage installation
- *  - \subpage examples
- *
- *  \b Reference
- *
- *  - \subpage enums
- *  - \subpage classes
- *  - \subpage functions
- *  - \subpage operators
- */
+/** \mainpage Documentation
+    \tableofcontents
+  
+    \section Overview
+  
+    Aedis is low-level redis client library built on top of Boost.Asio
+    that implements communication with a Redis server over its native
+    protocol RESP3. It has first-class support for STL containers and
+    C++ built in types among other things. You will be able to
+    implement your own redis client or use a general purpose provided
+    by the library. For more information about Redis see
+    https://redis.io/
+  
+    \section examples Examples
 
-//---------------------------------------------------------
-// Pages
+    In general every feature offered by the library will be
+    accompained by an example showing how to use it. We also focus in
+    a more modern asynchronous programming with coroutines.
 
-/** \page examples Examples
- *
-    \b Basics: Focuses on small code snippets that show basic usage of
-    the library, for example: how to make a request and read the
-    response, how to deal with keys that may not exist, etc.
+    \subsection Basics
 
-    - intro.cpp
+    Focuses on small examples that show basic usage of
+    the library, for example, how to make a request and read the
+    response, how to deal with keys that may not exist, pubsub, etc.
 
-      Some commands are sent to the Redis server and the responses are
-      printed to screen. A good starting point.
+    - intro.cpp: A good starting point. Some commands are sent to the
+      Redis server and the responses are printed to screen. 
 
-    - transaction.cpp
+    - transaction.cpp: Shows how to read the responses to a trasaction
+      efficiently. See also https://redis.io/topics/transactions.
 
-      Shows how to read the responses to all commands inside a
-      trasaction efficiently. At the moment this feature supports only
-      transactions that contain simple types or aggregates that don't
-      contain aggregates themselves (as in most cases).
+    - multipurpose_response.cpp: Shows how to read any responses to
+      Redis commands, including nested aggegagtes.
 
-    - nested_response.cpp
-      
-      Shows how to read responses to commands that cannot be
-      translated in a C++ built-in type like std::string or STL
-      containers, for example all commands contained in a transaction
-      will be nested by Redis in a single response. Users may have to
-      convert into their own desired format.
+    - subscriber.cpp: Shows how channel subscription works at a low
+      level. See also https://redis.io/topics/pubsub.
 
-    - subscriber.cpp
+    - sync.cpp: Shows hot to use the Aedis synchronous api.
 
-      Shows how channel subscription works at a low level.
+    - key_expiration.cpp: Shows how to use \c std::optional to deal
+      with keys that may have expired or do not exist.
 
-    - sync.cpp
-      
-      Shows hot to use the Aedis synchronous api.
+    \subsection stl-containers STL Containers
 
-    - key_expiration.cpp
-      
-      Shows how to use \c std::optional to deal with keys that may
-      have expired or do not exist.
-
-    \b STL \b Containers: Many of the Redis data structures can be
+    Many of the Redis data structures can be
     directly translated in to STL containers, below you will find some
     example code. For a list of Redis data types see
     https://redis.io/topics/data-types.
 
-    - hashes.cpp
-
-      Shows how to read Redis hashes in a \c std::map, \c
+    - hashes.cpp: Shows how to read Redis hashes in a \c std::map, \c
       std::unordered_map and \c std::vector.
 
-    - lists.cpp
-
-      Shows how to read Redis lists in \c std::list,
+    - lists.cpp: Shows how to read Redis lists in \c std::list,
       \c std::deque, \c std::vector. It also illustrates basic serialization.
 
-    - sets.cpp
+    - sets.cpp: Shows how to read Redis sets in a \c std::set, \c
+      std::unordered_set and \c std::vector.
 
-      Shows how to read Redis sets in a \c std::set, \c std::unordered_set
-      and \c std::vector.
+    \subsection customization-points Customization points
 
-    \b Customization \b points: Shows how de/serialize user types
+    Shows how de/serialize user types
     avoiding copies. This is particularly useful for low latency
     applications that want to avoid unneeded copies, for examples when
     storing json strings in Redis keys.
 
-    - serialization.cpp
+    - serialization.cpp: Shows how to de/serialize your own
+      non-aggregate data-structures.
 
-      Shows how to de/serialize your own non-aggregate data-structures.
+    - response_adapter.cpp: Customization point for users that want to
+      de/serialize their own data-structures like containers for example.
 
-    - response_adapter.cpp
+    \subsection async-servers Asynchronous servers
 
-      Customization point for users that want to de/serialize their
-      own data-structures like containers for example.
-
-    \b Asynchronous \b servers: Contains some non-trivial examples
+    Contains some non-trivial examples
     servers that interact with users and Redis asynchronously over
     long lasting connections using a higher level API.
 
-    - redis_client.cpp
+    - multipurpose_client.cpp: Shows how to use and experimental high
+      level redis client that keeps a long lasting connections to a
+      redis server. This is the starting point for the next examples.
 
-      Shows how to use and experimental high level redis client that
-      keeps a long lasting connections to a redis server. This is the
-      starting point for the next examples.
+    - echo_server.cpp: Shows the basic principles behind asynchronous
+      communication with a database in an asynchronous server. In this
+      case, the server is a proxy between the user and Redis.
 
-    - echo_server.cpp
+    - chat_room.cpp: Shows how to build a scalable chat room that
+      scales to millions of users.
 
-      Shows the basic principles behind asynchronous communication
-      with a database in an asynchronous server. In this case, the
-      server is a proxy between the user and Redis.
+    \section using-aedis Using Aedis
 
-    - chat_room.cpp
+    This section contains instructions on how to install aedis on your machine among other things.
 
-      Shows how to build a scalable chat room that scales to
-      millions of users.
+    \subsection Requirements
+  
+    Aedis installation requires
+  
+    - Boost 1.78 or greater
+    - Unix Shell
+    - Make
+  
+    To use Aedis and build its examples and tests you will need
+  
+    - C++20 with coroutine support.
+    - Redis server.
+  
+    Some examples will also require interaction with
+  
+    - Redis-client: used in on example.
+    - Redis Sentinel server: used in some examples.
+  
+    \subsection Installation
+  
+    Start by downloading and configuring the library
+  
+    ```
+    # Download the libray on github.
+    $ wget github-link
+  
+    # Uncompress the tarball and cd into the dir
+    $ tar -xzvf aedis-1.0.0.tar.gz && cd aedis-1.0.0
+  
+    # Run configure with appropriate C++ flags and your boost installation, for example
+    $ CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage"\
+    ./configure  --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib
+  
+    ```
+  
+    To install the library run
+  
+    ```
+    # Install Aedis in the path specified in --prefix
+    $ sudo make install
+  
+    ```
+  
+    At this point you can start using Aedis. To build the examples and
+    test you can also run
+  
+    ```
+    # Build aedis examples.
+    $ make examples
+  
+    # Test aedis in your machine.
+    $ make check
+    ```
+  
+    Finally you will have to include the following header 
+  
+    ```cpp
+    #include <aedis/src.hpp>
+    ```
+    in exactly one source file in your applications.
+  
+    \subsubsection Windows
+  
+    Windows users can use aedis by either adding the project root
+    directory to their include path or manually copying to another
+    location. 
+  
+    \subsection Developers
+  
+    To generate the build system run
+  
+    ```
+    $ autoreconf -i
+    ```
+  
+    After that you will have a config in the project dir that you can
+    run as explained above, for example, to use a compiler other that
+    the system compiler use
+  
+    ```
+    CC=/opt/gcc-10.2.0/bin/gcc-10.2.0\
+    CXX=/opt/gcc-10.2.0/bin/g++-10.2.0\
+    CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror"  ./configure ...
+    ```
+    \section Referece
+  
+    See \subpage any.
  */
 
-/** \page installation Installation
- *  \tableofcontents
- *
- *  \section Requirements
- *
- *  Aedis installation requires
- *
- *  - \b Boost \b 1.78 or greater
- *  - \b Unix \b Shell
- *  - \b Make
- *
- *  To use Aedis and build its examples and tests you will need
- *
- *  - \b C++20 with \b coroutine support.
- *  - \b Redis \b server.
- *
- *  Some examples will also require interaction with
- *
- *  - \b Redis-client: used in on example.
- *  - \b Redis \b Sentinel \b server: used in some examples.
- *
- *  \section Installation
- *
- *  Get the latest release and follow the steps
- *
- *  ```
- *  # Download the libray on github.
- *  $ wget github-link
- *
- *  # Uncompress the tarball and cd into the dir
- *  $ tar -xzvf aedis-1.0.0.tar.gz && cd aedis-1.0.0
- *
- *  # Run configure with appropriate C++ flags and your boost installation, for example
- *  $ CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage"\
- *  ./configure  --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib
- *
- *  ```
- *
- *  To install the library run
- *
- *  ```
- *  # Install Aedis in the path specified in --prefix
- *  $ sudo make install
- *
- *  ```
- *
- *  To build the examples and test the library in your machine
- *
- *  ```
- *  # Build aedis examples.
- *  $ make examples
- *
- *  # Test aedis in your machine.
- *  $ make check
- *  ```
- *
- *  \subsection Windows
- *
- *  Windows users can use aedis by either adding the project root
- *  directory to their include path or manually copying to another
- *  location. 
- *
- *  \section using Using Aedis
- *
- *  This library in not header-only. You have to include the following
- *  header 
- *
- *  ```cpp
- *  #include <aedis/src.hpp>
- *  ```
- *
- *  in exactly one source file in your applications.
- *
- *  \section Developers
- *
- *  Aedis uses Autotools for its build system. To generate the build
- *  system run
- *
- *  ```
- *  $ autoreconf -i
- *  ```
- *
- *  After that you will have a config in the project dir that you can
- *  run as explained above, for example, to use a compiler other that
- *  the system compiler use
- *
- *  ```
- *  CC=/opt/gcc-10.2.0/bin/gcc-10.2.0\
- *  CXX=/opt/gcc-10.2.0/bin/g++-10.2.0\
- *  CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror"  ./configure ...
- *  ```
+/** \defgroup any Reference
  */
 
-//---------------------------------------------------------
-// Groups
-
-/** \defgroup enums Enumerations
- *  \brief Enumerations defined by this library.
- */
-
-
-/** \defgroup classes Classes
- *  \brief Classes defined by this library.
- */
-
-
-/** \defgroup functions Free functions
- *  \brief All functions defined by this library.
- */
-
-
-/** \defgroup operators Operators
- *  \brief Operators defined in Aedis
- */

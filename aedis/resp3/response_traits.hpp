@@ -27,7 +27,7 @@ namespace aedis {
 namespace resp3 {
 
 /** \brief Traits class for response objects.
- *  \ingroup classes
+ *  \ingroup any
  */
 template <class T>
 struct response_traits
