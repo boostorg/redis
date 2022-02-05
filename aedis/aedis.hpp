@@ -112,8 +112,8 @@
     Start by downloading and configuring the library
   
     ```
-    # Download the libray on github.
-    $ wget https://github.com/mzimbres/aedis/release-path # TODO
+    # Download the latest release on github
+    $ wget https://github.com/mzimbres/aedis/releases
   
     # Uncompress the tarball and cd into the dir
     $ tar -xzvf aedis-1.0.0.tar.gz && cd aedis-1.0.0
