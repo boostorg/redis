@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis</font> &#160; <br> A low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -94,10 +94,10 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#include &quot;lib/net_utils.hpp&quot;</span></div>
 <div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
 <div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="keyword">namespace </span>resp3 = aedis::resp3;</div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">using</span> <a class="code" href="group__enums.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a>;</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">using</span> <a class="code" href="group__functions.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a>;</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> <a class="code" href="group__functions.html#ga0848acf8060ffedf036a5ad8d46a0a74">resp3::adapt</a>;</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> <a class="code" href="group__classes.html#structaedis_1_1resp3_1_1node">resp3::node</a>;</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a>;</div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a>;</div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">resp3::adapt</a>;</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">resp3::node</a>;</div>
 <div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
 <div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">namespace </span>net = aedis::net;</div>
 <div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">using</span> net::async_write;</div>
@@ -127,7 +127,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;      <span class="keyword">auto</span> socket = co_await connect();</div>
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160; </div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;      std::string request;</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;      <span class="keyword">auto</span> sr = <a class="code" href="group__functions.html#ga4ce8d963105f423dc90ebed2eae2d142">make_serializer</a>(request);</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;      <span class="keyword">auto</span> sr = <a class="code" href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">make_serializer</a>(request);</div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;      sr.push(command::hello, <span class="stringliteral">&quot;3&quot;</span>);</div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;      sr.push(command::subscribe, <span class="stringliteral">&quot;channel1&quot;</span>, <span class="stringliteral">&quot;channel2&quot;</span>);</div>
 <div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;      co_await async_write(socket, buffer(request));</div>
@@ -136,8 +136,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
 <div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;      <span class="comment">// Reads the response to the hello command.</span></div>
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;      std::string buffer;</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;      co_await <a class="code" href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">resp3::async_read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__functions.html#ga0848acf8060ffedf036a5ad8d46a0a74">adapt</a>(resp));</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;      co_await <a class="code" href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">resp3::async_read</a>(socket, dynamic_buffer(buffer));</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;      co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">adapt</a>(resp));</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;      co_await resp3::async_read(socket, dynamic_buffer(buffer));</div>
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
 <div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;      <span class="comment">// Saves the id of this connection.</span></div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> <span class="keywordtype">id</span> = resp.at(8).data;</div>
@@ -145,7 +145,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;      <span class="comment">// Loops to receive server pushes.</span></div>
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;      <span class="keywordflow">for</span> (;;) {</div>
 <div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;         resp.clear();</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;         co_await <a class="code" href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">resp3::async_read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__functions.html#ga0848acf8060ffedf036a5ad8d46a0a74">adapt</a>(resp));</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;         co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">adapt</a>(resp));</div>
 <div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160; </div>
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;         std::cout</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;            &lt;&lt; <span class="stringliteral">&quot;Subscriber &quot;</span> &lt;&lt; <span class="keywordtype">id</span> &lt;&lt; <span class="stringliteral">&quot;:\n&quot;</span></div>
@@ -164,11 +164,10 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;   co_spawn(ioc, subscriber(), net::detached);</div>
 <div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;   ioc.run();</div>
 <div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;}</div>
-<div class="ttc" id="agroup__classes_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__classes.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00024">node.hpp:24</a></div></div>
-<div class="ttc" id="agroup__enums_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__enums.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00026">command.hpp:26</a></div></div>
-<div class="ttc" id="agroup__functions_html_ga057f299e1d81b1dedd62574e5c6bcf9d"><div class="ttname"><a href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">aedis::resp3::async_read</a></div><div class="ttdeci">auto async_read(AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=adapt(), CompletionToken &amp;&amp;token=net::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</div><div class="ttdoc">Reads the response to a Redis command asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00147">read.hpp:147</a></div></div>
-<div class="ttc" id="agroup__functions_html_ga0848acf8060ffedf036a5ad8d46a0a74"><div class="ttname"><a href="group__functions.html#ga0848acf8060ffedf036a5ad8d46a0a74">aedis::resp3::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a void response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00029">adapt.hpp:29</a></div></div>
-<div class="ttc" id="agroup__functions_html_ga4ce8d963105f423dc90ebed2eae2d142"><div class="ttname"><a href="group__functions.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a></div><div class="ttdeci">resp3::serializer&lt; std::string, command &gt; make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer for a std::string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00465">command.hpp:465</a></div></div>
+<div class="ttc" id="agroup__any_html_ga0848acf8060ffedf036a5ad8d46a0a74"><div class="ttname"><a href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">aedis::resp3::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a void response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00029">adapt.hpp:29</a></div></div>
+<div class="ttc" id="agroup__any_html_ga4ce8d963105f423dc90ebed2eae2d142"><div class="ttname"><a href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a></div><div class="ttdeci">resp3::serializer&lt; std::string, command &gt; make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer for a std::string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00465">command.hpp:465</a></div></div>
+<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00026">command.hpp:26</a></div></div>
+<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00024">node.hpp:24</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

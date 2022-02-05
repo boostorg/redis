@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis</font> &#160; <br> A low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -116,7 +116,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;{</div>
 <div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> res = std::from_chars(data, data + data_size, i);</div>
 <div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;   <span class="keywordflow">if</span> (res.ec != std::errc())</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;      ec = <a class="code" href="group__functions.html#ga4928ed04c49c9118a31af8fd0eb6f4c5">std::make_error_code</a>(res.ec);</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;      ec = <a class="code" href="group__any.html#ga4928ed04c49c9118a31af8fd0eb6f4c5">std::make_error_code</a>(res.ec);</div>
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;}</div>
 <div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160; </div>
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> CharT, <span class="keyword">class</span> Traits, <span class="keyword">class</span> Allocator&gt;</div>
@@ -133,9 +133,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="keywordtype">void</span> set_on_resp3_error(type t, std::error_code&amp; ec)</div>
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;{</div>
 <div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;   <span class="keywordflow">switch</span> (t) {</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57aae00ce17a8a0eaf50aba51f876c2d8b2">type::simple_error</a>: ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9aae00ce17a8a0eaf50aba51f876c2d8b2">adapter::error::simple_error</a>; <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5">type::blob_error</a>: ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9ab7f2a05d1d80e9f8a04926d67dd1aba5">adapter::error::blob_error</a>; <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a37a6259cc0c1dae299a7866489dff0bd">type::null</a>: ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a37a6259cc0c1dae299a7866489dff0bd">adapter::error::null</a>; <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57aae00ce17a8a0eaf50aba51f876c2d8b2">type::simple_error</a>: ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9aae00ce17a8a0eaf50aba51f876c2d8b2">adapter::error::simple_error</a>; <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5">type::blob_error</a>: ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9ab7f2a05d1d80e9f8a04926d67dd1aba5">adapter::error::blob_error</a>; <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a37a6259cc0c1dae299a7866489dff0bd">type::null</a>: ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a37a6259cc0c1dae299a7866489dff0bd">adapter::error::null</a>; <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;      <span class="keywordflow">default</span>: <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;   }</div>
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;}</div>
@@ -144,8 +144,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="keywordtype">void</span> set_on_resp3_error2(type t, std::error_code&amp; ec)</div>
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;{</div>
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;   <span class="keywordflow">switch</span> (t) {</div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57aae00ce17a8a0eaf50aba51f876c2d8b2">type::simple_error</a>: ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9aae00ce17a8a0eaf50aba51f876c2d8b2">adapter::error::simple_error</a>; <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5">type::blob_error</a>: ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9ab7f2a05d1d80e9f8a04926d67dd1aba5">adapter::error::blob_error</a>; <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57aae00ce17a8a0eaf50aba51f876c2d8b2">type::simple_error</a>: ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9aae00ce17a8a0eaf50aba51f876c2d8b2">adapter::error::simple_error</a>; <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;      <span class="keywordflow">case</span> <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5">type::blob_error</a>: ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9ab7f2a05d1d80e9f8a04926d67dd1aba5">adapter::error::blob_error</a>; <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;      <span class="keywordflow">default</span>: <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;   }</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;}</div>
@@ -223,8 +223,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;   {</div>
 <div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;      set_on_resp3_error(t, ec);</div>
 <div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160; </div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;      <span class="keywordflow">if</span> (<a class="code" href="group__functions.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t)) {</div>
-<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;     ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a3059263deaffd09ba4c0577fa6434741">adapter::error::expects_simple_type</a>;</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;      <span class="keywordflow">if</span> (<a class="code" href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t)) {</div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;     ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a3059263deaffd09ba4c0577fa6434741">adapter::error::expects_simple_type</a>;</div>
 <div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;     <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;      }</div>
 <div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160; </div>
@@ -252,19 +252,19 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;   {</div>
 <div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;      set_on_resp3_error2(t, ec);</div>
 <div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160; </div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;      <span class="keywordflow">if</span> (<a class="code" href="group__functions.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t)) {</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;     ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a3059263deaffd09ba4c0577fa6434741">adapter::error::expects_simple_type</a>;</div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;      <span class="keywordflow">if</span> (<a class="code" href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t)) {</div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;     ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a3059263deaffd09ba4c0577fa6434741">adapter::error::expects_simple_type</a>;</div>
 <div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;     <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;      }</div>
 <div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160; </div>
 <div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;      assert(aggregate_size == 1);</div>
 <div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160; </div>
 <div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;      <span class="keywordflow">if</span> (depth != 0) {</div>
-<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;     ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">adapter::error::nested_unsupported</a>;</div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;     ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">adapter::error::nested_unsupported</a>;</div>
 <div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;     <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;      }</div>
 <div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
-<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;      <span class="keywordflow">if</span> (t == <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a37a6259cc0c1dae299a7866489dff0bd">type::null</a>)</div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;      <span class="keywordflow">if</span> (t == <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a37a6259cc0c1dae299a7866489dff0bd">type::null</a>)</div>
 <div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;         <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160; </div>
 <div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;      <span class="keywordflow">if</span> (!result_-&gt;has_value())</div>
@@ -295,13 +295,13 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;   {</div>
 <div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;      set_on_resp3_error(t, ec);</div>
 <div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160; </div>
-<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;      <span class="keywordflow">if</span> (<a class="code" href="group__functions.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t)) {</div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;      <span class="keywordflow">if</span> (<a class="code" href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t)) {</div>
 <div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;     <span class="keywordflow">if</span> (i_ != -1) {</div>
-<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;        ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">adapter::error::nested_unsupported</a>;</div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;        ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">adapter::error::nested_unsupported</a>;</div>
 <div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160;        <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;     }</div>
 <div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160; </div>
-<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;         <span class="keyword">auto</span> <span class="keyword">const</span> m = <a class="code" href="group__functions.html#ga0092190b76e640757b1964016e5a97a4">element_multiplicity</a>(t);</div>
+<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;         <span class="keyword">auto</span> <span class="keyword">const</span> m = <a class="code" href="group__any.html#ga0092190b76e640757b1964016e5a97a4">element_multiplicity</a>(t);</div>
 <div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;         result_-&gt;resize(m * aggregate_size);</div>
 <div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;         ++i_;</div>
 <div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;      } <span class="keywordflow">else</span> {</div>
@@ -331,9 +331,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;   {</div>
 <div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;      set_on_resp3_error(t, ec);</div>
 <div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160; </div>
-<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;      <span class="keywordflow">if</span> (<a class="code" href="group__functions.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t)) {</div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;      <span class="keywordflow">if</span> (<a class="code" href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t)) {</div>
 <div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;     <span class="keywordflow">if</span> (depth != 0) {</div>
-<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;        ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">adapter::error::nested_unsupported</a>;</div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;        ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">adapter::error::nested_unsupported</a>;</div>
 <div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;        <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;     }</div>
 <div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;         <span class="keywordflow">return</span>;</div>
@@ -342,7 +342,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;      assert(aggregate_size == 1);</div>
 <div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160; </div>
 <div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;      <span class="keywordflow">if</span> (depth != 1) {</div>
-<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;     ec = <a class="code" href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">adapter::error::nested_unsupported</a>;</div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;     ec = <a class="code" href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">adapter::error::nested_unsupported</a>;</div>
 <div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;     <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;      }</div>
 <div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160; </div>
@@ -352,13 +352,13 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;};</div>
 <div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160; </div>
 <div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> Container&gt;</div>
-<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;<span class="keyword">class </span><a class="code" href="group__enums.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a> {</div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;<span class="keyword">class </span><a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a> {</div>
 <div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;<span class="keyword">private</span>:</div>
 <div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;   Container* result_;</div>
 <div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;   <span class="keyword">typename</span> Container::iterator hint_;</div>
 <div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160; </div>
 <div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;   <a class="code" href="group__enums.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a>(Container* c = <span class="keyword">nullptr</span>)</div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;   <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a>(Container* c = <span class="keyword">nullptr</span>)</div>
 <div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;   : result_(c)</div>
 <div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;   , hint_(std::end(*c))</div>
 <div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;   {}</div>
@@ -373,12 +373,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;   {</div>
 <div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;      set_on_resp3_error(t, ec);</div>
 <div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160; </div>
-<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;      <span class="keywordflow">if</span> (t == <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e">type::set</a>) {</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;      <span class="keywordflow">if</span> (t == <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e">type::set</a>) {</div>
 <div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;        assert(depth == 0);</div>
 <div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;        <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;      }</div>
 <div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160; </div>
-<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;      assert(!<a class="code" href="group__functions.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t));</div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;      assert(!<a class="code" href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t));</div>
 <div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160; </div>
 <div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;      assert(depth == 1);</div>
 <div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;      assert(aggregate_size == 1);</div>
@@ -395,14 +395,14 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;};</div>
 <div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160; </div>
 <div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> Container&gt;</div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;<span class="keyword">class </span><a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a> {</div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;<span class="keyword">class </span><a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a> {</div>
 <div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;<span class="keyword">private</span>:</div>
 <div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;   Container* result_;</div>
 <div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;   <span class="keyword">typename</span> Container::iterator current_;</div>
 <div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;   <span class="keywordtype">bool</span> on_key_ = <span class="keyword">true</span>;</div>
 <div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160; </div>
 <div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;   <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a>(Container* c = <span class="keyword">nullptr</span>)</div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;   <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a>(Container* c = <span class="keyword">nullptr</span>)</div>
 <div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;   : result_(c)</div>
 <div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;   , current_(std::end(*c))</div>
 <div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;   {}</div>
@@ -417,12 +417,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;   {</div>
 <div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;      set_on_resp3_error(t, ec);</div>
 <div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160; </div>
-<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;      <span class="keywordflow">if</span> (t == <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">type::map</a>) {</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;      <span class="keywordflow">if</span> (t == <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">type::map</a>) {</div>
 <div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;        assert(depth == 0);</div>
 <div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;        <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;      }</div>
 <div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160; </div>
-<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;      assert(!<a class="code" href="group__functions.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t));</div>
+<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;      assert(!<a class="code" href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">is_aggregate</a>(t));</div>
 <div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160;      assert(depth == 1);</div>
 <div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;      assert(aggregate_size == 1);</div>
 <div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160; </div>
@@ -444,20 +444,20 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;} <span class="comment">// adapter</span></div>
 <div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;} <span class="comment">// resp3</span></div>
 <div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="ttc" id="agroup__enums_html_gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e"><div class="ttname"><a href="group__enums.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">aedis::redis::command::set</a></div><div class="ttdeci">@ set</div><div class="ttdoc">https://redis.io/commands/set</div></div>
-<div class="ttc" id="agroup__enums_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae"><div class="ttname"><a href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">aedis::resp3::type::map</a></div><div class="ttdeci">@ map</div><div class="ttdoc">Aggregate.</div></div>
-<div class="ttc" id="agroup__enums_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a37a6259cc0c1dae299a7866489dff0bd"><div class="ttname"><a href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a37a6259cc0c1dae299a7866489dff0bd">aedis::resp3::type::null</a></div><div class="ttdeci">@ null</div><div class="ttdoc">Simple.</div></div>
-<div class="ttc" id="agroup__enums_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57aae00ce17a8a0eaf50aba51f876c2d8b2"><div class="ttname"><a href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57aae00ce17a8a0eaf50aba51f876c2d8b2">aedis::resp3::type::simple_error</a></div><div class="ttdeci">@ simple_error</div><div class="ttdoc">Simple.</div></div>
-<div class="ttc" id="agroup__enums_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5"><div class="ttname"><a href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5">aedis::resp3::type::blob_error</a></div><div class="ttdeci">@ blob_error</div><div class="ttdoc">Simple.</div></div>
-<div class="ttc" id="agroup__enums_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e"><div class="ttname"><a href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e">aedis::resp3::type::set</a></div><div class="ttdeci">@ set</div><div class="ttdoc">Aggregate.</div></div>
-<div class="ttc" id="agroup__enums_html_ggaed13f3af3d925df805cf4828ca1b8ee9a3059263deaffd09ba4c0577fa6434741"><div class="ttname"><a href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a3059263deaffd09ba4c0577fa6434741">aedis::resp3::adapter::error::expects_simple_type</a></div><div class="ttdeci">@ expects_simple_type</div><div class="ttdoc">Expects a simple RESP3 type but got an aggregate.</div></div>
-<div class="ttc" id="agroup__enums_html_ggaed13f3af3d925df805cf4828ca1b8ee9a37a6259cc0c1dae299a7866489dff0bd"><div class="ttname"><a href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a37a6259cc0c1dae299a7866489dff0bd">aedis::resp3::adapter::error::null</a></div><div class="ttdeci">@ null</div><div class="ttdoc">Got RESP3 null type.</div></div>
-<div class="ttc" id="agroup__enums_html_ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c"><div class="ttname"><a href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">aedis::resp3::adapter::error::nested_unsupported</a></div><div class="ttdeci">@ nested_unsupported</div><div class="ttdoc">Nested response not supported.</div></div>
-<div class="ttc" id="agroup__enums_html_ggaed13f3af3d925df805cf4828ca1b8ee9aae00ce17a8a0eaf50aba51f876c2d8b2"><div class="ttname"><a href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9aae00ce17a8a0eaf50aba51f876c2d8b2">aedis::resp3::adapter::error::simple_error</a></div><div class="ttdeci">@ simple_error</div><div class="ttdoc">Got RESP3 simple error.</div></div>
-<div class="ttc" id="agroup__enums_html_ggaed13f3af3d925df805cf4828ca1b8ee9ab7f2a05d1d80e9f8a04926d67dd1aba5"><div class="ttname"><a href="group__enums.html#ggaed13f3af3d925df805cf4828ca1b8ee9ab7f2a05d1d80e9f8a04926d67dd1aba5">aedis::resp3::adapter::error::blob_error</a></div><div class="ttdeci">@ blob_error</div><div class="ttdoc">Got RESP3 blob_error.</div></div>
-<div class="ttc" id="agroup__functions_html_ga0092190b76e640757b1964016e5a97a4"><div class="ttname"><a href="group__functions.html#ga0092190b76e640757b1964016e5a97a4">aedis::resp3::element_multiplicity</a></div><div class="ttdeci">std::size_t element_multiplicity(type t)</div><div class="ttdoc">Returns the element multilicity.</div><div class="ttdef"><b>Definition:</b> <a href="type_8ipp_source.html#l00058">type.ipp:58</a></div></div>
-<div class="ttc" id="agroup__functions_html_ga0de5e7e429d70f35ec2bcf143f73ed07"><div class="ttname"><a href="group__functions.html#ga0de5e7e429d70f35ec2bcf143f73ed07">aedis::resp3::is_aggregate</a></div><div class="ttdeci">bool is_aggregate(type t)</div><div class="ttdoc">Returns true if the data type is an aggregate.</div><div class="ttdef"><b>Definition:</b> <a href="type_8ipp_source.html#l00046">type.ipp:46</a></div></div>
-<div class="ttc" id="agroup__functions_html_ga4928ed04c49c9118a31af8fd0eb6f4c5"><div class="ttname"><a href="group__functions.html#ga4928ed04c49c9118a31af8fd0eb6f4c5">aedis::resp3::make_error_code</a></div><div class="ttdeci">std::error_code make_error_code(error e)</div><div class="ttdoc">Converts an error in an std::error_code object.</div><div class="ttdef"><b>Definition:</b> <a href="error_8hpp_source.html#l00060">error.hpp:60</a></div></div>
+<div class="ttc" id="agroup__any_html_ga0092190b76e640757b1964016e5a97a4"><div class="ttname"><a href="group__any.html#ga0092190b76e640757b1964016e5a97a4">aedis::resp3::element_multiplicity</a></div><div class="ttdeci">std::size_t element_multiplicity(type t)</div><div class="ttdoc">Returns the element multilicity.</div><div class="ttdef"><b>Definition:</b> <a href="type_8ipp_source.html#l00058">type.ipp:58</a></div></div>
+<div class="ttc" id="agroup__any_html_ga0de5e7e429d70f35ec2bcf143f73ed07"><div class="ttname"><a href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">aedis::resp3::is_aggregate</a></div><div class="ttdeci">bool is_aggregate(type t)</div><div class="ttdoc">Returns true if the data type is an aggregate.</div><div class="ttdef"><b>Definition:</b> <a href="type_8ipp_source.html#l00046">type.ipp:46</a></div></div>
+<div class="ttc" id="agroup__any_html_ga4928ed04c49c9118a31af8fd0eb6f4c5"><div class="ttname"><a href="group__any.html#ga4928ed04c49c9118a31af8fd0eb6f4c5">aedis::resp3::make_error_code</a></div><div class="ttdeci">std::error_code make_error_code(error e)</div><div class="ttdoc">Converts an error in an std::error_code object.</div><div class="ttdef"><b>Definition:</b> <a href="error_8hpp_source.html#l00060">error.hpp:60</a></div></div>
+<div class="ttc" id="agroup__any_html_gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e"><div class="ttname"><a href="group__any.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">aedis::redis::command::set</a></div><div class="ttdeci">@ set</div><div class="ttdoc">https://redis.io/commands/set</div></div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">aedis::resp3::type::map</a></div><div class="ttdeci">@ map</div><div class="ttdoc">Aggregate.</div></div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a37a6259cc0c1dae299a7866489dff0bd"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a37a6259cc0c1dae299a7866489dff0bd">aedis::resp3::type::null</a></div><div class="ttdeci">@ null</div><div class="ttdoc">Simple.</div></div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57aae00ce17a8a0eaf50aba51f876c2d8b2"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57aae00ce17a8a0eaf50aba51f876c2d8b2">aedis::resp3::type::simple_error</a></div><div class="ttdeci">@ simple_error</div><div class="ttdoc">Simple.</div></div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5">aedis::resp3::type::blob_error</a></div><div class="ttdeci">@ blob_error</div><div class="ttdoc">Simple.</div></div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e">aedis::resp3::type::set</a></div><div class="ttdeci">@ set</div><div class="ttdoc">Aggregate.</div></div>
+<div class="ttc" id="agroup__any_html_ggaed13f3af3d925df805cf4828ca1b8ee9a3059263deaffd09ba4c0577fa6434741"><div class="ttname"><a href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a3059263deaffd09ba4c0577fa6434741">aedis::resp3::adapter::error::expects_simple_type</a></div><div class="ttdeci">@ expects_simple_type</div><div class="ttdoc">Expects a simple RESP3 type but got an aggregate.</div></div>
+<div class="ttc" id="agroup__any_html_ggaed13f3af3d925df805cf4828ca1b8ee9a37a6259cc0c1dae299a7866489dff0bd"><div class="ttname"><a href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a37a6259cc0c1dae299a7866489dff0bd">aedis::resp3::adapter::error::null</a></div><div class="ttdeci">@ null</div><div class="ttdoc">Got RESP3 null type.</div></div>
+<div class="ttc" id="agroup__any_html_ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c"><div class="ttname"><a href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c">aedis::resp3::adapter::error::nested_unsupported</a></div><div class="ttdeci">@ nested_unsupported</div><div class="ttdoc">Nested response not supported.</div></div>
+<div class="ttc" id="agroup__any_html_ggaed13f3af3d925df805cf4828ca1b8ee9aae00ce17a8a0eaf50aba51f876c2d8b2"><div class="ttname"><a href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9aae00ce17a8a0eaf50aba51f876c2d8b2">aedis::resp3::adapter::error::simple_error</a></div><div class="ttdeci">@ simple_error</div><div class="ttdoc">Got RESP3 simple error.</div></div>
+<div class="ttc" id="agroup__any_html_ggaed13f3af3d925df805cf4828ca1b8ee9ab7f2a05d1d80e9f8a04926d67dd1aba5"><div class="ttname"><a href="group__any.html#ggaed13f3af3d925df805cf4828ca1b8ee9ab7f2a05d1d80e9f8a04926d67dd1aba5">aedis::resp3::adapter::error::blob_error</a></div><div class="ttdeci">@ blob_error</div><div class="ttdoc">Got RESP3 blob_error.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

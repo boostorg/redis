@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis</font> &#160; <br> A low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -126,7 +126,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;   {</div>
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;      <span class="keywordflow">switch</span> (start_) {</div>
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;         <span class="keywordflow">for</span> (;;) {</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;            <span class="keywordflow">if</span> (parser_.bulk() == <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">type::invalid</a>) {</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;            <span class="keywordflow">if</span> (parser_.bulk() == <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">type::invalid</a>) {</div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;               <span class="keywordflow">case</span> 1:</div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;               start_ = 0;</div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;               net::async_read_until(stream_, buf_, <span class="stringliteral">&quot;\r\n&quot;</span>, std::move(<span class="keyword">self</span>));</div>
@@ -146,7 +146,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;           <span class="keyword">auto</span> <span class="keyword">const</span> l = parser_.bulk_length();</div>
 <div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;           <span class="keyword">auto</span> <span class="keyword">const</span> to_read = l + 2 - s;</div>
 <div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;               buf_.grow(to_read);</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;               <a class="code" href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">net::async_read</a>(stream_, buf_.data(s, to_read), net::transfer_all(), std::move(<span class="keyword">self</span>));</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;               net::async_read(stream_, buf_.data(s, to_read), net::transfer_all(), std::move(<span class="keyword">self</span>));</div>
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;               <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;            }</div>
 <div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
@@ -196,7 +196,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;      boost::ignore_unused(n);</div>
 <div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160; </div>
 <div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;      <span class="keywordflow">if</span> (ec) {</div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;     <span class="keyword">self</span>.complete(ec, <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">type::invalid</a>);</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;     <span class="keyword">self</span>.complete(ec, <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">type::invalid</a>);</div>
 <div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;         <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;      }</div>
 <div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160; </div>
@@ -206,7 +206,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;      }</div>
 <div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160; </div>
 <div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span>* data = (<span class="keywordtype">char</span> <span class="keyword">const</span>*)buf_.data(0, n).data();</div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> <a class="code" href="group__enums.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> = to_type(*data);</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> = to_type(*data);</div>
 <div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;      <span class="keyword">self</span>.complete(ec, type);</div>
 <div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;      <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;   }</div>
@@ -215,9 +215,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;} <span class="comment">// detail</span></div>
 <div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;} <span class="comment">// resp3</span></div>
 <div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="ttc" id="agroup__enums_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__enums.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
-<div class="ttc" id="agroup__enums_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3"><div class="ttname"><a href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">aedis::resp3::type::invalid</a></div><div class="ttdeci">@ invalid</div><div class="ttdoc">Invalid.</div></div>
-<div class="ttc" id="agroup__functions_html_ga057f299e1d81b1dedd62574e5c6bcf9d"><div class="ttname"><a href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">aedis::resp3::async_read</a></div><div class="ttdeci">auto async_read(AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=adapt(), CompletionToken &amp;&amp;token=net::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</div><div class="ttdoc">Reads the response to a Redis command asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00147">read.hpp:147</a></div></div>
+<div class="ttc" id="agroup__any_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">aedis::resp3::type::invalid</a></div><div class="ttdeci">@ invalid</div><div class="ttdoc">Invalid.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

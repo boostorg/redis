@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: Main Page</title>
+<title>Aedis: Documentation</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis</font> &#160; <br> A low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -71,23 +71,102 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 
 <div class="PageDoc"><div class="header">
   <div class="headertitle">
-<div class="title">Aedis Documentation</div>  </div>
+<div class="title">Documentation </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><b>Overview</b> </p>
+<div class="toc"><h3>Table of Contents</h3>
+<ul><li class="level1"><a href="#Overview">Overview</a></li>
+<li class="level1"><a href="#examples">Examples</a></li>
+<li class="level1"><a href="#using-aedis">Using Aedis</a><ul><li class="level2"><a href="#Installation">Installation</a></li>
+<li class="level2"><a href="#Developers">Developers</a></li>
+</ul>
+</li>
+<li class="level1"><a href="#Referece">Referece</a></li>
+</ul>
+</div>
+<div class="textblock"><h1><a class="anchor" id="Overview"></a>
+Overview</h1>
 <p>Aedis is low-level redis client library built on top of Boost.Asio that implements communication with a Redis server over its native protocol RESP3. It has first-class support for STL containers and C++ built in types among other things. You will be able to implement your own redis client or use a general purpose provided by the library. For more information about Redis see <a href="https://redis.io/">https://redis.io/</a></p>
-<p><b>Using</b> <b>Aedis</b> </p>
+<h1><a class="anchor" id="examples"></a>
+Examples</h1>
+<p><b>Basics:</b> Focuses on small examples that show basic usage of the library.</p>
 <ul>
-<li><a class="el" href="installation.html">Installation</a></li>
-<li><a class="el" href="examples.html">Examples</a></li>
+<li><a class="el" href="intro_8cpp_source.html">intro.cpp</a>: A good starting point. Some commands are sent to the Redis server and the responses are printed to screen.</li>
+<li><a class="el" href="transaction_8cpp_source.html">transaction.cpp</a>: Shows how to read the responses to a trasaction efficiently. See also <a href="https://redis.io/topics/transactions">https://redis.io/topics/transactions</a>.</li>
+<li><a class="el" href="multipurpose__response_8cpp_source.html">multipurpose_response.cpp</a>: Shows how to read any responses to Redis commands, including nested aggegagtes.</li>
+<li><a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a>: Shows how channel subscription works at a low level. See also <a href="https://redis.io/topics/pubsub">https://redis.io/topics/pubsub</a>.</li>
+<li><a class="el" href="sync_8cpp_source.html">sync.cpp</a>: Shows hot to use the Aedis synchronous api.</li>
+<li><a class="el" href="key__expiration_8cpp_source.html">key_expiration.cpp</a>: Shows how to use <code>std::optional</code> to deal with keys that may have expired or do not exist.</li>
 </ul>
-<p><b>Reference</b> </p>
+<p><b>STL</b> <b>Containers:</b> Many of the Redis data structures can be directly translated in to STL containers, below you will find some example code. For a list of Redis data types see <a href="https://redis.io/topics/data-types">https://redis.io/topics/data-types</a>.</p>
 <ul>
-<li><a class="el" href="group__enums.html">Enumerations</a></li>
-<li><a class="el" href="group__classes.html">Classes</a></li>
-<li><a class="el" href="group__functions.html">Free functions</a></li>
-<li><a class="el" href="group__operators.html">Operators</a> </li>
+<li><a class="el" href="hashes_8cpp_source.html">hashes.cpp</a>: Shows how to read Redis hashes in a <code>std::map</code>, <code>std::unordered_map</code> and <code>std::vector</code>.</li>
+<li><a class="el" href="lists_8cpp_source.html">lists.cpp</a>: Shows how to read Redis lists in <code>std::list</code>, <code>std::deque</code>, <code>std::vector</code>. It also illustrates basic serialization.</li>
+<li><a class="el" href="sets_8cpp_source.html">sets.cpp</a>: Shows how to read Redis sets in a <code>std::set</code>, <code>std::unordered_set</code> and <code>std::vector</code>.</li>
 </ul>
+<p><b>Customization</b> <b>points:</b> Shows how de/serialize user types avoiding copies. This is particularly useful for low latency applications that want to avoid unneeded copies, for examples when storing json strings in Redis keys.</p>
+<ul>
+<li><a class="el" href="serialization_8cpp_source.html">serialization.cpp</a>: Shows how to de/serialize your own non-aggregate data-structures.</li>
+<li><a class="el" href="response__adapter_8cpp_source.html">response_adapter.cpp</a>: Customization point for users that want to de/serialize their own data-structures like containers for example.</li>
+</ul>
+<p><b>Asynchronous</b> <b>servers:</b> Contains some non-trivial examples servers that interact with users and Redis asynchronously over long lasting connections using a higher level API.</p>
+<ul>
+<li><a class="el" href="multipurpose__client_8cpp_source.html">multipurpose_client.cpp</a>: Shows how to use and experimental high level redis client that keeps a long lasting connections to a redis server. This is the starting point for the next examples.</li>
+<li><a class="el" href="echo__server_8cpp_source.html">echo_server.cpp</a>: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.</li>
+<li><a class="el" href="chat__room_8cpp_source.html">chat_room.cpp</a>: Shows how to build a scalable chat room that scales to millions of users.</li>
+</ul>
+<h1><a class="anchor" id="using-aedis"></a>
+Using Aedis</h1>
+<p>To install and use Aedis you will need</p>
+<ul>
+<li>Boost 1.78 or greater.</li>
+<li>Unix Shell and Make.</li>
+<li>Compiler with C++20 coroutine support e.g. GCC 10 or greater.</li>
+<li>Redis server.</li>
+</ul>
+<p>Some examples will also require interaction with</p>
+<ul>
+<li>redis-cli: used in one example.</li>
+<li>Redis Sentinel Server: used in some examples.</li>
+</ul>
+<h2><a class="anchor" id="Installation"></a>
+Installation</h2>
+<p>Start by downloading and configuring the library</p>
+<div class="fragment"><div class="line"><span class="preprocessor"># Download the libray on github.</span></div>
+<div class="line">$ wget https:<span class="comment">//github.com/mzimbres/aedis/release-path # TODO</span></div>
+<div class="line"> </div>
+<div class="line"><span class="preprocessor"># Uncompress the tarball and cd into the dir</span></div>
+<div class="line">$ tar -xzvf aedis-1.0.0.tar.gz &amp;&amp; cd aedis-1.0.0</div>
+<div class="line"> </div>
+<div class="line"><span class="preprocessor"># Run configure with appropriate C++ flags and your boost</span></div>
+<div class="line"><span class="preprocessor"># installation, for example # You may also have to use</span></div>
+<div class="line"><span class="preprocessor"># -Wno-subobject-linkage on gcc.</span></div>
+<div class="line">$ CXXFLAGS=<span class="stringliteral">&quot;-std=c++20 -fcoroutines -g -Wall&quot;</span>\</div>
+<div class="line">./configure  --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib</div>
+</div><!-- fragment --><p>To install the library run</p>
+<div class="fragment"><div class="line"><span class="preprocessor"># Install Aedis in the path specified in --prefix</span></div>
+<div class="line"><span class="preprocessor">$ sudo make install</span></div>
+</div><!-- fragment --><p>At this point you can start using Aedis. To build the examples and test you can also run</p>
+<div class="fragment"><div class="line"><span class="preprocessor"># Build aedis examples.</span></div>
+<div class="line">$ make examples</div>
+<div class="line"> </div>
+<div class="line"><span class="preprocessor"># Test aedis in your machine.</span></div>
+<div class="line"><span class="preprocessor">$ make check</span></div>
+</div><!-- fragment --><p>Finally you will have to include the following header</p>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
+</div><!-- fragment --><p> in exactly one source file in your applications.</p>
+<p>Windows users can use aedis by either adding the project root directory to their include path or manually copying to another location.</p>
+<h2><a class="anchor" id="Developers"></a>
+Developers</h2>
+<p>To generate the build system run</p>
+<div class="fragment"><div class="line">$ autoreconf -i</div>
+</div><!-- fragment --><p>After that you will have a config in the project dir that you can run as explained above, for example, to use a compiler other that the system compiler use</p>
+<div class="fragment"><div class="line">CC=/opt/gcc-10.2.0/bin/gcc-10.2.0\</div>
+<div class="line">CXX=/opt/gcc-10.2.0/bin/g++-10.2.0\</div>
+<div class="line">CXXFLAGS=<span class="stringliteral">&quot;-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror&quot;</span>  ./configure ...</div>
+</div><!-- fragment --> <h1><a class="anchor" id="Referece"></a>
+Referece</h1>
+<p>See <a class="el" href="group__any.html">Reference</a>. </p>
 </div></div><!-- PageDoc -->
 </div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->

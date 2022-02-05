@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis</font> &#160; <br> A low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -98,161 +98,198 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00018"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac9809aa5e3d1c1e75edb1f01fdd5eb7f">   18</a></span>&#160;<a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac9809aa5e3d1c1e75edb1f01fdd5eb7f">client::client</a>(net::any_io_executor ex)</div>
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;: socket_{ex}</div>
 <div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;, timer_{ex}</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;{ }</div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;net::awaitable&lt;void&gt; client::reader()</div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;{</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;   <span class="comment">// Writes and reads continuosly from the socket.</span></div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;   <span class="keywordflow">for</span> (std::string buffer;;) {</div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;      <span class="keywordflow">while</span> (!std::empty(req_info_)) {</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;     co_await net::async_write(socket_, net::buffer(requests_.data(), req_info_.front().size));</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160; </div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;     requests_.erase(0, req_info_.front().size);</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160; </div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;     <span class="keywordflow">if</span> (req_info_.front().cmds != 0)</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;        <span class="keywordflow">break</span>; <span class="comment">// We must await the responses.</span></div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160; </div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;     req_info_.pop();</div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;      }</div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160; </div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;      <span class="keywordflow">do</span> { <span class="comment">// Keeps reading while there are no messages queued waiting to be sent.</span></div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;     <span class="keywordflow">do</span> { <span class="comment">// Consumes the responses to all commands in the request.</span></div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;        <span class="keyword">auto</span> <span class="keyword">const</span> t = co_await <a class="code" href="group__functions.html#ga29d1286240448ffa2bf132b3b87e94fb">async_read_type</a>(socket_, net::dynamic_buffer(buffer));</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;        <span class="keywordflow">if</span> (t == <a class="code" href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a21a361d96e3e13f5f109748c2a9d2434">type::push</a>) {</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;           <span class="keyword">auto</span> adapter = [<span class="keyword">this</span>](<a class="code" href="group__enums.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t, std::size_t aggregate_size, std::size_t depth, <span class="keywordtype">char</span> <span class="keyword">const</span>* data, std::size_t size, std::error_code&amp; ec)</div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;          {adapter_(<a class="code" href="group__enums.html#gga9661fea349313723a8ec955975184c0caad921d60486366258809553a3db49a4a">redis::command::unknown</a>, t, aggregate_size, depth, data, size, ec);};</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160; </div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;           boost::system::error_code ec;</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;           co_await <a class="code" href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">resp3::async_read</a>(socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;           on_msg_(ec, <a class="code" href="group__enums.html#gga9661fea349313723a8ec955975184c0caad921d60486366258809553a3db49a4a">redis::command::unknown</a>);</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;        } <span class="keywordflow">else</span> {</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;           <span class="keyword">auto</span> adapter = [<span class="keyword">this</span>](type t, std::size_t aggregate_size, std::size_t depth, <span class="keywordtype">char</span> <span class="keyword">const</span>* data, std::size_t size, std::error_code&amp; ec)</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;          {adapter_(commands_.front(), t, aggregate_size, depth, data, size, ec);};</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;           boost::system::error_code ec;</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;           co_await <a class="code" href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">resp3::async_read</a>(socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;           on_msg_(ec, commands_.front());</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;           commands_.pop();</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;           --req_info_.front().cmds;</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;        }</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;     } <span class="keywordflow">while</span> (!std::empty(req_info_) &amp;&amp; req_info_.front().cmds != 0);</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;{</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;   timer_.expires_at(std::chrono::steady_clock::time_point::max());</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;}</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160; </div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;net::awaitable&lt;void&gt; client::reader()</div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;{</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;   <span class="comment">// Writes and reads continuosly from the socket.</span></div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;   <span class="keywordflow">for</span> (std::string buffer;;) {</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;      <span class="comment">// Notice this coro can get scheduled while the write operation</span></div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;      <span class="comment">// in the writer is ongoing. so we have to check.</span></div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;      <span class="keywordflow">while</span> (!std::empty(req_info_) &amp;&amp; req_info_.front().size != 0) {</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;         assert(!std::empty(requests_));</div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;         boost::system::error_code ec;</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;         co_await</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;            net::async_write(</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;               socket_,</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;               net::buffer(requests_.data(), req_info_.front().size),</div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;               net::redirect_error(net::use_awaitable, ec));</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160; </div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;     requests_.erase(0, req_info_.front().size);</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;         req_info_.front().size = 0;</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;     <span class="keywordflow">if</span> (req_info_.front().cmds != 0)</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;        <span class="keywordflow">break</span>; <span class="comment">// We must await the responses.</span></div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160; </div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;     req_info_.pop();</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;      }</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160; </div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;      <span class="keywordflow">do</span> { <span class="comment">// Keeps reading while there are no messages queued waiting to be sent.</span></div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;     <span class="keywordflow">do</span> { <span class="comment">// Consumes the responses to all commands in the request.</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;            boost::system::error_code ec;</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;        <span class="keyword">auto</span> <span class="keyword">const</span> t =</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;               co_await async_read_type(socket_, net::dynamic_buffer(buffer),</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;                     net::redirect_error(net::use_awaitable, ec));</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;            <span class="keywordflow">if</span> (ec) {</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;               stop_writer_ = <span class="keyword">true</span>;</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;               timer_.cancel();</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;               co_return;</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;            }</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;     <span class="comment">// We may exit the loop above either because we are done</span></div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;     <span class="comment">// with the response or because we received a server push</span></div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;     <span class="comment">// while the queue was empty so we have to check before</span></div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;     <span class="comment">// poping..</span></div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;     <span class="keywordflow">if</span> (!std::empty(req_info_))</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;        req_info_.pop();</div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160; </div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;      } <span class="keywordflow">while</span> (std::empty(req_info_));</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;   }</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;}</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160; </div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;net::awaitable&lt;void&gt; client::writer()</div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;{</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;   <span class="keywordflow">while</span> (socket_.is_open()) {</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;      boost::system::error_code ec;</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;      co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;      <span class="keywordflow">while</span> (!std::empty(req_info_)) {</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;         co_await net::async_write(socket_, net::buffer(requests_.data(), req_info_.front().size));</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;         requests_.erase(0, req_info_.front().size);</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;         </div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;         <span class="keywordflow">if</span> (req_info_.front().cmds != 0)</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;            <span class="keywordflow">break</span>;</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;         </div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;         req_info_.pop();</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;      }</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;   }</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;}</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160; </div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;net::awaitable&lt;void&gt; client::say_hello()</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;{</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;   std::string request;</div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;   <span class="keyword">auto</span> sr = <a class="code" href="group__functions.html#ga4ce8d963105f423dc90ebed2eae2d142">redis::make_serializer</a>(request);</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;   sr.push(<a class="code" href="group__enums.html#gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592">redis::command::hello</a>, 3);</div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;   co_await net::async_write(socket_, net::buffer(request));</div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160; </div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;   std::string buffer;</div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;   <span class="keyword">auto</span> adapter = [<span class="keyword">this</span>](<a class="code" href="group__enums.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t, std::size_t aggregate_size, std::size_t depth, <span class="keywordtype">char</span> <span class="keyword">const</span>* data, std::size_t size, std::error_code&amp; ec)</div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;      {adapter_(<a class="code" href="group__enums.html#gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592">redis::command::hello</a>, t, aggregate_size, depth, data, size, ec);};</div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;   co_await <a class="code" href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">resp3::async_read</a>(socket_, net::dynamic_buffer(buffer), adapter);</div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;}</div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160; </div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;net::awaitable&lt;void&gt;</div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;client::connection_manager()</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;        <span class="keywordflow">if</span> (t == <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a21a361d96e3e13f5f109748c2a9d2434">type::push</a>) {</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;           <span class="keyword">auto</span> adapter = [<span class="keyword">this</span>](type t, std::size_t aggregate_size, std::size_t depth, <span class="keywordtype">char</span> <span class="keyword">const</span>* data, std::size_t size, std::error_code&amp; ec)</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;          {extended_adapter_(<a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0caad921d60486366258809553a3db49a4a">redis::command::unknown</a>, t, aggregate_size, depth, data, size, ec);};</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;           co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;           on_msg_(ec, <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0caad921d60486366258809553a3db49a4a">redis::command::unknown</a>);</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;               <span class="keywordflow">if</span> (ec) { <span class="comment">// TODO: Return only on non aedis errors.</span></div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;                  stop_writer_ = <span class="keyword">true</span>;</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;                  timer_.cancel();</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;                  co_return;</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;               }</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;        } <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;           <span class="keyword">auto</span> adapter = [<span class="keyword">this</span>](<a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t, std::size_t aggregate_size, std::size_t depth, <span class="keywordtype">char</span> <span class="keyword">const</span>* data, std::size_t size, std::error_code&amp; ec)</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;          {extended_adapter_(commands_.front(), t, aggregate_size, depth, data, size, ec);};</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;           boost::system::error_code ec;</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;           co_await resp3::async_read(socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;           on_msg_(ec, commands_.front());</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;               <span class="keywordflow">if</span> (ec) { <span class="comment">// TODO: Return only on non aedis errors.</span></div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;                  stop_writer_ = <span class="keyword">true</span>;</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;                  timer_.cancel();</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;                  co_return;</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;               }</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160; </div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;           commands_.pop();</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;           --req_info_.front().cmds;</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;        }</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160; </div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;     } <span class="keywordflow">while</span> (!std::empty(req_info_) &amp;&amp; req_info_.front().cmds != 0);</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160; </div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;     <span class="comment">// We may exit the loop above either because we are done</span></div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;     <span class="comment">// with the response or because we received a server push</span></div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;     <span class="comment">// while the queue was empty so we have to check before</span></div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;     <span class="comment">// poping..</span></div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;     <span class="keywordflow">if</span> (!std::empty(req_info_))</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;        req_info_.pop();</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160; </div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;      } <span class="keywordflow">while</span> (std::empty(req_info_));</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;   }</div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;}</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160; </div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;net::awaitable&lt;void&gt; client::writer()</div>
 <div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;{</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;   <span class="keyword">using namespace </span>aedis::net::experimental::awaitable_operators;</div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;   <span class="keyword">using</span> tcp_resolver = aedis::net::use_awaitable_t&lt;&gt;::as_default_on_t&lt;aedis::net::ip::tcp::resolver&gt;;</div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160; </div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;   <span class="keywordflow">for</span> (;;) {</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;      tcp_resolver resolver{socket_.get_executor()};</div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> res = co_await resolver.async_resolve(<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>);</div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;      co_await net::async_connect(socket_, res);</div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160; </div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;      co_await say_hello();</div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160; </div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;      timer_.expires_at(std::chrono::steady_clock::time_point::max());</div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;      co_await (reader() &amp;&amp; writer());</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160; </div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;      socket_.close();</div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;      timer_.cancel();</div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160; </div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;      timer_.expires_after(std::chrono::seconds{1});</div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;      boost::system::error_code ec;</div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;      co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));</div>
-<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;   }</div>
-<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;}</div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160; </div>
-<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;<span class="keywordtype">bool</span> client::prepare_next()</div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;{</div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;   <span class="keywordflow">if</span> (std::empty(req_info_)) {</div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;      req_info_.push({});</div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;      <span class="keywordflow">return</span> <span class="keyword">true</span>;</div>
-<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;   }</div>
-<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160; </div>
-<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;   <span class="keywordflow">if</span> (std::size(req_info_) == 1) {</div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;      req_info_.push({});</div>
-<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;      <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
-<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;   }</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;   boost::system::error_code ec;</div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;   <span class="keywordflow">while</span> (socket_.is_open()) {</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;      ec = {};</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;      co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;      <span class="keywordflow">if</span> (stop_writer_)</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;         co_return;</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;      <span class="comment">// Notice this coro can get scheduled while the write operation</span></div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;      <span class="comment">// in the reader is ongoing. so we have to check.</span></div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;      <span class="keywordflow">while</span> (!std::empty(req_info_) &amp;&amp; req_info_.front().size != 0) {</div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;         assert(!std::empty(requests_));</div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;         ec = {};</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;         co_await net::async_write(</div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;            socket_, net::buffer(requests_.data(), req_info_.front().size),</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;            net::redirect_error(net::use_awaitable, ec));</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;         <span class="keywordflow">if</span> (ec) {</div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;           <span class="comment">// What should we do here exactly? Closing the socket will</span></div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;           <span class="comment">// cause the reader coroutine to return so that the engage</span></div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;           <span class="comment">// coroutine returns to the user.</span></div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;           socket_.close();</div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;           co_return;</div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;         }</div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160; </div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;         requests_.erase(0, req_info_.front().size);</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;         req_info_.front().size = 0;</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;         </div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;         <span class="keywordflow">if</span> (req_info_.front().cmds != 0) </div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;            <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;         </div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;         req_info_.pop();</div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;      }</div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;   }</div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;}</div>
 <div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160; </div>
-<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;   <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
-<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;}</div>
-<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160; </div>
-<div class="line"><a name="l00142"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a4a6d6092535b0c0b24460c4f2aae0fc5">  142</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a4a6d6092535b0c0b24460c4f2aae0fc5">client::prepare</a>()</div>
-<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;{</div>
-<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;   net::co_spawn(socket_.get_executor(),</div>
-<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;      [<span class="keyword">self</span> = this-&gt;shared_from_this()]{ return self-&gt;connection_manager(); },</div>
-<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;      net::detached);</div>
-<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;}</div>
-<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160; </div>
-<div class="line"><a name="l00149"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a44de711dd4e4446b2c372a19ce1ad2e9">  149</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a44de711dd4e4446b2c372a19ce1ad2e9">client::set_adapter</a>(<a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8d09271f6e54746b8820e0d43dbc8dfc">adapter_type</a> adapter)</div>
-<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;{</div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;   adapter_ = adapter;</div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;}</div>
-<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
-<div class="line"><a name="l00154"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">  154</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">client::set_msg_callback</a>(<a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">on_message_type</a> on_msg)</div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;{</div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;   on_msg_ = on_msg;</div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;}</div>
-<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
-<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;} <span class="comment">// experimental</span></div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;} <span class="comment">// resp3</span></div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a44de711dd4e4446b2c372a19ce1ad2e9"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a44de711dd4e4446b2c372a19ce1ad2e9">aedis::resp3::experimental::client::set_adapter</a></div><div class="ttdeci">void set_adapter(adapter_type adapter)</div><div class="ttdoc">Sets the response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00149">client.ipp:149</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a4a6d6092535b0c0b24460c4f2aae0fc5"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a4a6d6092535b0c0b24460c4f2aae0fc5">aedis::resp3::experimental::client::prepare</a></div><div class="ttdeci">void prepare()</div><div class="ttdoc">Prepares the client for execution.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00142">client.ipp:142</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a8d09271f6e54746b8820e0d43dbc8dfc"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8d09271f6e54746b8820e0d43dbc8dfc">aedis::resp3::experimental::client::adapter_type</a></div><div class="ttdeci">std::function&lt; void(redis::command, type, std::size_t, std::size_t, char const  *, std::size_t, std::error_code &amp;)&gt; adapter_type</div><div class="ttdoc">The response adapter type.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00029">client.hpp:29</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a930b16fcaa9505621758ad6df80c62a1"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">aedis::resp3::experimental::client::on_message_type</a></div><div class="ttdeci">std::function&lt; void(std::error_code ec, redis::command)&gt; on_message_type</div><div class="ttdoc">The type of the message callback.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00032">client.hpp:32</a></div></div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;<span class="keywordtype">bool</span> client::prepare_next()</div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;{</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;   <span class="keywordflow">if</span> (std::empty(req_info_)) {</div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;      req_info_.push({});</div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;      <span class="keywordflow">return</span> <span class="keyword">true</span>;</div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;   }</div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160; </div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;   <span class="keywordflow">if</span> (req_info_.front().size == 0) {</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;      <span class="comment">// It has already been written and we are waiting for the</span></div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;      <span class="comment">// responses.</span></div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;      req_info_.push({});</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;      <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;   }</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160; </div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;   <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;}</div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
+<div class="line"><a name="l00156"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a88a9ec5d71545fb6014fb9860ab35726">  156</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a88a9ec5d71545fb6014fb9860ab35726">client::set_extended_adapter</a>(<a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac58b8a780270483f0f85fc6575c600df">extented_adapter_type</a> adapter)</div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;{</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;   extended_adapter_ = adapter;</div>
+<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;}</div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160; </div>
+<div class="line"><a name="l00161"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">  161</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">client::set_msg_callback</a>(<a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">on_message_type</a> on_msg)</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;{</div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;   on_msg_ = on_msg;</div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;}</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160; </div>
+<div class="line"><a name="l00166"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ae70d2b1397b4db42a4549c9e15cd06fc">  166</a></span>&#160;net::awaitable&lt;void&gt; <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ae70d2b1397b4db42a4549c9e15cd06fc">client::engage</a>(<a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8942afea0a7880171a9a230c6445fbff">socket_type</a> socket)</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;{</div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;   <span class="keyword">using namespace </span>aedis::net::experimental::awaitable_operators;</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160; </div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;   socket_ = std::move(socket);</div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160; </div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;   std::string request;</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;   <span class="keyword">auto</span> sr = <a class="code" href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">redis::make_serializer</a>(request);</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;   sr.push(<a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592">redis::command::hello</a>, 3);</div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160; </div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;   boost::system::error_code ec;</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;   co_await net::async_write(socket_, net::buffer(request), net::redirect_error(net::use_awaitable, ec));</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;   <span class="keywordflow">if</span> (ec)</div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;      co_return;</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160; </div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;   std::string buffer;</div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;   <span class="keyword">auto</span> adapter = [<span class="keyword">this</span>](<a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t, std::size_t aggregate_size, std::size_t depth, <span class="keywordtype">char</span> <span class="keyword">const</span>* data, std::size_t size, std::error_code&amp; ec)</div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;      {extended_adapter_(<a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592">redis::command::hello</a>, t, aggregate_size, depth, data, size, ec);};</div>
+<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160; </div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;   co_await</div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;      resp3::async_read(</div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;         socket_, net::dynamic_buffer(buffer), adapter, net::redirect_error(net::use_awaitable, ec));</div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160; </div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;   on_msg_(ec, <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592">redis::command::hello</a>);</div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160; </div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;   <span class="keywordflow">if</span> (ec)</div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;      co_return;</div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160; </div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;   co_await (reader() &amp;&amp; writer());</div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;}</div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160; </div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;} <span class="comment">// experimental</span></div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;} <span class="comment">// resp3</span></div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160; </div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a88a9ec5d71545fb6014fb9860ab35726"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a88a9ec5d71545fb6014fb9860ab35726">aedis::resp3::experimental::client::set_extended_adapter</a></div><div class="ttdeci">void set_extended_adapter(extented_adapter_type adapter)</div><div class="ttdoc">Sets an extended response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00156">client.ipp:156</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a8942afea0a7880171a9a230c6445fbff"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8942afea0a7880171a9a230c6445fbff">aedis::resp3::experimental::client::socket_type</a></div><div class="ttdeci">net::ip::tcp::socket socket_type</div><div class="ttdoc">The type of the socket used by the client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00045">client.hpp:45</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a930b16fcaa9505621758ad6df80c62a1"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">aedis::resp3::experimental::client::on_message_type</a></div><div class="ttdeci">std::function&lt; void(std::error_code ec, redis::command)&gt; on_message_type</div><div class="ttdoc">The type of the message callback.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00041">client.hpp:41</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_ac58b8a780270483f0f85fc6575c600df"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac58b8a780270483f0f85fc6575c600df">aedis::resp3::experimental::client::extented_adapter_type</a></div><div class="ttdeci">std::function&lt; void(redis::command, type, std::size_t, std::size_t, char const  *, std::size_t, std::error_code &amp;)&gt; extented_adapter_type</div><div class="ttdoc">The extended response adapter type.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00038">client.hpp:38</a></div></div>
 <div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_ac9809aa5e3d1c1e75edb1f01fdd5eb7f"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac9809aa5e3d1c1e75edb1f01fdd5eb7f">aedis::resp3::experimental::client::client</a></div><div class="ttdeci">client(net::any_io_executor ex)</div><div class="ttdoc">Client constructor.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00018">client.ipp:18</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_ad82c196c6f659c1216c2c24fe15f98f7"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">aedis::resp3::experimental::client::set_msg_callback</a></div><div class="ttdeci">void set_msg_callback(on_message_type on_msg)</div><div class="ttdoc">Sets the message callback;.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00154">client.ipp:154</a></div></div>
-<div class="ttc" id="agroup__enums_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__enums.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
-<div class="ttc" id="agroup__enums_html_gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592"><div class="ttname"><a href="group__enums.html#gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592">aedis::redis::command::hello</a></div><div class="ttdeci">@ hello</div><div class="ttdoc">https://redis.io/commands/hello</div></div>
-<div class="ttc" id="agroup__enums_html_gga9661fea349313723a8ec955975184c0caad921d60486366258809553a3db49a4a"><div class="ttname"><a href="group__enums.html#gga9661fea349313723a8ec955975184c0caad921d60486366258809553a3db49a4a">aedis::redis::command::unknown</a></div><div class="ttdeci">@ unknown</div><div class="ttdoc">Unknown/invalid command.</div></div>
-<div class="ttc" id="agroup__enums_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a21a361d96e3e13f5f109748c2a9d2434"><div class="ttname"><a href="group__enums.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a21a361d96e3e13f5f109748c2a9d2434">aedis::resp3::type::push</a></div><div class="ttdeci">@ push</div><div class="ttdoc">Aaggregate.</div></div>
-<div class="ttc" id="agroup__functions_html_ga057f299e1d81b1dedd62574e5c6bcf9d"><div class="ttname"><a href="group__functions.html#ga057f299e1d81b1dedd62574e5c6bcf9d">aedis::resp3::async_read</a></div><div class="ttdeci">auto async_read(AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=adapt(), CompletionToken &amp;&amp;token=net::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</div><div class="ttdoc">Reads the response to a Redis command asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00147">read.hpp:147</a></div></div>
-<div class="ttc" id="agroup__functions_html_ga29d1286240448ffa2bf132b3b87e94fb"><div class="ttname"><a href="group__functions.html#ga29d1286240448ffa2bf132b3b87e94fb">aedis::resp3::async_read_type</a></div><div class="ttdeci">auto async_read_type(AsyncReadStream &amp;stream, DynamicBuffer buffer, CompletionToken &amp;&amp;token=net::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</div><div class="ttdoc">Reads the RESP3 type of the next incomming.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00182">read.hpp:182</a></div></div>
-<div class="ttc" id="agroup__functions_html_ga4ce8d963105f423dc90ebed2eae2d142"><div class="ttname"><a href="group__functions.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a></div><div class="ttdeci">resp3::serializer&lt; std::string, command &gt; make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer for a std::string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00465">command.hpp:465</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_ad82c196c6f659c1216c2c24fe15f98f7"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">aedis::resp3::experimental::client::set_msg_callback</a></div><div class="ttdeci">void set_msg_callback(on_message_type on_msg)</div><div class="ttdoc">Sets the message callback;.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00161">client.ipp:161</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_ae70d2b1397b4db42a4549c9e15cd06fc"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#ae70d2b1397b4db42a4549c9e15cd06fc">aedis::resp3::experimental::client::engage</a></div><div class="ttdeci">net::awaitable&lt; void &gt; engage(socket_type socket)</div><div class="ttdoc">Starts communication with Redis.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00166">client.ipp:166</a></div></div>
+<div class="ttc" id="agroup__any_html_ga4ce8d963105f423dc90ebed2eae2d142"><div class="ttname"><a href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a></div><div class="ttdeci">resp3::serializer&lt; std::string, command &gt; make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer for a std::string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00465">command.hpp:465</a></div></div>
+<div class="ttc" id="agroup__any_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
+<div class="ttc" id="agroup__any_html_gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592"><div class="ttname"><a href="group__any.html#gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592">aedis::redis::command::hello</a></div><div class="ttdeci">@ hello</div><div class="ttdoc">https://redis.io/commands/hello</div></div>
+<div class="ttc" id="agroup__any_html_gga9661fea349313723a8ec955975184c0caad921d60486366258809553a3db49a4a"><div class="ttname"><a href="group__any.html#gga9661fea349313723a8ec955975184c0caad921d60486366258809553a3db49a4a">aedis::redis::command::unknown</a></div><div class="ttdeci">@ unknown</div><div class="ttdoc">Unknown/invalid command.</div></div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a21a361d96e3e13f5f109748c2a9d2434"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a21a361d96e3e13f5f109748c2a9d2434">aedis::resp3::type::push</a></div><div class="ttdeci">@ push</div><div class="ttdoc">Aaggregate.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

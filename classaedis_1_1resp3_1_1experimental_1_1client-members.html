@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis</font> &#160; <br> A low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -81,13 +81,15 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 
 <p>This is the complete list of members for <a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a>, including all inherited members.</p>
 <table class="directory">
-  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8d09271f6e54746b8820e0d43dbc8dfc">adapter_type</a> typedef</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac9809aa5e3d1c1e75edb1f01fdd5eb7f">client</a>(net::any_io_executor ex)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac9809aa5e3d1c1e75edb1f01fdd5eb7f">client</a>(net::any_io_executor ex)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
+  <tr><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ae70d2b1397b4db42a4549c9e15cd06fc">engage</a>(socket_type socket)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac58b8a780270483f0f85fc6575c600df">extented_adapter_type</a> typedef</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
+  <tr><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#abfac359f060b54a753b74f9ebdc6c898">get_executor</a>()</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
   <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">on_message_type</a> typedef</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a4a6d6092535b0c0b24460c4f2aae0fc5">prepare</a>()</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a74918e689094505ed9206b269bea7d08">send</a>(redis::command cmd, Ts const &amp;... args)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a44de711dd4e4446b2c372a19ce1ad2e9">set_adapter</a>(adapter_type adapter)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">set_msg_callback</a>(on_message_type on_msg)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
+  <tr><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a74918e689094505ed9206b269bea7d08">send</a>(redis::command cmd, Ts const &amp;... args)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a88a9ec5d71545fb6014fb9860ab35726">set_extended_adapter</a>(extented_adapter_type adapter)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
+  <tr><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">set_msg_callback</a>(on_message_type on_msg)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8942afea0a7880171a9a230c6445fbff">socket_type</a> typedef</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td><td class="entry"></td></tr>
 </table></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

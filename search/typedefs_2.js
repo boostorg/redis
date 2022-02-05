@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['response_5ftype_299',['response_type',['../structaedis_1_1resp3_1_1response__traits.html#a39879b5f888ea7be161b686fdf8d2f66',1,'aedis::resp3::response_traits']]]
+  ['on_5fmessage_5ftype_287',['on_message_type',['../classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1',1,'aedis::resp3::experimental::client']]]
 ];

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis</font> &#160; <br> A low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -113,8 +113,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="keywordtype">void</span> add_header(Storage&amp; to, <span class="keywordtype">int</span> size)</div>
 <div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;{</div>
 <div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;   <span class="comment">// std::string does not support allocators.</span></div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;   <span class="keyword">using</span> <a class="code" href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">std::to_string</a>;</div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> str = <a class="code" href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(size);</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;   <span class="keyword">using</span> <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">std::to_string</a>;</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> str = <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(size);</div>
 <div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160; </div>
 <div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;   to += <span class="stringliteral">&quot;*&quot;</span>;</div>
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;   to.append(std::cbegin(str), std::cend(str));</div>
@@ -125,8 +125,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="keywordtype">void</span> add_bulk(Storage&amp; to, std::string_view data)</div>
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;{</div>
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;   <span class="comment">// std::string does not support allocators.</span></div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   <span class="keyword">using</span> <a class="code" href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">std::to_string</a>;</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> str = <a class="code" href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(std::size(data));</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   <span class="keyword">using</span> <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">std::to_string</a>;</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> str = <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(std::size(data));</div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;   to += <span class="stringliteral">&quot;$&quot;</span>;</div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   to.append(std::cbegin(str), std::cend(str));</div>
@@ -138,8 +138,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> Storage, <span class="keyword">class</span> T&gt;</div>
 <div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="keywordtype">void</span> add_bulk(Storage&amp; to, T <span class="keyword">const</span>&amp; data, <span class="keyword">typename</span> std::enable_if&lt;needs_to_string&lt;T&gt;::value, <span class="keywordtype">bool</span>&gt;::type = <span class="keyword">false</span>)</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;{</div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;  <span class="keyword">using</span> <a class="code" href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">std::to_string</a>;</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  <span class="keyword">auto</span> <span class="keyword">const</span> s = <a class="code" href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(data);</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;  <span class="keyword">using</span> <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">std::to_string</a>;</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  <span class="keyword">auto</span> <span class="keyword">const</span> s = <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(data);</div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;  add_bulk(to, s);</div>
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;}</div>
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
@@ -165,7 +165,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;} <span class="comment">// detail</span></div>
 <div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;} <span class="comment">// resp3</span></div>
 <div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="ttc" id="agroup__functions_html_ga7a8cc80460052926147f71ace47dc3ed"><div class="ttname"><a href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">aedis::redis::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts a command to a string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2impl_2command_8ipp_source.html#l00013">command.ipp:13</a></div></div>
+<div class="ttc" id="agroup__any_html_ga7a8cc80460052926147f71ace47dc3ed"><div class="ttname"><a href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">aedis::redis::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts a command to a string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2impl_2command_8ipp_source.html#l00013">command.ipp:13</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

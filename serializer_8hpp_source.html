@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis</font> &#160; <br> A low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -92,40 +92,40 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="keyword">namespace </span>aedis {</div>
 <div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">namespace </span>resp3 {</div>
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="comment">// TODO: Add an overload for containers.</span></div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> Storage, <span class="keyword">class</span> Command&gt;</div>
-<div class="line"><a name="l00044"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1serializer.html">   44</a></span>&#160;<span class="keyword">class </span><a class="code" href="classaedis_1_1resp3_1_1serializer.html">serializer</a> {</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;   Storage* request_;</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00054"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1serializer.html#a305545de4d702d7a46f29b9f5a00b557">   54</a></span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1serializer.html#a305545de4d702d7a46f29b9f5a00b557">serializer</a>(Storage&amp; storage) : request_(&amp;storage) {}</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span>... Ts&gt;</div>
-<div class="line"><a name="l00074"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1serializer.html#ac14beafb0d639ba148237f079e14470d">   74</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1serializer.html#ac14beafb0d639ba148237f079e14470d">push</a>(Command cmd, Ts <span class="keyword">const</span>&amp;... args)</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;   {</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;      <span class="comment">// TODO: Should we detect any std::pair in the type in the pack</span></div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;      <span class="comment">// to calculate the header size correctly?</span></div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160; </div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;      <span class="keyword">auto</span> constexpr pack_size = <span class="keyword">sizeof</span>...(Ts);</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      detail::add_header(*request_, 1 + pack_size);</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160; </div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      detail::add_bulk(*request_, <a class="code" href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(cmd));</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;      (detail::add_bulk(*request_, args), ...);</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;   }</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160; </div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Key, <span class="keyword">class</span> ForwardIterator&gt;</div>
-<div class="line"><a name="l00107"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1serializer.html#ad70c1c3abc45848fea69f1ea814818ce">  107</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1serializer.html#ad70c1c3abc45848fea69f1ea814818ce">push_range</a>(Command cmd, Key <span class="keyword">const</span>&amp; key, ForwardIterator begin, ForwardIterator end)</div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;   {</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;      <span class="comment">// Note: For some commands like hset it would helpful to users</span></div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;      <span class="comment">// to assert the value type is a pair.</span></div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="comment">// NOTE: Consider adding an overload for containers.</span></div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="comment">// TODO: Should we detect any std::pair or tuple in the type in the parameter</span></div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="comment">// pack to calculate the header size correctly?</span></div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="comment">// NOTE: For some commands like hset it would be a good idea to assert</span></div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="comment">// the value type is a pair.</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> Storage, <span class="keyword">class</span> Command&gt;</div>
+<div class="line"><a name="l00050"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1serializer.html">   50</a></span>&#160;<span class="keyword">class </span><a class="code" href="classaedis_1_1resp3_1_1serializer.html">serializer</a> {</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   Storage* request_;</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160; </div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00060"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1serializer.html#a305545de4d702d7a46f29b9f5a00b557">   60</a></span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1serializer.html#a305545de4d702d7a46f29b9f5a00b557">serializer</a>(Storage&amp; storage) : request_(&amp;storage) {}</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span>... Ts&gt;</div>
+<div class="line"><a name="l00080"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1serializer.html#ac14beafb0d639ba148237f079e14470d">   80</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1serializer.html#ac14beafb0d639ba148237f079e14470d">push</a>(Command cmd, Ts <span class="keyword">const</span>&amp;... args)</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;   {</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      <span class="keyword">auto</span> constexpr pack_size = <span class="keyword">sizeof</span>...(Ts);</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;      detail::add_header(*request_, 1 + pack_size);</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160; </div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;      detail::add_bulk(*request_, <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(cmd));</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;      (detail::add_bulk(*request_, args), ...);</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;   }</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160; </div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Key, <span class="keyword">class</span> ForwardIterator&gt;</div>
+<div class="line"><a name="l00110"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1serializer.html#ad70c1c3abc45848fea69f1ea814818ce">  110</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1serializer.html#ad70c1c3abc45848fea69f1ea814818ce">push_range</a>(Command cmd, Key <span class="keyword">const</span>&amp; key, ForwardIterator begin, ForwardIterator end)</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;   {</div>
 <div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
 <div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160; </div>
 <div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;      <span class="keyword">auto</span> constexpr size = detail::value_type_size&lt;value_type&gt;::size;</div>
 <div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
 <div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;      detail::add_header(*request_, 2 + size * distance);</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;      detail::add_bulk(*request_, <a class="code" href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(cmd));</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;      detail::add_bulk(*request_, <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(cmd));</div>
 <div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;      detail::add_bulk(*request_, key);</div>
 <div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160; </div>
 <div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
@@ -135,29 +135,26 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> ForwardIterator&gt;</div>
 <div class="line"><a name="l00142"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1serializer.html#abf033386d4822d30649a3ef386341b82">  142</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1serializer.html#abf033386d4822d30649a3ef386341b82">push_range</a>(Command cmd, ForwardIterator begin, ForwardIterator end)</div>
 <div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;   {</div>
-<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;      <span class="comment">// Note: For some commands like hset it would be a good idea to assert</span></div>
-<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;      <span class="comment">// the value type is a pair.</span></div>
-<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160; </div>
-<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
-<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160; </div>
-<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;      <span class="keyword">auto</span> constexpr size = detail::value_type_size&lt;value_type&gt;::size;</div>
-<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;      detail::add_header(*request_, 1 + size * distance);</div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;      detail::add_bulk(*request_, <a class="code" href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(cmd));</div>
-<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;     detail::add_bulk(*request_, *begin);</div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;   }</div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;};</div>
-<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
-<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;} <span class="comment">// resp3</span></div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1serializer_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1serializer.html">aedis::resp3::serializer</a></div><div class="ttdoc">Creates a Redis request from user data.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00044">serializer.hpp:44</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1serializer_html_a305545de4d702d7a46f29b9f5a00b557"><div class="ttname"><a href="classaedis_1_1resp3_1_1serializer.html#a305545de4d702d7a46f29b9f5a00b557">aedis::resp3::serializer::serializer</a></div><div class="ttdeci">serializer(Storage &amp;storage)</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00054">serializer.hpp:54</a></div></div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160; </div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;      <span class="keyword">auto</span> constexpr size = detail::value_type_size&lt;value_type&gt;::size;</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;      detail::add_header(*request_, 1 + size * distance);</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;      detail::add_bulk(*request_, <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(cmd));</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160; </div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;     detail::add_bulk(*request_, *begin);</div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;   }</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;};</div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;} <span class="comment">// resp3</span></div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1serializer_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1serializer.html">aedis::resp3::serializer</a></div><div class="ttdoc">Creates a Redis request from user data.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00050">serializer.hpp:50</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1serializer_html_a305545de4d702d7a46f29b9f5a00b557"><div class="ttname"><a href="classaedis_1_1resp3_1_1serializer.html#a305545de4d702d7a46f29b9f5a00b557">aedis::resp3::serializer::serializer</a></div><div class="ttdeci">serializer(Storage &amp;storage)</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00060">serializer.hpp:60</a></div></div>
 <div class="ttc" id="aclassaedis_1_1resp3_1_1serializer_html_abf033386d4822d30649a3ef386341b82"><div class="ttname"><a href="classaedis_1_1resp3_1_1serializer.html#abf033386d4822d30649a3ef386341b82">aedis::resp3::serializer::push_range</a></div><div class="ttdeci">void push_range(Command cmd, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00142">serializer.hpp:142</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1serializer_html_ac14beafb0d639ba148237f079e14470d"><div class="ttname"><a href="classaedis_1_1resp3_1_1serializer.html#ac14beafb0d639ba148237f079e14470d">aedis::resp3::serializer::push</a></div><div class="ttdeci">void push(Command cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00074">serializer.hpp:74</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1serializer_html_ad70c1c3abc45848fea69f1ea814818ce"><div class="ttname"><a href="classaedis_1_1resp3_1_1serializer.html#ad70c1c3abc45848fea69f1ea814818ce">aedis::resp3::serializer::push_range</a></div><div class="ttdeci">void push_range(Command cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00107">serializer.hpp:107</a></div></div>
-<div class="ttc" id="agroup__functions_html_ga7a8cc80460052926147f71ace47dc3ed"><div class="ttname"><a href="group__functions.html#ga7a8cc80460052926147f71ace47dc3ed">aedis::redis::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts a command to a string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2impl_2command_8ipp_source.html#l00013">command.ipp:13</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1serializer_html_ac14beafb0d639ba148237f079e14470d"><div class="ttname"><a href="classaedis_1_1resp3_1_1serializer.html#ac14beafb0d639ba148237f079e14470d">aedis::resp3::serializer::push</a></div><div class="ttdeci">void push(Command cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00080">serializer.hpp:80</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1serializer_html_ad70c1c3abc45848fea69f1ea814818ce"><div class="ttname"><a href="classaedis_1_1resp3_1_1serializer.html#ad70c1c3abc45848fea69f1ea814818ce">aedis::resp3::serializer::push_range</a></div><div class="ttdeci">void push_range(Command cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00110">serializer.hpp:110</a></div></div>
+<div class="ttc" id="agroup__any_html_ga7a8cc80460052926147f71ace47dc3ed"><div class="ttname"><a href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">aedis::redis::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts a command to a string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2impl_2command_8ipp_source.html#l00013">command.ipp:13</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->
