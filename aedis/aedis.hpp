@@ -33,15 +33,8 @@
   
     \section examples Examples
 
-    In general every feature offered by the library will be
-    accompained by an example showing how to use it. We also focus in
-    a more modern asynchronous programming with coroutines.
-
-    \subsection Basics
-
-    Focuses on small examples that show basic usage of
-    the library, for example, how to make a request and read the
-    response, how to deal with keys that may not exist, pubsub, etc.
+    \b Basics: Focuses on small examples that show basic usage of
+    the library.
 
     - intro.cpp: A good starting point. Some commands are sent to the
       Redis server and the responses are printed to screen. 
@@ -60,9 +53,7 @@
     - key_expiration.cpp: Shows how to use \c std::optional to deal
       with keys that may have expired or do not exist.
 
-    \subsection stl-containers STL Containers
-
-    Many of the Redis data structures can be
+    \b STL \b Containers: Many of the Redis data structures can be
     directly translated in to STL containers, below you will find some
     example code. For a list of Redis data types see
     https://redis.io/topics/data-types.
@@ -76,9 +67,7 @@
     - sets.cpp: Shows how to read Redis sets in a \c std::set, \c
       std::unordered_set and \c std::vector.
 
-    \subsection customization-points Customization points
-
-    Shows how de/serialize user types
+    \b Customization \b points: Shows how de/serialize user types
     avoiding copies. This is particularly useful for low latency
     applications that want to avoid unneeded copies, for examples when
     storing json strings in Redis keys.
@@ -89,9 +78,7 @@
     - response_adapter.cpp: Customization point for users that want to
       de/serialize their own data-structures like containers for example.
 
-    \subsection async-servers Asynchronous servers
-
-    Contains some non-trivial examples
+    \b Asynchronous \b servers: Contains some non-trivial examples
     servers that interact with users and Redis asynchronously over
     long lasting connections using a higher level API.
 
@@ -108,25 +95,17 @@
 
     \section using-aedis Using Aedis
 
-    This section contains instructions on how to install aedis on your machine among other things.
-
-    \subsection Requirements
+    To install and use Aedis you will need
   
-    Aedis installation requires
-  
-    - Boost 1.78 or greater
-    - Unix Shell
-    - Make
-  
-    To use Aedis and build its examples and tests you will need
-  
-    - C++20 with coroutine support.
+    - Boost 1.78 or greater.
+    - Unix Shell and Make.
+    - Compiler with C++20 coroutine support e.g. GCC 10 or greater.
     - Redis server.
   
     Some examples will also require interaction with
   
-    - Redis-client: used in on example.
-    - Redis Sentinel server: used in some examples.
+    - redis-cli: used in one example.
+    - Redis Sentinel Server: used in some examples.
   
     \subsection Installation
   
@@ -134,13 +113,15 @@
   
     ```
     # Download the libray on github.
-    $ wget github-link
+    $ wget https://github.com/mzimbres/aedis/release-path # TODO
   
     # Uncompress the tarball and cd into the dir
     $ tar -xzvf aedis-1.0.0.tar.gz && cd aedis-1.0.0
   
-    # Run configure with appropriate C++ flags and your boost installation, for example
-    $ CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage"\
+    # Run configure with appropriate C++ flags and your boost
+    # installation, for example # You may also have to use
+    # -Wno-subobject-linkage on gcc.
+    $ CXXFLAGS="-std=c++20 -fcoroutines -g -Wall"\
     ./configure  --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib
   
     ```
@@ -170,8 +151,6 @@
     #include <aedis/src.hpp>
     ```
     in exactly one source file in your applications.
-  
-    \subsubsection Windows
   
     Windows users can use aedis by either adding the project root
     directory to their include path or manually copying to another
