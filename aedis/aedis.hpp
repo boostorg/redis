@@ -82,10 +82,6 @@
     servers that interact with users and Redis asynchronously over
     long lasting connections using a higher level API.
 
-    - multipurpose_client.cpp: Shows how to use and experimental high
-      level redis client that keeps a long lasting connections to a
-      redis server. This is the starting point for the next examples.
-
     - echo_server.cpp: Shows the basic principles behind asynchronous
       communication with a database in an asynchronous server. In this
       case, the server is a proxy between the user and Redis.

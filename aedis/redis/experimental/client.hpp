@@ -12,10 +12,31 @@
 
 #include <aedis/aedis.hpp>
 #include <aedis/redis/command.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/adapt.hpp>
+
+#include <boost/asio/async_result.hpp>
 
 namespace aedis {
-namespace resp3 {
+namespace redis {
 namespace experimental {
+
+inline
+auto adapt()
+{
+   return [](command, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) { };
+}
+
+template <class T>
+auto adapt(T& t)
+{
+   return [adapter = resp3::adapt(t)](command, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable
+      { return adapter(t, aggregate_size, depth, data, size, ec); };
+}
+
+struct extended_ignore_adapter {
+   void operator()(redis::command, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) {}
+};
 
 /**  \brief A high level redis client.
  *   \ingroup any
@@ -30,21 +51,14 @@ namespace experimental {
  */
 class client : public std::enable_shared_from_this<client> {
 public:
-   /** \brief The extended response adapter type.
-    *
-    *  The difference between the adapter and extended_adapter
-    *  concepts is that the extended get a command redis::parameter.
-    */
-   using extented_adapter_type = std::function<void(redis::command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
-
-   /// The type of the message callback.
-   using on_message_type = std::function<void(std::error_code ec, redis::command)>;
-
    /// The type of the socket used by the client.
    //using socket_type = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
    using socket_type = net::ip::tcp::socket;
 
 private:
+   template <class T>
+   friend struct read_op;
+
    struct request_info {
       // Request size in bytes.
       std::size_t size = 0;
@@ -53,6 +67,9 @@ private:
       // have push types as responses, see has_push_response.
       std::size_t cmds = 0;
    };
+
+   // Buffer used in the read operations.
+   std::string read_buffer_;
 
    // Requests payload.
    std::string requests_;
@@ -70,22 +87,8 @@ private:
    // next message in the output queue.
    net::steady_timer timer_;
 
-   // Response adapter.
-   extented_adapter_type extended_adapter_ = [](redis::command, type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&) {};
-
-   // Message callback.
-   on_message_type on_msg_ = [](std::error_code ec, redis::command) {};
-
    // Set when the writer coroutine should stop.
    bool stop_writer_ = false;
-
-   // A coroutine that keeps reading the socket. When a message
-   // arrives it calls on_message.
-   net::awaitable<void> reader();
-
-   // Write coroutine. It is kept suspended until there are messages
-   // to be sent.
-   net::awaitable<void> writer();
 
    /* Prepares the back of the queue to receive further commands. 
     *
@@ -106,18 +109,19 @@ public:
    /// Returns the executor used for I/O with Redis.
    auto get_executor() {return socket_.get_executor();}
 
-   /** \brief Starts communication with Redis.
-    *
-    *  This functions will send the hello command to Redis and spawn
-    *  the read and write coroutines.
-    *
-    *  \param socket A socket that is connected to redis.
-    *
-    *  \returns This function returns an awaitable on which users should \c
-    *  co_await. When the communication with Redis is lost the
-    *  coroutine will finally co_return.
-    */
-   net::awaitable<void> engage(socket_type socket);
+   void set_stream(socket_type socket)
+   {
+      socket_ = std::move(socket);
+
+      net::co_spawn(
+          socket_.get_executor(),
+          [self = shared_from_this()] { return self->writer(); },
+          net::detached);
+   }
+
+   // Write coroutine. It is kept suspended until there are messages
+   // to be sent.
+   net::awaitable<void> writer();
 
    /** \brief Adds a command to the command queue.
     *
@@ -126,11 +130,23 @@ public:
    template <class... Ts>
    void send(redis::command cmd, Ts const&... args);
 
-   /// Sets an extended response adapter.
-   void set_extended_adapter(extented_adapter_type adapter);
+   // Reads messages asynchronously.
+   template <
+     class ExtendedAdapter = extended_ignore_adapter,
+     class CompletionToken = net::use_awaitable_t<>
+   >
+   auto
+   async_read(
+      ExtendedAdapter extended_adapter = extended_ignore_adapter{},
+      CompletionToken&& token = net::use_awaitable_t<>{});
 
-   /// Sets the message callback;
-   void set_msg_callback(on_message_type on_msg);
+   // TODO: can we use cancellation.
+   void stop_writer()
+   {
+     stop_writer_ = true;
+     timer_.cancel();
+     socket_.close();
+   }
 };
 
 template <class... Ts>
@@ -153,6 +169,113 @@ void client::send(redis::command cmd, Ts const&... args)
       timer_.cancel_one();
 }
 
+#include <boost/asio/yield.hpp>
+
+template <class ExtendedAdapter>
+struct read_op {
+   client* cli;
+   ExtendedAdapter adapter;
+   net::coroutine coro;
+   resp3::type t = resp3::type::invalid;
+   redis::command cmd = redis::command::unknown;
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      reenter (coro) {
+         boost::ignore_unused(n);
+
+         if (ec) {
+            cli->stop_writer(); // TODO: implement as cancellation.
+            // TODO: close the socket?
+            self.complete(ec, redis::command::unknown);
+            return;
+         }
+
+         if (std::empty(cli->read_buffer_)) {
+            yield
+            net::async_read_until(
+               cli->socket_,
+               net::dynamic_buffer(cli->read_buffer_),
+               "\r\n",
+               std::move(self));
+
+            if (ec) {
+               cli->stop_writer();
+               // TODO: close the socket?
+               self.complete(ec, redis::command::unknown);
+               return;
+            }
+         }
+
+         assert(!std::empty(cli->read_buffer_));
+         t = resp3::detail::to_type(cli->read_buffer_.front());
+         if (t != resp3::type::push) {
+            assert(!std::empty(cli->commands_));
+            cmd = cli->commands_.front();
+         }
+
+         yield
+         resp3::async_read(
+            cli->socket_,
+            net::dynamic_buffer(cli->read_buffer_),
+            [a = adapter, c = cmd](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable {a(c, t, aggregate_size, depth, data, size, ec);},
+            std::move(self));
+
+         if (ec) {
+            cli->stop_writer();
+            // TODO: close the socket?
+            self.complete(ec, redis::command::unknown);
+            return;
+         }
+
+         if (t != resp3::type::push) {
+            assert(!std::empty(cli->req_info_));
+            cli->commands_.pop();
+            if (--cli->req_info_.front().cmds == 0) {
+               cli->req_info_.pop();
+               if (!std::empty(cli->req_info_)) {
+                  assert(!std::empty(cli->requests_));
+                  yield
+                  net::async_write(
+                     cli->socket_,
+                     net::buffer(cli->requests_.data(), cli->req_info_.front().size),
+                     std::move(self));
+
+                  if (ec) {
+                     cli->stop_writer();
+                     // TODO: close the socket?
+                     self.complete(ec, redis::command::unknown);
+                     return;
+                  }
+
+                  cli->requests_.erase(0, cli->req_info_.front().size);
+                  cli->req_info_.front().size = 0;
+
+                  if (cli->req_info_.front().cmds == 0)
+                     cli->req_info_.pop();
+               }
+            }
+         }
+
+         self.complete({}, cmd);
+      }
+   }
+};
+
+#include <boost/asio/unyield.hpp>
+
+template <class ExtendedAdapter, class CompletionToken>
+auto client::async_read(ExtendedAdapter adapter, CompletionToken&& token)
+{
+   return net::async_compose
+      < CompletionToken
+      , void(boost::system::error_code, redis::command)
+      >(read_op<ExtendedAdapter>{this, adapter}, token, socket_);
+}
+
 } // experimental
-} // resp3
+} // redis
 } // aedis

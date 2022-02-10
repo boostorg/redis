@@ -16,8 +16,8 @@
 
 namespace net = aedis::net;
 using aedis::redis::command;
+using aedis::redis::experimental::client;
 using aedis::resp3::adapt;
-using aedis::resp3::experimental::client;
 using aedis::resp3::node;
 using aedis::resp3::type;
 using aedis::user_session;
@@ -31,13 +31,8 @@ private:
    std::vector<std::weak_ptr<user_session_base>> sessions_;
 
 public:
-   void on_message(std::error_code ec, command cmd)
+   void on_message(command cmd)
    {
-      if (ec) {
-         std::cerr << "Error: " << ec.message() << std::endl;
-         return;
-      }
-
       switch (cmd) {
          case command::incr:
          {
@@ -70,12 +65,20 @@ public:
       { sessions_.push_back(session); }
 };
 
-net::awaitable<void> connection_manager(std::shared_ptr<client> db)
+net::awaitable<void> run(std::shared_ptr<client> db, std::shared_ptr<receiver> recv)
 {
    try {
-      auto socket = co_await connect();
-      co_await db->engage(std::move(socket));
+      db->set_stream(co_await connect());
+      db->send(command::hello, 3);
+      db->send(command::subscribe, "channel");
+
+      for (auto adapter = recv->get_extended_adapter();;) {
+         auto const cmd = co_await db->async_read(adapter, net::use_awaitable);
+         recv->on_message(cmd);
+      }
+
    } catch (std::exception const& e) {
+      db->stop_writer();
       std::cerr << "Error: " << e.what() << std::endl;
    }
 }
@@ -86,14 +89,9 @@ net::awaitable<void> listener()
    net::ip::tcp::acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});
 
    auto recv = std::make_shared<receiver>();
-   auto on_db_msg = [recv](std::error_code ec, command cmd)
-      { recv->on_message(ec, cmd); };
-
    auto db = std::make_shared<client>(ex);
-   db->set_extended_adapter(recv->get_extended_adapter());
-   db->set_msg_callback(on_db_msg);
-   net::co_spawn(ex, connection_manager(db), net::detached);
-   db->send(command::subscribe, "channel");
+
+   net::co_spawn(ex, run(db, recv), net::detached);
 
    auto on_user_msg = [db](std::string const& msg)
    {

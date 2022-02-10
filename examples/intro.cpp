@@ -6,63 +6,52 @@
  */
 
 #include <iostream>
+#include <memory>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
 #include "lib/net_utils.hpp"
 
-namespace resp3 = aedis::resp3;
-using aedis::redis::command;
-using aedis::redis::make_serializer;
-using resp3::adapt;
-
 namespace net = aedis::net;
-using net::async_write;
-using net::buffer;
-using net::dynamic_buffer;
+using aedis::redis::command;
+using aedis::redis::experimental::client;
+using aedis::redis::experimental::adapt;
 
-net::awaitable<void> ping()
+net::awaitable<void> run()
 {
-   try {
-      auto socket = co_await connect(); // See lib/net_utils.hpp
+   auto db = std::make_shared<client>(co_await net::this_coro::executor);
 
-      // Creates and sends the request.
-      std::string request;
-      auto sr = make_serializer(request);
-      sr.push(command::hello, 3);
-      sr.push(command::flushall);
-      sr.push(command::ping);
-      sr.push(command::incr, "key");
-      sr.push(command::quit);
-      co_await async_write(socket, buffer(request));
+   db->set_stream(co_await connect());
+   db->send(command::hello, 3);
+   db->send(command::ping, "O rato roeu a roupa do rei de Roma");
+   db->send(command::incr, "redis-client-counter");
+   db->send(command::quit);
+   
+   std::string ping;
+   int incr;
+   
+   co_await db->async_read();
+   co_await db->async_read(adapt(ping));
+   co_await db->async_read(adapt(incr));
+   co_await db->async_read();
 
-      // Responses we are interested in.
-      int incr;
-      std::string ping;
-
-      // Reads the responses to ping and incr, ignore the others.
-      std::string buffer;
-      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello
-      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // flushall 
-      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(ping));
-      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(incr));
-      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // quit
-
-      // Print the responses.
-      std::cout
-         << "ping: " << ping << "\n"
-         << "incr: " << incr << "\n";
-
-   } catch (std::exception const& e) {
-      std::cerr << e.what() << std::endl;
-      exit(EXIT_FAILURE);
-   }
+   boost::system::error_code ec;
+   co_await db->async_read(adapt(), net::redirect_error(net::use_awaitable, ec));
+   
+   std::cout
+      << "ping: " << ping << "\n"
+      << "incr: " << incr << "\n";
 }
 
 int main()
 {
-   net::io_context ioc;
-   co_spawn(ioc, ping(), net::detached);
-   ioc.run();
+   try {
+      net::io_context ioc{1};
+      net::co_spawn(ioc, run(), net::detached);
+      ioc.run();
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
+      exit(EXIT_FAILURE);
+   }
 }
