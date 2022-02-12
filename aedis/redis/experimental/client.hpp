@@ -59,6 +59,8 @@ private:
    template <class T>
    friend struct read_op;
 
+   friend struct write_op;
+
    struct request_info {
       // Request size in bytes.
       std::size_t size = 0;
@@ -87,9 +89,6 @@ private:
    // next message in the output queue.
    net::steady_timer timer_;
 
-   // Set when the writer coroutine should stop.
-   bool stop_writer_ = false;
-
    /* Prepares the back of the queue to receive further commands. 
     *
     * If true is returned the request in the front of the queue can be
@@ -110,18 +109,10 @@ public:
    auto get_executor() {return socket_.get_executor();}
 
    void set_stream(socket_type socket)
-   {
-      socket_ = std::move(socket);
+      { socket_ = std::move(socket); }
 
-      net::co_spawn(
-          socket_.get_executor(),
-          [self = shared_from_this()] { return self->writer(); },
-          net::detached);
-   }
-
-   // Write coroutine. It is kept suspended until there are messages
-   // to be sent.
-   net::awaitable<void> writer();
+   template <class CompletionToken = net::use_awaitable_t<>>
+   auto async_write(CompletionToken&& token = net::use_awaitable_t<>{});
 
    /** \brief Adds a command to the command queue.
     *
@@ -139,14 +130,6 @@ public:
    async_read(
       ExtendedAdapter extended_adapter = extended_ignore_adapter{},
       CompletionToken&& token = net::use_awaitable_t<>{});
-
-   // TODO: can we use cancellation.
-   void stop_writer()
-   {
-     stop_writer_ = true;
-     timer_.cancel();
-     socket_.close();
-   }
 };
 
 template <class... Ts>
@@ -185,12 +168,11 @@ struct read_op {
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
+      boost::ignore_unused(n);
+
       reenter (coro) {
-         boost::ignore_unused(n);
 
          if (ec) {
-            cli->stop_writer(); // TODO: implement as cancellation.
-            // TODO: close the socket?
             self.complete(ec, redis::command::unknown);
             return;
          }
@@ -204,8 +186,6 @@ struct read_op {
                std::move(self));
 
             if (ec) {
-               cli->stop_writer();
-               // TODO: close the socket?
                self.complete(ec, redis::command::unknown);
                return;
             }
@@ -226,8 +206,6 @@ struct read_op {
             std::move(self));
 
          if (ec) {
-            cli->stop_writer();
-            // TODO: close the socket?
             self.complete(ec, redis::command::unknown);
             return;
          }
@@ -246,8 +224,6 @@ struct read_op {
                      std::move(self));
 
                   if (ec) {
-                     cli->stop_writer();
-                     // TODO: close the socket?
                      self.complete(ec, redis::command::unknown);
                      return;
                   }
@@ -266,15 +242,74 @@ struct read_op {
    }
 };
 
+struct write_op {
+   client* cli;
+   net::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      boost::ignore_unused(n);
+
+      reenter (coro) {
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         // Consider limiting the size of the pipelines by spliting that
+         // last one in two if needed.
+         if (!std::empty(cli->req_info_)) {
+
+            assert(cli->req_info_.front().size != 0);
+            assert(!std::empty(cli->requests_));
+
+            yield
+            net::async_write(
+               cli->socket_,
+               net::buffer(cli->requests_.data(), cli->req_info_.front().size),
+               std::move(self));
+
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
+
+            cli->requests_.erase(0, cli->req_info_.front().size);
+            cli->req_info_.front().size = 0;
+            
+            if (cli->req_info_.front().cmds == 0) 
+               cli->req_info_.pop();
+         }
+
+         yield cli->timer_.async_wait(std::move(self));
+         self.complete({});
+      }
+   }
+};
+
 #include <boost/asio/unyield.hpp>
 
 template <class ExtendedAdapter, class CompletionToken>
-auto client::async_read(ExtendedAdapter adapter, CompletionToken&& token)
+auto
+client::async_read(ExtendedAdapter adapter, CompletionToken&& token)
 {
    return net::async_compose
       < CompletionToken
       , void(boost::system::error_code, redis::command)
       >(read_op<ExtendedAdapter>{this, adapter}, token, socket_);
+}
+
+template <class CompletionToken>
+auto
+client::async_write(CompletionToken&& token)
+{
+   return net::async_compose
+      < CompletionToken
+      , void(boost::system::error_code)
+      >(write_op{this}, token, socket_, timer_);
 }
 
 } // experimental

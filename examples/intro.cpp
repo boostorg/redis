@@ -8,6 +8,8 @@
 #include <iostream>
 #include <memory>
 
+#include <boost/asio/experimental/awaitable_operators.hpp>
+
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
@@ -18,11 +20,8 @@ using aedis::redis::command;
 using aedis::redis::experimental::client;
 using aedis::redis::experimental::adapt;
 
-net::awaitable<void> run()
+net::awaitable<void> reader(std::shared_ptr<client> db)
 {
-   auto db = std::make_shared<client>(co_await net::this_coro::executor);
-
-   db->set_stream(co_await connect());
    db->send(command::hello, 3);
    db->send(command::ping, "O rato roeu a roupa do rei de Roma");
    db->send(command::incr, "redis-client-counter");
@@ -44,11 +43,22 @@ net::awaitable<void> run()
       << "incr: " << incr << "\n";
 }
 
+net::awaitable<void>
+connection_manager()
+{
+   using namespace net::experimental::awaitable_operators;
+
+   auto ex = co_await net::this_coro::executor;
+   auto db = std::make_shared<client>(ex);
+   db->set_stream(co_await connect());
+   co_await (reader(db) || writer(db));
+}
+
 int main()
 {
    try {
       net::io_context ioc{1};
-      net::co_spawn(ioc, run(), net::detached);
+      net::co_spawn(ioc, connection_manager(), net::detached);
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

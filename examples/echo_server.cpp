@@ -9,6 +9,8 @@
 #include <queue>
 #include <vector>
 
+#include <boost/asio/experimental/awaitable_operators.hpp>
+
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
@@ -18,11 +20,10 @@
 namespace net = aedis::net;
 using aedis::redis::command;
 using aedis::redis::experimental::client;
+using aedis::redis::experimental::adapt;
+using aedis::resp3::node;
 using aedis::user_session;
 using aedis::user_session_base;
-using aedis::resp3::node;
-using aedis::resp3::adapt;
-using aedis::resp3::type;
 
 class receiver : public std::enable_shared_from_this<receiver> {
 private:
@@ -53,22 +54,18 @@ public:
       resps_.clear();
    }
 
-   auto get_adapter()
-   {
-      return [adapter = adapt(resps_)](command, type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable
-         { return adapter(t, aggregate_size, depth, data, size, ec); };
-   }
+   auto get_adapter() { return aedis::redis::experimental::adapt(resps_); }
 
    void add_user_session(std::shared_ptr<user_session_base> session)
       { sessions_.push(session); }
 };
 
-net::awaitable<void> run(std::shared_ptr<client> db, std::shared_ptr<receiver> recv)
+net::awaitable<void>
+reader(std::shared_ptr<client> db, std::shared_ptr<receiver> recv)
 {
-   // Causes a bug.
-   //db->set_stream(co_await connect());
+   db->send(command::hello, 3);
    for (auto adapter = recv->get_adapter();;) {
-     boost::system::error_code ec;
+      boost::system::error_code ec;
       auto const cmd = co_await db->async_read(adapter, net::redirect_error(net::use_awaitable, ec));
       if (ec)
         co_return;
@@ -77,11 +74,14 @@ net::awaitable<void> run(std::shared_ptr<client> db, std::shared_ptr<receiver> r
 }
 
 net::awaitable<void>
-connection_manager(std::shared_ptr<client> db, std::shared_ptr<receiver> recv)
+connection_manager(
+   std::shared_ptr<client> db,
+   std::shared_ptr<receiver> recv)
 {
+   using namespace net::experimental::awaitable_operators;
+
    db->set_stream(co_await connect());
-   db->send(command::hello, 3);
-   co_await run(db, recv);
+   co_await (reader(db, recv) || writer(db));
 }
 
 net::awaitable<void>
@@ -94,8 +94,11 @@ signal_handler(
    net::signal_set signals(ex, SIGINT, SIGTERM);
    co_await signals.async_wait(net::use_awaitable);
 
-   db->send(command::quit); // Closes the connection with redis.
-   acc->cancel(); // Stop listening for new connections.
+   // Closes the connection with redis.
+   db->send(command::quit);
+
+   // Stop listening for new connections.
+   acc->cancel();
 }
 
 net::awaitable<void> listener()
