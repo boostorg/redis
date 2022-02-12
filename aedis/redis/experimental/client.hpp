@@ -158,6 +158,7 @@ void client::send(redis::command cmd, Ts const&... args)
    auto const before = std::size(requests_);
    sr.push(cmd, args...);
    auto const after = std::size(requests_);
+   assert(after - before != 0);
    req_info_.front().size += after - before;;
 
    if (!has_push_response(cmd)) {
