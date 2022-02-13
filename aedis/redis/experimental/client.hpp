@@ -89,6 +89,8 @@ private:
    // next message in the output queue.
    net::steady_timer timer_;
 
+   bool stop_writer_ = false;
+
    /* Prepares the back of the queue to receive further commands. 
     *
     * If true is returned the request in the front of the queue can be
@@ -133,6 +135,12 @@ public:
    async_read(
       ExtendedAdapter extended_adapter = extended_ignore_adapter{},
       CompletionToken&& token = net::use_awaitable_t<>{});
+
+   void stop_writer()
+   {
+      stop_writer_ = true;
+      timer_.cancel();
+   }
 };
 
 template <class... Ts>
@@ -171,9 +179,9 @@ struct read_op {
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
-      boost::ignore_unused(n);
-
       reenter (coro) {
+
+         boost::ignore_unused(n);
 
          if (ec) {
             self.complete(ec, redis::command::unknown);
@@ -218,35 +226,16 @@ struct read_op {
             return;
          }
 
-         if (!cli->on_read()) {
-            self.complete({}, cmd);
-            return;
-         }
-
-         assert(!std::empty(cli->requests_));
-
-         yield
-         net::async_write(
-            cli->socket_,
-            net::buffer(cli->requests_.data(), cli->req_info_.front().size),
-            std::move(self));
-
-         if (ec) {
-            self.complete(ec, redis::command::unknown);
-            return;
-         }
-
-         cli->requests_.erase(0, cli->req_info_.front().size);
-         cli->req_info_.front().size = 0;
-
-         if (cli->req_info_.front().cmds == 0)
-            cli->req_info_.erase(std::begin(cli->req_info_));
+         if (cli->on_read())
+            cli->timer_.cancel_one();
 
          self.complete({}, cmd);
       }
    }
 };
 
+// Consider limiting the size of the pipelines by spliting that last
+// one in two if needed.
 struct write_op {
    client* cli;
    net::coroutine coro;
@@ -256,41 +245,46 @@ struct write_op {
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
-      boost::ignore_unused(n);
-
       reenter (coro) {
+
+         boost::ignore_unused(n);
+
          if (ec) {
-            self.complete(ec);
+            self.complete(ec, 0);
             return;
          }
 
-         // Consider limiting the size of the pipelines by spliting that
-         // last one in two if needed.
-         if (!std::empty(cli->req_info_)) {
+         yield cli->timer_.async_wait(std::move(self));
 
-            assert(cli->req_info_.front().size != 0);
-            assert(!std::empty(cli->requests_));
-
-            yield
-            net::async_write(
-               cli->socket_,
-               net::buffer(cli->requests_.data(), cli->req_info_.front().size),
-               std::move(self));
-
-            if (ec) {
-               self.complete(ec);
-               return;
-            }
-
-            cli->requests_.erase(0, cli->req_info_.front().size);
-            cli->req_info_.front().size = 0;
-            
-            if (cli->req_info_.front().cmds == 0) 
-               cli->req_info_.erase(std::begin(cli->req_info_));
+         if (cli->stop_writer_) {
+            self.complete(ec, 0);
+            return;
          }
 
-         yield cli->timer_.async_wait(std::move(self));
-         self.complete({});
+         assert(!std::empty(cli->req_info_));
+         assert(cli->req_info_.front().size != 0);
+         assert(!std::empty(cli->requests_));
+
+         yield
+         net::async_write(
+            cli->socket_,
+            net::buffer(cli->requests_.data(), cli->req_info_.front().size),
+            std::move(self));
+
+         if (ec) {
+            self.complete(ec, 0);
+            return;
+         }
+
+         auto const size = cli->req_info_.front().size;
+
+         cli->requests_.erase(0, cli->req_info_.front().size);
+         cli->req_info_.front().size = 0;
+         
+         if (cli->req_info_.front().cmds == 0) 
+            cli->req_info_.erase(std::begin(cli->req_info_));
+
+         self.complete({}, size);
       }
    }
 };
@@ -313,7 +307,7 @@ client::async_write(CompletionToken&& token)
 {
    return net::async_compose
       < CompletionToken
-      , void(boost::system::error_code)
+      , void(boost::system::error_code, std::size_t)
       >(write_op{this}, token, socket_, timer_);
 }
 

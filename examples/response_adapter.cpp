@@ -24,6 +24,10 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
+// From lib/net_utils.hpp
+using aedis::connect;
+using aedis::writer;
+
 // An adapter that prints the data it receives in the screen.
 struct myadapter {
    void operator()(

@@ -26,6 +26,10 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
+// From lib/net_utils.hpp
+using aedis::connect;
+using aedis::writer;
+
 // The response to some commands can't be transalated into C++ data
 // structures like \c std::string or STL containers, A multipurpose
 // response is provided for such cases.

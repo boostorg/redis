@@ -9,8 +9,6 @@
 #include <queue>
 #include <vector>
 
-#include <boost/asio/experimental/awaitable_operators.hpp>
-
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
@@ -25,81 +23,44 @@ using aedis::resp3::node;
 using aedis::user_session;
 using aedis::user_session_base;
 
+// From lib/net_utils.hpp
+using aedis::connect;
+using aedis::writer;
+using aedis::signal_handler;
+using aedis::reader;
+using aedis::connection_manager;
+
 class receiver : public std::enable_shared_from_this<receiver> {
 private:
    std::vector<node> resps_;
-   std::queue<std::weak_ptr<user_session_base>> sessions_;
+   std::queue<std::shared_ptr<user_session_base>> sessions_;
 
 public:
    void on_message(command cmd)
    {
       switch (cmd) {
          case command::ping:
-         {
-            if (auto session = sessions_.front().lock()) {
-               session->deliver(resps_.front().data);
-            } else {
-               std::cout << "Session expired." << std::endl;
-            }
-
+            sessions_.front()->deliver(resps_.front().data);
             sessions_.pop();
-         } break;
+            break;
+
          case command::incr:
-         {
             std::cout << "Echos so far: " << resps_.front().data << std::endl;
-         } break;
-         default: { /* Ignore */; }
+            break;
+
+         default:
+            { /* Ignore */; }
       }
 
       resps_.clear();
    }
 
-   auto get_adapter() { return aedis::redis::experimental::adapt(resps_); }
+   auto get_adapter()
+      { return aedis::redis::experimental::adapt(resps_); }
 
    void add_user_session(std::shared_ptr<user_session_base> session)
       { sessions_.push(session); }
 };
-
-net::awaitable<void>
-reader(std::shared_ptr<client> db, std::shared_ptr<receiver> recv)
-{
-   db->send(command::hello, 3);
-   for (auto adapter = recv->get_adapter();;) {
-      boost::system::error_code ec;
-      auto const cmd = co_await db->async_read(adapter, net::redirect_error(net::use_awaitable, ec));
-      if (ec)
-        co_return;
-      recv->on_message(cmd);
-   }
-}
-
-net::awaitable<void>
-connection_manager(
-   std::shared_ptr<client> db,
-   std::shared_ptr<receiver> recv)
-{
-   using namespace net::experimental::awaitable_operators;
-
-   db->set_stream(co_await connect());
-   co_await (reader(db, recv) || writer(db));
-}
-
-net::awaitable<void>
-signal_handler(
-   std::shared_ptr<net::ip::tcp::acceptor> acc,
-   std::shared_ptr<client> db)
-{
-   auto ex = co_await net::this_coro::executor;
-
-   net::signal_set signals(ex, SIGINT, SIGTERM);
-   co_await signals.async_wait(net::use_awaitable);
-
-   // Closes the connection with redis.
-   db->send(command::quit);
-
-   // Stop listening for new connections.
-   acc->cancel();
-}
 
 net::awaitable<void> listener()
 {

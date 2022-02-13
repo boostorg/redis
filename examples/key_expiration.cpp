@@ -25,6 +25,10 @@ using net::async_write;
 using net::buffer;
 using net::dynamic_buffer;
 
+// From lib/net_utils.hpp
+using aedis::connect;
+using aedis::writer;
+
 net::awaitable<void> key_expiration()
 {
    try {

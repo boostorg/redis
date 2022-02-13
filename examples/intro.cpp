@@ -20,6 +20,10 @@ using aedis::redis::command;
 using aedis::redis::experimental::client;
 using aedis::redis::experimental::adapt;
 
+// From lib/net_utils.hpp
+using aedis::connect;
+using aedis::writer;
+
 net::awaitable<void> reader(std::shared_ptr<client> db)
 {
    db->send(command::hello, 3);
@@ -37,6 +41,7 @@ net::awaitable<void> reader(std::shared_ptr<client> db)
 
    boost::system::error_code ec;
    co_await db->async_read(adapt(), net::redirect_error(net::use_awaitable, ec));
+   db->stop_writer();
    
    std::cout
       << "ping: " << ping << "\n"
@@ -44,21 +49,22 @@ net::awaitable<void> reader(std::shared_ptr<client> db)
 }
 
 net::awaitable<void>
-connection_manager()
+connection_manager(std::shared_ptr<client> db)
 {
    using namespace net::experimental::awaitable_operators;
 
    auto ex = co_await net::this_coro::executor;
-   auto db = std::make_shared<client>(ex);
+
    db->set_stream(co_await connect());
-   co_await (reader(db) || writer(db));
+   co_await (writer(db) || reader(db));
 }
 
 int main()
 {
    try {
       net::io_context ioc{1};
-      net::co_spawn(ioc, connection_manager(), net::detached);
+      auto db = std::make_shared<client>(ioc.get_executor());
+      net::co_spawn(ioc, connection_manager(db), net::detached);
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
