@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <queue>
+#include <vector>
 #include <functional>
 
 #include <aedis/aedis.hpp>
@@ -77,10 +77,10 @@ private:
    std::string requests_;
 
    // The commands contained in the requests.
-   std::queue<redis::command> commands_;
+   std::vector<redis::command> commands_;
 
    // Info about the requests.
-   std::queue<request_info> req_info_;
+   std::vector<request_info> req_info_;
 
    // The stream.
    socket_type socket_;
@@ -95,6 +95,9 @@ private:
     * sent to the server. See async_write_some.
     */
    bool prepare_next();
+
+   // Returns true when the next request can be writen.
+   bool on_read();
 
 public:
    /** \brief Client constructor.
@@ -145,7 +148,7 @@ void client::send(redis::command cmd, Ts const&... args)
    req_info_.front().size += after - before;;
 
    if (!has_push_response(cmd)) {
-      commands_.emplace(cmd);
+      commands_.push_back(cmd);
       ++req_info_.front().cmds;
    }
 
@@ -210,32 +213,34 @@ struct read_op {
             return;
          }
 
-         if (t != resp3::type::push) {
-            assert(!std::empty(cli->req_info_));
-            cli->commands_.pop();
-            if (--cli->req_info_.front().cmds == 0) {
-               cli->req_info_.pop();
-               if (!std::empty(cli->req_info_)) {
-                  assert(!std::empty(cli->requests_));
-                  yield
-                  net::async_write(
-                     cli->socket_,
-                     net::buffer(cli->requests_.data(), cli->req_info_.front().size),
-                     std::move(self));
-
-                  if (ec) {
-                     self.complete(ec, redis::command::unknown);
-                     return;
-                  }
-
-                  cli->requests_.erase(0, cli->req_info_.front().size);
-                  cli->req_info_.front().size = 0;
-
-                  if (cli->req_info_.front().cmds == 0)
-                     cli->req_info_.pop();
-               }
-            }
+         if (t == resp3::type::push) {
+            self.complete({}, cmd);
+            return;
          }
+
+         if (!cli->on_read()) {
+            self.complete({}, cmd);
+            return;
+         }
+
+         assert(!std::empty(cli->requests_));
+
+         yield
+         net::async_write(
+            cli->socket_,
+            net::buffer(cli->requests_.data(), cli->req_info_.front().size),
+            std::move(self));
+
+         if (ec) {
+            self.complete(ec, redis::command::unknown);
+            return;
+         }
+
+         cli->requests_.erase(0, cli->req_info_.front().size);
+         cli->req_info_.front().size = 0;
+
+         if (cli->req_info_.front().cmds == 0)
+            cli->req_info_.erase(std::begin(cli->req_info_));
 
          self.complete({}, cmd);
       }
@@ -281,7 +286,7 @@ struct write_op {
             cli->req_info_.front().size = 0;
             
             if (cli->req_info_.front().cmds == 0) 
-               cli->req_info_.pop();
+               cli->req_info_.erase(std::begin(cli->req_info_));
          }
 
          yield cli->timer_.async_wait(std::move(self));
