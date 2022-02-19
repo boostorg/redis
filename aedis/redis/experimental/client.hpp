@@ -16,7 +16,9 @@
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/adapt.hpp>
 
-#include <boost/asio/async_result.hpp>
+#include <boost/asio/experimental/parallel_group.hpp>
+
+// TODO: Review all member functions to include shared_from_this().
 
 namespace aedis {
 namespace redis {
@@ -238,7 +240,6 @@ private:
       return false;
    }
 
-
    // Returns true when the next request can be writen.
    bool on_read()
    {
@@ -360,14 +361,26 @@ public:
          >(writer_op<client>{this}, token, socket_, timer_);
    }
 
-   net::awaitable<void> async_connect()
+   net::awaitable<void>
+   async_connect(
+      std::string const& host = "localhost",
+      std::string const& service = "6379")
    {
       using resolver_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::resolver>;
       auto ex = co_await net::this_coro::executor;
       resolver_type resolver{ex};
-      auto const res = co_await resolver.async_resolve("localhost", "6379");
+      auto const res = co_await resolver.async_resolve(host, service);
       co_await net::async_connect(socket_, std::cbegin(res), std::end(res));
       send(command::hello, 3);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto async_run(CompletionToken t = CompletionToken{})
+   {
+      return net::experimental::make_parallel_group(
+         [this](auto token) { return async_writer(token);},
+         [this](auto token) { return async_reader(token);}
+      ).async_wait(net::experimental::wait_for_one_error(), t);
    }
 };
 

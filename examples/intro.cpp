@@ -8,8 +8,6 @@
 #include <iostream>
 #include <memory>
 
-#include <boost/asio/experimental/awaitable_operators.hpp>
-
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
@@ -19,7 +17,6 @@ using aedis::redis::command;
 using aedis::redis::experimental::client;
 using aedis::resp3::node;
 
-using resolver_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::resolver>;
 using socket_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
 using client_type = client<socket_type>;
 
@@ -38,6 +35,7 @@ public:
          db_->send(command::ping, "O rato roeu a roupa do rei de Roma");
          db_->send(command::incr, "redis-client-counter");
          db_->send(command::quit);
+         break;
          default:;
       }
 
@@ -50,8 +48,6 @@ public:
 
 net::awaitable<void> connection_manager()
 {
-   using namespace net::experimental::awaitable_operators;
-
    try {
      auto ex = co_await net::this_coro::executor;
      auto db = std::make_shared<client_type>(ex);
@@ -61,7 +57,7 @@ net::awaitable<void> connection_manager()
      db->set_reader_callback(std::ref(recv));
 
      co_await db->async_connect();
-     co_await (db->async_reader() && db->async_writer());
+     co_await db->async_run();
 
    } catch (std::exception const& e) {
       std::clog << e.what() << std::endl;
