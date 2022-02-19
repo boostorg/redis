@@ -359,6 +359,16 @@ public:
          , void(boost::system::error_code)
          >(writer_op<client>{this}, token, socket_, timer_);
    }
+
+   net::awaitable<void> async_connect()
+   {
+      using resolver_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::resolver>;
+      auto ex = co_await net::this_coro::executor;
+      resolver_type resolver{ex};
+      auto const res = co_await resolver.async_resolve("localhost", "6379");
+      co_await net::async_connect(socket_, std::cbegin(res), std::end(res));
+      send(command::hello, 3);
+   }
 };
 
 } // experimental

@@ -23,6 +23,31 @@ using resolver_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net:
 using socket_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
 using client_type = client<socket_type>;
 
+class receiver {
+private:
+   std::vector<node> resps_;
+   std::shared_ptr<client_type> db_;
+
+public:
+   receiver(std::shared_ptr<client_type> db) : db_{db} {}
+
+   void operator()(command cmd)
+   {
+      switch (cmd) {
+         case command::hello:
+         db_->send(command::ping, "O rato roeu a roupa do rei de Roma");
+         db_->send(command::incr, "redis-client-counter");
+         db_->send(command::quit);
+         default:;
+      }
+
+      std::cout << cmd << " " << resps_.at(0).data << std::endl;
+      resps_.clear();
+   }
+
+   auto adapter() { return redis::adapt(resps_); }
+};
+
 net::awaitable<void> connection_manager()
 {
    using namespace net::experimental::awaitable_operators;
@@ -31,27 +56,12 @@ net::awaitable<void> connection_manager()
      auto ex = co_await net::this_coro::executor;
      auto db = std::make_shared<client_type>(ex);
 
-     // Enqueue the commands.
-     db->send(command::hello, 3);
-     db->send(command::ping, "O rato roeu a roupa do rei de Roma");
-     db->send(command::incr, "redis-client-counter");
-     db->send(command::quit);
-   
-     std::vector<node> resps;
+     receiver recv{db};
+     db->set_response_adapter(recv.adapter());
+     db->set_reader_callback(std::ref(recv));
 
-     auto f = [&resps] (command cmd) mutable
-        { std::cout << cmd << " " << resps.at(0).data << std::endl; resps.clear(); };
-
-     db->set_reader_callback(f);
-     db->set_response_adapter(redis::adapt(resps));
-
-     resolver_type resolver{ex};
-     auto const res = co_await resolver.async_resolve("localhost", "6379");
-     co_await net::async_connect(db->next_layer(), std::cbegin(res), std::end(res));
-     co_spawn(ex, db->async_writer(), net::detached);
-     boost::system::error_code ec;
-     co_await db->async_reader(net::redirect_error(net::use_awaitable, ec));
-     std::clog << ec.message() << std::endl;
+     co_await db->async_connect();
+     co_await (db->async_reader() && db->async_writer());
 
    } catch (std::exception const& e) {
       std::clog << e.what() << std::endl;
