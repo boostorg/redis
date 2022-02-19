@@ -35,22 +35,14 @@ auto adapt(T& t)
       { return adapter(t, aggregate_size, depth, data, size, ec); };
 }
 
-struct extended_ignore_adapter {
-   void operator()(redis::command, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) {}
-};
-
-struct writer_callback {
-   void operator()(std::size_t) {}
-};
-
 #include <boost/asio/yield.hpp>
 
 // Consider limiting the size of the pipelines by spliting that last
 // one in two if needed.
-template <class Client, class Callback>
+template <class Client>
 struct writer_op {
    Client* cli;
-   Callback callback;
+   std::size_t size;
    net::coroutine coro;
 
    template <class Self>
@@ -61,13 +53,6 @@ struct writer_op {
       reenter (coro) for (;;) {
 
          boost::ignore_unused(n);
-
-         yield cli->timer_.async_wait(std::move(self));
-
-         if (cli->stop_writer_) {
-            self.complete(ec, 0);
-            return;
-         }
 
          assert(!std::empty(cli->req_info_));
          assert(cli->req_info_.front().size != 0);
@@ -80,11 +65,11 @@ struct writer_op {
             std::move(self));
 
          if (ec) {
-            self.complete(ec, 0);
+            self.complete(ec);
             return;
          }
 
-         auto const size = cli->req_info_.front().size;
+         size = cli->req_info_.front().size;
 
          cli->requests_.erase(0, cli->req_info_.front().size);
          cli->req_info_.front().size = 0;
@@ -92,17 +77,24 @@ struct writer_op {
          if (cli->req_info_.front().cmds == 0) 
             cli->req_info_.erase(std::begin(cli->req_info_));
 
-         callback(size);
+         cli->wcallback_(size);
          //self.complete({}, size);
+
+         yield cli->timer_.async_wait(std::move(self));
+
+         if (cli->stop_writer_) {
+            self.complete(ec);
+            return;
+         }
+
       }
    }
 };
 
 // TODO: is it correct to call stop_writer?
-template <class Client, class ExtendedAdapter>
+template <class Client>
 struct read_op {
    Client* cli;
-   ExtendedAdapter adapter;
    net::coroutine coro;
    resp3::type t = resp3::type::invalid;
    redis::command cmd = redis::command::unknown;
@@ -112,15 +104,9 @@ struct read_op {
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
-      reenter (coro) {
+      reenter (coro) for (;;) {
 
          boost::ignore_unused(n);
-
-         if (ec) {
-            cli->stop_writer();
-            self.complete(ec, redis::command::unknown);
-            return;
-         }
 
          if (std::empty(cli->read_buffer_)) {
             yield
@@ -132,7 +118,7 @@ struct read_op {
 
             if (ec) {
                cli->stop_writer();
-               self.complete(ec, redis::command::unknown);
+               self.complete(ec);
                return;
             }
          }
@@ -148,26 +134,19 @@ struct read_op {
          resp3::async_read(
             cli->socket_,
             net::dynamic_buffer(cli->read_buffer_),
-            [a = adapter, c = cmd](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable {a(c, t, aggregate_size, depth, data, size, ec);},
+            [p = cli, c = cmd](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable {p->response_adapter_(c, t, aggregate_size, depth, data, size, ec);},
             std::move(self));
 
          if (ec) {
             cli->stop_writer();
-            self.complete(ec, redis::command::unknown);
+            self.complete(ec);
             return;
          }
 
-         if (t == resp3::type::push) {
-            self.complete({}, cmd);
-            return;
-         }
-
-         if (cli->on_read())
+         if (t != resp3::type::push && cli->on_read())
             cli->timer_.cancel_one();
 
-         // TODO: Consider checking to stop the writer when cmd = quit
-         // and the response is ok.
-         self.complete({}, cmd);
+         cli->rcallback_(cmd);
       }
    }
 };
@@ -192,12 +171,15 @@ public:
    using stream_type = AsyncReadWriteStream;
    using executor_type = stream_type::executor_type;
    using default_completion_token_type = net::default_completion_token_t<executor_type>;
+   using writer_callback_type = std::function<void(std::size_t)>;
+   using reader_callback_type =  std::function<void(command)>;
+   using response_adapter_type = std::function<void(command, resp3::type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
 
 private:
-   template <class T, class U>
+   template <class T>
    friend struct read_op;
 
-   template <class T, class U>
+   template <class T>
    friend struct writer_op;
 
    struct request_info {
@@ -229,6 +211,10 @@ private:
    net::steady_timer timer_;
 
    bool stop_writer_ = false;
+
+   writer_callback_type wcallback_ = [](std::size_t){};
+   reader_callback_type rcallback_ = [](command){};
+   response_adapter_type response_adapter_ = [](command, resp3::type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&){};
 
    /* Prepares the back of the queue to receive further commands. 
     *
@@ -291,6 +277,21 @@ public:
    /// Returns the executor used for I/O with Redis.
    auto get_executor() {return socket_.get_executor();}
 
+   void stop_writer()
+   {
+      stop_writer_ = true;
+      timer_.cancel();
+   }
+
+   void set_writter_callback(writer_callback_type wcallback)
+      { wcallback_ = std::move(wcallback); }
+
+   void set_reader_callback(reader_callback_type rcallback)
+      { rcallback_ = std::move(rcallback); }
+
+   void set_response_adapter(response_adapter_type adapter)
+      { response_adapter_ = std::move(adapter); }
+
    /** \brief Adds a command to the command queue.
     *
     *  \sa serializer.hpp
@@ -341,39 +342,22 @@ public:
    }
 
    // Reads messages asynchronously.
-   template <
-      class ExtendedAdapter = extended_ignore_adapter,
-      class CompletionToken = default_completion_token_type
-   >
-   auto
-   async_read(
-      ExtendedAdapter adapter = extended_ignore_adapter{},
-      CompletionToken&& token = default_completion_token_type{})
+   template <class CompletionToken = default_completion_token_type>
+   auto async_reader(CompletionToken&& token = default_completion_token_type{})
    {
       return net::async_compose
          < CompletionToken
-         , void(boost::system::error_code, redis::command)
-         >(read_op<client, ExtendedAdapter>{this, adapter}, token, socket_);
+         , void(boost::system::error_code)
+         >(read_op<client>{this}, token, socket_);
    }
 
-   template <
-     class Callback = writer_callback,
-     class CompletionToken = default_completion_token_type>
-   auto
-   async_writer(
-       Callback callback = writer_callback{},
-       CompletionToken&& token = default_completion_token_type{})
+   template <class CompletionToken = default_completion_token_type>
+   auto async_writer(CompletionToken&& token = default_completion_token_type{})
    {
       return net::async_compose
          < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(writer_op<client, Callback>{this, callback}, token, socket_, timer_);
-   }
-
-   void stop_writer()
-   {
-      stop_writer_ = true;
-      timer_.cancel();
+         , void(boost::system::error_code)
+         >(writer_op<client>{this}, token, socket_, timer_);
    }
 };
 
