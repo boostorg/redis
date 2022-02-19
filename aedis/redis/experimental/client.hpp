@@ -39,6 +39,60 @@ auto adapt(T& t)
 
 #include <boost/asio/yield.hpp>
 
+template <class Client>
+struct connect_op {
+   using iterator_type =
+      typename Client::resolver_type::results_type::iterator;
+
+   Client* cli;
+   net::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , iterator_type iter = {})
+   {
+      reenter (coro) {
+
+         yield
+         cli->socket_.async_connect(
+            *std::cbegin(cli->results_),
+            std::move(self));
+
+         if (!ec)
+            cli->send(command::hello, 3);
+
+         self.complete(ec);
+      }
+   }
+};
+
+template <class Client>
+struct resolve_op {
+   using results_type = typename Client::resolver_type::results_type;
+
+   Client* cli;
+   std::string host;
+   std::string service;
+   net::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , results_type results = {})
+   {
+      reenter (coro) {
+
+         yield cli->resolver_.async_resolve(host, service, std::move(self));
+
+         if (!ec)
+            cli->results_ = results;
+
+         self.complete(ec);
+      }
+   }
+};
+
 // Consider limiting the size of the pipelines by spliting that last
 // one in two if needed.
 template <class Client>
@@ -172,17 +226,26 @@ public:
    //using stream_type = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
    using stream_type = AsyncReadWriteStream;
    using executor_type = stream_type::executor_type;
+   using resolver_type = net::ip::tcp::resolver;
    using default_completion_token_type = net::default_completion_token_t<executor_type>;
    using writer_callback_type = std::function<void(std::size_t)>;
    using reader_callback_type =  std::function<void(command)>;
    using response_adapter_type = std::function<void(command, resp3::type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
 
 private:
+   using results_type = typename resolver_type::results_type;
+
    template <class T>
    friend struct read_op;
 
    template <class T>
    friend struct writer_op;
+
+   template <class T>
+   friend struct resolve_op;
+
+   template <class T>
+   friend struct connect_op;
 
    struct request_info {
       // Request size in bytes.
@@ -211,6 +274,8 @@ private:
    // Timer used to inform the write coroutine that it can write the
    // next message in the output queue.
    net::steady_timer timer_;
+   resolver_type resolver_;
+   results_type results_;
 
    bool stop_writer_ = false;
 
@@ -256,7 +321,6 @@ private:
       return !std::empty(req_info_);
    }
 
-
 public:
    /** \brief Client constructor.
     *
@@ -267,6 +331,7 @@ public:
    client(net::any_io_executor ex)
    : socket_{ex}
    , timer_{ex}
+   , resolver_{ex}
    {
       timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
@@ -361,17 +426,38 @@ public:
          >(writer_op<client>{this}, token, socket_, timer_);
    }
 
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_resolve(
+      std::string const& host = "localhost",
+      std::string const& service = "6379",
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(resolve_op<client>{this, host, service}, token, resolver_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_connect(
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(connect_op<client>{this}, token, socket_);
+   }
+
    net::awaitable<void>
    async_connect(
       std::string const& host = "localhost",
       std::string const& service = "6379")
    {
-      using resolver_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::resolver>;
       auto ex = co_await net::this_coro::executor;
-      resolver_type resolver{ex};
-      auto const res = co_await resolver.async_resolve(host, service);
-      co_await net::async_connect(socket_, std::cbegin(res), std::end(res));
-      send(command::hello, 3);
+      co_await async_resolve(host, service, net::use_awaitable);
+      co_await async_connect(net::use_awaitable);
    }
 
    template <class CompletionToken = default_completion_token_type>
