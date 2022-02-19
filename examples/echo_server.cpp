@@ -25,10 +25,11 @@ using aedis::user_session_base;
 
 // From lib/net_utils.hpp
 using aedis::connect;
-using aedis::writer;
 using aedis::signal_handler;
 using aedis::reader;
 using aedis::connection_manager;
+using socket_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
+using client_type = client<socket_type>;
 
 class receiver : public std::enable_shared_from_this<receiver> {
 private:
@@ -68,11 +69,11 @@ net::awaitable<void> listener()
 
    auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
    auto acc = std::make_shared<net::ip::tcp::acceptor>(ex, endpoint);
-   auto db = std::make_shared<client>(ex);
+   auto db = std::make_shared<client_type>(ex);
    auto recv = std::make_shared<receiver>();
 
    net::co_spawn(ex, signal_handler(acc, db), net::detached);
-   net::co_spawn(ex, connection_manager(db, recv), net::detached);
+   net::co_spawn(ex, connection_manager(db, reader(db, recv)), net::detached);
 
    for (;;) {
       auto socket = co_await acc->async_accept(net::use_awaitable);

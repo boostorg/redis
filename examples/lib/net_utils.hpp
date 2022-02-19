@@ -14,12 +14,13 @@ using timer = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::steady_
 
 namespace aedis
 {
+
 aedis::net::awaitable<tcp_socket>
 connect(
    std::string host = "127.0.0.1",
    std::string port = "6379")
 {
-   auto ex = co_await aedis::net::this_coro::executor;
+   auto ex = co_await net::this_coro::executor;
    tcp_resolver resolver{ex};
    auto const res = co_await resolver.async_resolve(host, port);
    tcp_socket socket{ex};
@@ -27,43 +28,9 @@ connect(
    co_return std::move(socket);
 }
 
-aedis::net::awaitable<void>
-writer(std::shared_ptr<aedis::redis::experimental::client> db)
-{
-   for (boost::system::error_code ec;;) {
-      auto const n = co_await db->async_write(aedis::net::redirect_error(aedis::net::use_awaitable, ec));
-      if (ec) {
-         std::cerr << "(Log): " << ec.message() << std::endl;
-         co_return;
-      }
-
-      std::cout << "(Log) Size writen: " << n << std::endl;
-   }
-}
-
-aedis::net::awaitable<void>
-signal_handler(
-   std::shared_ptr<aedis::net::ip::tcp::acceptor> acc,
-   std::shared_ptr<aedis::redis::experimental::client> db)
-{
-   auto ex = co_await aedis::net::this_coro::executor;
-
-   aedis::net::signal_set signals(ex, SIGINT, SIGTERM);
-
-   boost::system::error_code ec;
-   co_await signals.async_wait(net::redirect_error(net::use_awaitable, ec));
-
-   // Closes the connection with redis.
-   db->send(aedis::redis::command::quit);
-
-   // Stop listening for new connections.
-   acc->cancel();
-}
-
-template <class Receiver>
-net::awaitable<void>
-reader(
-   std::shared_ptr<redis::experimental::client> db,
+template <class Socket, class Receiver>
+net::awaitable<void> reader(
+   std::shared_ptr<redis::experimental::client<Socket>> db,
    std::shared_ptr<Receiver> recv)
 {
    db->send(redis::command::hello, 3);
@@ -80,16 +47,41 @@ reader(
    }
 }
 
-template <class Receiver>
+template <class Socket>
+aedis::net::awaitable<void>
+signal_handler(
+   std::shared_ptr<aedis::net::ip::tcp::acceptor> acc,
+   std::shared_ptr<aedis::redis::experimental::client<Socket>> db)
+{
+   auto ex = co_await aedis::net::this_coro::executor;
+
+   aedis::net::signal_set signals(ex, SIGINT, SIGTERM);
+
+   boost::system::error_code ec;
+   co_await signals.async_wait(net::redirect_error(net::use_awaitable, ec));
+
+   // Closes the connection with redis.
+   db->send(aedis::redis::command::quit);
+
+   // Stop listening for new connections.
+   acc->cancel();
+}
+
+template <class T, class Socket>
 net::awaitable<void>
 connection_manager(
-   std::shared_ptr<redis::experimental::client> db,
-   std::shared_ptr<Receiver> recv)
+  std::shared_ptr<redis::experimental::client<Socket>> db,
+  net::awaitable<T> reader)
 {
    using namespace net::experimental::awaitable_operators;
 
-   db->set_stream(co_await connect());
-   co_await (writer(db) || reader(db, recv));
+   auto ex = co_await net::this_coro::executor;
+
+   tcp_resolver resolver{ex};
+   auto const res = co_await resolver.async_resolve("localhost", "6379");
+
+   co_await net::async_connect(db->next_layer(), std::cbegin(res), std::end(res));
+   co_await (db->async_writer() || std::move(reader));
 }
 
 } // aedis

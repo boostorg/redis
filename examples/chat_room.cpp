@@ -25,21 +25,22 @@ using aedis::user_session_base;
 
 // From lib/net_utils.hpp
 using aedis::connect;
-using aedis::writer;
 using aedis::reader;
 using aedis::signal_handler;
 using aedis::connection_manager;
+using socket_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
+using client_type = client<socket_type>;
 
 // TODO: Delete sessions that have expired.
 class receiver : public std::enable_shared_from_this<receiver> {
 public:
 private:
-   std::shared_ptr<client> db_;
+   std::shared_ptr<client_type> db_;
    std::vector<node> resps_;
    std::vector<std::shared_ptr<user_session_base>> sessions_;
 
 public:
-   receiver(std::shared_ptr<client> db) : db_{db} {}
+   receiver(std::shared_ptr<client_type> db) : db_{db} {}
 
    void on_message(command cmd)
    {
@@ -76,11 +77,11 @@ net::awaitable<void> listener()
 
    auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
    auto acc = std::make_shared<net::ip::tcp::acceptor>(ex, endpoint);
-   auto db = std::make_shared<client>(ex);
+   auto db = std::make_shared<client_type>(ex);
    auto recv = std::make_shared<receiver>(db);
 
    net::co_spawn(ex, signal_handler(acc, db), net::detached);
-   net::co_spawn(ex, connection_manager(db, recv), net::detached);
+   net::co_spawn(ex, connection_manager(db, reader(db, recv)), net::detached);
 
    auto on_user_msg = [db](std::string const& msg)
    {

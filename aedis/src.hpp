@@ -11,5 +11,4 @@
 #include <aedis/sentinel/impl/command.ipp>
 #include <aedis/resp3/impl/type.ipp>
 #include <aedis/resp3/impl/node.ipp>
-#include <aedis/redis/experimental/impl/client.ipp>
 #include <aedis/resp3/detail/impl/parser.ipp>

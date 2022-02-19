@@ -50,8 +50,12 @@
 
     - sync.cpp: Shows hot to use the Aedis synchronous api.
 
-    - key_expiration.cpp: Shows how to use \c std::optional to deal
-      with keys that may have expired or do not exist.
+    - echo_server.cpp: Shows the basic principles behind asynchronous
+      communication with a database in an asynchronous server. In this
+      case, the server is a proxy between the user and Redis.
+
+    - chat_room.cpp: Shows how to build a scalable chat room that
+      scales to millions of users.
 
     \b STL \b Containers: Many of the Redis data structures can be
     directly translated in to STL containers, below you will find some
@@ -78,16 +82,8 @@
     - response_adapter.cpp: Customization point for users that want to
       de/serialize their own data-structures like containers for example.
 
-    \b Asynchronous \b servers: Contains some non-trivial examples
-    servers that interact with users and Redis asynchronously over
-    long lasting connections using a higher level API.
-
-    - echo_server.cpp: Shows the basic principles behind asynchronous
-      communication with a database in an asynchronous server. In this
-      case, the server is a proxy between the user and Redis.
-
-    - chat_room.cpp: Shows how to build a scalable chat room that
-      scales to millions of users.
+    - key_expiration.cpp: Shows how to use \c std::optional to deal
+      with keys that may have expired or do not exist.
 
     \section using-aedis Using Aedis
 

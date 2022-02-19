@@ -27,7 +27,6 @@ using net::dynamic_buffer;
 
 // From lib/net_utils.hpp
 using aedis::connect;
-using aedis::writer;
 
 net::awaitable<void> transaction()
 {

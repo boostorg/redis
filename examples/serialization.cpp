@@ -26,7 +26,6 @@ using net::dynamic_buffer;
 
 // From lib/net_utils.hpp
 using aedis::connect;
-using aedis::writer;
 
 // Define the to_string and from_string functions for your own data
 // types.

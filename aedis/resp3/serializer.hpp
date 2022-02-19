@@ -44,6 +44,8 @@ namespace resp3 {
 // TODO: Should we detect any std::pair or tuple in the type in the parameter
 // pack to calculate the header size correctly?
 //
+// TODO: Handle empty ranges.
+//
 // NOTE: For some commands like hset it would be a good idea to assert
 // the value type is a pair.
 template <class Storage, class Command>

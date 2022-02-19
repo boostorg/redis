@@ -26,7 +26,6 @@ using net::dynamic_buffer;
 
 // From lib/net_utils.hpp
 using aedis::connect;
-using aedis::writer;
 
 /* In this example we send a subscription to a channel and start
    reading server side messages indefinitely.

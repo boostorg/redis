@@ -13,61 +13,64 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-#include "lib/net_utils.hpp"
-
 namespace net = aedis::net;
+namespace redis = aedis::redis::experimental;
 using aedis::redis::command;
 using aedis::redis::experimental::client;
-using aedis::redis::experimental::adapt;
+using aedis::resp3::node;
 
-// From lib/net_utils.hpp
-using aedis::connect;
-using aedis::writer;
+using resolver_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::resolver>;
+using socket_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
+using client_type = client<socket_type>;
 
-net::awaitable<void> reader(std::shared_ptr<client> db)
+net::awaitable<void> reader(std::shared_ptr<client_type> db)
 {
+   // Enqueue the commands.
    db->send(command::hello, 3);
    db->send(command::ping, "O rato roeu a roupa do rei de Roma");
    db->send(command::incr, "redis-client-counter");
    db->send(command::quit);
    
-   std::string ping;
-   int incr;
+   // Expected responses.
+   std::vector<node> resps;
    
+   // Reads the responses.
    co_await db->async_read();
-   co_await db->async_read(adapt(ping));
-   co_await db->async_read(adapt(incr));
+   co_await db->async_read(redis::adapt(resps));
+   co_await db->async_read(redis::adapt(resps));
    co_await db->async_read();
 
+   // Reads eof (caused by the quit command).
    boost::system::error_code ec;
-   co_await db->async_read(adapt(), net::redirect_error(net::use_awaitable, ec));
-   db->stop_writer();
+   co_await db->async_read(redis::adapt(), net::redirect_error(net::use_awaitable, ec));
    
    std::cout
-      << "ping: " << ping << "\n"
-      << "incr: " << incr << "\n";
+      << "ping: " << resps.at(0).data << "\n"
+      << "incr: " << resps.at(1).data << "\n";
 }
 
-net::awaitable<void>
-connection_manager(std::shared_ptr<client> db)
+net::awaitable<void> connection_manager()
 {
    using namespace net::experimental::awaitable_operators;
 
-   auto ex = co_await net::this_coro::executor;
+   try {
+     auto ex = co_await net::this_coro::executor;
+     auto db = std::make_shared<client_type>(ex);
 
-   db->set_stream(co_await connect());
-   co_await (writer(db) || reader(db));
+     resolver_type resolver{ex};
+
+     auto const res = co_await resolver.async_resolve("localhost", "6379");
+     co_await net::async_connect(db->next_layer(), std::cbegin(res), std::end(res));
+     co_await (db->async_writer() || reader(db));
+
+   } catch (std::exception const& e) {
+      std::clog << e.what() << std::endl;
+   }
 }
 
 int main()
 {
-   try {
-      net::io_context ioc{1};
-      auto db = std::make_shared<client>(ioc.get_executor());
-      net::co_spawn(ioc, connection_manager(db), net::detached);
-      ioc.run();
-   } catch (std::exception const& e) {
-      std::cerr << e.what() << std::endl;
-      exit(EXIT_FAILURE);
-   }
+   net::io_context ioc;
+   net::co_spawn(ioc, connection_manager(), net::detached);
+   ioc.run();
 }

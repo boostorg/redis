@@ -76,8 +76,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/resp3/detail/impl/parser.ipp\
   $(top_srcdir)/aedis/resp3/impl/type.ipp\
   $(top_srcdir)/aedis/resp3/impl/node.ipp\
-  $(top_srcdir)/aedis/redis/experimental/client.hpp\
-  $(top_srcdir)/aedis/redis/experimental/impl/client.ipp
+  $(top_srcdir)/aedis/redis/experimental/client.hpp
 
 nobase_noinst_HEADERS =\
   $(top_srcdir)/examples/lib/net_utils.hpp\
