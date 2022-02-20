@@ -15,21 +15,18 @@
 #include "lib/net_utils.hpp"
 
 namespace net = aedis::net;
+namespace redis = aedis::redis;
 using aedis::redis::command;
-using aedis::redis::experimental::client;
-using aedis::redis::experimental::adapt;
+using aedis::redis::client;
+using aedis::redis::adapt;
 using aedis::resp3::node;
 using aedis::resp3::type;
 using aedis::user_session;
 using aedis::user_session_base;
 
 // From lib/net_utils.hpp
-using aedis::connect;
-using aedis::reader;
 using aedis::signal_handler;
-using aedis::connection_manager;
-using socket_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
-using client_type = client<socket_type>;
+using client_type = client<aedis::net::ip::tcp::socket>;
 
 // TODO: Delete sessions that have expired.
 class receiver : public std::enable_shared_from_this<receiver> {
@@ -46,17 +43,17 @@ public:
    {
       switch (cmd) {
          case command::hello:
-            db_->send(command::subscribe, "channel");
-            break;
+         db_->send(command::subscribe, "channel");
+         break;
 
          case command::incr:
-            std::cout << "Message so far: " << resps_.front().data << std::endl;
-            break;
+         std::cout << "Message so far: " << resps_.front().data << std::endl;
+         break;
 
          case command::unknown: // Server push
-            for (auto& session: sessions_)
-               session->deliver(resps_.at(3).data);
-            break;
+         for (auto& session: sessions_)
+            session->deliver(resps_.at(3).data);
+         break;
 
          default: { /* Ignore */ }
       }
@@ -64,8 +61,8 @@ public:
       resps_.clear();
    }
 
-   auto get_adapter()
-      { return aedis::redis::experimental::adapt(resps_); }
+   auto adapter()
+      { return redis::adapt(resps_); }
 
    auto add(std::shared_ptr<user_session_base> session)
       { sessions_.push_back(session); }
@@ -79,9 +76,15 @@ net::awaitable<void> listener()
    auto acc = std::make_shared<net::ip::tcp::acceptor>(ex, endpoint);
    auto db = std::make_shared<client_type>(ex);
    auto recv = std::make_shared<receiver>(db);
+   db->set_response_adapter(recv->adapter());
+   db->set_reader_callback([recv](command cmd) {recv->on_message(cmd);});
+
+   auto on_run = [](auto const ec)
+      { std::clog << "Lost connection to redis: " << ec.message() << std::endl;};
+
+   db->async_run("localhost", "6379", on_run);
 
    net::co_spawn(ex, signal_handler(acc, db), net::detached);
-   net::co_spawn(ex, connection_manager(db, reader(db, recv)), net::detached);
 
    auto on_user_msg = [db](std::string const& msg)
    {

@@ -16,7 +16,7 @@
 #include <aedis/resp3/error.hpp>
 #include <aedis/resp3/serializer.hpp>
 #include <aedis/resp3/response_traits.hpp>
-#include <aedis/redis/experimental/client.hpp>
+#include <aedis/redis/client.hpp>
 
 /** \mainpage Documentation
     \tableofcontents

@@ -16,20 +16,16 @@
 #include "lib/net_utils.hpp"
 
 namespace net = aedis::net;
+namespace redis = aedis::redis;
 using aedis::redis::command;
-using aedis::redis::experimental::client;
-using aedis::redis::experimental::adapt;
+using aedis::redis::client;
 using aedis::resp3::node;
 using aedis::user_session;
 using aedis::user_session_base;
 
 // From lib/net_utils.hpp
-using aedis::connect;
 using aedis::signal_handler;
-using aedis::reader;
-using aedis::connection_manager;
-using socket_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
-using client_type = client<socket_type>;
+using client_type = client<aedis::net::ip::tcp::socket>;
 
 class receiver : public std::enable_shared_from_this<receiver> {
 private:
@@ -56,8 +52,8 @@ public:
       resps_.clear();
    }
 
-   auto get_adapter()
-      { return aedis::redis::experimental::adapt(resps_); }
+   auto adapter()
+      { return redis::adapt(resps_); }
 
    void add_user_session(std::shared_ptr<user_session_base> session)
       { sessions_.push(session); }
@@ -70,10 +66,17 @@ net::awaitable<void> listener()
    auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
    auto acc = std::make_shared<net::ip::tcp::acceptor>(ex, endpoint);
    auto db = std::make_shared<client_type>(ex);
+
    auto recv = std::make_shared<receiver>();
+   db->set_response_adapter(recv->adapter());
+   db->set_reader_callback([recv](command cmd) {recv->on_message(cmd);});
+
+   auto on_run = [](auto const ec)
+      { std::clog << "Lost connection to redis: " << ec.message() << std::endl;};
+
+   db->async_run("localhost", "6379", on_run);
 
    net::co_spawn(ex, signal_handler(acc, db), net::detached);
-   net::co_spawn(ex, connection_manager(db, reader(db, recv)), net::detached);
 
    for (;;) {
       auto socket = co_await acc->async_accept(net::use_awaitable);
@@ -93,7 +96,7 @@ net::awaitable<void> listener()
 int main()
 {
    try {
-      net::io_context ioc{1};
+      net::io_context ioc;
       co_spawn(ioc, listener(), net::detached);
       ioc.run();
    } catch (std::exception const& e) {

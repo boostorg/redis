@@ -23,7 +23,6 @@
 
 namespace aedis {
 namespace redis {
-namespace experimental {
 
 inline
 auto adapt()
@@ -207,12 +206,11 @@ struct writer_op {
             self.complete(ec);
             return;
          }
-
       }
    }
 };
 
-// TODO: is it correct to call stop_writer?
+// TODO: Is it correct to call stop_writer?
 template <class Client>
 struct read_op {
    Client* cli;
@@ -246,6 +244,7 @@ struct read_op {
 
          assert(!std::empty(cli->read_buffer_));
          t = resp3::detail::to_type(cli->read_buffer_.front());
+         cmd = redis::command::unknown;
          if (t != resp3::type::push) {
             assert(!std::empty(cli->commands_));
             cmd = cli->commands_.front();
@@ -376,6 +375,12 @@ private:
       return false;
    }
 
+   void stop_writer()
+   {
+      stop_writer_ = true;
+      timer_.cancel();
+   }
+
    // Returns true when the next request can be writen.
    bool on_read()
    {
@@ -392,6 +397,59 @@ private:
       return !std::empty(req_info_);
    }
 
+   // Reads messages asynchronously.
+   template <class CompletionToken = default_completion_token_type>
+   auto async_reader(CompletionToken&& token = default_completion_token_type{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(read_op<client>{this}, token, socket_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto async_writer(CompletionToken&& token = default_completion_token_type{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(writer_op<client>{this}, token, socket_, timer_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_resolve(
+      std::string const& host = "localhost",
+      std::string const& service = "6379",
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(resolve_op<client>{this, host, service}, token, resolver_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_connect(
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(connect_op<client>{this}, token, socket_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_read_write(
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(read_write_op<client>{this}, token, socket_, timer_, resolver_);
+   }
 public:
    /** \brief Client constructor.
     *
@@ -407,18 +465,8 @@ public:
       timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
-   stream_type& next_layer() {return socket_;}
-
-   stream_type const& next_layer() const {return socket_;}
-
    /// Returns the executor used for I/O with Redis.
    auto get_executor() {return socket_.get_executor();}
-
-   void stop_writer()
-   {
-      stop_writer_ = true;
-      timer_.cancel();
-   }
 
    void set_writter_callback(writer_callback_type wcallback)
       { wcallback_ = std::move(wcallback); }
@@ -478,70 +526,6 @@ public:
          timer_.cancel_one();
    }
 
-   // Reads messages asynchronously.
-   template <class CompletionToken = default_completion_token_type>
-   auto async_reader(CompletionToken&& token = default_completion_token_type{})
-   {
-      return net::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(read_op<client>{this}, token, socket_);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto async_writer(CompletionToken&& token = default_completion_token_type{})
-   {
-      return net::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(writer_op<client>{this}, token, socket_, timer_);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_resolve(
-      std::string const& host = "localhost",
-      std::string const& service = "6379",
-      CompletionToken&& token = default_completion_token_type{})
-   {
-      return net::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(resolve_op<client>{this, host, service}, token, resolver_);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_connect(
-      CompletionToken&& token = default_completion_token_type{})
-   {
-      return net::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(connect_op<client>{this}, token, socket_);
-   }
-
-   net::awaitable<void>
-   async_connect(
-      std::string const& host = "localhost",
-      std::string const& service = "6379")
-   {
-      auto ex = co_await net::this_coro::executor;
-      co_await async_resolve(host, service, net::use_awaitable);
-      co_await async_connect(net::use_awaitable);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_read_write(
-      CompletionToken&& token = default_completion_token_type{})
-   {
-      return net::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(read_write_op<client>{this}, token, socket_, timer_, resolver_);
-   }
-
    template <class CompletionToken = default_completion_token_type>
    auto
    async_run(
@@ -556,6 +540,5 @@ public:
    }
 };
 
-} // experimental
 } // redis
 } // aedis

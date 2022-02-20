@@ -32,7 +32,7 @@ struct node {
    std::size_t depth;
 
    /// The actual data. For aggregate data types this is always empty.
-   std::string data;
+   std::string data; // TODO: rename to value.
 };
 
 /** \brief Converts the node to a string.

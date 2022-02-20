@@ -12,15 +12,15 @@
 #include <aedis/src.hpp>
 
 namespace net = aedis::net;
-namespace redis = aedis::redis::experimental;
+namespace redis = aedis::redis;
 using aedis::redis::command;
-using aedis::redis::experimental::client;
+using aedis::redis::client;
 using aedis::resp3::node;
 using client_type = client<aedis::net::ip::tcp::socket>;
 
 class receiver {
 private:
-   std::vector<node> resps_;
+   node resps_;
    std::shared_ptr<client_type> db_;
 
 public:
@@ -34,11 +34,23 @@ public:
          db_->send(command::incr, "redis-client-counter");
          db_->send(command::quit);
          break;
+
+         case command::ping:
+         std::cout << "Ping message: " << resps_.data << std::endl;
+         break;
+
+         case command::incr:
+         std::cout << "Ping counter: " << resps_.data << std::endl;
+         break;
+
+         case command::quit:
+         std::cout << command::quit << ": " << resps_.data << std::endl;
+         break;
+
          default:;
       }
 
-      std::cout << cmd << " " << resps_.at(0).data << std::endl;
-      resps_.clear();
+      resps_.data.clear();
    }
 
    auto adapter() { return redis::adapt(resps_); }

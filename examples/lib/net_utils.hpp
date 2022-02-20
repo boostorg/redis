@@ -28,30 +28,11 @@ connect(
    co_return std::move(socket);
 }
 
-template <class Socket, class Receiver>
-net::awaitable<void> reader(
-   std::shared_ptr<redis::experimental::client<Socket>> db,
-   std::shared_ptr<Receiver> recv)
-{
-   db->send(redis::command::hello, 3);
-
-   for (auto adapter = recv->get_adapter();;) {
-      boost::system::error_code ec;
-      auto const cmd = co_await db->async_read(adapter, net::redirect_error(net::use_awaitable, ec));
-      if (ec) {
-         db->stop_writer();
-         co_return;
-      }
-
-      recv->on_message(cmd);
-   }
-}
-
 template <class Socket>
 aedis::net::awaitable<void>
 signal_handler(
    std::shared_ptr<aedis::net::ip::tcp::acceptor> acc,
-   std::shared_ptr<aedis::redis::experimental::client<Socket>> db)
+   std::shared_ptr<aedis::redis::client<Socket>> db)
 {
    auto ex = co_await aedis::net::this_coro::executor;
 
@@ -70,7 +51,7 @@ signal_handler(
 template <class T, class Socket>
 net::awaitable<void>
 connection_manager(
-  std::shared_ptr<redis::experimental::client<Socket>> db,
+  std::shared_ptr<redis::client<Socket>> db,
   net::awaitable<T> reader)
 {
    using namespace net::experimental::awaitable_operators;
