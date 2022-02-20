@@ -8,6 +8,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <functional>
 
 #include <aedis/aedis.hpp>
@@ -38,6 +39,70 @@ auto adapt(T& t)
 }
 
 #include <boost/asio/yield.hpp>
+
+template <class Client>
+struct run_op {
+   Client* cli;
+
+   // TODO: Move this to the client object.
+   std::string host;
+   std::string service;
+
+   net::coroutine coro;
+
+   template <class Self>
+   void operator()(Self& self, boost::system::error_code ec = {})
+   {
+      reenter (coro) {
+         yield cli->async_resolve(host, service, std::move(self));
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         yield cli->async_connect(std::move(self));
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         yield cli->async_read_write(std::move(self));
+
+         self.complete(ec);
+      }
+   }
+};
+
+template <class Client>
+struct read_write_op {
+   Client* cli;
+   net::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , std::array<std::size_t, 2> order = {}
+                  , boost::system::error_code ec1 = {}
+                  , boost::system::error_code ec2 = {}
+                  )
+   {
+      reenter (coro) {
+
+         yield
+         net::experimental::make_parallel_group(
+            [this](auto token) { return cli->async_writer(token);},
+            [this](auto token) { return cli->async_reader(token);}
+         ).async_wait(
+            net::experimental::wait_for_one_error(),
+            std::move(self));
+
+         switch (order[0]) {
+           case 0: self.complete(ec1); break;
+           case 1: self.complete(ec2); break;
+           default: assert(false);
+         }
+      }
+   }
+};
 
 template <class Client>
 struct connect_op {
@@ -246,6 +311,12 @@ private:
 
    template <class T>
    friend struct connect_op;
+
+   template <class T>
+   friend struct read_write_op;
+
+   template <class T>
+   friend struct run_op;
 
    struct request_info {
       // Request size in bytes.
@@ -461,12 +532,27 @@ public:
    }
 
    template <class CompletionToken = default_completion_token_type>
-   auto async_run(CompletionToken t = CompletionToken{})
+   auto
+   async_read_write(
+      CompletionToken&& token = default_completion_token_type{})
    {
-      return net::experimental::make_parallel_group(
-         [this](auto token) { return async_writer(token);},
-         [this](auto token) { return async_reader(token);}
-      ).async_wait(net::experimental::wait_for_one_error(), t);
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(read_write_op<client>{this}, token, socket_, timer_, resolver_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_run(
+      std::string const& host = "localhost",
+      std::string const& service = "6379",
+      CompletionToken token = CompletionToken{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(run_op<client>{this, host, service}, token, socket_, timer_, resolver_);
    }
 };
 

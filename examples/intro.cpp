@@ -16,9 +16,7 @@ namespace redis = aedis::redis::experimental;
 using aedis::redis::command;
 using aedis::redis::experimental::client;
 using aedis::resp3::node;
-
-using socket_type = aedis::net::use_awaitable_t<>::as_default_on_t<aedis::net::ip::tcp::socket>;
-using client_type = client<socket_type>;
+using client_type = client<aedis::net::ip::tcp::socket>;
 
 class receiver {
 private:
@@ -46,27 +44,15 @@ public:
    auto adapter() { return redis::adapt(resps_); }
 };
 
-net::awaitable<void> connection_manager()
-{
-   try {
-     auto ex = co_await net::this_coro::executor;
-     auto db = std::make_shared<client_type>(ex);
-
-     receiver recv{db};
-     db->set_response_adapter(recv.adapter());
-     db->set_reader_callback(std::ref(recv));
-
-     co_await db->async_connect();
-     co_await db->async_run();
-
-   } catch (std::exception const& e) {
-      std::clog << e.what() << std::endl;
-   }
-}
-
 int main()
 {
    net::io_context ioc;
-   net::co_spawn(ioc, connection_manager(), net::detached);
+   auto db = std::make_shared<client_type>(ioc.get_executor());
+
+   receiver recv{db};
+   db->set_response_adapter(recv.adapter());
+   db->set_reader_callback(std::ref(recv));
+
+   db->async_run("localhost", "6379", [](auto){});
    ioc.run();
 }
