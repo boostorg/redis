@@ -10,5 +10,4 @@
 #include <aedis/redis/impl/command.ipp>
 #include <aedis/sentinel/impl/command.ipp>
 #include <aedis/resp3/impl/type.ipp>
-#include <aedis/resp3/impl/node.ipp>
 #include <aedis/resp3/detail/impl/parser.ipp>

@@ -25,7 +25,8 @@ namespace this_coro = net::this_coro;
 using namespace aedis;
 using namespace aedis::resp3;
 
-std::vector<node> gresp;
+using node_type = node<std::string>;
+std::vector<node_type> gresp;
 
 //-------------------------------------------------------------------
 
@@ -36,9 +37,9 @@ void simple_string_sync()
    auto dbuffer = net::dynamic_buffer(rbuffer);
 
    {  
-      node result;
+      node_type result;
       resp3::read(ts, dbuffer, adapt(result));
-      node expected {resp3::type::simple_string, 1UL, 0UL, {"OK"}};
+      node_type expected {resp3::type::simple_string, 1UL, 0UL, {"OK"}};
       check_equal(result, expected, "simple_string (node-sync)");
    }
 
@@ -64,9 +65,9 @@ void simple_string_sync_empty()
    auto dbuffer = net::dynamic_buffer(rbuffer);
 
    {  
-      node result;
+      node_type result;
       resp3::read(ts, dbuffer, adapt(result));
-      node expected {resp3::type::simple_string, 1UL, 0UL, {""}};
+      node_type expected {resp3::type::simple_string, 1UL, 0UL, {""}};
       check_equal(result, expected, "simple_string (empty-node-sync)");
    }
 
@@ -92,9 +93,9 @@ net::awaitable<void> simple_string_async()
    auto dbuffer = net::dynamic_buffer(rbuffer);
 
    {
-      node result;
+      node_type result;
       co_await resp3::async_read(ts, dbuffer, adapt(result));
-      node expected {resp3::type::simple_string, 1UL, 0UL, {"OK"}};
+      node_type expected {resp3::type::simple_string, 1UL, 0UL, {"OK"}};
       check_equal(result, expected, "simple_string (node-async)");
    }
 
@@ -120,9 +121,9 @@ net::awaitable<void> simple_string_async_empty()
    auto dbuffer = net::dynamic_buffer(rbuffer);
 
    {
-      node result;
+      node_type result;
       co_await resp3::async_read(ts, dbuffer, adapt(result));
-      node expected {resp3::type::simple_string, 1UL, 0UL, {""}};
+      node_type expected {resp3::type::simple_string, 1UL, 0UL, {""}};
       check_equal(result, expected, "simple_string (empty-node-async)");
    }
 
@@ -156,9 +157,9 @@ net::awaitable<void> test_simple_error_async()
 
    {
       test_tcp_socket ts {"-Error\r\n"};
-      node result;
+      node_type result;
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(result));
-      node expected {resp3::type::simple_error, 1UL, 0UL, {"Error"}};
+      node_type expected {resp3::type::simple_error, 1UL, 0UL, {"Error"}};
       check_equal(result, expected, "simple_error (node-async)");
    }
 
@@ -190,9 +191,9 @@ net::awaitable<void> test_number()
 
    {
       test_tcp_socket ts {":-3\r\n"};
-      node result;
+      node_type result;
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(result));
-      node expected {resp3::type::number, 1UL, 0UL, {"-3"}};
+      node_type expected {resp3::type::number, 1UL, 0UL, {"-3"}};
       check_equal(result, expected, "number (node-async)");
    }
 
@@ -220,11 +221,11 @@ net::awaitable<void> array_async()
    auto dbuf = net::dynamic_buffer(buf);
 
    {
-      std::vector<node> result;
+      std::vector<node_type> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
 
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::array,       3UL, 0UL, {}}
 	 , {resp3::type::blob_string, 1UL, 1UL, {"11"}}
 	 , {resp3::type::blob_string, 1UL, 1UL, {"22"}}
@@ -263,7 +264,7 @@ net::awaitable<void> test_blob_string()
       std::string cmd {"$2\r\nhh\r\n"};
       test_tcp_socket ts {cmd};
       gresp.clear();
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::blob_string, 1UL, 0UL, {"hh"}} };
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
       check_equal(gresp, expected, "blob_string");
@@ -273,7 +274,7 @@ net::awaitable<void> test_blob_string()
       std::string cmd {"$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"};
       test_tcp_socket ts {cmd};
       gresp.clear();
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::blob_string, 1UL, 0UL, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}} };
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
       check_equal(gresp, expected, "blob_string (with separator)");
@@ -283,7 +284,7 @@ net::awaitable<void> test_blob_string()
       std::string cmd {"$0\r\n\r\n"};
       test_tcp_socket ts {cmd};
       gresp.clear();
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::blob_string, 1UL, 0UL, {}} };
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
       check_equal(gresp, expected, "blob_string (size 0)");
@@ -297,8 +298,8 @@ net::awaitable<void> test_floating_point()
    {
       std::string cmd {",1.23\r\n"};
       test_tcp_socket ts {cmd};
-      std::vector<node> resp;
-      std::vector<node> expected
+      std::vector<node_type> resp;
+      std::vector<node_type> expected
 	 { {resp3::type::doublean, 1UL, 0UL, {"1.23"}} };
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(resp));
       check_equal(resp, expected, "double");
@@ -307,9 +308,9 @@ net::awaitable<void> test_floating_point()
    {
       std::string cmd {",inf\r\n"};
       test_tcp_socket ts {cmd};
-      std::vector<node> resp;
+      std::vector<node_type> resp;
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(resp));
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::doublean, 1UL, 0UL, {"inf"}} };
       check_equal(resp, expected, "double (inf)");
    }
@@ -317,9 +318,9 @@ net::awaitable<void> test_floating_point()
    {
       std::string cmd {",-inf\r\n"};
       test_tcp_socket ts {cmd};
-      std::vector<node> resp;
+      std::vector<node_type> resp;
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(resp));
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::doublean, 1UL, 0UL, {"-inf"}} };
       check_equal(resp, expected, "double (-inf)");
    }
@@ -333,8 +334,8 @@ net::awaitable<void> test_boolean()
    {
       std::string cmd {"#f\r\n"};
       test_tcp_socket ts {cmd};
-      std::vector<node> resp;
-      std::vector<node> expected
+      std::vector<node_type> resp;
+      std::vector<node_type> expected
 	 { {resp3::type::boolean, 1UL, 0UL, {"f"}} };
 
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(resp));
@@ -344,8 +345,8 @@ net::awaitable<void> test_boolean()
    {
       std::string cmd {"#t\r\n"};
       test_tcp_socket ts {cmd};
-      std::vector<node> resp;
-      std::vector<node> expected
+      std::vector<node_type> resp;
+      std::vector<node_type> expected
 	 { {resp3::type::boolean, 1UL, 0UL, {"t"}} };
 
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(resp));
@@ -361,7 +362,7 @@ net::awaitable<void> test_blob_error()
       std::string cmd {"!21\r\nSYNTAX invalid syntax\r\n"};
       test_tcp_socket ts {cmd};
       gresp.clear();
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}} };
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
       check_equal(gresp, expected, "blob_error (message)");
@@ -371,7 +372,7 @@ net::awaitable<void> test_blob_error()
       std::string cmd {"!0\r\n\r\n"};
       test_tcp_socket ts {cmd};
       gresp.clear();
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::blob_error, 1UL, 0UL, {}} };
 
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
@@ -387,7 +388,7 @@ net::awaitable<void> test_verbatim_string()
       std::string cmd {"=15\r\ntxt:Some string\r\n"};
       test_tcp_socket ts {cmd};
       gresp.clear();
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}} };
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
       check_equal(gresp, expected, "verbatim_string");
@@ -398,7 +399,7 @@ net::awaitable<void> test_verbatim_string()
       test_tcp_socket ts {cmd};
       gresp.clear();
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::verbatim_string, 1UL, 0UL, {}} };
       check_equal(gresp, expected, "verbatim_string (empty)");
    }
@@ -413,7 +414,7 @@ net::awaitable<void> test_set2()
       test_tcp_socket ts {cmd};
       gresp.clear();
 
-      std::vector<node> expected
+      std::vector<node_type> expected
       { {resp3::type::set,            5UL, 0UL, {}}
       , {resp3::type::simple_string,  1UL, 1UL, {"orange"}}
       , {resp3::type::simple_string,  1UL, 1UL, {"apple"}}
@@ -431,7 +432,7 @@ net::awaitable<void> test_set2()
       test_tcp_socket ts {cmd};
       gresp.clear();
 
-      std::vector<node> expected
+      std::vector<node_type> expected
       { {resp3::type::set,  0UL, 0UL, {}}
       };
 
@@ -496,7 +497,7 @@ net::awaitable<void> test_map()
       gresp.clear();
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
 
-      std::vector<node> expected
+      std::vector<node_type> expected
       { {resp3::type::map,         7UL, 0UL, {}}
       , {resp3::type::blob_string, 1UL, 1UL, {"server"}}
       , {resp3::type::blob_string, 1UL, 1UL, {"redis"}}
@@ -521,7 +522,7 @@ net::awaitable<void> test_map()
       test_tcp_socket ts {cmd};
       gresp.clear();
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
-      std::vector<node> expected
+      std::vector<node_type> expected
       { {resp3::type::map, 0UL, 0UL, {}} };
       check_equal(gresp, expected, "test map (empty)");
    }
@@ -535,7 +536,7 @@ net::awaitable<void> test_streamed_string()
       std::string cmd {"$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
       gresp.clear();
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::streamed_string_part, 1UL, 0UL, {"Hello world"}} };
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(gresp));
       check_equal(gresp, expected, "streamed string");
@@ -544,10 +545,10 @@ net::awaitable<void> test_streamed_string()
    {
       std::string cmd {"$?\r\n;0\r\n"};
       test_tcp_socket ts {cmd};
-      std::vector<node> resp;
+      std::vector<node_type> resp;
       co_await resp3::async_read(ts, net::dynamic_buffer(buf), adapt(resp));
 
-      std::vector<node> expected
+      std::vector<node_type> expected
 	 { {resp3::type::streamed_string_part, 1UL, 0UL, {}} };
       check_equal(resp, expected, "streamed string (empty)");
    }
@@ -588,9 +589,9 @@ net::awaitable<void> optional_async()
    auto dbuf = net::dynamic_buffer(buf);
 
    {
-      node result;
+      node_type result;
       co_await resp3::async_read(ts, dbuf, adapt(result));
-      node expected {resp3::type::null, 1UL, 0UL, {""}};
+      node_type expected {resp3::type::null, 1UL, 0UL, {""}};
       check_equal(result, expected, "optional (node-async)");
    }
 

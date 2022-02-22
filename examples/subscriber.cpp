@@ -6,84 +6,76 @@
  */
 
 #include <iostream>
-#include <chrono>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
 #include "lib/net_utils.hpp"
 
-namespace resp3 = aedis::resp3;
-using aedis::redis::command;
-using aedis::redis::make_serializer;
-using resp3::adapt;
-using resp3::node;
-
 namespace net = aedis::net;
-using net::async_write;
-using net::buffer;
-using net::dynamic_buffer;
-
-// From lib/net_utils.hpp
-using aedis::connect;
+namespace redis = aedis::redis;
+using aedis::redis::command;
+using aedis::redis::client;
+using aedis::resp3::node;
+using client_type = client<aedis::net::ip::tcp::socket>;
 
 /* In this example we send a subscription to a channel and start
-   reading server side messages indefinitely.
-  
-   Notice we store the id of the connection (attributed by the redis
-   server) to be able to identify it (in the logs for example).
-  
-   After starting the example you can test it by sending messages with
-   redis-cli like this
-  
-      $ redis-cli -3
-      127.0.0.1:6379> PUBLISH channel1 some-message
-      (integer) 3
-      127.0.0.1:6379>
-  
-   The messages will then appear on the terminal you are running the
-   example.
+ * reading server side messages indefinitely.
+ *
+ * After starting the example you can test it by sending messages with
+ * redis-cli like this
+ *
+ *    $ redis-cli -3
+ *    127.0.0.1:6379> PUBLISH channel1 some-message
+ *    (integer) 3
+ *    127.0.0.1:6379>
+ *
+ * The messages will then appear on the terminal you are running the
+ * example.
  */
-net::awaitable<void> subscriber()
-{
-   try {
-      auto socket = co_await connect();
 
-      std::string request;
-      auto sr = make_serializer(request);
-      sr.push(command::hello, "3");
-      sr.push(command::subscribe, "channel1", "channel2");
-      co_await async_write(socket, buffer(request));
+class receiver {
+private:
+   std::vector<node<std::string>> resps_;
+   std::shared_ptr<client_type> db_;
 
-      std::vector<node> resp;
+public:
+   receiver(std::shared_ptr<client_type> db) : db_{db} {}
 
-      // Reads the response to the hello command.
-      std::string buffer;
-      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
-      co_await resp3::async_read(socket, dynamic_buffer(buffer));
+   void operator()(command cmd)
+   {
+      switch (cmd) {
+         case command::hello:
+         db_->send(command::subscribe, "channel1", "channel2");
+         break;
 
-      // Saves the id of this connection.
-      auto const id = resp.at(8).data;
-
-      // Loops to receive server pushes.
-      for (;;) {
-         resp.clear();
-         co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
-
+         case command::unknown:
          std::cout
-            << "Subscriber " << id << ":\n"
-            << resp << std::endl;
+            << "Event: " << resps_.at(1).value << "\n"
+            << "Channel: " << resps_.at(2).value << "\n"
+            << "Message: " << resps_.at(3).value << "\n"
+            << std::endl;
+         break;
+
+         default:;
       }
-   } catch (std::exception const& e) {
-      std::cerr << e.what() << std::endl;
+
+      resps_.clear();
    }
-}
+
+   auto adapter() { return redis::adapt(resps_); }
+};
 
 int main()
 {
    net::io_context ioc;
-   co_spawn(ioc, subscriber(), net::detached);
-   co_spawn(ioc, subscriber(), net::detached);
-   co_spawn(ioc, subscriber(), net::detached);
+   auto db = std::make_shared<client_type>(ioc.get_executor());
+
+   receiver recv{db};
+   db->set_response_adapter(recv.adapter());
+   db->set_reader_callback(std::ref(recv));
+
+   db->async_run({net::ip::make_address("127.0.0.1"), 6379}, [](auto){});
    ioc.run();
 }
+

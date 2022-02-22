@@ -33,7 +33,7 @@ class receiver : public std::enable_shared_from_this<receiver> {
 public:
 private:
    std::shared_ptr<client_type> db_;
-   std::vector<node> resps_;
+   std::vector<node<std::string>> resps_;
    std::vector<std::shared_ptr<user_session_base>> sessions_;
 
 public:
@@ -47,12 +47,12 @@ public:
          break;
 
          case command::incr:
-         std::cout << "Message so far: " << resps_.front().data << std::endl;
+         std::cout << "Message so far: " << resps_.front().value << std::endl;
          break;
 
          case command::unknown: // Server push
          for (auto& session: sessions_)
-            session->deliver(resps_.at(3).data);
+            session->deliver(resps_.at(3).value);
          break;
 
          default: { /* Ignore */ }
@@ -78,11 +78,7 @@ net::awaitable<void> listener()
    auto recv = std::make_shared<receiver>(db);
    db->set_response_adapter(recv->adapter());
    db->set_reader_callback([recv](command cmd) {recv->on_message(cmd);});
-
-   auto on_run = [](auto const ec)
-      { std::clog << "Lost connection to redis: " << ec.message() << std::endl;};
-
-   db->async_run("localhost", "6379", on_run);
+   db->async_run({net::ip::make_address("127.0.0.1"), 6379}, [](auto){});
 
    net::co_spawn(ex, signal_handler(acc, db), net::detached);
 

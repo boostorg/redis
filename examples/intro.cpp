@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <string>
 #include <memory>
 
 #include <aedis/aedis.hpp>
@@ -20,7 +21,7 @@ using client_type = client<aedis::net::ip::tcp::socket>;
 
 class receiver {
 private:
-   node resps_;
+   node<std::string> resps_;
    std::shared_ptr<client_type> db_;
 
 public:
@@ -36,21 +37,21 @@ public:
          break;
 
          case command::ping:
-         std::cout << "Ping message: " << resps_.data << std::endl;
+         std::cout << "Ping message: " << resps_.value << std::endl;
          break;
 
          case command::incr:
-         std::cout << "Ping counter: " << resps_.data << std::endl;
+         std::cout << "Ping counter: " << resps_.value << std::endl;
          break;
 
          case command::quit:
-         std::cout << command::quit << ": " << resps_.data << std::endl;
+         std::cout << command::quit << ": " << resps_.value << std::endl;
          break;
 
          default:;
       }
 
-      resps_.data.clear();
+      resps_.value.clear();
    }
 
    auto adapter() { return redis::adapt(resps_); }
@@ -65,6 +66,6 @@ int main()
    db->set_response_adapter(recv.adapter());
    db->set_reader_callback(std::ref(recv));
 
-   db->async_run("localhost", "6379", [](auto){});
+   db->async_run({net::ip::make_address("127.0.0.1"), 6379}, [](auto){});
    ioc.run();
 }

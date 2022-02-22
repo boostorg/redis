@@ -8,6 +8,7 @@
 #include <iostream>
 #include <queue>
 #include <vector>
+#include <string>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
@@ -20,16 +21,16 @@ namespace redis = aedis::redis;
 using aedis::redis::command;
 using aedis::redis::client;
 using aedis::resp3::node;
-using aedis::user_session;
-using aedis::user_session_base;
 
 // From lib/net_utils.hpp
-using aedis::signal_handler;
+using aedis::user_session;
+using aedis::user_session_base;
 using client_type = client<aedis::net::ip::tcp::socket>;
+using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 
 class receiver : public std::enable_shared_from_this<receiver> {
 private:
-   std::vector<node> resps_;
+   std::vector<node<std::string>> resps_;
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 
 public:
@@ -37,12 +38,12 @@ public:
    {
       switch (cmd) {
          case command::ping:
-            sessions_.front()->deliver(resps_.front().data);
+            sessions_.front()->deliver(resps_.front().value);
             sessions_.pop();
             break;
 
          case command::incr:
-            std::cout << "Echos so far: " << resps_.front().data << std::endl;
+            std::cout << "Echos so far: " << resps_.front().value << std::endl;
             break;
 
          default:
@@ -59,27 +60,14 @@ public:
       { sessions_.push(session); }
 };
 
-net::awaitable<void> listener()
+net::awaitable<void>
+listener(
+    std::shared_ptr<tcp_acceptor> acc,
+    std::shared_ptr<client_type> db,
+    std::shared_ptr<receiver> recv)
 {
-   auto ex = co_await net::this_coro::executor;
-
-   auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
-   auto acc = std::make_shared<net::ip::tcp::acceptor>(ex, endpoint);
-   auto db = std::make_shared<client_type>(ex);
-
-   auto recv = std::make_shared<receiver>();
-   db->set_response_adapter(recv->adapter());
-   db->set_reader_callback([recv](command cmd) {recv->on_message(cmd);});
-
-   auto on_run = [](auto const ec)
-      { std::clog << "Lost connection to redis: " << ec.message() << std::endl;};
-
-   db->async_run("localhost", "6379", on_run);
-
-   net::co_spawn(ex, signal_handler(acc, db), net::detached);
-
    for (;;) {
-      auto socket = co_await acc->async_accept(net::use_awaitable);
+      auto socket = co_await acc->async_accept();
       auto session = std::make_shared<user_session>(std::move(socket));
 
       auto on_user_msg = [db, recv, session](std::string const& msg)
@@ -97,7 +85,26 @@ int main()
 {
    try {
       net::io_context ioc;
-      co_spawn(ioc, listener(), net::detached);
+
+      auto db = std::make_shared<client_type>(ioc.get_executor());
+      auto recv = std::make_shared<receiver>();
+      db->set_response_adapter(recv->adapter());
+      db->set_reader_callback([recv](command cmd) {recv->on_message(cmd);});
+      db->async_run({net::ip::make_address("127.0.0.1"), 6379}, [](auto){});
+      auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
+      auto acc = std::make_shared<tcp_acceptor>(ioc.get_executor(), endpoint);
+      net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);
+
+      signals.async_wait([=](auto, int){
+         // Request redis to close the connection.
+         db->send(aedis::redis::command::quit);
+
+         // Stop the listener.
+         acc->cancel();
+      });
+
+      co_spawn(ioc, listener(acc, db, recv), net::detached);
+
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

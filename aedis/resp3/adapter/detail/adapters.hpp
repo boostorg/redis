@@ -30,11 +30,11 @@ template <class T>
 typename std::enable_if<std::is_integral<T>::value, void>::type
 from_string(
    T& i,
-   char const* data,
+   char const* value,
    std::size_t data_size,
    std::error_code& ec)
 {
-   auto const res = std::from_chars(data, data + data_size, i);
+   auto const res = std::from_chars(value, value + data_size, i);
    if (res.ec != std::errc())
       ec = std::make_error_code(res.ec);
 }
@@ -43,11 +43,11 @@ template <class CharT, class Traits, class Allocator>
 void
 from_string(
    std::basic_string<CharT, Traits, Allocator>& s,
-   char const* data,
+   char const* value,
    std::size_t data_size,
    std::error_code&)
 {
-  s.assign(data, data_size);
+  s.assign(value, data_size);
 }
 
 void set_on_resp3_error(type t, std::error_code& ec)
@@ -91,27 +91,27 @@ public:
     *  Users who what to customize their response types are required to derive
     *  from this class and override this function, see examples.
     *
-    *  \param t The RESP3 type of the data.
+    *  \param t The RESP3 type.
     *
-    *  \param n When t is an aggregate data type this will contain its size
-    *     (see also element_multiplicity) for simple data types this is always 1.
+    *  \param n When t is an aggregate type this will contain its size
+    *     (see also element_multiplicity) for simple types this is always 1.
     *
     *  \param depth The element depth in the tree.
     *
-    *  \param data A pointer to the data.
+    *  \param value A pointer to the data.
     *
-    *  \param size The size of data.
+    *  \param size The size of value.
     */
    void
    operator()(
       type t,
       std::size_t aggregate_size,
       std::size_t depth,
-      char const* data,
+      char const* value,
       std::size_t size,
       std::error_code&)
       {
-	 result_->emplace_back(t, aggregate_size, depth, std::string{data, size});
+	 result_->emplace_back(t, aggregate_size, depth, std::string{value, size});
       }
 };
 
@@ -128,14 +128,14 @@ public:
       type t,
       std::size_t aggregate_size,
       std::size_t depth,
-      char const* data,
+      char const* value,
       std::size_t data_size,
       std::error_code&)
    {
      result_->data_type = t;
      result_->aggregate_size = aggregate_size;
      result_->depth = depth;
-     result_->data.assign(data, data_size);
+     result_->value.assign(value, data_size);
    }
 };
 
@@ -153,7 +153,7 @@ public:
       type t,
       std::size_t aggregate_size,
       std::size_t depth,
-      char const* data,
+      char const* value,
       std::size_t data_size,
       std::error_code& ec)
    {
@@ -165,7 +165,7 @@ public:
       }
 
       assert(aggregate_size == 1);
-      from_string(*result_, data, data_size, ec);
+      from_string(*result_, value, data_size, ec);
    }
 };
 
@@ -182,7 +182,7 @@ public:
       type t,
       std::size_t aggregate_size,
       std::size_t depth,
-      char const* data,
+      char const* value,
       std::size_t data_size,
       std::error_code& ec)
    {
@@ -206,7 +206,7 @@ public:
       if (!result_->has_value())
         *result_ = T{};
 
-      from_string(result_->value(), data, data_size, ec);
+      from_string(result_->value(), value, data_size, ec);
    }
 };
 
@@ -225,7 +225,7 @@ public:
    operator()(type t,
        std::size_t aggregate_size,
        std::size_t depth,
-       char const* data,
+       char const* value,
        std::size_t data_size,
        std::error_code& ec)
    {
@@ -243,7 +243,7 @@ public:
       } else {
 	 assert(aggregate_size == 1);
 
-         from_string(result_->at(i_), data, data_size, ec);
+         from_string(result_->at(i_), value, data_size, ec);
          ++i_;
       }
    }
@@ -261,7 +261,7 @@ public:
    operator()(type t,
        std::size_t aggregate_size,
        std::size_t depth,
-       char const* data,
+       char const* value,
        std::size_t data_size,
        std::error_code& ec)
    {
@@ -283,7 +283,7 @@ public:
       }
 
       result_->push_back({});
-      from_string(result_->back(), data, data_size, ec);
+      from_string(result_->back(), value, data_size, ec);
    }
 };
 
@@ -303,7 +303,7 @@ public:
    operator()(type t,
        std::size_t aggregate_size,
        std::size_t depth,
-       char const* data,
+       char const* value,
        std::size_t data_size,
        std::error_code& ec)
    {
@@ -316,11 +316,12 @@ public:
 
       assert(!is_aggregate(t));
 
+      // TODO: This should cause an error not an assertion.
       assert(depth == 1);
       assert(aggregate_size == 1);
 
       typename Container::key_type obj;
-      from_string(obj, data, data_size, ec);
+      from_string(obj, value, data_size, ec);
       if (hint_ == std::end(*result_)) {
          auto const ret = result_->insert(std::move(obj));
          hint_ = ret.first;
@@ -347,7 +348,7 @@ public:
    operator()(type t,
        std::size_t aggregate_size,
        std::size_t depth,
-       char const* data,
+       char const* value,
        std::size_t data_size,
        std::error_code& ec)
    {
@@ -364,11 +365,11 @@ public:
 
       if (on_key_) {
          typename Container::key_type obj;
-         from_string(obj, data, data_size, ec);
+         from_string(obj, value, data_size, ec);
          current_ = result_->insert(current_, {std::move(obj), {}});
       } else {
          typename Container::mapped_type obj;
-         from_string(obj, data, data_size, ec);
+         from_string(obj, value, data_size, ec);
          current_->second = std::move(obj);
       }
 

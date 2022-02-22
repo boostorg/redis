@@ -42,9 +42,6 @@
     - transaction.cpp: Shows how to read the responses to a trasaction
       efficiently. See also https://redis.io/topics/transactions.
 
-    - multipurpose_response.cpp: Shows how to read any responses to
-      Redis commands, including nested aggegagtes.
-
     - subscriber.cpp: Shows how channel subscription works at a low
       level. See also https://redis.io/topics/pubsub.
 

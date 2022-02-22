@@ -12,11 +12,8 @@ AM_LDFLAGS += -pthread
 
 check_PROGRAMS =
 check_PROGRAMS += intro
-check_PROGRAMS += sets
-check_PROGRAMS += hashes
+check_PROGRAMS += stl_containers
 check_PROGRAMS += serialization
-check_PROGRAMS += multipurpose_response
-check_PROGRAMS += lists
 check_PROGRAMS += key_expiration
 check_PROGRAMS += response_adapter
 check_PROGRAMS += sync
@@ -37,11 +34,8 @@ CLEANFILES += $(EXTRA_PROGRAMS)
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
 intro_SOURCES = $(top_srcdir)/examples/intro.cpp
-sets_SOURCES = $(top_srcdir)/examples/sets.cpp
-hashes_SOURCES = $(top_srcdir)/examples/hashes.cpp
+stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
-multipurpose_response_SOURCES = $(top_srcdir)/examples/multipurpose_response.cpp
-lists_SOURCES = $(top_srcdir)/examples/lists.cpp
 key_expiration_SOURCES = $(top_srcdir)/examples/key_expiration.cpp
 response_adapter_SOURCES = $(top_srcdir)/examples/response_adapter.cpp
 sync_SOURCES = $(top_srcdir)/examples/sync.cpp

@@ -62,18 +62,18 @@ struct response_traits<std::vector<T, Allocator>>
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 
-template <>
-struct response_traits<node>
+template <class T>
+struct response_traits<node<T>>
 {
-   using response_type = node;
+   using response_type = node<T>;
    using adapter_type = adapter::detail::adapter_node<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 
-template <class Allocator>
-struct response_traits<std::vector<node, Allocator>>
+template <class String, class Allocator>
+struct response_traits<std::vector<node<String>, Allocator>>
 {
-   using response_type = std::vector<node, Allocator>;
+   using response_type = std::vector<node<String>, Allocator>;
    using adapter_type = adapter::detail::general<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };

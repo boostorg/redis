@@ -28,10 +28,10 @@ connect(
    co_return std::move(socket);
 }
 
-template <class Socket>
+template <class Acceptor, class Socket>
 aedis::net::awaitable<void>
 signal_handler(
-   std::shared_ptr<aedis::net::ip::tcp::acceptor> acc,
+   std::shared_ptr<Acceptor> acc,
    std::shared_ptr<aedis::redis::client<Socket>> db)
 {
    auto ex = co_await aedis::net::this_coro::executor;
