@@ -10,12 +10,17 @@
 #include <vector>
 #include <array>
 #include <functional>
+#include <variant>
+#include <tuple>
+
+#include <boost/mp11.hpp>
 
 #include <aedis/aedis.hpp>
 #include <aedis/redis/command.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/adapt.hpp>
+#include <aedis/resp3/response_traits.hpp>
 
 #include <boost/asio/experimental/parallel_group.hpp>
 
@@ -441,6 +446,48 @@ public:
          >(run_op<client>{this}, token, socket_, timer_);
    }
 };
+
+template <class Tuple, class Callable>
+class custom_adapter {
+private:
+   using tuple_type = Tuple;
+
+   using variant_type =
+      boost::mp11::mp_rename<boost::mp11::mp_transform<resp3::response_traits_t, tuple_type>, std::variant>;
+
+   std::array<variant_type, std::tuple_size<tuple_type>::value> adapters_;
+   Callable to_tuple_index;
+
+public:
+   custom_adapter(tuple_type* r, Callable c)
+   : to_tuple_index{c}
+   { resp3::adapter::detail::assigner<std::tuple_size<tuple_type>::value - 1>::assign(adapters_, *r); }
+
+   void
+   operator()(
+      command cmd,
+      resp3::type t,
+      std::size_t aggregate_size,
+      std::size_t depth,
+      char const* data,
+      std::size_t size,
+      std::error_code& ec)
+   {
+      auto const i = to_tuple_index(cmd);
+      if (i == std::tuple_size<Tuple>::value)
+        return;
+
+      std::visit(
+         [&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);},
+         adapters_[i]);
+   }
+};
+
+template <class Tuple, class Callable>
+auto adapt2(Tuple& t, Callable c)
+{
+   return custom_adapter<Tuple, Callable>(&t, c);
+}
 
 } // redis
 } // aedis

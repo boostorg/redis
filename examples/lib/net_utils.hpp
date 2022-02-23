@@ -65,4 +65,22 @@ connection_manager(
    co_await (db->async_writer() || std::move(reader));
 }
 
+template <class T>
+void print_and_clear(std::set<T>& cont)
+{
+   std::cout << "\n";
+   for (auto const& e: cont) std::cout << e << " ";
+   std::cout << "\n";
+   cont.clear();
+}
+
+template <class T>
+void print_and_clear(std::list<T>& cont)
+{
+   std::cout << "\n";
+   for (auto const& e: cont) std::cout << e << " ";
+   std::cout << "\n";
+   cont.clear();
+}
+
 } // aedis

@@ -9,73 +9,21 @@
 #include <vector>
 #include <memory>
 #include <iostream>
-#include <array>
 #include <unordered_map>
-#include <tuple>
-#include <variant>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
+#include "lib/net_utils.hpp"
+
 namespace net = aedis::net;
 namespace redis = aedis::redis;
 using aedis::redis::command;
-using aedis::redis::client;
 using aedis::resp3::node;
-using aedis::resp3::response_traits_t;
-using client_type = client<aedis::net::ip::tcp::socket>;
+using client_type = redis::client<aedis::net::ip::tcp::socket>;
 
-namespace aedis {
-namespace redis {
-
-template <class Tuple>
-class custom_adapter {
-private:
-   using variant_type =
-      boost::mp11::mp_rename<boost::mp11::mp_transform<response_traits_t, Tuple>, std::variant>;
-
-   std::array<variant_type, std::tuple_size<Tuple>::value> adapters_;
-
-public:
-   custom_adapter(Tuple* r)
-      { resp3::adapter::detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, *r); }
-
-   void
-   operator()(
-      command cmd,
-      resp3::type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* data,
-      std::size_t size,
-      std::error_code& ec)
-   {
-      int i = -1;
-      switch (cmd) {
-         case command::lrange: i = 0; break;
-         case command::smembers: i = 1; break;
-         default: i = 2;
-      }
-
-      std::visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i]);
-   }
-};
-
-}
-}
-
-class receiver {
-private:
-   std::shared_ptr<client_type> db_;
-
-   using responses_type =
-      std::tuple<
-         std::list<int>,
-         std::set<std::string>,
-         std::vector<node<std::string>>>;
-
-   responses_type resps_;
-
+void send_containers(std::shared_ptr<client_type> db)
+{
    std::map<std::string, std::string> map
       { {"key1", "value1"}
       , {"key2", "value2"}
@@ -88,53 +36,70 @@ private:
    std::set<std::string> set
       {"one", "two", "three", "four"};
 
+   // Sends the stl containres.
+   db->send_range(command::hset, "hset-key", std::cbegin(map), std::cend(map));
+   db->send_range(command::rpush, "rpush-key", std::cbegin(vec), std::cend(vec));
+   db->send_range(command::sadd, "sadd-key", std::cbegin(set), std::cend(set));
+
+   // Retrieves the containers.
+   db->send(command::hgetall, "hset-key");
+   db->send(command::lrange, "rpush-key", 0, -1);
+   db->send(command::smembers, "sadd-key");
+}
+
+// Grouping of all expected responses in a tuple.
+using tuple_type =
+   std::tuple<
+      std::list<int>, // lrange
+      std::set<std::string>, // smembers
+      std::vector<node<std::string>> // Everything else.
+   >;
+
+// Maps commands in a specific tuple element.
+constexpr auto to_tuple_index(command cmd)
+{
+   switch (cmd) {
+      case command::lrange: return 0;
+      case command::smembers: return 1;
+      default: return 2;
+   }
+}
+
+class receiver {
+private:
+   std::shared_ptr<client_type> db_;
+   tuple_type resps_;
+
 public:
    receiver(std::shared_ptr<client_type> db) : db_{db} {}
 
-   auto adapter() { return redis::custom_adapter<responses_type>(&resps_); }
-
-   void on_hello()
-   {
-      db_->send_range(command::hset, "hset-key", std::cbegin(map), std::cend(map));
-      db_->send_range(command::rpush, "rpush-key", std::cbegin(vec), std::cend(vec));
-      db_->send_range(command::sadd, "sadd-key", std::cbegin(set), std::cend(set));
-
-      db_->send(command::hgetall, "hset-key");
-      db_->send(command::lrange, "rpush-key", 0, -1);
-      db_->send(command::smembers, "sadd-key");
-
-      db_->send(command::quit);
-   }
-
-   void on_hgetall()
-   {
-      //for (auto const& e: hgetall3) std::cout << e.first << " ==> " << e.second << "; ";
-      std::cout << "\n";
-   }
-
-   void on_lrange()
-   {
-      std::cout << "\n";
-      for (auto const& e: std::get<0>(resps_)) std::cout << e << " ";
-      std::cout << "\n";
-      std::get<0>(resps_).clear();
-   }
-
-   void on_smembers()
-   {
-      std::cout << "\n";
-      for (auto const& e: std::get<1>(resps_)) std::cout << e << " ";
-      std::cout << "\n";
-      std::get<1>(resps_).clear();
-   }
+   auto adapter()
+      { return redis::adapt2(resps_, [](command cmd){ return to_tuple_index(cmd);}); }
 
    void operator()(command cmd)
    {
       switch (cmd) {
-         case command::hello: on_hello(); break;
-         case command::hgetall: on_hgetall(); break;
-         case command::lrange: on_lrange(); break;
-         case command::smembers: on_smembers(); break;
+         case command::hello:
+         {
+            send_containers(db_);
+            db_->send(command::quit);
+         } break;
+
+         case command::hgetall:
+         break;
+
+         case command::lrange:
+         {
+            auto& cont = std::get<to_tuple_index(command::lrange)>(resps_);
+            aedis::print_and_clear(cont);
+         } break;
+
+         case command::smembers:
+         {
+            auto& cont = std::get<to_tuple_index(command::smembers)>(resps_);
+            aedis::print_and_clear(cont);
+         } break;
+
          default:;
       }
    }
