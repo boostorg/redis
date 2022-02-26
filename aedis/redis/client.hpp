@@ -27,6 +27,44 @@
 namespace aedis {
 namespace redis {
 
+template <class T, class Tuple>
+constexpr int index_of() {return boost::mp11::mp_find<Tuple, T>::value;}
+
+template <class Tuple>
+class receiver_base {
+private:
+   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<resp3::response_traits_t, Tuple>, std::variant>;
+   std::array<variant_type, std::tuple_size<Tuple>::value> adapters_;
+
+protected:
+   Tuple resps_;
+   virtual int to_tuple_index(command cmd) { return 0; }
+
+public:
+   receiver_base(Tuple& t)
+      { resp3::adapter::detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, t); }
+
+   void
+   on_resp3(
+      command cmd,
+      resp3::type t,
+      std::size_t aggregate_size,
+      std::size_t depth,
+      char const* data,
+      std::size_t size,
+      std::error_code& ec)
+   {
+      auto const i = to_tuple_index(cmd);
+      if (i == -1)
+        return;
+
+      std::visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i]);
+   }
+
+   virtual void on_read(command) { }
+   virtual void on_write(std::size_t) { }
+};
+
 inline
 auto adapt()
 {
@@ -42,9 +80,10 @@ auto adapt(T& t)
 
 #include <boost/asio/yield.hpp>
 
-template <class Client>
+template <class Client, class Receiver>
 struct run_op {
    Client* cli;
+   Receiver* recv_;
    net::coroutine coro;
 
    template <class Self>
@@ -57,16 +96,16 @@ struct run_op {
             return;
          }
 
-         cli->send(command::hello, 3);
-         yield cli->async_read_write(std::move(self));
+         yield cli->async_read_write(recv_, std::move(self));
          self.complete(ec);
       }
    }
 };
 
-template <class Client>
+template <class Client, class Receiver>
 struct read_write_op {
    Client* cli;
+   Receiver* recv;
    net::coroutine coro;
 
    template <class Self>
@@ -80,8 +119,8 @@ struct read_write_op {
 
          yield
          net::experimental::make_parallel_group(
-            [this](auto token) { return cli->async_writer(token);},
-            [this](auto token) { return cli->async_reader(token);}
+            [this](auto token) { return cli->async_writer(recv, token);},
+            [this](auto token) { return cli->async_reader(recv, token);}
          ).async_wait(
             net::experimental::wait_for_one_error(),
             std::move(self));
@@ -97,9 +136,10 @@ struct read_write_op {
 
 // Consider limiting the size of the pipelines by spliting that last
 // one in two if needed.
-template <class Client>
+template <class Client, class Receiver>
 struct writer_op {
    Client* cli;
+   Receiver* recv;
    std::size_t size;
    net::coroutine coro;
 
@@ -136,7 +176,7 @@ struct writer_op {
          if (cli->req_info_.front().cmds == 0) 
             cli->req_info_.erase(std::begin(cli->req_info_));
 
-         cli->on_write_(size);
+         recv->on_write(size);
 
          yield cli->timer_.async_wait(std::move(self));
 
@@ -148,10 +188,14 @@ struct writer_op {
    }
 };
 
-template <class Client>
+template <class Client, class Receiver>
 struct read_op {
    Client* cli;
+   Receiver* recv;
    net::coroutine coro;
+
+   // Consider moving this variables to the client to spare some
+   // memory in the competion handler.
    resp3::type t = resp3::type::invalid;
    redis::command cmd = redis::command::unknown;
 
@@ -191,7 +235,7 @@ struct read_op {
          resp3::async_read(
             cli->socket_,
             net::dynamic_buffer(cli->read_buffer_),
-            [p = cli, c = cmd](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable {p->response_adapter_(c, t, aggregate_size, depth, data, size, ec);},
+            [p = recv, c = cmd](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable {p->on_resp3(c, t, aggregate_size, depth, data, size, ec);},
             std::move(self));
 
          if (ec) {
@@ -203,7 +247,7 @@ struct read_op {
          if (t != resp3::type::push && cli->on_cmd())
             cli->timer_.cancel_one();
 
-         cli->on_read_(cmd);
+         recv->on_read(cmd);
       }
    }
 };
@@ -228,23 +272,12 @@ public:
    using stream_type = AsyncReadWriteStream;
    using executor_type = stream_type::executor_type;
    using default_completion_token_type = net::default_completion_token_t<executor_type>;
-   using writer_callback_type = std::function<void(std::size_t)>;
-   using reader_callback_type =  std::function<void(command)>;
 
 private:
-   using response_adapter_type = std::function<void(command, resp3::type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
-
-   template <class T>
-   friend struct read_op;
-
-   template <class T>
-   friend struct writer_op;
-
-   template <class T>
-   friend struct read_write_op;
-
-   template <class T>
-   friend struct run_op;
+   template <class T, class U> friend struct read_op;
+   template <class T, class U> friend struct writer_op;
+   template <class T, class U> friend struct read_write_op;
+   template <class T, class U> friend struct run_op;
 
    struct request_info {
       // Request size in bytes.
@@ -278,10 +311,6 @@ private:
    net::ip::tcp::endpoint endpoint_;
 
    bool stop_writer_ = false;
-
-   writer_callback_type on_write_ = [](std::size_t){};
-   reader_callback_type on_read_ = [](command){};
-   response_adapter_type response_adapter_ = [](command, resp3::type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&){};
 
    /* Prepares the back of the queue to receive further commands. 
     *
@@ -322,33 +351,46 @@ private:
    }
 
    // Reads messages asynchronously.
-   template <class CompletionToken = default_completion_token_type>
-   auto async_reader(CompletionToken&& token = default_completion_token_type{})
-   {
-      return net::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(read_op<client>{this}, token, socket_);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto async_writer(CompletionToken&& token = default_completion_token_type{})
-   {
-      return net::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(writer_op<client>{this}, token, socket_, timer_);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
+   template <
+      class Receiver,
+      class CompletionToken = default_completion_token_type>
    auto
-   async_read_write(
+   async_reader(
+      Receiver* recv,
       CompletionToken&& token = default_completion_token_type{})
    {
       return net::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(read_write_op<client>{this}, token, socket_, timer_);
+         >(read_op<client, Receiver>{this, recv}, token, socket_);
+   }
+
+   template <
+      class Receiver,
+      class CompletionToken = default_completion_token_type>
+   auto
+   async_writer(
+      Receiver* recv,
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(writer_op<client, Receiver>{this, recv}, token, socket_, timer_);
+   }
+
+   template <
+      class Receiver,
+      class CompletionToken = default_completion_token_type>
+   auto
+   async_read_write(
+      Receiver* recv,
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return net::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(read_write_op<client, Receiver>{this, recv}, token, socket_, timer_);
    }
 public:
    /** \brief Client constructor.
@@ -362,6 +404,7 @@ public:
    , timer_{ex}
    {
       timer_.expires_at(std::chrono::steady_clock::time_point::max());
+      send(command::hello, 3);
    }
 
    /// Returns the executor used for I/O with Redis.
@@ -417,103 +460,21 @@ public:
    }
 
    template <
-     class Receiver,
+     class Tuple,
      class CompletionToken = default_completion_token_type
    >
    auto
    async_run(
-      Receiver& recv,
+      receiver_base<Tuple>& recv,
       net::ip::tcp::endpoint ep = {net::ip::make_address("127.0.0.1"), 6379},
       CompletionToken token = CompletionToken{})
    {
-      // To avoid large completion handlers, the objects in the class.
       endpoint_ = ep;
-      response_adapter_ = [&recv](command cmd, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) { recv.on_resp3(cmd, t, aggregate_size, depth, data, size, ec);},
-      on_read_ = [&recv](command cmd) { recv.on_read(cmd); };
-      on_write_ = [&recv](std::size_t n) { recv.on_write(n); };
-
       return net::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(run_op<client>{this}, token, socket_, timer_);
+         >(run_op<client, receiver_base<Tuple>>{this, &recv}, token, socket_, timer_);
    }
-};
-
-template <class Tuple, class Callable>
-class custom_adapter {
-private:
-   using tuple_type = Tuple;
-
-   using variant_type =
-      boost::mp11::mp_rename<boost::mp11::mp_transform<resp3::response_traits_t, tuple_type>, std::variant>;
-
-   std::array<variant_type, std::tuple_size<tuple_type>::value> adapters_;
-   Callable to_tuple_index;
-
-public:
-   custom_adapter(tuple_type* r, Callable c)
-   : to_tuple_index{c}
-   { resp3::adapter::detail::assigner<std::tuple_size<tuple_type>::value - 1>::assign(adapters_, *r); }
-
-   void
-   operator()(
-      command cmd,
-      resp3::type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* data,
-      std::size_t size,
-      std::error_code& ec)
-   {
-      auto const i = to_tuple_index(cmd);
-      if (i == std::tuple_size<Tuple>::value)
-        return;
-
-      std::visit(
-         [&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);},
-         adapters_[i]);
-   }
-};
-
-template <class Tuple, class Callable>
-auto adapt2(Tuple& t, Callable c)
-{
-   return custom_adapter<Tuple, Callable>(&t, c);
-}
-
-template <class Tuple>
-class receiver_base {
-private:
-   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<resp3::response_traits_t, Tuple>, std::variant>;
-   std::array<variant_type, std::tuple_size<Tuple>::value> adapters_;
-
-protected:
-   Tuple resps_;
-   virtual int to_tuple_index(command cmd) { return 0; }
-
-public:
-   receiver_base(Tuple& t)
-      { resp3::adapter::detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, t); }
-
-   void
-   on_resp3(
-      command cmd,
-      resp3::type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* data,
-      std::size_t size,
-      std::error_code& ec)
-   {
-      auto const i = to_tuple_index(cmd);
-      if (i == -1)
-        return;
-
-      std::visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i]);
-   }
-
-   virtual void on_read(command) { }
-   virtual void on_write(std::size_t) { }
 };
 
 } // redis

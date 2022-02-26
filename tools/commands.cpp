@@ -32,7 +32,7 @@ std::string toupper(std::string s)
 }
 
 std::vector<std::string>
-get_cmd_names(std::vector<node> const& resp)
+get_cmd_names(std::vector<node<std::string>> const& resp)
 {
    if (std::empty(resp)) {
       std::cerr << "Response is empty." << std::endl;
@@ -42,7 +42,7 @@ get_cmd_names(std::vector<node> const& resp)
    std::vector<std::string> ret;
    for (auto i = 0ULL; i < std::size(resp); ++i) {
       if (resp.at(i).depth == 1)
-         ret.push_back(resp.at(i + 1).data);
+         ret.push_back(resp.at(i + 1).value);
    }
 
    std::sort(std::begin(ret), std::end(ret));
@@ -87,7 +87,7 @@ int main()
      sr.push(command::quit);
      write(socket, buffer(request));
 
-     std::vector<node> resp;
+     std::vector<node<std::string>> resp;
 
      std::string buffer;
      resp3::read(socket, dynamic_buffer(buffer));

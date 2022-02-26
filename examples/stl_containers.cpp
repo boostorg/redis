@@ -19,6 +19,8 @@
 namespace net = aedis::net;
 namespace redis = aedis::redis;
 using aedis::redis::command;
+using aedis::redis::receiver_base;
+using aedis::redis::index_of;
 using aedis::resp3::node;
 using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
 
@@ -48,9 +50,14 @@ void send_containers(std::shared_ptr<client_type> db)
 }
 
 // Grouping of all expected responses in a tuple.
-using tuple_type = std::tuple<std::list<int>, std::set<std::string>, std::vector<node<std::string>>>;
+using tuple_type =
+   std::tuple<
+      std::list<int>,
+      std::set<std::string>,
+      std::vector<node<std::string>>
+   >;
 
-struct receiver : redis::receiver_base<tuple_type> {
+struct receiver : receiver_base<tuple_type> {
 private:
    std::shared_ptr<client_type> db_;
    tuple_type resps_;
@@ -58,9 +65,14 @@ private:
   int to_tuple_index(command cmd) override
   {
      switch (cmd) {
-        case command::lrange: return 0;
-        case command::smembers: return 1;
-        default: return 2;
+        case command::lrange:
+        return index_of<std::list<int>, tuple_type>();
+
+        case command::smembers:
+        return index_of<std::set<std::string>, tuple_type>();
+
+        default:
+        return -1;
      }
   }
 

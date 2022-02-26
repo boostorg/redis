@@ -12,41 +12,26 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-#include "lib/net_utils.hpp"
-
-namespace resp3 = aedis::resp3;
-using aedis::redis::make_serializer;
-using aedis::redis::command;
-using resp3::adapt;
-
 namespace net = aedis::net;
-using net::async_write;
-using net::buffer;
-using net::dynamic_buffer;
+using aedis::redis::command;
+using aedis::redis::receiver_base;
+using aedis::redis::index_of;
+using client_type = aedis::redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
 
-// From lib/net_utils.hpp
-using aedis::connect;
-
-// Define the to_string and from_string functions for your own data
-// types.
-
-// The struct we would like to store in redis using our own
-// serialization.
-struct mydata {
+struct mystruct {
   int a;
   int b;
 };
 
-// Serializes to Tab Separated Value (TSV).
-std::string to_string(mydata const& obj)
+std::string to_string(mystruct const& obj)
 {
    return std::to_string(obj.a) + '\t' + std::to_string(obj.b);
 }
 
-// Deserializes TSV.
+// Deserializes avoiding temporary copies.
 void
 from_string(
-   mydata& obj,
+   mystruct& obj,
    char const* data,
    std::size_t size,
    std::error_code& ec)
@@ -68,45 +53,54 @@ from_string(
    }
 }
 
-net::awaitable<void> serialization()
-{
-   try {
-      auto socket = co_await connect();
+using tuple_type = std::tuple<mystruct>;
 
-      mydata obj{21, 22};
+struct receiver : receiver_base<tuple_type> {
+private:
+   client_type* db_;
+   tuple_type resps_;
 
-      std::string request;
-      auto sr = make_serializer(request);
-      sr.push(command::hello, 3);
-      sr.push(command::flushall);
-      sr.push(command::set, "key", obj);
-      sr.push(command::get, "key");
-      sr.push(command::quit);
-      co_await async_write(socket, buffer(request));
+   int to_tuple_index(command cmd) override
+   {
+      switch (cmd) {
+         case command::get:
+         return index_of<mystruct, tuple_type>();
 
-      // The response.
-      mydata get;
-
-      // Reads the responses.
-      std::string buffer;
-      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello
-      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // flushall
-      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // set
-      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(get));
-      co_await resp3::async_read(socket, dynamic_buffer(buffer)); // quit
-
-      // Print the responses.
-      std::cout << "get: a = " << get.a << ", b = " << get.b << "\n";
-
-   } catch (std::exception const& e) {
-      std::cerr << e.what() << std::endl;
-      exit(EXIT_FAILURE);
+         default:
+         return -1;
+      }
    }
-}
+
+public:
+   receiver(client_type& db) : receiver_base(resps_), db_{&db} {}
+
+   void on_read(command cmd) override
+   {
+      switch (cmd) {
+         case command::hello:
+         {
+            db_->send(command::set, "serialization-key", mystruct{21, 22});
+            db_->send(command::get, "serialization-key");
+            db_->send(command::quit);
+         } break;
+
+         case command::get:
+         {
+            auto const& ref = std::get<mystruct>(resps_);
+            std::cout << "a: " << ref.a << "\n"
+                      << "b: " << ref.b << "\n";
+         } break;
+
+         default:;
+      }
+   }
+};
 
 int main()
 {
    net::io_context ioc;
-   co_spawn(ioc, serialization(), net::detached);
+   client_type db(ioc.get_executor());
+   receiver recv{db};
+   db.async_run(recv);
    ioc.run();
 }

@@ -69,7 +69,6 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/sentinel/impl/command.ipp\
   $(top_srcdir)/aedis/resp3/detail/impl/parser.ipp\
   $(top_srcdir)/aedis/resp3/impl/type.ipp\
-  $(top_srcdir)/aedis/resp3/impl/node.ipp\
   $(top_srcdir)/aedis/redis/client.hpp
 
 nobase_noinst_HEADERS =\
