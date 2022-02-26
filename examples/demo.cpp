@@ -16,36 +16,31 @@
 
 namespace net = aedis::net;
 namespace redis = aedis::redis;
+namespace resp3 = aedis::resp3;
 using aedis::redis::command;
-using client_type = redis::client<aedis::net::ip::tcp::socket>;
+using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
 
-// Groups expected responses in a tuple.
 using tuple_type = std::tuple<int, std::string>;
 
-// Maps each command into a tuple element. Use -1 to ignore a response.
-constexpr auto to_tuple_index(command cmd)
-{
-   switch (cmd) {
-      case command::incr: return boost::mp11::mp_find<tuple_type, int>::value;
-      case command::ping:
-      case command::quit: return boost::mp11::mp_find<tuple_type, std::string>::value;
-      default: return std::tuple_size<tuple_type>::value;
-   }
-}
-
-// Receives commands from the Redis server.
-class receiver {
+struct receiver : redis::receiver_base<tuple_type> {
 private:
+   client_type* db_;
    tuple_type resps_;
-   std::shared_ptr<client_type> db_;
+
+   int to_tuple_index(command cmd) override
+   {
+      switch (cmd) {
+         case command::incr: return 0;
+         case command::ping:
+         case command::quit: return 1;
+         default: return -1;
+      }
+   }
 
 public:
-   receiver(std::shared_ptr<client_type> db) : db_{db} {}
+   receiver(client_type& db) : receiver_base(resps_), db_{&db} {}
 
-   auto adapter()
-      { return redis::adapt2(resps_, [](command cmd){ return to_tuple_index(cmd);}); }
-
-   void operator()(command cmd)
+   void on_read(command cmd) override
    {
       switch (cmd) {
          case command::hello:
@@ -55,15 +50,15 @@ public:
          break;
 
          case command::ping:
-         std::cout << "Ping message: " << std::get<to_tuple_index(command::ping)>(resps_) << std::endl;
+         std::cout << "Ping message: " << std::get<std::string>(resps_) << std::endl;
          break;
 
          case command::incr:
-         std::cout << "Ping counter: " << std::get<to_tuple_index(command::incr)>(resps_) << std::endl;
+         std::cout << "Ping counter: " << std::get<int>(resps_) << std::endl;
          break;
 
          case command::quit:
-         std::cout << command::quit << ": " << std::get<to_tuple_index(command::quit)>(resps_) << std::endl;
+         std::cout << command::quit << ": " << std::get<std::string>(resps_) << std::endl;
          break;
 
          default:;
@@ -74,14 +69,8 @@ public:
 int main()
 {
    net::io_context ioc;
-   auto db = std::make_shared<client_type>(ioc.get_executor());
-
+   client_type db(ioc.get_executor());
    receiver recv{db};
-   db->set_response_adapter(recv.adapter());
-   db->set_reader_callback(std::ref(recv));
-
-   net::ip::tcp::endpoint ep{net::ip::make_address("127.0.0.1"), 6379};
-
-   db->async_run(ep, [](auto){});
+   db.async_run(recv);
    ioc.run();
 }

@@ -25,36 +25,36 @@ using aedis::resp3::node;
 // From lib/net_utils.hpp
 using aedis::user_session;
 using aedis::user_session_base;
-using client_type = client<aedis::net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
+using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
+using tuple_type = std::tuple<std::vector<node<std::string>>>;
 
-class receiver : public std::enable_shared_from_this<receiver> {
+class receiver : public redis::receiver_base<tuple_type>, std::enable_shared_from_this<receiver> {
 private:
-   std::vector<node<std::string>> resps_;
+   tuple_type resps_;
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 
 public:
-   void on_message(command cmd)
+   receiver() : receiver_base(resps_) {}
+
+   void on_read(command cmd)
    {
       switch (cmd) {
          case command::ping:
-            sessions_.front()->deliver(resps_.front().value);
-            sessions_.pop();
-            break;
+         sessions_.front()->deliver(std::get<0>(resps_).front().value);
+         sessions_.pop();
+         break;
 
          case command::incr:
-            std::cout << "Echos so far: " << resps_.front().value << std::endl;
-            break;
+         std::cout << "Echos so far: " << std::get<0>(resps_).front().value << std::endl;
+         break;
 
          default:
             { /* Ignore */; }
       }
 
-      resps_.clear();
+      std::get<0>(resps_).clear();
    }
-
-   auto adapter()
-      { return redis::adapt(resps_); }
 
    void add_user_session(std::shared_ptr<user_session_base> session)
       { sessions_.push(session); }
@@ -88,9 +88,9 @@ int main()
 
       auto db = std::make_shared<client_type>(ioc.get_executor());
       auto recv = std::make_shared<receiver>();
-      db->set_response_adapter(recv->adapter());
-      db->set_reader_callback([recv](command cmd) {recv->on_message(cmd);});
-      db->async_run({net::ip::make_address("127.0.0.1"), 6379}, [](auto){});
+
+      db->async_run(*recv);
+
       auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
       auto acc = std::make_shared<tcp_acceptor>(ioc.get_executor(), endpoint);
       net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);

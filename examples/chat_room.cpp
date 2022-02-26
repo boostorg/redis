@@ -26,18 +26,18 @@ using aedis::user_session_base;
 
 // From lib/net_utils.hpp
 using aedis::signal_handler;
-using client_type = client<aedis::net::ip::tcp::socket>;
+using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
+using tuple_type = std::tuple<std::vector<node<std::string>>>;
 
-// TODO: Delete sessions that have expired.
-class receiver : public std::enable_shared_from_this<receiver> {
+class receiver : public redis::receiver_base<tuple_type>, std::enable_shared_from_this<receiver> {
 public:
 private:
    std::shared_ptr<client_type> db_;
-   std::vector<node<std::string>> resps_;
    std::vector<std::shared_ptr<user_session_base>> sessions_;
+   tuple_type resps_;
 
 public:
-   receiver(std::shared_ptr<client_type> db) : db_{db} {}
+   receiver(std::shared_ptr<client_type> db) : receiver_base(resps_), db_{db} {}
 
    void on_message(command cmd)
    {
@@ -47,22 +47,19 @@ public:
          break;
 
          case command::incr:
-         std::cout << "Message so far: " << resps_.front().value << std::endl;
+         std::cout << "Message so far: " << std::get<0>(resps_).front().value << std::endl;
          break;
 
          case command::unknown: // Server push
          for (auto& session: sessions_)
-            session->deliver(resps_.at(3).value);
+            session->deliver(std::get<0>(resps_).at(3).value);
          break;
 
          default: { /* Ignore */ }
       }
 
-      resps_.clear();
+      std::get<0>(resps_).clear();
    }
-
-   auto adapter()
-      { return redis::adapt(resps_); }
 
    auto add(std::shared_ptr<user_session_base> session)
       { sessions_.push_back(session); }
@@ -76,9 +73,7 @@ net::awaitable<void> listener()
    auto acc = std::make_shared<net::ip::tcp::acceptor>(ex, endpoint);
    auto db = std::make_shared<client_type>(ex);
    auto recv = std::make_shared<receiver>(db);
-   db->set_response_adapter(recv->adapter());
-   db->set_reader_callback([recv](command cmd) {recv->on_message(cmd);});
-   db->async_run({net::ip::make_address("127.0.0.1"), 6379}, [](auto){});
+   db->async_run(*recv);
 
    net::co_spawn(ex, signal_handler(acc, db), net::detached);
 

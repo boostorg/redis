@@ -17,7 +17,8 @@ namespace redis = aedis::redis;
 using aedis::redis::command;
 using aedis::redis::client;
 using aedis::resp3::node;
-using client_type = client<aedis::net::ip::tcp::socket>;
+using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
+using tuple_type = std::tuple<std::vector<node<std::string>>>;
 
 /* In this example we send a subscription to a channel and start
  * reading server side messages indefinitely.
@@ -34,13 +35,13 @@ using client_type = client<aedis::net::ip::tcp::socket>;
  * example.
  */
 
-class receiver {
+class receiver : public redis::receiver_base<tuple_type> {
 private:
-   std::vector<node<std::string>> resps_;
    std::shared_ptr<client_type> db_;
+   tuple_type resps_;
 
 public:
-   receiver(std::shared_ptr<client_type> db) : db_{db} {}
+   receiver(std::shared_ptr<client_type> db) : receiver_base(resps_), db_{db} {}
 
    void operator()(command cmd)
    {
@@ -51,31 +52,25 @@ public:
 
          case command::unknown:
          std::cout
-            << "Event: " << resps_.at(1).value << "\n"
-            << "Channel: " << resps_.at(2).value << "\n"
-            << "Message: " << resps_.at(3).value << "\n"
+            << "Event: " << std::get<0>(resps_).at(1).value << "\n"
+            << "Channel: " << std::get<0>(resps_).at(2).value << "\n"
+            << "Message: " << std::get<0>(resps_).at(3).value << "\n"
             << std::endl;
          break;
 
          default:;
       }
 
-      resps_.clear();
+      std::get<0>(resps_).clear();
    }
-
-   auto adapter() { return redis::adapt(resps_); }
 };
 
 int main()
 {
    net::io_context ioc;
    auto db = std::make_shared<client_type>(ioc.get_executor());
-
    receiver recv{db};
-   db->set_response_adapter(recv.adapter());
-   db->set_reader_callback(std::ref(recv));
-
-   db->async_run({net::ip::make_address("127.0.0.1"), 6379}, [](auto){});
+   db->async_run(recv);
    ioc.run();
 }
 

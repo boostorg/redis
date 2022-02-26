@@ -24,8 +24,6 @@
 
 #include <boost/asio/experimental/parallel_group.hpp>
 
-// TODO: Review all member functions to include shared_from_this().
-
 namespace aedis {
 namespace redis {
 
@@ -138,7 +136,7 @@ struct writer_op {
          if (cli->req_info_.front().cmds == 0) 
             cli->req_info_.erase(std::begin(cli->req_info_));
 
-         cli->wcallback_(size);
+         cli->on_write_(size);
 
          yield cli->timer_.async_wait(std::move(self));
 
@@ -150,7 +148,6 @@ struct writer_op {
    }
 };
 
-// TODO: Is it correct to call stop_writer?
 template <class Client>
 struct read_op {
    Client* cli;
@@ -176,7 +173,7 @@ struct read_op {
                std::move(self));
 
             if (ec) {
-               cli->stop_writer();
+               cli->stop_writer_ = true;
                self.complete(ec);
                return;
             }
@@ -198,15 +195,15 @@ struct read_op {
             std::move(self));
 
          if (ec) {
-            cli->stop_writer();
+            cli->stop_writer_ = true;
             self.complete(ec);
             return;
          }
 
-         if (t != resp3::type::push && cli->on_read())
+         if (t != resp3::type::push && cli->on_cmd())
             cli->timer_.cancel_one();
 
-         cli->rcallback_(cmd);
+         cli->on_read_(cmd);
       }
    }
 };
@@ -233,9 +230,10 @@ public:
    using default_completion_token_type = net::default_completion_token_t<executor_type>;
    using writer_callback_type = std::function<void(std::size_t)>;
    using reader_callback_type =  std::function<void(command)>;
-   using response_adapter_type = std::function<void(command, resp3::type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
 
 private:
+   using response_adapter_type = std::function<void(command, resp3::type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&)>;
+
    template <class T>
    friend struct read_op;
 
@@ -281,8 +279,8 @@ private:
 
    bool stop_writer_ = false;
 
-   writer_callback_type wcallback_ = [](std::size_t){};
-   reader_callback_type rcallback_ = [](command){};
+   writer_callback_type on_write_ = [](std::size_t){};
+   reader_callback_type on_read_ = [](command){};
    response_adapter_type response_adapter_ = [](command, resp3::type, std::size_t, std::size_t, char const*, std::size_t, std::error_code&){};
 
    /* Prepares the back of the queue to receive further commands. 
@@ -307,14 +305,8 @@ private:
       return false;
    }
 
-   void stop_writer()
-   {
-      stop_writer_ = true;
-      timer_.cancel();
-   }
-
    // Returns true when the next request can be writen.
-   bool on_read()
+   bool on_cmd()
    {
       assert(!std::empty(req_info_));
       assert(!std::empty(commands_));
@@ -375,15 +367,6 @@ public:
    /// Returns the executor used for I/O with Redis.
    auto get_executor() {return socket_.get_executor();}
 
-   void set_writer_callback(writer_callback_type wcallback)
-      { wcallback_ = std::move(wcallback); }
-
-   void set_reader_callback(reader_callback_type rcallback)
-      { rcallback_ = std::move(rcallback); }
-
-   void set_response_adapter(response_adapter_type adapter)
-      { response_adapter_ = std::move(adapter); }
-
    /** \brief Adds a command to the command queue.
     *
     *  \sa serializer.hpp
@@ -433,13 +416,22 @@ public:
          timer_.cancel_one();
    }
 
-   template <class CompletionToken = default_completion_token_type>
+   template <
+     class Receiver,
+     class CompletionToken = default_completion_token_type
+   >
    auto
    async_run(
-      net::ip::tcp::endpoint ep,
+      Receiver& recv,
+      net::ip::tcp::endpoint ep = {net::ip::make_address("127.0.0.1"), 6379},
       CompletionToken token = CompletionToken{})
    {
+      // To avoid large completion handlers, the objects in the class.
       endpoint_ = ep;
+      response_adapter_ = [&recv](command cmd, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) { recv.on_resp3(cmd, t, aggregate_size, depth, data, size, ec);},
+      on_read_ = [&recv](command cmd) { recv.on_read(cmd); };
+      on_write_ = [&recv](std::size_t n) { recv.on_write(n); };
+
       return net::async_compose
          < CompletionToken
          , void(boost::system::error_code)
@@ -488,6 +480,41 @@ auto adapt2(Tuple& t, Callable c)
 {
    return custom_adapter<Tuple, Callable>(&t, c);
 }
+
+template <class Tuple>
+class receiver_base {
+private:
+   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<resp3::response_traits_t, Tuple>, std::variant>;
+   std::array<variant_type, std::tuple_size<Tuple>::value> adapters_;
+
+protected:
+   Tuple resps_;
+   virtual int to_tuple_index(command cmd) { return 0; }
+
+public:
+   receiver_base(Tuple& t)
+      { resp3::adapter::detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, t); }
+
+   void
+   on_resp3(
+      command cmd,
+      resp3::type t,
+      std::size_t aggregate_size,
+      std::size_t depth,
+      char const* data,
+      std::size_t size,
+      std::error_code& ec)
+   {
+      auto const i = to_tuple_index(cmd);
+      if (i == -1)
+        return;
+
+      std::visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i]);
+   }
+
+   virtual void on_read(command) { }
+   virtual void on_write(std::size_t) { }
+};
 
 } // redis
 } // aedis
