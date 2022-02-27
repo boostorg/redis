@@ -15,7 +15,7 @@ check_PROGRAMS += demo
 check_PROGRAMS += stl_containers
 check_PROGRAMS += serialization
 check_PROGRAMS += key_expiration
-check_PROGRAMS += response_adapter
+check_PROGRAMS += receiver
 check_PROGRAMS += sync
 check_PROGRAMS += test_offline
 check_PROGRAMS += test_online
@@ -37,7 +37,7 @@ demo_SOURCES = $(top_srcdir)/examples/demo.cpp
 stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
 key_expiration_SOURCES = $(top_srcdir)/examples/key_expiration.cpp
-response_adapter_SOURCES = $(top_srcdir)/examples/response_adapter.cpp
+receiver_SOURCES = $(top_srcdir)/examples/receiver.cpp
 sync_SOURCES = $(top_srcdir)/examples/sync.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 test_offline_SOURCES = $(top_srcdir)/tests/offline.cpp
@@ -51,6 +51,8 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/config.hpp\
   $(top_srcdir)/aedis/src.hpp\
   $(top_srcdir)/aedis/redis/command.hpp\
+  $(top_srcdir)/aedis/redis/receiver_tuple.hpp\
+  $(top_srcdir)/aedis/redis/detail/client_ops.hpp\
   $(top_srcdir)/aedis/sentinel/command.hpp\
   $(top_srcdir)/aedis/aedis.hpp\
   $(top_srcdir)/aedis/resp3/adapter/detail/adapters.hpp\

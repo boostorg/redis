@@ -35,30 +35,25 @@ using tuple_type = std::tuple<std::vector<node<std::string>>>;
  * example.
  */
 
-class receiver : public redis::receiver_base<tuple_type> {
+class receiver : public redis::receiver_tuple<tuple_type> {
 private:
    std::shared_ptr<client_type> db_;
    tuple_type resps_;
 
 public:
-   receiver(std::shared_ptr<client_type> db) : receiver_base(resps_), db_{db} {}
+   receiver(std::shared_ptr<client_type> db)
+   : receiver_tuple(resps_), db_{db} {}
 
-   void operator()(command cmd)
+   void on_read(command cmd) override
    {
       switch (cmd) {
-         case command::hello:
-         db_->send(command::subscribe, "channel1", "channel2");
-         break;
-
          case command::unknown:
          std::cout
             << "Event: " << std::get<0>(resps_).at(1).value << "\n"
             << "Channel: " << std::get<0>(resps_).at(2).value << "\n"
             << "Message: " << std::get<0>(resps_).at(3).value << "\n"
             << std::endl;
-         break;
-
-         default:;
+         break; default:;
       }
 
       std::get<0>(resps_).clear();
@@ -69,6 +64,7 @@ int main()
 {
    net::io_context ioc;
    auto db = std::make_shared<client_type>(ioc.get_executor());
+   db->send(command::subscribe, "channel1", "channel2");
    receiver recv{db};
    db->async_run(recv);
    ioc.run();

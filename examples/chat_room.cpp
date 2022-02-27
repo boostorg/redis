@@ -29,7 +29,7 @@ using aedis::signal_handler;
 using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
 using tuple_type = std::tuple<std::vector<node<std::string>>>;
 
-class receiver : public redis::receiver_base<tuple_type>, std::enable_shared_from_this<receiver> {
+class receiver : public redis::receiver_tuple<tuple_type>, std::enable_shared_from_this<receiver> {
 public:
 private:
    std::shared_ptr<client_type> db_;
@@ -37,7 +37,7 @@ private:
    tuple_type resps_;
 
 public:
-   receiver(std::shared_ptr<client_type> db) : receiver_base(resps_), db_{db} {}
+   receiver(std::shared_ptr<client_type> db) : receiver_tuple(resps_), db_{db} {}
 
    void on_message(command cmd)
    {

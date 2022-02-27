@@ -17,6 +17,7 @@
 #include <aedis/resp3/serializer.hpp>
 #include <aedis/resp3/response_traits.hpp>
 #include <aedis/redis/client.hpp>
+#include <aedis/redis/receiver_tuple.hpp>
 
 /** \mainpage Documentation
     \tableofcontents

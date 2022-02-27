@@ -29,13 +29,13 @@ using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::accep
 using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
 using tuple_type = std::tuple<std::vector<node<std::string>>>;
 
-class receiver : public redis::receiver_base<tuple_type>, std::enable_shared_from_this<receiver> {
+class receiver : public redis::receiver_tuple<tuple_type>, std::enable_shared_from_this<receiver> {
 private:
    tuple_type resps_;
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 
 public:
-   receiver() : receiver_base(resps_) {}
+   receiver() : redis::receiver_tuple<tuple_type>(resps_) {}
 
    void on_read(command cmd)
    {

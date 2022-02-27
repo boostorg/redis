@@ -15,12 +15,12 @@ namespace net = aedis::net;
 namespace redis = aedis::redis;
 
 using redis::command;
-using redis::receiver_base;
+using redis::receiver_tuple;
 using redis::index_of;
 using client_type = redis::client<net::detached_t::as_default_on_t<net::ip::tcp::socket>>;
 using tuple_type = std::tuple<int, std::string>;
 
-struct receiver : receiver_base<tuple_type> {
+struct receiver : receiver_tuple<tuple_type> {
 private:
    client_type* db_;
    tuple_type resps_;
@@ -41,7 +41,7 @@ private:
    }
 
 public:
-   receiver(client_type& db) : receiver_base(resps_), db_{&db} {}
+   receiver(client_type& db) : receiver_tuple(resps_), db_{&db} {}
 
    void on_read(command cmd) override
    {
