@@ -23,19 +23,30 @@ namespace redis {
 /**  \brief Base class for receivers that use tuple.
  *   \ingroup any
  */
-template <class Tuple>
+template <class ...Ts>
 class receiver_tuple {
 private:
-   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<resp3::response_traits_t, Tuple>, std::variant>;
-   std::array<variant_type, std::tuple_size<Tuple>::value> adapters_;
+   using tuple_type = std::tuple<Ts...>;
+   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<resp3::response_traits_t, tuple_type>, std::variant>;
+
+   tuple_type resps_;
+   std::array<variant_type, std::tuple_size<tuple_type>::value> adapters_;
 
 protected:
-   Tuple resps_;
    virtual int to_tuple_index(command cmd) { return 0; }
 
+   template <class T>
+   auto& get() { return std::get<T>(resps_);};
+
+   template <class T>
+   auto const& get() const { return std::get<T>(resps_);};
+
+  template <class T>
+  constexpr int index_of() const {return boost::mp11::mp_find<tuple_type, T>::value;}
+
 public:
-   receiver_tuple(Tuple& t)
-      { resp3::adapter::detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, t); }
+   receiver_tuple()
+      { resp3::adapter::detail::assigner<std::tuple_size<tuple_type>::value - 1>::assign(adapters_, resps_); }
 
    void
    on_resp3(
@@ -54,8 +65,8 @@ public:
       std::visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i]);
    }
 
-   virtual void on_read(command) { }
-   virtual void on_write(std::size_t) { }
+   virtual void on_read(command) {}
+   virtual void on_write(std::size_t) {}
 };
 
 } // redis

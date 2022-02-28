@@ -16,6 +16,7 @@
 
 namespace net = aedis::net;
 namespace redis = aedis::redis;
+using redis::receiver_tuple;
 using aedis::redis::command;
 using aedis::redis::client;
 using aedis::redis::adapt;
@@ -27,17 +28,16 @@ using aedis::user_session_base;
 // From lib/net_utils.hpp
 using aedis::signal_handler;
 using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
-using tuple_type = std::tuple<std::vector<node<std::string>>>;
+using response_type = std::vector<node<std::string>>;
 
-class receiver : public redis::receiver_tuple<tuple_type>, std::enable_shared_from_this<receiver> {
+class receiver : public receiver_tuple<response_type>, std::enable_shared_from_this<receiver> {
 public:
 private:
    std::shared_ptr<client_type> db_;
    std::vector<std::shared_ptr<user_session_base>> sessions_;
-   tuple_type resps_;
 
 public:
-   receiver(std::shared_ptr<client_type> db) : receiver_tuple(resps_), db_{db} {}
+   receiver(std::shared_ptr<client_type> db) : db_{db} {}
 
    void on_message(command cmd)
    {
@@ -47,18 +47,18 @@ public:
          break;
 
          case command::incr:
-         std::cout << "Message so far: " << std::get<0>(resps_).front().value << std::endl;
+         std::cout << "Message so far: " << get<response_type>().front().value << std::endl;
          break;
 
          case command::unknown: // Server push
          for (auto& session: sessions_)
-            session->deliver(std::get<0>(resps_).at(3).value);
+            session->deliver(get<response_type>().at(3).value);
          break;
 
          default: { /* Ignore */ }
       }
 
-      std::get<0>(resps_).clear();
+      get<response_type>().clear();
    }
 
    auto add(std::shared_ptr<user_session_base> session)

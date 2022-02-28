@@ -18,6 +18,7 @@
 
 namespace net = aedis::net;
 namespace redis = aedis::redis;
+using redis::receiver_tuple;
 using aedis::redis::command;
 using aedis::redis::client;
 using aedis::resp3::node;
@@ -27,33 +28,29 @@ using aedis::user_session;
 using aedis::user_session_base;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
-using tuple_type = std::tuple<std::vector<node<std::string>>>;
+using response_type = std::vector<node<std::string>>;
 
-class receiver : public redis::receiver_tuple<tuple_type>, std::enable_shared_from_this<receiver> {
+class receiver : public redis::receiver_tuple<response_type>, std::enable_shared_from_this<receiver> {
 private:
-   tuple_type resps_;
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 
 public:
-   receiver() : redis::receiver_tuple<tuple_type>(resps_) {}
-
    void on_read(command cmd)
    {
       switch (cmd) {
          case command::ping:
-         sessions_.front()->deliver(std::get<0>(resps_).front().value);
+         sessions_.front()->deliver(get<response_type>().front().value);
          sessions_.pop();
          break;
 
          case command::incr:
-         std::cout << "Echos so far: " << std::get<0>(resps_).front().value << std::endl;
+         std::cout << "Echos so far: " << get<response_type>().front().value << std::endl;
          break;
 
-         default:
-            { /* Ignore */; }
+         default: /* Ignore */;
       }
 
-      std::get<0>(resps_).clear();
+      get<response_type>().clear();
    }
 
    void add_user_session(std::shared_ptr<user_session_base> session)

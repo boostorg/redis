@@ -38,7 +38,7 @@ void send_containers(std::shared_ptr<client_type> db)
    std::set<std::string> set
       {"one", "two", "three", "four"};
 
-   // Sends the stl containres.
+   // Sends the stl containers.
    db->send_range(command::hset, "hset-key", std::cbegin(map), std::cend(map));
    db->send_range(command::rpush, "rpush-key", std::cbegin(vec), std::cend(vec));
    db->send_range(command::sadd, "sadd-key", std::cbegin(set), std::cend(set));
@@ -50,34 +50,28 @@ void send_containers(std::shared_ptr<client_type> db)
 }
 
 // Grouping of all expected responses in a tuple.
-using tuple_type =
-   std::tuple<
+using receiver_tuple_type =
+   receiver_tuple<
       std::list<int>,
       std::set<std::string>,
       std::vector<node<std::string>>
    >;
 
-struct receiver : receiver_tuple<tuple_type> {
+struct receiver : receiver_tuple_type {
 private:
    std::shared_ptr<client_type> db_;
-   tuple_type resps_;
 
   int to_tuple_index(command cmd) override
   {
      switch (cmd) {
-        case command::lrange:
-        return index_of<std::list<int>, tuple_type>();
-
-        case command::smembers:
-        return index_of<std::set<std::string>, tuple_type>();
-
-        default:
-        return -1;
+        case command::lrange:   return index_of<std::list<int>>();
+        case command::smembers: return index_of<std::set<std::string>>();
+        default: return -1;
      }
   }
 
 public:
-   receiver(std::shared_ptr<client_type> db) : receiver_tuple(resps_), db_{db} {}
+   receiver(std::shared_ptr<client_type> db) : db_{db} {}
 
    void on_read(command cmd) override
    {
@@ -88,11 +82,11 @@ public:
          break;
 
          case command::lrange:
-         aedis::print_and_clear(std::get<std::list<int>>(resps_));
+         aedis::print_and_clear(get<std::list<int>>());
          break;
 
          case command::smembers:
-         aedis::print_and_clear(std::get<std::set<std::string>>(resps_));
+         aedis::print_and_clear(get<std::set<std::string>>());
          break;
 
          default:;

@@ -53,26 +53,20 @@ from_string(
    }
 }
 
-using tuple_type = std::tuple<mystruct>;
-
-struct receiver : receiver_tuple<tuple_type> {
+struct receiver : receiver_tuple<mystruct> {
 private:
    client_type* db_;
-   tuple_type resps_;
 
    int to_tuple_index(command cmd) override
    {
       switch (cmd) {
-         case command::get:
-         return index_of<mystruct, tuple_type>();
-
-         default:
-         return -1;
+         case command::get: return index_of<mystruct>();
+         default: return -1;
       }
    }
 
 public:
-   receiver(client_type& db) : receiver_tuple(resps_), db_{&db} {}
+   receiver(client_type& db) : db_{&db} {}
 
    void on_read(command cmd) override
    {
@@ -86,9 +80,8 @@ public:
 
          case command::get:
          {
-            auto const& ref = std::get<mystruct>(resps_);
-            std::cout << "a: " << ref.a << "\n"
-                      << "b: " << ref.b << "\n";
+            std::cout << "a: " << get<mystruct>().a << "\n"
+                      << "b: " << get<mystruct>().b << "\n";
          } break;
 
          default:;
