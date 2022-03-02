@@ -20,7 +20,6 @@ namespace net = aedis::net;
 namespace redis = aedis::redis;
 using aedis::redis::command;
 using aedis::redis::receiver_tuple;
-using aedis::redis::index_of;
 using aedis::resp3::node;
 using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
 

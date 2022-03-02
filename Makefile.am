@@ -11,7 +11,8 @@ AM_LDFLAGS =
 AM_LDFLAGS += -pthread
 
 check_PROGRAMS =
-check_PROGRAMS += demo
+check_PROGRAMS += intro
+check_PROGRAMS += aggregates
 check_PROGRAMS += stl_containers
 check_PROGRAMS += serialization
 check_PROGRAMS += key_expiration
@@ -33,7 +34,8 @@ CLEANFILES += $(EXTRA_PROGRAMS)
 .PHONY: all
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
-demo_SOURCES = $(top_srcdir)/examples/demo.cpp
+intro_SOURCES = $(top_srcdir)/examples/intro.cpp
+aggregates_SOURCES = $(top_srcdir)/examples/aggregates.cpp
 stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
 key_expiration_SOURCES = $(top_srcdir)/examples/key_expiration.cpp

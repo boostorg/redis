@@ -13,12 +13,10 @@
 #include "lib/net_utils.hpp"
 
 namespace net = aedis::net;
-namespace redis = aedis::redis;
 using aedis::redis::command;
-using aedis::redis::client;
+using aedis::redis::receiver_tuple;
 using aedis::resp3::node;
-using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
-using redis::receiver_tuple;
+using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 
 /* In this example we send a subscription to a channel and start
@@ -36,12 +34,21 @@ using response_type = std::vector<node<std::string>>;
  * example.
  */
 
-struct receiver : redis::receiver_tuple<response_type> {
+class receiver : public receiver_tuple<response_type> {
+private:
+   client_type* db_;
+
+public:
+   receiver(client_type& db) : db_{&db} {}
 
    void on_read(command cmd) override
    {
       switch (cmd) {
-         case command::unknown:
+         case command::hello:
+         db_->send(command::subscribe, "channel1", "channel2");
+         break;
+
+         case command::invalid:
          std::cout
             << "Event: " << get<response_type>().at(1).value << "\n"
             << "Channel: " << get<response_type>().at(2).value << "\n"
@@ -57,10 +64,14 @@ struct receiver : redis::receiver_tuple<response_type> {
 int main()
 {
    net::io_context ioc;
-   auto db = std::make_shared<client_type>(ioc.get_executor());
-   db->send(command::subscribe, "channel1", "channel2");
-   receiver recv;
-   db->async_run(recv);
+   client_type db{ioc.get_executor()};
+   receiver recv{db};
+
+   db.async_run(
+      recv,
+      {net::ip::make_address("127.0.0.1"), 6379},
+      [](auto ec){ std::cout << ec.message() << std::endl;});
+
    ioc.run();
 }
 

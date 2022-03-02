@@ -19,7 +19,6 @@ namespace redis = aedis::redis;
 using redis::receiver_tuple;
 using aedis::redis::command;
 using aedis::redis::client;
-using aedis::redis::adapt;
 using aedis::resp3::node;
 using aedis::resp3::type;
 using aedis::user_session;
@@ -50,7 +49,7 @@ public:
          std::cout << "Message so far: " << get<response_type>().front().value << std::endl;
          break;
 
-         case command::unknown: // Server push
+         case command::invalid: // Server push
          for (auto& session: sessions_)
             session->deliver(get<response_type>().at(3).value);
          break;

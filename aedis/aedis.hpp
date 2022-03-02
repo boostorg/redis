@@ -40,6 +40,8 @@
     - intro.cpp: A good starting point. Some commands are sent to the
       Redis server and the responses are printed to screen. 
 
+    - aggregates.cpp:
+
     - transaction.cpp: Shows how to read the responses to a trasaction
       efficiently. See also https://redis.io/topics/transactions.
 

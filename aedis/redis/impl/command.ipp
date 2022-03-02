@@ -5,6 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <cassert>
 #include <aedis/redis/command.hpp>
 
 namespace aedis {
@@ -12,6 +13,8 @@ namespace redis {
 
 char const* to_string(command c)
 {
+   assert(c != command::invalid);
+
    static char const* table[] = {
       "ACL",
       "APPEND",

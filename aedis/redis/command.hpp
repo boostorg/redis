@@ -432,8 +432,8 @@ enum class command {
    zscore,
    /// https://redis.io/commands/zunionstore
    zunionstore,
-   /// Unknown/invalid command.
-   unknown
+   /// Invalid command.
+   invalid
 };
 
 /** \brief Converts a command to a string

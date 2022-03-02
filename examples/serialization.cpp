@@ -7,7 +7,6 @@
 
 #include <string>
 #include <iostream>
-#include <charconv>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
@@ -15,52 +14,58 @@
 namespace net = aedis::net;
 using aedis::redis::command;
 using aedis::redis::receiver_tuple;
-using aedis::redis::index_of;
 using client_type = aedis::redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
 
+// Arbitrary struct to de/serialize.
 struct mystruct {
   int a;
   int b;
 };
 
+std::ostream& operator<<(std::ostream& os, mystruct const& obj)
+{
+   os << "a: " << obj.a << ", b: " << obj.b;
+   return os;
+}
+
+bool operator<(mystruct const& a, mystruct const& b)
+{
+   return std::tie(a.a, a.b) < std::tie(b.a, b.b);
+}
+
+// Dumy serialization.
 std::string to_string(mystruct const& obj)
 {
-   return std::to_string(obj.a) + '\t' + std::to_string(obj.b);
+   return "Dummy serializaiton string.";
 }
 
-// Deserializes avoiding temporary copies.
-void
-from_string(
-   mystruct& obj,
-   char const* data,
-   std::size_t size,
-   std::error_code& ec)
+// Dummy deserialization.
+void from_string(mystruct& obj, char const* data, std::size_t size, std::error_code& ec)
 {
-   auto const* end = data + size;
-   auto const* pos = std::find(data, end, '\t');
-   assert(pos != end); // Or use your own error code.
-
-   auto const res1 = std::from_chars(data, pos, obj.a);
-   if (res1.ec != std::errc()) {
-      ec = std::make_error_code(res1.ec);
-      return;
-   }
-
-   auto const res2 = std::from_chars(pos + 1, end, obj.b);
-   if (res2.ec != std::errc()) {
-      ec = std::make_error_code(res2.ec);
-      return;
-   }
+   obj.a = 1;
+   obj.b = 2;
 }
 
-struct receiver : receiver_tuple<mystruct> {
+// One tuple element for each expected request.
+using receiver_tuple_type =
+   receiver_tuple<
+                             mystruct, // get
+                  std::list<mystruct>, // lrange
+                   std::set<mystruct>, // smembers
+      std::map<std::string, mystruct>  // hgetall
+   >;
+
+struct receiver : receiver_tuple_type {
 private:
    client_type* db_;
 
    int to_tuple_index(command cmd) override
    {
       switch (cmd) {
-         case command::get: return index_of<mystruct>();
+         case command::get:      return index_of<mystruct>();
+         case command::lrange:   return index_of<std::list<mystruct>>();
+         case command::smembers: return index_of<std::set<mystruct>>();
+         case command::hgetall:  return index_of<std::map<std::string, mystruct>>();
          default: return -1;
       }
    }
@@ -73,16 +78,59 @@ public:
       switch (cmd) {
          case command::hello:
          {
-            db_->send(command::set, "serialization-key", mystruct{21, 22});
-            db_->send(command::get, "serialization-key");
+            mystruct var{1, 2};
+
+            std::map<std::string, mystruct> map
+               { {"key1", {1, 2}}
+               , {"key2", {3, 4}}
+               , {"key3", {5, 6}}};
+
+            std::vector<mystruct> vec
+               {{1, 2}, {3, 4}, {5, 6}};
+
+            std::set<std::string> set
+               {{1, 2}, {3, 4}, {5, 6}};
+
+            // Sends
+            db_->send(command::set, "serialization-var-key", var);
+            db_->send_range(command::hset, "serialization-hset-key", std::cbegin(map), std::cend(map));
+            db_->send_range(command::rpush, "serialization-rpush-key", std::cbegin(vec), std::cend(vec));
+            db_->send_range(command::sadd, "serialization-sadd-key", std::cbegin(set), std::cend(set));
+
+            // Retrieves
+            db_->send(command::get, "serialization-var-key");
+            db_->send(command::hgetall, "serialization-hset-key");
+            db_->send(command::lrange, "serialization-rpush-key", 0, -1);
+            db_->send(command::smembers, "serialization-sadd-key");
+
+            // quits
             db_->send(command::quit);
          } break;
 
          case command::get:
-         {
-            std::cout << "a: " << get<mystruct>().a << "\n"
-                      << "b: " << get<mystruct>().b << "\n";
-         } break;
+         std::cout << get<mystruct>() << std::endl;
+         break;
+
+         case command::lrange:
+         for (auto const& e: get<std::list<mystruct>>())
+            std::cout << e << " ";
+         std::cout << "\n";
+         get<std::list<mystruct>>().clear();
+         break;
+
+         case command::smembers:
+         for (auto const& e: get<std::set<mystruct>>())
+            std::cout << e << " ";
+         std::cout << "\n";
+         get<std::set<mystruct>>().clear();
+         break;
+
+         case command::hgetall:
+         for (auto const& e: get<std::map<std::string, mystruct>>())
+            std::cout << e.first << ", " << e.second << std::endl;
+         std::cout << "\n";
+         get<std::map<std::string, mystruct>>().clear();
+         break;
 
          default:;
       }
@@ -94,6 +142,11 @@ int main()
    net::io_context ioc;
    client_type db(ioc.get_executor());
    receiver recv{db};
-   db.async_run(recv);
+
+   db.async_run(
+      recv,
+      {net::ip::make_address("127.0.0.1"), 6379},
+      [](auto ec){ std::cout << ec.message() << std::endl;});
+
    ioc.run();
 }

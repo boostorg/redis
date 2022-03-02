@@ -58,7 +58,7 @@ void print_cmds_enum(std::vector<std::string> const& cmds)
          << "   " << cmd << ",\n";
    }
 
-   std::cout << "   unknown\n};\n";
+   std::cout << "   invalid\n};\n";
 }
 
 void print_cmds_strs(std::vector<std::string> const& cmds)

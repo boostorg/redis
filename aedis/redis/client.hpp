@@ -8,29 +8,12 @@
 #pragma once
 
 #include <vector>
-#include <boost/mp11.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/redis/detail/client_ops.hpp>
 #include <aedis/redis/command.hpp>
 
 namespace aedis {
 namespace redis {
-
-template <class T, class Tuple>
-constexpr int index_of() {return boost::mp11::mp_find<Tuple, T>::value;}
-
-inline
-auto adapt()
-{
-   return [](command, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) { };
-}
-
-template <class T>
-auto adapt(T& t)
-{
-   return [adapter = resp3::adapt(t)](command, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable
-      { return adapter(t, aggregate_size, depth, data, size, ec); };
-}
 
 /**  \brief A high level redis client.
  *   \ingroup any

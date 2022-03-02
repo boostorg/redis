@@ -135,7 +135,7 @@ struct read_op {
    // Consider moving this variables to the client to spare some
    // memory in the competion handler.
    resp3::type t = resp3::type::invalid;
-   redis::command cmd = redis::command::unknown;
+   redis::command cmd = redis::command::invalid;
 
    template <class Self>
    void operator()( Self& self
@@ -163,7 +163,7 @@ struct read_op {
 
          assert(!std::empty(cli->read_buffer_));
          t = resp3::detail::to_type(cli->read_buffer_.front());
-         cmd = redis::command::unknown;
+         cmd = redis::command::invalid;
          if (t != resp3::type::push) {
             assert(!std::empty(cli->commands_));
             cmd = cli->commands_.front();
