@@ -162,6 +162,7 @@ struct assigner<0> {
   }
 };
 
+// TODO: Produce error if resposes before exec are not QUEUED.
 template <class Tuple>
 class flat_transaction_adapter {
 private:
@@ -180,7 +181,7 @@ public:
    {
       if (depth == 1) {
          if (is_aggregate(t))
-            aggregate_size_ = aggregate_size;
+            aggregate_size_ = element_multiplicity(t) * aggregate_size;
          else
             ++i_;
 
@@ -201,10 +202,8 @@ public:
       std::error_code& ec)
    {
       if (depth == 0) {
-         if (aggregate_size != std::tuple_size<Tuple>::value) {
+         if (aggregate_size != std::tuple_size<Tuple>::value)
 	    ec = adapter::error::incompatible_tuple_size;
-	    return;
-	 }
 
          return;
       }

@@ -39,7 +39,7 @@ struct node {
 /** \brief Converts the node to a string.
  *  \ingroup any
  *
- *  \param obj The node object.
+ *  \param in The node object.
  */
 template <class String>
 std::string to_string(node<String> const& in)

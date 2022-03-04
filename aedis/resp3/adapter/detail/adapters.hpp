@@ -158,6 +158,8 @@ public:
       std::error_code& ec)
    {
       set_on_resp3_error(t, ec);
+      if (ec)
+         return;
 
       if (is_aggregate(t)) {
 	 ec = adapter::error::expects_simple_type;
@@ -187,6 +189,8 @@ public:
       std::error_code& ec)
    {
       set_on_resp3_error2(t, ec);
+      if (ec)
+        return;
 
       if (is_aggregate(t)) {
 	 ec = adapter::error::expects_simple_type;
@@ -230,6 +234,8 @@ public:
        std::error_code& ec)
    {
       set_on_resp3_error(t, ec);
+      if (ec)
+         return;
 
       if (is_aggregate(t)) {
 	 if (i_ != -1) {
@@ -241,7 +247,10 @@ public:
          result_->resize(m * aggregate_size);
          ++i_;
       } else {
-	 assert(aggregate_size == 1);
+         if (aggregate_size != 1) {
+            ec = adapter::error::nested_unsupported;
+            return;
+         }
 
          from_string(result_->at(i_), value, data_size, ec);
          ++i_;
@@ -266,18 +275,23 @@ public:
        std::error_code& ec)
    {
       set_on_resp3_error(t, ec);
+      if (ec)
+         return;
 
       if (is_aggregate(t)) {
-	 if (depth != 0) {
+	 if (depth != 0 && depth != 1) {
 	    ec = adapter::error::nested_unsupported;
 	    return;
 	 }
          return;
       }
 
-      assert(aggregate_size == 1);
+      if (aggregate_size != 1) {
+         ec = adapter::error::nested_unsupported;
+         return;
+      }
 
-      if (depth != 1) {
+      if (depth < 1) {
 	 ec = adapter::error::nested_unsupported;
 	 return;
       }
@@ -308,6 +322,8 @@ public:
        std::error_code& ec)
    {
       set_on_resp3_error(t, ec);
+      if (ec)
+         return;
 
       if (t == type::set) {
         assert(depth == 0);
@@ -353,15 +369,27 @@ public:
        std::error_code& ec)
    {
       set_on_resp3_error(t, ec);
+      if (ec)
+         return;
 
-      if (t == type::map) {
-        assert(depth == 0);
+      if (is_aggregate(t)) {
+        assert(t == type::map);
+	if (depth != 0 && depth != 1) {
+	   ec = adapter::error::nested_unsupported;
+	   return;
+	}
         return;
       }
 
-      assert(!is_aggregate(t));
-      assert(depth == 1);
-      assert(aggregate_size == 1);
+      if (aggregate_size != 1) {
+         ec = adapter::error::nested_unsupported;
+         return;
+      }
+
+      if (depth < 1) {
+	 ec = adapter::error::nested_unsupported;
+	 return;
+      }
 
       if (on_key_) {
          typename Container::key_type obj;

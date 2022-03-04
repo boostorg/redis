@@ -17,7 +17,7 @@
 #include <aedis/resp3/serializer.hpp>
 #include <aedis/resp3/response_traits.hpp>
 #include <aedis/redis/client.hpp>
-#include <aedis/redis/receiver_tuple.hpp>
+#include <aedis/redis/receiver.hpp>
 
 /** \mainpage Documentation
     \tableofcontents
@@ -25,12 +25,55 @@
     \section Overview
   
     Aedis is low-level redis client library built on top of Boost.Asio
-    that implements communication with a Redis server over its native
-    protocol RESP3. It has first-class support for STL containers and
-    C++ built in types among other things. You will be able to
-    implement your own redis client or use a general purpose provided
-    by the library. For more information about Redis see
-    https://redis.io/
+    that implements communication with a Redis server over the latests
+    version of its protocol RESP3. Some of its most important features
+    are
+
+    1. First class support for asynchronous communication.
+    2. Support for STL containers.
+    3. Serialization and deserialization of your own data types built directly in the parser to avoid unnecessary copies.
+    4. Client class that encapsulates handling of requests for the user.
+    5. etc.
+
+    For more information about Redis see https://redis.io/
+
+    \section tutorial Tutorial
+
+    The general structure of a program involves writing a receiver like this
+
+    @code
+    class myreceiver : receiver<std::vector<node<std::string>>> {
+    public:
+       void on_read(command cmd) override
+       {
+          switch (cmd) {
+             case command::hello: on_hello(); break;
+             case command::set:   on_set();   break;
+             case command::get:   on_get();   break;
+             ...
+             default:
+          }
+       }
+    };
+    @endcode
+
+    and to start communication with Redis
+
+    @code
+    int main()
+    {
+       net::io_context ioc;
+       client<net::ip::tcp::socket> db(ioc.get_executor());
+       myreceiver recv;
+
+       db.async_run(
+           recv,
+           {net::ip::make_address("127.0.0.1"), 6379},
+           [](auto ec){ std::cout << ec.message() << std::endl;});
+
+       ioc.run();
+    }
+    @endcode
   
     \section examples Examples
 

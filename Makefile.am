@@ -15,12 +15,10 @@ check_PROGRAMS += intro
 check_PROGRAMS += aggregates
 check_PROGRAMS += stl_containers
 check_PROGRAMS += serialization
-check_PROGRAMS += key_expiration
 check_PROGRAMS += receiver
 check_PROGRAMS += sync
 check_PROGRAMS += test_offline
 check_PROGRAMS += test_online
-check_PROGRAMS += transaction
 
 EXTRA_PROGRAMS =
 EXTRA_PROGRAMS += subscriber
@@ -38,7 +36,6 @@ intro_SOURCES = $(top_srcdir)/examples/intro.cpp
 aggregates_SOURCES = $(top_srcdir)/examples/aggregates.cpp
 stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
-key_expiration_SOURCES = $(top_srcdir)/examples/key_expiration.cpp
 receiver_SOURCES = $(top_srcdir)/examples/receiver.cpp
 sync_SOURCES = $(top_srcdir)/examples/sync.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
@@ -47,13 +44,12 @@ test_online_SOURCES = $(top_srcdir)/tests/online.cpp
 subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
-transaction_SOURCES = $(top_srcdir)/examples/transaction.cpp
 
 nobase_include_HEADERS =\
   $(top_srcdir)/aedis/config.hpp\
   $(top_srcdir)/aedis/src.hpp\
   $(top_srcdir)/aedis/redis/command.hpp\
-  $(top_srcdir)/aedis/redis/receiver_tuple.hpp\
+  $(top_srcdir)/aedis/redis/receiver.hpp\
   $(top_srcdir)/aedis/redis/detail/client_ops.hpp\
   $(top_srcdir)/aedis/sentinel/command.hpp\
   $(top_srcdir)/aedis/aedis.hpp\
@@ -76,8 +72,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/redis/client.hpp
 
 nobase_noinst_HEADERS =\
-  $(top_srcdir)/examples/lib/net_utils.hpp\
-  $(top_srcdir)/examples/lib/user_session.hpp\
+  $(top_srcdir)/examples/user_session.hpp\
   $(top_srcdir)/tests/check.hpp\
   $(top_srcdir)/tests/test_stream.hpp
 

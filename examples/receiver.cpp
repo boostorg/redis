@@ -36,14 +36,13 @@ struct receiver {
 
    void on_read(command cmd)
    {
-      std::cout << "on_read: " << cmd << std::endl;
-      // Use the response and then clear it for the next command.
-      resps_.clear();
-
       switch (cmd) {
-         case command::hello: db->send(command::quit);
+         case command::hello: db->send(command::quit); break;
          default:;
       }
+
+      std::cout << "on_read: " << cmd << std::endl;
+      resps_.clear();
    }
 
    void on_write(std::size_t n)

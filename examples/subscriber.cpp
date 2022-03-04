@@ -10,11 +10,9 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-#include "lib/net_utils.hpp"
-
 namespace net = aedis::net;
 using aedis::redis::command;
-using aedis::redis::receiver_tuple;
+using aedis::redis::receiver;
 using aedis::resp3::node;
 using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
@@ -34,14 +32,14 @@ using response_type = std::vector<node<std::string>>;
  * example.
  */
 
-class receiver : public receiver_tuple<response_type> {
+class myreceiver : public receiver<response_type> {
+public:
+   myreceiver(client_type& db) : db_{&db} {}
+
 private:
    client_type* db_;
 
-public:
-   receiver(client_type& db) : db_{&db} {}
-
-   void on_read(command cmd) override
+   void on_read_impl(command cmd) override
    {
       switch (cmd) {
          case command::hello:
@@ -65,7 +63,7 @@ int main()
 {
    net::io_context ioc;
    client_type db{ioc.get_executor()};
-   receiver recv{db};
+   myreceiver recv{db};
 
    db.async_run(
       recv,

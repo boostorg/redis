@@ -15,12 +15,13 @@
 
 namespace net = aedis::net;
 using aedis::redis::command;
-using aedis::redis::receiver_tuple;
+using aedis::redis::receiver;
 using aedis::resp3::node;
 using client_type = aedis::redis::client<net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 
-void print_flat_aggregate(response_type const& v)
+// Prints aggregates that don't contain nested aggregates.
+void print_aggregate(response_type const& v)
 {
    auto const m = element_multiplicity(v.front().data_type);
    for (auto i = 0lu; i < m * v.front().aggregate_size; ++i)
@@ -28,14 +29,14 @@ void print_flat_aggregate(response_type const& v)
    std::cout << "\n";
 }
 
-struct receiver : receiver_tuple<response_type> {
+struct myreceiver : receiver<response_type> {
+public:
+   myreceiver(client_type& db) : db_{&db} {}
+
 private:
    client_type* db_;
 
-public:
-   receiver(client_type& db) : db_{&db} {}
-
-   void on_read(command cmd) override
+   void on_read_impl(command cmd) override
    {
       switch (cmd) {
          case command::hello:
@@ -67,7 +68,7 @@ public:
          case command::lrange:
          case command::smembers:
          case command::hgetall:
-         print_flat_aggregate(get<response_type>());
+         print_aggregate(get<response_type>());
          break;
 
          default:;
@@ -81,7 +82,7 @@ int main()
 {
    net::io_context ioc;
    client_type db{ioc.get_executor()};
-   receiver recv{db};
+   myreceiver recv{db};
 
    db.async_run(
       recv,

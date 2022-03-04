@@ -13,24 +13,19 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-#include "lib/user_session.hpp"
-#include "lib/net_utils.hpp"
+#include "user_session.hpp"
 
 namespace net = aedis::net;
-namespace redis = aedis::redis;
-using redis::receiver_tuple;
+using aedis::redis::receiver;
 using aedis::redis::command;
 using aedis::redis::client;
 using aedis::resp3::node;
-
-// From lib/net_utils.hpp
 using aedis::user_session;
 using aedis::user_session_base;
-using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
+using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 
-class receiver : public redis::receiver_tuple<response_type>, std::enable_shared_from_this<receiver> {
+class myreceiver : public receiver<response_type> {
 private:
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 
@@ -59,12 +54,12 @@ public:
 
 net::awaitable<void>
 listener(
-    std::shared_ptr<tcp_acceptor> acc,
+    std::shared_ptr<net::ip::tcp::acceptor> acc,
     std::shared_ptr<client_type> db,
-    std::shared_ptr<receiver> recv)
+    std::shared_ptr<myreceiver> recv)
 {
    for (;;) {
-      auto socket = co_await acc->async_accept();
+      auto socket = co_await acc->async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
 
       auto on_user_msg = [db, recv, session](std::string const& msg)
@@ -84,23 +79,22 @@ int main()
       net::io_context ioc;
 
       auto db = std::make_shared<client_type>(ioc.get_executor());
-      auto recv = std::make_shared<receiver>();
+      auto recv = std::make_shared<myreceiver>();
 
-      db->async_run(*recv);
+      db->async_run(
+          *recv,
+          {net::ip::make_address("127.0.0.1"), 6379},
+          [](auto ec){ std::cout << ec.message() << std::endl;});
 
       auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
-      auto acc = std::make_shared<tcp_acceptor>(ioc.get_executor(), endpoint);
+      auto acc = std::make_shared<net::ip::tcp::acceptor>(ioc.get_executor(), endpoint);
+      co_spawn(ioc, listener(acc, db, recv), net::detached);
+
       net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);
-
-      signals.async_wait([=](auto, int){
-         // Request redis to close the connection.
-         db->send(aedis::redis::command::quit);
-
-         // Stop the listener.
+      signals.async_wait([=] (auto, int) {
+         db->send(command::quit);
          acc->cancel();
       });
-
-      co_spawn(ioc, listener(acc, db, recv), net::detached);
 
       ioc.run();
    } catch (std::exception const& e) {

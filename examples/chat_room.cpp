@@ -11,32 +11,25 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-#include "lib/user_session.hpp"
-#include "lib/net_utils.hpp"
+#include "user_session.hpp"
 
 namespace net = aedis::net;
-namespace redis = aedis::redis;
-using redis::receiver_tuple;
+using aedis::redis::receiver;
 using aedis::redis::command;
-using aedis::redis::client;
 using aedis::resp3::node;
-using aedis::resp3::type;
 using aedis::user_session;
 using aedis::user_session_base;
-
-// From lib/net_utils.hpp
-using aedis::signal_handler;
-using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
+using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 
-class receiver : public receiver_tuple<response_type>, std::enable_shared_from_this<receiver> {
+class myreceiver : public receiver<response_type> {
 public:
 private:
    std::shared_ptr<client_type> db_;
    std::vector<std::shared_ptr<user_session_base>> sessions_;
 
 public:
-   receiver(std::shared_ptr<client_type> db) : db_{db} {}
+   myreceiver(std::shared_ptr<client_type> db) : db_{db} {}
 
    void on_message(command cmd)
    {
@@ -46,7 +39,7 @@ public:
          break;
 
          case command::incr:
-         std::cout << "Message so far: " << get<response_type>().front().value << std::endl;
+         std::cout << "Messages so far: " << get<response_type>().front().value << std::endl;
          break;
 
          case command::invalid: // Server push
@@ -64,18 +57,12 @@ public:
       { sessions_.push_back(session); }
 };
 
-net::awaitable<void> listener()
+net::awaitable<void>
+listener(
+    std::shared_ptr<net::ip::tcp::acceptor> acc,
+    std::shared_ptr<client_type> db,
+    std::shared_ptr<myreceiver> recv)
 {
-   auto ex = co_await net::this_coro::executor;
-
-   auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
-   auto acc = std::make_shared<net::ip::tcp::acceptor>(ex, endpoint);
-   auto db = std::make_shared<client_type>(ex);
-   auto recv = std::make_shared<receiver>(db);
-   db->async_run(*recv);
-
-   net::co_spawn(ex, signal_handler(acc, db), net::detached);
-
    auto on_user_msg = [db](std::string const& msg)
    {
       db->send(command::publish, "channel", msg);
@@ -94,7 +81,25 @@ int main()
 {
    try {
       net::io_context ioc{1};
-      co_spawn(ioc, listener(), net::detached);
+
+      auto db = std::make_shared<client_type>(ioc.get_executor());
+      auto recv = std::make_shared<myreceiver>(db);
+
+      db->async_run(
+          *recv,
+          {net::ip::make_address("127.0.0.1"), 6379},
+          [](auto ec){ std::cout << ec.message() << std::endl;});
+
+      auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
+      auto acc = std::make_shared<net::ip::tcp::acceptor>(ioc.get_executor(), endpoint);
+      co_spawn(ioc, listener(acc, db, recv), net::detached);
+
+      net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);
+      signals.async_wait([=] (auto, int) {
+         db->send(command::quit);
+         acc->cancel();
+      });
+
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
