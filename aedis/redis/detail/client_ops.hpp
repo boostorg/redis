@@ -182,7 +182,7 @@ struct read_op {
             return;
          }
 
-         if (t != resp3::type::push && cli->on_cmd())
+         if (t != resp3::type::push && cli->on_cmd(cmd))
             cli->timer_.cancel_one();
 
          recv->on_read(cmd);

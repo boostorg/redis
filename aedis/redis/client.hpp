@@ -12,6 +12,10 @@
 #include <aedis/redis/detail/client_ops.hpp>
 #include <aedis/redis/command.hpp>
 
+// TODO: What to do if a users send a discard not contained in a
+// transaction. The client object will try to pop the queue until a
+// multi is found.
+
 namespace aedis {
 namespace redis {
 
@@ -20,7 +24,8 @@ namespace redis {
  *
  *   This Redis client keeps a connection to the database open and
  *   uses it for all communication with Redis. For examples on how to
- *   use see the examples chat_room.cpp, echo_server.cpp and redis_client.cpp.
+ *   use see the examples chat_room.cpp, echo_server.cpp and
+ *   redis_client.cpp.
  *
  *   \remarks This class reuses its internal buffers for requests and
  *   for reading Redis responses. With time it will allocate less and
@@ -95,8 +100,11 @@ private:
    }
 
    // Returns true when the next request can be writen.
-   bool on_cmd()
+   bool on_cmd(command)
    {
+      // TODO: If the response to a discard is received we have to
+      // remove all commands up until multi.
+
       assert(!std::empty(req_info_));
       assert(!std::empty(commands_));
 

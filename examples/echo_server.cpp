@@ -91,10 +91,7 @@ int main()
       co_spawn(ioc, listener(acc, db, recv), net::detached);
 
       net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);
-      signals.async_wait([=] (auto, int) {
-         db->send(command::quit);
-         acc->cancel();
-      });
+      signals.async_wait([&] (auto, int) { ioc.stop(); });
 
       ioc.run();
    } catch (std::exception const& e) {

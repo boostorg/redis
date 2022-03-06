@@ -69,6 +69,9 @@ public:
 
    void on_read(command cmd)
    {
+      if (cmd == command::discard)
+         on_transaction_ = false;
+
       if (on_transaction_)
          return;
 

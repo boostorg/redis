@@ -20,7 +20,7 @@ using aedis::resp3::node;
 using client_type = aedis::redis::client<net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 
-// Prints aggregates that don't contain nested aggregates.
+// Prints aggregates that don't contain any nested aggregates.
 void print_aggregate(response_type const& v)
 {
    auto const m = element_multiplicity(v.front().data_type);

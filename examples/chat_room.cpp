@@ -31,7 +31,7 @@ private:
 public:
    myreceiver(std::shared_ptr<client_type> db) : db_{db} {}
 
-   void on_message(command cmd)
+   void on_read(command cmd)
    {
       switch (cmd) {
          case command::hello:
@@ -72,8 +72,8 @@ listener(
    for (;;) {
       auto socket = co_await acc->async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
-      recv->add(session);
       session->start(on_user_msg);
+      recv->add(session);
    }
 }
 
@@ -95,10 +95,7 @@ int main()
       co_spawn(ioc, listener(acc, db, recv), net::detached);
 
       net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);
-      signals.async_wait([=] (auto, int) {
-         db->send(command::quit);
-         acc->cancel();
-      });
+      signals.async_wait([&] (auto, int) { ioc.stop(); });
 
       ioc.run();
    } catch (std::exception const& e) {

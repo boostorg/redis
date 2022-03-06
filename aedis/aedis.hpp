@@ -24,58 +24,84 @@
   
     \section Overview
   
-    Aedis is low-level redis client library built on top of Boost.Asio
-    that implements communication with a Redis server over the latests
-    version of its protocol RESP3. Some of its most important features
-    are
+    Aedis is a low-level redis client library that provides simple and
+    efficient communication with a Redis server built on top of
+    Boost.Asio. Some of its distinctive features are
 
-    1. First class support for asynchronous communication.
-    2. Support for STL containers.
-    3. Serialization and deserialization of your own data types built directly in the parser to avoid unnecessary copies.
-    4. Client class that encapsulates handling of requests for the user.
-    5. etc.
+    1. Support for the latest version of the Redis communication protocol RESP3.
+    2. Asynchronous interface that handles servers pushs optimally.
+    3. Firt class support for STL containers.
+    4. Serialization and deserialization of your own data types built directly into the parser that avoids temporaries.
+    5. Client class that abstracts the management of output messages away from the user.
+    6. Asymptotic zero allocations by means of memory reuse.
 
-    For more information about Redis see https://redis.io/
-
-    \section tutorial Tutorial
-
-    The general structure of a program involves writing a receiver like this
-
-    @code
-    class myreceiver : receiver<std::vector<node<std::string>>> {
-    public:
-       void on_read(command cmd) override
-       {
-          switch (cmd) {
-             case command::hello: on_hello(); break;
-             case command::set:   on_set();   break;
-             case command::get:   on_get();   break;
-             ...
-             default:
-          }
-       }
-    };
-    @endcode
-
-    and to start communication with Redis
+    The general form of a program looks like
 
     @code
     int main()
     {
        net::io_context ioc;
-       client<net::ip::tcp::socket> db(ioc.get_executor());
-       myreceiver recv;
+       client<net::ip::tcp::socket> db{ioc.get_executor()};
+       receiver recv;
 
        db.async_run(
            recv,
            {net::ip::make_address("127.0.0.1"), 6379},
-           [](auto ec){ std::cout << ec.message() << std::endl;});
+           [](auto ec){ ... });
 
        ioc.run();
     }
     @endcode
+
+    Most of the time users will be concerned only with the
+    implementation of the \c receiver class, to make that simpler,
+    Aedis provides a base receiver class that abstracts all the
+    complexity away from the user. A typical implementation will look
+    like the following
+
+    @code
+    class myreceiver : receiver<response_type> {
+    public:
+       void on_read_impl(command cmd) override
+       {
+          // Handle commands here.
+       }
+    };
+    @endcode
+
+    Sending commands to Redis is also simple, for example
+
+    @code
+    db.>send(command::ping, "O rato roeu a roupa do rei de Roma");
+    db.>send(command::incr, "counter");
+    db.>send(command::set, "key", "Três pratos de trigo para três tigres");
+    db.>send(command::get, "key");
+    db.>send(command::quit);
+    @endcode
+
+    See Tutorial for more details on how to use the library.
+    For more information about Redis see https://redis.io/
+
+    \section tutorial Tutorial
+
+    In the last secion we have seem the general structure of an Aedis
+    program. Here we will give more detail.
+
+    \subsection Requests
+    \subsection Responses
+    \subsubsection Serializaiton
+    \subsubsection Transactions
+
+    Redis commands can fail only if called with a wrong syntax (and
+    the problem is not detectable during the command queueing),
+    or against keys holding the wrong data type: this means that in
+    practical terms a failing command is the result of a programming
+    errors, and a kind of error that is very likely to be detected
+    during development, and not in production.
   
     \section examples Examples
+    https://redis.io/topics/data-types.
+    See also https://redis.io/topics/transactions.
 
     \b Basics: Focuses on small examples that show basic usage of
     the library.
@@ -83,11 +109,12 @@
     - intro.cpp: A good starting point. Some commands are sent to the
       Redis server and the responses are printed to screen. 
 
-    - aggregates.cpp:
+    - aggregates.cpp: Shows how receive RESP3 aggregate data types.
 
-    - transaction.cpp: Shows how to read the responses to a trasaction
-      efficiently. See also https://redis.io/topics/transactions.
+    - stl_containers.cpp:
 
+    - serialization.cpp: Shows how to de/serialize your own
+      non-aggregate data-structures.
     - subscriber.cpp: Shows how channel subscription works at a low
       level. See also https://redis.io/topics/pubsub.
 
@@ -100,33 +127,8 @@
     - chat_room.cpp: Shows how to build a scalable chat room that
       scales to millions of users.
 
-    \b STL \b Containers: Many of the Redis data structures can be
-    directly translated in to STL containers, below you will find some
-    example code. For a list of Redis data types see
-    https://redis.io/topics/data-types.
-
-    - hashes.cpp: Shows how to read Redis hashes in a \c std::map, \c
-      std::unordered_map and \c std::vector.
-
-    - lists.cpp: Shows how to read Redis lists in \c std::list,
-      \c std::deque, \c std::vector. It also illustrates basic serialization.
-
-    - sets.cpp: Shows how to read Redis sets in a \c std::set, \c
-      std::unordered_set and \c std::vector.
-
-    \b Customization \b points: Shows how de/serialize user types
-    avoiding copies. This is particularly useful for low latency
-    applications that want to avoid unneeded copies, for examples when
-    storing json strings in Redis keys.
-
-    - serialization.cpp: Shows how to de/serialize your own
-      non-aggregate data-structures.
-
-    - response_adapter.cpp: Customization point for users that want to
+    - receiver.cpp: Customization point for users that want to
       de/serialize their own data-structures like containers for example.
-
-    - key_expiration.cpp: Shows how to use \c std::optional to deal
-      with keys that may have expired or do not exist.
 
     \section using-aedis Using Aedis
 

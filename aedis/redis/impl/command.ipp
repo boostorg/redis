@@ -13,8 +13,6 @@ namespace redis {
 
 char const* to_string(command c)
 {
-   assert(c != command::invalid);
-
    static char const* table[] = {
       "ACL",
       "APPEND",
@@ -220,6 +218,7 @@ char const* to_string(command c)
       "ZSCAN",
       "ZSCORE",
       "ZUNIONSTORE",
+      "INVALID",
    };
 
    return table[static_cast<int>(c)];
