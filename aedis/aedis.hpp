@@ -25,17 +25,17 @@
     \section Overview
   
     Aedis is a low-level redis client library that provides simple and
-    efficient communication with a Redis server built on top of
-    Boost.Asio. Some of its distinctive features are
+    efficient communication with a Redis server. It is built on top of
+    Boost.Asio and some of its distinctive features are
 
     1. Support for the latest version of the Redis communication protocol RESP3.
     2. Asynchronous interface that handles servers pushs optimally.
-    3. Firt class support for STL containers.
-    4. Serialization and deserialization of your own data types built directly into the parser that avoids temporaries.
-    5. Client class that abstracts the management of output messages away from the user.
+    3. First class support for STL containers and C++ built-in types.
+    4. Serialization and deserialization of your own data types built directly into the parser to avoid temporaries.
+    5. Client class that abstracts the management of the output message queue away from the user.
     6. Asymptotic zero allocations by means of memory reuse.
 
-    The general form of a program looks like
+    The general form of a program looks like this
 
     @code
     int main()
@@ -55,17 +55,15 @@
 
     Most of the time users will be concerned only with the
     implementation of the \c receiver class, to make that simpler,
-    Aedis provides a base receiver class that abstracts all the
-    complexity away from the user. A typical implementation will look
-    like the following
+    Aedis provides a base receiver class that abstracts most of the
+    complexity away from the user. In a typical implementation the
+    following two function will have to be implemented
 
     @code
     class myreceiver : receiver<response_type> {
     public:
-       void on_read_impl(command cmd) override
-       {
-          // Handle commands here.
-       }
+       void on_read_impl(command cmd) override { ... }
+       void on_push_impl() override { ... }
     };
     @endcode
 
@@ -84,13 +82,30 @@
 
     \section tutorial Tutorial
 
-    In the last secion we have seem the general structure of an Aedis
-    program. Here we will give more detail.
+    In the last section we have seen the general structure of an Aedis
+    program. Here we will go in depth.
 
     \subsection Requests
+
+    A request is composed of one or more commands (in Redis
+    documentation they are called pipeline, see
+    https://redis.io/topics/pipelining). The individual commands in a
+    request assume different forms, for example
+
+    @code
+    db.>send(command::quit);
+    db.>send(command::subscribe, "channel1", "channel2");
+    db_->send_range(command::hset, "key", std::cbegin(map), std::cend(map));
+    @endcode
+    
+
     \subsection Responses
+    https://redis.io/topics/data-types.
+    \subsubsection Optional
     \subsubsection Serializaiton
     \subsubsection Transactions
+
+    See also https://redis.io/topics/transactions.
 
     Redis commands can fail only if called with a wrong syntax (and
     the problem is not detectable during the command queueing),
@@ -100,11 +115,6 @@
     during development, and not in production.
   
     \section examples Examples
-    https://redis.io/topics/data-types.
-    See also https://redis.io/topics/transactions.
-
-    \b Basics: Focuses on small examples that show basic usage of
-    the library.
 
     - intro.cpp: A good starting point. Some commands are sent to the
       Redis server and the responses are printed to screen. 

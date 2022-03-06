@@ -23,7 +23,6 @@ using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 
 class myreceiver : public receiver<response_type> {
-public:
 private:
    std::shared_ptr<client_type> db_;
    std::vector<std::shared_ptr<user_session_base>> sessions_;
@@ -31,7 +30,15 @@ private:
 public:
    myreceiver(std::shared_ptr<client_type> db) : db_{db} {}
 
-   void on_read(command cmd)
+   void on_push_impl() override
+   {
+      for (auto& session: sessions_)
+         session->deliver(get<response_type>().at(3).value);
+
+      get<response_type>().clear();
+   }
+
+   void on_read_impl(command cmd) override
    {
       switch (cmd) {
          case command::hello:
@@ -42,12 +49,7 @@ public:
          std::cout << "Messages so far: " << get<response_type>().front().value << std::endl;
          break;
 
-         case command::invalid: // Server push
-         for (auto& session: sessions_)
-            session->deliver(get<response_type>().at(3).value);
-         break;
-
-         default: { /* Ignore */ }
+         default:;
       }
 
       get<response_type>().clear();

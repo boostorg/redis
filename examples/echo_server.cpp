@@ -30,7 +30,7 @@ private:
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 
 public:
-   void on_read(command cmd)
+   void on_read_impl(command cmd) override
    {
       switch (cmd) {
          case command::ping:

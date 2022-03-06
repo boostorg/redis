@@ -34,14 +34,20 @@ struct receiver {
       resps_.emplace_back(t, aggregate_size, depth, std::string{data, size});
    }
 
+   void on_push()
+   {
+      std::cout << "on_push: " << std::endl;
+   }
+
    void on_read(command cmd)
    {
+      std::cout << "on_read: " << cmd << std::endl;
+
       switch (cmd) {
          case command::hello: db->send(command::quit); break;
          default:;
       }
 
-      std::cout << "on_read: " << cmd << std::endl;
       resps_.clear();
    }
 

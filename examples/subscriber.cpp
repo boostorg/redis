@@ -39,20 +39,24 @@ public:
 private:
    client_type* db_;
 
+   void on_push_impl() override
+   {
+      std::cout
+         << "Event: " << get<response_type>().at(1).value << "\n"
+         << "Channel: " << get<response_type>().at(2).value << "\n"
+         << "Message: " << get<response_type>().at(3).value << "\n"
+         << std::endl;
+
+      get<response_type>().clear();
+   }
+
    void on_read_impl(command cmd) override
    {
       switch (cmd) {
          case command::hello:
          db_->send(command::subscribe, "channel1", "channel2");
          break;
-
-         case command::invalid:
-         std::cout
-            << "Event: " << get<response_type>().at(1).value << "\n"
-            << "Channel: " << get<response_type>().at(2).value << "\n"
-            << "Message: " << get<response_type>().at(3).value << "\n"
-            << std::endl;
-         break; default:;
+         default:;
       }
 
       get<response_type>().clear();

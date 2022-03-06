@@ -182,10 +182,14 @@ struct read_op {
             return;
          }
 
-         if (t != resp3::type::push && cli->on_cmd(cmd))
-            cli->timer_.cancel_one();
+         if (t == resp3::type::push) {
+            recv->on_push();
+         } else {
+            if (cli->on_cmd(cmd))
+               cli->timer_.cancel_one();
 
-         recv->on_read(cmd);
+            recv->on_read(cmd);
+         }
       }
    }
 };

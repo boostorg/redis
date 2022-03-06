@@ -41,7 +41,7 @@ public:
    myreceiver(client_type& db) : db_{&db} {}
 
 private:
-   std::shared_ptr<client_type> db_;
+   client_type* db_;
 
    int to_tuple_idx_impl(command cmd) override
    {

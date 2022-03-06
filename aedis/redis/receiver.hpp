@@ -34,6 +34,7 @@ private:
    bool on_transaction_ = false;
 
    virtual void on_read_impl(command) {}
+   virtual void on_push_impl() {}
    virtual void on_write_impl(std::size_t) {}
    virtual int to_tuple_idx_impl(command) { return 0;}
 
@@ -81,6 +82,11 @@ public:
    void on_write(std::size_t n)
    {
       on_write_impl(n);
+   }
+
+   void on_push()
+   {
+      on_push_impl();
    }
 
    int to_tuple_index(command cmd)
