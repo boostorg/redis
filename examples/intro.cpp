@@ -31,8 +31,8 @@ private:
          case command::hello:
          db_->send(command::ping, "O rato roeu a roupa do rei de Roma");
          db_->send(command::incr, "intro-counter");
-         db_->send(command::set, "intro-set-key", "Três pratos de trigo para três tigres");
-         db_->send(command::get, "intro-set-key");
+         db_->send(command::set, "intro-key", "Três pratos de trigo para três tigres");
+         db_->send(command::get, "intro-key");
          db_->send(command::quit);
          break;
 

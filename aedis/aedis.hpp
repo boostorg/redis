@@ -25,8 +25,8 @@
     \section Overview
   
     Aedis is a low-level redis client library that provides simple and
-    efficient communication with a Redis server. It is built on top of
-    Boost.Asio and some of its distinctive features are
+    efficient communication with a Redis server (see https://redis.io/).
+    It is built on top of Boost.Asio and some of its distinctive features are
 
     1. Support for the latest version of the Redis communication protocol RESP3.
     2. Asynchronous interface that handles servers pushs optimally.
@@ -57,53 +57,134 @@
     implementation of the \c receiver class, to make that simpler,
     Aedis provides a base receiver class that abstracts most of the
     complexity away from the user. In a typical implementation the
-    following two function will have to be implemented
+    following functions will be overriden by the user
 
     @code
     class myreceiver : receiver<response_type> {
     public:
-       void on_read_impl(command cmd) override { ... }
-       void on_push_impl() override { ... }
+       void on_read_impl(command cmd) override
+       {
+         // ...
+       }
+
+       void on_write_impl(std::size_t n) override
+       {
+         // ...
+       }
+
+       void on_push_impl() override
+       {
+         // ...
+       }
     };
     @endcode
 
-    Sending commands to Redis is also simple, for example
+    The \c client object (\c db above) can be passed
+    around in the program to send commands to Redis, for example
 
     @code
-    db.>send(command::ping, "O rato roeu a roupa do rei de Roma");
-    db.>send(command::incr, "counter");
-    db.>send(command::set, "key", "Três pratos de trigo para três tigres");
-    db.>send(command::get, "key");
-    db.>send(command::quit);
+    void foo(client<net::ip::tcp::socket>& db)
+    {
+       db.send(command::ping, "O rato roeu a roupa do rei de Roma");
+       db.send(command::incr, "counter");
+       db.send(command::set, "key", "Três pratos de trigo para três tigres");
+       db.send(command::get, "key");
+       ...
+    }
     @endcode
 
-    See Tutorial for more details on how to use the library.
-    For more information about Redis see https://redis.io/
-
-    \section tutorial Tutorial
-
-    In the last section we have seen the general structure of an Aedis
-    program. Here we will go in depth.
+    Now let us see how to make requests and receive responses with more detail.
 
     \subsection Requests
 
-    A request is composed of one or more commands (in Redis
+    Request are composed of one or more commands (in Redis
     documentation they are called pipeline, see
     https://redis.io/topics/pipelining). The individual commands in a
-    request assume different forms, for example
+    request assume many different forms
+
+    1. With key: \c set, \c get, \c expire etc.
+    2. Without key: \c hello, \c quit etc.
+    3. Ranges with a key: \c rpush, \c hgtall etc.
+    4. Ranges without a key: \c subscribe,  etc.
+    5. etc.
+
+    To account for all these possibilities, the \c client class offer
+    some member functions, for example
 
     @code
+    // Some data to send to Redis.
+    std::string value = "some value";
+
+    std::list<std::string> list {"channel1", "channel2", "channel3"};
+
+    std::map<std::string, mystruct> map
+       { {"key1", "value1"}
+       , {"key2", "value2"}
+       , {"key3", "value3"}};
+
+    // No key or arguments.
     db.>send(command::quit);
-    db.>send(command::subscribe, "channel1", "channel2");
-    db_->send_range(command::hset, "key", std::cbegin(map), std::cend(map));
+
+    // With key and arguments.
+    db.>send(command::set, "key", value, "EX", "2");
+
+    // Sends a container, no key
+    db.>send_range(command::subscribe, list);
+
+    // As above but an iterator range.
+    db->send_range2(command::subscribe, std::cbegin(list), std::cend(list));
+
+    // Sends a container, with key.
+    db->send_range(command::hset, "key", map);
+
+    // As above but as iterator range.
+    db->send_range2(command::hset, "key", std::cbegin(map), std::cend(map));
     @endcode
+
+    The \c send functions above adds commands to the output queue and
+    send only if there is no pending response of a previously sent
+    command. Users can also easily send their own data types to Redis
+    by defining a to_string function, for example
+
+    @code
+    struct mystruct {
+      int a;
+      int b;
+    };
     
+    std::string to_string(mystruct const& obj)
+    {
+       // Convert to string
+    }
+
+    std::map<std::string, mystruct> map
+       { {"key1", {1, 2}}
+       , {"key2", {3, 4}}
+       , {"key3", {5, 6}}};
+
+    db.send_range(command::hset, "serialization-hset-key", map);
+    @endcode
+
+    See https://redis.io/commands/hset for \c hset documentation.
 
     \subsection Responses
+
+    The Redis protocol RESP3 defines two types of data, they are.
+
+    1. Simple data types: simple string, simple error, \c blob string, \c blob error, number, double, etc.
+    2. Aggregates: array, push, set, map, etc.
+
+    Most of these types can be translated into C++ containers and bilt-in types, for example
+
+    1. \c std::string: simple and blob string and error.
+    2. `long long int`: number
+    3. \c double: double.
+
     https://redis.io/topics/data-types.
+
     \subsubsection Optional
-    \subsubsection Serializaiton
     \subsubsection Transactions
+    \subsubsection Serializaiton
 
     See also https://redis.io/topics/transactions.
 

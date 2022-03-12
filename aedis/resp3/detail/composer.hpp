@@ -11,6 +11,14 @@
 #include <string_view>
 #include <utility>
 
+// TODO: The signature from to_string should be changed from
+//
+//    std::string to_string(T const&)
+// to
+//
+//    void to_string(std::string& s, T const&)
+//
+
 namespace aedis {
 namespace resp3 {
 namespace detail {
@@ -63,8 +71,8 @@ void add_bulk(Storage& to, T const& data, typename std::enable_if<needs_to_strin
   add_bulk(to, s);
 }
 
+// Consider adding overload for std::tuple.
 // Overload for pairs.
-// TODO: Overload for tuples.
 template <class Storage, class T1, class T2>
 void add_bulk(Storage& to, std::pair<T1, T2> const& pair)
 {

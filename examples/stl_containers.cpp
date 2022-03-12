@@ -70,9 +70,9 @@ private:
                {"one", "two", "three", "four"};
 
             // Sends the stl containers.
-            db_->send_range(command::hset, "hset-key", std::cbegin(map), std::cend(map));
-            db_->send_range(command::rpush, "rpush-key", std::cbegin(vec), std::cend(vec));
-            db_->send_range(command::sadd, "sadd-key", std::cbegin(set), std::cend(set));
+            db_->send_range(command::hset, "hset-key", map);
+            db_->send_range(command::rpush, "rpush-key", vec);
+            db_->send_range(command::sadd, "sadd-key", set);
 
             //_ Retrieves the containers.
             db_->send(command::hgetall, "hset-key");

@@ -12,7 +12,7 @@
 #include <aedis/redis/detail/client_ops.hpp>
 #include <aedis/redis/command.hpp>
 
-// TODO: What to do if a users send a discard not contained in a
+// TODO: What to do if users send a discard command not contained in a
 // transaction. The client object will try to pop the queue until a
 // multi is found.
 
@@ -203,8 +203,10 @@ public:
          timer_.cancel_one();
    }
 
+   /** \brief Sends and iterator range (overload with key).
+    */
    template <class Key, class ForwardIterator>
-   void send_range(command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void send_range2(command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       if (begin == end)
          return;
@@ -227,6 +229,54 @@ public:
          timer_.cancel_one();
    }
 
+   /** \brief Sends and iterator range (overload without key).
+    */
+   template <class ForwardIterator>
+   void send_range2(command cmd, ForwardIterator begin, ForwardIterator end)
+   {
+      if (begin == end)
+         return;
+
+      auto const can_write = prepare_next();
+
+      auto sr = redis::make_serializer(requests_);
+      auto const before = std::size(requests_);
+      sr.push_range(cmd, begin, end);
+      auto const after = std::size(requests_);
+      assert(after - before != 0);
+      req_info_.front().size += after - before;;
+
+      if (!has_push_response(cmd)) {
+         commands_.push_back(cmd);
+         ++req_info_.front().cmds;
+      }
+
+      if (can_write)
+         timer_.cancel_one();
+   }
+
+   /** \brief Sends a range.
+    */
+   template <class Key, class Range>
+   void send_range(command cmd, Key const& key, Range const& range)
+   {
+      using std::begin;
+      using std::end;
+      send_range2(cmd, key, begin(range), end(range));
+   }
+
+   /** \brief Sends a range.
+    */
+   template <class Range>
+   void send_range(command cmd, Range const& range)
+   {
+      using std::begin;
+      using std::end;
+      send_range2(cmd, begin(range), end(range));
+   }
+
+   /** \brief Starts communication with the Redis server asynchronously.
+    */
    template <
      class Receiver,
      class CompletionToken = default_completion_token_type

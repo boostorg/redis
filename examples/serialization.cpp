@@ -104,9 +104,9 @@ private:
 
             // Sends
             db_->send(command::set, "serialization-var-key", var, "EX", "2");
-            db_->send_range(command::hset, "serialization-hset-key", std::cbegin(map), std::cend(map));
-            db_->send_range(command::rpush, "serialization-rpush-key", std::cbegin(vec), std::cend(vec));
-            db_->send_range(command::sadd, "serialization-sadd-key", std::cbegin(set), std::cend(set));
+            db_->send_range(command::hset, "serialization-hset-key", map);
+            db_->send_range(command::rpush, "serialization-rpush-key", vec);
+            db_->send_range(command::sadd, "serialization-sadd-key", set);
 
             // Retrieves
             db_->send(command::get, "serialization-var-key");
