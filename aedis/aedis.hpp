@@ -491,6 +491,8 @@
     @li receiver.cpp: Customization point for users that want to
       de/serialize their own data-structures like containers for example.
 
+    @li low_level.cpp: Show how to use the low level api.
+
     \section using-aedis Using Aedis
 
     To install and use Aedis you will need
