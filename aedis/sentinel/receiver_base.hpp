@@ -7,14 +7,14 @@
 
 #pragma once
 
-#include <aedis/generic/client.hpp>
-#include <aedis/redis/command.hpp>
+#include <aedis/generic/receiver_base.hpp>
+#include <aedis/sentinel/command.hpp>
 
 namespace aedis {
-namespace redis {
+namespace sentinel {
 
-template <class AsyncReadWriteStream>
-using client = generic::client<AsyncReadWriteStream, command>;
+template <class ...Ts>
+using receiver_base = generic::receiver_base<command, Ts...>;
 
 } // redis
 } // aedis

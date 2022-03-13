@@ -13,7 +13,7 @@
 
 namespace net = aedis::net;
 using aedis::redis::command;
-using aedis::redis::receiver;
+using aedis::redis::receiver_base;
 using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
 
 // Arbitrary struct to de/serialize.
@@ -55,7 +55,7 @@ using transaction_type =
 
 // One tuple element for each expected request.
 using receiver_type =
-   receiver<
+   receiver_base<
       std::optional<mystruct>, // get
       std::list<mystruct>, // lrange
       std::set<mystruct>, // smembers

@@ -8,16 +8,14 @@
 #pragma once
 
 #include <aedis/config.hpp>
+
 #include <aedis/redis/command.hpp>
-#include <aedis/sentinel/command.hpp>
-#include <aedis/resp3/type.hpp>
-#include <aedis/resp3/read.hpp>
-#include <aedis/resp3/adapt.hpp>
-#include <aedis/resp3/error.hpp>
-#include <aedis/resp3/serializer.hpp>
-#include <aedis/resp3/response_traits.hpp>
 #include <aedis/redis/client.hpp>
-#include <aedis/redis/receiver.hpp>
+#include <aedis/redis/receiver_base.hpp>
+
+#include <aedis/sentinel/command.hpp>
+#include <aedis/sentinel/client.hpp>
+#include <aedis/sentinel/receiver_base.hpp>
 
 /** \mainpage Documentation
     \tableofcontents
@@ -60,7 +58,7 @@
     functions will be overriden by the user
 
     @code
-    class myreceiver : receiver<response_type> {
+    class myreceiver : receiver_base<response_type> {
     public:
        void on_read_impl(command cmd) override
        {
@@ -241,7 +239,7 @@
     @code
     using response_type = std::vector<node<std::string>>;
 
-    struct myreceiver : receiver<response_type> {
+    struct myreceiver : receiver_base<response_type> {
        void on_read_impl(command cmd) override
        {
           // Get the response with get<response_type>() and clear it
@@ -275,7 +273,7 @@
 
     @code
     using receiver_base_type =
-       receiver<
+       receiver_base<
           std::unordered_map<std:string, std::string>,
           std::unordered_set<std::string, std::string>,
           std::vector<std::string>,

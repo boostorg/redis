@@ -8,13 +8,17 @@
 #pragma once
 
 #include <array>
+
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/system.hpp>
-#include <aedis/redis/command.hpp>
+#include <boost/core/ignore_unused.hpp>
+
 #include <aedis/resp3/type.hpp>
+#include <aedis/resp3/detail/parser.hpp>
+#include <aedis/resp3/read.hpp>
 
 namespace aedis {
-namespace redis {
+namespace generic {
 
 #include <boost/asio/yield.hpp>
 
@@ -126,7 +130,7 @@ struct writer_op {
    }
 };
 
-template <class Client, class Receiver>
+template <class Client, class Receiver, class Command>
 struct read_op {
    Client* cli;
    Receiver* recv;
@@ -135,7 +139,7 @@ struct read_op {
    // Consider moving this variables to the client to spare some
    // memory in the competion handler.
    resp3::type t = resp3::type::invalid;
-   redis::command cmd = redis::command::invalid;
+   Command cmd = Command::invalid;
 
    template <class Self>
    void operator()( Self& self
@@ -163,7 +167,7 @@ struct read_op {
 
          assert(!std::empty(cli->read_buffer_));
          t = resp3::detail::to_type(cli->read_buffer_.front());
-         cmd = redis::command::invalid;
+         cmd = Command::invalid;
          if (t != resp3::type::push) {
             assert(!std::empty(cli->commands_));
             cmd = cli->commands_.front();
@@ -196,5 +200,5 @@ struct read_op {
 
 #include <boost/asio/unyield.hpp>
 
-} // redis
+} // generic
 } // aedis

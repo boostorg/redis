@@ -25,6 +25,7 @@ EXTRA_PROGRAMS += subscriber
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += chat_room
 EXTRA_PROGRAMS += commands
+EXTRA_PROGRAMS += sentinel
 
 CLEANFILES =
 CLEANFILES += $(EXTRA_PROGRAMS)
@@ -42,6 +43,7 @@ commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 test_offline_SOURCES = $(top_srcdir)/tests/offline.cpp
 test_online_SOURCES = $(top_srcdir)/tests/online.cpp
 subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
+sentinel_SOURCES = $(top_srcdir)/examples/sentinel.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
 
@@ -49,9 +51,14 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/config.hpp\
   $(top_srcdir)/aedis/src.hpp\
   $(top_srcdir)/aedis/redis/command.hpp\
-  $(top_srcdir)/aedis/redis/receiver.hpp\
-  $(top_srcdir)/aedis/redis/detail/client_ops.hpp\
+  $(top_srcdir)/aedis/redis/client.hpp\
+  $(top_srcdir)/aedis/redis/receiver_base.hpp\
+  $(top_srcdir)/aedis/generic/client.hpp\
+  $(top_srcdir)/aedis/generic/receiver_base.hpp\
+  $(top_srcdir)/aedis/generic/detail/client_ops.hpp\
   $(top_srcdir)/aedis/sentinel/command.hpp\
+  $(top_srcdir)/aedis/sentinel/client.hpp\
+  $(top_srcdir)/aedis/sentinel/receiver_base.hpp\
   $(top_srcdir)/aedis/aedis.hpp\
   $(top_srcdir)/aedis/resp3/adapter/detail/adapters.hpp\
   $(top_srcdir)/aedis/resp3/adapter/error.hpp\

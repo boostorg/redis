@@ -11,26 +11,11 @@
 #include <aedis/src.hpp>
 
 namespace net = aedis::net;
-using aedis::redis::command;
-using aedis::redis::receiver_base;
+using aedis::sentinel::command;
+using aedis::sentinel::receiver_base;
+using client_type = aedis::sentinel::client<aedis::net::ip::tcp::socket>;
 using aedis::resp3::node;
-using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
-
-/* In this example we send a subscription to a channel and start
- * reading server side messages indefinitely.
- *
- * After starting the example you can test it by sending messages with
- * redis-cli like this
- *
- *    $ redis-cli -3
- *    127.0.0.1:6379> PUBLISH channel1 some-message
- *    (integer) 3
- *    127.0.0.1:6379>
- *
- * The messages will then appear on the terminal you are running the
- * example.
- */
 
 class myreceiver : public receiver_base<response_type> {
 public:

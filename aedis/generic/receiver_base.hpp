@@ -13,18 +13,17 @@
 
 #include <boost/mp11.hpp>
 
-#include <aedis/redis/command.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/response_traits.hpp>
 
 namespace aedis {
-namespace redis {
+namespace generic {
 
 /**  \brief Base class for receivers that use tuple.
  *   \ingroup any
  */
-template <class ...Ts>
-class receiver {
+template <class Command, class ...Ts>
+class receiver_base {
 private:
    using tuple_type = std::tuple<Ts...>;
    using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<resp3::response_traits_t, tuple_type>, std::variant>;
@@ -33,13 +32,13 @@ private:
    std::array<variant_type, std::tuple_size<tuple_type>::value> adapters_;
    bool on_transaction_ = false;
 
-   virtual void on_read_impl(command) {}
+   virtual void on_read_impl(Command) {}
    virtual void on_push_impl() {}
    virtual void on_write_impl(std::size_t) {}
-   virtual int to_tuple_idx_impl(command) { return 0;}
+   virtual int to_tuple_idx_impl(Command) { return 0;}
 
 public:
-   receiver()
+   receiver_base()
       { resp3::adapter::detail::assigner<std::tuple_size<tuple_type>::value - 1>::assign(adapters_, resps_); }
 
    template <class T>
@@ -53,7 +52,7 @@ public:
 
    void
    on_resp3(
-      command cmd,
+      Command cmd,
       resp3::type t,
       std::size_t aggregate_size,
       std::size_t depth,
@@ -68,9 +67,9 @@ public:
       std::visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i]);
    }
 
-   void on_read(command cmd)
+   void on_read(Command cmd)
    {
-      if (cmd == command::discard)
+      if (cmd == Command::discard)
          on_transaction_ = false;
 
       if (on_transaction_)
@@ -89,14 +88,14 @@ public:
       on_push_impl();
    }
 
-   int to_tuple_index(command cmd)
+   int to_tuple_index(Command cmd)
    {
-      if (cmd == command::multi) {
+      if (cmd == Command::multi) {
          on_transaction_ = true;
          return -1;
       }
 
-      if (cmd == command::exec)
+      if (cmd == Command::exec)
          on_transaction_ = false;
 
       if (on_transaction_)
@@ -106,5 +105,5 @@ public:
    }
 };
 
-} // redis
+} // generic
 } // aedis

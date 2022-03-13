@@ -13,11 +13,11 @@
 
 namespace net = aedis::net;
 using aedis::redis::command;
-using aedis::redis::receiver;
+using aedis::redis::receiver_base;
 using client_type = aedis::redis::client<net::ip::tcp::socket>;
 using response_type = aedis::resp3::node<std::string>;
 
-struct myreceiver : receiver<response_type> {
+struct myreceiver : receiver_base<response_type> {
 public:
    myreceiver(client_type& db): db_{&db} {}
 

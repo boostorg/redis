@@ -16,7 +16,7 @@
 #include "user_session.hpp"
 
 namespace net = aedis::net;
-using aedis::redis::receiver;
+using aedis::redis::receiver_base;
 using aedis::redis::command;
 using aedis::redis::client;
 using aedis::resp3::node;
@@ -25,7 +25,7 @@ using aedis::user_session_base;
 using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 
-class myreceiver : public receiver<response_type> {
+class myreceiver : public receiver_base<response_type> {
 private:
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 

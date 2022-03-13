@@ -15,7 +15,7 @@
 
 namespace net = aedis::net;
 using aedis::redis::command;
-using aedis::redis::receiver;
+using aedis::redis::receiver_base;
 using aedis::resp3::node;
 using client_type = aedis::redis::client<net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
@@ -29,7 +29,7 @@ void print_aggregate(response_type const& v)
    std::cout << "\n";
 }
 
-struct myreceiver : receiver<response_type> {
+struct myreceiver : receiver_base<response_type> {
 public:
    myreceiver(client_type& db) : db_{&db} {}
 

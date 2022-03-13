@@ -15,9 +15,9 @@
 namespace net = aedis::net;
 namespace redis = aedis::redis;
 using aedis::redis::command;
-using aedis::redis::receiver;
+using aedis::redis::receiver_base;
 using aedis::resp3::node;
-using client_type = redis::client<net::detached_t::as_default_on_t<aedis::net::ip::tcp::socket>>;
+using client_type = redis::client<aedis::net::ip::tcp::socket>;
 
 // Helper function.
 template <class Container>
@@ -30,7 +30,7 @@ void print_and_clear(Container& cont)
 }
 
 using receiver_type =
-   receiver<
+   receiver_base<
       std::list<int>,
       std::set<std::string>,
       std::vector<node<std::string>>
