@@ -28,12 +28,12 @@
     efficient communication with a Redis server (see https://redis.io/).
     It is built on top of Boost.Asio and some of its distinctive features are
 
-    1. Support for the latest version of the Redis communication protocol RESP3.
-    2. Asynchronous interface that handles servers pushs optimally.
-    3. First class support for STL containers and C++ built-in types.
-    4. Serialization and deserialization of your own data types built directly into the parser to avoid temporaries.
-    5. Client class that abstracts the management of the output message queue away from the user.
-    6. Asymptotic zero allocations by means of memory reuse.
+    @li Support for the latest version of the Redis communication protocol RESP3.
+    @li Asynchronous interface that handles server pushs optimally.
+    @li First class support for STL containers and C++ built-in types.
+    @li Serialization and deserialization of your own data types built directly into the parser to avoid temporaries.
+    @li Client class that abstracts the management of the output message queue away from the user.
+    @li Asymptotic zero allocations by means of memory reuse.
 
     The general form of a program looks like this
 
@@ -55,26 +55,28 @@
 
     Most of the time users will be concerned only with the
     implementation of the \c receiver class, to make that simpler,
-    Aedis provides a base receiver class that abstracts most of the
-    complexity away from the user. In a typical implementation the
-    following functions will be overriden by the user
+    Aedis provides a base class that abstracts most of the complexity
+    away from the user. In a typical implementation the following
+    functions will be overriden by the user
 
     @code
     class myreceiver : receiver<response_type> {
     public:
        void on_read_impl(command cmd) override
        {
-         // ...
+         // Called when the response to a command is received. Users
+         // will tipically use a switch to handle each cmd.
        }
 
        void on_write_impl(std::size_t n) override
        {
-         // ...
+         // Called everytime a request has been successfully writen to
+         // the socket. Users won't need this most of the time.
        }
 
        void on_push_impl() override
        {
-         // ...
+         // Called when a server push is received.
        }
     };
     @endcode
@@ -93,23 +95,22 @@
     }
     @endcode
 
-    Now let us see how to make requests and receive responses with more detail.
+    Now let us see how to make requests and receive responses in more detail.
 
     \subsection Requests
 
-    Request are composed of one or more commands (in Redis
+    Redis request are composed of one or more commands (in Redis
     documentation they are called pipeline, see
-    https://redis.io/topics/pipelining). The individual commands in a
-    request assume many different forms
+    https://redis.io/topics/pipelining). Individual commands in a
+    request assume many different forms, for example
 
-    1. With key: \c set, \c get, \c expire etc.
-    2. Without key: \c hello, \c quit etc.
-    3. Ranges with a key: \c rpush, \c hgtall etc.
-    4. Ranges without a key: \c subscribe,  etc.
-    5. etc.
+    @li With key: \c set, \c get, \c expire etc.
+    @li Without key: \c hello, \c quit etc.
+    @li Ranges with a key: \c rpush, \c hgtall etc.
+    @li Ranges without a key: \c subscribe, etc.
 
-    To account for all these possibilities, the \c client class offer
-    some member functions, for example
+    To account for all these possibilities, the \c client class offers
+    three member functions with different overloads , for example
 
     @code
     // Some data to send to Redis.
@@ -143,12 +144,13 @@
 
     The \c send functions above adds commands to the output queue and
     send only if there is no pending response of a previously sent
-    command.
+    command. The client will send any pending request when the
+    response to a command arrives.
 
     \subsubsection req-serialization Serializaiton
 
-    Users can also easily send their own data types to Redis by
-    defining a to_string function, for example
+    In general the \c send and \c send_range function above will work with integers and \c std::string.
+    To send your own data type defined the \c to_string function like this
 
     @code
     struct mystruct {
@@ -156,6 +158,7 @@
       int b;
     };
     
+    // TODO: Change the signature to ...
     std::string to_string(mystruct const& obj)
     {
        // Convert to string
@@ -169,62 +172,66 @@
     db.send_range(command::hset, "serialization-hset-key", map);
     @endcode
 
-    See https://redis.io/commands/hset for \c hset documentation.
-
     \subsection Responses
 
-    The Redis protocol RESP3 defines two types of data, they are.
+    The Redis protocol RESP3 defines two types of data, they are
 
-    1. Simple data types: simple and blob string, simple and blob
+    @li Simple data types like simple and blob string, simple and blob
        error, number, etc.
 
-    2. Aggregates: array, push, set, map, etc.
+    @li Aggregates: array, push, set, map, etc.
 
-    The simple data types can be mapped in C++ built-in types and
-    containers, for example
+    For a complete list of types see aedis::resp3::type, for a detailed
+    description of each type refer to the RESP3 specification
+    https://redis.io/topics/data-types. At the moment, not all RESP3
+    types are used by the Redis server, users will be concerned with a
+    reduced subset of the RESP3 specification.
 
-    1. Simple and blob string: \c std::string.
-    2. Simple and blob error: \c std::string.
-    3. Big number: \c std::string.
-    4. Verbatim string: \c std::string.
-    5. Attribute: \c std::string.
-    6. Streamed string part: \c std::string.
-    7. Number: `long long int`.
-    8. Double: `double`.
-    9. Bool: `bool`.
-    10. Null: `std::optional`.
+    It is not difficult to see that the simple data types can be
+    mapped into a C++ type, for example
 
-    Aggregate data types can be mapped into C++ containers as long as they don't contain nested aggragates.
+    @li Simple and blob string: \c std::string.
+    @li Simple and blob error: \c std::string.
+    @li Number: `long long int`.
+    @li Double: `double`.
+    @li Bool: `bool`.
+    @li Null: `std::optional`.
 
-    1. Array: \c std::vector.
-    1. Map: \c std::vector, \c std::map and \c std::unordered_map.
-    2. Set: \c std::vector, \c std::set and \c std::unordered_set.
-    3. etc.
+    Aggregate data types can be also mapped into C++ containers as
+    long as they don't contain nested aggragates, for example
+
+    @li Array: \c std::vector.
+    @li Map: \c std::vector, \c std::map and \c std::unordered_map.
+    @li Set: \c std::vector, \c std::set and \c std::unordered_set.
+    @li etc.
 
     To deal with nested types Aedis provides the \c resp3::node type, that is defined like this
 
     @code
     template <class String>
     struct node {
-       /// The RESP3 type of the data in this node.
+       // The RESP3 type of the data in this node.
        type data_type;
 
-       /// The number of elements of an aggregate (or 1 on simple data).
+       // The number of elements of an aggregate (or 1 for simple data).
        std::size_t aggregate_size;
 
-       /// The depth of this node in the response tree.
+       // The depth of this node in the response tree.
        std::size_t depth;
 
-       /// The actual data. For aggregate types this is always empty.
+       // The actual data. For aggregate types this is always empty.
        String value;
     };
     @endcode
 
-    In fact, all Redis responses can be seen as a pre-order view of
-    the response tree (https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR)
+    Users expecting such nested aggregates should use a \c
+    std::vector<node> as a response type in their programs, this is
+    the case for commands like \c hello and \c command.
 
-    For detailed information about the Redis data types see:
-    https://redis.io/topics/data-types.
+    All Redis responses can be seen in fact as a pre-order view of the
+    response tree (https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR).
+    In the next two sections we will see in more detail how handle
+    responses.
 
     \subsubsection general General case
 
@@ -244,26 +251,27 @@
     };
     @endcode
 
-    Notice that this is very efficient as all responses with reuse the
-    same buffer which avoids further dynamic allocations.
+    This works for any command regardless of their RESP3 type. Notice
+    it is very efficient as all responses with reuse the same buffer
+    to avoid further dynamic allocations.
 
     \subsubsection custom Custom responses
 
     Some users will however want to received Redis responses directly
     in C++ built-in types or containers. That may be the case for the
-    convenience provided by STL containers or for performance reasons as
-    adding elements to a container as they arrive from the network is
-    more efficient that converting from a \c std::vector<node> later.
+    convenience provided by STL containers or for performance reasons
+    as adding elements to a container as they arrive from the network
+    is more efficient that converting from a \c std::vector<node>
+    later.  Let assume for example that a user wants to receive all
+    responses to
 
-    Let assume for example that a user wants to receive all responses
-    to
+    @li \c hgetall: into a \c std::unordered_map<std::string, std::std::string>
+    @li \c smembers: into a \c std::unordered_set<std::string, std::std::string>
+    @li \c lrange: into a \c std::vector<std::string>
+    @li Everything else in an std::vector<node>.
 
-    1. \c hgetall: into a \c std::unordered_map<std::string, std::std::string>
-    2. \c smembers: into a \c std::unordered_set<std::string, std::std::string>
-    3. \c lrange: into a \c std::vector<std::string>
-    4. Everything else further in an std::vector<node>.
-
-    To achieve that it would have to define a receiver like this
+    To achieve that it would be necessary to define a receiver and
+    override the \c to_tuple_idx_impl member function
 
     @code
     using receiver_base_type =
@@ -290,15 +298,15 @@
        {
           switch (cmd) {
              case command::hgetall:
-             // Get the data with get<std::unordered_map<std::string, std::string>>()
+             // Access data with get<std::unordered_map<std::string, std::string>>()
              break;
 
              case command::smembers:
-             // Get the data with get<std::unordered_set<std::string, std::string>>()
+             // Access data with get<std::unordered_set<std::string, std::string>>()
              break;
 
              case command::lrange:
-             // Get the data with get<std::vector<std::string>>()
+             // Access data with get<std::vector<std::string>>()
              break;
 
              // Everything else with get<std::vector<node<std::string>>>().
@@ -309,20 +317,21 @@
     };
     @endcode
 
-    Users may pay attention to the correct data type of the response.
-    Trying to receive an e.g. array response into a e.g. std::map with
-    result in a error, see aedis/resp3/adapter/error.hpp
+    Users should pay attention to the correct data type of the response.
+    Trying to receive an e.g. array response into a e.g. \c std::map will
+    result in an error, see aedis/resp3/adapter/error.hpp.
 
     \subsubsection Optional
 
-    It is not uncommon to access a key that does not exist or that has expired,
-    to support that Aedis provides the following options
+    It is not uncommon for apps to access a key that does not exist or
+    that has expired in the Redis server, to support such cases Aedis
+    provides the following options
 
-    1. \c std::vector<node>: as usual, and
-    2. \c std::optional e.g. std::optional<std::map<T1, T2.>>.
+    @li \c std::vector<node>: as usual
+    @li \c std::optional.
 
-    that means users won't have to give up performance. In the example above,
-    if all keys were optional, the receiver would have to be defined like
+    In the example above, if all keys were optional, the receiver
+    would have to be defined like
 
     @code
     using receiver_base_type =
@@ -334,50 +343,92 @@
        >;
     @endcode
 
+    Everything else stays pretty much the sage, before accessing data
+    in the optional with get<std::optional<T>>() users will have to
+    check (or assert) the optional contains a value.
+
     \subsubsection Transactions
 
-    See also https://redis.io/topics/transactions.
-    Aedis provides an efficient and simple way to parse the response to each
-    command in a transaction directly into your preferred type, for example
+    Aedis provides an efficient and simple way to parse the response
+    to each command in a transaction directly into your preferred
+    types, for example, let say a user has the following transaction
+    in his code
+
+    @code
+    db.send(command::multi);
+    db.send(command::get, "key1");
+    db.send(command::lrange, "key2", 0, -1);
+    db.send(command::hgetall, "key3");
+    db.send(command::exec);
+    @endcode
+
+    to receive the response to this transaction we can use \c
+    std::vector<node> as usual or define a tuple that contain the type
+    of each individual command in the order they have been sent
 
     @code
     using transaction_type =
        std::tuple<
-          int,
           std::string,
-          std::map<std::string, int>
-       >;
-
-    using receiver_type =
-       receiver<
-          transaction_type,
-          std::vector<node>
+          std::vector<std::string>,
+          std::map<std::string, std::string>
        >;
     @endcode
 
-    TODO: Talk about multi, exec and discard.
+    The tuple type above can be used as usual in the receiver, for example
 
-    Quotation:
+    @code
+    using receiver_type = receiver<transaction_type, ...>;
+    @endcode
 
-    Redis commands can fail only if called with a wrong syntax (and
-    the problem is not detectable during the command queueing),
-    or against keys holding the wrong data type: this means that in
-    practical terms a failing command is the result of a programming
-    errors, and a kind of error that is very likely to be detected
-    during development, and not in production.
+    The receiver member function \c to_tuple_idx_impl should be also updated
+    to redirect the result of the \c exec command to the transaction object
+
+    @code
+    struct myreceiver : receiver_type {
+       int to_tuple_idx_impl(command cmd) override
+       {
+          switch (cmd) {
+             ...
+             case command::exec: return index_of<transaction_type>();
+             ...
+          }
+       }
+    
+    };
+    @endcode
+
+    \remark
+
+    Aedis won't pass the responses from \c multi and all other
+    commands inside the transaction to the user, only the final result
+    i.e.  the response to \c exec is passed to the user. The reason
+    for this behaviour is that unless there we a programming error
+    from the user, those commands can't fail or quoted form the Redis
+    documentation also https://redis.io/topics/transactions:
+
+    > Redis commands can fail only if called with a wrong syntax (and
+    > the problem is not detectable during the command queueing),
+    > or against keys holding the wrong data type: this means that in
+    > practical terms a failing command is the result of a programming
+    > errors, and a kind of error that is very likely to be detected
+    > during development, and not in production.
 
     \subsubsection Serialization
 
-    It is rather common to store serialized data in Redis such as json strings. For example
+    It is rather common for users to store serialized data in Redis
+    such as json strings, for example
 
     @code
     db.set(command::set, "key", "json-string")
     db.get(command::get, "key")
     @endcode
 
-    It is often of interest to users to avoid storing the response to
-    the get command above in a string to later converting it into a
-    e.g. deserialized json, which may be a struct like this
+    For performance or convenience reasons, some users will want to
+    avoid receiving the response to the get command above in a string
+    to later convert it into a e.g. deserialized json. To support this
+    Aedis will a user defined \c from_string function while it is parsing
+    the response. In simple terms, define your type
 
     @code
     struct mystruct {
@@ -385,9 +436,7 @@
     };
     @endcode
 
-    To support this efficiently, Aedis will call user provided function
-    \c from_string and it is parsing the RESP3 protocoll, avoid temporaries
-    that way.
+    and deserialize it from a string in a function \c from_string
 
     @code
     void from_string(mystruct& obj, char const* p, std::size_t size, std::error_code& ec)
@@ -396,9 +445,8 @@
     }
     @endcode
 
-    Once \c from_string is defined, users can use it in the receiver as any
-    other type
-
+    After that, we can start receiving data efficiently in the desired
+    types, for example
 
     @code
     using transaction_type =
@@ -418,30 +466,31 @@
        >;
     @endcode
   
+    \section error-handling Error handling
     \section examples Examples
 
-    - intro.cpp: A good starting point. Some commands are sent to the
+    @li intro.cpp: A good starting point. Some commands are sent to the
       Redis server and the responses are printed to screen. 
 
-    - aggregates.cpp: Shows how receive RESP3 aggregate data types.
+    @li aggregates.cpp: Shows how receive RESP3 aggregate data types.
 
-    - stl_containers.cpp:
+    @li stl_containers.cpp:
 
-    - serialization.cpp: Shows how to de/serialize your own
+    @li serialization.cpp: Shows how to de/serialize your own
       non-aggregate data-structures.
-    - subscriber.cpp: Shows how channel subscription works at a low
+    @li subscriber.cpp: Shows how channel subscription works at a low
       level. See also https://redis.io/topics/pubsub.
 
-    - sync.cpp: Shows hot to use the Aedis synchronous api.
+    @li sync.cpp: Shows hot to use the Aedis synchronous api.
 
-    - echo_server.cpp: Shows the basic principles behind asynchronous
+    @li echo_server.cpp: Shows the basic principles behind asynchronous
       communication with a database in an asynchronous server. In this
       case, the server is a proxy between the user and Redis.
 
-    - chat_room.cpp: Shows how to build a scalable chat room that
+    @li chat_room.cpp: Shows how to build a scalable chat room that
       scales to millions of users.
 
-    - receiver.cpp: Customization point for users that want to
+    @li receiver.cpp: Customization point for users that want to
       de/serialize their own data-structures like containers for example.
 
     \section using-aedis Using Aedis
