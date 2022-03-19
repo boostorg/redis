@@ -15,7 +15,7 @@ namespace net = aedis::net;
 
 using aedis::redis::command;
 using aedis::resp3::type;
-using aedis::resp3::node;
+using aedis::adapter::node;
 using client_type = aedis::redis::client<net::detached_t::as_default_on_t<net::ip::tcp::socket>>;
 
 struct receiver {
@@ -29,7 +29,7 @@ struct receiver {
       std::size_t depth,
       char const* data,
       std::size_t size,
-      std::error_code&)
+      boost::system::error_code&)
    {
       resps_.emplace_back(t, aggregate_size, depth, std::string{data, size});
    }

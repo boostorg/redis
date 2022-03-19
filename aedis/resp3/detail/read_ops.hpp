@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 - 2021 Marcelo Zimbres Silva (mzimbres at gmail dot com)
+/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres at gmail dot com)
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,8 @@ namespace aedis {
 namespace resp3 {
 namespace detail {
 
-// TODO: Use asio::coroutine.
+#include <boost/asio/yield.hpp>
+
 template <
    class AsyncReadStream,
    class DynamicBuffer,
@@ -28,7 +29,8 @@ private:
    DynamicBuffer buf_;
    parser<ResponseAdapter> parser_;
    std::size_t consumed_;
-   int start_;
+   std::size_t buffer_size_;
+   net::coroutine coro_;
 
 public:
    parse_op(AsyncReadStream& stream, DynamicBuffer buf, ResponseAdapter adapter)
@@ -36,7 +38,6 @@ public:
    , buf_ {buf}
    , parser_ {adapter}
    , consumed_{0}
-   , start_{1}
    { }
 
    template <class Self>
@@ -44,15 +45,16 @@ public:
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
-      switch (start_) {
-         for (;;) {
-            if (parser_.bulk() == type::invalid) {
-               case 1:
-               start_ = 0;
-               net::async_read_until(stream_, buf_, "\r\n", std::move(self));
+      reenter (coro_) for (;;) {
+         if (parser_.bulk() == type::invalid) {
+            yield
+            net::async_read_until(stream_, buf_, "\r\n", std::move(self));
+
+            if (ec) {
+               self.complete(ec, 0);
                return;
             }
-
+         } else {
 	    // On a bulk read we can't read until delimiter since the
 	    // payload may contain the delimiter itself so we have to
 	    // read the whole chunk. However if the bulk blob is small
@@ -61,46 +63,48 @@ public:
 	    // another async op, otherwise we have to read the missing
 	    // bytes.
             if (std::size(buf_) < (parser_.bulk_length() + 2)) {
-               start_ = 0;
-	       auto const s = std::size(buf_);
-	       auto const l = parser_.bulk_length();
-	       auto const to_read = l + 2 - s;
-               buf_.grow(to_read);
-               net::async_read(stream_, buf_.data(s, to_read), net::transfer_all(), std::move(self));
-               return;
+               buffer_size_ = std::size(buf_);
+               buf_.grow(parser_.bulk_length() + 2 - buffer_size_);
+
+               yield
+               net::async_read(
+                  stream_,
+                  buf_.data(buffer_size_, parser_.bulk_length() + 2 - buffer_size_),
+                  net::transfer_all(),
+                  std::move(self));
+
+               if (ec) {
+                  self.complete(ec, 0);
+                  return;
+               }
             }
 
-            default:
-	    {
-	       if (ec) {
-		  self.complete(ec, 0);
-		  return;
-	       }
+            n = parser_.bulk_length() + 2;
+            assert(std::size(buf_) >= n);
+         }
 
-	       n = parser_.advance((char const*)buf_.data(0, n).data(), n, ec);
-	       if (ec) {
-		  self.complete(ec, 0);
-		  return;
-	       }
+         n = parser_.advance((char const*)buf_.data(0, n).data(), n, ec);
+         if (ec) {
+            self.complete(ec, 0);
+            return;
+         }
 
-	       buf_.consume(n);
-	       consumed_ += n;
-	       if (parser_.done()) {
-		  self.complete({}, consumed_);
-		  return;
-	       }
-	    }
+         buf_.consume(n);
+         consumed_ += n;
+         if (parser_.done()) {
+            self.complete({}, consumed_);
+            return;
          }
       }
    }
 };
 
-// TODO: Use asio::coroutine.
 template <class AsyncReadStream, class DynamicBuffer>
 class type_op {
 private:
    AsyncReadStream& stream_;
    DynamicBuffer buf_;
+   net::coroutine coro_;
 
 public:
    type_op(AsyncReadStream& stream, DynamicBuffer buf)
@@ -113,24 +117,25 @@ public:
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
-      boost::ignore_unused(n);
+      reenter (coro_) {
 
-      if (ec) {
-	 self.complete(ec, type::invalid);
-         return;
+         boost::ignore_unused(n);
+         if (std::size(buf_) == 0) {
+            yield net::async_read_until(stream_, buf_, "\r\n", std::move(self));
+            if (ec) {
+               self.complete(ec, type::invalid);
+               return;
+            }
+         }
+
+         auto const* data = (char const*)buf_.data(0, n).data();
+         auto const type = to_type(*data);
+         self.complete(ec, type);
       }
-
-      if (std::size(buf_) == 0) {
-	 net::async_read_until(stream_, buf_, "\r\n", std::move(self));
-	 return;
-      }
-
-      auto const* data = (char const*)buf_.data(0, n).data();
-      auto const type = to_type(*data);
-      self.complete(ec, type);
-      return;
    }
 };
+
+#include <boost/asio/unyield.hpp>
 
 } // detail
 } // resp3

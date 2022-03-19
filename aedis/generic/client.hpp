@@ -215,7 +215,7 @@ public:
 
       resp3::serializer<std::string, Command> sr(requests_);
       auto const before = std::size(requests_);
-      sr.push_range(cmd, key, begin, end);
+      sr.push_range2(cmd, key, begin, end);
       auto const after = std::size(requests_);
       assert(after - before != 0);
       req_info_.front().size += after - before;;
@@ -241,7 +241,7 @@ public:
 
       resp3::serializer<std::string, Command> sr(requests_);
       auto const before = std::size(requests_);
-      sr.push_range(cmd, begin, end);
+      sr.push_range2(cmd, begin, end);
       auto const after = std::size(requests_);
       assert(after - before != 0);
       req_info_.front().size += after - before;;

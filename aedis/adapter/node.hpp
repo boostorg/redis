@@ -13,7 +13,7 @@
 #include <vector>
 
 namespace aedis {
-namespace resp3 {
+namespace adapter {
 
 /** \brief A node in the response tree.
  *  \ingroup any
@@ -24,7 +24,7 @@ namespace resp3 {
 template <class String>
 struct node {
    /// The RESP3 type of the data in this node.
-   type data_type;
+  resp3::type data_type;
 
    /// The number of elements of an aggregate.
    std::size_t aggregate_size;
@@ -115,5 +115,5 @@ std::ostream& operator<<(std::ostream& os, std::vector<node<String>> const& r)
    return os;
 }
 
-} // resp3
+} // adapter
 } // aedis

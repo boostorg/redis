@@ -7,10 +7,10 @@
 
 #pragma once
 
-#include <aedis/resp3/response_traits.hpp>
+#include <aedis/adapter/response_traits.hpp>
 
 namespace aedis {
-namespace resp3 {
+namespace adapter {
 
 /** \brief Creates a void response adapter.
     \ingroup any
@@ -90,5 +90,5 @@ template<class T>
 auto adapt(T& t) noexcept
    { return response_traits<T>::adapt(t); }
 
-} // resp3
+} // adapter
 } // aedis

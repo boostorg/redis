@@ -177,7 +177,7 @@ struct read_op {
          resp3::async_read(
             cli->socket_,
             net::dynamic_buffer(cli->read_buffer_),
-            [p = recv, c = cmd](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, std::error_code& ec) mutable {p->on_resp3(c, t, aggregate_size, depth, data, size, ec);},
+            [p = recv, c = cmd](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, boost::system::error_code& ec) mutable {p->on_resp3(c, t, aggregate_size, depth, data, size, ec);},
             std::move(self));
 
          if (ec) {

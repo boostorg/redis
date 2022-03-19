@@ -14,11 +14,13 @@
 #include <boost/mp11.hpp>
 
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/response_traits.hpp>
+#include <aedis/adapter/response_traits.hpp>
 
 namespace aedis {
 namespace generic {
 
+// TODO: Produce error if resposes before exec are not QUEUED.
+//
 /**  \brief Base class for receivers that use tuple.
  *   \ingroup any
  */
@@ -26,7 +28,7 @@ template <class Command, class ...Ts>
 class receiver_base {
 private:
    using tuple_type = std::tuple<Ts...>;
-   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<resp3::response_traits_t, tuple_type>, std::variant>;
+   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<adapter::response_traits_t, tuple_type>, std::variant>;
 
    tuple_type resps_;
    std::array<variant_type, std::tuple_size<tuple_type>::value> adapters_;
@@ -35,11 +37,11 @@ private:
    virtual void on_read_impl(Command) {}
    virtual void on_push_impl() {}
    virtual void on_write_impl(std::size_t) {}
-   virtual int to_tuple_idx_impl(Command) { return 0;}
+   virtual int to_index_impl(Command) { return 0;}
 
 public:
    receiver_base()
-      { resp3::adapter::detail::assigner<std::tuple_size<tuple_type>::value - 1>::assign(adapters_, resps_); }
+      { adapter::detail::assigner<std::tuple_size<tuple_type>::value - 1>::assign(adapters_, resps_); }
 
    template <class T>
    auto& get() { return std::get<T>(resps_);};
@@ -58,7 +60,7 @@ public:
       std::size_t depth,
       char const* data,
       std::size_t size,
-      std::error_code& ec)
+      boost::system::error_code& ec)
    {
       auto const i = to_tuple_index(cmd);
       if (i == -1)
@@ -101,7 +103,7 @@ public:
       if (on_transaction_)
          return -1;
 
-      return to_tuple_idx_impl(cmd);
+      return to_index_impl(cmd);
    }
 };
 

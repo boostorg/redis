@@ -16,7 +16,7 @@ namespace net = aedis::net;
 namespace redis = aedis::redis;
 using aedis::redis::command;
 using aedis::redis::receiver_base;
-using aedis::resp3::node;
+using aedis::adapter::node;
 using client_type = redis::client<aedis::net::ip::tcp::socket>;
 
 // Helper function.
@@ -43,7 +43,7 @@ public:
 private:
    client_type* db_;
 
-   int to_tuple_idx_impl(command cmd) override
+   int to_index_impl(command cmd) override
    {
       switch (cmd) {
          case command::lrange:   return index_of<std::list<int>>();

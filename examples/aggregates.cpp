@@ -16,7 +16,7 @@
 namespace net = aedis::net;
 using aedis::redis::command;
 using aedis::redis::receiver_base;
-using aedis::resp3::node;
+using aedis::adapter::node;
 using client_type = aedis::redis::client<net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 

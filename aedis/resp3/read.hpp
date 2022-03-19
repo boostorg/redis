@@ -9,8 +9,6 @@
 
 #include <aedis/config.hpp>
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/adapt.hpp>
-#include <aedis/resp3/response_traits.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/detail/read_ops.hpp>
 
@@ -74,7 +72,7 @@ read(
 	 }
       }
 
-      std::error_code ec;
+      boost::system::error_code ec;
       auto const* data = (char const*) buf.data(0, n).data();
       n = p.advance(data, n, ec);
       if (ec)
@@ -86,6 +84,16 @@ read(
 
    return consumed;
 }
+
+/** \brief Adapter that ignores responses.
+ *  \ingroup any
+ */
+struct ignore_response {
+   void
+   operator()(
+      resp3::type, std::size_t, std::size_t, char const*, std::size_t,
+      boost::system::error_code&) { }
+};
 
 /** \brief Reads the reponse to a command.
  *  \ingroup functions
@@ -102,12 +110,12 @@ read(
 template<
    class SyncReadStream,
    class DynamicBuffer,
-   class ResponseAdapter = response_traits<void>::adapter_type>
+   class ResponseAdapter = ignore_response>
 std::size_t
 read(
    SyncReadStream& stream,
    DynamicBuffer buf,
-   ResponseAdapter adapter = adapt())
+   ResponseAdapter adapter = ResponseAdapter{})
 {
    boost::system::error_code ec;
    auto const n = resp3::read(stream, buf, adapter, ec);
@@ -141,13 +149,13 @@ read(
 template <
    class AsyncReadStream,
    class DynamicBuffer,
-   class ResponseAdapter = response_traits<void>::adapter_type,
+   class ResponseAdapter = ignore_response,
    class CompletionToken = net::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(
    AsyncReadStream& stream,
    DynamicBuffer buffer,
-   ResponseAdapter adapter = adapt(),
+   ResponseAdapter adapter = ResponseAdapter{},
    CompletionToken&& token =
       net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {

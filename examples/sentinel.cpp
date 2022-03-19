@@ -14,7 +14,7 @@ namespace net = aedis::net;
 using aedis::sentinel::command;
 using aedis::sentinel::receiver_base;
 using client_type = aedis::sentinel::client<aedis::net::ip::tcp::socket>;
-using aedis::resp3::node;
+using aedis::adapter::node;
 using response_type = std::vector<node<std::string>>;
 
 class myreceiver : public receiver_base<response_type> {

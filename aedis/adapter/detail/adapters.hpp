@@ -17,12 +17,11 @@
 #include <charconv>
 
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/node.hpp>
 #include <aedis/resp3/serializer.hpp>
-#include <aedis/resp3/adapter/error.hpp>
+#include <aedis/adapter/node.hpp>
+#include <aedis/adapter/error.hpp>
 
 namespace aedis {
-namespace resp3 {
 namespace adapter {
 namespace detail {
 
@@ -32,7 +31,7 @@ from_string(
    T& i,
    char const* value,
    std::size_t data_size,
-   std::error_code& ec)
+   boost::system::error_code& ec)
 {
    auto const res = std::from_chars(value, value + data_size, i);
    if (res.ec != std::errc())
@@ -45,38 +44,30 @@ from_string(
    std::basic_string<CharT, Traits, Allocator>& s,
    char const* value,
    std::size_t data_size,
-   std::error_code&)
+   boost::system::error_code&)
 {
   s.assign(value, data_size);
 }
 
-void set_on_resp3_error(type t, std::error_code& ec)
+void set_on_resp3_error(resp3::type t, boost::system::error_code& ec)
 {
    switch (t) {
-      case type::simple_error: ec = adapter::error::simple_error; return;
-      case type::blob_error: ec = adapter::error::blob_error; return;
-      case type::null: ec = adapter::error::null; return;
+      case resp3::type::simple_error: ec = adapter::error::simple_error; return;
+      case resp3::type::blob_error: ec = adapter::error::blob_error; return;
+      case resp3::type::null: ec = adapter::error::null; return;
       default: return;
    }
 }
 
 // For optional responses.
-void set_on_resp3_error2(type t, std::error_code& ec)
+void set_on_resp3_error2(resp3::type t, boost::system::error_code& ec)
 {
    switch (t) {
-      case type::simple_error: ec = adapter::error::simple_error; return;
-      case type::blob_error: ec = adapter::error::blob_error; return;
+      case resp3::type::simple_error: ec = adapter::error::simple_error; return;
+      case resp3::type::blob_error: ec = adapter::error::blob_error; return;
       default: return;
    }
 }
-
-// Adapter that ignores responses.
-struct ignore {
-   void
-   operator()(
-      type, std::size_t, std::size_t, char const*, std::size_t,
-      std::error_code&) { }
-};
 
 template <class Container>
 class general {
@@ -104,12 +95,12 @@ public:
     */
    void
    operator()(
-      type t,
+      resp3::type t,
       std::size_t aggregate_size,
       std::size_t depth,
       char const* value,
       std::size_t size,
-      std::error_code&)
+      boost::system::error_code&)
       {
 	 result_->emplace_back(t, aggregate_size, depth, std::string{value, size});
       }
@@ -125,12 +116,12 @@ public:
 
    void
    operator()(
-      type t,
+      resp3::type t,
       std::size_t aggregate_size,
       std::size_t depth,
       char const* value,
       std::size_t data_size,
-      std::error_code&)
+      boost::system::error_code&)
    {
      result_->data_type = t;
      result_->aggregate_size = aggregate_size;
@@ -150,12 +141,12 @@ public:
 
    void
    operator()(
-      type t,
+      resp3::type t,
       std::size_t aggregate_size,
       std::size_t depth,
       char const* value,
       std::size_t data_size,
-      std::error_code& ec)
+      boost::system::error_code& ec)
    {
       set_on_resp3_error(t, ec);
       if (ec)
@@ -181,12 +172,12 @@ public:
 
    void
    operator()(
-      type t,
+      resp3::type t,
       std::size_t aggregate_size,
       std::size_t depth,
       char const* value,
       std::size_t data_size,
-      std::error_code& ec)
+      boost::system::error_code& ec)
    {
       set_on_resp3_error2(t, ec);
       if (ec)
@@ -204,7 +195,7 @@ public:
 	 return;
       }
 
-      if (t == type::null)
+      if (t == resp3::type::null)
          return;
 
       if (!result_->has_value())
@@ -226,12 +217,12 @@ public:
    vector(Container* v = nullptr) : result_{v} {}
 
    void
-   operator()(type t,
+   operator()(resp3::type t,
        std::size_t aggregate_size,
        std::size_t depth,
        char const* value,
        std::size_t data_size,
-       std::error_code& ec)
+       boost::system::error_code& ec)
    {
       set_on_resp3_error(t, ec);
       if (ec)
@@ -267,12 +258,12 @@ public:
    list(Container* ref = nullptr): result_(ref) {}
 
    void
-   operator()(type t,
+   operator()(resp3::type t,
        std::size_t aggregate_size,
        std::size_t depth,
        char const* value,
        std::size_t data_size,
-       std::error_code& ec)
+       boost::system::error_code& ec)
    {
       set_on_resp3_error(t, ec);
       if (ec)
@@ -314,18 +305,18 @@ public:
    {}
 
    void
-   operator()(type t,
+   operator()(resp3::type t,
        std::size_t aggregate_size,
        std::size_t depth,
        char const* value,
        std::size_t data_size,
-       std::error_code& ec)
+       boost::system::error_code& ec)
    {
       set_on_resp3_error(t, ec);
       if (ec)
          return;
 
-      if (t == type::set) {
+      if (t == resp3::type::set) {
         assert(depth == 0);
         return;
       }
@@ -361,19 +352,19 @@ public:
    {}
 
    void
-   operator()(type t,
+   operator()(resp3::type t,
        std::size_t aggregate_size,
        std::size_t depth,
        char const* value,
        std::size_t data_size,
-       std::error_code& ec)
+       boost::system::error_code& ec)
    {
       set_on_resp3_error(t, ec);
       if (ec)
          return;
 
       if (is_aggregate(t)) {
-        assert(t == type::map);
+        assert(t == resp3::type::map);
 	if (depth != 0 && depth != 1) {
 	   ec = adapter::error::nested_unsupported;
 	   return;
@@ -407,5 +398,4 @@ public:
 
 } // detail
 } // adapter
-} // resp3
 } // aedis

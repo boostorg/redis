@@ -24,8 +24,9 @@ using namespace aedis;
 using namespace aedis::resp3;
 using aedis::redis::command;
 using aedis::redis::make_serializer;
+using aedis::adapter::adapt;
 
-using node_type = node<std::string>;
+using node_type = aedis::adapter::node<std::string>;
 std::vector<node_type> gresp;
 
 //-------------------------------------------------------------------
@@ -43,7 +44,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    auto sr = make_serializer(request);
    sr.push(command::hello, 3);
    sr.push(command::flushall);
-   sr.push_range(command::rpush, "a", std::cbegin(list_), std::cend(list_));
+   sr.push_range(command::rpush, "a", list_);
    sr.push(command::llen, "a");
    sr.push(command::lrange, "a", 0, -1);
    sr.push(command::ltrim, "a", 2, -2);
@@ -72,7 +73,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    { {"field1", "value1"}
    , {"field2", "value2"}};
 
-   sr.push_range(command::hset, "d", std::cbegin(m1), std::cend(m1));
+   sr.push_range(command::hset, "d", m1);
    sr.push(command::hget, "d", "field2");
    sr.push(command::hgetall, "d");
    sr.push(command::hdel, "d", "field1", "field2"); // TODO: Test as range too.
@@ -84,7 +85,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    sr.push(command::zremrangebyscore, "f", "-inf", "+inf");
 
    auto const v = std::vector<int>{1, 2, 3};
-   sr.push_range(command::sadd, "g", std::cbegin(v), std::cend(v));
+   sr.push_range(command::sadd, "g", v);
    sr.push(command::smembers, "g");
    sr.push(command::quit);
    //----------------------------------
@@ -396,7 +397,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 //   resp3::serializer p;
 //   p.push(command::hello, 3);
 //   p.push(command::flushall);
-//   p.push_range(command::rpush, "a", std::cbegin(list), std::cend(list));
+//   p.push_range(command::rpush, "a", list);
 //   p.push(command::lrange, "a", 0, -1);
 //   p.push(command::lrange, "a", 2, -2);
 //   p.push(command::ltrim, "a", 2, -2);

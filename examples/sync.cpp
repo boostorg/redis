@@ -14,7 +14,7 @@
 namespace resp3 = aedis::resp3;
 using aedis::redis::command;
 using aedis::redis::make_serializer;
-using aedis::resp3::adapt;
+using aedis::adapter::adapt;
 
 namespace net = aedis::net;
 using net::dynamic_buffer;

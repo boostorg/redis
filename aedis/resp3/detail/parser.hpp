@@ -54,7 +54,7 @@ public:
 
    // Returns the number of bytes that have been consumed.
    std::size_t
-   advance(char const* data, std::size_t n, std::error_code& ec)
+   advance(char const* data, std::size_t n, boost::system::error_code& ec)
    {
       if (bulk_ != type::invalid) {
          n = bulk_length_ + 2;

@@ -10,27 +10,33 @@
 #include <system_error>
 
 namespace aedis {
-namespace resp3 {
+namespace adapter {
 
-/** \brief RESP3 parsing errors.
+/** \brief Errors that may occurr when reading a response.
  *  \ingroup any
  */
 enum class error
 {
-   /// Invalid RESP3 type.
-   invalid_type = 1,
+   /// Expects a simple RESP3 type but got an aggregate.
+   expects_simple_type = 1,
 
-   /// Can't parse the string as an integer.
-   not_a_number,
+   /// Nested response not supported.
+   nested_unsupported,
 
-   /// Received less bytes than expected.
-   unexpected_read_size,
+   /// Got RESP3 simple error.
+   simple_error,
 
-   /// The maximum depth of a nested response was exceeded.
-   exceeeds_max_nested_depth
+   /// Got RESP3 blob_error.
+   blob_error,
+
+   /// The tuple used as response has incompatible size.
+   incompatible_tuple_size,
+
+   /// Got RESP3 null type.
+   null
 };
 
-/** \brief Converts an error in an boost::system::error_code object.
+/** \brief todo
  *  \ingroup any
  */
 boost::system::error_code make_error_code(error e);
@@ -40,12 +46,12 @@ boost::system::error_code make_error_code(error e);
  */
 boost::system::error_condition make_error_condition(error e);
 
-} // resp3
+} // adapter
 } // aedis
 
 namespace std {
 
 template<>
-struct is_error_code_enum<::aedis::resp3::error> : std::true_type {};
+struct is_error_code_enum<::aedis::adapter::error> : std::true_type {};
 
 } // std

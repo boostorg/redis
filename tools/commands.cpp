@@ -15,8 +15,8 @@
 namespace resp3 = aedis::resp3;
 using aedis::redis::command;
 using aedis::redis::make_serializer;
-using resp3::adapt;
-using resp3::node;
+using aedis::adapter::adapt;
+using aedis::adapter::node;
 
 namespace net = aedis::net;
 using net::ip::tcp;

@@ -40,7 +40,7 @@ std::string to_string(mystruct const& obj)
 }
 
 // Dummy deserialization.
-void from_string(mystruct& obj, char const* data, std::size_t size, std::error_code& ec)
+void from_string(mystruct& obj, char const* data, std::size_t size, boost::system::error_code& ec)
 {
    obj.a = 1;
    obj.b = 2;
@@ -70,7 +70,7 @@ public:
 private:
    client_type* db_;
 
-   int to_tuple_idx_impl(command cmd) override
+   int to_index_impl(command cmd) override
    {
       switch (cmd) {
          case command::get:      return index_of<std::optional<mystruct>>();

@@ -39,12 +39,8 @@ namespace resp3 {
  *  to_string, which must be made available over ADL.
  */
 
-// NOTE: Consider adding an overload for containers.
-//
-// TODO: Should we detect any std::pair or tuple in the type in the parameter
-// pack to calculate the header size correctly?
-//
-// TODO: Handle empty ranges.
+// Consider detecting tuples in the type in the parameter pack to
+// calculate the header size correctly.
 //
 // NOTE: For some commands like hset it would be a good idea to assert
 // the value type is a pair.
@@ -100,7 +96,7 @@ public:
     *     };
     *
     *  request req;
-    *  req.push_range(command::hset, "key", std::cbegin(map), std::cend(map));
+    *  req.push_range2(command::hset, "key", std::cbegin(map), std::cend(map));
     *  \endcode
     *  
     *  \param cmd The Redis command
@@ -109,9 +105,12 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class Key, class ForwardIterator>
-   void push_range(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void push_range2(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
+
+      if (begin == end)
+         return;
 
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
@@ -141,9 +140,12 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class ForwardIterator>
-   void push_range(Command cmd, ForwardIterator begin, ForwardIterator end)
+   void push_range2(Command cmd, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
+
+      if (begin == end)
+         return;
 
       auto constexpr size = detail::value_type_size<value_type>::size;
       auto const distance = std::distance(begin, end);
@@ -153,6 +155,27 @@ public:
       for (; begin != end; ++begin)
 	 detail::add_bulk(*request_, *begin);
    }
+
+   /** \brief Sends a range.
+    */
+   template <class Key, class Range>
+   void push_range(Command cmd, Key const& key, Range const& range)
+   {
+      using std::begin;
+      using std::end;
+      push_range2(cmd, key, begin(range), end(range));
+   }
+
+   /** \brief Sends a range.
+    */
+   template <class Range>
+   void push_range(Command cmd, Range const& range)
+   {
+      using std::begin;
+      using std::end;
+      push_range2(cmd, begin(range), end(range));
+   }
+
 };
 
 } // resp3

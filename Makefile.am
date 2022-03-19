@@ -62,15 +62,15 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/sentinel/client.hpp\
   $(top_srcdir)/aedis/sentinel/receiver_base.hpp\
   $(top_srcdir)/aedis/aedis.hpp\
-  $(top_srcdir)/aedis/resp3/adapter/detail/adapters.hpp\
-  $(top_srcdir)/aedis/resp3/adapter/error.hpp\
-  $(top_srcdir)/aedis/resp3/adapt.hpp\
+  $(top_srcdir)/aedis/adapter/detail/adapters.hpp\
+  $(top_srcdir)/aedis/adapter/error.hpp\
+  $(top_srcdir)/aedis/adapter/adapt.hpp\
+  $(top_srcdir)/aedis/adapter/response_traits.hpp\
+  $(top_srcdir)/aedis/adapter/node.hpp\
   $(top_srcdir)/aedis/resp3/detail/composer.hpp\
   $(top_srcdir)/aedis/resp3/detail/read_ops.hpp\
   $(top_srcdir)/aedis/resp3/detail/parser.hpp\
   $(top_srcdir)/aedis/resp3/serializer.hpp\
-  $(top_srcdir)/aedis/resp3/response_traits.hpp\
-  $(top_srcdir)/aedis/resp3/node.hpp\
   $(top_srcdir)/aedis/resp3/error.hpp\
   $(top_srcdir)/aedis/resp3/type.hpp\
   $(top_srcdir)/aedis/resp3/read.hpp\

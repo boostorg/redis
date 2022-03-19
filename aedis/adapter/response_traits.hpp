@@ -21,11 +21,12 @@
 #include <boost/mp11.hpp>
 
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/adapter/detail/adapters.hpp>
-#include <aedis/resp3/adapter/error.hpp>
+#include <aedis/resp3/read.hpp>
+#include <aedis/adapter/detail/adapters.hpp>
+#include <aedis/adapter/error.hpp>
 
 namespace aedis {
-namespace resp3 {
+namespace adapter {
 
 /** \brief Traits class for response objects.
  *  \ingroup any
@@ -131,11 +132,10 @@ template <>
 struct response_traits<void>
 {
    using response_type = void;
-   using adapter_type = adapter::detail::ignore;
+   using adapter_type = resp3::ignore_response;
    static auto adapt() noexcept { return adapter_type{}; }
 };
 
-namespace adapter {
 namespace detail {
 
 // Duplicated here to avoid circular include dependency.
@@ -162,7 +162,6 @@ struct assigner<0> {
   }
 };
 
-// TODO: Produce error if resposes before exec are not QUEUED.
 template <class Tuple>
 class flat_transaction_adapter {
 private:
@@ -177,7 +176,7 @@ public:
    flat_transaction_adapter(Tuple* r)
       { assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, *r); }
 
-   void count(type t, std::size_t aggregate_size, std::size_t depth)
+   void count(resp3::type t, std::size_t aggregate_size, std::size_t depth)
    {
       if (depth == 1) {
          if (is_aggregate(t))
@@ -194,16 +193,16 @@ public:
 
    void
    operator()(
-      type t,
+      resp3::type t,
       std::size_t aggregate_size,
       std::size_t depth,
       char const* data,
       std::size_t size,
-      std::error_code& ec)
+      boost::system::error_code& ec)
    {
       if (depth == 0) {
          if (aggregate_size != std::tuple_size<Tuple>::value)
-	    ec = adapter::error::incompatible_tuple_size;
+	    ec = error::incompatible_tuple_size;
 
          return;
       }
@@ -214,7 +213,6 @@ public:
 };
 
 } // detail
-} // adapter
 
 // The adapter of responses to transactions, move it to its own header?
 template <class... Ts>
@@ -225,5 +223,5 @@ struct response_traits<std::tuple<Ts...>>
    static auto adapt(response_type& r) noexcept { return adapter_type{&r}; }
 };
 
-} // resp3
+} // adapter
 } // aedis
