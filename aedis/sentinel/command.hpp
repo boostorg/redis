@@ -52,11 +52,13 @@ enum class command {
    /// https://redis.io/commands/unsubscribe
    unsubscribe,
    /// Unknown/invalid command.
-   unknown,
-   multi, // TODO: Remove
-   discard, // TODO: Remove
-   exec, // TODO: Remove
-   invalid
+   invalid,
+   // For internal usege only, users should ignore this.
+   multi,
+   // For internal usege only, users should ignore this.
+   discard,
+   // For internal usege only, users should ignore this.
+   exec,
 };
 
 /** \brief Converts a sentinel command to a string

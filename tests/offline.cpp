@@ -18,6 +18,9 @@
 // Consider using Beast test_stream and instantiate the test socket
 // only once.
 // TODO: Check the read buffer is empty after each test.
+// TODO: Check adapter errors.
+// TODO: Check resp3 errors.
+// TODO: Separate test for node_type and adapter.
 
 namespace net = aedis::net;
 namespace resp3 = aedis::resp3;
@@ -28,37 +31,37 @@ using node_type = aedis::adapter::node<std::string>;
 //-------------------------------------------------------------------
 
 template <class Result>
-void
-test_sync(
-   char const* in,
-   Result const& expected,
-   char const* name)
+struct expect {
+  std::string in;
+  Result expected;
+  std::string name;
+};
+
+template <class Result>
+void test_sync(expect<Result> e)
 {
    std::string rbuffer;
-   test_tcp_socket ts {in};
+   test_tcp_socket ts {e.in};
    Result result;
    boost::system::error_code ec;
    resp3::read(ts, net::dynamic_buffer(rbuffer), adapt(result), ec);
    check_error(ec);
    check_empty(rbuffer);
-   check_equal(result, expected, name);
+   check_equal(result, e.expected, e.name);
 }
 
 template <class Result>
 net::awaitable<void>
-test_async(
-   char const* in,
-   Result const& expected,
-   char const* name)
+test_async(expect<Result> e)
 {
    std::string rbuffer;
-   test_tcp_socket ts {in};
+   test_tcp_socket ts {e.in};
    Result result;
    boost::system::error_code ec;
    co_await resp3::async_read(ts, net::dynamic_buffer(rbuffer), adapt(result), net::redirect_error(net::use_awaitable, ec));
    check_error(ec);
    check_empty(rbuffer);
-   check_equal(result, expected, name);
+   check_equal(result, e.expected, e.name);
 }
 
 // TODO: Test a large simple string. For example
@@ -67,81 +70,6 @@ test_async(
 //   cmd += '+';
 //   cmd += str;
 //   cmd += "\r\n";
-
-//-------------------------------------------------------------------------
-
-net::awaitable<void> test_async_simple_error()
-{
-   std::string rbuffer;
-   auto dbuf = net::dynamic_buffer(rbuffer);
-
-   {
-      test_tcp_socket ts {"-Error\r\n"};
-      node_type result;
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-      node_type expected {resp3::type::simple_error, 1UL, 0UL, {"Error"}};
-      check_equal(result, expected, "simple_error.async.node");
-   }
-
-   {
-      test_tcp_socket ts {"-Error\r\n"};
-      std::string result;
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      boost::system::error_code const expected = aedis::adapter::error::simple_error;
-      check_equal(ec, expected, "simple_error.async.string");
-   }
-
-   {
-      test_tcp_socket ts {"-\r\n"};
-      std::string result;
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      boost::system::error_code const expected = aedis::adapter::error::simple_error;
-      check_equal(ec, expected, "simple_error.async.string.empty");
-   }
-
-   // TODO: Test with optional.
-   // TODO: Test with a very long string?
-}
-
-//-------------------------------------------------------------------------
-
-net::awaitable<void> test_async_number()
-{
-   std::string rbuffer;
-   auto dbuf = net::dynamic_buffer(rbuffer);
-
-   {
-      test_tcp_socket ts {":-3\r\n"};
-      node_type result;
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-      node_type expected {resp3::type::number, 1UL, 0UL, {"-3"}};
-      check_equal(result, expected, "number.async.node");
-   }
-
-   {
-      test_tcp_socket ts {":-3\r\n"};
-      long long result;
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-      check_equal(result, -3LL, "number.async.int (long long)");
-   }
-
-   {
-      test_tcp_socket ts {":3\r\n"};
-      std::size_t result;
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-      check_equal(result, 3UL, "number.async.int (std::size_t)");
-   }
-}
 
 //-------------------------------------------------------------------------
 
@@ -186,193 +114,6 @@ net::awaitable<void> test_async_array()
 
       std::vector<int> expected;
       check_equal(result, expected, "array (empty)");
-   }
-}
-
-//-------------------------------------------------------------------------
-
-net::awaitable<void> test_async_blob_string()
-{
-   std::string buf;
-   auto dbuf = net::dynamic_buffer(buf);
-
-   {
-      std::string cmd {"$2\r\nhh\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-      std::vector<node_type> expected { {resp3::type::blob_string, 1UL, 0UL, {"hh"}} };
-      check_equal(result, expected, "blob_string");
-   }
-
-   {
-      std::string cmd {"$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::blob_string, 1UL, 0UL, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}} };
-      check_equal(result, expected, "blob_string (with separator)");
-   }
-
-   {
-      std::string cmd {"$0\r\n\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::blob_string, 1UL, 0UL, {}} };
-      check_equal(result, expected, "blob_string (size 0)");
-   }
-}
-
-net::awaitable<void> test_async_double()
-{
-   std::string buf;
-   auto dbuf = net::dynamic_buffer(buf);
-
-   {
-      std::string cmd {",1.23\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::doublean, 1UL, 0UL, {"1.23"}} };
-      check_equal(result, expected, "double");
-   }
-
-   {
-      std::string cmd {",inf\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected
-	 { {resp3::type::doublean, 1UL, 0UL, {"inf"}} };
-      check_equal(result, expected, "double (inf)");
-   }
-
-   {
-      std::string cmd {",-inf\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::doublean, 1UL, 0UL, {"-inf"}} };
-      check_equal(result, expected, "double (-inf)");
-   }
-
-}
-
-net::awaitable<void> test_async_bool()
-{
-   std::string buf;
-   auto dbuf = net::dynamic_buffer(buf);
-
-   {
-      test_tcp_socket ts {"#f\r\n"};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::boolean, 1UL, 0UL, {"f"}} };
-      check_equal(result, expected, "bool (false)");
-   }
-
-   {
-      std::string cmd {"#t\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::boolean, 1UL, 0UL, {"t"}} };
-      check_equal(result, expected, "bool (true)");
-   }
-}
-
-net::awaitable<void> test_async_blob_error()
-{
-   std::string buf;
-   auto dbuf = net::dynamic_buffer(buf);
-
-   {
-      std::string cmd {"!21\r\nSYNTAX invalid syntax\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}} };
-      check_equal(result, expected, "blob_error (message)");
-   }
-
-   {
-      std::string cmd {"!0\r\n\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::blob_error, 1UL, 0UL, {}} };
-      check_equal(result, expected, "blob_error (empty message)");
-   }
-}
-
-net::awaitable<void> test_async_verbatim_string()
-{
-   std::string buf;
-   auto dbuf = net::dynamic_buffer(buf);
-
-   {
-      std::string cmd {"=15\r\ntxt:Some string\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}} };
-      check_equal(result, expected, "verbatim_string");
-   }
-
-   {
-      std::string cmd {"=0\r\n\r\n"};
-      test_tcp_socket ts {cmd};
-      std::vector<node_type> result;
-
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      std::vector<node_type> expected { {resp3::type::verbatim_string, 1UL, 0UL, {}} };
-      check_equal(result, expected, "verbatim_string (empty)");
    }
 }
 
@@ -629,16 +370,6 @@ net::awaitable<void> test_async_optional()
    auto dbuf = net::dynamic_buffer(buf);
 
    {
-      node_type result;
-      boost::system::error_code ec;
-      co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
-
-      node_type expected {resp3::type::null, 1UL, 0UL, {""}};
-      check_equal(result, expected, "optional.async.node");
-   }
-
-   {
       int result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
@@ -667,41 +398,72 @@ net::awaitable<void> test_async_optional()
 
 int main()
 {
-   test_sync("+OK\r\n", node_type{resp3::type::simple_string, 1UL, 0UL, {"OK"}}, "simple_string.sync.node");
-   test_sync("+OK\r\n", std::string{"OK"}, "simple_string.sync.string");
-   test_sync("+OK\r\n", std::optional<std::string>{"OK"}, "simple_string.sync.optional");
-   test_sync("+\r\n", node_type{resp3::type::simple_string, 1UL, 0UL, {""}}, "simple_string.sync.node.empty");
-   test_sync("+\r\n", std::string{""}, "simple_string.sync.string.empty");
-   test_sync("+\r\n", std::optional<std::string>{""}, "simple_string.sync.optional.empty");
-
    std::optional<std::string> ok1, ok2;
    ok1 = "OK";
    ok2 = "";
 
-   net::io_context ioc {1};
-
+   std::vector<expect<node_type>> const simple
    // Simple string
-   co_spawn(ioc, test_async("+OK\r\n", node_type{resp3::type::simple_string, 1UL, 0UL, {"OK"}}, "simple_string.async.node"), net::detached);
-   co_spawn(ioc, test_async("+OK\r\n", std::string{"OK"}, "simple_string.async.string"), net::detached);
-   co_spawn(ioc, test_async("+OK\r\n", ok1, "simple_string.async.string.optional"), net::detached);
-   co_spawn(ioc, test_async("+\r\n", node_type {resp3::type::simple_string, 1UL, 0UL, {""}}, "simple_string.async.node.empty"), net::detached);
-   co_spawn(ioc, test_async("+\r\n", std::string{""}, "simple_string.async.string.empty"), net::detached);
-   co_spawn(ioc, test_async("+\r\n", ok2, "simple_string.async.string.optional.empty"), net::detached);
+   { {"+OK\r\n", node_type{resp3::type::simple_string, 1UL, 0UL, {"OK"}}, "simple_string.node"}
+   , {"+\r\n", node_type{resp3::type::simple_string, 1UL, 0UL, {""}}, "simple_string.node.empty"}
+   // Simple error
+   , {"-Error\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, "simple_error.node"}
+   , {"-\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, "simple_error.node.empty"}
+   // Number
+   , {":-3\r\n", node_type{resp3::type::number, 1UL, 0UL, {"-3"}}, "number.node (negative)"}
+   , {":3\r\n", node_type{resp3::type::number, 1UL, 0UL, {"3"}}, "number.node (positive)"}
+   // Blob string. TODO: test with a long that require many calls to async_read_some (fix test_stream first).
+   , {"$2\r\nhh\r\n", node_type{resp3::type::blob_string, 1UL, 0UL, {"hh"}}, "blob_string.node"}
+   , {"$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n", node_type{resp3::type::blob_string, 1UL, 0UL, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}}, "blob_string.node (with separator)"}
+   , {"$0\r\n\r\n", node_type{resp3::type::blob_string, 1UL, 0UL, {}}, "blob_string.node.empty"}
+   // Bool
+   , {"#f\r\n", node_type{resp3::type::boolean, 1UL, 0UL, {"f"}}, "bool.node (false)"}
+   , {"#t\r\n", node_type{resp3::type::boolean, 1UL, 0UL, {"t"}}, "bool.node (true)"}
+   // Double
+   , {",1.23\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"1.23"}}, "double.node"}
+   , {",inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}, "double.node (inf)"}
+   , {",-inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"-inf"}}, "double.node (-inf)"}
+   // Blob error
+   , {"!21\r\nSYNTAX invalid syntax\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, "blob_error"}
+   , {"!0\r\n\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {}}, "blob_error.empty"}
+   // Verbatim string
+   , {"=15\r\ntxt:Some string\r\n", node_type{resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}}, "verbatim_string"}
+   , {"=0\r\n\r\n", node_type{resp3::type::verbatim_string, 1UL, 0UL, {}}, "verbatim_string.empty"}
+   // Null
+   , {"_\r\n", node_type{resp3::type::null, 1UL, 0UL, {}}, "null"}
+   // Big number
+   , {"(3492890328409238509324850943850943825024385\r\n", node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}, "big_number"}
+   , {"(\r\n", node_type{resp3::type::big_number, 1UL, 0UL, {}}, "big_number.empty"}
+   };
 
-   co_spawn(ioc, test_async_simple_error(), net::detached);
-   co_spawn(ioc, test_async_number(), net::detached);
+   // Tests
+   for (auto const& e: simple)
+      test_sync(e);
+
+   net::io_context ioc {1};
+   for (auto const& e: simple)
+     co_spawn(ioc, test_async(e), net::detached);
+
+   // Old
    co_spawn(ioc, test_async_map(), net::detached);
    co_spawn(ioc, test_async_optional(), net::detached);
    co_spawn(ioc, test_async_attribute(), net::detached);
    co_spawn(ioc, test_async_push(), net::detached);
 
    co_spawn(ioc, test_async_array(), net::detached);
-   co_spawn(ioc, test_async_blob_string(), net::detached);
-   co_spawn(ioc, test_async_double(), net::detached);
-   co_spawn(ioc, test_async_bool(), net::detached);
-   co_spawn(ioc, test_async_blob_error(), net::detached);
-   co_spawn(ioc, test_async_verbatim_string(), net::detached);
    co_spawn(ioc, test_async_set(), net::detached);
+
+   // Adapter.
+   test_sync(expect<int>{":11\r\n", int{11}, "number.sync.int"});
+   test_sync(expect<std::string>{"+OK\r\n", std::string{"OK"}, "simple_string.sync.string"});
+   test_sync(expect<std::string>{"+\r\n", std::string{""}, "simple_string.sync.string.empty"});
+   test_sync(expect<std::optional<std::string>>{"+OK\r\n", std::optional<std::string>{"OK"}, "simple_string.sync.optional"});
+   test_sync(expect<std::optional<std::string>>{"+\r\n", std::optional<std::string>{""}, "simple_string.sync.optional.empty"});
+
+   co_spawn(ioc, test_async(expect<std::string>{"+OK\r\n", std::string{"OK"}, "simple_string.async.string"}), net::detached);
+   co_spawn(ioc, test_async(expect<std::string>{"+\r\n", std::string{""}, "simple_string.async.string.empty"}), net::detached);
+   co_spawn(ioc, test_async(expect<std::optional<std::string>>{"+OK\r\n", ok1, "simple_string.async.string.optional"}), net::detached);
+   co_spawn(ioc, test_async(expect<std::optional<std::string>>{"+\r\n", ok2, "simple_string.async.string.optional.empty"}), net::detached);
 
    ioc.run();
 }
