@@ -110,7 +110,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
       std::vector<node_type> expected
 	 { {resp3::type::number, 1UL, 0UL, n} };
 
-     check_equal(resp, expected, "rpush (value)");
+     expect_eq(resp, expected, "rpush (value)");
    }
 
    { // llen
@@ -118,7 +118,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
       co_await resp3::async_read(socket, net::dynamic_buffer(buffer), adapt(resp), net::use_awaitable);
       std::vector<node_type> expected
 	 { {resp3::type::number, 1UL, 0UL, {"6"}} };
-      check_equal(resp, expected, "llen");
+      expect_eq(resp, expected, "llen");
    }
 
    { // lrange
@@ -135,7 +135,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
          , {resp3::type::blob_string, 1UL, 1UL, {"6"}}
          };
 
-      check_equal(resp, expected, "lrange ");
+      expect_eq(resp, expected, "lrange ");
    }
 
    {  // ltrim
@@ -145,7 +145,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
       std::vector<node_type> expected
          { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
 
-      check_equal(resp, expected, "ltrim");
+      expect_eq(resp, expected, "ltrim");
    }
 
    {  // lpop
@@ -155,7 +155,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
       std::vector<node_type> expected
          { {resp3::type::blob_string, 1UL, 0UL, {"3"}} };
 
-      check_equal(resp, expected, "lpop");
+      expect_eq(resp, expected, "lpop");
    }
 
    //{  // lpop
@@ -168,7 +168,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    //      , {resp3::type::array, 1UL, 1UL, {"5"}}
    //      };
 
-   //   check_equal(resp, expected, "lpop");
+   //   expect_eq(resp, expected, "lpop");
    //}
 
    //{ // lrange
@@ -185,12 +185,12 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    //         , {resp3::type::blob_string, 1UL, 1UL, {"6"}}
    //         };
 
-   //      check_equal(resp, expected, "lrange ");
+   //      expect_eq(resp, expected, "lrange ");
    //   } else {
    //     std::vector<node_type> expected
    //         { {resp3::type::simple_string, 1UL, 0UL, {"QUEUED"}} };
 
-   //      check_equal(resp, expected, "lrange (inside transaction)");
+   //      expect_eq(resp, expected, "lrange (inside transaction)");
    //   }
    //   
    //   ++c;
@@ -203,119 +203,119 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    //        std::vector<node_type> expected
    //         { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
 
-   //         check_equal(resp, expected, "multi");
+   //         expect_eq(resp, expected, "multi");
    //      } break;
    //      case command::ping:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::simple_string, 1UL, 0UL, {"QUEUED"}} };
 
-   //         check_equal(resp, expected, "ping");
+   //         expect_eq(resp, expected, "ping");
    //      } break;
    //      case command::set:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
 
-   //         check_equal(resp, expected, "set");
+   //         expect_eq(resp, expected, "set");
    //      } break;
    //      case command::quit:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
 
-   //         check_equal(resp, expected, "quit");
+   //         expect_eq(resp, expected, "quit");
    //      } break;
    //      case command::flushall:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
 
-   //         check_equal(resp, expected, "flushall");
+   //         expect_eq(resp, expected, "flushall");
    //      } break;
    //      case command::append:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"4"}} };
 
-   //        check_equal(resp, expected, "append");
+   //        expect_eq(resp, expected, "append");
    //      } break;
    //      case command::hset:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"2"}} };
 
-   //        check_equal(resp, expected, "hset");
+   //        expect_eq(resp, expected, "hset");
    //      } break;
    //      case command::del:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"1"}} };
 
-   //        check_equal(resp, expected, "del");
+   //        expect_eq(resp, expected, "del");
    //      } break;
    //      case command::incr:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"1"}} };
 
-   //        check_equal(resp, expected, "incr");
+   //        expect_eq(resp, expected, "incr");
    //      } break;
    //      case command::publish:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"1"}} };
 
-   //        check_equal(resp, expected, "publish");
+   //        expect_eq(resp, expected, "publish");
    //      } break;
    //      case command::hincrby:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"10"}} };
 
-   //        check_equal(resp, expected, "hincrby");
+   //        expect_eq(resp, expected, "hincrby");
    //      } break;
    //      case command::zadd:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"1"}} };
 
-   //        check_equal(resp, expected, "zadd");
+   //        expect_eq(resp, expected, "zadd");
    //      } break;
    //      case command::sadd:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"3"}} };
 
-   //        check_equal(resp, expected, "sadd");
+   //        expect_eq(resp, expected, "sadd");
    //      } break;
    //      case command::hdel:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"2"}} };
 
-   //        check_equal(resp, expected, "hdel");
+   //        expect_eq(resp, expected, "hdel");
    //      } break;
    //      case command::zremrangebyscore:
    //      {
    //        std::vector<node_type> expected
    //         { {resp3::type::number, 1UL, 0UL, {"1"}} };
 
-   //        check_equal(resp, expected, "zremrangebyscore");
+   //        expect_eq(resp, expected, "zremrangebyscore");
    //      } break;
    //      case command::get:
    //      {
    //        std::vector<node_type> expected
    //            { {resp3::type::blob_string, 1UL, 0UL, test.set_} };
 
-   //         check_equal(resp, expected, "get");
+   //         expect_eq(resp, expected, "get");
    //      } break;
    //      case command::hget:
    //      {
    //        std::vector<node_type> expected
    //            { {resp3::type::blob_string, 1UL, 0UL, std::string{"value2"}} };
 
-   //         check_equal(resp, expected, "hget");
+   //         expect_eq(resp, expected, "hget");
    //      } break;
    //      case command::hvals:
    //      {
@@ -325,7 +325,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    //            , {resp3::type::array, 1UL, 1UL, {"value2"}}
    //            };
 
-   //        check_equal(resp, expected, "hvals");
+   //        expect_eq(resp, expected, "hvals");
    //      } break;
    //      case command::zrange:
    //      {
@@ -334,7 +334,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    //            , {resp3::type::blob_string, 1UL, 1UL, {"Marcelo"}}
    //            };
 
-   //        check_equal(resp, expected, "hvals");
+   //        expect_eq(resp, expected, "hvals");
    //      } break;
    //      case command::zrangebyscore:
    //      {
@@ -343,7 +343,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    //            , {resp3::type::blob_string, 1UL, 1UL, {"Marcelo"}}
    //            };
 
-   //        check_equal(resp, expected, "zrangebyscore");
+   //        expect_eq(resp, expected, "zrangebyscore");
    //      } break;
    //      case command::exec:
    //      {
@@ -356,7 +356,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    //            , {resp3::type::simple_string, 1UL, 1UL, {"PONG"}}
    //            };
 
-   //         check_equal(resp, expected, "transaction");
+   //         expect_eq(resp, expected, "transaction");
 
    //      } break;
    //      case command::hgetall:
@@ -368,7 +368,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    //         , {resp3::type::blob_string, 1UL, 1UL, {"field2"}}
    //         , {resp3::type::blob_string, 1UL, 1UL, {"value2"}}
    //         };
-   //         check_equal(resp, expected, "hgetall (value)");
+   //         expect_eq(resp, expected, "hgetall (value)");
    //      } break;
    //      case command::smembers:
    //      {
@@ -378,7 +378,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
    //         , {resp3::type::blob_string,  1UL, 1UL, {"2"}}
    //         , {resp3::type::blob_string,  1UL, 1UL, {"3"}}
    //         };
-   //         check_equal(resp, expected, "smembers (value)");
+   //         expect_eq(resp, expected, "smembers (value)");
    //      } break;
    //      default: { std::cout << "Error: " << resp.front().data_type << " " << cmd << std::endl; }
    //   }
@@ -420,7 +420,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 //      co_await async_read(socket, buf, gresp);
 //      std::vector<node_type> expected
 //        { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
-//      check_equal(gresp, expected, "flushall");
+//      expect_eq(gresp, expected, "flushall");
 //   }
 //
 //   {  // rpush
@@ -428,21 +428,21 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 //      std::vector<node_type> expected
 //        { {resp3::type::number, 1UL, 0UL, {"6"}} };
 //      co_await async_read(socket, buf, gresp);
-//      check_equal(gresp, expected, "rpush");
+//      expect_eq(gresp, expected, "rpush");
 //   }
 //
 //   {  // lrange
 //      resp3::flat_array_int_type buffer;
 //      resp3::detail::basic_flat_array_adapter<int> res{&buffer};
 //      co_await async_read(socket, buf, res);
-//      check_equal(buffer, list, "lrange-1");
+//      expect_eq(buffer, list, "lrange-1");
 //   }
 //
 //   {  // lrange
 //      resp3::flat_array_int_type buffer;
 //      resp3::detail::basic_flat_array_adapter<int> res{&buffer};
 //      co_await async_read(socket, buf, res);
-//      check_equal(buffer, std::vector<int>{3, 4, 5}, "lrange-2");
+//      expect_eq(buffer, std::vector<int>{3, 4, 5}, "lrange-2");
 //   }
 //
 //   {  // ltrim
@@ -451,7 +451,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 //	 { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
 //
 //      co_await async_read(socket, buf, gresp);
-//      check_equal(gresp, expected, "ltrim");
+//      expect_eq(gresp, expected, "ltrim");
 //   }
 //
 //   {  // lpop. Why a blob string instead of a number?
@@ -460,7 +460,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 //	 { {resp3::type::blob_string, 1UL, 0UL, {"3"}} };
 //
 //      co_await async_read(socket, buf, gresp);
-//      check_equal(gresp, expected, "lpop");
+//      expect_eq(gresp, expected, "lpop");
 //   }
 //
 //   {  // quit
@@ -468,7 +468,7 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 //      co_await async_read(socket, buf, gresp);
 //      std::vector<node_type> expected
 //      { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
-//      check_equal(gresp, expected, "ltrim");
+//      expect_eq(gresp, expected, "ltrim");
 //   }
 //}
 
@@ -515,7 +515,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       co_await resp3::async_read(socket, net::dynamic_buffer(buf), adapt(gresp));
       std::vector<node_type> expected
       { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
-      check_equal(gresp, expected, "set1");
+      expect_eq(gresp, expected, "set1");
    }
 
    {  // get
@@ -524,7 +524,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
 	 { {resp3::type::blob_string, 1UL, 0UL, test_bulk1} };
 
       co_await resp3::async_read(socket, net::dynamic_buffer(buf), adapt(gresp));
-      check_equal(gresp, expected, "get1");
+      expect_eq(gresp, expected, "get1");
    }
 
    {  // set
@@ -532,7 +532,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       co_await resp3::async_read(socket, net::dynamic_buffer(buf), adapt(gresp));
       std::vector<node_type> expected
       { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
-      check_equal(gresp, expected, "ltrim");
+      expect_eq(gresp, expected, "ltrim");
    }
 
    {  // get
@@ -540,7 +540,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       std::vector<node_type> expected
 	 { {resp3::type::blob_string, 1UL, 0UL, test_bulk2} };
       co_await resp3::async_read(socket, net::dynamic_buffer(buf), adapt(gresp));
-      check_equal(gresp, expected, "get2");
+      expect_eq(gresp, expected, "get2");
    }
 
    {  // set
@@ -548,7 +548,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       co_await resp3::async_read(socket, net::dynamic_buffer(buf), adapt(gresp));
       std::vector<node_type> expected
       { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
-      check_equal(gresp, expected, "set3");
+      expect_eq(gresp, expected, "set3");
    }
 
    {  // get
@@ -557,7 +557,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
 	 { {resp3::type::blob_string, 1UL, 0UL, {}} };
 
       co_await resp3::async_read(socket, net::dynamic_buffer(buf), adapt(gresp));
-      check_equal(gresp,  expected, "get3");
+      expect_eq(gresp,  expected, "get3");
    }
 
    {  // quit
@@ -565,7 +565,7 @@ test_set(net::ip::tcp::resolver::results_type const& results)
       co_await resp3::async_read(socket, net::dynamic_buffer(buf), adapt(gresp));
       std::vector<node_type> expected
       { {resp3::type::simple_string, 1UL, 0UL, {"OK"}} };
-      check_equal(gresp, expected, "quit");
+      expect_eq(gresp, expected, "quit");
    }
 }
 

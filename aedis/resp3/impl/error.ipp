@@ -26,6 +26,7 @@ struct error_category_impl : boost::system::error_category {
 	 case error::not_a_number: return "Can't convert string to number.";
 	 case error::unexpected_read_size: return "Unexpected read size.";
 	 case error::exceeeds_max_nested_depth: return "Exceeds the maximum number of nested responses.";
+	 case error::unexpected_bool_value: return "Unexpected bool value.";
 	 default: assert(false);
       }
    }

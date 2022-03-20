@@ -9,6 +9,8 @@
 #include <iostream>
 #include <optional>
 
+#include <boost/system/errc.hpp>
+
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
@@ -32,9 +34,10 @@ using node_type = aedis::adapter::node<std::string>;
 
 template <class Result>
 struct expect {
-  std::string in;
-  Result expected;
-  std::string name;
+   std::string in;
+   Result expected;
+   std::string name;
+   boost::system::error_condition ec;
 };
 
 template <class Result>
@@ -45,9 +48,11 @@ void test_sync(expect<Result> e)
    Result result;
    boost::system::error_code ec;
    resp3::read(ts, net::dynamic_buffer(rbuffer), adapt(result), ec);
-   check_error(ec);
+   expect_error(ec, e.ec);
+   if (e.ec)
+      return;
    check_empty(rbuffer);
-   check_equal(result, e.expected, e.name);
+   expect_eq(result, e.expected, e.name);
 }
 
 template <class Result>
@@ -59,9 +64,11 @@ test_async(expect<Result> e)
    Result result;
    boost::system::error_code ec;
    co_await resp3::async_read(ts, net::dynamic_buffer(rbuffer), adapt(result), net::redirect_error(net::use_awaitable, ec));
-   check_error(ec);
+   expect_error(ec, e.ec);
+   if (e.ec)
+      co_return;
    check_empty(rbuffer);
-   check_equal(result, e.expected, e.name);
+   expect_eq(result, e.expected, e.name);
 }
 
 // TODO: Test a large simple string. For example
@@ -91,17 +98,17 @@ net::awaitable<void> test_async_array()
 	 , {resp3::type::blob_string, 1UL, 1UL, {"3"}}
          };
 
-      check_equal(result, expected, "array (node-async)");
+      expect_eq(result, expected, "array (node-async)");
    }
 
    {
       std::vector<int> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<int> expected {11, 22, 3};
-      check_equal(result, expected, "array (int-async)");
+      expect_eq(result, expected, "array (int-async)");
    }
 
    {
@@ -110,10 +117,10 @@ net::awaitable<void> test_async_array()
       std::vector<int> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<int> expected;
-      check_equal(result, expected, "array (empty)");
+      expect_eq(result, expected, "array (empty)");
    }
 }
 
@@ -129,7 +136,7 @@ net::awaitable<void> test_async_set()
 
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected
       { {resp3::type::set,            5UL, 0UL, {}}
@@ -140,7 +147,7 @@ net::awaitable<void> test_async_set()
       , {resp3::type::simple_string,  1UL, 1UL, {"three"}}
       };
 
-      check_equal(result, expected, "test set (1)");
+      expect_eq(result, expected, "test set (1)");
    }
 
    {
@@ -150,10 +157,10 @@ net::awaitable<void> test_async_set()
 
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected { {resp3::type::set,  0UL, 0UL, {}} };
-      check_equal(result, expected, "test set (2)");
+      expect_eq(result, expected, "test set (2)");
    }
 }
 
@@ -169,7 +176,7 @@ net::awaitable<void> test_async_map()
 
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected
       { {resp3::type::map,         7UL, 0UL, {}}
@@ -189,7 +196,7 @@ net::awaitable<void> test_async_map()
       , {resp3::type::array,       0UL, 1UL, {}}
       };
 
-      check_equal(result, expected, "map.async.node");
+      expect_eq(result, expected, "map.node");
    }
 
    {
@@ -199,10 +206,10 @@ net::awaitable<void> test_async_map()
 
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected { {resp3::type::map, 0UL, 0UL, {}} };
-      check_equal(result, expected, "map.async.node.empty");
+      expect_eq(result, expected, "map.async.node.empty");
    }
 
    {
@@ -210,7 +217,7 @@ net::awaitable<void> test_async_map()
       std::map<std::string, std::string> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::map<std::string, std::string> expected
       { {"server", "redis"}
@@ -218,7 +225,7 @@ net::awaitable<void> test_async_map()
       , {"proto", "3"}
       };
 
-      check_equal(result, expected, "map.async.map.string.string");
+      expect_eq(result, expected, "map.async.map.string.string");
    }
 
    {
@@ -227,14 +234,14 @@ net::awaitable<void> test_async_map()
 
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::map<std::string, int> expected
       { {"key1", 10}
       , {"key2", 30}
       };
 
-      check_equal(result, expected, "map.async.map.string.int");
+      expect_eq(result, expected, "map.async.map.string.int");
    }
 
    {
@@ -246,7 +253,7 @@ net::awaitable<void> test_async_map()
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
 
       boost::system::error_code expected = aedis::adapter::error::nested_unsupported;
-      check_equal(ec, expected, "map.async.map.error (nested unsupported)");
+      expect_eq(ec, expected, "map.async.map.error (nested unsupported)");
    }
 
    // TODO: Test optional map.
@@ -265,10 +272,10 @@ net::awaitable<void> test_streamed_string()
 
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected { {resp3::type::streamed_string_part, 1UL, 0UL, {"Hello world"}} };
-      check_equal(result, expected, "streamed_string.async");
+      expect_eq(result, expected, "streamed_string.async");
    }
 
    {
@@ -278,10 +285,10 @@ net::awaitable<void> test_streamed_string()
 
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected { {resp3::type::streamed_string_part, 1UL, 0UL, {}} };
-      check_equal(result, expected, "streamed_string.async.empty");
+      expect_eq(result, expected, "streamed_string.async.empty");
    }
 }
 
@@ -295,7 +302,7 @@ net::awaitable<void> test_async_attribute()
       std::vector<node_type> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected
          { {resp3::type::attribute,     1UL, 0UL, {}}
@@ -307,7 +314,7 @@ net::awaitable<void> test_async_attribute()
          , {resp3::type::doublean,      1UL, 2UL, "0.0012"}
          };
 
-      check_equal(result, expected, "attribute.async");
+      expect_eq(result, expected, "attribute.async");
    }
 
    {
@@ -318,10 +325,10 @@ net::awaitable<void> test_async_attribute()
       std::vector<node_type> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected{{resp3::type::attribute, 0UL, 0UL, {}}};
-      check_equal(result, expected, "attribute.async.empty");
+      expect_eq(result, expected, "attribute.async.empty");
    }
 }
 
@@ -335,7 +342,7 @@ net::awaitable<void> test_async_push()
       std::vector<node_type> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuffer, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected
          { {resp3::type::push,          4UL, 0UL, {}}
@@ -345,7 +352,7 @@ net::awaitable<void> test_async_push()
          , {resp3::type::simple_string, 1UL, 1UL, "some message"}
          };
 
-      check_equal(result, expected, "push.async");
+      expect_eq(result, expected, "push.async");
    }
 
    {
@@ -356,10 +363,10 @@ net::awaitable<void> test_async_push()
       std::vector<node_type> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuffer, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
 
       std::vector<node_type> expected { {resp3::type::push,          0UL, 0UL, {}} };
-      check_equal(result, expected, "push.async.empty");
+      expect_eq(result, expected, "push.async.empty");
    }
 }
 
@@ -374,34 +381,30 @@ net::awaitable<void> test_async_optional()
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
       boost::system::error_code expected = aedis::adapter::error::null;
-      check_equal(ec, expected, "optional.async.int.error (null)");
+      expect_eq(ec, expected, "optional.async.int.error (null)");
    }
 
    {
       std::optional<int> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
       std::optional<int> expected;
-      check_equal(result, expected, "optional (optional-int-async)");
+      expect_eq(result, expected, "optional (optional-int-async)");
    }
 
    {
       std::optional<std::string> result;
       boost::system::error_code ec;
       co_await resp3::async_read(ts, dbuf, adapt(result), net::redirect_error(net::use_awaitable, ec));
-      check_error(ec);
+      expect_error(ec);
       std::optional<std::string> expected;
-      check_equal(result, expected, "optional (optional-int-async)");
+      expect_eq(result, expected, "optional (optional-int-async)");
    }
 }
 
-int main()
+void simple()
 {
-   std::optional<std::string> ok1, ok2;
-   ok1 = "OK";
-   ok2 = "";
-
    std::vector<expect<node_type>> const simple
    // Simple string
    { {"+OK\r\n", node_type{resp3::type::simple_string, 1UL, 0UL, {"OK"}}, "simple_string.node"}
@@ -444,17 +447,30 @@ int main()
    for (auto const& e: simple)
      co_spawn(ioc, test_async(e), net::detached);
 
-   // Old
-   co_spawn(ioc, test_async_map(), net::detached);
-   co_spawn(ioc, test_async_optional(), net::detached);
-   co_spawn(ioc, test_async_attribute(), net::detached);
-   co_spawn(ioc, test_async_push(), net::detached);
+   ioc.run();
+}
 
-   co_spawn(ioc, test_async_array(), net::detached);
-   co_spawn(ioc, test_async_set(), net::detached);
+void adapter_simple()
+{
+   std::optional<std::string> ok1, ok2;
+   ok1 = "OK";
+   ok2 = "";
 
-   // Adapter.
-   test_sync(expect<int>{":11\r\n", int{11}, "number.sync.int"});
+   std::optional<int> ok3;
+   ok3 = 11;
+
+   net::io_context ioc {1};
+
+   // Adapter for int (number).
+   test_sync(expect<int>{":11\r\n", int{11}, "adapter.number.int"});
+   test_sync(expect<int>{":adf\r\n", int{11}, "adapter.number.int", boost::system::errc::errc_t::invalid_argument});
+   test_sync(expect<int>{"%11\r\n", int{}, "adapter.number.invalid", aedis::adapter::make_error_condition(aedis::adapter::error::expects_simple_type)});
+
+   test_sync(expect<std::optional<int>>{":11\r\n", ok3, "adapter.number.optional.int"});
+   test_sync(expect<std::optional<int>>{"_\r\n", std::optional<int>{}, "adapter.number.optional.int (null)"});
+   // Test the above but expecting adapter errors.
+
+   // Adapter for std::string (simple_string)
    test_sync(expect<std::string>{"+OK\r\n", std::string{"OK"}, "simple_string.sync.string"});
    test_sync(expect<std::string>{"+\r\n", std::string{""}, "simple_string.sync.string.empty"});
    test_sync(expect<std::optional<std::string>>{"+OK\r\n", std::optional<std::string>{"OK"}, "simple_string.sync.optional"});
@@ -465,6 +481,30 @@ int main()
    co_spawn(ioc, test_async(expect<std::optional<std::string>>{"+OK\r\n", ok1, "simple_string.async.string.optional"}), net::detached);
    co_spawn(ioc, test_async(expect<std::optional<std::string>>{"+\r\n", ok2, "simple_string.async.string.optional.empty"}), net::detached);
 
+   // RESP3 tests.
+   test_sync(expect<int>{"#11\r\n", int{}, "adapter.bool.invalid", aedis::resp3::make_error_condition(aedis::resp3::error::unexpected_bool_value)});
+   test_sync(expect<int>{"s11\r\n", int{}, "adapter.number.invalid", aedis::resp3::make_error_condition(aedis::resp3::error::invalid_type)});
+
    ioc.run();
+}
+
+void aggregate()
+{
+   net::io_context ioc {1};
+
+   co_spawn(ioc, test_async_map(), net::detached);
+   co_spawn(ioc, test_async_optional(), net::detached);
+   co_spawn(ioc, test_async_attribute(), net::detached);
+   co_spawn(ioc, test_async_push(), net::detached);
+   co_spawn(ioc, test_async_array(), net::detached);
+   co_spawn(ioc, test_async_set(), net::detached);
+   ioc.run();
+}
+
+int main()
+{
+   simple();
+   adapter_simple();
+   aggregate();
 }
 

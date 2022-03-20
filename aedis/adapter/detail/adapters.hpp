@@ -21,6 +21,8 @@
 #include <aedis/adapter/node.hpp>
 #include <aedis/adapter/error.hpp>
 
+// TODO: Implement support for std::optional with aggregates.
+
 namespace aedis {
 namespace adapter {
 namespace detail {
@@ -323,7 +325,6 @@ public:
 
       assert(!is_aggregate(t));
 
-      // TODO: This should cause an error not an assertion.
       assert(depth == 1);
       assert(aggregate_size == 1);
 

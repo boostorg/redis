@@ -72,7 +72,6 @@ read(
 	 }
       }
 
-      boost::system::error_code ec;
       auto const* data = (char const*) buf.data(0, n).data();
       n = p.advance(data, n, ec);
       if (ec)

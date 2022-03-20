@@ -27,7 +27,10 @@ enum class error
    unexpected_read_size,
 
    /// The maximum depth of a nested response was exceeded.
-   exceeeds_max_nested_depth
+   exceeeds_max_nested_depth,
+
+   /// Unexpected bool value
+   unexpected_bool_value
 };
 
 /** \brief Converts an error in an boost::system::error_code object.

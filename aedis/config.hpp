@@ -7,7 +7,7 @@
 
 #pragma once
 
-// TODO: Remove this.
+// We should eliminate the need for this include.
 #include <boost/asio.hpp>
 
 namespace aedis {

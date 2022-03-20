@@ -149,7 +149,6 @@
       // ...
     };
     
-    // TODO: Change the signature to ...
     std::string to_string(mystruct const& obj)
     {
        // Convert to string
