@@ -19,8 +19,6 @@
 namespace aedis {
 namespace generic {
 
-// TODO: Produce error if resposes before exec are not QUEUED.
-//
 /**  \brief Base class for receivers that use tuple.
  *   \ingroup any
  */

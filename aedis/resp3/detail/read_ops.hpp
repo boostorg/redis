@@ -62,8 +62,8 @@ public:
 	    // read), in which case there is no need of initiating
 	    // another async op, otherwise we have to read the missing
 	    // bytes.
-            if (std::size(buf_) < (parser_.bulk_length() + 2)) {
-               buffer_size_ = std::size(buf_);
+            if (buf_.size() < (parser_.bulk_length() + 2)) {
+               buffer_size_ = buf_.size();
                buf_.grow(parser_.bulk_length() + 2 - buffer_size_);
 
                yield
@@ -80,7 +80,7 @@ public:
             }
 
             n = parser_.bulk_length() + 2;
-            assert(std::size(buf_) >= n);
+            assert(buf_.size() >= n);
          }
 
          n = parser_.advance((char const*)buf_.data(0, n).data(), n, ec);
@@ -120,7 +120,7 @@ public:
       reenter (coro_) {
 
          boost::ignore_unused(n);
-         if (std::size(buf_) == 0) {
+         if (buf_.size() == 0) {
             yield net::async_read_until(stream_, buf_, "\r\n", std::move(self));
             if (ec) {
                self.complete(ec, type::invalid);

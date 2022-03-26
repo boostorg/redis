@@ -31,11 +31,11 @@ namespace adapter {
 /** \brief Traits class for response objects.
  *  \ingroup any
  */
-template <class T>
+template <class ResponseType>
 struct response_traits
 {
    /// The response type.
-   using response_type = T;
+   using response_type = ResponseType;
 
    /// The adapter type.
    using adapter_type = adapter::detail::simple<response_type>;
@@ -47,22 +47,6 @@ struct response_traits
 /// Template typedef for response_traits.
 template <class T>
 using response_traits_t = typename response_traits<T>::adapter_type;
-
-template <class T>
-struct response_traits<std::optional<T>>
-{
-   using response_type = std::optional<T>;
-   using adapter_type = adapter::detail::simple_optional<typename response_type::value_type>;
-   static auto adapt(response_type& i) noexcept { return adapter_type{&i}; }
-};
-
-template <class T, class Allocator>
-struct response_traits<std::vector<T, Allocator>>
-{
-   using response_type = std::vector<T, Allocator>;
-   using adapter_type = adapter::detail::vector<response_type>;
-   static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
-};
 
 template <class T>
 struct response_traits<node<T>>
@@ -78,54 +62,6 @@ struct response_traits<std::vector<node<String>, Allocator>>
    using response_type = std::vector<node<String>, Allocator>;
    using adapter_type = adapter::detail::general<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
-};
-
-template <class T, class Allocator>
-struct response_traits<std::list<T, Allocator>>
-{
-   using response_type = std::list<T, Allocator>;
-   using adapter_type = adapter::detail::list<response_type>;
-   static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
-};
-
-template <class T, class Allocator>
-struct response_traits<std::deque<T, Allocator>>
-{
-   using response_type = std::deque<T, Allocator>;
-   using adapter_type = adapter::detail::list<response_type>;
-   static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
-};
-
-template <class Key, class Compare, class Allocator>
-struct response_traits<std::set<Key, Compare, Allocator>>
-{
-   using response_type = std::set<Key, Compare, Allocator>;
-   using adapter_type = adapter::detail::set<response_type>;
-   static auto adapt(response_type& s) noexcept { return adapter_type{&s}; }
-};
-
-template <class Key, class Hash, class KeyEqual, class Allocator>
-struct response_traits<std::unordered_set<Key, Hash, KeyEqual, Allocator>>
-{
-   using response_type = std::unordered_set<Key, Hash, KeyEqual, Allocator>;
-   using adapter_type = adapter::detail::set<response_type>;
-   static auto adapt(response_type& s) noexcept { return adapter_type{&s}; }
-};
-
-template <class Key, class T, class Compare, class Allocator>
-struct response_traits<std::map<Key, T, Compare, Allocator>>
-{
-   using response_type = std::map<Key, T, Compare, Allocator>;
-   using adapter_type = adapter::detail::map<response_type>;
-   static auto adapt(response_type& s) noexcept { return adapter_type{&s}; }
-};
-
-template <class Key, class Hash, class KeyEqual, class Allocator>
-struct response_traits<std::unordered_map<Key, Hash, KeyEqual, Allocator>>
-{
-   using response_type = std::unordered_map<Key, Hash, KeyEqual, Allocator>;
-   using adapter_type = adapter::detail::map<response_type>;
-   static auto adapt(response_type& s) noexcept { return adapter_type{&s}; }
 };
 
 template <>
@@ -214,7 +150,6 @@ public:
 
 } // detail
 
-// The adapter of responses to transactions, move it to its own header?
 template <class... Ts>
 struct response_traits<std::tuple<Ts...>>
 {

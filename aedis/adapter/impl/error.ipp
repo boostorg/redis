@@ -25,6 +25,7 @@ struct error_category_impl : boost::system::error_category {
    {
       switch(static_cast<error>(ev)) {
 	 case error::expects_simple_type: return "Expects a simple RESP3 type";
+	 case error::expects_aggregate: return "Expects aggregate type";
 	 case error::nested_unsupported: return "Nested responses unsupported.";
 	 case error::simple_error: return "Got RESP3 simple-error.";
 	 case error::blob_error: return "Got RESP3 blob-error.";

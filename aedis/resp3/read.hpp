@@ -42,7 +42,7 @@ read(
    ResponseAdapter adapter,
    boost::system::error_code& ec)
 {
-   detail::parser p {adapter};
+   detail::parser<ResponseAdapter> p {adapter};
    std::size_t n = 0;
    std::size_t consumed = 0;
    do {
@@ -56,7 +56,7 @@ read(
             return 0;
          }
       } else {
-	 auto const s = std::size(buf);
+	 auto const s = buf.size();
 	 auto const l = p.bulk_length();
 	 if (s < (l + 2)) {
 	    auto const to_read = l + 2 - s;

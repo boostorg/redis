@@ -20,6 +20,12 @@ enum class error
    /// Expects a simple RESP3 type but got an aggregate.
    expects_simple_type = 1,
 
+   /// Expects aggregate type.
+   expects_aggregate,
+
+   /// Expects a map but got other aggregate.
+   expects_map,
+
    /// Nested response not supported.
    nested_unsupported,
 

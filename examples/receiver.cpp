@@ -31,7 +31,7 @@ struct receiver {
       std::size_t size,
       boost::system::error_code&)
    {
-      resps_.emplace_back(t, aggregate_size, depth, std::string{data, size});
+      resps_.push_back({t, aggregate_size, depth, std::string{data, size}});
    }
 
    void on_push()

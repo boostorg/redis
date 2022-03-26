@@ -22,7 +22,9 @@ using net::buffer;
 using net::dynamic_buffer;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
-net::awaitable<std::string> set(net::ip::tcp::endpoint ep)
+using response_type = std::tuple<std::string, std::optional<std::string>>;
+
+net::awaitable<response_type> set(net::ip::tcp::endpoint ep)
 {
    auto ex = co_await net::this_coro::executor;
 
@@ -32,14 +34,20 @@ net::awaitable<std::string> set(net::ip::tcp::endpoint ep)
    std::string request;
    auto sr = make_serializer(request);
    sr.push(command::hello, 3);
-   sr.push(command::set, "low-level-key", "some content", "get");
+   sr.push(command::multi);
+   sr.push(command::ping, "Some message.");
+   sr.push(command::set, "low-level-key", "some content", "EX", "2", "get");
+   sr.push(command::exec);
    sr.push(command::quit);
    co_await net::async_write(socket, buffer(request));
 
-   std::string response;
+   std::tuple<std::string, std::optional<std::string>> response;
 
    std::string buffer;
-   co_await resp3::async_read(socket, dynamic_buffer(buffer));
+   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello
+   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // multi
+   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // ping
+   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // set
    co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(response));
    co_await resp3::async_read(socket, dynamic_buffer(buffer));
 
@@ -52,7 +60,14 @@ net::awaitable<std::string> low_level()
    tcp::resolver resv{ex};
    auto const res = resv.resolve("127.0.0.1", "6379");
    auto const response = co_await net::co_spawn(ex, set(*res.begin()), net::use_awaitable);
-   std::cout << response << std::endl;
+
+   std::cout
+      << "Ping: " << std::get<0>(response) << "\n"
+      << "Get (has_value): " << std::get<1>(response).has_value()
+      << std::endl;
+
+   if (std::get<1>(response).has_value())
+      std::cout << "Get (value): " << std::get<1>(response).value() << std::endl;
 }
 
 int main()

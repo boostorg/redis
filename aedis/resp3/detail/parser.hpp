@@ -117,6 +117,11 @@ public:
             } break;
             case type::boolean:
             {
+               if (n == 3) {
+                   ec = error::empty_field;
+                   return 0;
+               }
+
                if (*(data + 1) != 'f' && *(data + 1) != 't') {
                    ec = error::unexpected_bool_value;
                    return 0;
@@ -128,10 +133,22 @@ public:
 
                --sizes_[depth_];
             } break;
-            case type::simple_error:
-            case type::number:
             case type::doublean:
             case type::big_number:
+            case type::number:
+            {
+               if (n == 3) {
+                   ec = error::empty_field;
+                   return 0;
+               }
+
+               adapter_(t, 1, depth_, data + 1, n - 3, ec);
+	       if (ec)
+		  return 0;
+
+               --sizes_[depth_];
+            } break;
+            case type::simple_error:
             case type::simple_string:
             {
                adapter_(t, 1, depth_, data + 1, n - 3, ec);

@@ -74,7 +74,7 @@ enum class command {
    decrby,
    /// https://redis.io/commands/del
    del,
-   /// https://redis.io/commands/discard
+   /// https://redis.io/commands/discard (not supported yet)
    discard,
    /// https://redis.io/commands/dump
    dump,

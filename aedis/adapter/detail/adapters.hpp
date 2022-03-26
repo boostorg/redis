@@ -21,11 +21,11 @@
 #include <aedis/adapter/node.hpp>
 #include <aedis/adapter/error.hpp>
 
-// TODO: Implement support for std::optional with aggregates.
-
 namespace aedis {
 namespace adapter {
 namespace detail {
+
+// Serialization.
 
 template <class T>
 typename std::enable_if<std::is_integral<T>::value, void>::type
@@ -40,6 +40,15 @@ from_string(
       ec = std::make_error_code(res.ec);
 }
 
+void from_string(
+   bool& t,
+   char const* value,
+   std::size_t size,
+   boost::system::error_code& ec)
+{
+   t = *value == 't';
+}
+
 template <class CharT, class Traits, class Allocator>
 void
 from_string(
@@ -51,6 +60,8 @@ from_string(
   s.assign(value, data_size);
 }
 
+//================================================
+
 void set_on_resp3_error(resp3::type t, boost::system::error_code& ec)
 {
    switch (t) {
@@ -61,51 +72,15 @@ void set_on_resp3_error(resp3::type t, boost::system::error_code& ec)
    }
 }
 
-// For optional responses.
-void set_on_resp3_error2(resp3::type t, boost::system::error_code& ec)
-{
-   switch (t) {
-      case resp3::type::simple_error: ec = adapter::error::simple_error; return;
-      case resp3::type::blob_error: ec = adapter::error::blob_error; return;
-      default: return;
-   }
-}
-
-template <class Container>
+template <class Result>
 class general {
 private:
-   Container* result_;
+   Result* result_;
 
 public:
-   general(Container* c = nullptr): result_(c) {}
-
-   /** @brief Function called by the parser when new data has been processed.
-    *  
-    *  Users who what to customize their response types are required to derive
-    *  from this class and override this function, see examples.
-    *
-    *  \param t The RESP3 type.
-    *
-    *  \param n When t is an aggregate type this will contain its size
-    *     (see also element_multiplicity) for simple types this is always 1.
-    *
-    *  \param depth The element depth in the tree.
-    *
-    *  \param value A pointer to the data.
-    *
-    *  \param size The size of value.
-    */
-   void
-   operator()(
-      resp3::type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* value,
-      std::size_t size,
-      boost::system::error_code&)
-      {
-	 result_->emplace_back(t, aggregate_size, depth, std::string{value, size});
-      }
+   general(Result* c = nullptr): result_(c) {}
+   void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code&)
+      { result_->push_back({t, aggregate_size, depth, std::string{value, size}}); }
 };
 
 template <class Node>
@@ -116,14 +91,7 @@ private:
 public:
    adapter_node(Node* t = nullptr) : result_(t) {}
 
-   void
-   operator()(
-      resp3::type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* value,
-      std::size_t data_size,
-      boost::system::error_code&)
+   void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t data_size, boost::system::error_code&)
    {
      result_->data_type = t;
      result_->aggregate_size = aggregate_size;
@@ -132,94 +100,134 @@ public:
    }
 };
 
-// Adapter for RESP3 simple data types.
-template <class T>
-class simple {
-private:
-   T* result_;
-
+template <class Result>
+class simple_impl {
 public:
-   simple(T* t = nullptr) : result_(t) {}
-
-   void
-   operator()(
-      resp3::type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* value,
-      std::size_t data_size,
-      boost::system::error_code& ec)
+   void on_value_available(Result&) {}
+   void operator()(Result& result, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code& ec)
    {
       set_on_resp3_error(t, ec);
       if (ec)
          return;
 
       if (is_aggregate(t)) {
-	 ec = adapter::error::expects_simple_type;
-	 return;
+         ec = adapter::error::expects_simple_type;
+         return;
       }
 
-      assert(aggregate_size == 1);
-      from_string(*result_, value, data_size, ec);
+      from_string(result, value, size, ec);
    }
 };
 
-template <class T>
-class simple_optional {
+template <class Result>
+class set_impl {
 private:
-  std::optional<T>* result_;
+   typename Result::iterator hint_;
 
 public:
-   simple_optional(std::optional<T>* o = nullptr) : result_(o) {}
+   void on_value_available(Result& result)
+      { hint_ = std::end(result); }
 
    void
    operator()(
-      resp3::type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* value,
-      std::size_t data_size,
-      boost::system::error_code& ec)
+       Result& result,
+       resp3::type t,
+       std::size_t aggregate_size,
+       std::size_t depth,
+       char const* value,
+       std::size_t data_size,
+       boost::system::error_code& ec)
    {
-      set_on_resp3_error2(t, ec);
+      set_on_resp3_error(t, ec);
       if (ec)
+         return;
+
+      if (t == resp3::type::set)
         return;
 
-      if (is_aggregate(t)) {
-	 ec = adapter::error::expects_simple_type;
+      assert(!is_aggregate(t));
+
+      assert(aggregate_size == 1);
+
+      if (depth < 1) {
+	 ec = adapter::error::expects_aggregate;
 	 return;
+      }
+
+      typename Result::key_type obj;
+      from_string(obj, value, data_size, ec);
+      if (hint_ == std::end(result)) {
+         auto const ret = result.insert(std::move(obj));
+         hint_ = ret.first;
+      } else {
+         hint_ = result.insert(hint_, std::move(obj));
+      }
+   }
+};
+
+template <class Result>
+class map_impl {
+private:
+   typename Result::iterator current_;
+   bool on_key_ = true;
+
+public:
+   void on_value_available(Result& result)
+      { current_ = std::end(result); }
+
+   void
+   operator()(
+       Result& result,
+       resp3::type t,
+       std::size_t aggregate_size,
+       std::size_t depth,
+       char const* value,
+       std::size_t data_size,
+       boost::system::error_code& ec)
+   {
+      set_on_resp3_error(t, ec);
+      if (ec)
+         return;
+
+      if (is_aggregate(t)) {
+        if (element_multiplicity(t) != 2)
+          ec = error::expects_map;
+        return;
       }
 
       assert(aggregate_size == 1);
 
-      if (depth != 0) {
-	 ec = adapter::error::nested_unsupported;
+      if (depth < 1) {
+	 ec = adapter::error::expects_aggregate;
 	 return;
       }
 
-      if (t == resp3::type::null)
-         return;
+      if (on_key_) {
+         typename Result::key_type obj;
+         from_string(obj, value, data_size, ec);
+         current_ = result.insert(current_, {std::move(obj), {}});
+      } else {
+         typename Result::mapped_type obj;
+         from_string(obj, value, data_size, ec);
+         current_->second = std::move(obj);
+      }
 
-      if (!result_->has_value())
-        *result_ = T{};
-
-      from_string(result_->value(), value, data_size, ec);
+      on_key_ = !on_key_;
    }
 };
 
-/* A std::vector adapter.
- */
-template <class Container>
-class vector {
+template <class Result>
+class vector_impl {
 private:
    int i_ = -1;
-   Container* result_;
 
 public:
-   vector(Container* v = nullptr) : result_{v} {}
+   void on_value_available(Result& ) { }
 
    void
-   operator()(resp3::type t,
+   operator()(
+       Result& result,
+       resp3::type t,
        std::size_t aggregate_size,
        std::size_t depth,
        char const* value,
@@ -232,35 +240,39 @@ public:
 
       if (is_aggregate(t)) {
 	 if (i_ != -1) {
-	    ec = adapter::error::nested_unsupported;
-	    return;
-	 }
+            ec = adapter::error::nested_unsupported;
+            return;
+         }
 
          auto const m = element_multiplicity(t);
-         result_->resize(m * aggregate_size);
+         result.resize(m * aggregate_size);
          ++i_;
       } else {
+         if (i_ == -1) {
+            ec = adapter::error::expects_aggregate;
+            return;
+         }
+
          if (aggregate_size != 1) {
             ec = adapter::error::nested_unsupported;
             return;
          }
 
-         from_string(result_->at(i_), value, data_size, ec);
+         from_string(result.at(i_), value, data_size, ec);
          ++i_;
       }
    }
 };
 
-template <class Container>
-class list {
-private:
-   Container* result_;
+template <class Result>
+struct list_impl {
 
-public:
-   list(Container* ref = nullptr): result_(ref) {}
+   void on_value_available(Result& ) { }
 
    void
-   operator()(resp3::type t,
+   operator()(
+       Result& result,
+       resp3::type t,
        std::size_t aggregate_size,
        std::size_t depth,
        char const* value,
@@ -279,121 +291,80 @@ public:
          return;
       }
 
-      if (aggregate_size != 1) {
-         ec = adapter::error::nested_unsupported;
-         return;
-      }
-
-      if (depth < 1) {
-	 ec = adapter::error::nested_unsupported;
-	 return;
-      }
-
-      result_->push_back({});
-      from_string(result_->back(), value, data_size, ec);
-   }
-};
-
-template <class Container>
-class set {
-private:
-   Container* result_;
-   typename Container::iterator hint_;
-
-public:
-   set(Container* c = nullptr)
-   : result_(c)
-   , hint_(std::end(*c))
-   {}
-
-   void
-   operator()(resp3::type t,
-       std::size_t aggregate_size,
-       std::size_t depth,
-       char const* value,
-       std::size_t data_size,
-       boost::system::error_code& ec)
-   {
-      set_on_resp3_error(t, ec);
-      if (ec)
-         return;
-
-      if (t == resp3::type::set) {
-        assert(depth == 0);
-        return;
-      }
-
-      assert(!is_aggregate(t));
-
-      assert(depth == 1);
       assert(aggregate_size == 1);
 
-      typename Container::key_type obj;
-      from_string(obj, value, data_size, ec);
-      if (hint_ == std::end(*result_)) {
-         auto const ret = result_->insert(std::move(obj));
-         hint_ = ret.first;
-      } else {
-         hint_ = result_->insert(hint_, std::move(obj));
-      }
-   }
-};
-
-template <class Container>
-class map {
-private:
-   Container* result_;
-   typename Container::iterator current_;
-   bool on_key_ = true;
-
-public:
-   map(Container* c = nullptr)
-   : result_(c)
-   , current_(std::end(*c))
-   {}
-
-   void
-   operator()(resp3::type t,
-       std::size_t aggregate_size,
-       std::size_t depth,
-       char const* value,
-       std::size_t data_size,
-       boost::system::error_code& ec)
-   {
-      set_on_resp3_error(t, ec);
-      if (ec)
-         return;
-
-      if (is_aggregate(t)) {
-        assert(t == resp3::type::map);
-	if (depth != 0 && depth != 1) {
-	   ec = adapter::error::nested_unsupported;
-	   return;
-	}
-        return;
-      }
-
-      if (aggregate_size != 1) {
-         ec = adapter::error::nested_unsupported;
-         return;
-      }
-
       if (depth < 1) {
-	 ec = adapter::error::nested_unsupported;
+	 ec = adapter::error::expects_aggregate;
 	 return;
       }
 
-      if (on_key_) {
-         typename Container::key_type obj;
-         from_string(obj, value, data_size, ec);
-         current_ = result_->insert(current_, {std::move(obj), {}});
-      } else {
-         typename Container::mapped_type obj;
-         from_string(obj, value, data_size, ec);
-         current_->second = std::move(obj);
+      result.push_back({});
+      from_string(result.back(), value, data_size, ec);
+   }
+};
+
+//---------------------------------------------------
+
+template <class T>
+struct impl_map { using type = simple_impl<T>; };
+
+template <class Key, class Compare, class Allocator>
+struct impl_map<std::set<Key, Compare, Allocator>> { using type = set_impl<std::set<Key, Compare, Allocator>>; };
+
+template <class Key, class Hash, class KeyEqual, class Allocator>
+struct impl_map<std::unordered_set<Key, Hash, KeyEqual, Allocator>> { using type = set_impl<std::unordered_set<Key, Hash, KeyEqual, Allocator>>; };
+
+template <class Key, class T, class Compare, class Allocator>
+struct impl_map<std::map<Key, T, Compare, Allocator>> { using type = map_impl<std::map<Key, T, Compare, Allocator>>; };
+
+template <class Key, class Hash, class KeyEqual, class Allocator>
+struct impl_map<std::unordered_map<Key, Hash, KeyEqual, Allocator>> { using type = map_impl<std::unordered_map<Key, Hash, KeyEqual, Allocator>>; };
+
+template <class T, class Allocator>
+struct impl_map<std::vector<T, Allocator>> { using type = vector_impl<std::vector<T, Allocator>>; };
+
+template <class T, class Allocator>
+struct impl_map<std::list<T, Allocator>> { using type = list_impl<std::list<T, Allocator>>; };
+
+template <class T, class Allocator>
+struct impl_map<std::deque<T, Allocator>> { using type = list_impl<std::deque<T, Allocator>>; };
+
+//---------------------------------------------------
+
+template <class Result>
+class simple {
+private:
+   Result* result_;
+   typename impl_map<Result>::type impl_;
+
+public:
+   simple(Result* t = nullptr) : result_(t)
+      { impl_.on_value_available(*result_); }
+
+   void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code& ec)
+      { impl_(*result_, t, aggregate_size, depth, value, size, ec); }
+};
+
+template <class T>
+class simple<std::optional<T>> {
+private:
+   std::optional<T>* result_;
+   typename impl_map<T>::type impl_;
+
+public:
+   simple(std::optional<T>* o = nullptr) : result_(o), impl_{} {}
+
+   void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code& ec)
+   {
+      if (t == resp3::type::null)
+         return;
+
+      if (!result_->has_value()) {
+        *result_ = T{};
+        impl_.on_value_available(result_->value());
       }
 
-      on_key_ = !on_key_;
+      impl_(result_->value(), t, aggregate_size, depth, value, size, ec);
    }
 };
 

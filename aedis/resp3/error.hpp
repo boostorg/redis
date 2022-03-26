@@ -30,7 +30,10 @@ enum class error
    exceeeds_max_nested_depth,
 
    /// Unexpected bool value
-   unexpected_bool_value
+   unexpected_bool_value,
+
+   /// Expected field value is empty.
+   empty_field
 };
 
 /** \brief Converts an error in an boost::system::error_code object.

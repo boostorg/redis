@@ -82,38 +82,5 @@ std::ostream& operator<<(std::ostream& os, node<String> const& o)
    return os;
 }
 
-
-/** \brief Writes the response to the output stream
- *  \ingroup any
- *
- *  TODO: Output like in redis-cli.
- */
-template <class String>
-std::string to_string(std::vector<node<String>> const& vec)
-{
-   if (std::empty(vec))
-      return {};
-
-   auto begin = std::cbegin(vec);
-   std::string res;
-   for (; begin != std::prev(std::cend(vec)); ++begin) {
-      res += to_string(*begin);
-      res += '\n';
-   }
-
-   res += to_string(*begin);
-   return res;
-}
-
-/** \brief Writes the response to the output stream
- *  \ingroup any
- */
-template <class String>
-std::ostream& operator<<(std::ostream& os, std::vector<node<String>> const& r)
-{
-   os << to_string(r);
-   return os;
-}
-
 } // adapter
 } // aedis
