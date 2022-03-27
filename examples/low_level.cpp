@@ -22,6 +22,15 @@ using net::buffer;
 using net::dynamic_buffer;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
+using hello_type = std::tuple<
+   std::string, std::string,
+   std::string, std::string,
+   std::string, int,
+   std::string, int,
+   std::string, std::string,
+   std::string, std::string,
+   std::string, std::vector<std::string>>;
+
 using response_type = std::tuple<std::string, std::optional<std::string>>;
 
 net::awaitable<response_type> set(net::ip::tcp::endpoint ep)
@@ -36,15 +45,16 @@ net::awaitable<response_type> set(net::ip::tcp::endpoint ep)
    sr.push(command::hello, 3);
    sr.push(command::multi);
    sr.push(command::ping, "Some message.");
-   sr.push(command::set, "low-level-key", "some content", "EX", "2", "get");
+   sr.push(command::set, "low-level-key", "some content", "EX", "2");
    sr.push(command::exec);
    sr.push(command::quit);
    co_await net::async_write(socket, buffer(request));
 
+   hello_type hello;
    std::tuple<std::string, std::optional<std::string>> response;
 
    std::string buffer;
-   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello
+   co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(hello));
    co_await resp3::async_read(socket, dynamic_buffer(buffer)); // multi
    co_await resp3::async_read(socket, dynamic_buffer(buffer)); // ping
    co_await resp3::async_read(socket, dynamic_buffer(buffer)); // set

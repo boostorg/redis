@@ -84,7 +84,7 @@ struct assigner {
   template <class T1, class T2>
   static void assign(T1& dest, T2& from)
   {
-     dest[N].template emplace<N>(internal_adapt(std::get<N>(from)));
+     dest[N] = internal_adapt(std::get<N>(from));
      assigner<N - 1>::assign(dest, from);
   }
 };
@@ -99,17 +99,17 @@ struct assigner<0> {
 };
 
 template <class Tuple>
-class flat_transaction_adapter {
+class static_aggregate_adapter {
 private:
-   using variant_type =
-      boost::mp11::mp_rename<boost::mp11::mp_transform<response_traits_t, Tuple>, std::variant>;
+   using foo = boost::mp11::mp_rename<boost::mp11::mp_transform<response_traits_t, Tuple>, std::variant>;
+   using variant_type = boost::mp11::mp_unique<foo>;
 
    std::size_t i_ = 0;
    std::size_t aggregate_size_ = 0;
    std::array<variant_type, std::tuple_size<Tuple>::value> adapters_;
 
 public:
-   flat_transaction_adapter(Tuple* r)
+   static_aggregate_adapter(Tuple* r)
       { assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, *r); }
 
    void count(resp3::type t, std::size_t aggregate_size, std::size_t depth)
@@ -137,7 +137,8 @@ public:
       boost::system::error_code& ec)
    {
       if (depth == 0) {
-         if (aggregate_size != std::tuple_size<Tuple>::value)
+         auto const real_aggr_size = aggregate_size * element_multiplicity(t);
+         if (real_aggr_size != std::tuple_size<Tuple>::value)
 	    ec = error::incompatible_tuple_size;
 
          return;
@@ -154,7 +155,7 @@ template <class... Ts>
 struct response_traits<std::tuple<Ts...>>
 {
    using response_type = std::tuple<Ts...>;
-   using adapter_type = adapter::detail::flat_transaction_adapter<response_type>;
+   using adapter_type = adapter::detail::static_aggregate_adapter<response_type>;
    static auto adapt(response_type& r) noexcept { return adapter_type{&r}; }
 };
 

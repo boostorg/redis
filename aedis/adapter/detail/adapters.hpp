@@ -342,7 +342,10 @@ public:
       { impl_.on_value_available(*result_); }
 
    void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code& ec)
-      { impl_(*result_, t, aggregate_size, depth, value, size, ec); }
+   {
+      assert(result_);
+      impl_(*result_, t, aggregate_size, depth, value, size, ec);
+   }
 };
 
 template <class T>

@@ -229,6 +229,7 @@ void test_map(net::io_context& ioc)
    using vec_type = std::vector<std::string>;
    using op_map_type = std::optional<std::map<std::string, std::string>>;
    using op_vec_type = std::optional<std::vector<std::string>>;
+   using tuple_type = std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>;
 
    std::string const wire = "%3\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n$4\r\nkey3\r\n$6\r\nvalue3\r\n";
 
@@ -260,6 +261,12 @@ void test_map(net::io_context& ioc)
    op_vec_type expected_1e;
    expected_1e = expected_1c;
 
+   tuple_type e1f
+   { std::string{"key1"}, std::string{"value1"}
+   , std::string{"key2"}, std::string{"value2"}
+   , std::string{"key3"}, std::string{"value3"}
+   };
+
    auto const in01 = expect<std::vector<node_type>>{wire, expected_1a, "map.node"};
    auto const in02 = expect<map_type>{"%0\r\n", map_type{}, "map.map.empty"};
    auto const in03 = expect<map_type>{wire, expected_1b, "map.map"};
@@ -268,7 +275,7 @@ void test_map(net::io_context& ioc)
    auto const in07 = expect<op_vec_type>{wire, expected_1e, "map.optional.vector"};
    auto const in08 = expect<std::tuple<op_map_type>>{"*1\r\n" + wire, std::tuple<op_map_type>{expected_1d}, "map.transaction.optional.map"};
    auto const in09 = expect<int>{"%11\r\n", int{}, "map.invalid.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_simple_type)};
-   // TODO: Test errors
+   auto const in10 = expect<tuple_type>{wire, e1f, "map.tuple"};
 
    test_sync(in01);
    test_sync(in02);
@@ -278,6 +285,7 @@ void test_map(net::io_context& ioc)
    test_sync(in07);
    test_sync(in08);
    test_sync(in09);
+   test_sync(in10);
 
    co_spawn(ioc, test_async(in01), net::detached);
    co_spawn(ioc, test_async(in02), net::detached);
@@ -287,6 +295,7 @@ void test_map(net::io_context& ioc)
    co_spawn(ioc, test_async(in07), net::detached);
    co_spawn(ioc, test_async(in08), net::detached);
    co_spawn(ioc, test_async(in09), net::detached);
+   co_spawn(ioc, test_async(in10), net::detached);
 }
 
 void test_set(net::io_context& ioc)
