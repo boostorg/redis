@@ -57,7 +57,7 @@ from_string(
    std::size_t data_size,
    boost::system::error_code&)
 {
-  s.assign(value, data_size);
+  s.append(value, data_size);
 }
 
 //================================================
