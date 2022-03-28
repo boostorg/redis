@@ -61,13 +61,10 @@ public:
          switch (bulk_) {
             case type::streamed_string_part:
             {
-              if (bulk_length_ == 0) {
-                 sizes_[depth_] = 1;
-              } else {
-                 adapter_(bulk_, 1, depth_, data, bulk_length_, ec);
-		 if (ec)
-		    return 0;
-              }
+               assert(bulk_length_ != 0);
+               adapter_(bulk_, 1, depth_, data, bulk_length_, ec);
+               if (ec)
+                  return 0;
             } break;
             default:
 	    {
@@ -83,36 +80,40 @@ public:
       } else if (sizes_[depth_] != 0) {
          auto const t = to_type(*data);
          switch (t) {
-            case type::blob_error:
-            case type::verbatim_string:
             case type::streamed_string_part:
             {
-               auto const r =
-		  std::from_chars(data + 1, data + n - 2, bulk_length_);
+               auto const r = std::from_chars(data + 1, data + n - 2, bulk_length_);
 	       if (r.ec != std::errc()) {
 		  ec = error::not_a_number;
 		  return 0;
 	       }
 
-               bulk_ = t;
+               if (bulk_length_ == 0) {
+                  adapter_(type::streamed_string_part, 1, depth_, nullptr, 0, ec);
+                  sizes_[depth_] = 0;
+               } else {
+                  bulk_ = type::streamed_string_part;
+               }
             } break;
+            case type::blob_error:
+            case type::verbatim_string:
             case type::blob_string:
             {
                if (*(data + 1) == '?') {
+                  // NOTE: This can only be triggered with blob_string.
 		  // Trick: A streamed string is read as an aggregate
 		  // of infinite lenght. When the streaming is done
-		  // the server is supposed to send a part with lenght
+		  // the server is supposed to send a part with length
 		  // 0.
                   sizes_[++depth_] = (std::numeric_limits<std::size_t>::max)();
                } else {
-		  auto const r =
-		     std::from_chars(data + 1, data + n - 2, bulk_length_);
+		  auto const r = std::from_chars(data + 1, data + n - 2, bulk_length_);
 		  if (r.ec != std::errc()) {
 		     ec = error::not_a_number;
 		     return 0;
 		  }
 
-                  bulk_ = type::blob_string;
+                  bulk_ = t;
                }
             } break;
             case type::boolean:

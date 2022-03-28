@@ -26,13 +26,13 @@
     \section Overview
   
     Aedis is a redis client library built on top of Asio that provides
-    simple and efficient communication with a Redis server (see
-    https://redis.io/).  Some of its distinctive features are
+    simple and efficient communication with a Redis server. Some of
+    its distinctive features are
 
     @li Support for the latest version of the Redis communication protocol RESP3.
     @li First class support for STL containers and C++ built-in types.
     @li Serialization and deserialization of your own data types built directly into the parser to avoid temporaries.
-    @li Sentinel support (https://redis.io/topics/sentinel).
+    @li Sentinel support (https://redis.io/docs/manual/sentinel).
     @li Sync and async API.
 
     In addition to that, Aedis provides a high level client that offers the following functionality
@@ -41,12 +41,13 @@
     @li Optimal handling of server pushs.
     @li Zero asymptotic allocations by means of memory reuse.
 
-    Let us start with the low-level API.
+    If never heard about Redis the best place to start is on
+    https://redis.io.  Now let us have a look at the Aedis low-level API.
 
     \section low-level-api Low-level API
 
-    The low-level API is very usefull for simple tasks (specially when used
-    with coroutines), for example, assume we want to perform the following steps
+    The low-level API is very usefull for simple tasks, for example,
+    assume we want to perform the following steps
 
     @li Set the value of a Redis key that expires in two seconds.
     @li Get and return its old value.
@@ -74,7 +75,6 @@
        co_await net::async_write(socket, buffer(request));
     
        std::string response;
-    
        std::string buffer;
        co_await resp3::async_read(socket, dynamic_buffer(buffer)); // Hello (ignored).
        co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(response)); // Set
@@ -195,48 +195,49 @@
 
     RESP3 type     | C++                                                          | Type
     ---------------|--------------------------------------------------------------|------------------
-    Simple string  | std::string                                                  | Simple
-    Simple error   | std::string                                                  | Simple
-    Blob string    | std::string                                                  | Simple
-    Blob error     | std::string                                                  | Simple
-    Number         | `long long`                                                  | Simple
-    Null           | `std::optional<T>`                                           | Simple
-    Array          | \c std::vector and \c std::list                              | Aggregate
-    Map            | \c std::vector and \c std::map and \c std::unordered_map     | Aggregate
-    Set            | \c std::vector and \c std::set and \c std::unordered_set     | Aggregate
-    Push           | \c std::vector and \c std::map and \c std::unordered_map     | Aggregate
+    Simple string  | \c std::string                                     | Simple
+    Simple error   | \c std::string                                     | Simple
+    Blob string    | \c std::string, \c std::vector                     | Simple
+    Blob error     | \c std::string, \c std::vector                     | Simple
+    Number         | `long long`                                        | Simple
+    Null           | `std::optional<T>`                                 | Simple
+    Array          | \c std::vector, \c std::list                       | Aggregate
+    Map            | \c std::vector, \c std::map, \c std::unordered_map | Aggregate
+    Set            | \c std::vector, \c std::set, \c std::unordered_set | Aggregate
+    Push           | \c std::vector, \c std::map, \c std::unordered_map | Aggregate
 
     Exceptions to this rule are responses that contain nested
-    aggregates, those will be treated later.  As of this writing, not
-    all RESP3 types are used by the Redis server, which means in
-    practice users will be concerned with a reduced subset of the
-    RESP3 specification. Now let us see some examples
+    aggregates or heterogeneuos data types, those will be treated
+    later.  As of this writing, not all RESP3 types are used by the
+    Redis server, which means in practice users will be concerned with
+    a reduced subset of the RESP3 specification. Now let us see some
+    examples
 
     @code
     // To ignore the response.
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt());
 
-    // To read in a std::string.
+    // To read in a std::string e.g. get.
     std::string str;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(str));
 
-    // To read in a long long
+    // To read in a long long e.g. rpush.
     long long number;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(number));
 
-    // To read in a std::set.
+    // To read in a std::set e.g. smembers.
     std::set<T, U> set;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(set));
 
-    // To read in a std::map.
+    // To read in a std::map e.g. hgetall.
     std::map<T, U> set;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(map));
 
-    // To read in a std::unordered_map.
+    // To read in a std::unordered_map e.g. hgetall.
     std::unordered_map<T, U> umap;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(umap));
 
-    // To read in a std::vector.
+    // To read in a std::vector e.g. lrange.
     std::vector<T, U> vec;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(vec));
     @endcode
@@ -261,11 +262,29 @@
     users will have to check (or assert) the optional contains a
     value.
 
-    \subsubsection Transactions
+    \subsubsection heterogeneous_aggregates Heterogeneous aggregates
 
-    Aedis provides an efficient and simple way to parse the response
-    to each command in a transaction directly into your preferred
-    types, for example, let us assume the following transaction
+    There are cases when the Redis server returns aggregates that
+    contain heterogeneous data, for example, an array that contains
+    integers, strings nested sets etc. Aedis supports reading such
+    aggregates in a \c std::tuple efficiently as long as the they
+    don't contain 2-order nested aggregates e.g. an array that
+    contains an array of arrays. For example, to read the response to
+    a \c hello command we can use the following response type.
+
+    @code
+    using hello_type = std::tuple<
+       std::string, std::string,
+       std::string, std::string,
+       std::string, int,
+       std::string, int,
+       std::string, std::string,
+       std::string, std::string,
+       std::string, std::vector<std::string>>;
+    @endcode
+
+    Transactions are another example where this feature is useful, for
+    example, the response to the transaction below
 
     @code
     db.send(command::multi);
@@ -275,10 +294,7 @@
     db.send(command::exec);
     @endcode
 
-    to receive the responses in the transaction above we use a tuple.
-    The response to each individual command will be directed to the
-    tuple element in the same order they have been added in the
-    transaction, for example
+    can be read in the following way
 
     @code
     std::tuple<
@@ -295,9 +311,9 @@
     @endcode
 
     Notice that above we are not ignoring the response to the comands
-    themselves but whether they have been successfully queued.
-    Only after @c exec is received Redis will execute them. The response will then
-    be sent in a single chunck to the client.
+    themselves but whether they have been successfully queued.  Only
+    after @c exec is received Redis will execute them. The response
+    will then be sent in a single chunck to the client.
 
     \subsubsection Serialization
 
@@ -382,7 +398,8 @@
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
     @endcode
 
-    Suppose we want to retrieve the a hash data structure from Redis with \c hgetall, these are our options
+    Suppose we want to retrieve the a hash data structure from Redis
+    with \c hgetall, some of the options are
 
     @li \c std::vector<node<std::string>: Works always.
     @li \c std::vector<std::string>: Efficient and flat, all elements as string.
@@ -484,7 +501,7 @@
     commands inside the transaction to the user, only the final result
     i.e.  only the response to \c exec is passed to the user. The reason
     for this behaviour is that unless there is a programming error,
-    the response to the commands the preceed \c exec can't fail, they
+    the response to the commands that preceed \c exec can't fail, they
     will always be "QUEUED", or as quoted form the Redis documentation
     https://redis.io/topics/transactions:
 
@@ -516,7 +533,7 @@
   
     - Boost 1.78 or greater.
     - Unix Shell and Make.
-    - Compiler with C++20 coroutine support e.g. GCC 10 or greater.
+    - C++17. Some examples require C++20 with coroutine support e.g. GCC 10 or greater.
     - Redis server.
   
     Some examples will also require interaction with
@@ -588,7 +605,7 @@
     ```
     CC=/opt/gcc-10.2.0/bin/gcc-10.2.0\
     CXX=/opt/gcc-10.2.0/bin/g++-10.2.0\
-    CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror"  ./configure ...
+    CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Werror"  ./configure ...
     ```
     \section Referece
   

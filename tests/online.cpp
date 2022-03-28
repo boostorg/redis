@@ -10,13 +10,11 @@
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
-#include "test_stream.hpp"
 #include "check.hpp"
 
 namespace net = aedis::net;
 using tcp = net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
-using test_tcp_socket = net::use_awaitable_t<>::as_default_on_t<aedis::test_stream<aedis::net::system_executor>>;
 
 namespace this_coro = net::this_coro;
 
