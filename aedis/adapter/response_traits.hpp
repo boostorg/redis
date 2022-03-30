@@ -7,12 +7,6 @@
 
 #pragma once
 
-#include <set>
-#include <array>
-#include <unordered_set>
-#include <unordered_map>
-#include <list>
-#include <deque>
 #include <vector>
 #include <charconv>
 #include <tuple>
@@ -38,7 +32,7 @@ struct response_traits
    using response_type = ResponseType;
 
    /// The adapter type.
-   using adapter_type = adapter::detail::simple<response_type>;
+   using adapter_type = adapter::detail::wrapper<response_type>;
 
    /// Returns an adapter for the reponse r
    static auto adapt(response_type& r) noexcept { return adapter_type{&r}; }
@@ -49,18 +43,18 @@ template <class T>
 using response_traits_t = typename response_traits<T>::adapter_type;
 
 template <class T>
-struct response_traits<node<T>>
+struct response_traits<resp3::node<T>>
 {
-   using response_type = node<T>;
-   using adapter_type = adapter::detail::adapter_node<response_type>;
+   using response_type = resp3::node<T>;
+   using adapter_type = adapter::detail::general_simple<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 
 template <class String, class Allocator>
-struct response_traits<std::vector<node<String>, Allocator>>
+struct response_traits<std::vector<resp3::node<String>, Allocator>>
 {
-   using response_type = std::vector<node<String>, Allocator>;
-   using adapter_type = adapter::detail::general<response_type>;
+   using response_type = std::vector<resp3::node<String>, Allocator>;
+   using adapter_type = adapter::detail::general_aggregate<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 
@@ -139,7 +133,7 @@ public:
       if (depth == 0) {
          auto const real_aggr_size = aggregate_size * element_multiplicity(t);
          if (real_aggr_size != std::tuple_size<Tuple>::value)
-	    ec = error::incompatible_tuple_size;
+	    ec = error::incompatible_size;
 
          return;
       }

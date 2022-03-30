@@ -11,14 +11,6 @@
 #include <string_view>
 #include <utility>
 
-// TODO: The signature from to_string should be changed from
-//
-//    std::string to_string(T const&)
-// to
-//
-//    void to_string(std::string& s, T const&)
-//
-
 namespace aedis {
 namespace resp3 {
 namespace detail {
@@ -38,11 +30,9 @@ template <std::size_t N>
 struct needs_to_string<char const[N]> : std::false_type {};
 
 template <class Storage>
-void add_header(Storage& to, int size)
+void add_header(Storage& to, std::size_t size)
 {
-   // std::string does not support allocators.
-   using std::to_string;
-   auto const str = to_string(size);
+   auto const str = std::to_string(size);
 
    to += "*";
    to.append(std::cbegin(str), std::cend(str));
@@ -52,9 +42,7 @@ void add_header(Storage& to, int size)
 template <class Storage>
 void add_bulk(Storage& to, std::string_view data)
 {
-   // std::string does not support allocators.
-   using std::to_string;
-   auto const str = to_string(std::size(data));
+   auto const str = std::to_string(std::size(data));
 
    to += "$";
    to.append(std::cbegin(str), std::cend(str));

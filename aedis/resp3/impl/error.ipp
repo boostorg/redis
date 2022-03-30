@@ -15,8 +15,7 @@ struct error_category_impl : boost::system::error_category {
 
    char const* name() const noexcept override
    {
-      static char name[] = "aedis.resp3";
-      return name;
+      return "aedis.resp3";
    }
 
    std::string message(int ev) const override
@@ -43,7 +42,6 @@ boost::system::error_category const& category()
 
 boost::system::error_code make_error_code(error e)
 {
-    static detail::error_category_impl const eci{};
     return boost::system::error_code{static_cast<int>(e), detail::category()};
 }
 

@@ -9,9 +9,12 @@
 
 #include <string_view>
 
-#include <aedis/config.hpp>
-#include <aedis/resp3/detail/parser.hpp>
+#include <boost/asio/read.hpp>
+#include <boost/asio/read_until.hpp>
+#include <boost/asio/coroutine.hpp>
 #include <boost/core/ignore_unused.hpp>
+
+#include <aedis/resp3/detail/parser.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -30,7 +33,7 @@ private:
    parser<ResponseAdapter> parser_;
    std::size_t consumed_;
    std::size_t buffer_size_;
-   net::coroutine coro_;
+   boost::asio::coroutine coro_;
 
 public:
    parse_op(AsyncReadStream& stream, DynamicBuffer buf, ResponseAdapter adapter)
@@ -48,7 +51,7 @@ public:
       reenter (coro_) for (;;) {
          if (parser_.bulk() == type::invalid) {
             yield
-            net::async_read_until(stream_, buf_, "\r\n", std::move(self));
+            boost::asio::async_read_until(stream_, buf_, "\r\n", std::move(self));
 
             if (ec) {
                self.complete(ec, 0);
@@ -67,10 +70,10 @@ public:
                buf_.grow(parser_.bulk_length() + 2 - buffer_size_);
 
                yield
-               net::async_read(
+               boost::asio::async_read(
                   stream_,
                   buf_.data(buffer_size_, parser_.bulk_length() + 2 - buffer_size_),
-                  net::transfer_all(),
+                  boost::asio::transfer_all(),
                   std::move(self));
 
                if (ec) {
@@ -83,7 +86,7 @@ public:
             assert(buf_.size() >= n);
          }
 
-         n = parser_.advance((char const*)buf_.data(0, n).data(), n, ec);
+         n = parser_.consume((char const*)buf_.data(0, n).data(), n, ec);
          if (ec) {
             self.complete(ec, 0);
             return;
@@ -104,7 +107,7 @@ class type_op {
 private:
    AsyncReadStream& stream_;
    DynamicBuffer buf_;
-   net::coroutine coro_;
+   boost::asio::coroutine coro_;
 
 public:
    type_op(AsyncReadStream& stream, DynamicBuffer buf)
@@ -121,7 +124,7 @@ public:
 
          boost::ignore_unused(n);
          if (buf_.size() == 0) {
-            yield net::async_read_until(stream_, buf_, "\r\n", std::move(self));
+            yield boost::asio::async_read_until(stream_, buf_, "\r\n", std::move(self));
             if (ec) {
                self.complete(ec, type::invalid);
                return;

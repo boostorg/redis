@@ -9,7 +9,10 @@
 
 #include <functional>
 
-#include <aedis/config.hpp>
+#include <boost/asio/awaitable.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/redirect_error.hpp>
 
 // An example user session.
 
@@ -26,7 +29,7 @@ class user_session:
    public user_session_base,
    public std::enable_shared_from_this<user_session> {
 public:
-   user_session(net::ip::tcp::socket socket)
+   user_session(boost::asio::ip::tcp::socket socket)
    : socket_(std::move(socket))
    , timer_(socket_.get_executor())
       { timer_.expires_at(std::chrono::steady_clock::time_point::max()); }
@@ -35,11 +38,11 @@ public:
    {
       co_spawn(socket_.get_executor(),
           [self = shared_from_this(), on_msg]{ return self->reader(on_msg); },
-          net::detached);
+          boost::asio::detached);
 
       co_spawn(socket_.get_executor(),
           [self = shared_from_this()]{ return self->writer(); },
-          net::detached);
+          boost::asio::detached);
    }
 
    void deliver(std::string const& msg)
@@ -49,12 +52,12 @@ public:
    }
 
 private:
-   net::awaitable<void>
+   boost::asio::awaitable<void>
    reader(std::function<void(std::string const&)> on_msg)
    {
       try {
          for (std::string msg;;) {
-            auto const n = co_await net::async_read_until(socket_, net::dynamic_buffer(msg, 1024), "\n", net::use_awaitable);
+            auto const n = co_await boost::asio::async_read_until(socket_, boost::asio::dynamic_buffer(msg, 1024), "\n", boost::asio::use_awaitable);
             on_msg(msg);
             msg.erase(0, n);
          }
@@ -63,15 +66,15 @@ private:
       }
    }
 
-   net::awaitable<void> writer()
+   boost::asio::awaitable<void> writer()
    {
       try {
          while (socket_.is_open()) {
             if (write_msgs_.empty()) {
                boost::system::error_code ec;
-               co_await timer_.async_wait(redirect_error(net::use_awaitable, ec));
+               co_await timer_.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
             } else {
-               co_await net::async_write(socket_, net::buffer(write_msgs_.front()), net::use_awaitable);
+               co_await boost::asio::async_write(socket_, boost::asio::buffer(write_msgs_.front()), boost::asio::use_awaitable);
                write_msgs_.pop_front();
             }
          }
@@ -86,8 +89,8 @@ private:
       timer_.cancel();
    }
 
-   net::ip::tcp::socket socket_;
-   net::steady_timer timer_;
+   boost::asio::ip::tcp::socket socket_;
+   boost::asio::steady_timer timer_;
    std::deque<std::string> write_msgs_;
 };
 

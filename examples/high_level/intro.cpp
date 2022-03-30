@@ -11,11 +11,11 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-namespace net = aedis::net;
+namespace net = boost::asio;
 using aedis::redis::command;
 using aedis::redis::receiver_base;
 using client_type = aedis::redis::client<net::ip::tcp::socket>;
-using response_type = aedis::adapter::node<std::string>;
+using response_type = aedis::resp3::node<std::string>;
 
 struct myreceiver : receiver_base<response_type> {
 public:

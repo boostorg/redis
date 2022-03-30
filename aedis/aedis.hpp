@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include <aedis/config.hpp>
-
 #include <aedis/adapter/adapt.hpp>
 #include <aedis/adapter/error.hpp>
 
@@ -38,7 +36,7 @@
     In addition to that, Aedis provides a high level client that offers the following functionality
 
     @li Management of message queues.
-    @li Optimal handling of server pushs.
+    @li Simplified handling of server pushs.
     @li Zero asymptotic allocations by means of memory reuse.
 
     If never heard about Redis the best place to start is on
@@ -49,11 +47,12 @@
     The low-level API is very usefull for simple tasks, for example,
     assume we want to perform the following steps
 
-    @li Set the value of a Redis key that expires in two seconds.
+    @li Set the value of a Redis key.
+    @li Set the expiration of that key to two seconds.
     @li Get and return its old value.
     @li Quit
 
-    The coroutine-based async implementation of the steps above look like (see low_level.cpp)
+    The coroutine-based async implementation of the steps above look like
 
     @code
     net::awaitable<std::string> set(net::ip::tcp::endpoint ep)
@@ -195,16 +194,16 @@
 
     RESP3 type     | C++                                                          | Type
     ---------------|--------------------------------------------------------------|------------------
-    Simple string  | \c std::string                                     | Simple
-    Simple error   | \c std::string                                     | Simple
-    Blob string    | \c std::string, \c std::vector                     | Simple
-    Blob error     | \c std::string, \c std::vector                     | Simple
-    Number         | `long long`                                        | Simple
-    Null           | `std::optional<T>`                                 | Simple
-    Array          | \c std::vector, \c std::list                       | Aggregate
-    Map            | \c std::vector, \c std::map, \c std::unordered_map | Aggregate
-    Set            | \c std::vector, \c std::set, \c std::unordered_set | Aggregate
-    Push           | \c std::vector, \c std::map, \c std::unordered_map | Aggregate
+    Simple string  | \c std::string                                             | Simple
+    Simple error   | \c std::string                                             | Simple
+    Blob string    | \c std::string, \c std::vector                             | Simple
+    Blob error     | \c std::string, \c std::vector                             | Simple
+    Number         | `long long`, `int`                                         | Simple
+    Null           | `std::optional<T>`                                         | Simple
+    Array          | \c std::vector, \c std::list, \c std::array, \c std::deque | Aggregate
+    Map            | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate
+    Set            | \c std::vector, \c std::set, \c std::unordered_set         | Aggregate
+    Push           | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate
 
     Exceptions to this rule are responses that contain nested
     aggregates or heterogeneuos data types, those will be treated
@@ -358,7 +357,7 @@
     RESP3 type. Expecting an e.g. \c std::set and receiving a e.g. blob string
     will result in error.
     @li In general RESP3 aggregates that contain nested aggregates can't be
-    read in STL containers e.g. hello, command, etc..
+    read in STL containers e.g. command, etc..
     @li Transactions with a dynamic number of commands can't be read in a \c std::tuple.
 
     To deal with these problems Aedis provides the \c resp3::node
@@ -516,16 +515,21 @@
 
     To better fix what has been said above, users should have a look at some simple examples.
 
+    \b Low \b level \b API
+
+    @li sync_intro.cpp: Shows hot to use the Aedis synchronous api.
+    @li async_intro.cpp: Show how to use the low level api.
+
+    \b High \b level \b API
+
     @li intro.cpp: A good starting point. Some commands are sent to the Redis server and the responses are printed to screen. 
     @li aggregates.cpp: Shows how receive RESP3 aggregate data types in a general way.
     @li stl_containers.cpp: Shows how to read responses in STL containers.
     @li serialization.cpp: Shows how to de/serialize your own non-aggregate data-structures.
     @li subscriber.cpp: Shows how channel subscription works at a low level. See also https://redis.io/topics/pubsub.
-    @li sync.cpp: Shows hot to use the Aedis synchronous api.
     @li echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.
     @li chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
     @li receiver.cpp: Customization point for users that want to de/serialize their own data-structures like containers for example.
-    @li low_level.cpp: Show how to use the low level api.
 
     \section using-aedis Using Aedis
 
@@ -543,7 +547,7 @@
   
     \subsection Installation
   
-    Start by downloading and configuring the library
+    Download the library from github run the configure scrip and `make install` (for windows see below)
   
     ```
     # Download the latest release on github
@@ -552,17 +556,9 @@
     # Uncompress the tarball and cd into the dir
     $ tar -xzvf aedis-1.0.0.tar.gz && cd aedis-1.0.0
   
-    # Run configure with appropriate C++ flags and your boost
-    # installation, for example # You may also have to use
-    # -Wno-subobject-linkage on gcc.
-    $ CXXFLAGS="-std=c++20 -fcoroutines -g -Wall"\
-    ./configure  --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib
-  
-    ```
-  
-    To install the library run
-  
-    ```
+    # Run configure with appropriate C++ flags and your boost installation.
+    $ ./configure  --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib
+
     # Install Aedis in the path specified in --prefix
     $ sudo make install
   
@@ -586,7 +582,7 @@
     ```
     in exactly one source file in your applications.
   
-    Windows users can use aedis by either adding the project root
+    \b Windows users can use aedis by either adding the project root
     directory to their include path or manually copying to another
     location. 
   

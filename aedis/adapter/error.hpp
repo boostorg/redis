@@ -24,10 +24,13 @@ enum class error
    expects_aggregate,
 
    /// Expects a map but got other aggregate.
-   expects_map,
+   expects_map_like_aggregate,
+
+   /// Expects a set aggregate but got something else.
+   expects_set_aggregate,
 
    /// Nested response not supported.
-   nested_unsupported,
+   nested_aggregate_unsupported,
 
    /// Got RESP3 simple error.
    simple_error,
@@ -35,8 +38,8 @@ enum class error
    /// Got RESP3 blob_error.
    blob_error,
 
-   /// The tuple used as response has incompatible size.
-   incompatible_tuple_size,
+   /// Aggregate container has incompatible size.
+   incompatible_size,
 
    /// Got RESP3 null type.
    null

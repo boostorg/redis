@@ -8,6 +8,10 @@
 #pragma once
 
 #include <vector>
+
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/steady_timer.hpp>
+
 #include <aedis/resp3/type.hpp>
 #include <aedis/generic/detail/client_ops.hpp>
 #include <aedis/redis/command.hpp>
@@ -36,7 +40,7 @@ class client {
 public:
    using stream_type = AsyncReadWriteStream;
    using executor_type = typename stream_type::executor_type;
-   using default_completion_token_type = net::default_completion_token_t<executor_type>;
+   using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
 private:
    template <class T, class U, class V> friend struct read_op;
@@ -70,10 +74,10 @@ private:
 
    // Timer used to inform the write coroutine that it can write the
    // next message in the output queue.
-   net::steady_timer timer_;
+   boost::asio::steady_timer timer_;
 
    // Redis endpoint.
-   net::ip::tcp::endpoint endpoint_;
+   boost::asio::ip::tcp::endpoint endpoint_;
 
    bool stop_writer_ = false;
 
@@ -127,7 +131,7 @@ private:
       Receiver* recv,
       CompletionToken&& token = default_completion_token_type{})
    {
-      return net::async_compose
+      return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
          >(read_op<client, Receiver, Command>{this, recv}, token, socket_);
@@ -141,7 +145,7 @@ private:
       Receiver* recv,
       CompletionToken&& token = default_completion_token_type{})
    {
-      return net::async_compose
+      return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
          >(writer_op<client, Receiver>{this, recv}, token, socket_, timer_);
@@ -155,7 +159,7 @@ private:
       Receiver* recv,
       CompletionToken&& token = default_completion_token_type{})
    {
-      return net::async_compose
+      return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
          >(read_write_op<client, Receiver>{this, recv}, token, socket_, timer_);
@@ -167,7 +171,7 @@ public:
     *
     *  \param ex The executor.
     */
-   client(net::any_io_executor ex)
+   client(boost::asio::any_io_executor ex)
    : socket_{ex}
    , timer_{ex}
    {
@@ -284,11 +288,11 @@ public:
    auto
    async_run(
       Receiver& recv,
-      net::ip::tcp::endpoint ep = {net::ip::make_address("127.0.0.1"), 6379},
+      boost::asio::ip::tcp::endpoint ep = {boost::asio::ip::make_address("127.0.0.1"), 6379},
       CompletionToken token = CompletionToken{})
    {
       endpoint_ = ep;
-      return net::async_compose
+      return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
          >(run_op<client, Receiver>{this, &recv}, token, socket_, timer_);

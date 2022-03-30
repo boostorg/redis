@@ -54,7 +54,7 @@ public:
 
    // Returns the number of bytes that have been consumed.
    std::size_t
-   advance(char const* data, std::size_t n, boost::system::error_code& ec)
+   consume(char const* data, std::size_t n, boost::system::error_code& ec)
    {
       if (bulk_ != type::invalid) {
          n = bulk_length_ + 2;
@@ -90,7 +90,7 @@ public:
 
                if (bulk_length_ == 0) {
                   adapter_(type::streamed_string_part, 1, depth_, nullptr, 0, ec);
-                  sizes_[depth_] = 0;
+                  sizes_[depth_] = 0; // We are done.
                } else {
                   bulk_ = type::streamed_string_part;
                }

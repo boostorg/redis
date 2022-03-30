@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <system_error>
+#include <boost/system/error_code.hpp>
 
 namespace aedis {
 namespace resp3 {

@@ -10,11 +10,12 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-namespace net = aedis::net;
+namespace net = boost::asio;
+
 using aedis::sentinel::command;
 using aedis::sentinel::receiver_base;
-using client_type = aedis::sentinel::client<aedis::net::ip::tcp::socket>;
-using aedis::adapter::node;
+using aedis::resp3::node;
+using client_type = aedis::sentinel::client<net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 
 class myreceiver : public receiver_base<response_type> {

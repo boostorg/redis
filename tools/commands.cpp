@@ -9,16 +9,18 @@
 #include <algorithm>
 #include <cctype>
 
+#include <boost/asio/connect.hpp>
+
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
+namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
+
 using aedis::redis::command;
 using aedis::redis::make_serializer;
+using aedis::resp3::node;
 using aedis::adapter::adapt;
-using aedis::adapter::node;
-
-namespace net = aedis::net;
 using net::ip::tcp;
 using net::write;
 using net::buffer;
@@ -78,7 +80,7 @@ int main()
      tcp::resolver resv{ioc};
      auto const res = resv.resolve("127.0.0.1", "6379");
      tcp::socket socket{ioc};
-     connect(socket, res);
+     net::connect(socket, res);
 
      std::string request;
      auto sr = make_serializer(request);

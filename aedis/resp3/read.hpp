@@ -7,11 +7,13 @@
 
 #pragma once
 
-#include <aedis/config.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/detail/read_ops.hpp>
 
+#include <boost/asio/read.hpp>
+#include <boost/asio/compose.hpp>
+#include <boost/asio/async_result.hpp>
 #include <boost/asio/yield.hpp>
 
 namespace aedis {
@@ -47,7 +49,7 @@ read(
    std::size_t consumed = 0;
    do {
       if (p.bulk() == type::invalid) {
-	 n = net::read_until(stream, buf, "\r\n", ec);
+	 n = boost::asio::read_until(stream, buf, "\r\n", ec);
 	 if (ec)
 	    return 0;
 
@@ -61,7 +63,7 @@ read(
 	 if (s < (l + 2)) {
 	    auto const to_read = l + 2 - s;
 	    buf.grow(to_read);
-	    n = net::read(stream, buf.data(s, to_read), ec);
+	    n = boost::asio::read(stream, buf.data(s, to_read), ec);
 	    if (ec)
 	       return 0;
 
@@ -73,7 +75,7 @@ read(
       }
 
       auto const* data = (char const*) buf.data(0, n).data();
-      n = p.advance(data, n, ec);
+      n = p.consume(data, n, ec);
       if (ec)
          return 0;
 
@@ -149,16 +151,16 @@ template <
    class AsyncReadStream,
    class DynamicBuffer,
    class ResponseAdapter = ignore_response,
-   class CompletionToken = net::default_completion_token_t<typename AsyncReadStream::executor_type>
+   class CompletionToken = boost::asio::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(
    AsyncReadStream& stream,
    DynamicBuffer buffer,
    ResponseAdapter adapter = ResponseAdapter{},
    CompletionToken&& token =
-      net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
+      boost::asio::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
-   return net::async_compose
+   return boost::asio::async_compose
       < CompletionToken
       , void(boost::system::error_code, std::size_t)
       >(detail::parse_op<AsyncReadStream, DynamicBuffer, ResponseAdapter> {stream, buffer, adapter},
@@ -184,15 +186,15 @@ template <
    class AsyncReadStream,
    class DynamicBuffer,
    class CompletionToken =
-      net::default_completion_token_t<typename AsyncReadStream::executor_type>
+      boost::asio::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read_type(
    AsyncReadStream& stream,
    DynamicBuffer buffer,
    CompletionToken&& token =
-      net::default_completion_token_t<typename AsyncReadStream::executor_type>{})
+      boost::asio::default_completion_token_t<typename AsyncReadStream::executor_type>{})
 {
-   return net::async_compose
+   return boost::asio::async_compose
       < CompletionToken
       , void(boost::system::error_code, type)
       >(detail::type_op<AsyncReadStream, DynamicBuffer> {stream, buffer}, token, stream);

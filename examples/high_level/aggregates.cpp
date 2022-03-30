@@ -13,10 +13,10 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-namespace net = aedis::net;
+namespace net = boost::asio;
 using aedis::redis::command;
 using aedis::redis::receiver_base;
-using aedis::adapter::node;
+using aedis::resp3::node;
 using client_type = aedis::redis::client<net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 

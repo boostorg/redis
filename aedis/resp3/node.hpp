@@ -13,7 +13,7 @@
 #include <vector>
 
 namespace aedis {
-namespace adapter {
+namespace resp3 {
 
 /** \brief A node in the response tree.
  *  \ingroup any

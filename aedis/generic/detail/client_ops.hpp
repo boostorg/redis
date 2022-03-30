@@ -11,6 +11,7 @@
 
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/system.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/core/ignore_unused.hpp>
 
 #include <aedis/resp3/type.hpp>
@@ -26,7 +27,7 @@ template <class Client, class Receiver>
 struct run_op {
    Client* cli;
    Receiver* recv_;
-   net::coroutine coro;
+   boost::asio::coroutine coro;
 
    template <class Self>
    void operator()(Self& self, boost::system::error_code ec = {})
@@ -48,7 +49,7 @@ template <class Client, class Receiver>
 struct read_write_op {
    Client* cli;
    Receiver* recv;
-   net::coroutine coro;
+   boost::asio::coroutine coro;
 
    template <class Self>
    void operator()( Self& self
@@ -60,11 +61,11 @@ struct read_write_op {
       reenter (coro) {
 
          yield
-         net::experimental::make_parallel_group(
+         boost::asio::experimental::make_parallel_group(
             [this](auto token) { return cli->async_writer(recv, token);},
             [this](auto token) { return cli->async_reader(recv, token);}
          ).async_wait(
-            net::experimental::wait_for_one_error(),
+            boost::asio::experimental::wait_for_one_error(),
             std::move(self));
 
          switch (order[0]) {
@@ -83,7 +84,7 @@ struct writer_op {
    Client* cli;
    Receiver* recv;
    std::size_t size;
-   net::coroutine coro;
+   boost::asio::coroutine coro;
 
    template <class Self>
    void operator()( Self& self
@@ -99,9 +100,9 @@ struct writer_op {
          assert(!std::empty(cli->requests_));
 
          yield
-         net::async_write(
+         boost::asio::async_write(
             cli->socket_,
-            net::buffer(cli->requests_.data(), cli->req_info_.front().size),
+            boost::asio::buffer(cli->requests_.data(), cli->req_info_.front().size),
             std::move(self));
 
          if (ec) {
@@ -134,7 +135,7 @@ template <class Client, class Receiver, class Command>
 struct read_op {
    Client* cli;
    Receiver* recv;
-   net::coroutine coro;
+   boost::asio::coroutine coro;
 
    // Consider moving this variables to the client to spare some
    // memory in the competion handler.
@@ -152,9 +153,9 @@ struct read_op {
 
          if (std::empty(cli->read_buffer_)) {
             yield
-            net::async_read_until(
+            boost::asio::async_read_until(
                cli->socket_,
-               net::dynamic_buffer(cli->read_buffer_),
+               boost::asio::dynamic_buffer(cli->read_buffer_),
                "\r\n",
                std::move(self));
 
@@ -176,7 +177,7 @@ struct read_op {
          yield
          resp3::async_read(
             cli->socket_,
-            net::dynamic_buffer(cli->read_buffer_),
+            boost::asio::dynamic_buffer(cli->read_buffer_),
             [p = recv, c = cmd](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, boost::system::error_code& ec) mutable {p->on_resp3(c, t, aggregate_size, depth, data, size, ec);},
             std::move(self));
 

@@ -12,12 +12,12 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-namespace net = aedis::net;
+namespace net = boost::asio;
 namespace redis = aedis::redis;
 using aedis::redis::command;
 using aedis::redis::receiver_base;
-using aedis::adapter::node;
-using client_type = redis::client<aedis::net::ip::tcp::socket>;
+using aedis::resp3::node;
+using client_type = redis::client<net::ip::tcp::socket>;
 
 // Helper function.
 template <class Container>

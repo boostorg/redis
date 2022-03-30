@@ -16,11 +16,11 @@ check_PROGRAMS += aggregates
 check_PROGRAMS += stl_containers
 check_PROGRAMS += serialization
 check_PROGRAMS += receiver
-check_PROGRAMS += sync
+check_PROGRAMS += sync_intro
 #if HAVE_CXX20
-check_PROGRAMS += test_offline
+check_PROGRAMS += test_low_level
 check_PROGRAMS += test_online
-check_PROGRAMS += low_level
+check_PROGRAMS += async_intro
 #endif
 
 EXTRA_PROGRAMS =
@@ -38,25 +38,24 @@ CLEANFILES += $(EXTRA_PROGRAMS)
 .PHONY: all
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
-intro_SOURCES = $(top_srcdir)/examples/intro.cpp
-aggregates_SOURCES = $(top_srcdir)/examples/aggregates.cpp
-stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
-serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
-receiver_SOURCES = $(top_srcdir)/examples/receiver.cpp
-sync_SOURCES = $(top_srcdir)/examples/sync.cpp
+intro_SOURCES = $(top_srcdir)/examples/high_level/intro.cpp
+aggregates_SOURCES = $(top_srcdir)/examples/high_level/aggregates.cpp
+stl_containers_SOURCES = $(top_srcdir)/examples/high_level/stl_containers.cpp
+serialization_SOURCES = $(top_srcdir)/examples/high_level/serialization.cpp
+receiver_SOURCES = $(top_srcdir)/examples/high_level/receiver.cpp
+sync_intro_SOURCES = $(top_srcdir)/examples/low_level/sync_intro.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
-subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
-sentinel_SOURCES = $(top_srcdir)/examples/sentinel.cpp
+subscriber_SOURCES = $(top_srcdir)/examples/high_level/subscriber.cpp
+sentinel_SOURCES = $(top_srcdir)/examples/high_level/sentinel.cpp
 #if HAVE_CXX20
-test_offline_SOURCES = $(top_srcdir)/tests/offline.cpp
+test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 test_online_SOURCES = $(top_srcdir)/tests/online.cpp
-low_level_SOURCES = $(top_srcdir)/examples/low_level.cpp
-echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
-chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
+async_intro_SOURCES = $(top_srcdir)/examples/low_level/async_intro.cpp
+echo_server_SOURCES = $(top_srcdir)/examples/high_level/echo_server.cpp
+chat_room_SOURCES = $(top_srcdir)/examples/high_level/chat_room.cpp
 #endif
 
 nobase_include_HEADERS =\
-  $(top_srcdir)/aedis/config.hpp\
   $(top_srcdir)/aedis/src.hpp\
   $(top_srcdir)/aedis/redis/command.hpp\
   $(top_srcdir)/aedis/redis/client.hpp\
@@ -72,7 +71,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/adapter/error.hpp\
   $(top_srcdir)/aedis/adapter/adapt.hpp\
   $(top_srcdir)/aedis/adapter/response_traits.hpp\
-  $(top_srcdir)/aedis/adapter/node.hpp\
+  $(top_srcdir)/aedis/resp3/node.hpp\
   $(top_srcdir)/aedis/resp3/detail/composer.hpp\
   $(top_srcdir)/aedis/resp3/detail/read_ops.hpp\
   $(top_srcdir)/aedis/resp3/detail/parser.hpp\
@@ -87,7 +86,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/redis/client.hpp
 
 nobase_noinst_HEADERS =\
-  $(top_srcdir)/examples/user_session.hpp\
+  $(top_srcdir)/examples/high_level/user_session.hpp\
   $(top_srcdir)/tests/check.hpp
 
 TESTS = $(check_PROGRAMS)

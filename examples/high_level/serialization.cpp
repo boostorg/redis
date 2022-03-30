@@ -11,10 +11,10 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-namespace net = aedis::net;
+namespace net = boost::asio;
 using aedis::redis::command;
 using aedis::redis::receiver_base;
-using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
+using client_type = aedis::redis::client<net::ip::tcp::socket>;
 
 // Arbitrary struct to de/serialize.
 struct mystruct {

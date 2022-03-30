@@ -5,17 +5,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <iostream>
 #include <string>
+#include <iostream>
+
+#include <boost/asio/detached.hpp>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-namespace net = aedis::net;
-
+namespace net = boost::asio;
 using aedis::redis::command;
 using aedis::resp3::type;
-using aedis::adapter::node;
+using aedis::resp3::node;
 using client_type = aedis::redis::client<net::detached_t::as_default_on_t<net::ip::tcp::socket>>;
 
 struct receiver {

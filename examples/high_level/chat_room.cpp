@@ -6,50 +6,59 @@
  */
 
 #include <iostream>
-#include <queue>
 #include <vector>
-#include <string>
+
+#include <boost/asio/signal_set.hpp>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
 #include "user_session.hpp"
 
-namespace net = aedis::net;
+namespace net = boost::asio;
 using aedis::redis::receiver_base;
 using aedis::redis::command;
-using aedis::redis::client;
-using aedis::adapter::node;
+using aedis::resp3::node;
 using aedis::user_session;
 using aedis::user_session_base;
-using client_type = aedis::redis::client<aedis::net::ip::tcp::socket>;
+using client_type = aedis::redis::client<net::ip::tcp::socket>;
 using response_type = std::vector<node<std::string>>;
 
 class myreceiver : public receiver_base<response_type> {
 private:
-   std::queue<std::shared_ptr<user_session_base>> sessions_;
+   std::shared_ptr<client_type> db_;
+   std::vector<std::shared_ptr<user_session_base>> sessions_;
 
 public:
+   myreceiver(std::shared_ptr<client_type> db) : db_{db} {}
+
+   void on_push_impl() override
+   {
+      for (auto& session: sessions_)
+         session->deliver(get<response_type>().at(3).value);
+
+      get<response_type>().clear();
+   }
+
    void on_read_impl(command cmd) override
    {
       switch (cmd) {
-         case command::ping:
-         sessions_.front()->deliver(get<response_type>().front().value);
-         sessions_.pop();
+         case command::hello:
+         db_->send(command::subscribe, "channel");
          break;
 
          case command::incr:
-         std::cout << "Echos so far: " << get<response_type>().front().value << std::endl;
+         std::cout << "Messages so far: " << get<response_type>().front().value << std::endl;
          break;
 
-         default: /* Ignore */;
+         default:;
       }
 
       get<response_type>().clear();
    }
 
-   void add_user_session(std::shared_ptr<user_session_base> session)
-      { sessions_.push(session); }
+   auto add(std::shared_ptr<user_session_base> session)
+      { sessions_.push_back(session); }
 };
 
 net::awaitable<void>
@@ -58,28 +67,27 @@ listener(
     std::shared_ptr<client_type> db,
     std::shared_ptr<myreceiver> recv)
 {
+   auto on_user_msg = [db](std::string const& msg)
+   {
+      db->send(command::publish, "channel", msg);
+      db->send(command::incr, "message-counter");
+   };
+
    for (;;) {
       auto socket = co_await acc->async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
-
-      auto on_user_msg = [db, recv, session](std::string const& msg)
-      {
-         db->send(command::ping, msg);
-         db->send(command::incr, "echo-counter");
-         recv->add_user_session(session);
-      };
-
       session->start(on_user_msg);
+      recv->add(session);
    }
 }
 
 int main()
 {
    try {
-      net::io_context ioc;
+      net::io_context ioc{1};
 
       auto db = std::make_shared<client_type>(ioc.get_executor());
-      auto recv = std::make_shared<myreceiver>();
+      auto recv = std::make_shared<myreceiver>(db);
 
       db->async_run(
           *recv,
