@@ -17,20 +17,20 @@ check_PROGRAMS += stl_containers
 check_PROGRAMS += serialization
 check_PROGRAMS += receiver
 check_PROGRAMS += sync_intro
-#if HAVE_CXX20
 check_PROGRAMS += test_low_level
+if HAVE_CXX20
 check_PROGRAMS += test_online
 check_PROGRAMS += async_intro
-#endif
+endif
 
 EXTRA_PROGRAMS =
 EXTRA_PROGRAMS += subscriber
 EXTRA_PROGRAMS += commands
 EXTRA_PROGRAMS += sentinel
-#if HAVE_CXX20
+if HAVE_CXX20
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += chat_room
-#endif
+endif
 
 CLEANFILES =
 CLEANFILES += $(EXTRA_PROGRAMS)
@@ -47,13 +47,13 @@ sync_intro_SOURCES = $(top_srcdir)/examples/low_level/sync_intro.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 subscriber_SOURCES = $(top_srcdir)/examples/high_level/subscriber.cpp
 sentinel_SOURCES = $(top_srcdir)/examples/high_level/sentinel.cpp
-#if HAVE_CXX20
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
+if HAVE_CXX20
 test_online_SOURCES = $(top_srcdir)/tests/online.cpp
 async_intro_SOURCES = $(top_srcdir)/examples/low_level/async_intro.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/high_level/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/high_level/chat_room.cpp
-#endif
+endif
 
 nobase_include_HEADERS =\
   $(top_srcdir)/aedis/src.hpp\

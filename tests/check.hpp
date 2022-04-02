@@ -21,7 +21,10 @@ void expect_eq(T const& a, T const& b, std::string const& msg = "")
 
 void expect_error(boost::system::error_code a, boost::system::error_condition expected = {})
 {
-   if (a != expected) {
+   if (a == expected) {
+      if (a)
+         std::cout << "Success: " << a.message() << " (" << a.category().name() << ")" << std::endl;
+   } else {
       std::cout << "Error: " << a.message() << " (" << a.category().name() << ")" << std::endl;
       exit(EXIT_FAILURE);
    }
@@ -30,7 +33,9 @@ void expect_error(boost::system::error_code a, boost::system::error_condition ex
 template <class T>
 void check_empty(T const& t)
 {
-   if (!std::empty(t)) {
+   if (std::empty(t)) {
+      //std::cout << "Success: " << std::endl;
+   } else {
       std::cout << "Error: Not empty" << std::endl;
       exit(EXIT_FAILURE);
    }

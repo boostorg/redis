@@ -21,6 +21,7 @@
 #include <aedis/src.hpp>
 
 #include "check.hpp"
+#include "config.h"
 
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
@@ -40,10 +41,10 @@ struct expect {
 };
 
 template <class Result>
-void test_sync(expect<Result> e, net::io_context& ioc)
+void test_sync(net::any_io_executor ex, expect<Result> e)
 {
    std::string rbuffer;
-   test_stream ts {ioc};
+   test_stream ts {ex};
    ts.append(e.in);
    Result result;
    boost::system::error_code ec;
@@ -56,21 +57,45 @@ void test_sync(expect<Result> e, net::io_context& ioc)
 }
 
 template <class Result>
-net::awaitable<void>
-test_async(expect<Result> e)
+class async_test: public std::enable_shared_from_this<async_test<Result>> {
+private:
+   std::string rbuffer_;
+   test_stream ts_;
+   expect<Result> data_;
+   Result result_;
+
+public:
+   async_test(net::any_io_executor ex, expect<Result> e)
+   : ts_{ex}
+   , data_{e}
+   {
+      ts_.append(e.in);
+   }
+
+   void run()
+   {
+      auto self = this->shared_from_this();
+      auto f = [self](auto ec, auto n)
+      {
+         expect_error(ec, self->data_.ec);
+         if (self->data_.ec)
+            return;
+         check_empty(self->rbuffer_);
+         expect_eq(self->result_, self->data_.expected, self->data_.name);
+      };
+
+      resp3::async_read(
+         ts_,
+         net::dynamic_buffer(rbuffer_),
+         adapt(result_),
+         f);
+   }
+};
+
+template <class Result>
+void test_async(net::any_io_executor ex, expect<Result> e)
 {
-   auto ex = co_await net::this_coro::executor;
-   std::string rbuffer;
-   test_stream ts {ex};
-   ts.append(e.in);
-   Result result;
-   boost::system::error_code ec;
-   co_await resp3::async_read(ts, net::dynamic_buffer(rbuffer), adapt(result), net::redirect_error(net::use_awaitable, ec));
-   expect_error(ec, e.ec);
-   if (e.ec)
-      co_return;
-   check_empty(rbuffer);
-   expect_eq(result, e.expected, e.name);
+   std::make_shared<async_test<Result>>(ex, e)->run();
 }
 
 void test_number(net::io_context& ioc)
@@ -79,45 +104,43 @@ void test_number(net::io_context& ioc)
    ok = 11;
 
    // Success
-   auto const in13 = expect<node_type>{":3\r\n", node_type{resp3::type::number, 1UL, 0UL, {"3"}}, "number.node (positive)"};
-   auto const in12 = expect<node_type>{":-3\r\n", node_type{resp3::type::number, 1UL, 0UL, {"-3"}}, "number.node (negative)"};
-   auto const in15 = expect<int>{":11\r\n", int{11}, "number.int"};
-   auto const in16 = expect<std::optional<int>>{":11\r\n", ok, "number.optional.int"};
+   auto const in01 = expect<node_type>{":3\r\n", node_type{resp3::type::number, 1UL, 0UL, {"3"}}, "number.node (positive)"};
+   auto const in02 = expect<node_type>{":-3\r\n", node_type{resp3::type::number, 1UL, 0UL, {"-3"}}, "number.node (negative)"};
+   auto const in03 = expect<int>{":11\r\n", int{11}, "number.int"};
+   auto const in04 = expect<std::optional<int>>{":11\r\n", ok, "number.optional.int"};
+   auto const in05 = expect<std::tuple<int>>{"*1\r\n:11\r\n", std::tuple<int>{11}, "number.tuple.int"};
+   auto const in06 = expect<std::optional<int>>{"%11\r\n", std::optional<int>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_simple_type)};
+   auto const in07 = expect<std::set<std::string>>{":11\r\n", std::set<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
+   auto const in08 = expect<std::unordered_set<std::string>>{":11\r\n", std::unordered_set<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
+   auto const in09 = expect<std::map<std::string, std::string>>{":11\r\n", std::map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
+   auto const in10 = expect<std::unordered_map<std::string, std::string>>{":11\r\n", std::unordered_map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
+   auto const in11 = expect<std::list<std::string>>{":11\r\n", std::list<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_aggregate)};
 
-   // Transaction.
-   auto const in17 = expect<std::tuple<int>>{"*1\r\n:11\r\n", std::tuple<int>{11}, "number.tuple.int"};
+   auto ex = ioc.get_executor();
 
-   // Error
-   auto const in04 = expect<std::optional<int>>{"%11\r\n", std::optional<int>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_simple_type)};
-   auto const in06 = expect<std::set<std::string>>{":11\r\n", std::set<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
-   auto const in07 = expect<std::unordered_set<std::string>>{":11\r\n", std::unordered_set<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
-   auto const in08 = expect<std::map<std::string, std::string>>{":11\r\n", std::map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
-   auto const in09 = expect<std::unordered_map<std::string, std::string>>{":11\r\n", std::unordered_map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
-   auto const in10 = expect<std::list<std::string>>{":11\r\n", std::list<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_aggregate)};
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+   test_sync(ex, in04);
+   test_sync(ex, in05);
+   test_sync(ex, in06);
+   test_sync(ex, in07);
+   test_sync(ex, in08);
+   test_sync(ex, in09);
+   test_sync(ex, in10);
+   test_sync(ex, in11);
 
-   test_sync(in04, ioc);
-   test_sync(in06, ioc);
-   test_sync(in07, ioc);
-   test_sync(in08, ioc);
-   test_sync(in09, ioc);
-   test_sync(in10, ioc);
-   test_sync(in12, ioc);
-   test_sync(in13, ioc);
-   test_sync(in15, ioc);
-   test_sync(in16, ioc);
-   test_sync(in17, ioc);
-
-   co_spawn(ioc, test_async(in04), net::detached);
-   co_spawn(ioc, test_async(in06), net::detached);
-   co_spawn(ioc, test_async(in07), net::detached);
-   co_spawn(ioc, test_async(in08), net::detached);
-   co_spawn(ioc, test_async(in09), net::detached);
-   co_spawn(ioc, test_async(in10), net::detached);
-   co_spawn(ioc, test_async(in12), net::detached);
-   co_spawn(ioc, test_async(in13), net::detached);
-   co_spawn(ioc, test_async(in15), net::detached);
-   co_spawn(ioc, test_async(in16), net::detached);
-   co_spawn(ioc, test_async(in17), net::detached);
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
+   test_async(ex, in04);
+   test_async(ex, in05);
+   test_async(ex, in06);
+   test_async(ex, in07);
+   test_async(ex, in08);
+   test_async(ex, in09);
+   test_async(ex, in10);
+   test_async(ex, in11);
 }
 
 void test_bool(net::io_context& ioc)
@@ -139,25 +162,27 @@ void test_bool(net::io_context& ioc)
    auto const in05 = expect<std::map<int, int>>{"#t\r\n", std::map<int, int>{}, "bool.error", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
    auto const in06 = expect<std::unordered_map<int, int>>{"#t\r\n", std::unordered_map<int, int>{}, "bool.error", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
 
-   test_sync(in01, ioc);
-   test_sync(in03, ioc);
-   test_sync(in04, ioc);
-   test_sync(in05, ioc);
-   test_sync(in06, ioc);
-   test_sync(in08, ioc);
-   test_sync(in09, ioc);
-   test_sync(in10, ioc);
-   test_sync(in11, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in03), net::detached);
-   co_spawn(ioc, test_async(in04), net::detached);
-   co_spawn(ioc, test_async(in05), net::detached);
-   co_spawn(ioc, test_async(in06), net::detached);
-   co_spawn(ioc, test_async(in08), net::detached);
-   co_spawn(ioc, test_async(in09), net::detached);
-   co_spawn(ioc, test_async(in10), net::detached);
-   co_spawn(ioc, test_async(in11), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in03);
+   test_sync(ex, in04);
+   test_sync(ex, in05);
+   test_sync(ex, in06);
+   test_sync(ex, in08);
+   test_sync(ex, in09);
+   test_sync(ex, in10);
+   test_sync(ex, in11);
+
+   test_async(ex, in01);
+   test_async(ex, in03);
+   test_async(ex, in04);
+   test_async(ex, in05);
+   test_async(ex, in06);
+   test_async(ex, in08);
+   test_async(ex, in09);
+   test_async(ex, in10);
+   test_async(ex, in11);
 }
 
 void test_streamed_string(net::io_context& ioc)
@@ -177,13 +202,15 @@ void test_streamed_string(net::io_context& ioc)
    auto const in03 = expect<std::string>{wire, std::string{"Hello word"}, "streamed_string.string"};
    auto const in02 = expect<std::vector<node_type>>{"$?\r\n;0\r\n", e1b, "streamed_string.node.empty"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
-   test_sync(in03, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
-   co_spawn(ioc, test_async(in03), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
 }
 
 void test_push(net::io_context& ioc)
@@ -203,11 +230,13 @@ void test_push(net::io_context& ioc)
    auto const in01 = expect<std::vector<node_type>>{wire, e1a, "push.node"};
    auto const in02 = expect<std::vector<node_type>>{">0\r\n", e1b, "push.node.empty"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
 }
 
 void test_map(net::io_context& ioc)
@@ -294,29 +323,31 @@ void test_map(net::io_context& ioc)
    auto const in10 = expect<int>{"%11\r\n", int{}, "map.invalid.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_simple_type)};
    auto const in11 = expect<tuple_type>{wire, e1f, "map.tuple"};
 
-   test_sync(in00, ioc);
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
-   test_sync(in03, ioc);
-   test_sync(in04, ioc);
-   test_sync(in05, ioc);
-   test_sync(in07, ioc);
-   test_sync(in08, ioc);
-   test_sync(in09, ioc);
-   test_sync(in00, ioc);
-   test_sync(in11, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in00), net::detached);
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
-   co_spawn(ioc, test_async(in03), net::detached);
-   co_spawn(ioc, test_async(in04), net::detached);
-   co_spawn(ioc, test_async(in05), net::detached);
-   co_spawn(ioc, test_async(in07), net::detached);
-   co_spawn(ioc, test_async(in08), net::detached);
-   co_spawn(ioc, test_async(in09), net::detached);
-   co_spawn(ioc, test_async(in10), net::detached);
-   co_spawn(ioc, test_async(in11), net::detached);
+   test_sync(ex, in00);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+   test_sync(ex, in04);
+   test_sync(ex, in05);
+   test_sync(ex, in07);
+   test_sync(ex, in08);
+   test_sync(ex, in09);
+   test_sync(ex, in00);
+   test_sync(ex, in11);
+
+   test_async(ex, in00);
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
+   test_async(ex, in04);
+   test_async(ex, in05);
+   test_async(ex, in07);
+   test_async(ex, in08);
+   test_async(ex, in09);
+   test_async(ex, in00);
+   test_async(ex, in11);
 }
 
 void test_attribute(net::io_context& ioc)
@@ -338,11 +369,13 @@ void test_attribute(net::io_context& ioc)
    auto const in01 = expect<std::vector<node_type>>{wire, e1a, "attribute.node"};
    auto const in02 = expect<std::vector<node_type>>{"|0\r\n", e1b, "attribute.node.empty"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
 }
 
 void test_array(net::io_context& ioc)
@@ -373,23 +406,25 @@ void test_array(net::io_context& ioc)
    auto const in07 = expect<std::list<int>>{wire, e1g, "array.list"};
    auto const in08 = expect<std::deque<int>>{wire, e1h, "array.deque"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
-   test_sync(in03, ioc);
-   test_sync(in04, ioc);
-   test_sync(in05, ioc);
-   test_sync(in06, ioc);
-   test_sync(in07, ioc);
-   test_sync(in08, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
-   co_spawn(ioc, test_async(in03), net::detached);
-   co_spawn(ioc, test_async(in04), net::detached);
-   co_spawn(ioc, test_async(in05), net::detached);
-   co_spawn(ioc, test_async(in06), net::detached);
-   co_spawn(ioc, test_async(in07), net::detached);
-   co_spawn(ioc, test_async(in08), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+   test_sync(ex, in04);
+   test_sync(ex, in05);
+   test_sync(ex, in06);
+   test_sync(ex, in07);
+   test_sync(ex, in08);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
+   test_async(ex, in04);
+   test_async(ex, in05);
+   test_async(ex, in06);
+   test_async(ex, in07);
+   test_async(ex, in08);
 }
 
 void test_set(net::io_context& ioc)
@@ -429,25 +464,27 @@ void test_set(net::io_context& ioc)
    auto const in07 = expect<muset_type>{wire, e1g, "set.unordered_multiset"};
    auto const in08 = expect<std::tuple<uset_type>>{"*1\r\n" + wire, std::tuple<uset_type>{e1c}, "set.tuple"};
 
-   test_sync(in00, ioc);
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
-   test_sync(in03, ioc);
-   test_sync(in04, ioc);
-   test_sync(in05, ioc);
-   test_sync(in06, ioc);
-   test_sync(in07, ioc);
-   test_sync(in08, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in00), net::detached);
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
-   co_spawn(ioc, test_async(in03), net::detached);
-   co_spawn(ioc, test_async(in04), net::detached);
-   co_spawn(ioc, test_async(in05), net::detached);
-   co_spawn(ioc, test_async(in06), net::detached);
-   co_spawn(ioc, test_async(in07), net::detached);
-   co_spawn(ioc, test_async(in08), net::detached);
+   test_sync(ex, in00);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+   test_sync(ex, in04);
+   test_sync(ex, in05);
+   test_sync(ex, in06);
+   test_sync(ex, in07);
+   test_sync(ex, in08);
+
+   test_async(ex, in00);
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
+   test_async(ex, in04);
+   test_async(ex, in05);
+   test_async(ex, in06);
+   test_async(ex, in07);
+   test_async(ex, in08);
 }
 
 void test_simple_error(net::io_context& ioc)
@@ -455,10 +492,13 @@ void test_simple_error(net::io_context& ioc)
    auto const in01 = expect<node_type>{"-Error\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, "simple_error.node"};
    auto const in02 = expect<node_type>{"-\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, "simple_error.node.empty"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
+   auto ex = ioc.get_executor();
+
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
 }
 
 void test_blob_string(net::io_context& ioc)
@@ -479,15 +519,17 @@ void test_blob_string(net::io_context& ioc)
    auto const in03 = expect<node_type>{"$0\r\n\r\n", node_type{resp3::type::blob_string, 1UL, 0UL, {}}, "blob_string.node.empty"};
    auto const in04 = expect<node_type>{wire, node_type{resp3::type::blob_string, 1UL, 0UL, {str}}, "blob_string.node (long string)"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
-   test_sync(in03, ioc);
-   test_sync(in04, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
-   co_spawn(ioc, test_async(in03), net::detached);
-   co_spawn(ioc, test_async(in04), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+   test_sync(ex, in04);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
+   test_async(ex, in04);
 }
 
 void test_double(net::io_context& ioc)
@@ -496,13 +538,15 @@ void test_double(net::io_context& ioc)
    auto const in02 = expect<node_type>{",inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}, "double.node (inf)"};
    auto const in03 = expect<node_type>{",-inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"-inf"}}, "double.node (-inf)"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
-   test_sync(in03, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
-   co_spawn(ioc, test_async(in03), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
 }
 
 void test_blob_error(net::io_context& ioc)
@@ -510,11 +554,13 @@ void test_blob_error(net::io_context& ioc)
    auto const in01 = expect<node_type>{"!21\r\nSYNTAX invalid syntax\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, "blob_error"};
    auto const in02 = expect<node_type>{"!0\r\n\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {}}, "blob_error.empty"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
 }
 
 void test_verbatim_string(net::io_context& ioc)
@@ -522,11 +568,13 @@ void test_verbatim_string(net::io_context& ioc)
    auto const in01 = expect<node_type>{"=15\r\ntxt:Some string\r\n", node_type{resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}}, "verbatim_string"};
    auto const in02 = expect<node_type>{"=0\r\n\r\n", node_type{resp3::type::verbatim_string, 1UL, 0UL, {}}, "verbatim_string.empty"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
 }
 
 void test_big_number(net::io_context& ioc)
@@ -534,11 +582,13 @@ void test_big_number(net::io_context& ioc)
    auto const in01 = expect<node_type>{"(3492890328409238509324850943850943825024385\r\n", node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}, "big_number.node"};
    auto const in02 = expect<int>{"(\r\n", int{}, "big_number.error (empty field)", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
 }
 
 void test_simple_string(net::io_context& ioc)
@@ -547,14 +597,22 @@ void test_simple_string(net::io_context& ioc)
    ok1 = "OK";
    ok2 = "";
 
-   test_sync(expect<std::string>{"+OK\r\n", std::string{"OK"}, "simple_string.string"}, ioc);
-   test_sync(expect<std::string>{"+\r\n", std::string{""}, "simple_string.string.empty"}, ioc);
-   test_sync(expect<std::optional<std::string>>{"+OK\r\n", std::optional<std::string>{"OK"}, "simple_string.optional"}, ioc);
-   test_sync(expect<std::optional<std::string>>{"+\r\n", std::optional<std::string>{""}, "simple_string.optional.empty"}, ioc);
-   co_spawn(ioc, test_async(expect<std::string>{"+OK\r\n", std::string{"OK"}, "simple_string.async.string"}), net::detached);
-   co_spawn(ioc, test_async(expect<std::string>{"+\r\n", std::string{""}, "simple_string.async.string.empty"}), net::detached);
-   co_spawn(ioc, test_async(expect<std::optional<std::string>>{"+OK\r\n", ok1, "simple_string.async.string.optional"}), net::detached);
-   co_spawn(ioc, test_async(expect<std::optional<std::string>>{"+\r\n", ok2, "simple_string.async.string.optional.empty"}), net::detached);
+   auto in00 = expect<std::string>{"+OK\r\n", std::string{"OK"}, "simple_string.string"};
+   auto in01 = expect<std::string>{"+\r\n", std::string{""}, "simple_string.string.empty"};
+   auto in02 = expect<std::optional<std::string>>{"+OK\r\n", std::optional<std::string>{"OK"}, "simple_string.optional"};
+   auto in03 = expect<std::optional<std::string>>{"+\r\n", std::optional<std::string>{""}, "simple_string.optional.empty"};
+
+   auto ex = ioc.get_executor();
+
+   test_sync(ex, in00);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+
+   test_async(ex, in00);
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
 }
 
 void test_resp3(net::io_context& ioc)
@@ -565,17 +623,19 @@ void test_resp3(net::io_context& ioc)
    auto const in04 = expect<std::optional<bool>>{"#\r\n", std::optional<bool>{}, "bool.error", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
    auto const in05 = expect<std::string>{",\r\n", std::string{}, "double.error (empty field)", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
-   test_sync(in03, ioc);
-   test_sync(in04, ioc);
-   test_sync(in05, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
-   co_spawn(ioc, test_async(in03), net::detached);
-   co_spawn(ioc, test_async(in04), net::detached);
-   co_spawn(ioc, test_async(in05), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+   test_sync(ex, in04);
+   test_sync(ex, in05);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
+   test_async(ex, in04);
+   test_async(ex, in05);
 }
 
 void test_null(net::io_context& ioc)
@@ -600,25 +660,27 @@ void test_null(net::io_context& ioc)
    auto const in08 = expect<op_type_08>{"_\r\n", op_type_08{}, "null.optional.set"};
    auto const in09 = expect<op_type_09>{"_\r\n", op_type_09{}, "null.optional.unordered_set"};
 
-   test_sync(in01, ioc);
-   test_sync(in02, ioc);
-   test_sync(in03, ioc);
-   test_sync(in04, ioc);
-   test_sync(in05, ioc);
-   test_sync(in06, ioc);
-   test_sync(in07, ioc);
-   test_sync(in08, ioc);
-   test_sync(in09, ioc);
+   auto ex = ioc.get_executor();
 
-   co_spawn(ioc, test_async(in01), net::detached);
-   co_spawn(ioc, test_async(in02), net::detached);
-   co_spawn(ioc, test_async(in03), net::detached);
-   co_spawn(ioc, test_async(in04), net::detached);
-   co_spawn(ioc, test_async(in05), net::detached);
-   co_spawn(ioc, test_async(in06), net::detached);
-   co_spawn(ioc, test_async(in07), net::detached);
-   co_spawn(ioc, test_async(in08), net::detached);
-   co_spawn(ioc, test_async(in09), net::detached);
+   test_sync(ex, in01);
+   test_sync(ex, in02);
+   test_sync(ex, in03);
+   test_sync(ex, in04);
+   test_sync(ex, in05);
+   test_sync(ex, in06);
+   test_sync(ex, in07);
+   test_sync(ex, in08);
+   test_sync(ex, in09);
+
+   test_async(ex, in01);
+   test_async(ex, in02);
+   test_async(ex, in03);
+   test_async(ex, in04);
+   test_async(ex, in05);
+   test_async(ex, in06);
+   test_async(ex, in07);
+   test_async(ex, in08);
+   test_async(ex, in09);
 }
 
 int main()
