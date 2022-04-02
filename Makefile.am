@@ -30,6 +30,7 @@ EXTRA_PROGRAMS += sentinel
 if HAVE_CXX20
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += chat_room
+EXTRA_PROGRAMS += low_level_subscriber
 endif
 
 CLEANFILES =
@@ -51,6 +52,7 @@ test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 if HAVE_CXX20
 test_online_SOURCES = $(top_srcdir)/tests/online.cpp
 async_intro_SOURCES = $(top_srcdir)/examples/low_level/async_intro.cpp
+low_level_subscriber_SOURCES = $(top_srcdir)/examples/low_level/subscriber.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/high_level/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/high_level/chat_room.cpp
 endif

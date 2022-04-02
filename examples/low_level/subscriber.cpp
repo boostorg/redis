@@ -20,6 +20,7 @@ namespace resp3 = aedis::resp3;
 using aedis::redis::command;
 using aedis::redis::make_serializer;
 using aedis::adapter::adapt;
+using aedis::resp3::node;
 using net::ip::tcp;
 using net::write;
 using net::buffer;
@@ -39,30 +40,18 @@ net::awaitable<void> example()
    std::string request;
    auto sr = make_serializer(request);
    sr.push(command::hello, 3);
-   sr.push(command::multi);
-   sr.push(command::ping, "Some message.");
-   sr.push(command::set, "low-level-key", "some content", "EX", "2");
-   sr.push(command::exec);
+   sr.push(command::subscribe, "channel1", "channel2");
    sr.push(command::quit);
    co_await net::async_write(socket, buffer(request));
 
-   std::tuple<std::string, std::optional<std::string>> response;
+   std::vector<node<std::string>> resp;
 
-   std::string buffer;
-   co_await resp3::async_read(socket, dynamic_buffer(buffer));
-   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // multi
-   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // ping
-   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // set
-   co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(response));
-   co_await resp3::async_read(socket, dynamic_buffer(buffer));
-
-   std::cout
-      << "Ping: " << std::get<0>(response) << "\n"
-      << "Get (has_value): " << std::get<1>(response).has_value()
-      << std::endl;
-
-   if (std::get<1>(response).has_value())
-      std::cout << "Get (value): " << std::get<1>(response).value() << std::endl;
+   for (std::string buffer;;) {
+      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
+      for (auto const& e: resp)
+         std::cout << e << std::endl;
+      resp->clear();
+   }
 }
 
 int main()

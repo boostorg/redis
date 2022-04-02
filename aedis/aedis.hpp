@@ -519,6 +519,7 @@
 
     @li sync_intro.cpp: Shows hot to use the Aedis synchronous api.
     @li async_intro.cpp: Show how to use the low level api.
+    @li low_level/subscriber.cpp: Shows how channel subscription works at a low level.
 
     \b High \b level \b API
 
@@ -526,7 +527,7 @@
     @li aggregates.cpp: Shows how receive RESP3 aggregate data types in a general way.
     @li stl_containers.cpp: Shows how to read responses in STL containers.
     @li serialization.cpp: Shows how to de/serialize your own non-aggregate data-structures.
-    @li subscriber.cpp: Shows how channel subscription works at a low level. See also https://redis.io/topics/pubsub.
+    @li subscriber.cpp: Shows how channel subscription works at a high level. See also https://redis.io/topics/pubsub.
     @li echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.
     @li chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
     @li receiver.cpp: Customization point for users that want to de/serialize their own data-structures like containers for example.
