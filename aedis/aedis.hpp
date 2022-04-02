@@ -39,8 +39,8 @@
     @li Simplified handling of server pushs.
     @li Zero asymptotic allocations by means of memory reuse.
 
-    If never heard about Redis the best place to start is on
-    https://redis.io.  Now let us have a look at the Aedis low-level API.
+    If you never heard about Redis the best place to start is on
+    https://redis.io.  Now let us have a look at the low-level API.
 
     \section low-level-api Low-level API
 
@@ -52,7 +52,7 @@
     @li Get and return its old value.
     @li Quit
 
-    The coroutine-based async implementation of the steps above look like
+    The async coroutine-based implementation of the steps above look like
 
     @code
     net::awaitable<std::string> set(net::ip::tcp::endpoint ep)
@@ -60,24 +60,20 @@
        // To make code less verbose
        using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
-       auto ex = co_await net::this_coro::executor;
-    
-       tcp_socket socket{ex};
+       tcp_socket socket{co_await net::this_coro::executor};
        co_await socket.async_connect(ep);
     
-       std::string request;
-       auto sr = make_serializer(request);
+       std::string request, read_buffer, response;
 
+       auto sr = make_serializer(request);
        sr.push(command::hello, 3);
        sr.push(command::set, "low-level-key", "Value", "EX", "2", "get");
        sr.push(command::quit);
-       co_await net::async_write(socket, buffer(request));
+       co_await net::async_write(socket, net::buffer(request));
     
-       std::string response;
-       std::string buffer;
-       co_await resp3::async_read(socket, dynamic_buffer(buffer)); // Hello (ignored).
-       co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(response)); // Set
-       co_await resp3::async_read(socket, dynamic_buffer(buffer)); // Quit (ignored)
+       co_await resp3::async_read(socket, dynamic_buffer(read_buffer)); // Hello (ignored).
+       co_await resp3::async_read(socket, dynamic_buffer(read_buffer), adapt(response)); // Set
+       co_await resp3::async_read(socket, dynamic_buffer(read_buffer)); // Quit (ignored)
     
        co_return response;
     }
@@ -120,13 +116,13 @@
        , {"key2", "value2"}
        , {"key3", "value3"}};
 
-    // No key or arguments.
+    // Command with no arguments
     sr.push(command::quit);
 
-    // With key and variable lenght arguments.
+    // Command with variable lenght arguments.
     sr.push(command::set, "key", value, "EX", "2");
 
-    // Sends a container, no key
+    // Sends a container, no key.
     sr.push_range(command::subscribe, list);
 
     // As above but an iterator range.
@@ -198,7 +194,7 @@
     Simple error   | \c std::string                                             | Simple
     Blob string    | \c std::string, \c std::vector                             | Simple
     Blob error     | \c std::string, \c std::vector                             | Simple
-    Number         | `long long`, `int`                                         | Simple
+    Number         | `long long`, `int`, \c std::string                         | Simple
     Null           | `std::optional<T>`                                         | Simple
     Array          | \c std::vector, \c std::list, \c std::array, \c std::deque | Aggregate
     Map            | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate
@@ -243,7 +239,8 @@
 
     In other words, it is pretty straightforward, just pass the result
     of \c adapt to the read function and make sure the response RESP3
-    type fits in type you are calling @c adapter(...) with.
+    type fits in the type you are calling @c adapter(...) with. All
+    C++ containers are supported by aedis.
 
     \subsubsection Optional
 
@@ -263,7 +260,7 @@
 
     \subsubsection heterogeneous_aggregates Heterogeneous aggregates
 
-    There are cases when the Redis server returns aggregates that
+    There are cases where Redis returns aggregates that
     contain heterogeneous data, for example, an array that contains
     integers, strings nested sets etc. Aedis supports reading such
     aggregates in a \c std::tuple efficiently as long as the they
@@ -309,7 +306,7 @@
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(trans));
     @endcode
 
-    Notice that above we are not ignoring the response to the comands
+    Note that above we are not ignoring the response to the comands
     themselves but whether they have been successfully queued.  Only
     after @c exec is received Redis will execute them. The response
     will then be sent in a single chunck to the client.
@@ -350,17 +347,17 @@
 
     \subsubsection gen-case The general case
 
-    There are cases where the response to Redis comands won't fit
-    in the model presented above, some examples are
+    As already mentioned, there are cases where the response to Redis
+    commands won't fit in the model presented above, some examples are
 
     @li Commands (like \c set) whose response don't have a fixed
-    RESP3 type. Expecting an e.g. \c std::set and receiving a e.g. blob string
+    RESP3 type. Expecting an e.g. \c int and receiving a e.g. blob string
     will result in error.
-    @li In general RESP3 aggregates that contain nested aggregates can't be
+    @li RESP3 aggregates that contain nested aggregates can't be
     read in STL containers e.g. command, etc..
     @li Transactions with a dynamic number of commands can't be read in a \c std::tuple.
 
-    To deal with these problems Aedis provides the \c resp3::node
+    To deal with these cases Aedis provides the \c resp3::node
     type, that is the most general form of an element in a response,
     be it a simple RESP3 type or an aggregate. It is defined like this
 
@@ -397,15 +394,36 @@
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
     @endcode
 
-    Suppose we want to retrieve the a hash data structure from Redis
-    with \c hgetall, some of the options are
+    For example, suppose we want to retrieve the a hash data structure
+    from Redis with \c hgetall, some of the options are
 
     @li \c std::vector<node<std::string>: Works always.
     @li \c std::vector<std::string>: Efficient and flat, all elements as string.
     @li \c std::map<std::string, std::string>: Efficient if you need the data as a \c std::map
-    @li \c std::map<U, V>: Efficient if you are storing serialized data. Avoids temporaries.
+    @li \c std::map<U, V>: Efficient if you are storing serialized data. Avoids temporaries and requires \c from_string for \c U and \c V.
 
     In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. \c smembers.
+
+    \subsubsection low-level-adapters Adapters
+
+    Users that are not satisfied with any of the options above can
+    write their own adapters very easily. For example, the adapter below
+    can be used to print incoming data to the screen.
+
+    @code
+    auto adapter = [](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code&)
+    {
+       std::cout
+          << "type: " << t << "\n"
+          << "aggregate_size: " << aggregate_size << "\n"
+          << "depth: " << depth << "\n"
+          << "value: " << std::string_view{value, size} << "\n";
+    };
+
+    co_await resp3::async_read(socket, dynamic_buffer(buffer), adapter);
+    @endcode
+
+    See more in the \ref examples section.
 
     \section high-level-api High-level API
 
@@ -520,6 +538,7 @@
     @li sync_intro.cpp: Shows hot to use the Aedis synchronous api.
     @li async_intro.cpp: Show how to use the low level api.
     @li low_level/subscriber.cpp: Shows how channel subscription works at a low level.
+    @li low_level/adapter.cpp: Shows how to write a response adapter to prints to screen, see \ref low-level-adapters.
 
     \b High \b level \b API
 
@@ -538,7 +557,7 @@
   
     - Boost 1.78 or greater.
     - Unix Shell and Make.
-    - C++17. Some examples require C++20 with coroutine support e.g. GCC 10 or greater.
+    - C++17. Some examples require C++20 with coroutine support.
     - Redis server.
   
     Some examples will also require interaction with
@@ -558,7 +577,7 @@
     $ tar -xzvf aedis-1.0.0.tar.gz && cd aedis-1.0.0
   
     # Run configure with appropriate C++ flags and your boost installation.
-    $ ./configure  --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib
+    $ ./configure --prefix=/opt/aedis-version --with-boost=/opt/boost_1_78_0
 
     # Install Aedis in the path specified in --prefix
     $ sudo make install
@@ -602,7 +621,7 @@
     ```
     CC=/opt/gcc-10.2.0/bin/gcc-10.2.0\
     CXX=/opt/gcc-10.2.0/bin/g++-10.2.0\
-    CXXFLAGS="-std=c++20 -fcoroutines -g -Wall -Werror"  ./configure ...
+    CXXFLAGS="-fcoroutines -g -Wall -Werror"  ./configure ...
     ```
     \section Referece
   

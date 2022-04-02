@@ -11,26 +11,27 @@ AM_LDFLAGS =
 AM_LDFLAGS += -pthread
 
 check_PROGRAMS =
-check_PROGRAMS += intro
-check_PROGRAMS += aggregates
-check_PROGRAMS += stl_containers
-check_PROGRAMS += serialization
-check_PROGRAMS += receiver
-check_PROGRAMS += sync_intro
+check_PROGRAMS += low_level_sync_intro
+check_PROGRAMS += high_level_intro
+check_PROGRAMS += high_level_aggregates
+check_PROGRAMS += high_level_stl_containers
+check_PROGRAMS += high_level_serialization
+check_PROGRAMS += high_level_receiver
 check_PROGRAMS += test_low_level
 if HAVE_CXX20
+check_PROGRAMS += low_level_async_intro
+check_PROGRAMS += low_level_adapter
 check_PROGRAMS += test_online
-check_PROGRAMS += async_intro
 endif
 
 EXTRA_PROGRAMS =
-EXTRA_PROGRAMS += subscriber
+EXTRA_PROGRAMS += high_level_subscriber
+EXTRA_PROGRAMS += high_level_sentinel
 EXTRA_PROGRAMS += commands
-EXTRA_PROGRAMS += sentinel
 if HAVE_CXX20
-EXTRA_PROGRAMS += echo_server
-EXTRA_PROGRAMS += chat_room
 EXTRA_PROGRAMS += low_level_subscriber
+EXTRA_PROGRAMS += high_level_echo_server
+EXTRA_PROGRAMS += high_level_chat_room
 endif
 
 CLEANFILES =
@@ -39,22 +40,23 @@ CLEANFILES += $(EXTRA_PROGRAMS)
 .PHONY: all
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
-intro_SOURCES = $(top_srcdir)/examples/high_level/intro.cpp
-aggregates_SOURCES = $(top_srcdir)/examples/high_level/aggregates.cpp
-stl_containers_SOURCES = $(top_srcdir)/examples/high_level/stl_containers.cpp
-serialization_SOURCES = $(top_srcdir)/examples/high_level/serialization.cpp
-receiver_SOURCES = $(top_srcdir)/examples/high_level/receiver.cpp
-sync_intro_SOURCES = $(top_srcdir)/examples/low_level/sync_intro.cpp
+high_level_intro_SOURCES = $(top_srcdir)/examples/high_level/intro.cpp
+high_level_aggregates_SOURCES = $(top_srcdir)/examples/high_level/aggregates.cpp
+high_level_stl_containers_SOURCES = $(top_srcdir)/examples/high_level/stl_containers.cpp
+high_level_serialization_SOURCES = $(top_srcdir)/examples/high_level/serialization.cpp
+high_level_receiver_SOURCES = $(top_srcdir)/examples/high_level/receiver.cpp
+low_level_sync_intro_SOURCES = $(top_srcdir)/examples/low_level/sync_intro.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
-subscriber_SOURCES = $(top_srcdir)/examples/high_level/subscriber.cpp
-sentinel_SOURCES = $(top_srcdir)/examples/high_level/sentinel.cpp
+high_level_subscriber_SOURCES = $(top_srcdir)/examples/high_level/subscriber.cpp
+high_level_sentinel_SOURCES = $(top_srcdir)/examples/high_level/sentinel.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 if HAVE_CXX20
 test_online_SOURCES = $(top_srcdir)/tests/online.cpp
-async_intro_SOURCES = $(top_srcdir)/examples/low_level/async_intro.cpp
+low_level_async_intro_SOURCES = $(top_srcdir)/examples/low_level/async_intro.cpp
 low_level_subscriber_SOURCES = $(top_srcdir)/examples/low_level/subscriber.cpp
-echo_server_SOURCES = $(top_srcdir)/examples/high_level/echo_server.cpp
-chat_room_SOURCES = $(top_srcdir)/examples/high_level/chat_room.cpp
+low_level_adapter_SOURCES = $(top_srcdir)/examples/low_level/adapter.cpp
+high_level_echo_server_SOURCES = $(top_srcdir)/examples/high_level/echo_server.cpp
+high_level_chat_room_SOURCES = $(top_srcdir)/examples/high_level/chat_room.cpp
 endif
 
 nobase_include_HEADERS =\

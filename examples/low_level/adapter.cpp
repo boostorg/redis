@@ -19,14 +19,11 @@ namespace resp3 = aedis::resp3;
 
 using aedis::redis::command;
 using aedis::redis::make_serializer;
-using aedis::adapter::adapt;
-using aedis::resp3::node;
 using net::ip::tcp;
 using net::write;
 using net::buffer;
 using net::dynamic_buffer;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using response_type = std::tuple<std::string, std::optional<std::string>>;
 
 net::awaitable<void> example()
 {
@@ -37,22 +34,26 @@ net::awaitable<void> example()
    tcp_socket socket{ex};
    co_await socket.async_connect(*std::begin(res));
 
-   std::string request;
+   std::string request, buffer;
+
    auto sr = make_serializer(request);
    sr.push(command::hello, 3);
-   sr.push(command::subscribe, "channel1", "channel2");
-   co_await net::async_write(socket, buffer(request));
+   sr.push(command::ping, "Some message.");
+   sr.push(command::quit);
+   co_await net::async_write(socket, net::buffer(request));
 
-   // Ignores the response to hello.
-   std::string buffer;
-   co_await resp3::async_read(socket, dynamic_buffer(buffer));
+   auto adapter = [](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code&)
+   {
+      std::cout
+         << "type: " << t << "\n"
+         << "aggregate_size: " << aggregate_size << "\n"
+         << "depth: " << depth << "\n"
+         << "value: " << std::string_view{value, size} << "\n";
+   };
 
-   for (std::vector<node<std::string>> resp;;) {
-      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
-      for (auto const& e: resp)
-         std::cout << e << std::endl;
-      resp.clear();
-   }
+   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello
+   co_await resp3::async_read(socket, dynamic_buffer(buffer), adapter);
+   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // quit
 }
 
 int main()
