@@ -86,16 +86,6 @@ read(
    return consumed;
 }
 
-/** \brief Adapter that ignores responses.
- *  \ingroup any
- */
-struct ignore_response {
-   void
-   operator()(
-      resp3::type, std::size_t, std::size_t, char const*, std::size_t,
-      boost::system::error_code&) { }
-};
-
 /** \brief Reads the reponse to a command.
  *  \ingroup functions
  *  
@@ -111,7 +101,7 @@ struct ignore_response {
 template<
    class SyncReadStream,
    class DynamicBuffer,
-   class ResponseAdapter = ignore_response>
+   class ResponseAdapter = detail::ignore_response>
 std::size_t
 read(
    SyncReadStream& stream,
@@ -150,7 +140,7 @@ read(
 template <
    class AsyncReadStream,
    class DynamicBuffer,
-   class ResponseAdapter = ignore_response,
+   class ResponseAdapter = detail::ignore_response,
    class CompletionToken = boost::asio::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(

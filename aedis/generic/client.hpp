@@ -23,7 +23,7 @@
 namespace aedis {
 namespace generic {
 
-/**  \brief A high level redis client.
+/**  \brief A high level resp3 client.
  *   \ingroup any
  *
  *   This Redis client keeps a connection to the database open and
@@ -191,7 +191,7 @@ public:
    {
       auto const can_write = prepare_next();
 
-      resp3::serializer<std::string, Command> sr(requests_);
+      resp3::serializer<std::string> sr(requests_);
       auto const before = std::size(requests_);
       sr.push(cmd, args...);
       auto const after = std::size(requests_);
@@ -217,7 +217,7 @@ public:
 
       auto const can_write = prepare_next();
 
-      resp3::serializer<std::string, Command> sr(requests_);
+      resp3::serializer<std::string> sr(requests_);
       auto const before = std::size(requests_);
       sr.push_range2(cmd, key, begin, end);
       auto const after = std::size(requests_);
@@ -243,7 +243,7 @@ public:
 
       auto const can_write = prepare_next();
 
-      resp3::serializer<std::string, Command> sr(requests_);
+      resp3::serializer<std::string> sr(requests_);
       auto const before = std::size(requests_);
       sr.push_range2(cmd, begin, end);
       auto const after = std::size(requests_);

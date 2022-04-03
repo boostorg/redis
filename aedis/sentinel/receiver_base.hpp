@@ -13,6 +13,9 @@
 namespace aedis {
 namespace sentinel {
 
+/** @brief Convenience typedef for the Redis sentinel receiver_base.
+ *  @ingroup any
+ */
 template <class ...Ts>
 using receiver_base = generic::receiver_base<command, Ts...>;
 

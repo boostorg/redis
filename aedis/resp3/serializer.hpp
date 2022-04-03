@@ -44,7 +44,7 @@ namespace resp3 {
 //
 // NOTE: For some commands like hset it would be a good idea to assert
 // the value type is a pair.
-template <class Storage, class Command>
+template <class Storage>
 class serializer {
 private:
    Storage* request_;
@@ -74,7 +74,7 @@ public:
     *  \param args The arguments of the Redis command.
     *
     */
-   template <class... Ts>
+   template <class Command, class... Ts>
    void push(Command cmd, Ts const&... args)
    {
       auto constexpr pack_size = sizeof...(Ts);
@@ -104,7 +104,7 @@ public:
     *  \param begin Iterator to the begin of the range.
     *  \param end Iterator to the end of the range.
     */
-   template <class Key, class ForwardIterator>
+   template <class Command, class Key, class ForwardIterator>
    void push_range2(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
@@ -139,7 +139,7 @@ public:
     *  \param begin Iterator to the begin of the range.
     *  \param end Iterator to the end of the range.
     */
-   template <class ForwardIterator>
+   template <class Command, class ForwardIterator>
    void push_range2(Command cmd, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
@@ -158,7 +158,7 @@ public:
 
    /** \brief Sends a range.
     */
-   template <class Key, class Range>
+   template <class Command, class Key, class Range>
    void push_range(Command cmd, Key const& key, Range const& range)
    {
       using std::begin;
@@ -168,15 +168,25 @@ public:
 
    /** \brief Sends a range.
     */
-   template <class Range>
+   template <class Command, class Range>
    void push_range(Command cmd, Range const& range)
    {
       using std::begin;
       using std::end;
       push_range2(cmd, begin(range), end(range));
    }
-
 };
+
+/** \brief Creates a serializer for Sentinel commands.
+ *  \ingroup any
+ *  \param storage The string.
+ */
+template <class CharT, class Traits, class Allocator>
+serializer<std::basic_string<CharT, Traits, Allocator>>
+make_serializer(std::basic_string<CharT, Traits, Allocator>& storage)
+{
+   return serializer<std::basic_string<CharT, Traits, Allocator>>(storage);
+}
 
 } // resp3
 } // aedis

@@ -13,6 +13,9 @@
 namespace aedis {
 namespace redis {
 
+/** @brief Convenience typedef for redis clients.
+ *  @ingroup any
+ */
 template <class AsyncReadWriteStream>
 using client = generic::client<AsyncReadWriteStream, command>;
 

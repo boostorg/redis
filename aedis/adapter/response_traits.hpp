@@ -62,7 +62,7 @@ template <>
 struct response_traits<void>
 {
    using response_type = void;
-   using adapter_type = resp3::ignore_response;
+   using adapter_type = resp3::detail::ignore_response;
    static auto adapt() noexcept { return adapter_type{}; }
 };
 

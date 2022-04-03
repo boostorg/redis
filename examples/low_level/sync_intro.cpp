@@ -17,7 +17,7 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
 using aedis::redis::command;
-using aedis::redis::make_serializer;
+using aedis::resp3::make_serializer;
 using aedis::adapter::adapt;
 using net::dynamic_buffer;
 using net::ip::tcp;

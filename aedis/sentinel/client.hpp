@@ -13,6 +13,9 @@
 namespace aedis {
 namespace sentinel {
 
+/** @brief Convenience typedef for Redis sentinel clients.
+ *  @ingroup any
+ */
 template <class AsyncReadWriteStream>
 using client = generic::client<AsyncReadWriteStream, command>;
 

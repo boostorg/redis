@@ -13,6 +13,9 @@
 namespace aedis {
 namespace redis {
 
+/** @brief Convenience typedef for the Redis receiver_base.
+ *  @ingroup any
+ */
 template <class ...Ts>
 using receiver_base = generic::receiver_base<command, Ts...>;
 
