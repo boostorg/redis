@@ -458,12 +458,12 @@
     }
     @endcode
 
-    The only thing users have to care about is with the
-    implementation of the \c receiver class, everything else will done
+    The only thing users have to care about is with the implementation
+    of the \c receiver class, everything else will be done
     automatically by the client class.  To simplify it even further
     users can (but don't have to) use a base class that abstracts most
-    of the complexity away. In most cases the following
-    functions will be provided (overriden) by the user
+    of the complexity away. The general form of a receiver looks like
+    this
 
     @code
     class myreceiver : public receiver_base<T1, T2, T3, ...> {
@@ -512,15 +512,15 @@
     request/response protocol, which means clients must wait for the
     response to a command before proceeding with the next one.
 
-    \remark
+    \subsection high-level-transaction Transactions
 
     Aedis won't pass the responses of \c multi or any other
     commands inside the transaction to the user, only the final result
-    i.e.  only the response to \c exec is passed to the user. The reason
+    i.e.  the response to \c exec. The reason
     for this behaviour is that unless there is a programming error,
-    the response to the commands that preceed \c exec can't fail, they
-    will always be "QUEUED", or as quoted form the Redis documentation
-    https://redis.io/topics/transactions:
+    the response to the individual commands that precede \c exec
+    can't fail, they will always be "QUEUED", or as quoted form the
+    Redis documentation https://redis.io/topics/transactions:
 
     > Redis commands can fail only if called with a wrong syntax (and
     > the problem is not detectable during the command queueing),
@@ -529,27 +529,57 @@
     > errors, and a kind of error that is very likely to be detected
     > during development, and not in production.
 
+    \subsection high-level-receiver Receiver
+
+    Just as users can implement their own adapter for the low-level API,
+    they can also implement their own Receiver for the high-level API.
+    For example
+
+    @code
+    struct receiver {
+       void on_resp3(command cmd, type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, boost::system::error_code&)
+       {
+          std::cout << "Resp3 data received" << std::endl;
+       }
+
+       void on_push()
+       {
+          std::cout << "on_push: " << std::endl;
+       }
+
+       void on_read(command cmd)
+       {
+          std::cout << "on_read: " << cmd << std::endl;
+       }
+
+       void on_write(std::size_t n)
+       {
+          std::cout << "on_write: " << n << std::endl;
+       }
+    };
+    @endcode
+
     \section examples Examples
 
     To better fix what has been said above, users should have a look at some simple examples.
 
     \b Low \b level \b API
 
-    @li sync_intro.cpp: Shows hot to use the Aedis synchronous api.
-    @li async_intro.cpp: Show how to use the low level api.
+    @li low_level/sync_intro.cpp: Shows how to use the Aedis synchronous api.
+    @li low_level/async_intro.cpp: Show how to use the low level async api.
     @li low_level/subscriber.cpp: Shows how channel subscription works at a low level.
-    @li low_level/adapter.cpp: Shows how to write a response adapter to prints to screen, see \ref low-level-adapters.
+    @li low_level/adapter.cpp: Shows how to write a response adapter that prints to the screen, see \ref low-level-adapters.
 
     \b High \b level \b API
 
-    @li intro.cpp: A good starting point. Some commands are sent to the Redis server and the responses are printed to screen. 
-    @li aggregates.cpp: Shows how receive RESP3 aggregate data types in a general way.
-    @li stl_containers.cpp: Shows how to read responses in STL containers.
-    @li serialization.cpp: Shows how to de/serialize your own non-aggregate data-structures.
-    @li subscriber.cpp: Shows how channel subscription works at a high level. See also https://redis.io/topics/pubsub.
-    @li echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.
-    @li chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
-    @li receiver.cpp: Customization point for users that want to de/serialize their own data-structures like containers for example.
+    @li high_level/intro.cpp: A good starting point. Some commands are sent to the Redis server and the responses are printed to screen. 
+    @li high_level/aggregates.cpp: Shows how receive RESP3 aggregate data types in a general way.
+    @li high_level/stl_containers.cpp: Shows how to read responses in STL containers.
+    @li high_level/serialization.cpp: Shows how to de/serialize your own non-aggregate data-structures.
+    @li high_level/subscriber.cpp: Shows how channel subscription works at a high level. See also https://redis.io/topics/pubsub.
+    @li high_level/echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.
+    @li high_level/chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
+    @li high_level/receiver.cpp: Customization point for users that want to de/serialize their own data-structures like containers for example.
 
     \section using-aedis Using Aedis
 
@@ -562,21 +592,27 @@
   
     Some examples will also require interaction with
   
-    - redis-cli: used in one example.
+    - redis-cli: Used in one example.
     - Redis Sentinel Server: used in some examples.
   
     \subsection Installation
-  
-    Download the library from github run the configure scrip and `make install` (for windows see below)
-  
+
+    The first thing to do is to download and unpack Aedis
+
     ```
     # Download the latest release on github
     $ wget https://github.com/mzimbres/aedis/releases
   
     # Uncompress the tarball and cd into the dir
-    $ tar -xzvf aedis-1.0.0.tar.gz && cd aedis-1.0.0
+    $ tar -xzvf aedis-version.tar.gz
+    ```
+
+    If don't want to use \c configure and \c make (e.g. Windows users)
+    you can already add the directory where you unpacked aedis to the
+    include directories in your project, otherwise run
   
-    # Run configure with appropriate C++ flags and your boost installation.
+    ```
+    # See configure --help for all options.
     $ ./configure --prefix=/opt/aedis-version --with-boost=/opt/boost_1_78_0
 
     # Install Aedis in the path specified in --prefix
@@ -584,8 +620,15 @@
   
     ```
   
-    At this point you can start using Aedis. To build the examples and
-    test you can also run
+    and include the following header 
+  
+    ```cpp
+    #include <aedis/src.hpp>
+
+    ```
+
+    in exactly one source file in your applications. At this point you
+    can start using Aedis. To build the examples and run the tests run
   
     ```
     # Build aedis examples.
@@ -594,18 +637,7 @@
     # Test aedis in your machine.
     $ make check
     ```
-  
-    Finally you will have to include the following header 
-  
-    ```cpp
-    #include <aedis/src.hpp>
-    ```
-    in exactly one source file in your applications.
-  
-    \b Windows users can use aedis by either adding the project root
-    directory to their include path or manually copying to another
-    location. 
-  
+
     \subsection Developers
   
     To generate the build system run
@@ -614,15 +646,14 @@
     $ autoreconf -i
     ```
   
-    After that you will have a config in the project dir that you can
-    run as explained above, for example, to use a compiler other that
-    the system compiler use
+    After that you will have a configure script 
+    that you can run as explained above, for example, to use a
+    compiler other that the system compiler use
   
     ```
-    CC=/opt/gcc-10.2.0/bin/gcc-10.2.0\
-    CXX=/opt/gcc-10.2.0/bin/g++-10.2.0\
-    CXXFLAGS="-fcoroutines -g -Wall -Werror"  ./configure ...
+    CC=/opt/gcc-10.2.0/bin/gcc-10.2.0 CXX=/opt/gcc-10.2.0/bin/g++-10.2.0 CXXFLAGS="-fcoroutines -g -Wall -Werror"  ./configure ...
     ```
+
     \section Referece
   
     See \subpage any.
