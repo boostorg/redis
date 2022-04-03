@@ -26,12 +26,11 @@ namespace generic {
 /**  \brief A high level resp3 client.
  *   \ingroup any
  *
- *   This Redis client keeps a connection to the database open and
- *   uses it for all communication with Redis. For examples on how to
- *   use see the examples chat_room.cpp, echo_server.cpp and
- *   redis_client.cpp.
+ *   This class represents a connection to the Redis server. It keeps
+ *   an internal queue of user commands that is managed automatically.
+ *   It also achieves asymptotic zero allocation by reusing memory.
  *
- *   \remarks This class reuses its internal buffers for requests and
+ *   It also reuses its internal buffers for requests and
  *   for reading Redis responses. With time it will allocate less and
  *   less.
  */
