@@ -7,10 +7,10 @@
 
 #pragma once
 
-#include <aedis/resp3/detail/composer.hpp>
+#include <aedis/resp3/compose.hpp>
 
 namespace aedis {
-namespace resp3 {
+namespace generic {
 
 /** @brief Creates a Redis request from user data.
  *  \ingroup any
@@ -78,10 +78,10 @@ public:
    void push(Command cmd, Ts const&... args)
    {
       auto constexpr pack_size = sizeof...(Ts);
-      detail::add_header(*request_, 1 + pack_size);
+      resp3::add_header(*request_, 1 + pack_size);
 
-      detail::add_bulk(*request_, to_string(cmd));
-      (detail::add_bulk(*request_, args), ...);
+      resp3::add_bulk(*request_, to_string(cmd));
+      (resp3::add_bulk(*request_, args), ...);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -112,14 +112,14 @@ public:
       if (begin == end)
          return;
 
-      auto constexpr size = detail::value_type_size<value_type>::size;
+      auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(*request_, 2 + size * distance);
-      detail::add_bulk(*request_, to_string(cmd));
-      detail::add_bulk(*request_, key);
+      resp3::add_header(*request_, 2 + size * distance);
+      resp3::add_bulk(*request_, to_string(cmd));
+      resp3::add_bulk(*request_, key);
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(*request_, *begin);
+	 resp3::add_bulk(*request_, *begin);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -147,13 +147,13 @@ public:
       if (begin == end)
          return;
 
-      auto constexpr size = detail::value_type_size<value_type>::size;
+      auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(*request_, 1 + size * distance);
-      detail::add_bulk(*request_, to_string(cmd));
+      resp3::add_header(*request_, 1 + size * distance);
+      resp3::add_bulk(*request_, to_string(cmd));
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(*request_, *begin);
+	 resp3::add_bulk(*request_, *begin);
    }
 
    /** \brief Sends a range.
@@ -188,5 +188,5 @@ make_serializer(std::basic_string<CharT, Traits, Allocator>& storage)
    return serializer<std::basic_string<CharT, Traits, Allocator>>(storage);
 }
 
-} // resp3
+} // generic
 } // aedis

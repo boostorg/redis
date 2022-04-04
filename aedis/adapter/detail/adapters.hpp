@@ -21,7 +21,7 @@
 #include <array>
 
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/serializer.hpp>
+#include <aedis/generic/serializer.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/adapter/error.hpp>
 

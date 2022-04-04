@@ -34,9 +34,9 @@ bool operator<(mystruct const& a, mystruct const& b)
 }
 
 // Dumy serialization.
-std::string to_string(mystruct const& obj)
+void to_bulk(std::string& to, mystruct const& obj)
 {
-   return "Dummy serializaiton string.";
+   aedis::resp3::to_bulk(to, "Dummy serializaiton string.");
 }
 
 // Dummy deserialization.

@@ -10,8 +10,6 @@
 #include <ostream>
 #include <string>
 
-#include <aedis/resp3/serializer.hpp>
-
 namespace aedis {
 namespace redis {
 

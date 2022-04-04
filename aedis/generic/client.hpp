@@ -190,7 +190,7 @@ public:
    {
       auto const can_write = prepare_next();
 
-      resp3::serializer<std::string> sr(requests_);
+      serializer<std::string> sr(requests_);
       auto const before = std::size(requests_);
       sr.push(cmd, args...);
       auto const after = std::size(requests_);
@@ -216,7 +216,7 @@ public:
 
       auto const can_write = prepare_next();
 
-      resp3::serializer<std::string> sr(requests_);
+      serializer<std::string> sr(requests_);
       auto const before = std::size(requests_);
       sr.push_range2(cmd, key, begin, end);
       auto const after = std::size(requests_);
@@ -242,7 +242,7 @@ public:
 
       auto const can_write = prepare_next();
 
-      resp3::serializer<std::string> sr(requests_);
+      serializer<std::string> sr(requests_);
       auto const before = std::size(requests_);
       sr.push_range2(cmd, begin, end);
       auto const after = std::size(requests_);

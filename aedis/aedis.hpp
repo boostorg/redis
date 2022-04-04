@@ -145,7 +145,7 @@
     \subsubsection Serialization
 
     In general the \c send and \c send_range functions above work with integers
-    and \c std::string.  To send your own data type defined the \c to_string
+    and \c std::string.  To send your own data type defined the \c to_bulk
     function like this
 
     @code
@@ -154,9 +154,10 @@
       // ...
     };
     
-    std::string to_string(mystruct const& obj)
+    void to_bulk(std::string& to, mystruct const& obj)
     {
-       // Convert to obj string
+       // Convert to obj string and call
+       aedis::resp3::to_bulk(to, "Dummy serializaiton string.");
     }
 
     std::map<std::string, mystruct> map
