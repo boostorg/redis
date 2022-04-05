@@ -67,7 +67,7 @@
 
        auto sr = make_serializer(request);
        sr.push(command::hello, 3);
-       sr.push(command::set, "low-level-key", "Value", "EX", "2", "get");
+       sr.push(command::set, "key", "Value", "EX", "2", "get");
        sr.push(command::quit);
        co_await net::async_write(socket, net::buffer(request));
     
@@ -125,28 +125,28 @@
     // Sends a container, no key.
     sr.push_range(command::subscribe, list);
 
-    // As above but an iterator range.
+    // Same as above but an iterator range.
     sr.push_range2(command::subscribe, std::cbegin(list), std::cend(list));
 
     // Sends a container, with key.
     sr.push_range(command::hset, "key", map);
 
-    // As above but as iterator range.
+    // Same as above but as iterator range.
     sr.push_range2(command::hset, "key", std::cbegin(map), std::cend(map));
     @endcode
 
-    Once all commands we want to send to Redis have been added to the
+    Once all commands we want to send have been added to the
     request, we can write it as usual to the socket.
 
     @code
     co_await net::async_write(socket, buffer(request));
     @endcode
 
-    \subsubsection Serialization
+    \subsubsection requests-serialization Serialization
 
-    In general the \c send and \c send_range functions above work with integers
-    and \c std::string.  To send your own data type defined the \c to_bulk
-    function like this
+    The \c send and \c send_range functions above work with integers
+    e.g. \c int and \c std::string out of the box. To send your own
+    data type defined the \c to_bulk function like this
 
     @code
     // Example struct.
@@ -213,35 +213,35 @@
     // To ignore the response.
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt());
 
-    // To read in a std::string e.g. get.
+    // Read in a std::string e.g. get.
     std::string str;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(str));
 
-    // To read in a long long e.g. rpush.
+    // Read in a long long e.g. rpush.
     long long number;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(number));
 
-    // To read in a std::set e.g. smembers.
+    // Read in a std::set e.g. smembers.
     std::set<T, U> set;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(set));
 
-    // To read in a std::map e.g. hgetall.
+    // Read in a std::map e.g. hgetall.
     std::map<T, U> set;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(map));
 
-    // To read in a std::unordered_map e.g. hgetall.
+    // Read in a std::unordered_map e.g. hgetall.
     std::unordered_map<T, U> umap;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(umap));
 
-    // To read in a std::vector e.g. lrange.
-    std::vector<T, U> vec;
+    // Read in a std::vector e.g. lrange.
+    std::vector<T> vec;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(vec));
     @endcode
 
     In other words, it is pretty straightforward, just pass the result
     of \c adapt to the read function and make sure the response RESP3
     type fits in the type you are calling @c adapter(...) with. All
-    C++ containers are supported by aedis.
+    standard C++ containers are supported by aedis.
 
     \subsubsection Optional
 
@@ -314,19 +314,20 @@
 
     \subsubsection Serialization
 
-    It is rather common for users to store serialized data in Redis
-    such as json strings, for example
+    As mentioned in \ref requests-serialization, it is common for
+    users to serialized data before sending it to Redis e.g.  json
+    strings, for example
 
     @code
     sr.push(command::set, "key", "json-string")
     sr.push(command::get, "key")
     @endcode
 
-    For performance and convenience reasons, some users will want to
-    avoid receiving the response to the \c get command above in a string
-    to later convert it into a e.g. deserialized json. To support this,
-    Aedis calls a user defined \c from_string function while parsing
-    the response. In simple terms, define your type
+    For performance and convenience reasons, we may want to avoid
+    receiving the response to the \c get command above as a string
+    just to convert it later to a e.g. deserialized json. To support
+    this, Aedis calls a user defined \c from_string function while
+    parsing the response. In simple terms, define your type
 
     @code
     struct mystruct {
@@ -343,7 +344,7 @@
     }
     @endcode
 
-    After that, we can start receiving data efficiently in the desired
+    After that, you can start receiving data efficiently in the desired
     types e.g. \c mystruct, \c std::map<std::string, mystruct> etc.
 
     \subsubsection gen-case The general case
@@ -352,10 +353,10 @@
     commands won't fit in the model presented above, some examples are
 
     @li Commands (like \c set) whose response don't have a fixed
-    RESP3 type. Expecting an e.g. \c int and receiving a e.g. blob string
+    RESP3 type. Expecting an \c int and receiving a blob string
     will result in error.
-    @li RESP3 aggregates that contain nested aggregates can't be
-    read in STL containers e.g. command, etc..
+    @li RESP3 responses that contain three levels of (nested) aggregates can't be
+    read in STL containers.
     @li Transactions with a dynamic number of commands can't be read in a \c std::tuple.
 
     To deal with these cases Aedis provides the \c resp3::node
@@ -578,9 +579,12 @@
     @li high_level/stl_containers.cpp: Shows how to read responses in STL containers.
     @li high_level/serialization.cpp: Shows how to de/serialize your own non-aggregate data-structures.
     @li high_level/subscriber.cpp: Shows how channel subscription works at a high level. See also https://redis.io/topics/pubsub.
-    @li high_level/echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.
-    @li high_level/chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
     @li high_level/receiver.cpp: Customization point for users that want to de/serialize their own data-structures like containers for example.
+
+    \b Servers
+
+    @li high_level/chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
+    @li high_level/echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.
 
     \section using-aedis Using Aedis
 
