@@ -55,7 +55,7 @@ auto adapt() noexcept
  *
  *  - `std::unordered_map<T>`. Can be used with RESP3 hash type.
  *
- *  All these types can be wrapped in an `std::optional<T>`. This
+ *  All these types can be wrapped in an `boost::optional<T>`. This
  *  function also support \c std::tuple to read the response to
  *  tuples. At the moment this feature supports only transactions that
  *  contain simple types or aggregates that don't contain aggregates

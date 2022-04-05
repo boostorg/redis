@@ -10,17 +10,18 @@
 #include <set>
 #include <unordered_set>
 #include <forward_list>
-#include <optional>
 #include <system_error>
 #include <map>
 #include <unordered_map>
 #include <list>
 #include <deque>
 #include <vector>
-#include <charconv>
 #include <array>
 
+#include <boost/optional.hpp>
+
 #include <aedis/resp3/type.hpp>
+#include <aedis/resp3/detail/parser.hpp>
 #include <aedis/generic/serializer.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/adapter/error.hpp>
@@ -39,9 +40,7 @@ from_string(
    std::size_t data_size,
    boost::system::error_code& ec)
 {
-   auto const res = std::from_chars(value, value + data_size, i);
-   if (res.ec != std::errc())
-      ec = std::make_error_code(res.ec);
+   i = resp3::detail::parse_uint(value, data_size, ec);
 }
 
 void from_string(
@@ -384,13 +383,13 @@ public:
 };
 
 template <class T>
-class wrapper<std::optional<T>> {
+class wrapper<boost::optional<T>> {
 private:
-   std::optional<T>* result_;
+   boost::optional<T>* result_;
    typename impl_map<T>::type impl_;
 
 public:
-   wrapper(std::optional<T>* o = nullptr) : result_(o), impl_{} {}
+   wrapper(boost::optional<T>* o = nullptr) : result_(o), impl_{} {}
 
    void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code& ec)
    {

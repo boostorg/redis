@@ -8,11 +8,10 @@
 #pragma once
 
 #include <vector>
-#include <charconv>
 #include <tuple>
-#include <variant>
 
 #include <boost/mp11.hpp>
+#include <boost/variant2.hpp>
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/read.hpp>
@@ -95,8 +94,12 @@ struct assigner<0> {
 template <class Tuple>
 class static_aggregate_adapter {
 private:
-   using foo = boost::mp11::mp_rename<boost::mp11::mp_transform<response_traits_t, Tuple>, std::variant>;
-   using variant_type = boost::mp11::mp_unique<foo>;
+   using variant_type =
+      boost::mp11::mp_unique<
+         boost::mp11::mp_rename<
+            boost::mp11::mp_transform<
+               response_traits_t, Tuple>,
+               boost::variant2::variant>>;
 
    std::size_t i_ = 0;
    std::size_t aggregate_size_ = 0;
@@ -130,6 +133,8 @@ public:
       std::size_t size,
       boost::system::error_code& ec)
    {
+      using boost::variant2::visit;
+
       if (depth == 0) {
          auto const real_aggr_size = aggregate_size * element_multiplicity(t);
          if (real_aggr_size != std::tuple_size<Tuple>::value)
@@ -138,7 +143,7 @@ public:
          return;
       }
 
-      std::visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i_]);
+      visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i_]);
       count(t, aggregate_size, depth);
    }
 };

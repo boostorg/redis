@@ -12,6 +12,16 @@ namespace aedis {
 namespace resp3 {
 namespace detail {
 
+std::size_t parse_uint(char const* data, std::size_t size, boost::system::error_code& ec)
+{
+   static constexpr boost::spirit::x3::uint_parser<std::size_t, 10> p{};
+   std::size_t ret;
+   if (!parse(data, data + size, p, ret))
+      ec = error::not_a_number;
+
+   return ret;
+}
+
 type to_type(char c)
 {
    switch (c) {

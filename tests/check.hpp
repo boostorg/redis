@@ -33,7 +33,7 @@ void expect_error(boost::system::error_code a, boost::system::error_condition ex
 template <class T>
 void check_empty(T const& t)
 {
-   if (std::empty(t)) {
+   if (t.empty()) {
       //std::cout << "Success: " << std::endl;
    } else {
       std::cout << "Error: Not empty" << std::endl;

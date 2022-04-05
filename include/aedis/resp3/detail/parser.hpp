@@ -8,15 +8,19 @@
 #pragma once
 
 #include <string_view>
-#include <charconv>
 #include <system_error>
 #include <limits>
+
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/home/x3.hpp>
 
 #include <aedis/resp3/error.hpp>
 
 namespace aedis {
 namespace resp3 {
 namespace detail {
+
+std::size_t parse_uint(char const* data, std::size_t size, boost::system::error_code& ec);
 
 // Converts a wire-format RESP3 type (char) to a resp3 type.
 type to_type(char c);
@@ -82,11 +86,9 @@ public:
          switch (t) {
             case type::streamed_string_part:
             {
-               auto const r = std::from_chars(data + 1, data + n - 2, bulk_length_);
-	       if (r.ec != std::errc()) {
-		  ec = error::not_a_number;
+               bulk_length_ = parse_uint(data + 1, n - 2, ec);
+	       if (ec)
 		  return 0;
-	       }
 
                if (bulk_length_ == 0) {
                   adapter_(type::streamed_string_part, 1, depth_, nullptr, 0, ec);
@@ -107,11 +109,9 @@ public:
 		  // 0.
                   sizes_[++depth_] = (std::numeric_limits<std::size_t>::max)();
                } else {
-		  auto const r = std::from_chars(data + 1, data + n - 2, bulk_length_);
-		  if (r.ec != std::errc()) {
-		     ec = error::not_a_number;
-		     return 0;
-		  }
+                  bulk_length_ = parse_uint(data + 1, n - 2, ec);
+                  if (ec)
+                     return 0;
 
                   bulk_ = t;
                }
@@ -172,12 +172,9 @@ public:
             case type::attribute:
             case type::map:
             {
-	       std::size_t l;
-               auto const r = std::from_chars(data + 1, data + n - 2, l);
-	       if (r.ec != std::errc()) {
-		  ec = error::not_a_number;
-		  return 0;
-	       }
+	       auto const l = parse_uint(data + 1, n - 2, ec);
+               if (ec)
+                  return 0;
 
                adapter_(t, l, depth_, nullptr, 0, ec);
 	       if (ec)

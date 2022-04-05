@@ -32,7 +32,7 @@ void print_and_clear(Container& cont)
 using receiver_type =
    receiver_base<
       std::list<int>,
-      std::optional<std::set<std::string>>,
+      boost::optional<std::set<std::string>>,
       std::vector<node<std::string>>
    >;
 
@@ -47,7 +47,7 @@ private:
    {
       switch (cmd) {
          case command::lrange:   return index_of<std::list<int>>();
-         case command::smembers: return index_of<std::optional<std::set<std::string>>>();
+         case command::smembers: return index_of<boost::optional<std::set<std::string>>>();
          default: return -1;
       }
    }
@@ -86,7 +86,7 @@ private:
          break;
 
          case command::smembers:
-         print_and_clear(get<std::optional<std::set<std::string>>>().value());
+         print_and_clear(get<boost::optional<std::set<std::string>>>().value());
          break;
 
          default:;

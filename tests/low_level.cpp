@@ -100,16 +100,16 @@ void test_async(net::any_io_executor ex, expect<Result> e)
 
 void test_number(net::io_context& ioc)
 {
-   std::optional<int> ok;
+   boost::optional<int> ok;
    ok = 11;
 
    // Success
    auto const in01 = expect<node_type>{":3\r\n", node_type{resp3::type::number, 1UL, 0UL, {"3"}}, "number.node (positive)"};
    auto const in02 = expect<node_type>{":-3\r\n", node_type{resp3::type::number, 1UL, 0UL, {"-3"}}, "number.node (negative)"};
    auto const in03 = expect<int>{":11\r\n", int{11}, "number.int"};
-   auto const in04 = expect<std::optional<int>>{":11\r\n", ok, "number.optional.int"};
+   auto const in04 = expect<boost::optional<int>>{":11\r\n", ok, "number.optional.int"};
    auto const in05 = expect<std::tuple<int>>{"*1\r\n:11\r\n", std::tuple<int>{11}, "number.tuple.int"};
-   auto const in06 = expect<std::optional<int>>{"%11\r\n", std::optional<int>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_simple_type)};
+   auto const in06 = expect<boost::optional<int>>{"%11\r\n", boost::optional<int>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_simple_type)};
    auto const in07 = expect<std::set<std::string>>{":11\r\n", std::set<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
    auto const in08 = expect<std::unordered_set<std::string>>{":11\r\n", std::unordered_set<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
    auto const in09 = expect<std::map<std::string, std::string>>{":11\r\n", std::map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
@@ -145,7 +145,7 @@ void test_number(net::io_context& ioc)
 
 void test_bool(net::io_context& ioc)
 {
-   std::optional<bool> ok;
+   boost::optional<bool> ok;
    ok = true;
 
    // Success.
@@ -153,10 +153,10 @@ void test_bool(net::io_context& ioc)
    auto const in09 = expect<node_type>{"#t\r\n", node_type{resp3::type::boolean, 1UL, 0UL, {"t"}}, "bool.node (true)"};
    auto const in10 = expect<bool>{"#t\r\n", bool{true}, "bool.bool (true)"};
    auto const in11 = expect<bool>{"#f\r\n", bool{false}, "bool.bool (true)"};
-   auto const in13 = expect<std::optional<bool>>{"#t\r\n", ok, "optional.int"};
+   auto const in13 = expect<boost::optional<bool>>{"#t\r\n", ok, "optional.int"};
 
    // Error
-   auto const in01 = expect<std::optional<bool>>{"#11\r\n", std::optional<bool>{}, "bool.error", aedis::resp3::make_error_condition(aedis::resp3::error::unexpected_bool_value)};
+   auto const in01 = expect<boost::optional<bool>>{"#11\r\n", boost::optional<bool>{}, "bool.error", aedis::resp3::make_error_condition(aedis::resp3::error::unexpected_bool_value)};
    auto const in03 = expect<std::set<int>>{"#t\r\n", std::set<int>{}, "bool.error", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
    auto const in04 = expect<std::unordered_set<int>>{"#t\r\n", std::unordered_set<int>{}, "bool.error", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
    auto const in05 = expect<std::map<int, int>>{"#t\r\n", std::map<int, int>{}, "bool.error", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
@@ -246,8 +246,8 @@ void test_map(net::io_context& ioc)
    using umap_type = std::unordered_map<std::string, std::string>;
    using mumap_type = std::unordered_multimap<std::string, std::string>;
    using vec_type = std::vector<std::string>;
-   using op_map_type = std::optional<std::map<std::string, std::string>>;
-   using op_vec_type = std::optional<std::vector<std::string>>;
+   using op_map_type = boost::optional<std::map<std::string, std::string>>;
+   using op_vec_type = boost::optional<std::vector<std::string>>;
    using tuple_type = std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string>;
 
    std::string const wire = "%4\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n$4\r\nkey3\r\n$6\r\nvalue3\r\n$4\r\nkey3\r\n$6\r\nvalue3\r\n";
@@ -434,7 +434,7 @@ void test_set(net::io_context& ioc)
    using uset_type = std::unordered_set<std::string>;
    using muset_type = std::unordered_multiset<std::string>;
    using vec_type = std::vector<std::string>;
-   using op_vec_type = std::optional<std::vector<std::string>>;
+   using op_vec_type = boost::optional<std::vector<std::string>>;
 
    std::string const wire = "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n";
    std::vector<node_type> const expected1a
@@ -509,7 +509,7 @@ void test_blob_string(net::io_context& ioc)
 
    std::string wire;
    wire += '$';
-   wire += std::to_string(std::size(str));
+   wire += std::to_string(str.size());
    wire += "\r\n";
    wire += str;
    wire += "\r\n";
@@ -593,14 +593,14 @@ void test_big_number(net::io_context& ioc)
 
 void test_simple_string(net::io_context& ioc)
 {
-   std::optional<std::string> ok1, ok2;
+   boost::optional<std::string> ok1, ok2;
    ok1 = "OK";
    ok2 = "";
 
    auto in00 = expect<std::string>{"+OK\r\n", std::string{"OK"}, "simple_string.string"};
    auto in01 = expect<std::string>{"+\r\n", std::string{""}, "simple_string.string.empty"};
-   auto in02 = expect<std::optional<std::string>>{"+OK\r\n", std::optional<std::string>{"OK"}, "simple_string.optional"};
-   auto in03 = expect<std::optional<std::string>>{"+\r\n", std::optional<std::string>{""}, "simple_string.optional.empty"};
+   auto in02 = expect<boost::optional<std::string>>{"+OK\r\n", boost::optional<std::string>{"OK"}, "simple_string.optional"};
+   auto in03 = expect<boost::optional<std::string>>{"+\r\n", boost::optional<std::string>{""}, "simple_string.optional.empty"};
 
    auto ex = ioc.get_executor();
 
@@ -618,9 +618,9 @@ void test_simple_string(net::io_context& ioc)
 void test_resp3(net::io_context& ioc)
 {
    auto const in01 = expect<int>{"s11\r\n", int{}, "number.error", aedis::resp3::make_error_condition(aedis::resp3::error::invalid_type)};
-   auto const in02 = expect<int>{":adf\r\n", int{11}, "number.int", boost::system::errc::errc_t::invalid_argument};
+   auto const in02 = expect<int>{":adf\r\n", int{11}, "number.int", aedis::resp3::make_error_condition(aedis::resp3::error::not_a_number)};
    auto const in03 = expect<int>{":\r\n", int{}, "number.error (empty field)", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
-   auto const in04 = expect<std::optional<bool>>{"#\r\n", std::optional<bool>{}, "bool.error", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
+   auto const in04 = expect<boost::optional<bool>>{"#\r\n", boost::optional<bool>{}, "bool.error", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
    auto const in05 = expect<std::string>{",\r\n", std::string{}, "double.error (empty field)", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
 
    auto ex = ioc.get_executor();
@@ -640,15 +640,15 @@ void test_resp3(net::io_context& ioc)
 
 void test_null(net::io_context& ioc)
 {
-   using op_type_01 = std::optional<bool>;
-   using op_type_02 = std::optional<int>;
-   using op_type_03 = std::optional<std::string>;
-   using op_type_04 = std::optional<std::vector<std::string>>;
-   using op_type_05 = std::optional<std::list<std::string>>;
-   using op_type_06 = std::optional<std::map<std::string, std::string>>;
-   using op_type_07 = std::optional<std::unordered_map<std::string, std::string>>;
-   using op_type_08 = std::optional<std::set<std::string>>;
-   using op_type_09 = std::optional<std::unordered_set<std::string>>;
+   using op_type_01 = boost::optional<bool>;
+   using op_type_02 = boost::optional<int>;
+   using op_type_03 = boost::optional<std::string>;
+   using op_type_04 = boost::optional<std::vector<std::string>>;
+   using op_type_05 = boost::optional<std::list<std::string>>;
+   using op_type_06 = boost::optional<std::map<std::string, std::string>>;
+   using op_type_07 = boost::optional<std::unordered_map<std::string, std::string>>;
+   using op_type_08 = boost::optional<std::set<std::string>>;
+   using op_type_09 = boost::optional<std::unordered_set<std::string>>;
 
    auto const in01 = expect<op_type_01>{"_\r\n", op_type_01{}, "null.optional.bool"};
    auto const in02 = expect<op_type_02>{"_\r\n", op_type_02{}, "null.optional.int"};

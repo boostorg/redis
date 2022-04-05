@@ -87,7 +87,7 @@ private:
     */
    bool prepare_next()
    {
-      if (std::empty(req_info_)) {
+      if (req_info_.empty()) {
          req_info_.push_back({});
          return true;
       }
@@ -108,8 +108,8 @@ private:
       // TODO: If the response to a discard is received we have to
       // remove all commands up until multi.
 
-      assert(!std::empty(req_info_));
-      assert(!std::empty(commands_));
+      assert(!req_info_.empty());
+      assert(!commands_.empty());
 
       commands_.erase(std::begin(commands_));
 
@@ -118,7 +118,7 @@ private:
 
       req_info_.erase(std::begin(req_info_));
 
-      return !std::empty(req_info_);
+      return !req_info_.empty();
    }
 
    // Reads messages asynchronously.
@@ -191,9 +191,9 @@ public:
       auto const can_write = prepare_next();
 
       serializer<std::string> sr(requests_);
-      auto const before = std::size(requests_);
+      auto const before = requests_.size();
       sr.push(cmd, args...);
-      auto const after = std::size(requests_);
+      auto const after = requests_.size();
       assert(after - before != 0);
       req_info_.front().size += after - before;;
 
@@ -217,9 +217,9 @@ public:
       auto const can_write = prepare_next();
 
       serializer<std::string> sr(requests_);
-      auto const before = std::size(requests_);
+      auto const before = requests_.size();
       sr.push_range2(cmd, key, begin, end);
-      auto const after = std::size(requests_);
+      auto const after = requests_.size();
       assert(after - before != 0);
       req_info_.front().size += after - before;;
 
@@ -243,9 +243,9 @@ public:
       auto const can_write = prepare_next();
 
       serializer<std::string> sr(requests_);
-      auto const before = std::size(requests_);
+      auto const before = requests_.size();
       sr.push_range2(cmd, begin, end);
-      auto const after = std::size(requests_);
+      auto const after = requests_.size();
       assert(after - before != 0);
       req_info_.front().size += after - before;;
 

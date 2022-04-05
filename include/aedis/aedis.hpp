@@ -196,7 +196,7 @@
     Blob string    | \c std::string, \c std::vector                             | Simple
     Blob error     | \c std::string, \c std::vector                             | Simple
     Number         | `long long`, `int`, \c std::string                         | Simple
-    Null           | `std::optional<T>`                                         | Simple
+    Null           | `boost::optional<T>`                                       | Simple
     Array          | \c std::vector, \c std::list, \c std::array, \c std::deque | Aggregate
     Map            | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate
     Set            | \c std::vector, \c std::set, \c std::unordered_set         | Aggregate
@@ -247,11 +247,11 @@
 
     It is not uncommon for apps to access keys that do not exist or
     that have already expired in the Redis server, to support such usecases Aedis
-    provides support for \c std::optional. To use it just wrap your
-    type around \c std::optional like this
+    provides support for \c boost::optional. To use it just wrap your
+    type around \c boost::optional like this
 
     @code
-    std::optional<std::unordered_map<T, U>> umap;
+    boost::optional<std::unordered_map<T, U>> umap;
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(umap));
     @endcode
 
@@ -295,9 +295,9 @@
 
     @code
     std::tuple<
-       std::optional<std::string>, // Response to get
-       std::optional<std::vector<std::string>>, // Response to lrange
-       std::optional<std::map<std::string, std::string>> // Response to hgetall
+       boost::optional<std::string>, // Response to get
+       boost::optional<std::vector<std::string>>, // Response to lrange
+       boost::optional<std::map<std::string, std::string>> // Response to hgetall
     > trans;
 
     co_await resp3::async_read(socket, dynamic_buffer(buffer)); // Ignore multi
@@ -588,13 +588,18 @@
   
     - Boost 1.78 or greater.
     - Unix Shell and Make.
-    - C++17. Some examples require C++20 with coroutine support.
+    - C++14. Some examples require C++20 with coroutine support.
     - Redis server.
-  
+
     Some examples will also require interaction with
   
     - redis-cli: Used in one example.
     - Redis Sentinel Server: used in some examples.
+
+    Aedis has been tested with the following compilers
+
+    - Tested with gcc: 7.5.0, 8.4.0, 9.3.0, 10.3.0.
+    - Tested with clang: 11.0.0, 10.0.0, 9.0.1, 8.0.1, 7.0.1.
   
     \subsection Installation
 

@@ -95,9 +95,9 @@ struct writer_op {
 
          boost::ignore_unused(n);
 
-         assert(!std::empty(cli->req_info_));
+         assert(!cli->req_info_.empty());
          assert(cli->req_info_.front().size != 0);
-         assert(!std::empty(cli->requests_));
+         assert(!cli->requests_.empty());
 
          yield
          boost::asio::async_write(
@@ -151,7 +151,7 @@ struct read_op {
 
          boost::ignore_unused(n);
 
-         if (std::empty(cli->read_buffer_)) {
+         if (cli->read_buffer_.empty()) {
             yield
             boost::asio::async_read_until(
                cli->socket_,
@@ -166,11 +166,11 @@ struct read_op {
             }
          }
 
-         assert(!std::empty(cli->read_buffer_));
+         assert(!cli->read_buffer_.empty());
          t = resp3::detail::to_type(cli->read_buffer_.front());
          cmd = Command::invalid;
          if (t != resp3::type::push) {
-            assert(!std::empty(cli->commands_));
+            assert(!cli->commands_.empty());
             cmd = cli->commands_.front();
          }
 

@@ -8,10 +8,10 @@
 #pragma once
 
 #include <array>
-#include <variant>
 #include <tuple>
 
 #include <boost/mp11.hpp>
+#include <boost/variant2.hpp>
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/adapter/response_traits.hpp>
@@ -26,7 +26,7 @@ template <class Command, class ...Ts>
 class receiver_base {
 private:
    using tuple_type = std::tuple<Ts...>;
-   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<adapter::response_traits_t, tuple_type>, std::variant>;
+   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<adapter::response_traits_t, tuple_type>, boost::variant2::variant>;
 
    tuple_type resps_;
    std::array<variant_type, std::tuple_size<tuple_type>::value> adapters_;
@@ -60,11 +60,13 @@ public:
       std::size_t size,
       boost::system::error_code& ec)
    {
+      using boost::variant2::visit;
+
       auto const i = to_tuple_index(cmd);
       if (i == -1)
         return;
 
-      std::visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i]);
+      visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i]);
    }
 
    void on_read(Command cmd)

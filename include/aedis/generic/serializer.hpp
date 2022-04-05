@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <boost/hana.hpp>
 #include <aedis/resp3/compose.hpp>
 
 namespace aedis {
@@ -77,11 +78,14 @@ public:
    template <class Command, class... Ts>
    void push(Command cmd, Ts const&... args)
    {
+      using boost::hana::for_each;
+      using boost::hana::make_tuple;
+
       auto constexpr pack_size = sizeof...(Ts);
       resp3::add_header(*request_, 1 + pack_size);
 
       resp3::add_bulk(*request_, to_string(cmd));
-      (resp3::add_bulk(*request_, args), ...);
+      resp3::add_bulk(*request_, make_tuple(args...));
    }
 
    /** @brief Appends a new command to the end of the request.

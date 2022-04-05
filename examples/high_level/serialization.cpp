@@ -56,7 +56,7 @@ using transaction_type =
 // One tuple element for each expected request.
 using receiver_type =
    receiver_base<
-      std::optional<mystruct>, // get
+      boost::optional<mystruct>, // get
       std::list<mystruct>, // lrange
       std::set<mystruct>, // smembers
       std::map<std::string, mystruct>,  // hgetall
@@ -73,7 +73,7 @@ private:
    int to_index_impl(command cmd) override
    {
       switch (cmd) {
-         case command::get:      return index_of<std::optional<mystruct>>();
+         case command::get:      return index_of<boost::optional<mystruct>>();
          case command::lrange:   return index_of<std::list<mystruct>>();
          case command::smembers: return index_of<std::set<mystruct>>();
          case command::hgetall:  return index_of<std::map<std::string, mystruct>>();
@@ -124,9 +124,9 @@ private:
 
          case command::get:
          {
-            if (get<std::optional<mystruct>>().has_value()) {
-               std::cout << get<std::optional<mystruct>>().value() << "\n\n";
-               get<std::optional<mystruct>>().reset();
+            if (get<boost::optional<mystruct>>().has_value()) {
+               std::cout << get<boost::optional<mystruct>>().value() << "\n\n";
+               get<boost::optional<mystruct>>().reset();
             } else {
                std::cout << "Expired." << "\n";
             }

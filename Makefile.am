@@ -6,6 +6,7 @@ DISTCHECK_CONFIGURE_FLAGS = CPPFLAGS="$(BOOST_CPPFLAGS) $(CPPFLAGS)" LDFLAGS="$(
 
 AM_CPPFLAGS =
 AM_CPPFLAGS += $(BOOST_CPPFLAGS)
+AM_CPPFLAGS += -I$(top_srcdir)/include
 
 AM_LDFLAGS =
 AM_LDFLAGS += -pthread
@@ -60,34 +61,34 @@ high_level_chat_room_SOURCES = $(top_srcdir)/examples/high_level/chat_room.cpp
 endif
 
 nobase_include_HEADERS =\
-  $(top_srcdir)/aedis/src.hpp\
-  $(top_srcdir)/aedis/redis/command.hpp\
-  $(top_srcdir)/aedis/redis/client.hpp\
-  $(top_srcdir)/aedis/redis/receiver_base.hpp\
-  $(top_srcdir)/aedis/generic/client.hpp\
-  $(top_srcdir)/aedis/generic/receiver_base.hpp\
-  $(top_srcdir)/aedis/generic/serializer.hpp\
-  $(top_srcdir)/aedis/generic/detail/client_ops.hpp\
-  $(top_srcdir)/aedis/sentinel/command.hpp\
-  $(top_srcdir)/aedis/sentinel/client.hpp\
-  $(top_srcdir)/aedis/sentinel/receiver_base.hpp\
-  $(top_srcdir)/aedis/aedis.hpp\
-  $(top_srcdir)/aedis/adapter/detail/adapters.hpp\
-  $(top_srcdir)/aedis/adapter/error.hpp\
-  $(top_srcdir)/aedis/adapter/adapt.hpp\
-  $(top_srcdir)/aedis/adapter/response_traits.hpp\
-  $(top_srcdir)/aedis/resp3/node.hpp\
-  $(top_srcdir)/aedis/resp3/compose.hpp\
-  $(top_srcdir)/aedis/resp3/detail/read_ops.hpp\
-  $(top_srcdir)/aedis/resp3/detail/parser.hpp\
-  $(top_srcdir)/aedis/resp3/error.hpp\
-  $(top_srcdir)/aedis/resp3/type.hpp\
-  $(top_srcdir)/aedis/resp3/read.hpp\
-  $(top_srcdir)/aedis/redis/impl/command.ipp\
-  $(top_srcdir)/aedis/sentinel/impl/command.ipp\
-  $(top_srcdir)/aedis/resp3/detail/impl/parser.ipp\
-  $(top_srcdir)/aedis/resp3/impl/type.ipp\
-  $(top_srcdir)/aedis/redis/client.hpp
+  $(top_srcdir)/include/aedis/src.hpp\
+  $(top_srcdir)/include/aedis/redis/command.hpp\
+  $(top_srcdir)/include/aedis/redis/client.hpp\
+  $(top_srcdir)/include/aedis/redis/receiver_base.hpp\
+  $(top_srcdir)/include/aedis/generic/client.hpp\
+  $(top_srcdir)/include/aedis/generic/receiver_base.hpp\
+  $(top_srcdir)/include/aedis/generic/serializer.hpp\
+  $(top_srcdir)/include/aedis/generic/detail/client_ops.hpp\
+  $(top_srcdir)/include/aedis/sentinel/command.hpp\
+  $(top_srcdir)/include/aedis/sentinel/client.hpp\
+  $(top_srcdir)/include/aedis/sentinel/receiver_base.hpp\
+  $(top_srcdir)/include/aedis/aedis.hpp\
+  $(top_srcdir)/include/aedis/adapter/detail/adapters.hpp\
+  $(top_srcdir)/include/aedis/adapter/error.hpp\
+  $(top_srcdir)/include/aedis/adapter/adapt.hpp\
+  $(top_srcdir)/include/aedis/adapter/response_traits.hpp\
+  $(top_srcdir)/include/aedis/resp3/node.hpp\
+  $(top_srcdir)/include/aedis/resp3/compose.hpp\
+  $(top_srcdir)/include/aedis/resp3/detail/read_ops.hpp\
+  $(top_srcdir)/include/aedis/resp3/detail/parser.hpp\
+  $(top_srcdir)/include/aedis/resp3/error.hpp\
+  $(top_srcdir)/include/aedis/resp3/type.hpp\
+  $(top_srcdir)/include/aedis/resp3/read.hpp\
+  $(top_srcdir)/include/aedis/redis/impl/command.ipp\
+  $(top_srcdir)/include/aedis/sentinel/impl/command.ipp\
+  $(top_srcdir)/include/aedis/resp3/detail/impl/parser.ipp\
+  $(top_srcdir)/include/aedis/resp3/impl/type.ipp\
+  $(top_srcdir)/include/aedis/redis/client.hpp
 
 nobase_noinst_HEADERS =\
   $(top_srcdir)/examples/high_level/user_session.hpp\

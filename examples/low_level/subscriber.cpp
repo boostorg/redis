@@ -26,7 +26,7 @@ using net::write;
 using net::buffer;
 using net::dynamic_buffer;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using response_type = std::tuple<std::string, std::optional<std::string>>;
+using response_type = std::tuple<std::string, boost::optional<std::string>>;
 
 net::awaitable<void> example()
 {

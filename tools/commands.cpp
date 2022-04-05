@@ -36,13 +36,13 @@ std::string toupper(std::string s)
 std::vector<std::string>
 get_cmd_names(std::vector<node<std::string>> const& resp)
 {
-   if (std::empty(resp)) {
+   if (resp.empty()) {
       std::cerr << "Response is empty." << std::endl;
       return {};
    }
 
    std::vector<std::string> ret;
-   for (auto i = 0ULL; i < std::size(resp); ++i) {
+   for (auto i = 0ULL; i < resp.size(); ++i) {
       if (resp.at(i).depth == 1)
          ret.push_back(resp.at(i + 1).value);
    }
