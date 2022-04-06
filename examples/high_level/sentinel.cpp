@@ -15,7 +15,8 @@ namespace net = boost::asio;
 using aedis::sentinel::command;
 using aedis::sentinel::receiver_base;
 using aedis::resp3::node;
-using client_type = aedis::sentinel::client<net::ip::tcp::socket>;
+using aedis::generic::client;
+using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
 
 class myreceiver : public receiver_base<response_type> {

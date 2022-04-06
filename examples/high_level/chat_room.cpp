@@ -21,7 +21,8 @@ using aedis::redis::command;
 using aedis::resp3::node;
 using aedis::user_session;
 using aedis::user_session_base;
-using client_type = aedis::redis::client<net::ip::tcp::socket>;
+using aedis::generic::client;
+using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
 
 class myreceiver : public receiver_base<response_type> {

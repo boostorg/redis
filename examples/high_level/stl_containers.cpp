@@ -13,11 +13,11 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-namespace redis = aedis::redis;
 using aedis::redis::command;
 using aedis::redis::receiver_base;
 using aedis::resp3::node;
-using client_type = redis::client<net::ip::tcp::socket>;
+using aedis::generic::client;
+using client_type = client<net::ip::tcp::socket, command>;
 
 // Helper function.
 template <class Container>

@@ -10,12 +10,13 @@
 #include <aedis/adapter/adapt.hpp>
 #include <aedis/adapter/error.hpp>
 
+#include <aedis/generic/client.hpp>
+#include <aedis/generic/serializer.hpp>
+
 #include <aedis/redis/command.hpp>
-#include <aedis/redis/client.hpp>
 #include <aedis/redis/receiver_base.hpp>
 
 #include <aedis/sentinel/command.hpp>
-#include <aedis/sentinel/client.hpp>
 #include <aedis/sentinel/receiver_base.hpp>
 
 /** \mainpage Documentation
@@ -661,7 +662,8 @@
     compiler other that the system compiler use
   
     ```
-    CC=/opt/gcc-10.2.0/bin/gcc-10.2.0 CXX=/opt/gcc-10.2.0/bin/g++-10.2.0 CXXFLAGS="-fcoroutines -g -Wall -Werror"  ./configure ...
+    $ CC=/opt/gcc-10.2.0/bin/gcc-10.2.0 CXX=/opt/gcc-10.2.0/bin/g++-10.2.0 CXXFLAGS="-g -Wall -Werror"  ./configure ...
+    $ make distcheck
     ```
 
     \section Referece

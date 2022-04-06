@@ -17,7 +17,8 @@ namespace net = boost::asio;
 using aedis::redis::command;
 using aedis::resp3::type;
 using aedis::resp3::node;
-using client_type = aedis::redis::client<net::detached_t::as_default_on_t<net::ip::tcp::socket>>;
+using aedis::generic::client;
+using client_type = client<net::ip::tcp::socket, command>;
 
 struct receiver {
    client_type* db;
@@ -63,7 +64,10 @@ int main()
    net::io_context ioc;
    client_type db(ioc.get_executor());
    receiver recv{&db};
-   db.async_run(recv);
+   db.async_run(
+      recv,
+      {net::ip::make_address("127.0.0.1"), 6379},
+      [](auto ec){ std::cout << ec.message() << std::endl;});
    ioc.run();
 }
 
