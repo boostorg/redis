@@ -7,17 +7,14 @@
 
 #pragma once
 
+#include <aedis/resp3/read.hpp>
 #include <aedis/adapter/adapt.hpp>
 #include <aedis/adapter/error.hpp>
-
+#include <aedis/redis/command.hpp>
+#include <aedis/sentinel/command.hpp>
 #include <aedis/generic/client.hpp>
 #include <aedis/generic/serializer.hpp>
-
-#include <aedis/redis/command.hpp>
-#include <aedis/redis/receiver_base.hpp>
-
-#include <aedis/sentinel/command.hpp>
-#include <aedis/sentinel/receiver_base.hpp>
+#include <aedis/generic/receiver_base.hpp>
 
 /** \mainpage Documentation
     \tableofcontents

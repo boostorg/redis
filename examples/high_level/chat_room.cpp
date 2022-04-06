@@ -16,16 +16,16 @@
 #include "user_session.hpp"
 
 namespace net = boost::asio;
-using aedis::redis::receiver_base;
 using aedis::redis::command;
 using aedis::resp3::node;
+using aedis::generic::receiver_base;
+using aedis::generic::client;
 using aedis::user_session;
 using aedis::user_session_base;
-using aedis::generic::client;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
 
-class myreceiver : public receiver_base<response_type> {
+class myreceiver : public receiver_base<command, response_type> {
 private:
    std::shared_ptr<client_type> db_;
    std::vector<std::shared_ptr<user_session_base>> sessions_;

@@ -13,7 +13,7 @@
 
 namespace net = boost::asio;
 using aedis::redis::command;
-using aedis::redis::receiver_base;
+using aedis::generic::receiver_base;
 using aedis::generic::client;
 using client_type = client<net::ip::tcp::socket, command>;
 
@@ -57,6 +57,7 @@ using transaction_type =
 // One tuple element for each expected request.
 using receiver_type =
    receiver_base<
+      command,
       boost::optional<mystruct>, // get
       std::list<mystruct>, // lrange
       std::set<mystruct>, // smembers

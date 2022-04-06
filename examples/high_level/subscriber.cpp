@@ -13,8 +13,8 @@
 namespace net = boost::asio;
 
 using aedis::redis::command;
-using aedis::redis::receiver_base;
 using aedis::resp3::node;
+using aedis::generic::receiver_base;
 using aedis::generic::client;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
@@ -34,7 +34,7 @@ using response_type = std::vector<node<std::string>>;
  * example.
  */
 
-class myreceiver : public receiver_base<response_type> {
+class myreceiver : public receiver_base<command, response_type> {
 public:
    myreceiver(client_type& db) : db_{&db} {}
 

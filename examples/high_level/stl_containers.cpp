@@ -14,8 +14,8 @@
 
 namespace net = boost::asio;
 using aedis::redis::command;
-using aedis::redis::receiver_base;
 using aedis::resp3::node;
+using aedis::generic::receiver_base;
 using aedis::generic::client;
 using client_type = client<net::ip::tcp::socket, command>;
 
@@ -31,6 +31,7 @@ void print_and_clear(Container& cont)
 
 using receiver_type =
    receiver_base<
+      command,
       std::list<int>,
       boost::optional<std::set<std::string>>,
       std::vector<node<std::string>>

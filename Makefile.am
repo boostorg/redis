@@ -63,13 +63,11 @@ endif
 nobase_include_HEADERS =\
   $(top_srcdir)/aedis/src.hpp\
   $(top_srcdir)/aedis/redis/command.hpp\
-  $(top_srcdir)/aedis/redis/receiver_base.hpp\
   $(top_srcdir)/aedis/generic/client.hpp\
   $(top_srcdir)/aedis/generic/receiver_base.hpp\
   $(top_srcdir)/aedis/generic/serializer.hpp\
   $(top_srcdir)/aedis/generic/detail/client_ops.hpp\
   $(top_srcdir)/aedis/sentinel/command.hpp\
-  $(top_srcdir)/aedis/sentinel/receiver_base.hpp\
   $(top_srcdir)/aedis/aedis.hpp\
   $(top_srcdir)/aedis/adapter/detail/adapters.hpp\
   $(top_srcdir)/aedis/adapter/error.hpp\
