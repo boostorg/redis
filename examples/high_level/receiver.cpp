@@ -26,14 +26,10 @@ struct receiver {
 
    void on_resp3(
       command, // Ignore
-      type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* data,
-      std::size_t size,
+      node<boost::string_view> const& nd,
       boost::system::error_code&)
    {
-      resps_.push_back({t, aggregate_size, depth, std::string{data, size}});
+      resps_.push_back({nd.data_type, nd.aggregate_size, nd.depth, std::string{std::cbegin(nd.value), std::cend(nd.value)}});
    }
 
    void on_push()

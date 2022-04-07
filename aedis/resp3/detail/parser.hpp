@@ -13,8 +13,10 @@
 
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/home/x3.hpp>
+#include <boost/utility/string_view.hpp>
 
 #include <aedis/resp3/error.hpp>
+#include <aedis/resp3/node.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -28,6 +30,7 @@ type to_type(char c);
 template <class ResponseAdapter>
 class parser {
 private:
+   using node_type = node<boost::string_view>;
    static constexpr std::size_t max_embedded_depth = 5;
 
    ResponseAdapter adapter_;
@@ -66,13 +69,13 @@ public:
             case type::streamed_string_part:
             {
                assert(bulk_length_ != 0);
-               adapter_(bulk_, 1, depth_, data, bulk_length_, ec);
+               adapter_({bulk_, 1, depth_, {data, bulk_length_}}, ec);
                if (ec)
                   return 0;
             } break;
             default:
 	    {
-	       adapter_(bulk_, 1, depth_, data, bulk_length_, ec);
+	       adapter_({bulk_, 1, depth_, {data, bulk_length_}}, ec);
 	       if (ec)
 		  return 0;
 	    }
@@ -91,7 +94,7 @@ public:
 		  return 0;
 
                if (bulk_length_ == 0) {
-                  adapter_(type::streamed_string_part, 1, depth_, nullptr, 0, ec);
+                  adapter_({type::streamed_string_part, 1, depth_, {}}, ec);
                   sizes_[depth_] = 0; // We are done.
                } else {
                   bulk_ = type::streamed_string_part;
@@ -128,7 +131,7 @@ public:
                    return 0;
                }
 
-               adapter_(t, 1, depth_, data + 1, n - 3, ec);
+               adapter_({t, 1, depth_, {data + 1, n - 3}}, ec);
 	       if (ec)
 		  return 0;
 
@@ -143,7 +146,7 @@ public:
                    return 0;
                }
 
-               adapter_(t, 1, depth_, data + 1, n - 3, ec);
+               adapter_({t, 1, depth_, {data + 1, n - 3}}, ec);
 	       if (ec)
 		  return 0;
 
@@ -152,7 +155,7 @@ public:
             case type::simple_error:
             case type::simple_string:
             {
-               adapter_(t, 1, depth_, data + 1, n - 3, ec);
+               adapter_({t, 1, depth_, {data + 1, n - 3}}, ec);
 	       if (ec)
 		  return 0;
 
@@ -160,7 +163,7 @@ public:
             } break;
             case type::null:
             {
-               adapter_(type::null, 1, depth_, nullptr, 0, ec);
+               adapter_({type::null, 1, depth_, {}}, ec);
 	       if (ec)
 		  return 0;
 
@@ -176,7 +179,7 @@ public:
                if (ec)
                   return 0;
 
-               adapter_(t, l, depth_, nullptr, 0, ec);
+               adapter_({t, l, depth_, {}}, ec);
 	       if (ec)
 		  return 0;
 

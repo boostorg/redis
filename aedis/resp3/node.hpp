@@ -24,7 +24,7 @@ namespace resp3 {
 template <class String>
 struct node {
    /// The RESP3 type of the data in this node.
-  resp3::type data_type;
+   resp3::type data_type;
 
    /// The number of elements of an aggregate.
    std::size_t aggregate_size;
@@ -52,11 +52,10 @@ std::string to_string(node<String> const& in)
    out += std::to_string(in.aggregate_size);
    out += '\t';
    if (!is_aggregate(in.data_type))
-      out += in.value;
+      out.append(in.value.data(), in.value.size());
 
    return out;
 }
-
 
 /** \brief Compares a node for equality.
  *  \ingroup any

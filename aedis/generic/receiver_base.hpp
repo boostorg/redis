@@ -53,11 +53,7 @@ public:
    void
    on_resp3(
       Command cmd,
-      resp3::type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* data,
-      std::size_t size,
+      resp3::node<boost::string_view> const& nd,
       boost::system::error_code& ec)
    {
       using boost::variant2::visit;
@@ -66,7 +62,7 @@ public:
       if (i == -1)
         return;
 
-      visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i]);
+      visit([&](auto& arg){arg(nd, ec);}, adapters_[i]);
    }
 
    void on_read(Command cmd)

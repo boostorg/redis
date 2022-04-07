@@ -126,11 +126,11 @@ public:
    : adapters_(make_adapters_array(*r))
    {}
 
-   void count(resp3::type t, std::size_t aggregate_size, std::size_t depth)
+   void count(resp3::node<boost::string_view> const& nd)
    {
-      if (depth == 1) {
-         if (is_aggregate(t))
-            aggregate_size_ = element_multiplicity(t) * aggregate_size;
+      if (nd.depth == 1) {
+         if (is_aggregate(nd.data_type))
+            aggregate_size_ = element_multiplicity(nd.data_type) * nd.aggregate_size;
          else
             ++i_;
 
@@ -143,25 +143,21 @@ public:
 
    void
    operator()(
-      resp3::type t,
-      std::size_t aggregate_size,
-      std::size_t depth,
-      char const* data,
-      std::size_t size,
+      resp3::node<boost::string_view> const& nd,
       boost::system::error_code& ec)
    {
       using boost::variant2::visit;
 
-      if (depth == 0) {
-         auto const real_aggr_size = aggregate_size * element_multiplicity(t);
+      if (nd.depth == 0) {
+         auto const real_aggr_size = nd.aggregate_size * element_multiplicity(nd.data_type);
          if (real_aggr_size != std::tuple_size<Tuple>::value)
 	    ec = error::incompatible_size;
 
          return;
       }
 
-      visit([&](auto& arg){arg(t, aggregate_size, depth, data, size, ec);}, adapters_[i_]);
-      count(t, aggregate_size, depth);
+      visit([&](auto& arg){arg(nd, ec);}, adapters_[i_]);
+      count(nd);
    }
 };
 

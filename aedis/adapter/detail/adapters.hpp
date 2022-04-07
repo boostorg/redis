@@ -19,6 +19,7 @@
 #include <array>
 
 #include <boost/optional.hpp>
+#include <boost/utility/string_view.hpp>
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
@@ -36,31 +37,28 @@ template <class T>
 typename std::enable_if<std::is_integral<T>::value, void>::type
 from_string(
    T& i,
-   char const* value,
-   std::size_t data_size,
+   boost::string_view sv,
    boost::system::error_code& ec)
 {
-   i = resp3::detail::parse_uint(value, data_size, ec);
+   i = resp3::detail::parse_uint(sv.data(), sv.size(), ec);
 }
 
 void from_string(
    bool& t,
-   char const* value,
-   std::size_t size,
+   boost::string_view sv,
    boost::system::error_code& ec)
 {
-   t = *value == 't';
+   t = *sv.data() == 't';
 }
 
 template <class CharT, class Traits, class Allocator>
 void
 from_string(
    std::basic_string<CharT, Traits, Allocator>& s,
-   char const* value,
-   std::size_t data_size,
+   boost::string_view sv,
    boost::system::error_code&)
 {
-  s.append(value, data_size);
+  s.append(sv.data(), sv.size());
 }
 
 //================================================
@@ -82,8 +80,10 @@ private:
 
 public:
    general_aggregate(Result* c = nullptr): result_(c) {}
-   void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code&)
-      { result_->push_back({t, aggregate_size, depth, std::string{value, size}}); }
+   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code&)
+   {
+      result_->push_back({n.data_type, n.aggregate_size, n.depth, std::string{std::cbegin(n.value), std::cend(n.value)}});
+   }
 };
 
 template <class Node>
@@ -94,12 +94,12 @@ private:
 public:
    general_simple(Node* t = nullptr) : result_(t) {}
 
-   void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t data_size, boost::system::error_code&)
+   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code&)
    {
-     result_->data_type = t;
-     result_->aggregate_size = aggregate_size;
-     result_->depth = depth;
-     result_->value.assign(value, data_size);
+     result_->data_type = n.data_type;
+     result_->aggregate_size = n.aggregate_size;
+     result_->depth = n.depth;
+     result_->value.assign(n.value.data(), n.value.size());
    }
 };
 
@@ -107,18 +107,23 @@ template <class Result>
 class simple_impl {
 public:
    void on_value_available(Result&) {}
-   void operator()(Result& result, resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code& ec)
+
+   void
+   operator()(
+      Result& result,
+      resp3::node<boost::string_view> const& n,
+      boost::system::error_code& ec)
    {
-      set_on_resp3_error(t, ec);
+      set_on_resp3_error(n.data_type, ec);
       if (ec)
          return;
 
-      if (is_aggregate(t)) {
+      if (is_aggregate(n.data_type)) {
          ec = adapter::error::expects_simple_type;
          return;
       }
 
-      from_string(result, value, size, ec);
+      from_string(result, n.value, ec);
    }
 };
 
@@ -133,33 +138,29 @@ public:
 
    void
    operator()(
-       Result& result,
-       resp3::type t,
-       std::size_t aggregate_size,
-       std::size_t depth,
-       char const* value,
-       std::size_t data_size,
-       boost::system::error_code& ec)
+      Result& result,
+      resp3::node<boost::string_view> const& nd,
+      boost::system::error_code& ec)
    {
-      set_on_resp3_error(t, ec);
+      set_on_resp3_error(nd.data_type, ec);
       if (ec)
          return;
 
-      if (is_aggregate(t)) {
-         if (t != resp3::type::set)
+      if (is_aggregate(nd.data_type)) {
+         if (nd.data_type != resp3::type::set)
             ec = error::expects_set_aggregate;
          return;
       }
 
-      assert(aggregate_size == 1);
+      assert(nd.aggregate_size == 1);
 
-      if (depth < 1) {
+      if (nd.depth < 1) {
 	 ec = adapter::error::expects_set_aggregate;
 	 return;
       }
 
       typename Result::key_type obj;
-      from_string(obj, value, data_size, ec);
+      from_string(obj, nd.value, ec);
       hint_ = result.insert(hint_, std::move(obj));
    }
 };
@@ -176,38 +177,34 @@ public:
 
    void
    operator()(
-       Result& result,
-       resp3::type t,
-       std::size_t aggregate_size,
-       std::size_t depth,
-       char const* value,
-       std::size_t data_size,
-       boost::system::error_code& ec)
+      Result& result,
+      resp3::node<boost::string_view> const& nd,
+      boost::system::error_code& ec)
    {
-      set_on_resp3_error(t, ec);
+      set_on_resp3_error(nd.data_type, ec);
       if (ec)
          return;
 
-      if (is_aggregate(t)) {
-         if (element_multiplicity(t) != 2)
+      if (is_aggregate(nd.data_type)) {
+         if (element_multiplicity(nd.data_type) != 2)
            ec = error::expects_map_like_aggregate;
          return;
       }
 
-      assert(aggregate_size == 1);
+      assert(nd.aggregate_size == 1);
 
-      if (depth < 1) {
+      if (nd.depth < 1) {
 	 ec = adapter::error::expects_map_like_aggregate;
 	 return;
       }
 
       if (on_key_) {
          typename Result::key_type obj;
-         from_string(obj, value, data_size, ec);
+         from_string(obj, nd.value, ec);
          current_ = result.insert(current_, {std::move(obj), {}});
       } else {
          typename Result::mapped_type obj;
-         from_string(obj, value, data_size, ec);
+         from_string(obj, nd.value, ec);
          current_->second = std::move(obj);
       }
 
@@ -222,24 +219,20 @@ public:
 
    void
    operator()(
-       Result& result,
-       resp3::type t,
-       std::size_t aggregate_size,
-       std::size_t depth,
-       char const* value,
-       std::size_t data_size,
-       boost::system::error_code& ec)
+      Result& result,
+      resp3::node<boost::string_view> const& nd,
+      boost::system::error_code& ec)
    {
-      set_on_resp3_error(t, ec);
+      set_on_resp3_error(nd.data_type, ec);
       if (ec)
          return;
 
-      if (is_aggregate(t)) {
-         auto const m = element_multiplicity(t);
-         result.reserve(result.size() + m * aggregate_size);
+      if (is_aggregate(nd.data_type)) {
+         auto const m = element_multiplicity(nd.data_type);
+         result.reserve(result.size() + m * nd.aggregate_size);
       } else {
          result.push_back({});
-         from_string(result.back(), value, data_size, ec);
+         from_string(result.back(), nd.value, ec);
       }
    }
 };
@@ -254,27 +247,23 @@ public:
 
    void
    operator()(
-       Result& result,
-       resp3::type t,
-       std::size_t aggregate_size,
-       std::size_t depth,
-       char const* value,
-       std::size_t data_size,
-       boost::system::error_code& ec)
+      Result& result,
+      resp3::node<boost::string_view> const& nd,
+      boost::system::error_code& ec)
    {
-      set_on_resp3_error(t, ec);
+      set_on_resp3_error(nd.data_type, ec);
       if (ec)
          return;
 
-      if (is_aggregate(t)) {
+      if (is_aggregate(nd.data_type)) {
 	 if (i_ != -1) {
             ec = adapter::error::nested_aggregate_unsupported;
             return;
          }
 
-         if (result.size() != aggregate_size * element_multiplicity(t)) {
-           ec = error::incompatible_size;
-           return;
+         if (result.size() != nd.aggregate_size * element_multiplicity(nd.data_type)) {
+            ec = error::incompatible_size;
+            return;
          }
       } else {
          if (i_ == -1) {
@@ -282,8 +271,8 @@ public:
             return;
          }
 
-         assert(aggregate_size == 1);
-         from_string(result.at(i_), value, data_size, ec);
+         assert(nd.aggregate_size == 1);
+         from_string(result.at(i_), nd.value, ec);
       }
 
       ++i_;
@@ -297,27 +286,23 @@ struct list_impl {
 
    void
    operator()(
-       Result& result,
-       resp3::type t,
-       std::size_t aggregate_size,
-       std::size_t depth,
-       char const* value,
-       std::size_t data_size,
-       boost::system::error_code& ec)
+      Result& result,
+      resp3::node<boost::string_view> const& nd,
+      boost::system::error_code& ec)
    {
-      set_on_resp3_error(t, ec);
+      set_on_resp3_error(nd.data_type, ec);
       if (ec)
          return;
 
-      if (!is_aggregate(t)) {
-        assert(aggregate_size == 1);
-        if (depth < 1) {
+      if (!is_aggregate(nd.data_type)) {
+        assert(nd.aggregate_size == 1);
+        if (nd.depth < 1) {
            ec = adapter::error::expects_aggregate;
            return;
         }
 
         result.push_back({});
-        from_string(result.back(), value, data_size, ec);
+        from_string(result.back(), nd.value, ec);
       }
    }
 };
@@ -375,10 +360,13 @@ public:
    wrapper(Result* t = nullptr) : result_(t)
       { impl_.on_value_available(*result_); }
 
-   void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code& ec)
+   void
+   operator()(
+      resp3::node<boost::string_view> const& nd,
+      boost::system::error_code& ec)
    {
       assert(result_);
-      impl_(*result_, t, aggregate_size, depth, value, size, ec);
+      impl_(*result_, nd, ec);
    }
 };
 
@@ -391,9 +379,12 @@ private:
 public:
    wrapper(boost::optional<T>* o = nullptr) : result_(o), impl_{} {}
 
-   void operator()( resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code& ec)
+   void
+   operator()(
+      resp3::node<boost::string_view> const& nd,
+      boost::system::error_code& ec)
    {
-      if (t == resp3::type::null)
+      if (nd.data_type == resp3::type::null)
          return;
 
       if (!result_->has_value()) {
@@ -401,7 +392,7 @@ public:
         impl_.on_value_available(result_->value());
       }
 
-      impl_(result_->value(), t, aggregate_size, depth, value, size, ec);
+      impl_(result_->value(), nd, ec);
    }
 };
 

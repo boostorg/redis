@@ -42,13 +42,9 @@ net::awaitable<void> example()
    sr.push(command::quit);
    co_await net::async_write(socket, net::buffer(request));
 
-   auto adapter = [](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code&)
+   auto adapter = [](resp3::node<boost::string_view> const& nd, boost::system::error_code&)
    {
-      std::cout
-         << "type: " << t << "\n"
-         << "aggregate_size: " << aggregate_size << "\n"
-         << "depth: " << depth << "\n"
-         << "value: " << std::string_view{value, size} << "\n";
+      std::cout << nd << std::endl;
    };
 
    co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello

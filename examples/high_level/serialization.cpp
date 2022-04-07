@@ -41,7 +41,7 @@ void to_bulk(std::string& to, mystruct const& obj)
 }
 
 // Dummy deserialization.
-void from_string(mystruct& obj, char const* data, std::size_t size, boost::system::error_code& ec)
+void from_string(mystruct& obj, boost::string_view sv, boost::system::error_code& ec)
 {
    obj.a = 1;
    obj.b = 2;
