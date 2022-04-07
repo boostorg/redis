@@ -26,10 +26,9 @@ template <class Command, class ...Ts>
 class receiver_base {
 private:
    using tuple_type = std::tuple<Ts...>;
-   using variant_type = boost::mp11::mp_rename<boost::mp11::mp_transform<adapter::response_traits_t, tuple_type>, boost::variant2::variant>;
 
    tuple_type resps_;
-   std::array<variant_type, std::tuple_size<tuple_type>::value> adapters_;
+   adapter::adapters_array_t<tuple_type> adapters_;
    bool on_transaction_ = false;
 
    virtual void on_read_impl(Command) {}
@@ -39,7 +38,8 @@ private:
 
 public:
    receiver_base()
-      { adapter::detail::assigner<std::tuple_size<tuple_type>::value - 1>::assign(adapters_, resps_); }
+   : adapters_(adapter::make_adapters_array(resps_))
+   {}
 
    template <class T>
    auto& get() { return std::get<T>(resps_);};

@@ -91,23 +91,40 @@ struct assigner<0> {
   }
 };
 
+} // detail
+
 template <class Tuple>
-class static_aggregate_adapter {
-private:
-   using variant_type =
+using adapters_array_t = 
+   std::array<
       boost::mp11::mp_unique<
          boost::mp11::mp_rename<
             boost::mp11::mp_transform<
                response_traits_t, Tuple>,
-               boost::variant2::variant>>;
+               boost::variant2::variant>>,
+      std::tuple_size<Tuple>::value>;
 
+template <class Tuple>
+adapters_array_t<Tuple>
+make_adapters_array(Tuple& t)
+{
+   adapters_array_t<Tuple> ret;
+   detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(ret, t);
+   return ret;
+}
+
+namespace detail {
+
+template <class Tuple>
+class static_aggregate_adapter {
+private:
    std::size_t i_ = 0;
    std::size_t aggregate_size_ = 0;
-   std::array<variant_type, std::tuple_size<Tuple>::value> adapters_;
+   adapters_array_t<Tuple> adapters_;
 
 public:
    static_aggregate_adapter(Tuple* r)
-      { assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, *r); }
+   : adapters_(make_adapters_array(*r))
+   {}
 
    void count(resp3::type t, std::size_t aggregate_size, std::size_t depth)
    {
