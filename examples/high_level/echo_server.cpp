@@ -20,34 +20,53 @@
 namespace net = boost::asio;
 using aedis::redis::command;
 using aedis::resp3::node;
-using aedis::generic::receiver_base;
 using aedis::generic::client;
+using aedis::adapter::adapt;
 using aedis::user_session;
 using aedis::user_session_base;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
+using adapter_type = aedis::adapter::response_traits_t<response_type>;
 
-class myreceiver : public receiver_base<command, response_type> {
+class myreceiver {
 private:
+   response_type resp_;
+   adapter_type adapter_;
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 
 public:
-   void on_read_impl(command cmd) override
+   myreceiver()
+   : adapter_{adapt(resp_)}
+   {}
+
+   void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
+   {
+      adapter_(nd, ec);
+   }
+
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
+   }
+
+   void on_push() { }
+
+   void on_read(command cmd)
    {
       switch (cmd) {
          case command::ping:
-         sessions_.front()->deliver(get<response_type>().front().value);
+         sessions_.front()->deliver(resp_.front().value);
          sessions_.pop();
          break;
 
          case command::incr:
-         std::cout << "Echos so far: " << get<response_type>().front().value << std::endl;
+         std::cout << "Echos so far: " << resp_.front().value << std::endl;
          break;
 
          default: /* Ignore */;
       }
 
-      get<response_type>().clear();
+      resp_.clear();
    }
 
    void add_user_session(std::shared_ptr<user_session_base> session)

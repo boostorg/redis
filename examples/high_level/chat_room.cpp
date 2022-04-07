@@ -16,32 +16,43 @@
 #include "user_session.hpp"
 
 namespace net = boost::asio;
-using aedis::redis::command;
 using aedis::resp3::node;
-using aedis::generic::receiver_base;
+using aedis::redis::command;
 using aedis::generic::client;
+using aedis::adapter::adapt;
 using aedis::user_session;
 using aedis::user_session_base;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
+using adapter_type = aedis::adapter::response_traits_t<response_type>;
 
-class myreceiver : public receiver_base<command, response_type> {
+class myreceiver {
 private:
+   response_type resp_;
+   adapter_type adapter_;
    std::shared_ptr<client_type> db_;
    std::vector<std::shared_ptr<user_session_base>> sessions_;
 
 public:
-   myreceiver(std::shared_ptr<client_type> db) : db_{db} {}
+   myreceiver(std::shared_ptr<client_type> db)
+   : adapter_{adapt(resp_)}
+   , db_{db}
+   {}
 
-   void on_push_impl() override
+   void on_push()
    {
       for (auto& session: sessions_)
-         session->deliver(get<response_type>().at(3).value);
+         session->deliver(resp_.at(3).value);
 
-      get<response_type>().clear();
+      resp_.clear();
    }
 
-   void on_read_impl(command cmd) override
+   void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
+   {
+      adapter_(nd, ec);
+   }
+
+   void on_read(command cmd)
    {
       switch (cmd) {
          case command::hello:
@@ -49,13 +60,18 @@ public:
          break;
 
          case command::incr:
-         std::cout << "Messages so far: " << get<response_type>().front().value << std::endl;
+         std::cout << "Messages so far: " << resp_.front().value << std::endl;
          break;
 
          default:;
       }
 
-      get<response_type>().clear();
+      resp_.clear();
+   }
+
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
    }
 
    auto add(std::shared_ptr<user_session_base> session)

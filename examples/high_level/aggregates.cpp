@@ -14,12 +14,13 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-using aedis::redis::command;
 using aedis::resp3::node;
-using aedis::generic::receiver_base;
+using aedis::redis::command;
 using aedis::generic::client;
+using aedis::adapter::adapt;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
+using adapter_type = aedis::adapter::response_traits_t<response_type>;
 
 // Prints aggregates that don't contain any nested aggregates.
 void print_aggregate(response_type const& v)
@@ -30,14 +31,30 @@ void print_aggregate(response_type const& v)
    std::cout << "\n";
 }
 
-struct myreceiver : receiver_base<command, response_type> {
-public:
-   myreceiver(client_type& db) : db_{&db} {}
-
+struct myreceiver {
 private:
+   response_type resp_;
+   adapter_type adapter_;
    client_type* db_;
 
-   void on_read_impl(command cmd) override
+public:
+   myreceiver(client_type& db)
+   : adapter_{adapt(resp_)}
+   , db_{&db} {}
+
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
+   }
+
+   void on_push() { }
+
+   void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
+   {
+      adapter_(nd, ec);
+   }
+
+   void on_read(command cmd)
    {
       switch (cmd) {
          case command::hello:
@@ -69,13 +86,13 @@ private:
          case command::lrange:
          case command::smembers:
          case command::hgetall:
-         print_aggregate(get<response_type>());
+         print_aggregate(resp_);
          break;
 
          default:;
       }
 
-      get<response_type>().clear();
+      resp_.clear();
    }
 };
 

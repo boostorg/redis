@@ -91,7 +91,32 @@ struct assigner<0> {
   }
 };
 
+template <std::size_t N>
+struct assigner2 {
+  template <class T1, class T2>
+  static void assign(T1& dest, T2& from)
+  {
+     std::get<N>(dest) = internal_adapt(std::get<N>(from));
+     assigner2<N - 1>::assign(dest, from);
+  }
+};
+
+template <>
+struct assigner2<0> {
+  template <class T1, class T2>
+  static void assign(T1& dest, T2& from)
+  {
+     std::get<0>(dest) = internal_adapt(std::get<0>(from));
+  }
+};
+
 } // detail
+
+template <class T, class Tuple>
+auto& get(Tuple& t)
+{
+   return std::get<typename response_traits<T>::adapter_type>(t);
+}
 
 template <class Tuple>
 using adapters_array_t = 
@@ -112,6 +137,23 @@ make_adapters_array(Tuple& t)
    return ret;
 }
 
+template <class Tuple>
+using adapters_t = 
+      boost::mp11::mp_unique<
+         boost::mp11::mp_rename<
+            boost::mp11::mp_transform<
+               response_traits_t, Tuple>,
+               std::tuple>>;
+
+template <class Tuple>
+auto
+make_adapters_tuple(Tuple& t)
+{
+   adapters_t<Tuple> ret;
+   detail::assigner2<std::tuple_size<Tuple>::value - 1>::assign(ret, t);
+   return ret;
+}
+
 namespace detail {
 
 template <class Tuple>
@@ -122,7 +164,7 @@ private:
    adapters_array_t<Tuple> adapters_;
 
 public:
-   static_aggregate_adapter(Tuple* r)
+   static_aggregate_adapter(Tuple* r = nullptr)
    : adapters_(make_adapters_array(*r))
    {}
 
@@ -167,7 +209,7 @@ template <class... Ts>
 struct response_traits<std::tuple<Ts...>>
 {
    using response_type = std::tuple<Ts...>;
-   using adapter_type = adapter::detail::static_aggregate_adapter<response_type>;
+   using adapter_type = detail::static_aggregate_adapter<response_type>;
    static auto adapt(response_type& r) noexcept { return adapter_type{&r}; }
 };
 

@@ -17,7 +17,6 @@ check_PROGRAMS += high_level_intro
 check_PROGRAMS += high_level_aggregates
 check_PROGRAMS += high_level_stl_containers
 check_PROGRAMS += high_level_serialization
-check_PROGRAMS += high_level_receiver
 check_PROGRAMS += test_low_level
 if HAVE_CXX20
 check_PROGRAMS += low_level_async_intro
@@ -27,7 +26,6 @@ endif
 
 EXTRA_PROGRAMS =
 EXTRA_PROGRAMS += high_level_subscriber
-EXTRA_PROGRAMS += high_level_sentinel
 EXTRA_PROGRAMS += commands
 if HAVE_CXX20
 EXTRA_PROGRAMS += low_level_subscriber
@@ -45,11 +43,9 @@ high_level_intro_SOURCES = $(top_srcdir)/examples/high_level/intro.cpp
 high_level_aggregates_SOURCES = $(top_srcdir)/examples/high_level/aggregates.cpp
 high_level_stl_containers_SOURCES = $(top_srcdir)/examples/high_level/stl_containers.cpp
 high_level_serialization_SOURCES = $(top_srcdir)/examples/high_level/serialization.cpp
-high_level_receiver_SOURCES = $(top_srcdir)/examples/high_level/receiver.cpp
 low_level_sync_intro_SOURCES = $(top_srcdir)/examples/low_level/sync_intro.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 high_level_subscriber_SOURCES = $(top_srcdir)/examples/high_level/subscriber.cpp
-high_level_sentinel_SOURCES = $(top_srcdir)/examples/high_level/sentinel.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 if HAVE_CXX20
 test_online_SOURCES = $(top_srcdir)/tests/online.cpp
@@ -64,7 +60,6 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/src.hpp\
   $(top_srcdir)/aedis/redis/command.hpp\
   $(top_srcdir)/aedis/generic/client.hpp\
-  $(top_srcdir)/aedis/generic/receiver_base.hpp\
   $(top_srcdir)/aedis/generic/serializer.hpp\
   $(top_srcdir)/aedis/generic/detail/client_ops.hpp\
   $(top_srcdir)/aedis/sentinel/command.hpp\

@@ -13,13 +13,22 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-using aedis::redis::command;
+namespace adapter = aedis::adapter;
 using aedis::resp3::node;
-using aedis::generic::receiver_base;
+using aedis::redis::command;
 using aedis::generic::client;
+using aedis::adapter::adapt;
+using aedis::adapter::adapters_t;
+using aedis::adapter::make_adapters_tuple;
 using client_type = client<net::ip::tcp::socket, command>;
+using responses_type =
+   std::tuple<
+      std::list<int>,
+      boost::optional<std::set<std::string>>,
+      std::vector<node<std::string>>
+   >;
+using adapters_type = adapters_t<responses_type>;
 
-// Helper function.
 template <class Container>
 void print_and_clear(Container& cont)
 {
@@ -29,31 +38,33 @@ void print_and_clear(Container& cont)
    cont.clear();
 }
 
-using receiver_type =
-   receiver_base<
-      command,
-      std::list<int>,
-      boost::optional<std::set<std::string>>,
-      std::vector<node<std::string>>
-   >;
-
-struct myreceiver : receiver_type {
+class myreceiver {
 public:
-   myreceiver(client_type& db) : db_{&db} {}
+   myreceiver(client_type& db)
+   : adapters_(make_adapters_tuple(resps_))
+   , db_{&db} {}
 
-private:
-   client_type* db_;
-
-   int to_index_impl(command cmd) override
+   void
+   on_resp3(
+      command cmd,
+      node<boost::string_view> const& nd,
+      boost::system::error_code& ec)
    {
       switch (cmd) {
-         case command::lrange:   return index_of<std::list<int>>();
-         case command::smembers: return index_of<boost::optional<std::set<std::string>>>();
-         default: return -1;
+         case command::lrange:   adapter::get<std::list<int>>(adapters_)(nd, ec);
+         case command::smembers: adapter::get<boost::optional<std::set<std::string>>>(adapters_)(nd, ec);
+         default:;
       }
    }
 
-   void on_read_impl(command cmd) override
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
+   }
+
+   void on_push() { }
+
+   void on_read(command cmd)
    {
       switch (cmd) {
          case command::hello:
@@ -83,16 +94,21 @@ private:
          } break;
 
          case command::lrange:
-         print_and_clear(get<std::list<int>>());
+         print_and_clear(std::get<std::list<int>>(resps_));
          break;
 
          case command::smembers:
-         print_and_clear(get<boost::optional<std::set<std::string>>>().value());
+         print_and_clear(std::get<boost::optional<std::set<std::string>>>(resps_).value());
          break;
 
          default:;
       }
    }
+
+private:
+   responses_type resps_;
+   adapters_type adapters_;
+   client_type* db_;
 };
 
 int main()

@@ -12,20 +12,33 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+using aedis::resp3::node;
 using aedis::redis::command;
-using aedis::generic::receiver_base;
 using aedis::generic::client;
+using aedis::adapter::adapt;
 using client_type = client<net::ip::tcp::socket, command>;
-using response_type = aedis::resp3::node<std::string>;
+using response_type = node<std::string>;
+using adapter_type = aedis::adapter::response_traits_t<response_type>;
 
-struct myreceiver : receiver_base<command, response_type> {
+struct myreceiver {
 public:
-   myreceiver(client_type& db): db_{&db} {}
+   myreceiver(client_type& db)
+   : adapter_{adapt(resp_)}
+   , db_{&db} {}
 
-private:
-   client_type* db_;
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
+   }
 
-   void on_read_impl(command cmd) override
+   void on_push() { }
+
+   void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
+   {
+      adapter_(nd, ec);
+   }
+
+   void on_read(command cmd)
    {
       switch (cmd) {
          case command::hello:
@@ -37,9 +50,14 @@ private:
          break;
 
          default:
-         std::cout << get<response_type>().value << std::endl;
+         std::cout << resp_.value << std::endl;
       }
    }
+
+private:
+   response_type resp_;
+   adapter_type adapter_;
+   client_type* db_;
 };
 
 int main()

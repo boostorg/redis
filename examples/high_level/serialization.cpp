@@ -11,17 +11,29 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-namespace net = boost::asio;
-using aedis::redis::command;
-using aedis::generic::receiver_base;
-using aedis::generic::client;
-using client_type = client<net::ip::tcp::socket, command>;
-
 // Arbitrary struct to de/serialize.
 struct mystruct {
   int a;
   int b;
 };
+
+namespace net = boost::asio;
+namespace adapter = aedis::adapter;
+using aedis::resp3::node;
+using aedis::redis::command;
+using aedis::adapter::adapters_t;
+using aedis::adapter::make_adapters_tuple;
+using aedis::adapter::get;
+using aedis::generic::client;
+using client_type = client<net::ip::tcp::socket, command>;
+using responses_type =
+   std::tuple<
+      boost::optional<mystruct>, // get
+      std::list<mystruct>, // lrange
+      std::set<mystruct>, // smembers
+      std::map<std::string, mystruct>  // hgetall
+   >;
+using adapters_type = adapters_t<responses_type>;
 
 std::ostream& operator<<(std::ostream& os, mystruct const& obj)
 {
@@ -47,44 +59,33 @@ void from_string(mystruct& obj, boost::string_view sv, boost::system::error_code
    obj.b = 2;
 }
 
-using transaction_type =
-   std::tuple<
-      mystruct,
-      std::vector<mystruct>,
-      std::map<std::string, mystruct>
-   >;
-
-// One tuple element for each expected request.
-using receiver_type =
-   receiver_base<
-      command,
-      boost::optional<mystruct>, // get
-      std::list<mystruct>, // lrange
-      std::set<mystruct>, // smembers
-      std::map<std::string, mystruct>,  // hgetall
-      transaction_type // exec
-   >;
-
-struct myreceiver : receiver_type {
-public:
-   myreceiver(client_type& db) : db_{&db} {}
-
+class myreceiver  {
 private:
+   responses_type resps_;
+   adapters_type adapters_;
    client_type* db_;
 
-   int to_index_impl(command cmd) override
+public:
+   myreceiver(client_type& db)
+   : adapters_(make_adapters_tuple(resps_))
+   , db_{&db} {}
+
+   void
+   on_resp3(
+      command cmd,
+      node<boost::string_view> const& nd,
+      boost::system::error_code& ec)
    {
       switch (cmd) {
-         case command::get:      return index_of<boost::optional<mystruct>>();
-         case command::lrange:   return index_of<std::list<mystruct>>();
-         case command::smembers: return index_of<std::set<mystruct>>();
-         case command::hgetall:  return index_of<std::map<std::string, mystruct>>();
-         case command::exec:     return index_of<transaction_type>();
-         default: return -1;
+         case command::get:      adapter::get<boost::optional<mystruct>>(adapters_)(nd, ec);
+         case command::lrange:   adapter::get<std::list<mystruct>>(adapters_)(nd, ec);
+         case command::smembers: adapter::get<std::set<mystruct>>(adapters_)(nd, ec);
+         case command::hgetall:  adapter::get<std::map<std::string, mystruct>>(adapters_)(nd, ec);
+         default:; // Ignore
       }
    }
 
-   void on_read_impl(command cmd) override
+   void on_read(command cmd)
    {
       std::cout << cmd << "\n";
 
@@ -115,62 +116,45 @@ private:
             db_->send(command::hgetall, "serialization-hset-key");
             db_->send(command::lrange, "serialization-rpush-key", 0, -1);
             db_->send(command::smembers, "serialization-sadd-key");
-
-            // Transaction
-            db_->send(command::multi);
-            db_->send(command::get, "serialization-var-key");
-            db_->send(command::lrange, "serialization-rpush-key", 0, -1);
-            db_->send(command::hgetall, "serialization-hset-key");
-            db_->send(command::exec);
          } break;
 
          case command::get:
          {
-            if (get<boost::optional<mystruct>>().has_value()) {
-               std::cout << get<boost::optional<mystruct>>().value() << "\n\n";
-               get<boost::optional<mystruct>>().reset();
+            if (std::get<boost::optional<mystruct>>(resps_).has_value()) {
+               std::cout << std::get<boost::optional<mystruct>>(resps_).value() << "\n\n";
+               std::get<boost::optional<mystruct>>(resps_).reset();
             } else {
                std::cout << "Expired." << "\n";
             }
          } break;
 
          case command::lrange:
-         for (auto const& e: get<std::list<mystruct>>())
+         for (auto const& e: std::get<std::list<mystruct>>(resps_))
             std::cout << e << "\n";
          std::cout << "\n";
-         get<std::list<mystruct>>().clear();
+         std::get<std::list<mystruct>>(resps_).clear();
          break;
 
          case command::smembers:
-         for (auto const& e: get<std::set<mystruct>>())
+         for (auto const& e: std::get<std::set<mystruct>>(resps_))
             std::cout << e << "\n";
          std::cout << "\n";
-         get<std::set<mystruct>>().clear();
+         std::get<std::set<mystruct>>(resps_).clear();
          break;
 
          case command::hgetall:
-         for (auto const& e: get<std::map<std::string, mystruct>>())
+         for (auto const& e: std::get<std::map<std::string, mystruct>>(resps_))
             std::cout << e.first << ", " << e.second << std::endl;
          std::cout << "\n";
-         get<std::map<std::string, mystruct>>().clear();
+         std::get<std::map<std::string, mystruct>>(resps_).clear();
          break;
-
-         case command::exec:
-         {
-            std::cout
-               << "First element: \n"
-               << std::get<mystruct>(get<transaction_type>()) << "\n";
-
-            std::cout << "Second element: \n";
-            for (auto const& e: std::get<std::vector<mystruct>>(get<transaction_type>()))
-               std::cout << e << "\n";
-            std::cout << "\n";
-            std::get<std::vector<mystruct>>(get<transaction_type>()).clear();
-         } break;
 
          default:;
       }
    }
+
+   void on_write(std::size_t n) { }
+   void on_push() { }
 };
 
 int main()
