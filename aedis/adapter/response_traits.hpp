@@ -112,6 +112,11 @@ struct assigner2<0> {
 
 } // detail
 
+/** @brief Return a specific adapter from the tuple.
+ *  
+ *  \param t A tuple of response adapters.
+ *  \return The adapter that corresponds to type T.
+ */
 template <class T, class Tuple>
 auto& get(Tuple& t)
 {
@@ -129,27 +134,34 @@ using adapters_array_t =
       std::tuple_size<Tuple>::value>;
 
 template <class Tuple>
-adapters_array_t<Tuple>
-make_adapters_array(Tuple& t)
+adapters_array_t<Tuple> make_adapters_array(Tuple& t)
 {
    adapters_array_t<Tuple> ret;
    detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(ret, t);
    return ret;
 }
 
+/** @brief Transaforms a tuple of responses.
+ *
+ *  @return Transaforms a tuple of responses into a tuple of adapters.
+ */
 template <class Tuple>
-using adapters_t = 
-      boost::mp11::mp_unique<
+using adapters_tuple_t = 
          boost::mp11::mp_rename<
             boost::mp11::mp_transform<
                response_traits_t, Tuple>,
-               std::tuple>>;
+               std::tuple>;
 
+/** @brief Make a tuple of adapters.
+ *  
+ *  \param t Tuple of responses.
+ *  \return Tuple of adapters.
+ */
 template <class Tuple>
 auto
 make_adapters_tuple(Tuple& t)
 {
-   adapters_t<Tuple> ret;
+   adapters_tuple_t<Tuple> ret;
    detail::assigner2<std::tuple_size<Tuple>::value - 1>::assign(ret, t);
    return ret;
 }

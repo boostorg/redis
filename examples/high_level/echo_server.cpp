@@ -18,10 +18,10 @@
 #include "user_session.hpp"
 
 namespace net = boost::asio;
-using aedis::redis::command;
 using aedis::resp3::node;
-using aedis::generic::client;
 using aedis::adapter::adapt;
+using aedis::redis::command;
+using aedis::generic::client;
 using aedis::user_session;
 using aedis::user_session_base;
 using client_type = client<net::ip::tcp::socket, command>;
@@ -29,11 +29,6 @@ using response_type = std::vector<node<std::string>>;
 using adapter_type = aedis::adapter::response_traits_t<response_type>;
 
 class myreceiver {
-private:
-   response_type resp_;
-   adapter_type adapter_;
-   std::queue<std::shared_ptr<user_session_base>> sessions_;
-
 public:
    myreceiver()
    : adapter_{adapt(resp_)}
@@ -71,6 +66,11 @@ public:
 
    void add_user_session(std::shared_ptr<user_session_base> session)
       { sessions_.push(session); }
+
+private:
+   response_type resp_;
+   adapter_type adapter_;
+   std::queue<std::shared_ptr<user_session_base>> sessions_;
 };
 
 net::awaitable<void>

@@ -26,13 +26,6 @@ public:
    : adapter_{adapt(resp_)}
    , db_{&db} {}
 
-   void on_write(std::size_t n)
-   { 
-      std::cout << "Number of bytes written: " << n << std::endl;
-   }
-
-   void on_push() { }
-
    void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
    {
       adapter_(nd, ec);
@@ -53,6 +46,13 @@ public:
          std::cout << resp_.value << std::endl;
       }
    }
+
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
+   }
+
+   void on_push() { }
 
 private:
    response_type resp_;

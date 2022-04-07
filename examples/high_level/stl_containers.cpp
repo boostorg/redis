@@ -18,16 +18,16 @@ using aedis::resp3::node;
 using aedis::redis::command;
 using aedis::generic::client;
 using aedis::adapter::adapt;
-using aedis::adapter::adapters_t;
+using aedis::adapter::adapters_tuple_t;
 using aedis::adapter::make_adapters_tuple;
 using client_type = client<net::ip::tcp::socket, command>;
-using responses_type =
+using responses_tuple_type =
    std::tuple<
       std::list<int>,
       boost::optional<std::set<std::string>>,
       std::vector<node<std::string>>
    >;
-using adapters_type = adapters_t<responses_type>;
+using adapters_tuple_type = adapters_tuple_t<responses_tuple_type>;
 
 template <class Container>
 void print_and_clear(Container& cont)
@@ -51,18 +51,11 @@ public:
       boost::system::error_code& ec)
    {
       switch (cmd) {
-         case command::lrange:   adapter::get<std::list<int>>(adapters_)(nd, ec);
-         case command::smembers: adapter::get<boost::optional<std::set<std::string>>>(adapters_)(nd, ec);
+         case command::lrange:   adapter::get<std::list<int>>(adapters_)(nd, ec); break;
+         case command::smembers: adapter::get<boost::optional<std::set<std::string>>>(adapters_)(nd, ec); break;
          default:;
       }
    }
-
-   void on_write(std::size_t n)
-   { 
-      std::cout << "Number of bytes written: " << n << std::endl;
-   }
-
-   void on_push() { }
 
    void on_read(command cmd)
    {
@@ -105,9 +98,16 @@ public:
       }
    }
 
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
+   }
+
+   void on_push() { }
+
 private:
-   responses_type resps_;
-   adapters_type adapters_;
+   responses_tuple_type resps_;
+   adapters_tuple_type adapters_;
    client_type* db_;
 };
 

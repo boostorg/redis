@@ -15,10 +15,9 @@
 
 namespace net = boost::asio;
 using aedis::resp3::node;
-using aedis::redis::command;
-using aedis::generic::client;
 using aedis::adapter::adapt;
-using client_type = client<net::ip::tcp::socket, command>;
+using aedis::redis::command;
+using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
 using adapter_type = aedis::adapter::response_traits_t<response_type>;
 
@@ -31,23 +30,11 @@ void print_aggregate(response_type const& v)
    std::cout << "\n";
 }
 
-struct myreceiver {
-private:
-   response_type resp_;
-   adapter_type adapter_;
-   client_type* db_;
-
+struct receiver {
 public:
-   myreceiver(client_type& db)
+   receiver(client_type& db)
    : adapter_{adapt(resp_)}
    , db_{&db} {}
-
-   void on_write(std::size_t n)
-   { 
-      std::cout << "Number of bytes written: " << n << std::endl;
-   }
-
-   void on_push() { }
 
    void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
    {
@@ -94,13 +81,25 @@ public:
 
       resp_.clear();
    }
+
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
+   }
+
+   void on_push() { }
+
+private:
+   response_type resp_;
+   adapter_type adapter_;
+   client_type* db_;
 };
 
 int main()
 {
    net::io_context ioc;
    client_type db{ioc.get_executor()};
-   myreceiver recv{db};
+   receiver recv{db};
 
    db.async_run(
       recv,

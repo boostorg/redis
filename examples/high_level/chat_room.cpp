@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <iostream>
 #include <vector>
+#include <iostream>
 
 #include <boost/asio/signal_set.hpp>
 
@@ -17,35 +17,21 @@
 
 namespace net = boost::asio;
 using aedis::resp3::node;
+using aedis::adapter::adapt;
 using aedis::redis::command;
 using aedis::generic::client;
-using aedis::adapter::adapt;
 using aedis::user_session;
 using aedis::user_session_base;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
 using adapter_type = aedis::adapter::response_traits_t<response_type>;
 
-class myreceiver {
-private:
-   response_type resp_;
-   adapter_type adapter_;
-   std::shared_ptr<client_type> db_;
-   std::vector<std::shared_ptr<user_session_base>> sessions_;
-
+class receiver {
 public:
-   myreceiver(std::shared_ptr<client_type> db)
+   receiver(std::shared_ptr<client_type> db)
    : adapter_{adapt(resp_)}
    , db_{db}
    {}
-
-   void on_push()
-   {
-      for (auto& session: sessions_)
-         session->deliver(resp_.at(3).value);
-
-      resp_.clear();
-   }
 
    void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
    {
@@ -74,15 +60,29 @@ public:
       std::cout << "Number of bytes written: " << n << std::endl;
    }
 
+   void on_push()
+   {
+      for (auto& session: sessions_)
+         session->deliver(resp_.at(3).value);
+
+      resp_.clear();
+   }
+
    auto add(std::shared_ptr<user_session_base> session)
       { sessions_.push_back(session); }
+
+private:
+   response_type resp_;
+   adapter_type adapter_;
+   std::shared_ptr<client_type> db_;
+   std::vector<std::shared_ptr<user_session_base>> sessions_;
 };
 
 net::awaitable<void>
 listener(
     std::shared_ptr<net::ip::tcp::acceptor> acc,
     std::shared_ptr<client_type> db,
-    std::shared_ptr<myreceiver> recv)
+    std::shared_ptr<receiver> recv)
 {
    auto on_user_msg = [db](std::string const& msg)
    {
@@ -104,7 +104,7 @@ int main()
       net::io_context ioc{1};
 
       auto db = std::make_shared<client_type>(ioc.get_executor());
-      auto recv = std::make_shared<myreceiver>(db);
+      auto recv = std::make_shared<receiver>(db);
 
       db->async_run(
           *recv,

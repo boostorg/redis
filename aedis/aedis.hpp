@@ -459,40 +459,35 @@
 
     The only thing users have to care about is with the implementation
     of the \c receiver class, everything else will be done
-    automatically by the client class.  To simplify it even further
-    users can (but don't have to) use a base class that abstracts most
-    of the complexity away. The general form of a receiver looks like
-    this
+    automatically by the client class. The general form of a receiver
+    looks like this
 
     @code
-    class myreceiver : public receiver_base<T1, T2, T3, ...> {
+    class receiver {
     public:
-       int to_index_impl(command cmd) override
+       void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
        {
-          // Directs responses to the desired types.
-          switch (cmd) {
-             case cmd1: return index_of<T1>();
-             case cmd2: return index_of<T2>();
-             case cmd3: return index_of<T3>();
-             ...
-             default: return -1; // Ignore a command.
-          }
+          // Called when a new chunck of user data becomes available.
        }
 
-       void on_read_impl(command cmd) override
+       void on_read(command cmd)
        {
-         // Called when the response is received. Response available with get<T1>().
+         // Called when done with a response. It is read for use.
        }
 
-       void on_push_impl() override
+       void on_write(std::size_t n)
+       { 
+          // Called when a request has been writen to the socket.
+       }
+
+       void on_push()
        {
-         // Called when a server push is received. Response available with get<T1>().
+         // Called when a server push is received.
        }
     };
     @endcode
 
-    Where \c T1, \c T2 etc. are any of the response types discussed in \ref low-level-api. Sending
-    commands is also similar to what has been discussed there.
+    Sending commands is also similar to what has been discussed there.
 
     @code
     void foo(client<net::ip::tcp::socket>& db)
@@ -511,50 +506,50 @@
     request/response protocol, which means clients must wait for the
     response to a command before proceeding with the next one.
 
-    \subsection high-level-transaction Transactions
+    \subsection high-level-responses Responses
 
-    Aedis won't pass the responses of \c multi or any other
-    commands inside the transaction to the user, only the final result
-    i.e.  the response to \c exec. The reason
-    for this behaviour is that unless there is a programming error,
-    the response to the individual commands that precede \c exec
-    can't fail, they will always be "QUEUED", or as quoted form the
-    Redis documentation https://redis.io/topics/transactions:
-
-    > Redis commands can fail only if called with a wrong syntax (and
-    > the problem is not detectable during the command queueing),
-    > or against keys holding the wrong data type: this means that in
-    > practical terms a failing command is the result of a programming
-    > errors, and a kind of error that is very likely to be detected
-    > during development, and not in production.
-
-    \subsection high-level-receiver Receiver
-
-    Just as users can implement their own adapter for the low-level API,
-    they can also implement their own Receiver for the high-level API.
-    For example
+    Aedis also provides some facilities to use use custom responses with the
+    high-level API. Assume for example you have many different custom
+    response types \c T1, \c T2 etc, a receiver that makes use of this looks
+    like
 
     @code
-    struct receiver {
-       void on_resp3(command cmd, type t, std::size_t aggregate_size, std::size_t depth, char const* data, std::size_t size, boost::system::error_code&)
-       {
-          std::cout << "Resp3 data received" << std::endl;
-       }
+    using responses_tuple_type = std::tuple<T1, T2, T3>;
+    using adapters_tuple_type = adapters_t<responses_tuple_type>;
 
-       void on_push()
+    class myreceiver {
+    public:
+       myreceiver(...) : adapters_(make_adapters_tuple(resps_)) , {}
+
+       void
+       on_resp3( command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
        {
-          std::cout << "on_push: " << std::endl;
+          // Direct the responses to the desired adapter.
+          switch (cmd) {
+             case cmd1: adapter::get<T1>(adapters_)(nd, ec);
+             case cmd2: adapter::get<T2>(adapters_)(nd, ec);
+             case cmd3: adapter::get<T2>(adapters_)(nd, ec);
+             default:;
+          }
        }
 
        void on_read(command cmd)
        {
-          std::cout << "on_read: " << cmd << std::endl;
+          switch (cmd) {
+             case cmd1: // Data on std::get<T1>(resps_); break;
+             case cmd2: // Data on std::get<T2>(resps_); break;
+             case cmd3: // Data on std::get<T3>(resps_); break;
+             default:;
+          }
        }
 
-       void on_write(std::size_t n)
-       {
-          std::cout << "on_write: " << n << std::endl;
-       }
+       void on_write(std::size_t n) { ... }
+
+       void on_push() { ... }
+
+    private:
+       responses_tuple_type resps_;
+       adapters_tuple_type adapters_;
     };
     @endcode
 
@@ -576,9 +571,8 @@
     @li high_level/stl_containers.cpp: Shows how to read responses in STL containers.
     @li high_level/serialization.cpp: Shows how to de/serialize your own non-aggregate data-structures.
     @li high_level/subscriber.cpp: Shows how channel subscription works at a high level. See also https://redis.io/topics/pubsub.
-    @li high_level/receiver.cpp: Customization point for users that want to de/serialize their own data-structures like containers for example.
 
-    \b Servers
+    \b Asynchronous \b Servers
 
     @li high_level/chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
     @li high_level/echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.

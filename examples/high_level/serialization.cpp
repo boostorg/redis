@@ -20,20 +20,20 @@ struct mystruct {
 namespace net = boost::asio;
 namespace adapter = aedis::adapter;
 using aedis::resp3::node;
-using aedis::redis::command;
-using aedis::adapter::adapters_t;
+using aedis::adapter::adapters_tuple_t;
 using aedis::adapter::make_adapters_tuple;
 using aedis::adapter::get;
+using aedis::redis::command;
 using aedis::generic::client;
 using client_type = client<net::ip::tcp::socket, command>;
-using responses_type =
+using responses_tuple_type =
    std::tuple<
-      boost::optional<mystruct>, // get
-      std::list<mystruct>, // lrange
-      std::set<mystruct>, // smembers
-      std::map<std::string, mystruct>  // hgetall
+      boost::optional<mystruct>,
+      std::list<mystruct>,
+      std::set<mystruct>,
+      std::map<std::string, mystruct>
    >;
-using adapters_type = adapters_t<responses_type>;
+using adapters_tuple_type = adapters_tuple_t<responses_tuple_type>;
 
 std::ostream& operator<<(std::ostream& os, mystruct const& obj)
 {
@@ -59,14 +59,9 @@ void from_string(mystruct& obj, boost::string_view sv, boost::system::error_code
    obj.b = 2;
 }
 
-class myreceiver  {
-private:
-   responses_type resps_;
-   adapters_type adapters_;
-   client_type* db_;
-
+class receiver  {
 public:
-   myreceiver(client_type& db)
+   receiver(client_type& db)
    : adapters_(make_adapters_tuple(resps_))
    , db_{&db} {}
 
@@ -77,10 +72,10 @@ public:
       boost::system::error_code& ec)
    {
       switch (cmd) {
-         case command::get:      adapter::get<boost::optional<mystruct>>(adapters_)(nd, ec);
-         case command::lrange:   adapter::get<std::list<mystruct>>(adapters_)(nd, ec);
-         case command::smembers: adapter::get<std::set<mystruct>>(adapters_)(nd, ec);
-         case command::hgetall:  adapter::get<std::map<std::string, mystruct>>(adapters_)(nd, ec);
+         case command::get:      adapter::get<boost::optional<mystruct>>(adapters_)(nd, ec); break;
+         case command::lrange:   adapter::get<std::list<mystruct>>(adapters_)(nd, ec); break;
+         case command::smembers: adapter::get<std::set<mystruct>>(adapters_)(nd, ec); break;
+         case command::hgetall:  adapter::get<std::map<std::string, mystruct>>(adapters_)(nd, ec); break;
          default:; // Ignore
       }
    }
@@ -153,15 +148,24 @@ public:
       }
    }
 
-   void on_write(std::size_t n) { }
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
+   }
+
    void on_push() { }
+
+private:
+   responses_tuple_type resps_;
+   adapters_tuple_type adapters_;
+   client_type* db_;
 };
 
 int main()
 {
    net::io_context ioc;
    client_type db(ioc.get_executor());
-   myreceiver recv{db};
+   receiver recv{db};
 
    db.async_run(
       recv,

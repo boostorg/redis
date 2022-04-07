@@ -41,25 +41,9 @@ public:
    : adapter_{adapt(resp_)}
    , db_{&db} {}
 
-   void on_write(std::size_t n)
-   { 
-      std::cout << "Number of bytes written: " << n << std::endl;
-   }
-
    void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
    {
       adapter_(nd, ec);
-   }
-
-   void on_push()
-   {
-      std::cout
-         << "Event: " << resp_.at(1).value << "\n"
-         << "Channel: " << resp_.at(2).value << "\n"
-         << "Message: " << resp_.at(3).value << "\n"
-         << std::endl;
-
-      resp_.clear();
    }
 
    void on_read(command cmd)
@@ -70,6 +54,22 @@ public:
          break;
          default:;
       }
+
+      resp_.clear();
+   }
+
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
+   }
+
+   void on_push()
+   {
+      std::cout
+         << "Event: " << resp_.at(1).value << "\n"
+         << "Channel: " << resp_.at(2).value << "\n"
+         << "Message: " << resp_.at(3).value << "\n"
+         << std::endl;
 
       resp_.clear();
    }
@@ -93,4 +93,3 @@ int main()
 
    ioc.run();
 }
-
