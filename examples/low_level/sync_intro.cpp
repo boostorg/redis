@@ -54,7 +54,7 @@ int main()
 
       // Reads the responses to all commands in the request.
       std::string buffer;
-      resp3::read(socket, dynamic_buffer(buffer), adapt(hello)); // hello (ignored)
+      resp3::read(socket, dynamic_buffer(buffer), adapt(hello)); // hello
       resp3::read(socket, dynamic_buffer(buffer), adapt(resp));
       resp3::read(socket, dynamic_buffer(buffer)); // quit (ignored)
 

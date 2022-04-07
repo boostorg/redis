@@ -18,7 +18,7 @@ using aedis::generic::client;
 using aedis::adapter::adapt;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = node<std::string>;
-using adapter_type = aedis::adapter::response_traits_t<response_type>;
+using adapter_type = aedis::adapter::adapter_t<response_type>;
 
 struct myreceiver {
 public:

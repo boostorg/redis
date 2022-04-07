@@ -26,7 +26,7 @@ using aedis::user_session;
 using aedis::user_session_base;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
-using adapter_type = aedis::adapter::response_traits_t<response_type>;
+using adapter_type = aedis::adapter::adapter_t<response_type>;
 
 class myreceiver {
 public:

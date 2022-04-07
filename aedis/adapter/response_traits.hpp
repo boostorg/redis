@@ -39,7 +39,7 @@ struct response_traits
 
 /// Template typedef for response_traits.
 template <class T>
-using response_traits_t = typename response_traits<T>::adapter_type;
+using adapter_t = typename response_traits<T>::adapter_type;
 
 template <class T>
 struct response_traits<resp3::node<T>>
@@ -129,7 +129,7 @@ using adapters_array_t =
       boost::mp11::mp_unique<
          boost::mp11::mp_rename<
             boost::mp11::mp_transform<
-               response_traits_t, Tuple>,
+               adapter_t, Tuple>,
                boost::variant2::variant>>,
       std::tuple_size<Tuple>::value>;
 
@@ -149,7 +149,7 @@ template <class Tuple>
 using adapters_tuple_t = 
          boost::mp11::mp_rename<
             boost::mp11::mp_transform<
-               response_traits_t, Tuple>,
+               adapter_t, Tuple>,
                std::tuple>;
 
 /** @brief Make a tuple of adapters.

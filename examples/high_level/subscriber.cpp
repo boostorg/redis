@@ -18,7 +18,7 @@ using aedis::generic::client;
 using aedis::adapter::adapt;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
-using adapter_type = aedis::adapter::response_traits_t<response_type>;
+using adapter_type = aedis::adapter::adapter_t<response_type>;
 
 /* In this example we send a subscription to a channel and start
  * reading server side messages indefinitely.

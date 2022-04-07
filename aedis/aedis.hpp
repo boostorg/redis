@@ -26,7 +26,7 @@
 
     @li Support for the latest version of the Redis communication protocol RESP3.
     @li First class support for STL containers and C++ built-in types.
-    @li Serialization and deserialization of your own data types built directly into the parser to avoid temporaries.
+    @li Serialization and deserialization of your own data types that avoid unnecessary copies.
     @li Sentinel support (https://redis.io/docs/manual/sentinel).
     @li Sync and async API.
 
@@ -169,9 +169,9 @@
 
     \subsection responses Responses
 
-    To read the responses to comands effectively, users must know the
-    RESP3 type of the response, this can be found in the Redis
-    documentation of each command (https://redis.io/commands). For example
+    To read responses effectively, users must know their RESP3 type,
+    this can be found in the Redis documentation of each command
+    (https://redis.io/commands). For example
 
     Command  | RESP3 type                          | Documentation
     ---------|-------------------------------------|--------------
@@ -243,9 +243,9 @@
     \subsubsection Optional
 
     It is not uncommon for apps to access keys that do not exist or
-    that have already expired in the Redis server, to support such usecases Aedis
-    provides support for \c boost::optional. To use it just wrap your
-    type around \c boost::optional like this
+    that have already expired in the Redis server, to deal with these
+    cases Aedis provides support for \c boost::optional. To use it,
+    wrap your type around \c boost::optional like this
 
     @code
     boost::optional<std::unordered_map<T, U>> umap;
@@ -304,10 +304,11 @@
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(trans));
     @endcode
 
-    Note that above we are not ignoring the response to the comands
-    themselves but whether they have been successfully queued.  Only
-    after @c exec is received Redis will execute them. The response
-    will then be sent in a single chunck to the client.
+    Note that we are not ignoring the response to the comands
+    themselves above but whether they have been successfully queued.
+    Only after @c exec is received Redis will execute them in
+    sequence. The response will then be sent in a single chunck to the
+    client.
 
     \subsubsection Serialization
 
@@ -332,7 +333,8 @@
     };
     @endcode
 
-    and deserialize it from a string in a function \c from_string
+    and deserialize it from a string in a function \c from_string with
+    the following signature
 
     @code
     void from_string(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
@@ -393,7 +395,7 @@
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
     @endcode
 
-    For example, suppose we want to retrieve the a hash data structure
+    For example, suppose we want to retrieve a hash data structure
     from Redis with \c hgetall, some of the options are
 
     @li \c std::vector<node<std::string>: Works always.
@@ -410,13 +412,9 @@
     can be used to print incoming data to the screen.
 
     @code
-    auto adapter = [](resp3::type t, std::size_t aggregate_size, std::size_t depth, char const* value, std::size_t size, boost::system::error_code&)
+    auto adapter = [](resp3::node<boost::string_view> const& nd, boost::system::error_code&)
     {
-       std::cout
-          << "type: " << t << "\n"
-          << "aggregate_size: " << aggregate_size << "\n"
-          << "depth: " << depth << "\n"
-          << "value: " << std::string_view{value, size} << "\n";
+       std::cout << nd << std::endl;
     };
 
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapter);
@@ -427,12 +425,15 @@
     \section high-level-api High-level API
 
     It requires a lot of further work to make use of many important features
-    of the Redis server when using the low-level API, for example
+    of the Redis server while using the low-level API, for example
 
     @li \b Server \b pushes: Short lived connections can't handle server pushes (e.g. https://redis.io/topics/client-side-caching and https://redis.io/topics/notifications).
-    @li \b Pubsub: Just like server pushes, to use Redis pubsub support users need long lasting connections (https://redis.io/topics/pubsub).
+    @li \b Pubsub: Just like server pushes, to use Redis pubsub users need long lasting connections (https://redis.io/topics/pubsub).
     @li \b Performance: Keep opening and closing connections impact performance.
-    @li \b Pipeline: Code such as shown in \ref low-level-api don't support pipelines well since it can only send a fixed number of commands. It misses important optimization oportunities (https://redis.io/topics/pipelining).
+    @li \b Pipeline: Code such as shown in \ref low-level-api don't
+    support pipelines well since it can only send a fixed number of
+    commands at time. It misses important optimization oportunities
+    (https://redis.io/topics/pipelining).
 
     To avoid these drawbacks users will address the points above
     reinventing the high-level API here and there over and over again,
@@ -458,7 +459,7 @@
     @endcode
 
     The only thing users have to care about is with the implementation
-    of the \c receiver class, everything else will be done
+    of the \c receiver class, everything else will be performed
     automatically by the client class. The general form of a receiver
     looks like this
 
@@ -472,7 +473,7 @@
 
        void on_read(command cmd)
        {
-         // Called when done with a response. It is read for use.
+         // Called when a response becomes available.
        }
 
        void on_write(std::size_t n)
@@ -487,7 +488,7 @@
     };
     @endcode
 
-    Sending commands is also similar to what has been discussed there.
+    Sending commands is also similar to what has been discussed before.
 
     @code
     void foo(client<net::ip::tcp::socket>& db)
@@ -561,21 +562,21 @@
 
     @li low_level/sync_intro.cpp: Shows how to use the Aedis synchronous api.
     @li low_level/async_intro.cpp: Show how to use the low level async api.
-    @li low_level/subscriber.cpp: Shows how channel subscription works at a low level.
+    @li low_level/subscriber.cpp: Shows how channel subscription works at the low level.
     @li low_level/adapter.cpp: Shows how to write a response adapter that prints to the screen, see \ref low-level-adapters.
 
     \b High \b level \b API
 
-    @li high_level/intro.cpp: A good starting point. Some commands are sent to the Redis server and the responses are printed to screen. 
+    @li high_level/intro.cpp: Some commands are sent to the Redis server and the responses are printed to screen. 
     @li high_level/aggregates.cpp: Shows how receive RESP3 aggregate data types in a general way.
     @li high_level/stl_containers.cpp: Shows how to read responses in STL containers.
-    @li high_level/serialization.cpp: Shows how to de/serialize your own non-aggregate data-structures.
+    @li high_level/serialization.cpp: Shows how to de/serialize your own data types.
     @li high_level/subscriber.cpp: Shows how channel subscription works at a high level. See also https://redis.io/topics/pubsub.
 
     \b Asynchronous \b Servers
 
+    @li high_level/echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server.
     @li high_level/chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
-    @li high_level/echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.
 
     \section using-aedis Using Aedis
 
@@ -608,7 +609,7 @@
     $ tar -xzvf aedis-version.tar.gz
     ```
 
-    If don't want to use \c configure and \c make (e.g. Windows users)
+    If you can't use \c configure and \c make (e.g. Windows users)
     you can already add the directory where you unpacked aedis to the
     include directories in your project, otherwise run
   
@@ -649,7 +650,7 @@
   
     After that you will have a configure script 
     that you can run as explained above, for example, to use a
-    compiler other that the system compiler use
+    compiler other that the system compiler run
   
     ```
     $ CC=/opt/gcc-10.2.0/bin/gcc-10.2.0 CXX=/opt/gcc-10.2.0/bin/g++-10.2.0 CXXFLAGS="-g -Wall -Werror"  ./configure ...

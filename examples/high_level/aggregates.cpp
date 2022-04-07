@@ -19,7 +19,7 @@ using aedis::adapter::adapt;
 using aedis::redis::command;
 using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
-using adapter_type = aedis::adapter::response_traits_t<response_type>;
+using adapter_type = aedis::adapter::adapter_t<response_type>;
 
 // Prints aggregates that don't contain any nested aggregates.
 void print_aggregate(response_type const& v)
