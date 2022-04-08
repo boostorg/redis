@@ -20,20 +20,21 @@
   
     \section Overview
   
-    Aedis is a redis client library built on top of Asio that provides
-    simple and efficient communication with a Redis server. Some of
-    its distinctive features are
+    Aedis is a [Redis](https://redis.io/) client library built on top
+    of [Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
+    that provides simple and efficient communication with a Redis
+    server. Some of its distinctive features are
 
-    @li Support for the latest version of the Redis communication protocol RESP3.
+    @li Support for the latest version of the Redis communication protocol [RESP3](https://github.com/antirez/RESP3/blob/master/spec.md).
     @li First class support for STL containers and C++ built-in types.
     @li Serialization and deserialization of your own data types that avoid unnecessary copies.
-    @li Sentinel support (https://redis.io/docs/manual/sentinel).
+    @li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
     @li Sync and async API.
 
     In addition to that, Aedis provides a high level client that offers the following functionality
 
     @li Management of message queues.
-    @li Simplified handling of server pushs.
+    @li Simplified handling of server pushes.
     @li Zero asymptotic allocations by means of memory reuse.
 
     If you never heard about Redis the best place to start is on
@@ -41,7 +42,7 @@
 
     \section low-level-api Low-level API
 
-    The low-level API is very usefull for simple tasks, for example,
+    The low-level API is very useful for simple tasks, for example,
     assume we want to perform the following steps
 
     @li Set the value of a Redis key.
@@ -76,7 +77,7 @@
     }
     @endcode
 
-    The simplicity of the code above makes it self expanatory
+    The simplicity of the code above makes it self explanatory
 
     @li Connect to the Redis server.
     @li Declare a \c std::string to hold the request and add some commands in it with a serializer.
@@ -91,8 +92,8 @@
     As stated above, request are created by defining a storage object
     and a serializer that knowns how to convert user data into valid
     RESP3 wire-format.  Redis request are composed of one or more
-    commands (in Redis documentation they are called pipelines, see
-        https://redis.io/topics/pipelining), which means users can add
+    commands (in Redis documentation they are called [pipelines](https://redis.io/topics/pipelining)),
+    which means users can add
     as many commands to the request as they like, a feature that aids
     performance.
 
@@ -183,7 +184,7 @@
     hgetall  | Map                                 | https://redis.io/commands/hgetall
 
     Once the RESP3 type of a given response is known we can choose a
-    proper C++ data structure to receive it in. Fourtunately,
+    proper C++ data structure to receive it in. Fortunately,
     this is a simple task for most types, for example
 
     RESP3 type     | C++                                                          | Type
@@ -200,7 +201,7 @@
     Push           | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate
 
     Exceptions to this rule are responses that contain nested
-    aggregates or heterogeneuos data types, those will be treated
+    aggregates or heterogeneous data types, those will be treated
     later.  As of this writing, not all RESP3 types are used by the
     Redis server, which means in practice users will be concerned with
     a reduced subset of the RESP3 specification. Now let us see some
@@ -304,10 +305,10 @@
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(trans));
     @endcode
 
-    Note that we are not ignoring the response to the comands
+    Note that we are not ignoring the response to the commands
     themselves above but whether they have been successfully queued.
     Only after @c exec is received Redis will execute them in
-    sequence. The response will then be sent in a single chunck to the
+    sequence. The response will then be sent in a single chunk to the
     client.
 
     \subsubsection Serialization
@@ -432,7 +433,7 @@
     @li \b Performance: Keep opening and closing connections impact performance.
     @li \b Pipeline: Code such as shown in \ref low-level-api don't
     support pipelines well since it can only send a fixed number of
-    commands at time. It misses important optimization oportunities
+    commands at time. It misses important optimization opportunities
     (https://redis.io/topics/pipelining).
 
     To avoid these drawbacks users will address the points above
@@ -466,25 +467,17 @@
     @code
     class receiver {
     public:
-       void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
-       {
-          // Called when a new chunck of user data becomes available.
-       }
-
-       void on_read(command cmd)
-       {
-         // Called when a response becomes available.
-       }
-
-       void on_write(std::size_t n)
-       { 
-          // Called when a request has been writen to the socket.
-       }
-
-       void on_push()
-       {
-         // Called when a server push is received.
-       }
+       // Called when a new chunck of user data becomes available.
+       void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec);
+    
+       // Called when a response becomes available.
+       void on_read(command cmd);
+    
+       // Called when a request has been writen to the socket.
+       void on_write(std::size_t n);
+    
+       // Called when a server push is received.
+       void on_push();
     };
     @endcode
 

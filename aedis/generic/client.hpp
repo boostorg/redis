@@ -23,16 +23,18 @@
 namespace aedis {
 namespace generic {
 
-/**  \brief A high level resp3 client.
- *   \ingroup any
+/** \brief A high level Redis client.
+ *  \ingroup any
  *
- *   This class represents a connection to the Redis server. It keeps
- *   an internal queue of user commands that is managed automatically.
- *   It also achieves asymptotic zero allocation by reusing memory.
+ *  This class represents a connection to the Redis server. Some of
+ *  its most important features are
  *
- *   It also reuses its internal buffers for requests and
- *   for reading Redis responses. With time it will allocate less and
- *   less.
+ *  1. Automatic management of commands. The implementation will send
+ *     commands and read responses automatically for the user.
+ *  2. Memory reuse. Dynamic memory allocations will decrease with time.
+ *
+ *  For more details, please see the documentation of each individual
+ *  function.
  */
 template <class AsyncReadWriteStream, class Command>
 class client {
@@ -40,6 +42,209 @@ public:
    using stream_type = AsyncReadWriteStream;
    using executor_type = typename stream_type::executor_type;
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
+
+   /** \brief Constructor.
+    *
+    *  \param ex The executor.
+    */
+   client(boost::asio::any_io_executor ex)
+   : socket_{ex}
+   , timer_{ex}
+   {
+      timer_.expires_at(std::chrono::steady_clock::time_point::max());
+      send(Command::hello, 3);
+   }
+
+   /// Returns the executor.
+   auto get_executor() {return socket_.get_executor();}
+
+   /** @brief Adds a command to the output command queue.
+    *
+    *  Adds a command to the output command queue and signals the write
+    *  operation there are new messages awaiting to be sent to Redis.
+    *
+    *  @sa serializer.hpp
+    *
+    *  @param cmd The command to send.
+    *  @param args Arguments to commands.
+    */
+   template <class... Ts>
+   void send(Command cmd, Ts const&... args)
+   {
+      auto const can_write = prepare_next();
+
+      serializer<std::string> sr(requests_);
+      auto const before = requests_.size();
+      sr.push(cmd, args...);
+      auto const after = requests_.size();
+      assert(after - before != 0);
+      req_info_.front().size += after - before;;
+
+      if (!has_push_response(cmd)) {
+         commands_.push_back(cmd);
+         ++req_info_.front().cmds;
+      }
+
+      if (can_write)
+         timer_.cancel_one();
+   }
+
+   /** @brief Adds a command to the output command queue.
+    *
+    *  Adds a command to the output command queue and signals the write
+    *  operation there are new messages awaiting to be sent to Redis.
+    *
+    *  @sa serializer.hpp
+    *
+    *  @param cmd The command.
+    *  @param key The key the commands refers to
+    *  @param begin Begin of the range.
+    *  @param end End of the range.
+    */
+   template <class Key, class ForwardIterator>
+   void send_range2(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
+   {
+      if (begin == end)
+         return;
+
+      auto const can_write = prepare_next();
+
+      serializer<std::string> sr(requests_);
+      auto const before = requests_.size();
+      sr.push_range2(cmd, key, begin, end);
+      auto const after = requests_.size();
+      assert(after - before != 0);
+      req_info_.front().size += after - before;;
+
+      if (!has_push_response(cmd)) {
+         commands_.push_back(cmd);
+         ++req_info_.front().cmds;
+      }
+
+      if (can_write)
+         timer_.cancel_one();
+   }
+
+   /** @brief Adds a command to the output command queue.
+    *
+    *  Adds a command to the output command queue and signals the write
+    *  operation there are new messages awaiting to be sent to Redis.
+    *
+    *  @sa serializer.hpp
+    *
+    *  @param cmd The command.
+    *  @param begin Begin of the range.
+    *  @param end End of the range.
+    */
+   template <class ForwardIterator>
+   void send_range2(Command cmd, ForwardIterator begin, ForwardIterator end)
+   {
+      if (begin == end)
+         return;
+
+      auto const can_write = prepare_next();
+
+      serializer<std::string> sr(requests_);
+      auto const before = requests_.size();
+      sr.push_range2(cmd, begin, end);
+      auto const after = requests_.size();
+      assert(after - before != 0);
+      req_info_.front().size += after - before;;
+
+      if (!has_push_response(cmd)) {
+         commands_.push_back(cmd);
+         ++req_info_.front().cmds;
+      }
+
+      if (can_write)
+         timer_.cancel_one();
+   }
+
+   /** @brief Adds a command to the output command queue.
+    *
+    *  Adds a command to the output command queue and signals the write
+    *  operation there are new messages awaiting to be sent to Redis.
+    *
+    *  @sa serializer.hpp
+    *
+    *  @param cmd The command.
+    *  @param key The key the commands refers to.
+    *  @param range Range of elements to send.
+    */
+   template <class Key, class Range>
+   void send_range(Command cmd, Key const& key, Range const& range)
+   {
+      using std::begin;
+      using std::end;
+      send_range2(cmd, key, begin(range), end(range));
+   }
+
+   /** @brief Adds a command to the output command queue.
+    *
+    *  Adds a command to the output command queue and signals the write
+    *  operation there are new messages awaiting to be sent to Redis.
+    *
+    *  @sa serializer.hpp
+    *
+    *  @param cmd The command.
+    *  @param range End of the range.
+    */
+   template <class Range>
+   void send_range(Command cmd, Range const& range)
+   {
+      using std::begin;
+      using std::end;
+      send_range2(cmd, begin(range), end(range));
+   }
+
+   /** @brief Starts communication with the Redis server asynchronously.
+    *
+    *  This class performs the following steps
+    *
+    *  @li Connect to the endpoint passed in the function parameter.
+    *  @li Start the async read operation that keeps reading responses to commands and server pushes.
+    *  @li Start the async write operation that keeps sending commands to Redis.
+    *
+    *  \param recv The receiver (see below)
+    *  \param ep The address of the Redis server.
+    *  \param token The completion token (ASIO jargon)
+    *
+    *  The receiver is a class that privides the following member functions
+    *
+    *  @code
+    *  class receiver {
+    *  public:
+    *     // Called when a new chunck of user data becomes available.
+    *     void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec);
+    *
+    *     // Called when a response becomes available.
+    *     void on_read(command cmd);
+    *
+    *     // Called when a request has been writen to the socket.
+    *     void on_write(std::size_t n);
+    *
+    *     // Called when a server push is received.
+    *     void on_push();
+    *  };
+    *  @endcode
+    *
+    */
+   template <
+     class Receiver,
+     class CompletionToken = default_completion_token_type
+   >
+   auto
+   async_run(
+      Receiver& recv,
+      boost::asio::ip::tcp::endpoint ep = {boost::asio::ip::make_address("127.0.0.1"), 6379},
+      CompletionToken token = CompletionToken{})
+   {
+      endpoint_ = ep;
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(run_op<client, Receiver>{this, &recv}, token, socket_, timer_);
+   }
 
 private:
    template <class T, class U, class V> friend struct read_op;
@@ -162,139 +367,6 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(read_write_op<client, Receiver>{this, recv}, token, socket_, timer_);
-   }
-public:
-   /** \brief Client constructor.
-    *
-    *  Constructos the client from an executor.
-    *
-    *  \param ex The executor.
-    */
-   client(boost::asio::any_io_executor ex)
-   : socket_{ex}
-   , timer_{ex}
-   {
-      timer_.expires_at(std::chrono::steady_clock::time_point::max());
-      send(Command::hello, 3);
-   }
-
-   /// Returns the executor used for I/O with Redis.
-   auto get_executor() {return socket_.get_executor();}
-
-   /** \brief Adds a command to the command queue.
-    *
-    *  \sa serializer.hpp
-    */
-   template <class... Ts>
-   void send(Command cmd, Ts const&... args)
-   {
-      auto const can_write = prepare_next();
-
-      serializer<std::string> sr(requests_);
-      auto const before = requests_.size();
-      sr.push(cmd, args...);
-      auto const after = requests_.size();
-      assert(after - before != 0);
-      req_info_.front().size += after - before;;
-
-      if (!has_push_response(cmd)) {
-         commands_.push_back(cmd);
-         ++req_info_.front().cmds;
-      }
-
-      if (can_write)
-         timer_.cancel_one();
-   }
-
-   /** \brief Sends and iterator range (overload with key).
-    */
-   template <class Key, class ForwardIterator>
-   void send_range2(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
-   {
-      if (begin == end)
-         return;
-
-      auto const can_write = prepare_next();
-
-      serializer<std::string> sr(requests_);
-      auto const before = requests_.size();
-      sr.push_range2(cmd, key, begin, end);
-      auto const after = requests_.size();
-      assert(after - before != 0);
-      req_info_.front().size += after - before;;
-
-      if (!has_push_response(cmd)) {
-         commands_.push_back(cmd);
-         ++req_info_.front().cmds;
-      }
-
-      if (can_write)
-         timer_.cancel_one();
-   }
-
-   /** \brief Sends and iterator range (overload without key).
-    */
-   template <class ForwardIterator>
-   void send_range2(Command cmd, ForwardIterator begin, ForwardIterator end)
-   {
-      if (begin == end)
-         return;
-
-      auto const can_write = prepare_next();
-
-      serializer<std::string> sr(requests_);
-      auto const before = requests_.size();
-      sr.push_range2(cmd, begin, end);
-      auto const after = requests_.size();
-      assert(after - before != 0);
-      req_info_.front().size += after - before;;
-
-      if (!has_push_response(cmd)) {
-         commands_.push_back(cmd);
-         ++req_info_.front().cmds;
-      }
-
-      if (can_write)
-         timer_.cancel_one();
-   }
-
-   /** \brief Sends a range.
-    */
-   template <class Key, class Range>
-   void send_range(Command cmd, Key const& key, Range const& range)
-   {
-      using std::begin;
-      using std::end;
-      send_range2(cmd, key, begin(range), end(range));
-   }
-
-   /** \brief Sends a range.
-    */
-   template <class Range>
-   void send_range(Command cmd, Range const& range)
-   {
-      using std::begin;
-      using std::end;
-      send_range2(cmd, begin(range), end(range));
-   }
-
-   /** \brief Starts communication with the Redis server asynchronously.
-    */
-   template <
-     class Receiver,
-     class CompletionToken = default_completion_token_type
-   >
-   auto
-   async_run(
-      Receiver& recv,
-      boost::asio::ip::tcp::endpoint ep = {boost::asio::ip::make_address("127.0.0.1"), 6379},
-      CompletionToken token = CompletionToken{})
-   {
-      endpoint_ = ep;
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(run_op<client, Receiver>{this, &recv}, token, socket_, timer_);
    }
 };
 

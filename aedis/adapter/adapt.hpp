@@ -16,8 +16,8 @@ namespace adapter {
     \ingroup any
   
     The adapter returned by this function ignores responses and is
-    useful to avoid wasting time with responses which the user is
-    insterested in.
+    useful to avoid wasting time with responses on which the user is
+    not insterested in.
 
     Example usage:
 
@@ -32,34 +32,8 @@ auto adapt() noexcept
 /** \brief Adapts user data to read operations.
  *  \ingroup any
  *
- *  For example
- *  The following types are supported.
- *
- *  - Integer data types e.g. `int`, `unsigned`, etc.
- *
- *  - `std::string`
- *
- *  We also support the following C++ containers
- *
- *  - `std::vector<T>`. Can be used with any RESP3 aggregate type.
- *
- *  - `std::deque<T>`. Can be used with any RESP3 aggregate type.
- *
- *  - `std::list<T>`. Can be used with any RESP3 aggregate type.
- *
- *  - `std::set<T>`. Can be used with RESP3 set type.
- *
- *  - `std::unordered_set<T>`. Can be used with RESP3 set type.
- *
- *  - `std::map<T>`. Can be used with RESP3 hash type.
- *
- *  - `std::unordered_map<T>`. Can be used with RESP3 hash type.
- *
- *  All these types can be wrapped in an `boost::optional<T>`. This
- *  function also support \c std::tuple to read the response to
- *  tuples. At the moment this feature supports only transactions that
- *  contain simple types or aggregates that don't contain aggregates
- *  themselves (as in most cases).
+ *  All STL containers, \c std::tuple and built-in types are supported and
+ *  can be used in conjunction with \c boost::optional<T>.
  *
  *  Example usage:
  *
@@ -71,19 +45,19 @@ auto adapt() noexcept
  *  For a transaction
  *
  *  @code
-    sr.push(command::multi);
-    sr.push(command::ping, ...);
-    sr.push(command::incr, ...);
-    sr.push_range(command::rpush, ...);
-    sr.push(command::lrange, ...);
-    sr.push(command::incr, ...);
-    sr.push(command::exec);
-
-    co_await async_write(socket, buffer(request));
-
-    // Reads the response to a transaction
-    std::tuple<std::string, int, int, std::vector<std::string>, int> execs;
-    co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(execs));
+ *  sr.push(command::multi);
+ *  sr.push(command::ping, ...);
+ *  sr.push(command::incr, ...);
+ *  sr.push_range(command::rpush, ...);
+ *  sr.push(command::lrange, ...);
+ *  sr.push(command::incr, ...);
+ *  sr.push(command::exec);
+ *
+ *  co_await async_write(socket, buffer(request));
+ *
+ *  // Reads the response to a transaction
+ *  std::tuple<std::string, int, int, std::vector<std::string>, int> execs;
+ *  co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(execs));
  *  @endcode
  */
 template<class T>

@@ -33,7 +33,7 @@ namespace generic {
  *  co_await async_write(socket, buffer(request));
  *  @endcode
  *
- *  \tparam Storage The storage type. This is currently a \c std::string.
+ *  \tparam Storage The storage type e.g \c std::string.
  *  \tparam Command The command to serialize.
  *
  *  \remarks  Non-string types will be converted to string by using \c
@@ -160,7 +160,9 @@ public:
 	 resp3::add_bulk(*request_, *begin);
    }
 
-   /** \brief Sends a range.
+   /** @brief Appends a new command to the end of the request.
+    *  
+    *  Similar to the range version.
     */
    template <class Command, class Key, class Range>
    void push_range(Command cmd, Key const& key, Range const& range)
@@ -170,7 +172,9 @@ public:
       push_range2(cmd, key, begin(range), end(range));
    }
 
-   /** \brief Sends a range.
+   /** @brief Appends a new command to the end of the request.
+    *
+    *  Similar to the range version.
     */
    template <class Command, class Range>
    void push_range(Command cmd, Range const& range)
@@ -181,7 +185,7 @@ public:
    }
 };
 
-/** \brief Creates a serializer for Sentinel commands.
+/** \brief Creates a serializer.
  *  \ingroup any
  *  \param storage The string.
  */
