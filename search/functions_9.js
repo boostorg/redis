@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['send_276',['send',['../classaedis_1_1resp3_1_1experimental_1_1client.html#a74918e689094505ed9206b269bea7d08',1,'aedis::resp3::experimental::client']]],
-  ['serializer_277',['serializer',['../classaedis_1_1resp3_1_1serializer.html#a305545de4d702d7a46f29b9f5a00b557',1,'aedis::resp3::serializer']]],
-  ['set_5fextended_5fadapter_278',['set_extended_adapter',['../classaedis_1_1resp3_1_1experimental_1_1client.html#a88a9ec5d71545fb6014fb9860ab35726',1,'aedis::resp3::experimental::client']]],
-  ['set_5fmsg_5fcallback_279',['set_msg_callback',['../classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7',1,'aedis::resp3::experimental::client']]]
+  ['send_285',['send',['../classaedis_1_1generic_1_1client.html#a866062190bd85521821e76c8f0002227',1,'aedis::generic::client']]],
+  ['send_5frange_286',['send_range',['../classaedis_1_1generic_1_1client.html#ac37cacf2f7ea09b61eac5e56a11ea177',1,'aedis::generic::client::send_range(Command cmd, Key const &amp;key, Range const &amp;range)'],['../classaedis_1_1generic_1_1client.html#a6ca56de744e11499ce95c5436fe5c931',1,'aedis::generic::client::send_range(Command cmd, Range const &amp;range)']]],
+  ['send_5frange2_287',['send_range2',['../classaedis_1_1generic_1_1client.html#a1f5f93fcefc0e52b8c129ee712295bdd',1,'aedis::generic::client::send_range2(Command cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)'],['../classaedis_1_1generic_1_1client.html#a4c69aab2a471ffe740ae3408c7e54820',1,'aedis::generic::client::send_range2(Command cmd, ForwardIterator begin, ForwardIterator end)']]],
+  ['serializer_288',['serializer',['../classaedis_1_1generic_1_1serializer.html#accb039a3b391aef27b6e2113fe6875c6',1,'aedis::generic::serializer']]]
 ];

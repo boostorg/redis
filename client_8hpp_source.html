@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: aedis/redis/experimental/client.hpp Source File</title>
+<title>Aedis: aedis/generic/client.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -70,7 +70,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_9d90dcbfa4d8f8d750ed748af15e8f01.html">aedis</a></li><li class="navelem"><a class="el" href="dir_5ec217b60d746c74a673c71513ab0327.html">redis</a></li><li class="navelem"><a class="el" href="dir_31c22f25dd7d06be284ab614f00fc1c5.html">experimental</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_9d90dcbfa4d8f8d750ed748af15e8f01.html">aedis</a></li><li class="navelem"><a class="el" href="dir_13eff47ded7cf426009672bf8181d55c.html">generic</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -87,127 +87,280 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
 <div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#pragma once</span></div>
 <div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;queue&gt;</span></div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;functional&gt;</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &lt;aedis/aedis.hpp&gt;</span></div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#include &lt;aedis/redis/command.hpp&gt;</span></div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="keyword">namespace </span>aedis {</div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">namespace </span>resp3 {</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">namespace </span>experimental {</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
-<div class="line"><a name="l00031"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html">   31</a></span>&#160;<span class="keyword">class </span><a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html">client</a> : <span class="keyword">public</span> std::enable_shared_from_this&lt;client&gt; {</div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00038"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac58b8a780270483f0f85fc6575c600df">   38</a></span>&#160;   <span class="keyword">using</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac58b8a780270483f0f85fc6575c600df">extented_adapter_type</a> = std::function&lt;void(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">redis::command</a>, <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a>, std::size_t, std::size_t, <span class="keywordtype">char</span> <span class="keyword">const</span>*, std::size_t, std::error_code&amp;)&gt;;</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160; </div>
-<div class="line"><a name="l00041"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">   41</a></span>&#160;   <span class="keyword">using</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">on_message_type</a> = std::function&lt;void(std::error_code ec, <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">redis::command</a>)&gt;;</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;   <span class="comment">//using socket_type = net::use_awaitable_t&lt;&gt;::as_default_on_t&lt;net::ip::tcp::socket&gt;;</span></div>
-<div class="line"><a name="l00045"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8942afea0a7880171a9a230c6445fbff">   45</a></span>&#160;   <span class="keyword">using</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8942afea0a7880171a9a230c6445fbff">socket_type</a> = net::ip::tcp::socket;</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   <span class="keyword">struct </span>request_info {</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;      <span class="comment">// Request size in bytes.</span></div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;      std::size_t size = 0;</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;      <span class="comment">// The number of commands it contains excluding commands that</span></div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;      <span class="comment">// have push types as responses, see has_push_response.</span></div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;      std::size_t cmds = 0;</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;   };</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;   <span class="comment">// Requests payload.</span></div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;   std::string requests_;</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160; </div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;   <span class="comment">// The commands contained in the requests.</span></div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;   std::queue&lt;redis::command&gt; commands_;</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160; </div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;   <span class="comment">// Info about the requests.</span></div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;   std::queue&lt;request_info&gt; req_info_;</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;   <span class="comment">// The stream.</span></div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8942afea0a7880171a9a230c6445fbff">socket_type</a> socket_;</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160; </div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;   <span class="comment">// Timer used to inform the write coroutine that it can write the</span></div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;   <span class="comment">// next message in the output queue.</span></div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;   net::steady_timer timer_;</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;   <span class="comment">// Response adapter.</span></div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac58b8a780270483f0f85fc6575c600df">extented_adapter_type</a> extended_adapter_ = [](<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">redis::command</a>, <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a>, std::size_t, std::size_t, <span class="keywordtype">char</span> <span class="keyword">const</span>*, std::size_t, std::error_code&amp;) {};</div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;vector&gt;</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160; </div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &lt;boost/asio/ip/tcp.hpp&gt;</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &lt;boost/asio/steady_timer.hpp&gt;</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="preprocessor">#include &lt;aedis/resp3/type.hpp&gt;</span></div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#include &lt;aedis/generic/detail/client_ops.hpp&gt;</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#include &lt;aedis/redis/command.hpp&gt;</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="comment">// TODO: What to do if users send a discard command not contained in a</span></div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="comment">// transaction. The client object will try to pop the queue until a</span></div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="comment">// multi is found.</span></div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">namespace </span>aedis {</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keyword">namespace </span>generic {</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160; </div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> AsyncReadWriteStream, <span class="keyword">class</span> Command&gt;</div>
+<div class="line"><a name="l00040"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1client.html">   40</a></span>&#160;<span class="keyword">class </span><a class="code" href="classaedis_1_1generic_1_1client.html">client</a> {</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;   <span class="keyword">using</span> stream_type = AsyncReadWriteStream;</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;   <span class="keyword">using</span> executor_type = <span class="keyword">typename</span> stream_type::executor_type;</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;   <span class="keyword">using</span> default_completion_token_type = boost::asio::default_completion_token_t&lt;executor_type&gt;;</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160; </div>
+<div class="line"><a name="l00050"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1client.html#aa6171a8ffccb10b6c4f0535054685a4d">   50</a></span>&#160;   <a class="code" href="classaedis_1_1generic_1_1client.html#aa6171a8ffccb10b6c4f0535054685a4d">client</a>(boost::asio::any_io_executor ex)</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;   : socket_{ex}</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   , timer_{ex}</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;   {</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;      timer_.expires_at(std::chrono::steady_clock::time_point::max());</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1client.html#a866062190bd85521821e76c8f0002227">send</a>(Command::hello, 3);</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;   }</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; </div>
+<div class="line"><a name="l00059"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1client.html#ae898c915f157fed45a17a554d67344af">   59</a></span>&#160;   <span class="keyword">auto</span> <a class="code" href="classaedis_1_1generic_1_1client.html#ae898c915f157fed45a17a554d67344af">get_executor</a>() {<span class="keywordflow">return</span> socket_.get_executor();}</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span>... Ts&gt;</div>
+<div class="line"><a name="l00072"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1client.html#a866062190bd85521821e76c8f0002227">   72</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1client.html#a866062190bd85521821e76c8f0002227">send</a>(Command cmd, Ts <span class="keyword">const</span>&amp;... args)</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;   {</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> can_write = prepare_next();</div>
 <div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;   <span class="comment">// Message callback.</span></div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">on_message_type</a> on_msg_ = [](std::error_code ec, <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">redis::command</a>) {};</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160; </div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;   <span class="comment">// Set when the writer coroutine should stop.</span></div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;   <span class="keywordtype">bool</span> stop_writer_ = <span class="keyword">false</span>;</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160; </div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;   <span class="comment">// A coroutine that keeps reading the socket. When a message</span></div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;   <span class="comment">// arrives it calls on_message.</span></div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;   net::awaitable&lt;void&gt; reader();</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160; </div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;   <span class="comment">// Write coroutine. It is kept suspended until there are messages</span></div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;   <span class="comment">// to be sent.</span></div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;   net::awaitable&lt;void&gt; writer();</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160; </div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;   <span class="comment">/* Prepares the back of the queue to receive further commands. </span></div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="comment">    *</span></div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<span class="comment">    * If true is returned the request in the front of the queue can be</span></div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="comment">    * sent to the server. See async_write_some.</span></div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;<span class="comment">    */</span></div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;   <span class="keywordtype">bool</span> prepare_next();</div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160; </div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac9809aa5e3d1c1e75edb1f01fdd5eb7f">client</a>(net::any_io_executor ex);</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160; </div>
-<div class="line"><a name="l00107"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#abfac359f060b54a753b74f9ebdc6c898">  107</a></span>&#160;   <span class="keyword">auto</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#abfac359f060b54a753b74f9ebdc6c898">get_executor</a>() {<span class="keywordflow">return</span> socket_.get_executor();}</div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160; </div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;   net::awaitable&lt;void&gt; <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ae70d2b1397b4db42a4549c9e15cd06fc">engage</a>(<a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8942afea0a7880171a9a230c6445fbff">socket_type</a> socket);</div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160; </div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span>... Ts&gt;</div>
-<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a74918e689094505ed9206b269bea7d08">send</a>(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">redis::command</a> cmd, Ts <span class="keyword">const</span>&amp;... args);</div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160; </div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a88a9ec5d71545fb6014fb9860ab35726">set_extended_adapter</a>(<a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac58b8a780270483f0f85fc6575c600df">extented_adapter_type</a> adapter);</div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160; </div>
-<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">set_msg_callback</a>(<a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">on_message_type</a> on_msg);</div>
-<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;};</div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160; </div>
-<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span>... Ts&gt;</div>
-<div class="line"><a name="l00137"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a74918e689094505ed9206b269bea7d08">  137</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html#a74918e689094505ed9206b269bea7d08">client::send</a>(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">redis::command</a> cmd, Ts <span class="keyword">const</span>&amp;... args)</div>
-<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;{</div>
-<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> can_write = prepare_next();</div>
-<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160; </div>
-<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;   <span class="keyword">auto</span> sr = <a class="code" href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">redis::make_serializer</a>(requests_);</div>
-<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> before = std::size(requests_);</div>
-<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;   sr.push(cmd, args...);</div>
-<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> after = std::size(requests_);</div>
-<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;   req_info_.front().size += after - before;;</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1serializer.html">serializer&lt;std::string&gt;</a> sr(requests_);</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> before = requests_.size();</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;      sr.<a class="code" href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f">push</a>(cmd, args...);</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> after = requests_.size();</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      assert(after - before != 0);</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;      req_info_.front().size += after - before;;</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160; </div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;      <span class="keywordflow">if</span> (!<a class="code" href="group__any.html#ga5a4b50fdd5f839f149cf7527abc796c2">has_push_response</a>(cmd)) {</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;         commands_.push_back(cmd);</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;         ++req_info_.front().cmds;</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;      }</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160; </div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;      <span class="keywordflow">if</span> (can_write)</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;         timer_.cancel_one();</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;   }</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160; </div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Key, <span class="keyword">class</span> ForwardIterator&gt;</div>
+<div class="line"><a name="l00105"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1client.html#a1f5f93fcefc0e52b8c129ee712295bdd">  105</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1client.html#a1f5f93fcefc0e52b8c129ee712295bdd">send_range2</a>(Command cmd, Key <span class="keyword">const</span>&amp; key, ForwardIterator begin, ForwardIterator end)</div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;   {</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;         <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160; </div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> can_write = prepare_next();</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1serializer.html">serializer&lt;std::string&gt;</a> sr(requests_);</div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> before = requests_.size();</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;      sr.<a class="code" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">push_range2</a>(cmd, key, begin, end);</div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> after = requests_.size();</div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;      assert(after - before != 0);</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;      req_info_.front().size += after - before;;</div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160; </div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;      <span class="keywordflow">if</span> (!<a class="code" href="group__any.html#ga5a4b50fdd5f839f149cf7527abc796c2">has_push_response</a>(cmd)) {</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;         commands_.push_back(cmd);</div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;         ++req_info_.front().cmds;</div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;      }</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160; </div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;      <span class="keywordflow">if</span> (can_write)</div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;         timer_.cancel_one();</div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;   }</div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160; </div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> ForwardIterator&gt;</div>
+<div class="line"><a name="l00140"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1client.html#a4c69aab2a471ffe740ae3408c7e54820">  140</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1client.html#a4c69aab2a471ffe740ae3408c7e54820">send_range2</a>(Command cmd, ForwardIterator begin, ForwardIterator end)</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;   {</div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;         <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160; </div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> can_write = prepare_next();</div>
 <div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160; </div>
-<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;   <span class="keywordflow">if</span> (!<a class="code" href="group__any.html#ga5a4b50fdd5f839f149cf7527abc796c2">has_push_response</a>(cmd)) {</div>
-<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;      commands_.emplace(cmd);</div>
-<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;      ++req_info_.front().cmds;</div>
-<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;   }</div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160; </div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;   <span class="keywordflow">if</span> (can_write)</div>
-<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;      timer_.cancel_one();</div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;}</div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;} <span class="comment">// experimental</span></div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;} <span class="comment">// resp3</span></div>
-<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></div><div class="ttdoc">A high level redis client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00031">client.hpp:31</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a74918e689094505ed9206b269bea7d08"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a74918e689094505ed9206b269bea7d08">aedis::resp3::experimental::client::send</a></div><div class="ttdeci">void send(redis::command cmd, Ts const &amp;... args)</div><div class="ttdoc">Adds a command to the command queue.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00137">client.hpp:137</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a88a9ec5d71545fb6014fb9860ab35726"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a88a9ec5d71545fb6014fb9860ab35726">aedis::resp3::experimental::client::set_extended_adapter</a></div><div class="ttdeci">void set_extended_adapter(extented_adapter_type adapter)</div><div class="ttdoc">Sets an extended response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00156">client.ipp:156</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a8942afea0a7880171a9a230c6445fbff"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a8942afea0a7880171a9a230c6445fbff">aedis::resp3::experimental::client::socket_type</a></div><div class="ttdeci">net::ip::tcp::socket socket_type</div><div class="ttdoc">The type of the socket used by the client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00045">client.hpp:45</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_a930b16fcaa9505621758ad6df80c62a1"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#a930b16fcaa9505621758ad6df80c62a1">aedis::resp3::experimental::client::on_message_type</a></div><div class="ttdeci">std::function&lt; void(std::error_code ec, redis::command)&gt; on_message_type</div><div class="ttdoc">The type of the message callback.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00041">client.hpp:41</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_abfac359f060b54a753b74f9ebdc6c898"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#abfac359f060b54a753b74f9ebdc6c898">aedis::resp3::experimental::client::get_executor</a></div><div class="ttdeci">auto get_executor()</div><div class="ttdoc">Returns the executor used for I/O with Redis.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00107">client.hpp:107</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_ac58b8a780270483f0f85fc6575c600df"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac58b8a780270483f0f85fc6575c600df">aedis::resp3::experimental::client::extented_adapter_type</a></div><div class="ttdeci">std::function&lt; void(redis::command, type, std::size_t, std::size_t, char const  *, std::size_t, std::error_code &amp;)&gt; extented_adapter_type</div><div class="ttdoc">The extended response adapter type.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00038">client.hpp:38</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_ac9809aa5e3d1c1e75edb1f01fdd5eb7f"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#ac9809aa5e3d1c1e75edb1f01fdd5eb7f">aedis::resp3::experimental::client::client</a></div><div class="ttdeci">client(net::any_io_executor ex)</div><div class="ttdoc">Client constructor.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00018">client.ipp:18</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_ad82c196c6f659c1216c2c24fe15f98f7"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#ad82c196c6f659c1216c2c24fe15f98f7">aedis::resp3::experimental::client::set_msg_callback</a></div><div class="ttdeci">void set_msg_callback(on_message_type on_msg)</div><div class="ttdoc">Sets the message callback;.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00161">client.ipp:161</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html_ae70d2b1397b4db42a4549c9e15cd06fc"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html#ae70d2b1397b4db42a4549c9e15cd06fc">aedis::resp3::experimental::client::engage</a></div><div class="ttdeci">net::awaitable&lt; void &gt; engage(socket_type socket)</div><div class="ttdoc">Starts communication with Redis.</div><div class="ttdef"><b>Definition:</b> <a href="client_8ipp_source.html#l00166">client.ipp:166</a></div></div>
-<div class="ttc" id="agroup__any_html_ga4ce8d963105f423dc90ebed2eae2d142"><div class="ttname"><a href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a></div><div class="ttdeci">resp3::serializer&lt; std::string, command &gt; make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer for a std::string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00465">command.hpp:465</a></div></div>
-<div class="ttc" id="agroup__any_html_ga5a4b50fdd5f839f149cf7527abc796c2"><div class="ttname"><a href="group__any.html#ga5a4b50fdd5f839f149cf7527abc796c2">aedis::redis::has_push_response</a></div><div class="ttdeci">bool has_push_response(command cmd)</div><div class="ttdoc">Returns true for commands with push response.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2impl_2command_8ipp_source.html#l00231">command.ipp:231</a></div></div>
-<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00026">command.hpp:26</a></div></div>
-<div class="ttc" id="agroup__any_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1serializer.html">serializer&lt;std::string&gt;</a> sr(requests_);</div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> before = requests_.size();</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;      sr.<a class="code" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">push_range2</a>(cmd, begin, end);</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> after = requests_.size();</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;      assert(after - before != 0);</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;      req_info_.front().size += after - before;;</div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;      <span class="keywordflow">if</span> (!<a class="code" href="group__any.html#ga5a4b50fdd5f839f149cf7527abc796c2">has_push_response</a>(cmd)) {</div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;         commands_.push_back(cmd);</div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;         ++req_info_.front().cmds;</div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;      }</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
+<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;      <span class="keywordflow">if</span> (can_write)</div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;         timer_.cancel_one();</div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;   }</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Key, <span class="keyword">class</span> Range&gt;</div>
+<div class="line"><a name="l00175"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1client.html#ac37cacf2f7ea09b61eac5e56a11ea177">  175</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1client.html#ac37cacf2f7ea09b61eac5e56a11ea177">send_range</a>(Command cmd, Key <span class="keyword">const</span>&amp; key, Range <span class="keyword">const</span>&amp; range)</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;   {</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;      <span class="keyword">using</span> std::begin;</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;      <span class="keyword">using</span> std::end;</div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1client.html#a1f5f93fcefc0e52b8c129ee712295bdd">send_range2</a>(cmd, key, begin(range), end(range));</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;   }</div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160; </div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Range&gt;</div>
+<div class="line"><a name="l00193"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1client.html#a6ca56de744e11499ce95c5436fe5c931">  193</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1client.html#a6ca56de744e11499ce95c5436fe5c931">send_range</a>(Command cmd, Range <span class="keyword">const</span>&amp; range)</div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;   {</div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;      <span class="keyword">using</span> std::begin;</div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;      <span class="keyword">using</span> std::end;</div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1client.html#a1f5f93fcefc0e52b8c129ee712295bdd">send_range2</a>(cmd, begin(range), end(range));</div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;   }</div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160; </div>
+<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;   <span class="keyword">template</span> &lt;</div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;     <span class="keyword">class </span>Receiver,</div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;     <span class="keyword">class </span>CompletionToken = default_completion_token_type</div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;   &gt;</div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;   <span class="keyword">auto</span></div>
+<div class="line"><a name="l00237"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1client.html#ab096149d4d39df17f9c4609d142102d3">  237</a></span>&#160;   <a class="code" href="classaedis_1_1generic_1_1client.html#ab096149d4d39df17f9c4609d142102d3">async_run</a>(</div>
+<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;      Receiver&amp; recv,</div>
+<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;      boost::asio::ip::tcp::endpoint ep = {boost::asio::ip::make_address(<span class="stringliteral">&quot;127.0.0.1&quot;</span>), 6379},</div>
+<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;      CompletionToken token = CompletionToken{})</div>
+<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;   {</div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;      endpoint_ = ep;</div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;         &gt;(run_op&lt;client, Receiver&gt;{<span class="keyword">this</span>, &amp;recv}, token, socket_, timer_);</div>
+<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;   }</div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160; </div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U, <span class="keyword">class</span> V&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>read_op;</div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>writer_op;</div>
+<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>read_write_op;</div>
+<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>run_op;</div>
+<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160; </div>
+<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;   <span class="keyword">struct </span>request_info {</div>
+<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;      <span class="comment">// Request size in bytes.</span></div>
+<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160;      std::size_t size = 0;</div>
+<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160; </div>
+<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;      <span class="comment">// The number of commands it contains excluding commands that</span></div>
+<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;      <span class="comment">// have push types as responses, see has_push_response.</span></div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;      std::size_t cmds = 0;</div>
+<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;   };</div>
+<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160; </div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;   <span class="comment">// Buffer used in the read operations.</span></div>
+<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160;   std::string read_buffer_;</div>
+<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160; </div>
+<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;   <span class="comment">// Requests payload.</span></div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;   std::string requests_;</div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160; </div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;   <span class="comment">// The commands contained in the requests.</span></div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;   std::vector&lt;Command&gt; commands_;</div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160; </div>
+<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;   <span class="comment">// Info about the requests.</span></div>
+<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;   std::vector&lt;request_info&gt; req_info_;</div>
+<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160; </div>
+<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160;   <span class="comment">// The stream.</span></div>
+<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;   stream_type socket_;</div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160; </div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;   <span class="comment">// Timer used to inform the write coroutine that it can write the</span></div>
+<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;   <span class="comment">// next message in the output queue.</span></div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;   boost::asio::steady_timer timer_;</div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160; </div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;   <span class="comment">// Redis endpoint.</span></div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;   boost::asio::ip::tcp::endpoint endpoint_;</div>
+<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160; </div>
+<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160;   <span class="keywordtype">bool</span> stop_writer_ = <span class="keyword">false</span>;</div>
+<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160; </div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;   <span class="comment">/* Prepares the back of the queue to receive further commands. </span></div>
+<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;<span class="comment">    *</span></div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;<span class="comment">    * If true is returned the request in the front of the queue can be</span></div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;<span class="comment">    * sent to the server. See async_write_some.</span></div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;<span class="comment">    */</span></div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;   <span class="keywordtype">bool</span> prepare_next()</div>
+<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;   {</div>
+<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;      <span class="keywordflow">if</span> (req_info_.empty()) {</div>
+<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;         req_info_.push_back({});</div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;         <span class="keywordflow">return</span> <span class="keyword">true</span>;</div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;      }</div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160; </div>
+<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;      <span class="keywordflow">if</span> (req_info_.front().size == 0) {</div>
+<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;         <span class="comment">// It has already been written and we are waiting for the</span></div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;         <span class="comment">// responses.</span></div>
+<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;         req_info_.push_back({});</div>
+<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;         <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;      }</div>
+<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160; </div>
+<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;      <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
+<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160;   }</div>
+<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160; </div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;   <span class="comment">// Returns true when the next request can be writen.</span></div>
+<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;   <span class="keywordtype">bool</span> on_cmd(Command)</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;   {</div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;      <span class="comment">// TODO: If the response to a discard is received we have to</span></div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;      <span class="comment">// remove all commands up until multi.</span></div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160; </div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;      assert(!req_info_.empty());</div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;      assert(!commands_.empty());</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160; </div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;      commands_.erase(std::begin(commands_));</div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160; </div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;      <span class="keywordflow">if</span> (--req_info_.front().cmds != 0)</div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;         <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160; </div>
+<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160;      req_info_.erase(std::begin(req_info_));</div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160; </div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;      <span class="keywordflow">return</span> !req_info_.empty();</div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;   }</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160; </div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;   <span class="comment">// Reads messages asynchronously.</span></div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;   <span class="keyword">template</span> &lt;</div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;      <span class="keyword">class </span>Receiver,</div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;      <span class="keyword">class </span>CompletionToken = default_completion_token_type&gt;</div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;   <span class="keyword">auto</span></div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;   async_reader(</div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;      Receiver* recv,</div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;      CompletionToken&amp;&amp; token = default_completion_token_type{})</div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;   {</div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;         &gt;(read_op&lt;client, Receiver, Command&gt;{<span class="keyword">this</span>, recv}, token, socket_);</div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;   }</div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160; </div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;   <span class="keyword">template</span> &lt;</div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;      <span class="keyword">class </span>Receiver,</div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;      <span class="keyword">class </span>CompletionToken = default_completion_token_type&gt;</div>
+<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;   <span class="keyword">auto</span></div>
+<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;   async_writer(</div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;      Receiver* recv,</div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;      CompletionToken&amp;&amp; token = default_completion_token_type{})</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;   {</div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;         &gt;(writer_op&lt;client, Receiver&gt;{<span class="keyword">this</span>, recv}, token, socket_, timer_);</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;   }</div>
+<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160; </div>
+<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;   <span class="keyword">template</span> &lt;</div>
+<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;      <span class="keyword">class </span>Receiver,</div>
+<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;      <span class="keyword">class </span>CompletionToken = default_completion_token_type&gt;</div>
+<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;   <span class="keyword">auto</span></div>
+<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160;   async_read_write(</div>
+<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;      Receiver* recv,</div>
+<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;      CompletionToken&amp;&amp; token = default_completion_token_type{})</div>
+<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;   {</div>
+<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;         &gt;(read_write_op&lt;client, Receiver&gt;{<span class="keyword">this</span>, recv}, token, socket_, timer_);</div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;   }</div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160;};</div>
+<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160; </div>
+<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;} <span class="comment">// generic</span></div>
+<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a></div><div class="ttdoc">A high level Redis client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00040">client.hpp:40</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html_a1f5f93fcefc0e52b8c129ee712295bdd"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html#a1f5f93fcefc0e52b8c129ee712295bdd">aedis::generic::client::send_range2</a></div><div class="ttdeci">void send_range2(Command cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Adds a command to the output command queue.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00105">client.hpp:105</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html_a4c69aab2a471ffe740ae3408c7e54820"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html#a4c69aab2a471ffe740ae3408c7e54820">aedis::generic::client::send_range2</a></div><div class="ttdeci">void send_range2(Command cmd, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Adds a command to the output command queue.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00140">client.hpp:140</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html_a6ca56de744e11499ce95c5436fe5c931"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html#a6ca56de744e11499ce95c5436fe5c931">aedis::generic::client::send_range</a></div><div class="ttdeci">void send_range(Command cmd, Range const &amp;range)</div><div class="ttdoc">Adds a command to the output command queue.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00193">client.hpp:193</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html_a866062190bd85521821e76c8f0002227"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html#a866062190bd85521821e76c8f0002227">aedis::generic::client::send</a></div><div class="ttdeci">void send(Command cmd, Ts const &amp;... args)</div><div class="ttdoc">Adds a command to the output command queue.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00072">client.hpp:72</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html_aa6171a8ffccb10b6c4f0535054685a4d"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html#aa6171a8ffccb10b6c4f0535054685a4d">aedis::generic::client::client</a></div><div class="ttdeci">client(boost::asio::any_io_executor ex)</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00050">client.hpp:50</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html_ab096149d4d39df17f9c4609d142102d3"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html#ab096149d4d39df17f9c4609d142102d3">aedis::generic::client::async_run</a></div><div class="ttdeci">auto async_run(Receiver &amp;recv, boost::asio::ip::tcp::endpoint ep={boost::asio::ip::make_address(&quot;127.0.0.1&quot;), 6379}, CompletionToken token=CompletionToken{})</div><div class="ttdoc">Starts communication with the Redis server asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00237">client.hpp:237</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html_ac37cacf2f7ea09b61eac5e56a11ea177"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html#ac37cacf2f7ea09b61eac5e56a11ea177">aedis::generic::client::send_range</a></div><div class="ttdeci">void send_range(Command cmd, Key const &amp;key, Range const &amp;range)</div><div class="ttdoc">Adds a command to the output command queue.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00175">client.hpp:175</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html_ae898c915f157fed45a17a554d67344af"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html#ae898c915f157fed45a17a554d67344af">aedis::generic::client::get_executor</a></div><div class="ttdeci">auto get_executor()</div><div class="ttdoc">Returns the executor.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00059">client.hpp:59</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html">aedis::generic::serializer</a></div><div class="ttdoc">Creates a Redis request from user data.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00049">serializer.hpp:49</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_a898aefcbbd285fc32a970519e5f50f0f"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f">aedis::generic::serializer::push</a></div><div class="ttdeci">void push(Command cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00079">serializer.hpp:79</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_ada0b3687fc4762363394195047fa1cf7"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">aedis::generic::serializer::push_range2</a></div><div class="ttdeci">void push_range2(Command cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00112">serializer.hpp:112</a></div></div>
+<div class="ttc" id="agroup__any_html_ga5a4b50fdd5f839f149cf7527abc796c2"><div class="ttname"><a href="group__any.html#ga5a4b50fdd5f839f149cf7527abc796c2">aedis::redis::has_push_response</a></div><div class="ttdeci">bool has_push_response(command cmd)</div><div class="ttdoc">Returns true for commands with push response.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

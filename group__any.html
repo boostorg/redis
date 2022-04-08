@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -81,17 +81,17 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A high level redis client.  <a href="classaedis_1_1resp3_1_1experimental_1_1client.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A high level Redis client.  <a href="classaedis_1_1generic_1_1client.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:structaedis_1_1resp3_1_1node"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></td></tr>
+<tr class="memitem:structaedis_1_1resp3_1_1node"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node&lt; String &gt;</a></td></tr>
 <tr class="memdesc:structaedis_1_1resp3_1_1node"><td class="mdescLeft">&#160;</td><td class="mdescRight">A node in the response tree.  <a href="group__any.html#structaedis_1_1resp3_1_1node">More...</a><br /></td></tr>
 <tr class="separator:structaedis_1_1resp3_1_1node"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structaedis_1_1resp3_1_1response__traits.html">aedis::resp3::response_traits&lt; T &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Traits class for response objects.  <a href="structaedis_1_1resp3_1_1response__traits.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structaedis_1_1adapter_1_1response__traits.html">aedis::adapter::response_traits&lt; ResponseType &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Traits class for response objects.  <a href="structaedis_1_1adapter_1_1response__traits.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1serializer.html">aedis::resp3::serializer&lt; Storage, Command &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a Redis request from user data.  <a href="classaedis_1_1resp3_1_1serializer.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1serializer.html">aedis::generic::serializer&lt; Storage &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a Redis request from user data.  <a href="classaedis_1_1generic_1_1serializer.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
@@ -102,9 +102,9 @@ Enumerations</h2></td></tr>
 <tr class="memitem:ga9a6f3d1a56c2d4bd486a92f8d8f90c29"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">aedis::sentinel::command</a> </td></tr>
 <tr class="memdesc:ga9a6f3d1a56c2d4bd486a92f8d8f90c29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sentinel commands.  <a href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">More...</a><br /></td></tr>
 <tr class="separator:ga9a6f3d1a56c2d4bd486a92f8d8f90c29"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaed13f3af3d925df805cf4828ca1b8ee9"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gaed13f3af3d925df805cf4828ca1b8ee9">aedis::resp3::adapter::error</a> </td></tr>
-<tr class="memdesc:gaed13f3af3d925df805cf4828ca1b8ee9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Errors that may occurr when reading a response.  <a href="group__any.html#gaed13f3af3d925df805cf4828ca1b8ee9">More...</a><br /></td></tr>
-<tr class="separator:gaed13f3af3d925df805cf4828ca1b8ee9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0339088c80d8133b76ac4de633e9ddae"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">aedis::adapter::error</a> </td></tr>
+<tr class="memdesc:ga0339088c80d8133b76ac4de633e9ddae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Errors that may occurr when reading a response.  <a href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">More...</a><br /></td></tr>
+<tr class="separator:ga0339088c80d8133b76ac4de633e9ddae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga3e898ab2126407e62f33851b31bee17a"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">aedis::resp3::error</a> </td></tr>
 <tr class="memdesc:ga3e898ab2126407e62f33851b31bee17a"><td class="mdescLeft">&#160;</td><td class="mdescRight">RESP3 parsing errors.  <a href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">More...</a><br /></td></tr>
 <tr class="separator:ga3e898ab2126407e62f33851b31bee17a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -114,13 +114,22 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:ga0848acf8060ffedf036a5ad8d46a0a74"><td class="memItemLeft" align="right" valign="top">auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">aedis::resp3::adapt</a> () noexcept</td></tr>
-<tr class="memdesc:ga0848acf8060ffedf036a5ad8d46a0a74"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a void response adapter.  <a href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">More...</a><br /></td></tr>
-<tr class="separator:ga0848acf8060ffedf036a5ad8d46a0a74"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga317e7d1ab69123804db74a90009aff02"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
-<tr class="memitem:ga317e7d1ab69123804db74a90009aff02"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga317e7d1ab69123804db74a90009aff02">aedis::resp3::adapt</a> (T &amp;t) noexcept</td></tr>
-<tr class="memdesc:ga317e7d1ab69123804db74a90009aff02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adapts user data to read operations.  <a href="group__any.html#ga317e7d1ab69123804db74a90009aff02">More...</a><br /></td></tr>
-<tr class="separator:ga317e7d1ab69123804db74a90009aff02"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1e40a9e5ab61e7980b4be74bf0d4943d"><td class="memItemLeft" align="right" valign="top">auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a> () noexcept</td></tr>
+<tr class="memdesc:ga1e40a9e5ab61e7980b4be74bf0d4943d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a void response adapter.  <a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">More...</a><br /></td></tr>
+<tr class="separator:ga1e40a9e5ab61e7980b4be74bf0d4943d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad80df0d37bdb529b41e5a09a572edacf"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:gad80df0d37bdb529b41e5a09a572edacf"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gad80df0d37bdb529b41e5a09a572edacf">aedis::adapter::adapt</a> (T &amp;t) noexcept</td></tr>
+<tr class="memdesc:gad80df0d37bdb529b41e5a09a572edacf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adapts user data to read operations.  <a href="group__any.html#gad80df0d37bdb529b41e5a09a572edacf">More...</a><br /></td></tr>
+<tr class="separator:gad80df0d37bdb529b41e5a09a572edacf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga75185351a5ffd4123be907f8d659d2fb"><td class="memTemplParams" colspan="2">template&lt;class Request , class T &gt; </td></tr>
+<tr class="memitem:ga75185351a5ffd4123be907f8d659d2fb"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">aedis::resp3::add_bulk</a> (Request &amp;to, T const &amp;data)</td></tr>
+<tr class="memdesc:ga75185351a5ffd4123be907f8d659d2fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a rep3 bulk to the request.  <a href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">More...</a><br /></td></tr>
+<tr class="separator:ga75185351a5ffd4123be907f8d659d2fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac8fcdf9212230c9cf05a01097e9730af"><td class="memTemplParams" colspan="2"><a id="gac8fcdf9212230c9cf05a01097e9730af"></a>
+template&lt;class Request &gt; </td></tr>
+<tr class="memitem:gac8fcdf9212230c9cf05a01097e9730af"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gac8fcdf9212230c9cf05a01097e9730af">aedis::resp3::add_header</a> (Request &amp;to, std::size_t size)</td></tr>
+<tr class="memdesc:gac8fcdf9212230c9cf05a01097e9730af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a resp3 header to the store to. <br /></td></tr>
+<tr class="separator:gac8fcdf9212230c9cf05a01097e9730af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0092190b76e640757b1964016e5a97a4"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga0092190b76e640757b1964016e5a97a4">aedis::resp3::element_multiplicity</a> (<a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t)</td></tr>
 <tr class="memdesc:ga0092190b76e640757b1964016e5a97a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the element multilicity.  <a href="group__any.html#ga0092190b76e640757b1964016e5a97a4">More...</a><br /></td></tr>
 <tr class="separator:ga0092190b76e640757b1964016e5a97a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -135,41 +144,53 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="memitem:ga0de5e7e429d70f35ec2bcf143f73ed07"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">aedis::resp3::is_aggregate</a> (<a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t)</td></tr>
 <tr class="memdesc:ga0de5e7e429d70f35ec2bcf143f73ed07"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns true if the data type is an aggregate.  <a href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">More...</a><br /></td></tr>
 <tr class="separator:ga0de5e7e429d70f35ec2bcf143f73ed07"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga4928ed04c49c9118a31af8fd0eb6f4c5"><td class="memItemLeft" align="right" valign="top"><a id="ga4928ed04c49c9118a31af8fd0eb6f4c5"></a>
-std::error_code&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga4928ed04c49c9118a31af8fd0eb6f4c5">aedis::resp3::make_error_code</a> (<a class="el" href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">error</a> e)</td></tr>
-<tr class="memdesc:ga4928ed04c49c9118a31af8fd0eb6f4c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts an error in an std::error_code object. <br /></td></tr>
-<tr class="separator:ga4928ed04c49c9118a31af8fd0eb6f4c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga4ce8d963105f423dc90ebed2eae2d142"><td class="memTemplParams" colspan="2">template&lt;class CharT , class Traits , class Allocator &gt; </td></tr>
-<tr class="memitem:ga4ce8d963105f423dc90ebed2eae2d142"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classaedis_1_1resp3_1_1serializer.html">resp3::serializer</a>&lt; std::string, <a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a> (std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</td></tr>
-<tr class="memdesc:ga4ce8d963105f423dc90ebed2eae2d142"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a serializer for a <code>std::string</code>.  <a href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">More...</a><br /></td></tr>
-<tr class="separator:ga4ce8d963105f423dc90ebed2eae2d142"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaddfc0ad8a24082be2438598d8e47b111"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gaddfc0ad8a24082be2438598d8e47b111">aedis::resp3::operator&lt;&lt;</a> (std::ostream &amp;os, <a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a> const  &amp;o)</td></tr>
-<tr class="memdesc:gaddfc0ad8a24082be2438598d8e47b111"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the node to the stream.  <a href="group__any.html#gaddfc0ad8a24082be2438598d8e47b111">More...</a><br /></td></tr>
-<tr class="separator:gaddfc0ad8a24082be2438598d8e47b111"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga49e05ee6be884de34a77c00cd533755d"><td class="memItemLeft" align="right" valign="top"><a id="ga49e05ee6be884de34a77c00cd533755d"></a>
-std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga49e05ee6be884de34a77c00cd533755d">aedis::resp3::operator&lt;&lt;</a> (std::ostream &amp;os, std::vector&lt; <a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a> &gt; const  &amp;r)</td></tr>
-<tr class="memdesc:ga49e05ee6be884de34a77c00cd533755d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the response to the output stream. <br /></td></tr>
-<tr class="separator:ga49e05ee6be884de34a77c00cd533755d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa03a8261dfb07d1f7cbc958885fd34a7"><td class="memItemLeft" align="right" valign="top"><a id="gaa03a8261dfb07d1f7cbc958885fd34a7"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gaa03a8261dfb07d1f7cbc958885fd34a7">aedis::resp3::operator==</a> (<a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a> const  &amp;a, <a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a> const  &amp;b)</td></tr>
-<tr class="memdesc:gaa03a8261dfb07d1f7cbc958885fd34a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compares a node for equality. <br /></td></tr>
-<tr class="separator:gaa03a8261dfb07d1f7cbc958885fd34a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga7a8cc80460052926147f71ace47dc3ed"><td class="memItemLeft" align="right" valign="top">char const  *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">aedis::redis::to_string</a> (<a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> c)</td></tr>
-<tr class="memdesc:ga7a8cc80460052926147f71ace47dc3ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a command to a string.  <a href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">More...</a><br /></td></tr>
-<tr class="separator:ga7a8cc80460052926147f71ace47dc3ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga895b580f353e1c5996789078c45f5e27"><td class="memItemLeft" align="right" valign="top">char const  *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga895b580f353e1c5996789078c45f5e27">aedis::sentinel::to_string</a> (<a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> c)</td></tr>
-<tr class="memdesc:ga895b580f353e1c5996789078c45f5e27"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a sentinel command to a string.  <a href="group__any.html#ga895b580f353e1c5996789078c45f5e27">More...</a><br /></td></tr>
-<tr class="separator:ga895b580f353e1c5996789078c45f5e27"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga04c70975d4c4fd5a88d6268cb2d637d3"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga04c70975d4c4fd5a88d6268cb2d637d3">aedis::resp3::to_string</a> (<a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a> const  &amp;obj)</td></tr>
-<tr class="memdesc:ga04c70975d4c4fd5a88d6268cb2d637d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the node to a string.  <a href="group__any.html#ga04c70975d4c4fd5a88d6268cb2d637d3">More...</a><br /></td></tr>
-<tr class="separator:ga04c70975d4c4fd5a88d6268cb2d637d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga2cf9208720b68ee967175008c6120476"><td class="memItemLeft" align="right" valign="top"><a id="ga2cf9208720b68ee967175008c6120476"></a>
-std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga2cf9208720b68ee967175008c6120476">aedis::resp3::to_string</a> (std::vector&lt; <a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a> &gt; const  &amp;vec)</td></tr>
-<tr class="memdesc:ga2cf9208720b68ee967175008c6120476"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the response to the output stream. <br /></td></tr>
-<tr class="separator:ga2cf9208720b68ee967175008c6120476"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga033828348f0425fba06281dcdd7d90ed"><td class="memItemLeft" align="right" valign="top">char const  *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga033828348f0425fba06281dcdd7d90ed">aedis::resp3::to_string</a> (<a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t)</td></tr>
-<tr class="memdesc:ga033828348f0425fba06281dcdd7d90ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the string representation of the type.  <a href="group__any.html#ga033828348f0425fba06281dcdd7d90ed">More...</a><br /></td></tr>
-<tr class="separator:ga033828348f0425fba06281dcdd7d90ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8027e36a9d9120abfbf350046845b081"><td class="memItemLeft" align="right" valign="top"><a id="ga8027e36a9d9120abfbf350046845b081"></a>
+boost::system::error_code&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga8027e36a9d9120abfbf350046845b081">aedis::adapter::make_error_code</a> (<a class="el" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">error</a> e)</td></tr>
+<tr class="memdesc:ga8027e36a9d9120abfbf350046845b081"><td class="mdescLeft">&#160;</td><td class="mdescRight">todo <br /></td></tr>
+<tr class="separator:ga8027e36a9d9120abfbf350046845b081"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad4eae5b940fca4814383e6b8b4a9819c"><td class="memItemLeft" align="right" valign="top"><a id="gad4eae5b940fca4814383e6b8b4a9819c"></a>
+boost::system::error_code&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gad4eae5b940fca4814383e6b8b4a9819c">aedis::resp3::make_error_code</a> (<a class="el" href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">error</a> e)</td></tr>
+<tr class="memdesc:gad4eae5b940fca4814383e6b8b4a9819c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts an error in an boost::system::error_code object. <br /></td></tr>
+<tr class="separator:gad4eae5b940fca4814383e6b8b4a9819c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga770ffc8e5f9c128a510ec85c8b38e9b9"><td class="memItemLeft" align="right" valign="top"><a id="ga770ffc8e5f9c128a510ec85c8b38e9b9"></a>
+boost::system::error_condition&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga770ffc8e5f9c128a510ec85c8b38e9b9">aedis::adapter::make_error_condition</a> (<a class="el" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">error</a> e)</td></tr>
+<tr class="memdesc:ga770ffc8e5f9c128a510ec85c8b38e9b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">todo <br /></td></tr>
+<tr class="separator:ga770ffc8e5f9c128a510ec85c8b38e9b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga4fb824d5c81de3156e92a8a140b0ee65"><td class="memItemLeft" align="right" valign="top"><a id="ga4fb824d5c81de3156e92a8a140b0ee65"></a>
+boost::system::error_condition&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga4fb824d5c81de3156e92a8a140b0ee65">aedis::resp3::make_error_condition</a> (<a class="el" href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">error</a> e)</td></tr>
+<tr class="memdesc:ga4fb824d5c81de3156e92a8a140b0ee65"><td class="mdescLeft">&#160;</td><td class="mdescRight">todo <br /></td></tr>
+<tr class="separator:ga4fb824d5c81de3156e92a8a140b0ee65"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabc1edbc325e4f4f087248225eee6f64f"><td class="memTemplParams" colspan="2">template&lt;class CharT , class Traits , class Allocator &gt; </td></tr>
+<tr class="memitem:gabc1edbc325e4f4f087248225eee6f64f"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classaedis_1_1generic_1_1serializer.html">serializer</a>&lt; std::basic_string&lt; CharT, Traits, Allocator &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gabc1edbc325e4f4f087248225eee6f64f">aedis::generic::make_serializer</a> (std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</td></tr>
+<tr class="memdesc:gabc1edbc325e4f4f087248225eee6f64f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a serializer.  <a href="group__any.html#gabc1edbc325e4f4f087248225eee6f64f">More...</a><br /></td></tr>
+<tr class="separator:gabc1edbc325e4f4f087248225eee6f64f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabe641c301490af2c6b149cfabde5f5eb"><td class="memTemplParams" colspan="2">template&lt;class String &gt; </td></tr>
+<tr class="memitem:gabe641c301490af2c6b149cfabde5f5eb"><td class="memTemplItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gabe641c301490af2c6b149cfabde5f5eb">aedis::resp3::operator&lt;&lt;</a> (std::ostream &amp;os, <a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;o)</td></tr>
+<tr class="memdesc:gabe641c301490af2c6b149cfabde5f5eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the node to the stream.  <a href="group__any.html#gabe641c301490af2c6b149cfabde5f5eb">More...</a><br /></td></tr>
+<tr class="separator:gabe641c301490af2c6b149cfabde5f5eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa8165b0c24fa10ed086b4ec8912cdd6b"><td class="memTemplParams" colspan="2"><a id="gaa8165b0c24fa10ed086b4ec8912cdd6b"></a>
+template&lt;class String &gt; </td></tr>
+<tr class="memitem:gaa8165b0c24fa10ed086b4ec8912cdd6b"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gaa8165b0c24fa10ed086b4ec8912cdd6b">aedis::resp3::operator==</a> (<a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;a, <a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;b)</td></tr>
+<tr class="memdesc:gaa8165b0c24fa10ed086b4ec8912cdd6b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compares a node for equality. <br /></td></tr>
+<tr class="separator:gaa8165b0c24fa10ed086b4ec8912cdd6b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga4e21de126538a37995f90914afd51447"><td class="memTemplParams" colspan="2"><a id="ga4e21de126538a37995f90914afd51447"></a>
+template&lt;class Request &gt; </td></tr>
+<tr class="memitem:ga4e21de126538a37995f90914afd51447"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga4e21de126538a37995f90914afd51447">aedis::resp3::to_bulk</a> (Request &amp;to, boost::string_view data)</td></tr>
+<tr class="memdesc:ga4e21de126538a37995f90914afd51447"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds data to the request. <br /></td></tr>
+<tr class="separator:ga4e21de126538a37995f90914afd51447"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0bf1d33ed9519263e9760aa372879bc9"><td class="memItemLeft" align="right" valign="top">char const  *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">aedis::redis::to_string</a> (<a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> c)</td></tr>
+<tr class="memdesc:ga0bf1d33ed9519263e9760aa372879bc9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a command to a string.  <a href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">More...</a><br /></td></tr>
+<tr class="separator:ga0bf1d33ed9519263e9760aa372879bc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga61f4592d67beb56115b04cd4d5ab9c8f"><td class="memItemLeft" align="right" valign="top">char const  *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">aedis::sentinel::to_string</a> (<a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> c)</td></tr>
+<tr class="memdesc:ga61f4592d67beb56115b04cd4d5ab9c8f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a sentinel command to a string.  <a href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">More...</a><br /></td></tr>
+<tr class="separator:ga61f4592d67beb56115b04cd4d5ab9c8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1fd47bfcbb0461e09ec55ea767454ce5"><td class="memTemplParams" colspan="2">template&lt;class String &gt; </td></tr>
+<tr class="memitem:ga1fd47bfcbb0461e09ec55ea767454ce5"><td class="memTemplItemLeft" align="right" valign="top">std::string&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga1fd47bfcbb0461e09ec55ea767454ce5">aedis::resp3::to_string</a> (<a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;in)</td></tr>
+<tr class="memdesc:ga1fd47bfcbb0461e09ec55ea767454ce5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the node to a string.  <a href="group__any.html#ga1fd47bfcbb0461e09ec55ea767454ce5">More...</a><br /></td></tr>
+<tr class="separator:ga1fd47bfcbb0461e09ec55ea767454ce5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae50b66df4a64aef687a28d38d6c15992"><td class="memItemLeft" align="right" valign="top">char const  *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gae50b66df4a64aef687a28d38d6c15992">aedis::resp3::to_string</a> (<a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t)</td></tr>
+<tr class="memdesc:gae50b66df4a64aef687a28d38d6c15992"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the string representation of the type.  <a href="group__any.html#gae50b66df4a64aef687a28d38d6c15992">More...</a><br /></td></tr>
+<tr class="separator:gae50b66df4a64aef687a28d38d6c15992"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <hr/><h2 class="groupheader">Class Documentation</h2>
@@ -184,36 +205,46 @@ std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
         </tr>
       </table>
 </div><div class="memdoc">
-<div class="textblock"><p>A node in the response tree. </p>
-<p>Redis responses are the pre-order view of the response tree (see <a href="https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR">https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR</a>). </p>
+<div class="textblock"><h3>template&lt;class String&gt;<br />
+struct aedis::resp3::node&lt; String &gt;</h3>
 
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00024">24</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
+<p>A node in the response tree. </p>
+<p>Redis responses are the pre-order view of the response tree (see <a href="https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR">https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR</a>).</p>
+<p>The node class represent one element in the response tree. The string type is a template give more flexibility, for example</p>
+<ul>
+<li><code>boost::string_view</code> </li>
+<li><code>std::string</code> </li>
+<li><code>boost::static_string</code> </li>
+</ul>
+<dl class="section remark"><dt>Remarks</dt><dd>Any Redis response can be received in an array of nodes, for example <code>std::vector&lt;node&lt;std::string&gt;&gt;</code>. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00035">35</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 </div><table class="fieldtable">
 <tr><th colspan="3">Class Members</th></tr>
 <tr><td class="fieldtype">
-<a id="ab6fe75c099e713bee0559ac8b6ab39c7"></a>size_t</td>
+<a id="a49cc8e665a20c071d7355c230f1268ac"></a>size_t</td>
 <td class="fieldname">
 aggregate_size</td>
 <td class="fielddoc">
 The number of elements of an aggregate. </td></tr>
 <tr><td class="fieldtype">
-<a id="a6d660ff58753ff85d220827c2dd12e0b"></a>string</td>
-<td class="fieldname">
-data</td>
-<td class="fielddoc">
-The actual data. For aggregate data types this is always empty. </td></tr>
-<tr><td class="fieldtype">
-<a id="a79fabd27fd45e60e379bb3ca88f4e9e5"></a><a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a></td>
+<a id="aae147962496e8ab3f52b2d8575307a5a"></a><a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a></td>
 <td class="fieldname">
 data_type</td>
 <td class="fielddoc">
 The RESP3 type of the data in this node. </td></tr>
 <tr><td class="fieldtype">
-<a id="a989d46048db160ff83c9f2ccebc17685"></a>size_t</td>
+<a id="a829e2bf6551568a60406fad87e44804d"></a>size_t</td>
 <td class="fieldname">
 depth</td>
 <td class="fielddoc">
 The depth of this node in the response tree. </td></tr>
+<tr><td class="fieldtype">
+<a id="a923b33182800f271bad3155a36231da3"></a>String</td>
+<td class="fieldname">
+value</td>
+<td class="fielddoc">
+The actual data. For aggregate types this is always empty. </td></tr>
 </table>
 
 </div>
@@ -293,7 +324,7 @@ The depth of this node in the response tree. </td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cad2bcc286168bf8e040885c5cb7b6df13"></a>del&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/del">https://redis.io/commands/del</a> </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca70f68bb2f748b85de6526bfe236ea1e9"></a>discard&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/discard">https://redis.io/commands/discard</a> </p>
+<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca70f68bb2f748b85de6526bfe236ea1e9"></a>discard&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/discard">https://redis.io/commands/discard</a> (not supported yet) </p>
 </td></tr>
 <tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab9ef165b255673dde47bff07f4390fb1"></a>dump&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/dump">https://redis.io/commands/dump</a> </p>
 </td></tr>
@@ -651,11 +682,11 @@ The depth of this node in the response tree. </td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca47eac7949818a87511120d27edf564b2"></a>zunionstore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zunionstore">https://redis.io/commands/zunionstore</a> </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caad921d60486366258809553a3db49a4a"></a>unknown&#160;</td><td class="fielddoc"><p>Unknown/invalid command. </p>
+<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cafedb2d84cafe20862cb4399751a8a7e3"></a>invalid&#160;</td><td class="fielddoc"><p>Invalid command. </p>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="redis_2command_8hpp_source.html#l00026">26</a> of file <a class="el" href="redis_2command_8hpp_source.html">command.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="redis_2command_8hpp_source.html#l00024">24</a> of file <a class="el" href="redis_2command_8hpp_source.html">command.hpp</a>.</p>
 
 </div>
 </div>
@@ -713,7 +744,7 @@ The depth of this node in the response tree. </td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29aa013658e30387f7a60cdaf0acf26850d"></a>unsubscribe&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/unsubscribe">https://redis.io/commands/unsubscribe</a> </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29aad921d60486366258809553a3db49a4a"></a>unknown&#160;</td><td class="fielddoc"><p>Unknown/invalid command. </p>
+<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29afedb2d84cafe20862cb4399751a8a7e3"></a>invalid&#160;</td><td class="fielddoc"><p>Unknown/invalid command. </p>
 </td></tr>
 </table>
 
@@ -721,8 +752,8 @@ The depth of this node in the response tree. </td></tr>
 
 </div>
 </div>
-<a id="gaed13f3af3d925df805cf4828ca1b8ee9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaed13f3af3d925df805cf4828ca1b8ee9">&#9670;&nbsp;</a></span>error <span class="overload">[1/2]</span></h2>
+<a id="ga0339088c80d8133b76ac4de633e9ddae"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga0339088c80d8133b76ac4de633e9ddae">&#9670;&nbsp;</a></span>error <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -731,7 +762,7 @@ The depth of this node in the response tree. </td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">enum <a class="el" href="group__any.html#gaed13f3af3d925df805cf4828ca1b8ee9">aedis::resp3::adapter::error</a></td>
+          <td class="memname">enum <a class="el" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">aedis::adapter::error</a></td>
         </tr>
       </table>
   </td>
@@ -743,21 +774,27 @@ The depth of this node in the response tree. </td></tr>
 
 <p>Errors that may occurr when reading a response. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggaed13f3af3d925df805cf4828ca1b8ee9a3059263deaffd09ba4c0577fa6434741"></a>expects_simple_type&#160;</td><td class="fielddoc"><p>Expects a simple RESP3 type but got an aggregate. </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea3059263deaffd09ba4c0577fa6434741"></a>expects_simple_type&#160;</td><td class="fielddoc"><p>Expects a simple RESP3 type but got an aggregate. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggaed13f3af3d925df805cf4828ca1b8ee9a8fe54d56d0faccaf30b0cd9c170e026c"></a>nested_unsupported&#160;</td><td class="fielddoc"><p>Nested response not supported. </p>
+<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaeaf1c0c02d271aca35e613ef87e57689ea"></a>expects_aggregate&#160;</td><td class="fielddoc"><p>Expects aggregate type. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggaed13f3af3d925df805cf4828ca1b8ee9aae00ce17a8a0eaf50aba51f876c2d8b2"></a>simple_error&#160;</td><td class="fielddoc"><p>Got RESP3 simple error. </p>
+<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea4d29f8cb503ac6d78dde2b56863b5d2c"></a>expects_map_like_aggregate&#160;</td><td class="fielddoc"><p>Expects a map but got other aggregate. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggaed13f3af3d925df805cf4828ca1b8ee9ab7f2a05d1d80e9f8a04926d67dd1aba5"></a>blob_error&#160;</td><td class="fielddoc"><p>Got RESP3 blob_error. </p>
+<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea0092eeb2e220de5f6d3a63833a14ff7d"></a>expects_set_aggregate&#160;</td><td class="fielddoc"><p>Expects a set aggregate but got something else. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggaed13f3af3d925df805cf4828ca1b8ee9a4edbb9f23b0b4ae74d85e7d2359061a8"></a>incompatible_tuple_size&#160;</td><td class="fielddoc"><p>The tuple used as response has incompatible size. </p>
+<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea282e8f3cb4ec85eb2efac03801229e11"></a>nested_aggregate_unsupported&#160;</td><td class="fielddoc"><p>Nested response not supported. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggaed13f3af3d925df805cf4828ca1b8ee9a37a6259cc0c1dae299a7866489dff0bd"></a>null&#160;</td><td class="fielddoc"><p>Got RESP3 null type. </p>
+<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaeaae00ce17a8a0eaf50aba51f876c2d8b2"></a>simple_error&#160;</td><td class="fielddoc"><p>Got RESP3 simple error. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaeab7f2a05d1d80e9f8a04926d67dd1aba5"></a>blob_error&#160;</td><td class="fielddoc"><p>Got RESP3 blob_error. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea18a0cd8e67dab1a91bce2ee6ce1671c9"></a>incompatible_size&#160;</td><td class="fielddoc"><p>Aggregate container has incompatible size. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea37a6259cc0c1dae299a7866489dff0bd"></a>null&#160;</td><td class="fielddoc"><p>Got RESP3 null type. </p>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="adapter_2error_8hpp_source.html#l00012">12</a> of file <a class="el" href="adapter_2error_8hpp_source.html">error.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="adapter_2error_8hpp_source.html#l00018">18</a> of file <a class="el" href="adapter_2error_8hpp_source.html">error.hpp</a>.</p>
 
 </div>
 </div>
@@ -791,9 +828,13 @@ The depth of this node in the response tree. </td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aaebbb4163ab76bebc60dfcd634f368dc2"></a>exceeeds_max_nested_depth&#160;</td><td class="fielddoc"><p>The maximum depth of a nested response was exceeded. </p>
 </td></tr>
+<tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aa5fc45aedad26336422187e290f356194"></a>unexpected_bool_value&#160;</td><td class="fielddoc"><p>Unexpected bool value. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aad284b9152cacd1bb82681d0a154dac79"></a>empty_field&#160;</td><td class="fielddoc"><p>Expected field value is empty. </p>
+</td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="error_8hpp_source.html#l00013">13</a> of file <a class="el" href="error_8hpp_source.html">error.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="resp3_2error_8hpp_source.html#l00018">18</a> of file <a class="el" href="resp3_2error_8hpp_source.html">error.hpp</a>.</p>
 
 </div>
 </div>
@@ -861,8 +902,8 @@ The depth of this node in the response tree. </td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="ga0848acf8060ffedf036a5ad8d46a0a74"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga0848acf8060ffedf036a5ad8d46a0a74">&#9670;&nbsp;</a></span>adapt() <span class="overload">[1/2]</span></h2>
+<a id="ga1e40a9e5ab61e7980b4be74bf0d4943d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1e40a9e5ab61e7980b4be74bf0d4943d">&#9670;&nbsp;</a></span>adapt() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -871,7 +912,7 @@ The depth of this node in the response tree. </td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">auto aedis::resp3::adapt </td>
+          <td class="memname">auto aedis::adapter::adapt </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -885,17 +926,17 @@ The depth of this node in the response tree. </td></tr>
 </div><div class="memdoc">
 
 <p>Creates a void response adapter. </p>
-<p>The adapter returned by this function ignores responses and is useful to avoid wasting time with responses which the user is insterested in.</p>
+<p>The adapter returned by this function ignores responses and is useful to avoid wasting time with responses on which the user is not insterested in.</p>
 <p>Example usage:</p>
-<div class="fragment"><div class="line">co_await async_read(socket, buffer, <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">adapt</a>());</div>
-<div class="ttc" id="agroup__any_html_ga0848acf8060ffedf036a5ad8d46a0a74"><div class="ttname"><a href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">aedis::resp3::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a void response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00029">adapt.hpp:29</a></div></div>
+<div class="fragment"><div class="line">co_await async_read(socket, buffer, <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>());</div>
+<div class="ttc" id="agroup__any_html_ga1e40a9e5ab61e7980b4be74bf0d4943d"><div class="ttname"><a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a void response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00029">adapt.hpp:29</a></div></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="adapt_8hpp_source.html#l00029">29</a> of file <a class="el" href="adapt_8hpp_source.html">adapt.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ga317e7d1ab69123804db74a90009aff02"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga317e7d1ab69123804db74a90009aff02">&#9670;&nbsp;</a></span>adapt() <span class="overload">[2/2]</span></h2>
+<a id="gad80df0d37bdb529b41e5a09a572edacf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gad80df0d37bdb529b41e5a09a572edacf">&#9670;&nbsp;</a></span>adapt() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -906,7 +947,7 @@ template&lt;class T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">auto aedis::resp3::adapt </td>
+          <td class="memname">auto aedis::adapter::adapt </td>
           <td>(</td>
           <td class="paramtype">T &amp;&#160;</td>
           <td class="paramname"><em>t</em></td><td>)</td>
@@ -921,25 +962,10 @@ template&lt;class T &gt; </div>
 </div><div class="memdoc">
 
 <p>Adapts user data to read operations. </p>
-<p>For example The following types are supported.</p>
-<ul>
-<li>Integer data types e.g. <code>int</code>, <code>unsigned</code>, etc.</li>
-<li><code>std::string</code></li>
-</ul>
-<p>We also support the following C++ containers</p>
-<ul>
-<li><code>std::vector&lt;T&gt;</code>. Can be used with any RESP3 aggregate type.</li>
-<li><code>std::deque&lt;T&gt;</code>. Can be used with any RESP3 aggregate type.</li>
-<li><code>std::list&lt;T&gt;</code>. Can be used with any RESP3 aggregate type.</li>
-<li><code>std::set&lt;T&gt;</code>. Can be used with RESP3 set type.</li>
-<li><code>std::unordered_set&lt;T&gt;</code>. Can be used with RESP3 set type.</li>
-<li><code>std::map&lt;T&gt;</code>. Can be used with RESP3 hash type.</li>
-<li><code>std::unordered_map&lt;T&gt;</code>. Can be used with RESP3 hash type.</li>
-</ul>
-<p>All these types can be wrapped in an <code>std::optional&lt;T&gt;</code>. This function also support <code>std::tuple</code> to read the response to tuples. At the moment this feature supports only transactions that contain simple types or aggregates that don't contain aggregates themselves (as in most cases).</p>
+<p>All STL containers, <code>std::tuple</code> and built-in types are supported and can be used in conjunction with <code>boost::optional&lt;T&gt;</code>.</p>
 <p>Example usage:</p>
 <div class="fragment"><div class="line">std::unordered_map&lt;std::string, std::string&gt; cont;</div>
-<div class="line">co_await async_read(socket, buffer, <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">adapt</a>(cont));</div>
+<div class="line">co_await async_read(socket, buffer, <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(cont));</div>
 </div><!-- fragment --><p>For a transaction</p>
 <div class="fragment"><div class="line">sr.push(command::multi);</div>
 <div class="line">sr.push(command::ping, ...);</div>
@@ -953,9 +979,44 @@ template&lt;class T &gt; </div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Reads the response to a transaction</span></div>
 <div class="line">std::tuple&lt;std::string, int, int, std::vector&lt;std::string&gt;, <span class="keywordtype">int</span>&gt; execs;</div>
-<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">adapt</a>(execs));</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(execs));</div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="adapt_8hpp_source.html#l00090">90</a> of file <a class="el" href="adapt_8hpp_source.html">adapt.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="adapt_8hpp_source.html#l00064">64</a> of file <a class="el" href="adapt_8hpp_source.html">adapt.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ga75185351a5ffd4123be907f8d659d2fb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga75185351a5ffd4123be907f8d659d2fb">&#9670;&nbsp;</a></span>add_bulk()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Request , class T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void aedis::resp3::add_bulk </td>
+          <td>(</td>
+          <td class="paramtype">Request &amp;&#160;</td>
+          <td class="paramname"><em>to</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T const &amp;&#160;</td>
+          <td class="paramname"><em>data</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Adds a rep3 bulk to the request. </p>
+<p>This function adds <code>data</code> as a bulk string to the request <code>to</code>. </p>
+
+<p class="definition">Definition at line <a class="el" href="compose_8hpp_source.html#l00102">102</a> of file <a class="el" href="compose_8hpp_source.html">compose.hpp</a>.</p>
 
 </div>
 </div>
@@ -984,8 +1045,6 @@ template&lt;class T &gt; </div>
 </dl>
 <p>For type map and attribute this value is 2, all other types have 1. </p>
 
-<p class="definition">Definition at line <a class="el" href="type_8ipp_source.html#l00058">58</a> of file <a class="el" href="type_8ipp_source.html">type.ipp</a>.</p>
-
 </div>
 </div>
 <a id="ga0de5e7e429d70f35ec2bcf143f73ed07"></a>
@@ -1012,12 +1071,10 @@ template&lt;class T &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="type_8ipp_source.html#l00046">46</a> of file <a class="el" href="type_8ipp_source.html">type.ipp</a>.</p>
-
 </div>
 </div>
-<a id="ga4ce8d963105f423dc90ebed2eae2d142"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga4ce8d963105f423dc90ebed2eae2d142">&#9670;&nbsp;</a></span>make_serializer()</h2>
+<a id="gabc1edbc325e4f4f087248225eee6f64f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabc1edbc325e4f4f087248225eee6f64f">&#9670;&nbsp;</a></span>make_serializer()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1025,7 +1082,7 @@ template&lt;class T &gt; </div>
 template&lt;class CharT , class Traits , class Allocator &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classaedis_1_1resp3_1_1serializer.html">resp3::serializer</a>&lt;std::string, <a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a>&gt; aedis::redis::make_serializer </td>
+          <td class="memname"><a class="el" href="classaedis_1_1generic_1_1serializer.html">serializer</a>&lt;std::basic_string&lt;CharT, Traits, Allocator&gt; &gt; aedis::generic::make_serializer </td>
           <td>(</td>
           <td class="paramtype">std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;&#160;</td>
           <td class="paramname"><em>storage</em></td><td>)</td>
@@ -1034,7 +1091,7 @@ template&lt;class CharT , class Traits , class Allocator &gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Creates a serializer for a <code>std::string</code>. </p>
+<p>Creates a serializer. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">storage</td><td>The string. </td></tr>
@@ -1042,18 +1099,20 @@ template&lt;class CharT , class Traits , class Allocator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="redis_2command_8hpp_source.html#l00465">465</a> of file <a class="el" href="redis_2command_8hpp_source.html">command.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00194">194</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
 
 </div>
 </div>
-<a id="gaddfc0ad8a24082be2438598d8e47b111"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaddfc0ad8a24082be2438598d8e47b111">&#9670;&nbsp;</a></span>operator&lt;&lt;()</h2>
+<a id="gabe641c301490af2c6b149cfabde5f5eb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabe641c301490af2c6b149cfabde5f5eb">&#9670;&nbsp;</a></span>operator&lt;&lt;()</h2>
 
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;class String &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">std::ostream &amp; aedis::resp3::operator&lt;&lt; </td>
+          <td class="memname">std::ostream&amp; aedis::resp3::operator&lt;&lt; </td>
           <td>(</td>
           <td class="paramtype">std::ostream &amp;&#160;</td>
           <td class="paramname"><em>os</em>, </td>
@@ -1061,7 +1120,7 @@ template&lt;class CharT , class Traits , class Allocator &gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a> const &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;&#160;</td>
           <td class="paramname"><em>o</em>&#160;</td>
         </tr>
         <tr>
@@ -1075,18 +1134,18 @@ template&lt;class CharT , class Traits , class Allocator &gt; </div>
 <p>Writes the node to the stream. </p>
 <p>NOTE: Binary data is not converted to text. </p>
 
-<p class="definition">Definition at line <a class="el" href="node_8ipp_source.html#l00038">38</a> of file <a class="el" href="node_8ipp_source.html">node.ipp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00088">88</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ga7a8cc80460052926147f71ace47dc3ed"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga7a8cc80460052926147f71ace47dc3ed">&#9670;&nbsp;</a></span>to_string() <span class="overload">[1/4]</span></h2>
+<a id="ga0bf1d33ed9519263e9760aa372879bc9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga0bf1d33ed9519263e9760aa372879bc9">&#9670;&nbsp;</a></span>to_string() <span class="overload">[1/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">char const  * aedis::redis::to_string </td>
+          <td class="memname">char const* aedis::redis::to_string </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a>&#160;</td>
           <td class="paramname"><em>c</em></td><td>)</td>
@@ -1103,18 +1162,16 @@ template&lt;class CharT , class Traits , class Allocator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="redis_2impl_2command_8ipp_source.html#l00013">13</a> of file <a class="el" href="redis_2impl_2command_8ipp_source.html">command.ipp</a>.</p>
-
 </div>
 </div>
-<a id="ga895b580f353e1c5996789078c45f5e27"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga895b580f353e1c5996789078c45f5e27">&#9670;&nbsp;</a></span>to_string() <span class="overload">[2/4]</span></h2>
+<a id="ga61f4592d67beb56115b04cd4d5ab9c8f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga61f4592d67beb56115b04cd4d5ab9c8f">&#9670;&nbsp;</a></span>to_string() <span class="overload">[2/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">char const  * aedis::sentinel::to_string </td>
+          <td class="memname">char const* aedis::sentinel::to_string </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a>&#160;</td>
           <td class="paramname"><em>c</em></td><td>)</td>
@@ -1131,21 +1188,21 @@ template&lt;class CharT , class Traits , class Allocator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="sentinel_2impl_2command_8ipp_source.html#l00013">13</a> of file <a class="el" href="sentinel_2impl_2command_8ipp_source.html">command.ipp</a>.</p>
-
 </div>
 </div>
-<a id="ga04c70975d4c4fd5a88d6268cb2d637d3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga04c70975d4c4fd5a88d6268cb2d637d3">&#9670;&nbsp;</a></span>to_string() <span class="overload">[3/4]</span></h2>
+<a id="ga1fd47bfcbb0461e09ec55ea767454ce5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1fd47bfcbb0461e09ec55ea767454ce5">&#9670;&nbsp;</a></span>to_string() <span class="overload">[3/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;class String &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">std::string aedis::resp3::to_string </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a> const &amp;&#160;</td>
-          <td class="paramname"><em>obj</em></td><td>)</td>
+          <td class="paramtype"><a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>in</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -1154,23 +1211,23 @@ template&lt;class CharT , class Traits , class Allocator &gt; </div>
 <p>Converts the node to a string. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">obj</td><td>The node object. </td></tr>
+    <tr><td class="paramname">in</td><td>The node object. </td></tr>
   </table>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="node_8ipp_source.html#l00015">15</a> of file <a class="el" href="node_8ipp_source.html">node.ipp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00055">55</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ga033828348f0425fba06281dcdd7d90ed"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga033828348f0425fba06281dcdd7d90ed">&#9670;&nbsp;</a></span>to_string() <span class="overload">[4/4]</span></h2>
+<a id="gae50b66df4a64aef687a28d38d6c15992"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae50b66df4a64aef687a28d38d6c15992">&#9670;&nbsp;</a></span>to_string() <span class="overload">[4/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">char const  * aedis::resp3::to_string </td>
+          <td class="memname">char const* aedis::resp3::to_string </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a>&#160;</td>
           <td class="paramname"><em>t</em></td><td>)</td>
@@ -1186,8 +1243,6 @@ template&lt;class CharT , class Traits , class Allocator &gt; </div>
   </table>
   </dd>
 </dl>
-
-<p class="definition">Definition at line <a class="el" href="type_8ipp_source.html#l00015">15</a> of file <a class="el" href="type_8ipp_source.html">type.ipp</a>.</p>
 
 </div>
 </div>

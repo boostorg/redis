@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['adapter_5ftype_285',['adapter_type',['../structaedis_1_1resp3_1_1response__traits.html#a4118f3276042c155a631d954f2d4cd7d',1,'aedis::resp3::response_traits']]]
+  ['adapter_5ftype_295',['adapter_type',['../structaedis_1_1adapter_1_1response__traits.html#a0c3a5140f98a539258a227b817f6f97c',1,'aedis::adapter::response_traits']]]
 ];

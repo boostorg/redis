@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: examples/serialization.cpp Source File</title>
+<title>Aedis: examples/high_level/serialization.cpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -70,7 +70,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><a class="el" href="dir_cec695b911ca3e60c472a4dd39f5437b.html">high_level</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -87,112 +87,187 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
 <div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#include &lt;string&gt;</span></div>
 <div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;charconv&gt;</span></div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160; </div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &lt;aedis/aedis.hpp&gt;</span></div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="preprocessor">#include &quot;lib/net_utils.hpp&quot;</span></div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160; </div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">namespace </span>resp3 = aedis::resp3;</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a>;</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a>;</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">resp3::adapt</a>;</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">namespace </span>net = aedis::net;</div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">using</span> net::async_write;</div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keyword">using</span> net::buffer;</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keyword">using</span> net::dynamic_buffer;</div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160; </div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="comment">// Define the to_string and from_string functions for your own data</span></div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="comment">// types.</span></div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160; </div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="comment">// The struct we would like to store in redis using our own</span></div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;<span class="comment">// serialization.</span></div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="keyword">struct </span>mydata {</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;  <span class="keywordtype">int</span> a;</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;  <span class="keywordtype">int</span> b;</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;};</div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="comment">// Serializes to Tab Separated Value (TSV).</span></div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;std::string <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">to_string</a>(mydata <span class="keyword">const</span>&amp; obj)</div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160; </div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;aedis/aedis.hpp&gt;</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160; </div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// Arbitrary struct to de/serialize.</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="keyword">struct </span>mystruct {</div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;  <span class="keywordtype">int</span> a;</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;  <span class="keywordtype">int</span> b;</div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;};</div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">namespace </span>net = boost::asio;</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">namespace </span>adapter = aedis::adapter;</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a>;</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">using</span> aedis::adapter::adapters_tuple_t;</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keyword">using</span> aedis::adapter::make_adapters_tuple;</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keyword">using</span> aedis::adapter::get;</div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a>;</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a>;</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a> = <a class="code" href="classaedis_1_1generic_1_1client.html">client&lt;net::ip::tcp::socket, command&gt;</a>;</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="keyword">using</span> responses_tuple_type =</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;   std::tuple&lt;</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;      boost::optional&lt;mystruct&gt;,</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;      std::list&lt;mystruct&gt;,</div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;      std::set&lt;mystruct&gt;,</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;      std::map&lt;std::string, mystruct&gt;</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;   &gt;;</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;<span class="keyword">using</span> adapters_tuple_type = adapters_tuple_t&lt;responses_tuple_type&gt;;</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160; </div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;std::ostream&amp; <a class="code" href="group__any.html#gabe641c301490af2c6b149cfabde5f5eb">operator&lt;&lt;</a>(std::ostream&amp; os, mystruct <span class="keyword">const</span>&amp; obj)</div>
 <div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;{</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;   <span class="keywordflow">return</span> <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">std::to_string</a>(obj.a) + <span class="charliteral">&#39;\t&#39;</span> + <a class="code" href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">std::to_string</a>(obj.b);</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;}</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="comment">// Deserializes TSV.</span></div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="keywordtype">void</span></div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;from_string(</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;   mydata&amp; obj,</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;   <span class="keywordtype">char</span> <span class="keyword">const</span>* data,</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   std::size_t size,</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;   std::error_code&amp; ec)</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;{</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span>* end = data + size;</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span>* pos = std::find(data, end, <span class="charliteral">&#39;\t&#39;</span>);</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;   assert(pos != end); <span class="comment">// Or use your own error code.</span></div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;   os &lt;&lt; <span class="stringliteral">&quot;a: &quot;</span> &lt;&lt; obj.a &lt;&lt; <span class="stringliteral">&quot;, b: &quot;</span> &lt;&lt; obj.b;</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;   <span class="keywordflow">return</span> os;</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;}</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="keywordtype">bool</span> operator&lt;(mystruct <span class="keyword">const</span>&amp; a, mystruct <span class="keyword">const</span>&amp; b)</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;{</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;   <span class="keywordflow">return</span> std::tie(a.a, a.b) &lt; std::tie(b.a, b.b);</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;}</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160; </div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="comment">// Dumy serialization.</span></div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<span class="keywordtype">void</span> <a class="code" href="group__any.html#ga4e21de126538a37995f90914afd51447">to_bulk</a>(std::string&amp; to, mystruct <span class="keyword">const</span>&amp; obj)</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;{</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   <a class="code" href="group__any.html#ga4e21de126538a37995f90914afd51447">aedis::resp3::to_bulk</a>(to, <span class="stringliteral">&quot;Dummy serializaiton string.&quot;</span>);</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;}</div>
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> res1 = std::from_chars(data, pos, obj.a);</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;   <span class="keywordflow">if</span> (res1.ec != std::errc()) {</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;      ec = <a class="code" href="group__any.html#ga4928ed04c49c9118a31af8fd0eb6f4c5">std::make_error_code</a>(res1.ec);</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;      <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;   }</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> res2 = std::from_chars(pos + 1, end, obj.b);</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;   <span class="keywordflow">if</span> (res2.ec != std::errc()) {</div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;      ec = <a class="code" href="group__any.html#ga4928ed04c49c9118a31af8fd0eb6f4c5">std::make_error_code</a>(res2.ec);</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;      <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;   }</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;}</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="comment">// Dummy deserialization.</span></div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="keywordtype">void</span> from_string(mystruct&amp; obj, boost::string_view sv, boost::system::error_code&amp; ec)</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;{</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;   obj.a = 1;</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;   obj.b = 2;</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;}</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="keyword">class </span>receiver  {</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;   receiver(<a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a>&amp; db)</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;   : adapters_(make_adapters_tuple(resps_))</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;   , db_{&amp;db} {}</div>
 <div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160; </div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;net::awaitable&lt;void&gt; serialization()</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;{</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;   <span class="keywordflow">try</span> {</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;      <span class="keyword">auto</span> socket = co_await connect();</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;      mydata obj{21, 22};</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160; </div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;      std::string request;</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;      <span class="keyword">auto</span> sr = <a class="code" href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">make_serializer</a>(request);</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;      sr.push(command::hello, 3);</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;      sr.push(command::flushall);</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;      sr.push(command::set, <span class="stringliteral">&quot;key&quot;</span>, obj);</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      sr.push(command::get, <span class="stringliteral">&quot;key&quot;</span>);</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;      sr.push(command::quit);</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      co_await async_write(socket, buffer(request));</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160; </div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;      <span class="comment">// The response.</span></div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;      mydata <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0cab5eda0a74558a342cf659187f06f746f">get</a>;</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;   <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;   on_resp3(</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;      <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd,</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;      <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">node&lt;boost::string_view&gt;</a> <span class="keyword">const</span>&amp; nd,</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;      boost::system::error_code&amp; ec)</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;   {</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;      <span class="keywordflow">switch</span> (cmd) {</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;         <span class="keywordflow">case</span> command::get:      adapter::get&lt;boost::optional&lt;mystruct&gt;&gt;(adapters_)(nd, ec); <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;         <span class="keywordflow">case</span> command::lrange:   adapter::get&lt;std::list&lt;mystruct&gt;&gt;(adapters_)(nd, ec); <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;         <span class="keywordflow">case</span> command::smembers: adapter::get&lt;std::set&lt;mystruct&gt;&gt;(adapters_)(nd, ec); <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;         <span class="keywordflow">case</span> command::hgetall:  adapter::get&lt;std::map&lt;std::string, mystruct&gt;&gt;(adapters_)(nd, ec); <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;         <span class="keywordflow">default</span>:; <span class="comment">// Ignore</span></div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      }</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;   }</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160; </div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;   <span class="keywordtype">void</span> on_read(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd)</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;   {</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;      std::cout &lt;&lt; cmd &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
 <div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160; </div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;      <span class="comment">// Reads the responses.</span></div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;      std::string buffer;</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;      co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// hello</span></div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;      co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// flushall</span></div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;      co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// set</span></div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;      co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">adapt</a>(get));</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;      co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// quit</span></div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160; </div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;      <span class="comment">// Print the responses.</span></div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;      std::cout &lt;&lt; <span class="stringliteral">&quot;get: a = &quot;</span> &lt;&lt; <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0cab5eda0a74558a342cf659187f06f746f">get</a>.a &lt;&lt; <span class="stringliteral">&quot;, b = &quot;</span> &lt;&lt; <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0cab5eda0a74558a342cf659187f06f746f">get</a>.b &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160; </div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;      std::cerr &lt;&lt; e.what() &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;      exit(EXIT_FAILURE);</div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;   }</div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;}</div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160; </div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="keywordtype">int</span> main()</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;{</div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;   net::io_context ioc;</div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;   co_spawn(ioc, serialization(), net::detached);</div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;   ioc.run();</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;}</div>
-<div class="ttc" id="agroup__any_html_ga0848acf8060ffedf036a5ad8d46a0a74"><div class="ttname"><a href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">aedis::resp3::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a void response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00029">adapt.hpp:29</a></div></div>
-<div class="ttc" id="agroup__any_html_ga4928ed04c49c9118a31af8fd0eb6f4c5"><div class="ttname"><a href="group__any.html#ga4928ed04c49c9118a31af8fd0eb6f4c5">aedis::resp3::make_error_code</a></div><div class="ttdeci">std::error_code make_error_code(error e)</div><div class="ttdoc">Converts an error in an std::error_code object.</div><div class="ttdef"><b>Definition:</b> <a href="error_8hpp_source.html#l00060">error.hpp:60</a></div></div>
-<div class="ttc" id="agroup__any_html_ga4ce8d963105f423dc90ebed2eae2d142"><div class="ttname"><a href="group__any.html#ga4ce8d963105f423dc90ebed2eae2d142">aedis::redis::make_serializer</a></div><div class="ttdeci">resp3::serializer&lt; std::string, command &gt; make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer for a std::string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00465">command.hpp:465</a></div></div>
-<div class="ttc" id="agroup__any_html_ga7a8cc80460052926147f71ace47dc3ed"><div class="ttname"><a href="group__any.html#ga7a8cc80460052926147f71ace47dc3ed">aedis::redis::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts a command to a string.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2impl_2command_8ipp_source.html#l00013">command.ipp:13</a></div></div>
-<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00026">command.hpp:26</a></div></div>
-<div class="ttc" id="agroup__any_html_gga9661fea349313723a8ec955975184c0cab5eda0a74558a342cf659187f06f746f"><div class="ttname"><a href="group__any.html#gga9661fea349313723a8ec955975184c0cab5eda0a74558a342cf659187f06f746f">aedis::redis::command::get</a></div><div class="ttdeci">@ get</div><div class="ttdoc">https://redis.io/commands/get</div></div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;      <span class="keywordflow">switch</span> (cmd) {</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;         <span class="keywordflow">case</span> command::hello:</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;         {</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;            mystruct var{1, 2};</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160; </div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;            std::map&lt;std::string, mystruct&gt; <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a></div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;               { {<span class="stringliteral">&quot;key1&quot;</span>, {1, 2}}</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;               , {<span class="stringliteral">&quot;key2&quot;</span>, {3, 4}}</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;               , {<span class="stringliteral">&quot;key3&quot;</span>, {5, 6}}};</div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160; </div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;            std::vector&lt;mystruct&gt; vec</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;               {{1, 2}, {3, 4}, {5, 6}};</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160; </div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;            std::set&lt;std::string&gt; <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a></div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;               {{1, 2}, {3, 4}, {5, 6}};</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160; </div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;            <span class="comment">// Sends</span></div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;            db_-&gt;send(command::set, <span class="stringliteral">&quot;serialization-var-key&quot;</span>, var, <span class="stringliteral">&quot;EX&quot;</span>, <span class="stringliteral">&quot;2&quot;</span>);</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;            db_-&gt;send_range(command::hset, <span class="stringliteral">&quot;serialization-hset-key&quot;</span>, map);</div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;            db_-&gt;send_range(command::rpush, <span class="stringliteral">&quot;serialization-rpush-key&quot;</span>, vec);</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;            db_-&gt;send_range(command::sadd, <span class="stringliteral">&quot;serialization-sadd-key&quot;</span>, set);</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160; </div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;            <span class="comment">// Retrieves</span></div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;            db_-&gt;send(command::get, <span class="stringliteral">&quot;serialization-var-key&quot;</span>);</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;            db_-&gt;send(command::hgetall, <span class="stringliteral">&quot;serialization-hset-key&quot;</span>);</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;            db_-&gt;send(command::lrange, <span class="stringliteral">&quot;serialization-rpush-key&quot;</span>, 0, -1);</div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;            db_-&gt;send(command::smembers, <span class="stringliteral">&quot;serialization-sadd-key&quot;</span>);</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;         } <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160; </div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;         <span class="keywordflow">case</span> command::get:</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;         {</div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;            <span class="keywordflow">if</span> (std::get&lt;boost::optional&lt;mystruct&gt;&gt;(resps_).has_value()) {</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;               std::cout &lt;&lt; std::get&lt;boost::optional&lt;mystruct&gt;&gt;(resps_).value() &lt;&lt; <span class="stringliteral">&quot;\n\n&quot;</span>;</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;               std::get&lt;boost::optional&lt;mystruct&gt;&gt;(resps_).reset();</div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;            } <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;               std::cout &lt;&lt; <span class="stringliteral">&quot;Expired.&quot;</span> &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;            }</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;         } <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160; </div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;         <span class="keywordflow">case</span> command::lrange:</div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;         <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; e: std::get&lt;std::list&lt;mystruct&gt;&gt;(resps_))</div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;            std::cout &lt;&lt; e &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;         std::cout &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;         std::get&lt;std::list&lt;mystruct&gt;&gt;(resps_).clear();</div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;         <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160; </div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;         <span class="keywordflow">case</span> command::smembers:</div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;         <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; e: std::get&lt;std::set&lt;mystruct&gt;&gt;(resps_))</div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;            std::cout &lt;&lt; e &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;         std::cout &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;         std::get&lt;std::set&lt;mystruct&gt;&gt;(resps_).clear();</div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;         <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160; </div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;         <span class="keywordflow">case</span> command::hgetall:</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;         <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; e: std::get&lt;std::map&lt;std::string, mystruct&gt;&gt;(resps_))</div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;            std::cout &lt;&lt; e.first &lt;&lt; <span class="stringliteral">&quot;, &quot;</span> &lt;&lt; e.second &lt;&lt; std::endl;</div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;         std::cout &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;         std::get&lt;std::map&lt;std::string, mystruct&gt;&gt;(resps_).clear();</div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;         <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160; </div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;         <span class="keywordflow">default</span>:;</div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;      }</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;   }</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160; </div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;   <span class="keywordtype">void</span> on_write(std::size_t n)</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;   { </div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;      std::cout &lt;&lt; <span class="stringliteral">&quot;Number of bytes written: &quot;</span> &lt;&lt; n &lt;&lt; std::endl;</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;   }</div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;   <span class="keywordtype">void</span> on_push() { }</div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160; </div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;   responses_tuple_type resps_;</div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;   adapters_tuple_type adapters_;</div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;   <a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a>* db_;</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;};</div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160; </div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;<span class="keywordtype">int</span> main()</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;{</div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;   net::io_context ioc;</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;   <a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a> db(ioc.get_executor());</div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;   receiver recv{db};</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160; </div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;   db.async_run(</div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;      recv,</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;      {net::ip::make_address(<span class="stringliteral">&quot;127.0.0.1&quot;</span>), 6379},</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;      [](<span class="keyword">auto</span> ec){ std::cout &lt;&lt; ec.message() &lt;&lt; std::endl;});</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160; </div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;   net::steady_timer tm{ioc, std::chrono::seconds{3}};</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160; </div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;   tm.async_wait([&amp;db](<span class="keyword">auto</span> ec){</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;       db.send(command::get, <span class="stringliteral">&quot;serialization-var-key&quot;</span>);</div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;       db.send(command::quit);</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;   });</div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160; </div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;   ioc.run();</div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;}</div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a></div><div class="ttdoc">A high level Redis client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00040">client.hpp:40</a></div></div>
+<div class="ttc" id="agroup__any_html_ga4e21de126538a37995f90914afd51447"><div class="ttname"><a href="group__any.html#ga4e21de126538a37995f90914afd51447">aedis::resp3::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, boost::string_view data)</div><div class="ttdoc">Adds data to the request.</div><div class="ttdef"><b>Definition:</b> <a href="compose_8hpp_source.html#l00023">compose.hpp:23</a></div></div>
+<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00024">command.hpp:24</a></div></div>
+<div class="ttc" id="agroup__any_html_gabe641c301490af2c6b149cfabde5f5eb"><div class="ttname"><a href="group__any.html#gabe641c301490af2c6b149cfabde5f5eb">aedis::resp3::operator&lt;&lt;</a></div><div class="ttdeci">std::ostream &amp; operator&lt;&lt;(std::ostream &amp;os, node&lt; String &gt; const &amp;o)</div><div class="ttdoc">Writes the node to the stream.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00088">node.hpp:88</a></div></div>
+<div class="ttc" id="agroup__any_html_gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e"><div class="ttname"><a href="group__any.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">aedis::redis::command::set</a></div><div class="ttdeci">@ set</div><div class="ttdoc">https://redis.io/commands/set</div></div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">aedis::resp3::type::map</a></div><div class="ttdeci">@ map</div><div class="ttdoc">Aggregate.</div></div>
+<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00035">node.hpp:35</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

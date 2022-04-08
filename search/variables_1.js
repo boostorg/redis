@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['data_282',['data',['../group__any.html#a6d660ff58753ff85d220827c2dd12e0b',1,'aedis::resp3::node']]],
-  ['data_5ftype_283',['data_type',['../group__any.html#a79fabd27fd45e60e379bb3ca88f4e9e5',1,'aedis::resp3::node']]],
-  ['depth_284',['depth',['../group__any.html#a989d46048db160ff83c9f2ccebc17685',1,'aedis::resp3::node']]]
+  ['data_5ftype_292',['data_type',['../group__any.html#aae147962496e8ab3f52b2d8575307a5a',1,'aedis::resp3::node']]],
+  ['depth_293',['depth',['../group__any.html#a829e2bf6551568a60406fad87e44804d',1,'aedis::resp3::node']]]
 ];

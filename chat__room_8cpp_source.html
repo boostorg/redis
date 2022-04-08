@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: examples/chat_room.cpp Source File</title>
+<title>Aedis: examples/high_level/chat_room.cpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -70,7 +70,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><a class="el" href="dir_cec695b911ca3e60c472a4dd39f5437b.html">high_level</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -85,128 +85,128 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> * file, You can obtain one at https://mozilla.org/MPL/2.0/.</span></div>
 <div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment"> */</span></div>
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div>
-<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="preprocessor">#include &lt;vector&gt;</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#include &lt;vector&gt;</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160; </div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;aedis/aedis.hpp&gt;</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160; </div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#include &quot;lib/user_session.hpp&quot;</span></div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="preprocessor">#include &quot;lib/net_utils.hpp&quot;</span></div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160; </div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">namespace </span>net = aedis::net;</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a>;</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">aedis::resp3::adapt</a>;</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a>;</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a>;</div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a>;</div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;boost/asio/signal_set.hpp&gt;</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &lt;aedis/aedis.hpp&gt;</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#include &quot;user_session.hpp&quot;</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160; </div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">namespace </span>net = boost::asio;</div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a>;</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a>;</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a>;</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a>;</div>
 <div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">using</span> aedis::user_session;</div>
 <div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keyword">using</span> aedis::user_session_base;</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160; </div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;<span class="comment">// TODO: Delete sessions that have expired.</span></div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="keyword">class </span>receiver : <span class="keyword">public</span> std::enable_shared_from_this&lt;receiver&gt; {</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;   std::vector&lt;node&gt; resps_;</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;   std::vector&lt;std::weak_ptr&lt;user_session_base&gt;&gt; sessions_;</div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160; </div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;   <span class="keywordtype">void</span> on_message(std::error_code ec, <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd)</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;   {</div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;      <span class="keywordflow">if</span> (ec) {</div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;         std::cerr &lt;&lt; <span class="stringliteral">&quot;Error: &quot;</span> &lt;&lt; ec.message() &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;         <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;      }</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a> = <a class="code" href="classaedis_1_1generic_1_1client.html">client&lt;net::ip::tcp::socket, command&gt;</a>;</div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;<span class="keyword">using</span> response_type = std::vector&lt;node&lt;std::string&gt;&gt;;</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="keyword">using</span> adapter_type = aedis::adapter::adapter_t&lt;response_type&gt;;</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160; </div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="keyword">class </span>receiver {</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;   receiver(std::shared_ptr&lt;client_type&gt; db)</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;   : adapter_{<a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp_)}</div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;   , db_{db}</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;   {}</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160; </div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;   <span class="keywordtype">void</span> on_resp3(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd, <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">node&lt;boost::string_view&gt;</a> <span class="keyword">const</span>&amp; nd, boost::system::error_code&amp; ec)</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;   {</div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;      adapter_(nd, ec);</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;   }</div>
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;      <span class="keywordflow">switch</span> (cmd) {</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;         <span class="keywordflow">case</span> command::incr:</div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;         {</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;            std::cout &lt;&lt; <span class="stringliteral">&quot;Message so far: &quot;</span> &lt;&lt; resps_.front().<a class="code" href="group__any.html#a6d660ff58753ff85d220827c2dd12e0b">data</a> &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;         } <span class="keywordflow">break</span>;</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;         <span class="keywordflow">case</span> command::unknown: <span class="comment">// Push</span></div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;         {</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;            <span class="keywordflow">for</span> (<span class="keyword">auto</span>&amp; weak: sessions_) {</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;               <span class="keywordflow">if</span> (<span class="keyword">auto</span> session = weak.lock()) {</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;                  session-&gt;deliver(resps_.at(3).data);</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;               } <span class="keywordflow">else</span> {</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;                  std::cout &lt;&lt; <span class="stringliteral">&quot;Session expired.&quot;</span> &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;               }</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;            }</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;         } <span class="keywordflow">break</span>;</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;         <span class="keywordflow">default</span>: { <span class="comment">/* Ignore */</span> }</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;      }</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160; </div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;      resps_.clear();</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;   <span class="keywordtype">void</span> on_read(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd)</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;   {</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;      <span class="keywordflow">switch</span> (cmd) {</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;         <span class="keywordflow">case</span> command::hello:</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;         db_-&gt;send(command::subscribe, <span class="stringliteral">&quot;channel&quot;</span>);</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;         <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;         <span class="keywordflow">case</span> command::incr:</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;         std::cout &lt;&lt; <span class="stringliteral">&quot;Messages so far: &quot;</span> &lt;&lt; resp_.front().value &lt;&lt; std::endl;</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;         <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;         <span class="keywordflow">default</span>:;</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;      }</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;      resp_.clear();</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;   }</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; </div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;   <span class="keywordtype">void</span> on_write(std::size_t n)</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;   { </div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;      std::cout &lt;&lt; <span class="stringliteral">&quot;Number of bytes written: &quot;</span> &lt;&lt; n &lt;&lt; std::endl;</div>
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;   }</div>
 <div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160; </div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;   <span class="keyword">auto</span> get_extended_adapter()</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;   <span class="keywordtype">void</span> on_push()</div>
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;   {</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;      <span class="keywordflow">return</span> [adapter = <a class="code" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">adapt</a>(resps_)](<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a>, <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t, std::size_t aggregate_size, std::size_t depth, <span class="keywordtype">char</span> <span class="keyword">const</span>* data, std::size_t size, std::error_code&amp; ec) <span class="keyword">mutable</span></div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;         { <span class="keywordflow">return</span> adapter(t, aggregate_size, depth, data, size, ec); };</div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;   }</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160; </div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;   <span class="keyword">auto</span> add(std::shared_ptr&lt;user_session_base&gt; session)</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;      { sessions_.push_back(session); }</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;};</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;net::awaitable&lt;void&gt; connection_manager(std::shared_ptr&lt;client&gt; db)</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;{</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;   <span class="keywordflow">try</span> {</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;      <span class="keyword">auto</span> socket = co_await connect();</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;      co_await db-&gt;engage(std::move(socket));</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;      std::cerr &lt;&lt; <span class="stringliteral">&quot;Error: &quot;</span> &lt;&lt; e.what() &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;   }</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;}</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160; </div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;net::awaitable&lt;void&gt; listener()</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;{</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;   <span class="keyword">auto</span> ex = co_await net::this_coro::executor;</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;   net::ip::tcp::acceptor acceptor(ex, {net::ip::tcp::v4(), 55555});</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160; </div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;   <span class="keyword">auto</span> recv = std::make_shared&lt;receiver&gt;();</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;   <span class="keyword">auto</span> on_db_msg = [recv](std::error_code ec, <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd)</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;      { recv-&gt;on_message(ec, cmd); };</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160; </div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;   <span class="keyword">auto</span> db = std::make_shared&lt;client&gt;(ex);</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;   db-&gt;set_extended_adapter(recv-&gt;get_extended_adapter());</div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;   db-&gt;set_msg_callback(on_db_msg);</div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;   net::co_spawn(ex, connection_manager(db), net::detached);</div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;   db-&gt;send(command::subscribe, <span class="stringliteral">&quot;channel&quot;</span>);</div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160; </div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;   <span class="keyword">auto</span> on_user_msg = [db](std::string <span class="keyword">const</span>&amp; msg)</div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;   {</div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;      db-&gt;send(command::publish, <span class="stringliteral">&quot;channel&quot;</span>, msg);</div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;      db-&gt;send(command::incr, <span class="stringliteral">&quot;message-counter&quot;</span>);</div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;   };</div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160; </div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;   <span class="keywordflow">for</span> (;;) {</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;      <span class="keyword">auto</span> socket = co_await acceptor.async_accept(net::use_awaitable);</div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;      <span class="keyword">auto</span> session = std::make_shared&lt;user_session&gt;(std::move(socket));</div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;      recv-&gt;add(session);</div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;      session-&gt;start(on_user_msg);</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;   }</div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;}</div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;<span class="keywordtype">int</span> main()</div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;{</div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;   <span class="keywordflow">try</span> {</div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;      net::io_context ioc{1};</div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;      net::signal_set signals(ioc, SIGINT, SIGTERM);</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;      signals.async_wait([&amp;](<span class="keyword">auto</span>, <span class="keyword">auto</span>){ ioc.stop(); });</div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;      co_spawn(ioc, listener(), net::detached);</div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;      ioc.run();</div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;      std::cerr &lt;&lt; e.what() &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;   }</div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;}</div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1experimental_1_1client_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1experimental_1_1client.html">aedis::resp3::experimental::client</a></div><div class="ttdoc">A high level redis client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00031">client.hpp:31</a></div></div>
-<div class="ttc" id="agroup__any_html_a6d660ff58753ff85d220827c2dd12e0b"><div class="ttname"><a href="group__any.html#a6d660ff58753ff85d220827c2dd12e0b">aedis::resp3::node::data</a></div><div class="ttdeci">std::string data</div><div class="ttdoc">The actual data. For aggregate data types this is always empty.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00035">node.hpp:35</a></div></div>
-<div class="ttc" id="agroup__any_html_ga0848acf8060ffedf036a5ad8d46a0a74"><div class="ttname"><a href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">aedis::resp3::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a void response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00029">adapt.hpp:29</a></div></div>
-<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00026">command.hpp:26</a></div></div>
-<div class="ttc" id="agroup__any_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
-<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00024">node.hpp:24</a></div></div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;      <span class="keywordflow">for</span> (<span class="keyword">auto</span>&amp; session: sessions_)</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;         session-&gt;deliver(resp_.at(3).value);</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160; </div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;      resp_.clear();</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;   }</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; </div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;   <span class="keyword">auto</span> add(std::shared_ptr&lt;user_session_base&gt; session)</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;      { sessions_.push_back(session); }</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160; </div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;   response_type resp_;</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;   adapter_type adapter_;</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;   std::shared_ptr&lt;client_type&gt; db_;</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;   std::vector&lt;std::shared_ptr&lt;user_session_base&gt;&gt; sessions_;</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;};</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160; </div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;net::awaitable&lt;void&gt;</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;listener(</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    std::shared_ptr&lt;net::ip::tcp::acceptor&gt; acc,</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    std::shared_ptr&lt;client_type&gt; db,</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    std::shared_ptr&lt;receiver&gt; recv)</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;{</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;   <span class="keyword">auto</span> on_user_msg = [db](std::string <span class="keyword">const</span>&amp; msg)</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;   {</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;      db-&gt;send(command::publish, <span class="stringliteral">&quot;channel&quot;</span>, msg);</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;      db-&gt;send(command::incr, <span class="stringliteral">&quot;message-counter&quot;</span>);</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;   };</div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160; </div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;   <span class="keywordflow">for</span> (;;) {</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;      <span class="keyword">auto</span> socket = co_await acc-&gt;async_accept(net::use_awaitable);</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;      <span class="keyword">auto</span> session = std::make_shared&lt;user_session&gt;(std::move(socket));</div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;      session-&gt;start(on_user_msg);</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;      recv-&gt;add(session);</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;   }</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;}</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160; </div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;<span class="keywordtype">int</span> main()</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;{</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;   <span class="keywordflow">try</span> {</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;      net::io_context ioc{1};</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160; </div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;      <span class="keyword">auto</span> db = std::make_shared&lt;client_type&gt;(ioc.get_executor());</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;      <span class="keyword">auto</span> recv = std::make_shared&lt;receiver&gt;(db);</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160; </div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;      db-&gt;async_run(</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;          *recv,</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;          {net::ip::make_address(<span class="stringliteral">&quot;127.0.0.1&quot;</span>), 6379},</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;          [](<span class="keyword">auto</span> ec){ std::cout &lt;&lt; ec.message() &lt;&lt; std::endl;});</div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160; </div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;      <span class="keyword">auto</span> endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};</div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;      <span class="keyword">auto</span> acc = std::make_shared&lt;net::ip::tcp::acceptor&gt;(ioc.get_executor(), endpoint);</div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;      co_spawn(ioc, listener(acc, db, recv), net::detached);</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160; </div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;      net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;      signals.async_wait([&amp;] (<span class="keyword">auto</span>, <span class="keywordtype">int</span>) { ioc.stop(); });</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160; </div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;      ioc.run();</div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;      std::cerr &lt;&lt; e.what() &lt;&lt; std::endl;</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;   }</div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;}</div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a></div><div class="ttdoc">A high level Redis client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00040">client.hpp:40</a></div></div>
+<div class="ttc" id="agroup__any_html_ga1e40a9e5ab61e7980b4be74bf0d4943d"><div class="ttname"><a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a void response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00029">adapt.hpp:29</a></div></div>
+<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00024">command.hpp:24</a></div></div>
+<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00035">node.hpp:35</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

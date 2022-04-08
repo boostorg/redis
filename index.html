@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -76,6 +76,21 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
 <ul><li class="level1"><a href="#Overview">Overview</a></li>
+<li class="level1"><a href="#low-level-api">Low-level API</a><ul><li class="level2"><a href="#requests">Requests</a><ul><li class="level3"><a href="#requests-serialization">Serialization</a></li>
+</ul>
+</li>
+<li class="level2"><a href="#responses">Responses</a><ul><li class="level3"><a href="#Optional">Optional</a></li>
+<li class="level3"><a href="#heterogeneous_aggregates">Heterogeneous aggregates</a></li>
+<li class="level3"><a href="#Serialization">Serialization</a></li>
+<li class="level3"><a href="#gen-case">The general case</a></li>
+<li class="level3"><a href="#low-level-adapters">Adapters</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="level1"><a href="#high-level-api">High-level API</a><ul><li class="level2"><a href="#high-level-responses">Responses</a></li>
+</ul>
+</li>
 <li class="level1"><a href="#examples">Examples</a></li>
 <li class="level1"><a href="#using-aedis">Using Aedis</a><ul><li class="level2"><a href="#Installation">Installation</a></li>
 <li class="level2"><a href="#Developers">Developers</a></li>
@@ -86,34 +101,408 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 </div>
 <div class="textblock"><h1><a class="anchor" id="Overview"></a>
 Overview</h1>
-<p>Aedis is low-level redis client library built on top of Boost.Asio that implements communication with a Redis server over its native protocol RESP3. It has first-class support for STL containers and C++ built in types among other things. You will be able to implement your own redis client or use a general purpose provided by the library. For more information about Redis see <a href="https://redis.io/">https://redis.io/</a></p>
-<h1><a class="anchor" id="examples"></a>
+<p>Aedis is a <a href="https://redis.io/">Redis</a> client library built on top of <a href="https://www.boost.org/doc/libs/release/doc/html/boost_asio.html">Asio</a> that provides simple and efficient communication with a Redis server. Some of its distinctive features are</p>
+<ul>
+<li>Support for the latest version of the Redis communication protocol <a href="https://github.com/antirez/RESP3/blob/master/spec.md">RESP3</a>. </li>
+<li>First class support for STL containers and C++ built-in types. </li>
+<li>Serialization and deserialization of your own data types that avoid unnecessary copies. </li>
+<li>Support for Redis <a href="https://redis.io/docs/manual/sentinel">sentinel</a>. </li>
+<li>Sync and async API.</li>
+</ul>
+<p>In addition to that, Aedis provides a high level client that offers the following functionality</p>
+<ul>
+<li>Management of message queues. </li>
+<li>Simplified handling of server pushes. </li>
+<li>Zero asymptotic allocations by means of memory reuse.</li>
+</ul>
+<p>If you never heard about Redis the best place to start is on <a href="https://redis.io">https://redis.io</a>. Now let us have a look at the low-level API.</p>
+<h1><a class="anchor" id="low-level-api"></a>
+Low-level API</h1>
+<p>The low-level API is very useful for simple tasks, for example, assume we want to perform the following steps</p>
+<ul>
+<li>Set the value of a Redis key. </li>
+<li>Set the expiration of that key to two seconds. </li>
+<li>Get and return its old value. </li>
+<li>Quit</li>
+</ul>
+<p>The async coroutine-based implementation of the steps above look like</p>
+<div class="fragment"><div class="line">net::awaitable&lt;std::string&gt; <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a>(net::ip::tcp::endpoint ep)</div>
+<div class="line">{</div>
+<div class="line">   <span class="comment">// To make code less verbose</span></div>
+<div class="line">   <span class="keyword">using</span> tcp_socket = net::use_awaitable_t&lt;&gt;::as_default_on_t&lt;net::ip::tcp::socket&gt;;</div>
+<div class="line"> </div>
+<div class="line">   tcp_socket socket{co_await net::this_coro::executor};</div>
+<div class="line">   co_await socket.async_connect(ep);</div>
+<div class="line"> </div>
+<div class="line">   std::string request, read_buffer, response;</div>
+<div class="line"> </div>
+<div class="line">   <span class="keyword">auto</span> sr = <a class="code" href="group__any.html#gabc1edbc325e4f4f087248225eee6f64f">make_serializer</a>(request);</div>
+<div class="line">   sr.push(command::hello, 3);</div>
+<div class="line">   sr.push(command::set, <span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;Value&quot;</span>, <span class="stringliteral">&quot;EX&quot;</span>, <span class="stringliteral">&quot;2&quot;</span>, <span class="stringliteral">&quot;get&quot;</span>);</div>
+<div class="line">   sr.push(command::quit);</div>
+<div class="line">   co_await net::async_write(socket, net::buffer(request));</div>
+<div class="line"> </div>
+<div class="line">   co_await resp3::async_read(socket, dynamic_buffer(read_buffer)); <span class="comment">// Hello (ignored).</span></div>
+<div class="line">   co_await resp3::async_read(socket, dynamic_buffer(read_buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(response)); <span class="comment">// Set</span></div>
+<div class="line">   co_await resp3::async_read(socket, dynamic_buffer(read_buffer)); <span class="comment">// Quit (ignored)</span></div>
+<div class="line"> </div>
+<div class="line">   co_return response;</div>
+<div class="line">}</div>
+<div class="ttc" id="agroup__any_html_ga1e40a9e5ab61e7980b4be74bf0d4943d"><div class="ttname"><a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a void response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00029">adapt.hpp:29</a></div></div>
+<div class="ttc" id="agroup__any_html_gabc1edbc325e4f4f087248225eee6f64f"><div class="ttname"><a href="group__any.html#gabc1edbc325e4f4f087248225eee6f64f">aedis::generic::make_serializer</a></div><div class="ttdeci">serializer&lt; std::basic_string&lt; CharT, Traits, Allocator &gt; &gt; make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00194">serializer.hpp:194</a></div></div>
+<div class="ttc" id="agroup__any_html_gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e"><div class="ttname"><a href="group__any.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">aedis::redis::command::set</a></div><div class="ttdeci">@ set</div><div class="ttdoc">https://redis.io/commands/set</div></div>
+</div><!-- fragment --><p>The simplicity of the code above makes it self explanatory</p>
+<ul>
+<li>Connect to the Redis server. </li>
+<li>Declare a <code>std::string</code> to hold the request and add some commands in it with a serializer. </li>
+<li>Write the payload to the socket and read the responses in the same order they were sent. </li>
+<li>Return the response to the user.</li>
+</ul>
+<p>The <code>hello</code> command above is always required and must be sent first as it informs we want to communicate over RESP3.</p>
+<h2><a class="anchor" id="requests"></a>
+Requests</h2>
+<p>As stated above, request are created by defining a storage object and a serializer that knowns how to convert user data into valid RESP3 wire-format. Redis request are composed of one or more commands (in Redis documentation they are called <a href="https://redis.io/topics/pipelining">pipelines</a>), which means users can add as many commands to the request as they like, a feature that aids performance.</p>
+<p>The individual commands in a request assume many different forms: with and without keys, variable length arguments, ranges etc. To account for all these variations, the <code>serializer</code> class offers some member functions, each of them with a couple of overloads, for example</p>
+<div class="fragment"><div class="line"><span class="comment">// Some data to send to Redis.</span></div>
+<div class="line">std::string value = <span class="stringliteral">&quot;some value&quot;</span>;</div>
+<div class="line"> </div>
+<div class="line">std::list&lt;std::string&gt; list {<span class="stringliteral">&quot;channel1&quot;</span>, <span class="stringliteral">&quot;channel2&quot;</span>, <span class="stringliteral">&quot;channel3&quot;</span>};</div>
+<div class="line"> </div>
+<div class="line">std::map&lt;std::string, mystruct&gt; <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a></div>
+<div class="line">   { {<span class="stringliteral">&quot;key1&quot;</span>, <span class="stringliteral">&quot;value1&quot;</span>}</div>
+<div class="line">   , {<span class="stringliteral">&quot;key2&quot;</span>, <span class="stringliteral">&quot;value2&quot;</span>}</div>
+<div class="line">   , {<span class="stringliteral">&quot;key3&quot;</span>, <span class="stringliteral">&quot;value3&quot;</span>}};</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Command with no arguments</span></div>
+<div class="line">sr.push(command::quit);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Command with variable lenght arguments.</span></div>
+<div class="line">sr.push(command::set, <span class="stringliteral">&quot;key&quot;</span>, value, <span class="stringliteral">&quot;EX&quot;</span>, <span class="stringliteral">&quot;2&quot;</span>);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Sends a container, no key.</span></div>
+<div class="line">sr.push_range(command::subscribe, list);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Same as above but an iterator range.</span></div>
+<div class="line">sr.push_range2(command::subscribe, std::cbegin(list), std::cend(list));</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Sends a container, with key.</span></div>
+<div class="line">sr.push_range(command::hset, <span class="stringliteral">&quot;key&quot;</span>, map);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Same as above but as iterator range.</span></div>
+<div class="line">sr.push_range2(command::hset, <span class="stringliteral">&quot;key&quot;</span>, std::cbegin(map), std::cend(map));</div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">aedis::resp3::type::map</a></div><div class="ttdeci">@ map</div><div class="ttdoc">Aggregate.</div></div>
+</div><!-- fragment --><p>Once all commands we want to send have been added to the request, we can write it as usual to the socket.</p>
+<div class="fragment"><div class="line">co_await net::async_write(socket, buffer(request));</div>
+</div><!-- fragment --><h3><a class="anchor" id="requests-serialization"></a>
+Serialization</h3>
+<p>The <code>send</code> and <code>send_range</code> functions above work with integers e.g. <code>int</code> and <code>std::string</code> out of the box. To send your own data type defined the <code>to_bulk</code> function like this</p>
+<div class="fragment"><div class="line"><span class="comment">// Example struct.</span></div>
+<div class="line"><span class="keyword">struct </span>mystruct {</div>
+<div class="line">  <span class="comment">// ...</span></div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordtype">void</span> <a class="code" href="group__any.html#ga4e21de126538a37995f90914afd51447">to_bulk</a>(std::string&amp; to, mystruct <span class="keyword">const</span>&amp; obj)</div>
+<div class="line">{</div>
+<div class="line">   <span class="comment">// Convert to obj string and call</span></div>
+<div class="line">   <a class="code" href="group__any.html#ga4e21de126538a37995f90914afd51447">aedis::resp3::to_bulk</a>(to, <span class="stringliteral">&quot;Dummy serializaiton string.&quot;</span>);</div>
+<div class="line">}</div>
+<div class="line"> </div>
+<div class="line">std::map&lt;std::string, mystruct&gt; <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a></div>
+<div class="line">   { {<span class="stringliteral">&quot;key1&quot;</span>, {...}}</div>
+<div class="line">   , {<span class="stringliteral">&quot;key2&quot;</span>, {...}}</div>
+<div class="line">   , {<span class="stringliteral">&quot;key3&quot;</span>, {...}}};</div>
+<div class="line"> </div>
+<div class="line">db.send_range(command::hset, <span class="stringliteral">&quot;key&quot;</span>, map);</div>
+<div class="ttc" id="agroup__any_html_ga4e21de126538a37995f90914afd51447"><div class="ttname"><a href="group__any.html#ga4e21de126538a37995f90914afd51447">aedis::resp3::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, boost::string_view data)</div><div class="ttdoc">Adds data to the request.</div><div class="ttdef"><b>Definition:</b> <a href="compose_8hpp_source.html#l00023">compose.hpp:23</a></div></div>
+</div><!-- fragment --><p>It is quite common to store json string in Redis for example.</p>
+<h2><a class="anchor" id="responses"></a>
+Responses</h2>
+<p>To read responses effectively, users must know their RESP3 type, this can be found in the Redis documentation of each command (<a href="https://redis.io/commands">https://redis.io/commands</a>). For example</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Command   </th><th class="markdownTableHeadNone">RESP3 type   </th><th class="markdownTableHeadNone">Documentation    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">lpush   </td><td class="markdownTableBodyNone">Number   </td><td class="markdownTableBodyNone"><a href="https://redis.io/commands/lpush">https://redis.io/commands/lpush</a>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">lrange   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone"><a href="https://redis.io/commands/lrange">https://redis.io/commands/lrange</a>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">set   </td><td class="markdownTableBodyNone">Simple string, null or blob string   </td><td class="markdownTableBodyNone"><a href="https://redis.io/commands/set">https://redis.io/commands/set</a>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">get   </td><td class="markdownTableBodyNone">Blob string   </td><td class="markdownTableBodyNone"><a href="https://redis.io/commands/get">https://redis.io/commands/get</a>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">smembers   </td><td class="markdownTableBodyNone">Set   </td><td class="markdownTableBodyNone"><a href="https://redis.io/commands/smembers">https://redis.io/commands/smembers</a>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">hgetall   </td><td class="markdownTableBodyNone">Map   </td><td class="markdownTableBodyNone"><a href="https://redis.io/commands/hgetall">https://redis.io/commands/hgetall</a>   </td></tr>
+</table>
+<p>Once the RESP3 type of a given response is known we can choose a proper C++ data structure to receive it in. Fortunately, this is a simple task for most types, for example</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">RESP3 type   </th><th class="markdownTableHeadNone">C++   </th><th class="markdownTableHeadNone">Type    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Simple string   </td><td class="markdownTableBodyNone"><code>std::string</code>   </td><td class="markdownTableBodyNone">Simple    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Simple error   </td><td class="markdownTableBodyNone"><code>std::string</code>   </td><td class="markdownTableBodyNone">Simple    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Blob string   </td><td class="markdownTableBodyNone"><code>std::string</code>, <code>std::vector</code>   </td><td class="markdownTableBodyNone">Simple    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Blob error   </td><td class="markdownTableBodyNone"><code>std::string</code>, <code>std::vector</code>   </td><td class="markdownTableBodyNone">Simple    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Number   </td><td class="markdownTableBodyNone"><code>long long</code>, <code>int</code>, <code>std::string</code>   </td><td class="markdownTableBodyNone">Simple    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Null   </td><td class="markdownTableBodyNone"><code>boost::optional&lt;T&gt;</code>   </td><td class="markdownTableBodyNone">Simple    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone"><code>std::vector</code>, <code>std::list</code>, <code>std::array</code>, <code>std::deque</code>   </td><td class="markdownTableBodyNone">Aggregate    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Map   </td><td class="markdownTableBodyNone"><code>std::vector</code>, <code>std::map</code>, <code>std::unordered_map</code>   </td><td class="markdownTableBodyNone">Aggregate    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Set   </td><td class="markdownTableBodyNone"><code>std::vector</code>, <code>std::set</code>, <code>std::unordered_set</code>   </td><td class="markdownTableBodyNone">Aggregate    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Push   </td><td class="markdownTableBodyNone"><code>std::vector</code>, <code>std::map</code>, <code>std::unordered_map</code>   </td><td class="markdownTableBodyNone">Aggregate   </td></tr>
+</table>
+<p>Exceptions to this rule are responses that contain nested aggregates or heterogeneous data types, those will be treated later. As of this writing, not all RESP3 types are used by the Redis server, which means in practice users will be concerned with a reduced subset of the RESP3 specification. Now let us see some examples</p>
+<div class="fragment"><div class="line"><span class="comment">// To ignore the response.</span></div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>());</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Read in a std::string e.g. get.</span></div>
+<div class="line">std::string str;</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(str));</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Read in a long long e.g. rpush.</span></div>
+<div class="line"><span class="keywordtype">long</span> <span class="keywordtype">long</span> <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab1bc248a7ff2b2e95569f56de68615df">number</a>;</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(number));</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Read in a std::set e.g. smembers.</span></div>
+<div class="line">std::set&lt;T, U&gt; <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a>;</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(set));</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Read in a std::map e.g. hgetall.</span></div>
+<div class="line">std::map&lt;T, U&gt; <a class="code" href="group__any.html#gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a>;</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(map));</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Read in a std::unordered_map e.g. hgetall.</span></div>
+<div class="line">std::unordered_map&lt;T, U&gt; umap;</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(umap));</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Read in a std::vector e.g. lrange.</span></div>
+<div class="line">std::vector&lt;T&gt; vec;</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(vec));</div>
+<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57ab1bc248a7ff2b2e95569f56de68615df"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab1bc248a7ff2b2e95569f56de68615df">aedis::resp3::type::number</a></div><div class="ttdeci">@ number</div><div class="ttdoc">Simple.</div></div>
+</div><!-- fragment --><p>In other words, it is pretty straightforward, just pass the result of <code>adapt</code> to the read function and make sure the response RESP3 type fits in the type you are calling <code>adapter(...)</code> with. All standard C++ containers are supported by aedis.</p>
+<h3><a class="anchor" id="Optional"></a>
+Optional</h3>
+<p>It is not uncommon for apps to access keys that do not exist or that have already expired in the Redis server, to deal with these cases Aedis provides support for <code>boost::optional</code>. To use it, wrap your type around <code>boost::optional</code> like this</p>
+<div class="fragment"><div class="line">boost::optional&lt;std::unordered_map&lt;T, U&gt;&gt; umap;</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(umap));</div>
+</div><!-- fragment --><p>Everything else stays pretty much the same, before accessing data users will have to check (or assert) the optional contains a value.</p>
+<h3><a class="anchor" id="heterogeneous_aggregates"></a>
+Heterogeneous aggregates</h3>
+<p>There are cases where Redis returns aggregates that contain heterogeneous data, for example, an array that contains integers, strings nested sets etc. Aedis supports reading such aggregates in a <code>std::tuple</code> efficiently as long as the they don't contain 2-order nested aggregates e.g. an array that contains an array of arrays. For example, to read the response to a <code>hello</code> command we can use the following response type.</p>
+<div class="fragment"><div class="line"><span class="keyword">using</span> hello_type = std::tuple&lt;</div>
+<div class="line">   std::string, std::string,</div>
+<div class="line">   std::string, std::string,</div>
+<div class="line">   std::string, int,</div>
+<div class="line">   std::string, int,</div>
+<div class="line">   std::string, std::string,</div>
+<div class="line">   std::string, std::string,</div>
+<div class="line">   std::string, std::vector&lt;std::string&gt;&gt;;</div>
+</div><!-- fragment --><p>Transactions are another example where this feature is useful, for example, the response to the transaction below</p>
+<div class="fragment"><div class="line">db.send(command::multi);</div>
+<div class="line">db.send(command::get, <span class="stringliteral">&quot;key1&quot;</span>);</div>
+<div class="line">db.send(command::lrange, <span class="stringliteral">&quot;key2&quot;</span>, 0, -1);</div>
+<div class="line">db.send(command::hgetall, <span class="stringliteral">&quot;key3&quot;</span>);</div>
+<div class="line">db.send(command::exec);</div>
+</div><!-- fragment --><p>can be read in the following way</p>
+<div class="fragment"><div class="line">std::tuple&lt;</div>
+<div class="line">   boost::optional&lt;std::string&gt;, <span class="comment">// Response to get</span></div>
+<div class="line">   boost::optional&lt;std::vector&lt;std::string&gt;&gt;, <span class="comment">// Response to lrange</span></div>
+<div class="line">   boost::optional&lt;std::map&lt;std::string, std::string&gt;&gt; <span class="comment">// Response to hgetall</span></div>
+<div class="line">&gt; trans;</div>
+<div class="line"> </div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// Ignore multi</span></div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// Ignore get</span></div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// Ignore lrange</span></div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// Ignore hgetall</span></div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(trans));</div>
+</div><!-- fragment --><p>Note that we are not ignoring the response to the commands themselves above but whether they have been successfully queued. Only after <code>exec</code> is received Redis will execute them in sequence. The response will then be sent in a single chunk to the client.</p>
+<h3><a class="anchor" id="Serialization"></a>
+Serialization</h3>
+<p>As mentioned in <a class="el" href="index.html#requests-serialization">Serialization</a>, it is common for users to serialized data before sending it to Redis e.g. json strings, for example</p>
+<div class="fragment"><div class="line">sr.push(command::set, <span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;json-string&quot;</span>)</div>
+<div class="line">sr.push(command::get, <span class="stringliteral">&quot;key&quot;</span>)</div>
+</div><!-- fragment --><p>For performance and convenience reasons, we may want to avoid receiving the response to the <code>get</code> command above as a string just to convert it later to a e.g. deserialized json. To support this, Aedis calls a user defined <code>from_string</code> function while parsing the response. In simple terms, define your type</p>
+<div class="fragment"><div class="line"><span class="keyword">struct </span>mystruct {</div>
+<div class="line">   <span class="comment">// struct fields.</span></div>
+<div class="line">};</div>
+</div><!-- fragment --><p>and deserialize it from a string in a function <code>from_string</code> with the following signature</p>
+<div class="fragment"><div class="line"><span class="keywordtype">void</span> from_string(mystruct&amp; obj, <span class="keywordtype">char</span> <span class="keyword">const</span>* p, std::size_t size, boost::system::error_code&amp; ec)</div>
+<div class="line">{</div>
+<div class="line">   <span class="comment">// Deserializes p into obj.</span></div>
+<div class="line">}</div>
+</div><!-- fragment --><p>After that, you can start receiving data efficiently in the desired types e.g. <code>mystruct</code>, <code>std::map&lt;std::string, mystruct&gt;</code> etc.</p>
+<h3><a class="anchor" id="gen-case"></a>
+The general case</h3>
+<p>As already mentioned, there are cases where the response to Redis commands won't fit in the model presented above, some examples are</p>
+<ul>
+<li>Commands (like <code>set</code>) whose response don't have a fixed RESP3 type. Expecting an <code>int</code> and receiving a blob string will result in error. </li>
+<li>RESP3 responses that contain three levels of (nested) aggregates can't be read in STL containers. </li>
+<li>Transactions with a dynamic number of commands can't be read in a <code>std::tuple</code>.</li>
+</ul>
+<p>To deal with these cases Aedis provides the <code>resp3::node</code> type, that is the most general form of an element in a response, be it a simple RESP3 type or an aggregate. It is defined like this</p>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> String&gt;</div>
+<div class="line"><span class="keyword">struct </span>node {</div>
+<div class="line">   <span class="comment">// The RESP3 type of the data in this node.</span></div>
+<div class="line">   <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> data_type;</div>
+<div class="line"> </div>
+<div class="line">   <span class="comment">// The number of elements of an aggregate (or 1 for simple data).</span></div>
+<div class="line">   std::size_t aggregate_size;</div>
+<div class="line"> </div>
+<div class="line">   <span class="comment">// The depth of this node in the response tree.</span></div>
+<div class="line">   std::size_t depth;</div>
+<div class="line"> </div>
+<div class="line">   <span class="comment">// The actual data. For aggregate types this is always empty.</span></div>
+<div class="line">   String value;</div>
+<div class="line">};</div>
+<div class="ttc" id="agroup__any_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
+</div><!-- fragment --><p>Any response to a Redis command can be received in a <code>std::vector&lt;node&lt;std::string&gt;&gt;</code>. The vector can be seen as a pre-order view of the response tree (<a href="https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR">https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR</a>). Using it is no different that using other types</p>
+<div class="fragment"><div class="line"><span class="comment">// Receives any RESP3 simple data type.</span></div>
+<div class="line">node&lt;std::string&gt; resp;</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp));</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Receives any RESP3 simple or aggregate data type.</span></div>
+<div class="line">std::vector&lt;node&lt;std::string&gt;&gt; resp;</div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp));</div>
+</div><!-- fragment --><p>For example, suppose we want to retrieve a hash data structure from Redis with <code>hgetall</code>, some of the options are</p>
+<ul>
+<li><code>std::vector&lt;node&lt;std::string&gt;</code>: Works always. </li>
+<li><code>std::vector&lt;std::string&gt;</code>: Efficient and flat, all elements as string. </li>
+<li><code>std::map&lt;std::string, std::string&gt;</code>: Efficient if you need the data as a <code>std::map</code> </li>
+<li><code>std::map&lt;U, V&gt;</code>: Efficient if you are storing serialized data. Avoids temporaries and requires <code>from_string</code> for <code>U</code> and <code>V</code>.</li>
+</ul>
+<p>In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. <code>smembers</code>.</p>
+<h3><a class="anchor" id="low-level-adapters"></a>
+Adapters</h3>
+<p>Users that are not satisfied with any of the options above can write their own adapters very easily. For example, the adapter below can be used to print incoming data to the screen.</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> adapter = [](<a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">resp3::node&lt;boost::string_view&gt;</a> <span class="keyword">const</span>&amp; nd, boost::system::error_code&amp;)</div>
+<div class="line">{</div>
+<div class="line">   std::cout &lt;&lt; nd &lt;&lt; std::endl;</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), adapter);</div>
+<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00035">node.hpp:35</a></div></div>
+</div><!-- fragment --><p>See more in the <a class="el" href="index.html#examples">Examples</a> section.</p>
+<h1><a class="anchor" id="high-level-api"></a>
+High-level API</h1>
+<p>It requires a lot of further work to make use of many important features of the Redis server while using the low-level API, for example</p>
+<ul>
+<li><b>Server</b> <b>pushes:</b> Short lived connections can't handle server pushes (e.g. <a href="https://redis.io/topics/client-side-caching">https://redis.io/topics/client-side-caching</a> and <a href="https://redis.io/topics/notifications">https://redis.io/topics/notifications</a>). </li>
+<li><b>Pubsub:</b> Just like server pushes, to use Redis pubsub users need long lasting connections (<a href="https://redis.io/topics/pubsub">https://redis.io/topics/pubsub</a>). </li>
+<li><b>Performance:</b> Keep opening and closing connections impact performance. </li>
+<li><b>Pipeline:</b> Code such as shown in <a class="el" href="index.html#low-level-api">Low-level API</a> don't support pipelines well since it can only send a fixed number of commands at time. It misses important optimization opportunities (<a href="https://redis.io/topics/pipelining">https://redis.io/topics/pipelining</a>).</li>
+</ul>
+<p>To avoid these drawbacks users will address the points above reinventing the high-level API here and there over and over again, to prevent that from happening Aedis provides its own. The general form of a program that uses the high-level api looks like this</p>
+<div class="fragment"><div class="line"><span class="keywordtype">int</span> main()</div>
+<div class="line">{</div>
+<div class="line">   net::io_context ioc;</div>
+<div class="line">   client&lt;net::ip::tcp::socket&gt; db{ioc.get_executor()};</div>
+<div class="line">   receiver recv;</div>
+<div class="line"> </div>
+<div class="line">   db.async_run(</div>
+<div class="line">       recv,</div>
+<div class="line">       {net::ip::make_address(<span class="stringliteral">&quot;127.0.0.1&quot;</span>), 6379},</div>
+<div class="line">       [](<span class="keyword">auto</span> ec){ ... });</div>
+<div class="line"> </div>
+<div class="line">   <span class="comment">// Pass db around to other objects so we can send commands.</span></div>
+<div class="line"> </div>
+<div class="line">   ioc.run();</div>
+<div class="line">}</div>
+</div><!-- fragment --><p>The only thing users have to care about is with the implementation of the <code>receiver</code> class, everything else will be performed automatically by the client class. The general form of a receiver looks like this</p>
+<div class="fragment"><div class="line"><span class="keyword">class </span>receiver {</div>
+<div class="line"><span class="keyword">public</span>:</div>
+<div class="line">   <span class="comment">// Called when a new chunck of user data becomes available.</span></div>
+<div class="line">   <span class="keywordtype">void</span> on_resp3(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd, node&lt;boost::string_view&gt; <span class="keyword">const</span>&amp; nd, boost::system::error_code&amp; ec);</div>
+<div class="line"> </div>
+<div class="line">   <span class="comment">// Called when a response becomes available.</span></div>
+<div class="line">   <span class="keywordtype">void</span> on_read(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd);</div>
+<div class="line"> </div>
+<div class="line">   <span class="comment">// Called when a request has been writen to the socket.</span></div>
+<div class="line">   <span class="keywordtype">void</span> on_write(std::size_t n);</div>
+<div class="line"> </div>
+<div class="line">   <span class="comment">// Called when a server push is received.</span></div>
+<div class="line">   <span class="keywordtype">void</span> on_push();</div>
+<div class="line">};</div>
+<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00024">command.hpp:24</a></div></div>
+</div><!-- fragment --><p>Sending commands is also similar to what has been discussed before.</p>
+<div class="fragment"><div class="line"><span class="keywordtype">void</span> foo(client&lt;net::ip::tcp::socket&gt;&amp; db)</div>
+<div class="line">{</div>
+<div class="line">   db.send(command::ping, <span class="stringliteral">&quot;O rato roeu a roupa do rei de Roma&quot;</span>);</div>
+<div class="line">   db.send(command::incr, <span class="stringliteral">&quot;counter&quot;</span>);</div>
+<div class="line">   db.send(command::set, <span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;Três pratos de trigo para três tigres&quot;</span>);</div>
+<div class="line">   db.send(command::get, <span class="stringliteral">&quot;key&quot;</span>);</div>
+<div class="line">   ...</div>
+<div class="line">}</div>
+</div><!-- fragment --><p>The <code>send</code> functions in this case will add commands to the output queue and send them only if there is no pending response of a previously sent command. This is so because RESP3 is a request/response protocol, which means clients must wait for the response to a command before proceeding with the next one.</p>
+<h2><a class="anchor" id="high-level-responses"></a>
+Responses</h2>
+<p>Aedis also provides some facilities to use use custom responses with the high-level API. Assume for example you have many different custom response types <code>T1</code>, <code>T2</code> etc, a receiver that makes use of this looks like</p>
+<div class="fragment"><div class="line"><span class="keyword">using</span> responses_tuple_type = std::tuple&lt;T1, T2, T3&gt;;</div>
+<div class="line"><span class="keyword">using</span> adapters_tuple_type = adapters_t&lt;responses_tuple_type&gt;;</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">class </span>myreceiver {</div>
+<div class="line"><span class="keyword">public</span>:</div>
+<div class="line">   myreceiver(...) : adapters_(make_adapters_tuple(resps_)) , {}</div>
+<div class="line"> </div>
+<div class="line">   <span class="keywordtype">void</span></div>
+<div class="line">   on_resp3( <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd, node&lt;boost::string_view&gt; <span class="keyword">const</span>&amp; nd, boost::system::error_code&amp; ec)</div>
+<div class="line">   {</div>
+<div class="line">      <span class="comment">// Direct the responses to the desired adapter.</span></div>
+<div class="line">      <span class="keywordflow">switch</span> (cmd) {</div>
+<div class="line">         <span class="keywordflow">case</span> cmd1: adapter::get&lt;T1&gt;(adapters_)(nd, ec);</div>
+<div class="line">         <span class="keywordflow">case</span> cmd2: adapter::get&lt;T2&gt;(adapters_)(nd, ec);</div>
+<div class="line">         <span class="keywordflow">case</span> cmd3: adapter::get&lt;T2&gt;(adapters_)(nd, ec);</div>
+<div class="line">         <span class="keywordflow">default</span>:;</div>
+<div class="line">      }</div>
+<div class="line">   }</div>
+<div class="line"> </div>
+<div class="line">   <span class="keywordtype">void</span> on_read(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd)</div>
+<div class="line">   {</div>
+<div class="line">      <span class="keywordflow">switch</span> (cmd) {</div>
+<div class="line">         <span class="keywordflow">case</span> cmd1: <span class="comment">// Data on std::get&lt;T1&gt;(resps_); break;</span></div>
+<div class="line">         <span class="keywordflow">case</span> cmd2: <span class="comment">// Data on std::get&lt;T2&gt;(resps_); break;</span></div>
+<div class="line">         <span class="keywordflow">case</span> cmd3: <span class="comment">// Data on std::get&lt;T3&gt;(resps_); break;</span></div>
+<div class="line">         <span class="keywordflow">default</span>:;</div>
+<div class="line">      }</div>
+<div class="line">   }</div>
+<div class="line"> </div>
+<div class="line">   <span class="keywordtype">void</span> on_write(std::size_t n) { ... }</div>
+<div class="line"> </div>
+<div class="line">   <span class="keywordtype">void</span> on_push() { ... }</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">private</span>:</div>
+<div class="line">   responses_tuple_type resps_;</div>
+<div class="line">   adapters_tuple_type adapters_;</div>
+<div class="line">};</div>
+</div><!-- fragment --><h1><a class="anchor" id="examples"></a>
 Examples</h1>
-<p><b>Basics:</b> Focuses on small examples that show basic usage of the library.</p>
+<p>To better fix what has been said above, users should have a look at some simple examples.</p>
+<p><b>Low</b> <b>level</b> <b>API</b> </p>
 <ul>
-<li><a class="el" href="intro_8cpp_source.html">intro.cpp</a>: A good starting point. Some commands are sent to the Redis server and the responses are printed to screen.</li>
-<li><a class="el" href="transaction_8cpp_source.html">transaction.cpp</a>: Shows how to read the responses to a trasaction efficiently. See also <a href="https://redis.io/topics/transactions">https://redis.io/topics/transactions</a>.</li>
-<li><a class="el" href="multipurpose__response_8cpp_source.html">multipurpose_response.cpp</a>: Shows how to read any responses to Redis commands, including nested aggegagtes.</li>
-<li><a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a>: Shows how channel subscription works at a low level. See also <a href="https://redis.io/topics/pubsub">https://redis.io/topics/pubsub</a>.</li>
-<li><a class="el" href="sync_8cpp_source.html">sync.cpp</a>: Shows hot to use the Aedis synchronous api.</li>
-<li><a class="el" href="key__expiration_8cpp_source.html">key_expiration.cpp</a>: Shows how to use <code>std::optional</code> to deal with keys that may have expired or do not exist.</li>
+<li><a class="el" href="sync__intro_8cpp_source.html">low_level/sync_intro.cpp</a>: Shows how to use the Aedis synchronous api. </li>
+<li><a class="el" href="async__intro_8cpp_source.html">low_level/async_intro.cpp</a>: Show how to use the low level async api. </li>
+<li><a class="el" href="low__level_2subscriber_8cpp_source.html">low_level/subscriber.cpp</a>: Shows how channel subscription works at the low level. </li>
+<li><a class="el" href="adapter_8cpp_source.html">low_level/adapter.cpp</a>: Shows how to write a response adapter that prints to the screen, see <a class="el" href="index.html#low-level-adapters">Adapters</a>.</li>
 </ul>
-<p><b>STL</b> <b>Containers:</b> Many of the Redis data structures can be directly translated in to STL containers, below you will find some example code. For a list of Redis data types see <a href="https://redis.io/topics/data-types">https://redis.io/topics/data-types</a>.</p>
+<p><b>High</b> <b>level</b> <b>API</b> </p>
 <ul>
-<li><a class="el" href="hashes_8cpp_source.html">hashes.cpp</a>: Shows how to read Redis hashes in a <code>std::map</code>, <code>std::unordered_map</code> and <code>std::vector</code>.</li>
-<li><a class="el" href="lists_8cpp_source.html">lists.cpp</a>: Shows how to read Redis lists in <code>std::list</code>, <code>std::deque</code>, <code>std::vector</code>. It also illustrates basic serialization.</li>
-<li><a class="el" href="sets_8cpp_source.html">sets.cpp</a>: Shows how to read Redis sets in a <code>std::set</code>, <code>std::unordered_set</code> and <code>std::vector</code>.</li>
+<li><a class="el" href="intro_8cpp_source.html">high_level/intro.cpp</a>: Some commands are sent to the Redis server and the responses are printed to screen. </li>
+<li><a class="el" href="aggregates_8cpp_source.html">high_level/aggregates.cpp</a>: Shows how receive RESP3 aggregate data types in a general way. </li>
+<li><a class="el" href="stl__containers_8cpp_source.html">high_level/stl_containers.cpp</a>: Shows how to read responses in STL containers. </li>
+<li><a class="el" href="serialization_8cpp_source.html">high_level/serialization.cpp</a>: Shows how to de/serialize your own data types. </li>
+<li><a class="el" href="high__level_2subscriber_8cpp_source.html">high_level/subscriber.cpp</a>: Shows how channel subscription works at a high level. See also <a href="https://redis.io/topics/pubsub">https://redis.io/topics/pubsub</a>.</li>
 </ul>
-<p><b>Customization</b> <b>points:</b> Shows how de/serialize user types avoiding copies. This is particularly useful for low latency applications that want to avoid unneeded copies, for examples when storing json strings in Redis keys.</p>
+<p><b>Asynchronous</b> <b>Servers</b> </p>
 <ul>
-<li><a class="el" href="serialization_8cpp_source.html">serialization.cpp</a>: Shows how to de/serialize your own non-aggregate data-structures.</li>
-<li><a class="el" href="response__adapter_8cpp_source.html">response_adapter.cpp</a>: Customization point for users that want to de/serialize their own data-structures like containers for example.</li>
-</ul>
-<p><b>Asynchronous</b> <b>servers:</b> Contains some non-trivial examples servers that interact with users and Redis asynchronously over long lasting connections using a higher level API.</p>
-<ul>
-<li><a class="el" href="multipurpose__client_8cpp_source.html">multipurpose_client.cpp</a>: Shows how to use and experimental high level redis client that keeps a long lasting connections to a redis server. This is the starting point for the next examples.</li>
-<li><a class="el" href="echo__server_8cpp_source.html">echo_server.cpp</a>: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. In this case, the server is a proxy between the user and Redis.</li>
-<li><a class="el" href="chat__room_8cpp_source.html">chat_room.cpp</a>: Shows how to build a scalable chat room that scales to millions of users.</li>
+<li><a class="el" href="echo__server_8cpp_source.html">high_level/echo_server.cpp</a>: Shows the basic principles behind asynchronous communication with a database in an asynchronous server. </li>
+<li><a class="el" href="chat__room_8cpp_source.html">high_level/chat_room.cpp</a>: Shows how to build a scalable chat room that scales to millions of users.</li>
 </ul>
 <h1><a class="anchor" id="using-aedis"></a>
 Using Aedis</h1>
@@ -121,50 +510,49 @@ Using Aedis</h1>
 <ul>
 <li>Boost 1.78 or greater.</li>
 <li>Unix Shell and Make.</li>
-<li>Compiler with C++20 coroutine support e.g. GCC 10 or greater.</li>
+<li>C++14. Some examples require C++20 with coroutine support.</li>
 <li>Redis server.</li>
 </ul>
 <p>Some examples will also require interaction with</p>
 <ul>
-<li>redis-cli: used in one example.</li>
+<li>redis-cli: Used in one example.</li>
 <li>Redis Sentinel Server: used in some examples.</li>
+</ul>
+<p>Aedis has been tested with the following compilers</p>
+<ul>
+<li>Tested with gcc: 7.5.0, 8.4.0, 9.3.0, 10.3.0.</li>
+<li>Tested with clang: 11.0.0, 10.0.0, 9.0.1, 8.0.1, 7.0.1.</li>
 </ul>
 <h2><a class="anchor" id="Installation"></a>
 Installation</h2>
-<p>Start by downloading and configuring the library</p>
+<p>The first thing to do is to download and unpack Aedis</p>
 <div class="fragment"><div class="line"><span class="preprocessor"># Download the latest release on github</span></div>
 <div class="line">$ wget https:<span class="comment">//github.com/mzimbres/aedis/releases</span></div>
 <div class="line"> </div>
 <div class="line"><span class="preprocessor"># Uncompress the tarball and cd into the dir</span></div>
-<div class="line">$ tar -xzvf aedis-1.0.0.tar.gz &amp;&amp; cd aedis-1.0.0</div>
+<div class="line"><span class="preprocessor">$ tar -xzvf aedis-version.tar.gz</span></div>
+</div><!-- fragment --><p>If you can't use <code>configure</code> and <code>make</code> (e.g. Windows users) you can already add the directory where you unpacked aedis to the include directories in your project, otherwise run</p>
+<div class="fragment"><div class="line"><span class="preprocessor"># See configure --help for all options.</span></div>
+<div class="line">$ ./configure --prefix=/opt/aedis-version --with-boost=/opt/boost_1_78_0</div>
 <div class="line"> </div>
-<div class="line"><span class="preprocessor"># Run configure with appropriate C++ flags and your boost</span></div>
-<div class="line"><span class="preprocessor"># installation, for example # You may also have to use</span></div>
-<div class="line"><span class="preprocessor"># -Wno-subobject-linkage on gcc.</span></div>
-<div class="line">$ CXXFLAGS=<span class="stringliteral">&quot;-std=c++20 -fcoroutines -g -Wall&quot;</span>\</div>
-<div class="line">./configure  --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0 --with-boost-libdir=/opt/boost_1_78_0/lib</div>
-</div><!-- fragment --><p>To install the library run</p>
-<div class="fragment"><div class="line"><span class="preprocessor"># Install Aedis in the path specified in --prefix</span></div>
+<div class="line"><span class="preprocessor"># Install Aedis in the path specified in --prefix</span></div>
 <div class="line"><span class="preprocessor">$ sudo make install</span></div>
-</div><!-- fragment --><p>At this point you can start using Aedis. To build the examples and test you can also run</p>
+</div><!-- fragment --><p>and include the following header</p>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
+</div><!-- fragment --><p>in exactly one source file in your applications. At this point you can start using Aedis. To build the examples and run the tests run</p>
 <div class="fragment"><div class="line"><span class="preprocessor"># Build aedis examples.</span></div>
 <div class="line">$ make examples</div>
 <div class="line"> </div>
 <div class="line"><span class="preprocessor"># Test aedis in your machine.</span></div>
 <div class="line"><span class="preprocessor">$ make check</span></div>
-</div><!-- fragment --><p>Finally you will have to include the following header</p>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
-</div><!-- fragment --><p> in exactly one source file in your applications.</p>
-<p>Windows users can use aedis by either adding the project root directory to their include path or manually copying to another location.</p>
-<h2><a class="anchor" id="Developers"></a>
+</div><!-- fragment --><h2><a class="anchor" id="Developers"></a>
 Developers</h2>
 <p>To generate the build system run</p>
 <div class="fragment"><div class="line">$ autoreconf -i</div>
-</div><!-- fragment --><p>After that you will have a config in the project dir that you can run as explained above, for example, to use a compiler other that the system compiler use</p>
-<div class="fragment"><div class="line">CC=/opt/gcc-10.2.0/bin/gcc-10.2.0\</div>
-<div class="line">CXX=/opt/gcc-10.2.0/bin/g++-10.2.0\</div>
-<div class="line">CXXFLAGS=<span class="stringliteral">&quot;-std=c++20 -fcoroutines -g -Wall -Wno-subobject-linkage -Werror&quot;</span>  ./configure ...</div>
-</div><!-- fragment --> <h1><a class="anchor" id="Referece"></a>
+</div><!-- fragment --><p>After that you will have a configure script that you can run as explained above, for example, to use a compiler other that the system compiler run</p>
+<div class="fragment"><div class="line">$ CC=/opt/gcc-10.2.0/bin/gcc-10.2.0 CXX=/opt/gcc-10.2.0/bin/g++-10.2.0 CXXFLAGS=<span class="stringliteral">&quot;-g -Wall -Werror&quot;</span>  ./configure ...</div>
+<div class="line">$ make distcheck</div>
+</div><!-- fragment --><h1><a class="anchor" id="Referece"></a>
 Referece</h1>
 <p>See <a class="el" href="group__any.html">Reference</a>. </p>
 </div></div><!-- PageDoc -->

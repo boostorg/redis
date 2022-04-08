@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['push_274',['push',['../classaedis_1_1resp3_1_1serializer.html#ac14beafb0d639ba148237f079e14470d',1,'aedis::resp3::serializer']]],
-  ['push_5frange_275',['push_range',['../classaedis_1_1resp3_1_1serializer.html#ad70c1c3abc45848fea69f1ea814818ce',1,'aedis::resp3::serializer::push_range(Command cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)'],['../classaedis_1_1resp3_1_1serializer.html#abf033386d4822d30649a3ef386341b82',1,'aedis::resp3::serializer::push_range(Command cmd, ForwardIterator begin, ForwardIterator end)']]]
+  ['push_282',['push',['../classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f',1,'aedis::generic::serializer']]],
+  ['push_5frange_283',['push_range',['../classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a',1,'aedis::generic::serializer::push_range(Command cmd, Key const &amp;key, Range const &amp;range)'],['../classaedis_1_1generic_1_1serializer.html#a6dd2ad102dc5b6d7164fe6af7ddcab76',1,'aedis::generic::serializer::push_range(Command cmd, Range const &amp;range)']]],
+  ['push_5frange2_284',['push_range2',['../classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7',1,'aedis::generic::serializer::push_range2(Command cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)'],['../classaedis_1_1generic_1_1serializer.html#a54c8349e0815cafb58a817870aeb5565',1,'aedis::generic::serializer::push_range2(Command cmd, ForwardIterator begin, ForwardIterator end)']]]
 ];

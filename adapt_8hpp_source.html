@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: aedis/resp3/adapt.hpp Source File</title>
+<title>Aedis: aedis/adapter/adapt.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.0.1</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -70,7 +70,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_9d90dcbfa4d8f8d750ed748af15e8f01.html">aedis</a></li><li class="navelem"><a class="el" href="dir_0fa2c971baff23a9f38ce2ade2153076.html">resp3</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_9d90dcbfa4d8f8d750ed748af15e8f01.html">aedis</a></li><li class="navelem"><a class="el" href="dir_8421aa7b90b7f8d8ba687747a8a27574.html">adapter</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -87,23 +87,23 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
 <div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#pragma once</span></div>
 <div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;aedis/resp3/response_traits.hpp&gt;</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;aedis/adapter/response_traits.hpp&gt;</span></div>
 <div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160; </div>
 <div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="keyword">namespace </span>aedis {</div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">namespace </span>resp3 {</div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">namespace </span>adapter {</div>
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
 <div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="keyword">inline</span></div>
-<div class="line"><a name="l00029"></a><span class="lineno"><a class="line" href="group__any.html#ga0848acf8060ffedf036a5ad8d46a0a74">   29</a></span>&#160;<span class="keyword">auto</span> <a class="code" href="group__any.html#ga317e7d1ab69123804db74a90009aff02">adapt</a>() noexcept</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;   { <span class="keywordflow">return</span> <a class="code" href="structaedis_1_1resp3_1_1response__traits.html#a5875db3aec8965719926edf9882989a4">response_traits&lt;void&gt;::adapt</a>(); }</div>
+<div class="line"><a name="l00029"></a><span class="lineno"><a class="line" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">   29</a></span>&#160;<span class="keyword">auto</span> <a class="code" href="group__any.html#gad80df0d37bdb529b41e5a09a572edacf">adapt</a>() noexcept</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;   { <span class="keywordflow">return</span> <a class="code" href="structaedis_1_1adapter_1_1response__traits.html#aad6f36f5fe405b096fd2cd668a98271f">response_traits&lt;void&gt;::adapt</a>(); }</div>
 <div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160; </div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;<span class="keyword">template</span>&lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00090"></a><span class="lineno"><a class="line" href="group__any.html#ga317e7d1ab69123804db74a90009aff02">   90</a></span>&#160;<span class="keyword">auto</span> <a class="code" href="group__any.html#ga317e7d1ab69123804db74a90009aff02">adapt</a>(T&amp; t) noexcept</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;   { <span class="keywordflow">return</span> <a class="code" href="structaedis_1_1resp3_1_1response__traits.html#a5875db3aec8965719926edf9882989a4">response_traits&lt;T&gt;::adapt</a>(t); }</div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160; </div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;} <span class="comment">// resp3</span></div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="ttc" id="agroup__any_html_ga317e7d1ab69123804db74a90009aff02"><div class="ttname"><a href="group__any.html#ga317e7d1ab69123804db74a90009aff02">aedis::resp3::adapt</a></div><div class="ttdeci">auto adapt(T &amp;t) noexcept</div><div class="ttdoc">Adapts user data to read operations.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00090">adapt.hpp:90</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1response__traits_html_a5875db3aec8965719926edf9882989a4"><div class="ttname"><a href="structaedis_1_1resp3_1_1response__traits.html#a5875db3aec8965719926edf9882989a4">aedis::resp3::response_traits::adapt</a></div><div class="ttdeci">static auto adapt(response_type &amp;r) noexcept</div><div class="ttdoc">Returns an adapter for the reponse r.</div><div class="ttdef"><b>Definition:</b> <a href="response__traits_8hpp_source.html#l00042">response_traits.hpp:42</a></div></div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="keyword">template</span>&lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00064"></a><span class="lineno"><a class="line" href="group__any.html#gad80df0d37bdb529b41e5a09a572edacf">   64</a></span>&#160;<span class="keyword">auto</span> <a class="code" href="group__any.html#gad80df0d37bdb529b41e5a09a572edacf">adapt</a>(T&amp; t) noexcept</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;   { <span class="keywordflow">return</span> <a class="code" href="structaedis_1_1adapter_1_1response__traits.html#aad6f36f5fe405b096fd2cd668a98271f">response_traits&lt;T&gt;::adapt</a>(t); }</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160; </div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;} <span class="comment">// adapter</span></div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="ttc" id="agroup__any_html_gad80df0d37bdb529b41e5a09a572edacf"><div class="ttname"><a href="group__any.html#gad80df0d37bdb529b41e5a09a572edacf">aedis::adapter::adapt</a></div><div class="ttdeci">auto adapt(T &amp;t) noexcept</div><div class="ttdoc">Adapts user data to read operations.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00064">adapt.hpp:64</a></div></div>
+<div class="ttc" id="astructaedis_1_1adapter_1_1response__traits_html_aad6f36f5fe405b096fd2cd668a98271f"><div class="ttname"><a href="structaedis_1_1adapter_1_1response__traits.html#aad6f36f5fe405b096fd2cd668a98271f">aedis::adapter::response_traits::adapt</a></div><div class="ttdeci">static auto adapt(ResponseType &amp;r) noexcept</div><div class="ttdoc">Returns an adapter for the reponse r.</div><div class="ttdef"><b>Definition:</b> <a href="response__traits_8hpp_source.html#l00042">response_traits.hpp:42</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->
