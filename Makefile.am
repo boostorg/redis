@@ -13,6 +13,7 @@ AM_LDFLAGS += -pthread
 
 check_PROGRAMS =
 check_PROGRAMS += low_level_sync_intro
+check_PROGRAMS += low_level_sync_serialization
 check_PROGRAMS += high_level_intro
 check_PROGRAMS += high_level_aggregates
 check_PROGRAMS += high_level_stl_containers
@@ -44,6 +45,7 @@ high_level_aggregates_SOURCES = $(top_srcdir)/examples/high_level/aggregates.cpp
 high_level_stl_containers_SOURCES = $(top_srcdir)/examples/high_level/stl_containers.cpp
 high_level_serialization_SOURCES = $(top_srcdir)/examples/high_level/serialization.cpp
 low_level_sync_intro_SOURCES = $(top_srcdir)/examples/low_level/sync_intro.cpp
+low_level_sync_serialization_SOURCES = $(top_srcdir)/examples/low_level/sync_serialization.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 high_level_subscriber_SOURCES = $(top_srcdir)/examples/high_level/subscriber.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp

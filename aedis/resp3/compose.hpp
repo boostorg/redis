@@ -13,22 +13,27 @@
 #include <boost/hana.hpp>
 #include <boost/utility/string_view.hpp>
 
+#include <aedis/resp3/type.hpp>
+
 namespace aedis {
 namespace resp3 {
 
+constexpr char separator[] = "\r\n";
+
 /** @brief Adds data to the request.
  *  @ingroup any
+ *  @todo: Remove from the public api.
  */
 template <class Request>
 void to_bulk(Request& to, boost::string_view data)
 {
    auto const str = std::to_string(data.size());
 
-   to += "$";
+   to += to_code(type::blob_string);
    to.append(std::cbegin(str), std::cend(str));
-   to += "\r\n";
+   to += separator;
    to.append(std::cbegin(data), std::cend(data));
-   to += "\r\n";
+   to += separator;
 }
 
 template <class Request, class T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
@@ -84,13 +89,13 @@ struct add_bulk_impl<boost::hana::tuple<Ts...>> {
  *  @ingroup any
  */
 template <class Request>
-void add_header(Request& to, std::size_t size)
+void add_header(Request& to, type t, std::size_t size)
 {
    auto const str = std::to_string(size);
 
-   to += "*";
+   to += to_code(t);
    to.append(std::cbegin(str), std::cend(str));
-   to += "\r\n";
+   to += separator;
 }
 
 /** @brief Adds a rep3 bulk to the request.
@@ -116,6 +121,19 @@ template <class T, class U>
 struct bulk_counter<std::pair<T, U>> {
   static constexpr auto size = 2U;
 };
+
+template <class Request>
+void add_blob(Request& to, boost::string_view blob)
+{
+   to.append(std::cbegin(blob), std::cend(blob));
+   to += separator;
+}
+
+template <class Request>
+void add_separator(Request& to)
+{
+   to += separator;
+}
 
 } // resp3
 } // aedis

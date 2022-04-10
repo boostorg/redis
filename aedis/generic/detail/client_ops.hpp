@@ -39,6 +39,7 @@ struct run_op {
             return;
          }
 
+         recv_->on_connect();
          yield cli->async_read_write(recv_, std::move(self));
          self.complete(ec);
       }

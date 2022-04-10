@@ -84,5 +84,9 @@ bool is_aggregate(type t);
  */
 std::size_t element_multiplicity(type t);
 
+/** @brief Retruns the wire code of a given type.
+ */
+char to_code(type t);
+
 } // resp3
 } // aedis

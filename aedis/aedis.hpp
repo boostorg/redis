@@ -467,6 +467,9 @@
     @code
     class receiver {
     public:
+       // Called when a connection to Redis is stablished.
+       void on_connect();
+
        // Called when a new chunck of user data becomes available.
        void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec);
     
@@ -515,6 +518,11 @@
     public:
        myreceiver(...) : adapters_(make_adapters_tuple(resps_)) , {}
 
+       void on_connect()
+       {
+          db_->send(command::hello, 3);
+       }
+
        void
        on_resp3( command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
        {
@@ -554,6 +562,7 @@
     \b Low \b level \b API
 
     @li low_level/sync_intro.cpp: Shows how to use the Aedis synchronous api.
+    @li low_level/sync_serialization.cpp: Shows how serialize your own type avoiding copies.
     @li low_level/async_intro.cpp: Show how to use the low level async api.
     @li low_level/subscriber.cpp: Shows how channel subscription works at the low level.
     @li low_level/adapter.cpp: Shows how to write a response adapter that prints to the screen, see \ref low-level-adapters.

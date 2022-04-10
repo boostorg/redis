@@ -64,5 +64,31 @@ std::size_t element_multiplicity(type t)
    }
 }
 
+char to_code(type t)
+{
+   switch (t) {
+      case type::blob_error:           return '!';
+      case type::verbatim_string:      return '=';
+      case type::blob_string:          return '$';
+      case type::streamed_string_part: return ';';
+      case type::simple_error:         return '-';
+      case type::number:               return ':';
+      case type::doublean:             return ',';
+      case type::boolean:              return '#';
+      case type::big_number:           return '(';
+      case type::simple_string:        return '+';
+      case type::null:                 return '_';
+      case type::push:                 return '>';
+      case type::set:                  return '~';
+      case type::array:                return '*';
+      case type::attribute:            return '|';
+      case type::map:                  return '%';
+
+      default:
+      assert(false);
+      return ' ';
+   }
+}
+
 } // resp3
 } // aedis

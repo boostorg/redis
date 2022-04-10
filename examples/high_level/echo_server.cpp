@@ -28,11 +28,18 @@ using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
 using adapter_type = aedis::adapter::adapter_t<response_type>;
 
-class myreceiver {
+class receiver {
 public:
-   myreceiver()
+   receiver(std::shared_ptr<client_type> db)
    : adapter_{adapt(resp_)}
+   , db_{db}
    {}
+
+
+   void on_connect()
+   {
+      db_->send(command::hello, 3);
+   }
 
    void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
    {
@@ -70,6 +77,7 @@ public:
 private:
    response_type resp_;
    adapter_type adapter_;
+   std::shared_ptr<client_type> db_;
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 };
 
@@ -77,7 +85,7 @@ net::awaitable<void>
 listener(
     std::shared_ptr<net::ip::tcp::acceptor> acc,
     std::shared_ptr<client_type> db,
-    std::shared_ptr<myreceiver> recv)
+    std::shared_ptr<receiver> recv)
 {
    for (;;) {
       auto socket = co_await acc->async_accept(net::use_awaitable);
@@ -100,7 +108,7 @@ int main()
       net::io_context ioc;
 
       auto db = std::make_shared<client_type>(ioc.get_executor());
-      auto recv = std::make_shared<myreceiver>();
+      auto recv = std::make_shared<receiver>(db);
 
       db->async_run(
           *recv,

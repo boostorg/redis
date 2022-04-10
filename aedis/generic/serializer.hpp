@@ -80,9 +80,10 @@ public:
    {
       using boost::hana::for_each;
       using boost::hana::make_tuple;
+      using resp3::type;
 
       auto constexpr pack_size = sizeof...(Ts);
-      resp3::add_header(*request_, 1 + pack_size);
+      resp3::add_header(*request_, type::array, 1 + pack_size);
 
       resp3::add_bulk(*request_, to_string(cmd));
       resp3::add_bulk(*request_, make_tuple(args...));
@@ -112,13 +113,14 @@ public:
    void push_range2(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
+      using resp3::type;
 
       if (begin == end)
          return;
 
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      resp3::add_header(*request_, 2 + size * distance);
+      resp3::add_header(*request_, type::array, 2 + size * distance);
       resp3::add_bulk(*request_, to_string(cmd));
       resp3::add_bulk(*request_, key);
 
@@ -147,13 +149,14 @@ public:
    void push_range2(Command cmd, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
+      using resp3::type;
 
       if (begin == end)
          return;
 
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      resp3::add_header(*request_, 1 + size * distance);
+      resp3::add_header(*request_, type::array, 1 + size * distance);
       resp3::add_bulk(*request_, to_string(cmd));
 
       for (; begin != end; ++begin)

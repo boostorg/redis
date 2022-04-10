@@ -36,6 +36,11 @@ public:
    : adapter_{adapt(resp_)}
    , db_{&db} {}
 
+   void on_connect()
+   {
+      db_->send(command::hello, 3);
+   }
+
    void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
    {
       adapter_(nd, ec);

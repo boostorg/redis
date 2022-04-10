@@ -53,12 +53,6 @@ enum class command {
    unsubscribe,
    /// Unknown/invalid command.
    invalid,
-   // For internal usege only, users should ignore this.
-   multi,
-   // For internal usege only, users should ignore this.
-   discard,
-   // For internal usege only, users should ignore this.
-   exec,
 };
 
 /** \brief Converts a sentinel command to a string

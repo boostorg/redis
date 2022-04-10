@@ -46,10 +46,12 @@ bool operator<(mystruct const& a, mystruct const& b)
    return std::tie(a.a, a.b) < std::tie(b.a, b.b);
 }
 
-// Dumy serialization.
+// Dummy serialization.
 void to_bulk(std::string& to, mystruct const& obj)
 {
-   aedis::resp3::to_bulk(to, "Dummy serializaiton string.");
+   std::string const str = "Dummy serializaiton string.";
+   aedis::resp3::add_header(to, aedis::resp3::type::blob_string, str.size());
+   aedis::resp3::add_blob(to, str);
 }
 
 // Dummy deserialization.
@@ -64,6 +66,11 @@ public:
    receiver(client_type& db)
    : adapters_(make_adapters_tuple(resps_))
    , db_{&db} {}
+
+   void on_connect()
+   {
+      db_->send(command::hello, 3);
+   }
 
    void
    on_resp3(

@@ -52,7 +52,6 @@ public:
    , timer_{ex}
    {
       timer_.expires_at(std::chrono::steady_clock::time_point::max());
-      send(Command::hello, 3);
    }
 
    /// Returns the executor.

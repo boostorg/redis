@@ -35,11 +35,16 @@ using adapter_type = aedis::adapter::adapter_t<response_type>;
  * example.
  */
 
-class myreceiver {
+class receiver {
 public:
-   myreceiver(client_type& db)
+   receiver(client_type& db)
    : adapter_{adapt(resp_)}
    , db_{&db} {}
+
+   void on_connect()
+   {
+      db_->send(command::hello, 3);
+   }
 
    void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
    {
@@ -84,7 +89,7 @@ int main()
 {
    net::io_context ioc;
    client_type db{ioc.get_executor()};
-   myreceiver recv{db};
+   receiver recv{db};
 
    db.async_run(
       recv,
