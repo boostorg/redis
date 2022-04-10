@@ -25,7 +25,7 @@
     that provides simple and efficient communication with a Redis
     server. Some of its distinctive features are
 
-    @li Support for the latest version of the Redis communication protocol [RESP3](https://github.com/antirez/RESP3/blob/master/spec.md).
+    @li Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
     @li First class support for STL containers and C++ built-in types.
     @li Serialization and deserialization of your own data types that avoid unnecessary copies.
     @li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
