@@ -17,7 +17,8 @@ namespace resp3 {
 /** \brief RESP3 types
     \ingroup any
   
-    The RESP3 full specification can be found at https://github.com/antirez/RESP3/blob/74adea588783e463c7e84793b325b088fe6edd1c/spec.md
+    For a detailed description of each RESP3 data type see
+    https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md.
  */
 enum class type
 { /// Aggregate
@@ -63,6 +64,7 @@ enum class type
 char const* to_string(type t);
 
 /** \brief Writes the type to the output stream.
+ *
  *  \ingroup operators
  *  \param os Output stream.
  *  \param t RESP3 type.
@@ -80,11 +82,15 @@ bool is_aggregate(type t);
  *  \param t RESP3 type.
  *
  *  For type map and attribute this value is 2, all other types have
- *  1.
+ *  value 1.
  */
 std::size_t element_multiplicity(type t);
 
-/** @brief Retruns the wire code of a given type.
+/** @brief Returns the wire code of a given type.
+ *  @ingroup any
+ *
+ *  @param t The RESP3 type.
+ *  @return The code (\c char) that identifies the data type on the wire.
  */
 char to_code(type t);
 

@@ -33,6 +33,7 @@ struct run_op {
    void operator()(Self& self, boost::system::error_code ec = {})
    {
       reenter (coro) {
+         // TODO: Add a timeout on the connect.
          yield cli->socket_.async_connect(cli->endpoint_, std::move(self));
          if (ec) {
             self.complete(ec);
@@ -100,6 +101,7 @@ struct writer_op {
          assert(cli->req_info_.front().size != 0);
          assert(!cli->requests_.empty());
 
+         // TODO: Add a timeout on the write. Use the timer below.
          yield
          boost::asio::async_write(
             cli->socket_,
@@ -175,6 +177,7 @@ struct read_op {
             cmd = cli->commands_.front();
          }
 
+         // TODO: Add a timeout on the read.
          yield
          resp3::async_read(
             cli->socket_,

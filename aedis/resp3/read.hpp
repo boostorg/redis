@@ -19,18 +19,36 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief Read the response to a command sychronously.
- *  \ingroup functions
+/** \brief Reads a complete response to a command sychronously.
+ *  \ingroup any
  *
- *  This function has to be called once for each command in the
- *  request until the whole request has been read.
+ *  This function reads a complete response to a command or a
+ *  server push synchronously. For example
  *
- *  \param stream The stream from which to read.
- *  \param buf Auxiliary read buffer, usually a `std::string`.
- *  \param adapter The response adapter, see adapt.
- *  \param ec Error if any.
- *  \returns The number of bytes that have been consumed from the
- *  auxiliary buffer.
+ *  @code
+ *  std::string buffer, resp;
+ *  resp3::read(socket, dynamic_buffer(buffer), adapt(resp));
+ *  @endcode
+ *
+ *  For a complete example see low_level/sync_intro.cpp. This function
+ *  is implemented in terms of one or more calls to @c
+ *  asio::read_until and @c asio::read functions, and is known as a @a
+ *  composed @a operation. Furthermore (Quoted from Beast docs)
+ *
+ *  > The implementation may read additional bytes from the stream that
+ *  > lie past the end of the message being read. These additional
+ *  > bytes are stored in the dynamic buffer, which must be preserved
+ *  > for subsequent reads.
+ *
+ *  \param stream The stream from which to read e.g. a tcp socket.
+ *  \param buf Dynamic buffer (version 2).
+ *  \param adapter The response adapter, see more on \ref low-level-responses.
+ *  \param ec If an error occurs, it will be assigned to this paramter.
+ *  \returns The number of bytes that have been consumed from the dynamic buffer.
+ *
+ *  \remark This function calls buf.consume() in each chunk of data
+ *  after it has been passed to the adapter. See also \ref
+ *  low-level-read-buffers.
  */
 template <
   class SyncReadStream,
@@ -86,17 +104,10 @@ read(
    return consumed;
 }
 
-/** \brief Reads the reponse to a command.
- *  \ingroup functions
+/** \brief Reads a complete response to a command sychronously.
+ *  \ingroup any
  *  
- *  This function has to be called once for each command in the
- *  request until the whole request has been read.
- *
- *  \param stream The stream from which to read.
- *  \param buf Auxiliary read buffer, usually a `std::string`.
- *  \param adapter The response adapter, see adapt.
- *  \returns The number of bytes that have been consumed from the
- *  auxiliary buffer.
+ *  Same as the other error-code overload but throws on error.
  */
 template<
    class SyncReadStream,
@@ -117,25 +128,45 @@ read(
    return n;
 }
 
-/** @brief Reads the response to a Redis command asynchronously.
- *  \ingroup functions
+/** @brief Reads a complete response to a Redis command asynchronously.
+ *  \ingroup any
  *
- *  This function has to be called once for each command in the
- *  request until the whole request has been read.
- *
- *  The completion handler must have the following signature.
+ *  This function reads a complete response to a command or a
+ *  server push asynchronously. For example
  *
  *  @code
- *  void(boost::system::error_code, std::size_t)
+ *  std::string buffer;
+ *  std::vector<std::string> response;
+ *  co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(response));
  *  @endcode
  *
- *  The second argumet to the completion handler is the number of
- *  bytes that have been consumed in the read operation.
+ *  For a complete example see low_level/async_intro.cpp. This
+ *  function is implemented in terms of one or more calls to @c
+ *  asio::async_read_until and @c asio::async_read functions, and is
+ *  known as a @a composed @a operation. Furthermore (Quoted from
+ *  Beast docs)
  *
- *  \param stream The stream from which to read.
- *  \param buffer Auxiliary read buffer, usually a `std::string`.
- *  \param adapter The response adapter, see adapt.
+ *  > The implementation may read additional bytes from the stream that
+ *  > lie past the end of the message being read. These additional
+ *  > bytes are stored in the dynamic buffer, which must be preserved
+ *  > for subsequent reads.
+ *
+ *  \param stream The stream from which to read e.g. a tcp socket.
+ *  \param buffer Dynamic buffer (version 2).
+ *  \param adapter The response adapter, see more on \ref low-level-responses.
  *  \param token The completion token.
+ *
+ *  The completion handler will receive as a parameter the total
+ *  number of bytes transferred from the stream and must have the
+ *  following signature
+ *
+ *  @code
+ *  void(boost::system::error_code, std::size_t);
+ *  @endcode
+ *
+ *  \remark This function calls buf.consume() in each chunk of data
+ *  after it has been passed to the adapter. See also \ref
+ *  low-level-read-buffers.
  */
 template <
    class AsyncReadStream,
@@ -158,19 +189,31 @@ auto async_read(
         stream);
 }
 
-/** \brief Reads the RESP3 type of the next incomming.
- *  \ingroup functions
+/** \brief Reads the RESP3 data type of the next incomming data.
+ *  \ingroup any
  *
- *  This function won't consume any data from the buffer. The
- *  completion handler must have the following signature.
+ *  This function will read the RESP3 data type of the next Redis
+ *  response.  It is implemented in terms of one or more calls to @c
+ *  asio::async_read_until and is known as a @a composed @a operation.
+ *  Furthermore (Quoted from Beast docs)
+ *
+ *  > The implementation may read additional bytes from the stream that
+ *  > lie past the end of the message being read. These additional
+ *  > bytes are stored in the dynamic buffer, which must be preserved
+ *  > for subsequent reads.
+ *
+ *  \param stream The stream from which to read.
+ *  \param buffer A dynamic buffer (version 2).
+ *  \param token The completion token.
+ *
+ *  The completion handler will receive as a parameter the RESP3 data
+ *  type of the next response and must have the following signature
  *
  *  @code
-    void(boost::system::error_code, type)
+ *  void(boost::system::error_code, type)
  *  @endcode
  *  
- *  \param stream The stream from which to read.
- *  \param buffer Auxiliary read buffer, usually a `std::string`.
- *  \param token The completion token.
+ *  \remark No data is consumed from the stream (as of x.consume()).
  */
 template <
    class AsyncReadStream,

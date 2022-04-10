@@ -168,7 +168,7 @@
 
     It is quite common to store json string in Redis for example.
 
-    \subsection responses Responses
+    \subsection low-level-responses Responses
 
     To read responses effectively, users must know their RESP3 type,
     this can be found in the Redis documentation of each command
@@ -422,6 +422,10 @@
     @endcode
 
     See more in the \ref examples section.
+
+    \subsubsection low-level-read-buffers Read buffers
+
+    This section describes how Aedis read functions consume buffers.
 
     \section high-level-api High-level API
 
