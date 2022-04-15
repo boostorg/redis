@@ -41,22 +41,23 @@ int main()
       net::connect(socket, res);
 
       // Creates and sends a request to redis.
-      std::string request;
-      auto sr = make_serializer(request);
+      std::string buffer;
+      auto sr = make_serializer(buffer);
       sr.push(command::hello, 3);
       sr.push(command::ping);
       sr.push(command::quit);
-      net::write(socket, net::buffer(request));
+      net::write(socket, net::buffer(buffer));
+      buffer.clear();
 
       // Responses
       std::string resp;
       hello_type hello;
 
       // Reads the responses to all commands in the request.
-      std::string buffer;
-      resp3::read(socket, dynamic_buffer(buffer), adapt(hello)); // hello
-      resp3::read(socket, dynamic_buffer(buffer), adapt(resp));
-      resp3::read(socket, dynamic_buffer(buffer)); // quit (ignored)
+      auto dbuffer = dynamic_buffer(buffer);
+      resp3::read(socket, dbuffer, adapt(hello));
+      resp3::read(socket, dbuffer, adapt(resp));
+      resp3::read(socket, dbuffer);
 
       std::cout << std::get<0>(hello) << ": " << std::get<1>(hello) << std::endl;
       std::cout << "Ping: " << resp << std::endl;

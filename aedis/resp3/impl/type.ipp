@@ -90,5 +90,28 @@ char to_code(type t)
    }
 }
 
+type to_type(char c)
+{
+   switch (c) {
+      case '!': return type::blob_error;
+      case '=': return type::verbatim_string;
+      case '$': return type::blob_string;
+      case ';': return type::streamed_string_part;
+      case '-': return type::simple_error;
+      case ':': return type::number;
+      case ',': return type::doublean;
+      case '#': return type::boolean;
+      case '(': return type::big_number;
+      case '+': return type::simple_string;
+      case '_': return type::null;
+      case '>': return type::push;
+      case '~': return type::set;
+      case '*': return type::array;
+      case '|': return type::attribute;
+      case '%': return type::map;
+      default: return type::invalid;
+   }
+}
+
 } // resp3
 } // aedis

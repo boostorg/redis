@@ -20,13 +20,14 @@
 namespace net = boost::asio;
 using aedis::resp3::node;
 using aedis::adapter::adapt;
+using aedis::adapter::adapter_t;
 using aedis::redis::command;
 using aedis::generic::client;
 using aedis::user_session;
 using aedis::user_session_base;
+
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
-using adapter_type = aedis::adapter::adapter_t<response_type>;
 
 class receiver {
 public:
@@ -76,7 +77,7 @@ public:
 
 private:
    response_type resp_;
-   adapter_type adapter_;
+   adapter_t<response_type> adapter_;
    std::shared_ptr<client_type> db_;
    std::queue<std::shared_ptr<user_session_base>> sessions_;
 };

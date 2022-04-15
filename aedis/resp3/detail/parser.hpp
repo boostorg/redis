@@ -24,9 +24,6 @@ namespace detail {
 
 std::size_t parse_uint(char const* data, std::size_t size, boost::system::error_code& ec);
 
-// Converts a wire-format RESP3 type (char) to a resp3 type.
-type to_type(char c);
-
 template <class ResponseAdapter>
 class parser {
 private:

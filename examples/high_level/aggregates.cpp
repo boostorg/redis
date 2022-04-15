@@ -16,10 +16,12 @@
 namespace net = boost::asio;
 using aedis::resp3::node;
 using aedis::adapter::adapt;
+using aedis::adapter::adapter_t;
 using aedis::redis::command;
-using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
+using aedis::generic::client;
+
+using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
-using adapter_type = aedis::adapter::adapter_t<response_type>;
 
 // Prints aggregates that don't contain any nested aggregates.
 void print_aggregate(response_type const& v)
@@ -96,7 +98,7 @@ public:
 
 private:
    response_type resp_;
-   adapter_type adapter_;
+   adapter_t<response_type> adapter_;
    client_type* db_;
 };
 

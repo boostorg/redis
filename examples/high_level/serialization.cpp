@@ -20,20 +20,17 @@ struct mystruct {
 namespace net = boost::asio;
 namespace adapter = aedis::adapter;
 using aedis::resp3::node;
-using aedis::adapter::adapters_tuple_t;
-using aedis::adapter::make_adapters_tuple;
-using aedis::adapter::get;
+using aedis::adapter::adapt;
+using aedis::adapter::adapter_t;
 using aedis::redis::command;
 using aedis::generic::client;
+
 using client_type = client<net::ip::tcp::socket, command>;
-using responses_tuple_type =
-   std::tuple<
-      boost::optional<mystruct>,
-      std::list<mystruct>,
-      std::set<mystruct>,
-      std::map<std::string, mystruct>
-   >;
-using adapters_tuple_type = adapters_tuple_t<responses_tuple_type>;
+// Response types used in the example.
+using T0 = boost::optional<mystruct>;
+using T1 = std::list<mystruct>;
+using T2 = std::set<mystruct>;
+using T3 = std::map<std::string, mystruct>;
 
 std::ostream& operator<<(std::ostream& os, mystruct const& obj)
 {
@@ -64,7 +61,10 @@ void from_string(mystruct& obj, boost::string_view sv, boost::system::error_code
 class receiver  {
 public:
    receiver(client_type& db)
-   : adapters_(make_adapters_tuple(resps_))
+   : adapter0_(adapt(resp0_))
+   , adapter1_(adapt(resp1_))
+   , adapter2_(adapt(resp2_))
+   , adapter3_(adapt(resp3_))
    , db_{&db} {}
 
    void on_connect()
@@ -79,10 +79,10 @@ public:
       boost::system::error_code& ec)
    {
       switch (cmd) {
-         case command::get:      adapter::get<boost::optional<mystruct>>(adapters_)(nd, ec); break;
-         case command::lrange:   adapter::get<std::list<mystruct>>(adapters_)(nd, ec); break;
-         case command::smembers: adapter::get<std::set<mystruct>>(adapters_)(nd, ec); break;
-         case command::hgetall:  adapter::get<std::map<std::string, mystruct>>(adapters_)(nd, ec); break;
+         case command::get:      adapter0_(nd, ec); break;
+         case command::lrange:   adapter1_(nd, ec); break;
+         case command::smembers: adapter2_(nd, ec); break;
+         case command::hgetall:  adapter3_(nd, ec); break;
          default:; // Ignore
       }
    }
@@ -122,33 +122,33 @@ public:
 
          case command::get:
          {
-            if (std::get<boost::optional<mystruct>>(resps_).has_value()) {
-               std::cout << std::get<boost::optional<mystruct>>(resps_).value() << "\n\n";
-               std::get<boost::optional<mystruct>>(resps_).reset();
+            if (resp0_.has_value()) {
+               std::cout << resp0_.value() << "\n\n";
+               resp0_.reset();
             } else {
                std::cout << "Expired." << "\n";
             }
          } break;
 
          case command::lrange:
-         for (auto const& e: std::get<std::list<mystruct>>(resps_))
+         for (auto const& e: resp1_)
             std::cout << e << "\n";
          std::cout << "\n";
-         std::get<std::list<mystruct>>(resps_).clear();
+         resp1_.clear();
          break;
 
          case command::smembers:
-         for (auto const& e: std::get<std::set<mystruct>>(resps_))
+         for (auto const& e: resp2_)
             std::cout << e << "\n";
          std::cout << "\n";
-         std::get<std::set<mystruct>>(resps_).clear();
+         resp2_.clear();
          break;
 
          case command::hgetall:
-         for (auto const& e: std::get<std::map<std::string, mystruct>>(resps_))
+         for (auto const& e: resp3_)
             std::cout << e.first << ", " << e.second << std::endl;
          std::cout << "\n";
-         std::get<std::map<std::string, mystruct>>(resps_).clear();
+         resp3_.clear();
          break;
 
          default:;
@@ -163,8 +163,16 @@ public:
    void on_push() { }
 
 private:
-   responses_tuple_type resps_;
-   adapters_tuple_type adapters_;
+   T0 resp0_;
+   T1 resp1_;
+   T2 resp2_;
+   T3 resp3_;
+
+   adapter_t<T0> adapter0_;
+   adapter_t<T1> adapter1_;
+   adapter_t<T2> adapter2_;
+   adapter_t<T3> adapter3_;
+
    client_type* db_;
 };
 

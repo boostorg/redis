@@ -170,7 +170,7 @@ struct read_op {
          }
 
          assert(!cli->read_buffer_.empty());
-         t = resp3::detail::to_type(cli->read_buffer_.front());
+         t = resp3::to_type(cli->read_buffer_.front());
          cmd = Command::invalid;
          if (t != resp3::type::push) {
             assert(!cli->commands_.empty());

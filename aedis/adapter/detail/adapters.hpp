@@ -27,6 +27,8 @@
 #include <aedis/resp3/node.hpp>
 #include <aedis/adapter/error.hpp>
 
+// TODO: Add an adapter for float and double, from spirit.
+
 namespace aedis {
 namespace adapter {
 namespace detail {

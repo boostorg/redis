@@ -96,94 +96,27 @@ struct assigner<0> {
   }
 };
 
-template <std::size_t N>
-struct assigner2 {
-  template <class T1, class T2>
-  static void assign(T1& dest, T2& from)
-  {
-     std::get<N>(dest) = internal_adapt(std::get<N>(from));
-     assigner2<N - 1>::assign(dest, from);
-  }
-};
-
-template <>
-struct assigner2<0> {
-  template <class T1, class T2>
-  static void assign(T1& dest, T2& from)
-  {
-     std::get<0>(dest) = internal_adapt(std::get<0>(from));
-  }
-};
-
-} // detail
-
-/** @brief Return a specific adapter from the tuple.
- *  
- *  \param t A tuple of response adapters.
- *  \return The adapter that corresponds to type T.
- */
-template <class T, class Tuple>
-auto& get(Tuple& t)
-{
-   return std::get<typename response_traits<T>::adapter_type>(t);
-}
-
-template <class Tuple>
-using adapters_array_t = 
-   std::array<
-      boost::mp11::mp_unique<
-         boost::mp11::mp_rename<
-            boost::mp11::mp_transform<
-               adapter_t, Tuple>,
-               boost::variant2::variant>>,
-      std::tuple_size<Tuple>::value>;
-
-template <class Tuple>
-adapters_array_t<Tuple> make_adapters_array(Tuple& t)
-{
-   adapters_array_t<Tuple> ret;
-   detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(ret, t);
-   return ret;
-}
-
-/** @brief Transaforms a tuple of responses.
- *
- *  @return Transaforms a tuple of responses into a tuple of adapters.
- */
-template <class Tuple>
-using adapters_tuple_t = 
-         boost::mp11::mp_rename<
-            boost::mp11::mp_transform<
-               adapter_t, Tuple>,
-               std::tuple>;
-
-/** @brief Make a tuple of adapters.
- *  
- *  \param t Tuple of responses.
- *  \return Tuple of adapters.
- */
-template <class Tuple>
-auto
-make_adapters_tuple(Tuple& t)
-{
-   adapters_tuple_t<Tuple> ret;
-   detail::assigner2<std::tuple_size<Tuple>::value - 1>::assign(ret, t);
-   return ret;
-}
-
-namespace detail {
-
 template <class Tuple>
 class static_aggregate_adapter {
 private:
+   using adapters_array_type = 
+      std::array<
+         boost::mp11::mp_unique<
+            boost::mp11::mp_rename<
+               boost::mp11::mp_transform<
+                  adapter_t, Tuple>,
+                  boost::variant2::variant>>,
+         std::tuple_size<Tuple>::value>;
+
    std::size_t i_ = 0;
    std::size_t aggregate_size_ = 0;
-   adapters_array_t<Tuple> adapters_;
+   adapters_array_type adapters_;
 
 public:
    static_aggregate_adapter(Tuple* r = nullptr)
-   : adapters_(make_adapters_array(*r))
-   {}
+   {
+      detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, *r);
+   }
 
    void count(resp3::node<boost::string_view> const& nd)
    {

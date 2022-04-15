@@ -86,13 +86,11 @@ bool is_aggregate(type t);
  */
 std::size_t element_multiplicity(type t);
 
-/** @brief Returns the wire code of a given type.
- *  @ingroup any
- *
- *  @param t The RESP3 type.
- *  @return The code (\c char) that identifies the data type on the wire.
- */
+// Returns the wire code of a given type.
 char to_code(type t);
+
+// Converts a wire-format RESP3 type (char) to a resp3 type.
+type to_type(char c);
 
 } // resp3
 } // aedis

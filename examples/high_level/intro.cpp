@@ -13,12 +13,13 @@
 
 namespace net = boost::asio;
 using aedis::resp3::node;
+using aedis::adapter::adapter_t;
+using aedis::adapter::adapt;
 using aedis::redis::command;
 using aedis::generic::client;
-using aedis::adapter::adapt;
+
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = node<std::string>;
-using adapter_type = aedis::adapter::adapter_t<response_type>;
 
 struct myreceiver {
 public:
@@ -61,7 +62,7 @@ public:
 
 private:
    response_type resp_;
-   adapter_type adapter_;
+   adapter_t<response_type> adapter_;
    client_type* db_;
 };
 

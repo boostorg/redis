@@ -61,17 +61,19 @@
        tcp_socket socket{co_await net::this_coro::executor};
        co_await socket.async_connect(ep);
     
-       std::string request, read_buffer, response;
+       std::string buffer, response;
 
        auto sr = make_serializer(request);
        sr.push(command::hello, 3);
        sr.push(command::set, "key", "Value", "EX", "2", "get");
        sr.push(command::quit);
-       co_await net::async_write(socket, net::buffer(request));
+       co_await net::async_write(socket, net::buffer(buffer));
+       buffer.clear();
     
-       co_await resp3::async_read(socket, dynamic_buffer(read_buffer)); // Hello (ignored).
-       co_await resp3::async_read(socket, dynamic_buffer(read_buffer), adapt(response)); // Set
-       co_await resp3::async_read(socket, dynamic_buffer(read_buffer)); // Quit (ignored)
+       auto dbuffer = net::dynamic_buffer(read_buffer);
+       co_await resp3::async_read(socket, dbuffer); // Hello ignored.
+       co_await resp3::async_read(socket, dbuffer, adapt(response)); // Set
+       co_await resp3::async_read(socket, dbuffer); // Quit ignored.
     
        co_return response;
     }

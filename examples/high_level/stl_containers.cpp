@@ -15,19 +15,16 @@
 namespace net = boost::asio;
 namespace adapter = aedis::adapter;
 using aedis::resp3::node;
+using aedis::adapter::adapt;
+using aedis::adapter::adapter_t;
 using aedis::redis::command;
 using aedis::generic::client;
-using aedis::adapter::adapt;
-using aedis::adapter::adapters_tuple_t;
-using aedis::adapter::make_adapters_tuple;
+
+// Responses used in the example.
+using T0 = std::list<int>;
+using T1 = boost::optional<std::set<std::string>>;
+
 using client_type = client<net::ip::tcp::socket, command>;
-using responses_tuple_type =
-   std::tuple<
-      std::list<int>,
-      boost::optional<std::set<std::string>>,
-      std::vector<node<std::string>>
-   >;
-using adapters_tuple_type = adapters_tuple_t<responses_tuple_type>;
 
 template <class Container>
 void print_and_clear(Container& cont)
@@ -38,10 +35,11 @@ void print_and_clear(Container& cont)
    cont.clear();
 }
 
-class myreceiver {
+class receiver {
 public:
-   myreceiver(client_type& db)
-   : adapters_(make_adapters_tuple(resps_))
+   receiver(client_type& db)
+   : adapter0_(adapt(resp0_))
+   , adapter1_(adapt(resp1_))
    , db_{&db} {}
 
    void on_connect()
@@ -56,8 +54,8 @@ public:
       boost::system::error_code& ec)
    {
       switch (cmd) {
-         case command::lrange:   adapter::get<std::list<int>>(adapters_)(nd, ec); break;
-         case command::smembers: adapter::get<boost::optional<std::set<std::string>>>(adapters_)(nd, ec); break;
+         case command::lrange:   adapter0_(nd, ec); break;
+         case command::smembers: adapter1_(nd, ec); break;
          default:;
       }
    }
@@ -92,11 +90,11 @@ public:
          } break;
 
          case command::lrange:
-         print_and_clear(std::get<std::list<int>>(resps_));
+         print_and_clear(resp0_);
          break;
 
          case command::smembers:
-         print_and_clear(std::get<boost::optional<std::set<std::string>>>(resps_).value());
+         print_and_clear(resp1_.value());
          break;
 
          default:;
@@ -111,8 +109,14 @@ public:
    void on_push() { }
 
 private:
-   responses_tuple_type resps_;
-   adapters_tuple_type adapters_;
+   // Responses
+   T0 resp0_;
+   T1 resp1_;
+
+   // Adapters.
+   adapter_t<T0> adapter0_;
+   adapter_t<T1> adapter1_;
+
    client_type* db_;
 };
 
@@ -120,7 +124,7 @@ int main()
 {
    net::io_context ioc;
    client_type db{ioc.get_executor()};
-   myreceiver recv{db};
+   receiver recv{db};
 
    db.async_run(
        recv,

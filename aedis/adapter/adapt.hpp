@@ -12,17 +12,25 @@
 namespace aedis {
 namespace adapter {
 
-/** \brief Creates a void response adapter.
+/** \brief Creates a dummy response adapter.
     \ingroup any
   
-    The adapter returned by this function ignores responses and is
-    useful to avoid wasting time with responses on which the user is
-    not insterested in.
-
-    Example usage:
+    The adapter returned by this function is dummy which means it
+    ignores responses. It is useful to avoid wasting time with
+    responses which are not needed. For example
 
     @code
-    co_await async_read(socket, buffer, adapt());
+    // Pushes and writes some commands to the server.
+    sr.push(command::hello, 3);
+    sr.push(command::ping);
+    sr.push(command::quit);
+    net::write(socket, net::buffer(request));
+
+    // Ignores all responses except for the response to ping.
+    std::string buffer;
+    resp3::read(socket, dynamic_buffer(buffer), adapt());     // hello
+    resp3::read(socket, dynamic_buffer(buffer), adapt(resp)); // ping
+    resp3::read(socket, dynamic_buffer(buffer, adapt()));     // quit
     @endcode
  */
 inline
