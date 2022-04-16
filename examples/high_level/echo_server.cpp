@@ -54,7 +54,7 @@ public:
 
    void on_push() { }
 
-   void on_read(command cmd)
+   void on_read(command cmd, std::size_t)
    {
       switch (cmd) {
          case command::ping:

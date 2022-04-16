@@ -48,8 +48,10 @@ public:
       adapter_(nd, ec);
    }
 
-   void on_read(command cmd)
+   void on_read(command cmd, std::size_t n)
    {
+      std::cout << cmd << ": " << n << std::endl;
+
       switch (cmd) {
          case command::hello:
          {

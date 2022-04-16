@@ -246,7 +246,7 @@ struct read_op {
                cli->wait_write_timer_.cancel_one();
 
             // TODO: Pass the read size to on_read.
-            recv->on_read(cli->cmd);
+            recv->on_read(cli->cmd, n);
          }
 
          self.complete({});
