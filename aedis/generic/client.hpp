@@ -248,8 +248,9 @@ public:
    }
 
 private:
-   template <class T, class U, class V> friend struct detail::read_op;
+   template <class T, class U, class V> friend struct detail::reader_op;
    template <class T, class U> friend struct detail::writer_op;
+   template <class T, class U> friend struct detail::write_op;
    template <class T, class U> friend struct detail::run_op;
 
    struct request_info {
@@ -337,21 +338,36 @@ private:
       class Receiver,
       class CompletionToken = default_completion_token_type>
    auto
-   async_reader(
+   reader(
       Receiver* recv,
       CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_op<client, Receiver, Command>{this, recv}, token, socket_);
+         >(detail::reader_op<client, Receiver, Command>{this, recv}, token, socket_);
+   }
+
+   // Write with a timeout.
+   template <
+      class Receiver,
+      class CompletionToken = default_completion_token_type>
+   auto
+   async_write(
+      Receiver* recv,
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::write_op<client, Receiver>{this, recv}, token, socket_, write_timer_);
    }
 
    template <
       class Receiver,
       class CompletionToken = default_completion_token_type>
    auto
-   async_writer(
+   writer(
       Receiver* recv,
       CompletionToken&& token = default_completion_token_type{})
    {

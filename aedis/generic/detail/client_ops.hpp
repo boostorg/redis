@@ -61,8 +61,8 @@ struct run_op {
          cli->wait_write_timer_.expires_at(std::chrono::steady_clock::time_point::max());
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return cli->async_writer(recv, token);},
-            [this](auto token) { return cli->async_reader(recv, token);}
+            [this](auto token) { return cli->writer(recv, token);},
+            [this](auto token) { return cli->reader(recv, token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one_error(),
             std::move(self));
@@ -79,7 +79,7 @@ struct run_op {
 // Consider limiting the size of the pipelines by spliting that last
 // one in two if needed.
 template <class Client, class Receiver>
-struct writer_op {
+struct write_op {
    Client* cli;
    Receiver* recv;
    std::size_t size;
@@ -87,30 +87,48 @@ struct writer_op {
 
    template <class Self>
    void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , std::size_t n = 0)
+                  , std::array<std::size_t, 2> order = {}
+                  , boost::system::error_code ec1 = {}
+                  , std::size_t n = 0
+                  , boost::system::error_code ec2 = {})
    {
-      reenter (coro) for (;;) {
-
-         boost::ignore_unused(n);
+      reenter (coro) {
 
          assert(!cli->req_info_.empty());
          assert(cli->req_info_.front().size != 0);
          assert(!cli->requests_.empty());
 
-         // TODO: Add a timeout on the write. Use the timer below.
+         // TODO
+         cli->write_timer_.expires_after(std::chrono::milliseconds{2});
+
          yield
-         boost::asio::async_write(
-            cli->socket_,
-            boost::asio::buffer(cli->requests_.data(), cli->req_info_.front().size),
+         boost::asio::experimental::make_parallel_group(
+            [this](auto token) { return boost::asio::async_write(cli->socket_, boost::asio::buffer(cli->requests_.data(), cli->req_info_.front().size), token);},
+            [this](auto token) { return cli->write_timer_.async_wait(token);}
+         ).async_wait(
+            boost::asio::experimental::wait_for_one(),
             std::move(self));
 
-         if (ec) {
-            cli->socket_.close();
-            self.complete(ec);
-            return;
+         switch (order[0]) {
+            case 0:
+            {
+               if (ec1) {
+                  cli->socket_.close();
+                  self.complete(ec1);
+                  return;
+               }
+            } break;
+
+            case 1:
+            {
+               self.complete(ec2);
+               return;
+            }
+
+            default: assert(false);
          }
 
+         assert(n == cli->req_info_.front().size);
          size = cli->req_info_.front().size;
 
          cli->requests_.erase(0, cli->req_info_.front().size);
@@ -120,6 +138,27 @@ struct writer_op {
             cli->req_info_.erase(std::begin(cli->req_info_));
 
          recv->on_write(size);
+         self.complete({});
+      }
+   }
+};
+
+template <class Client, class Receiver>
+struct writer_op {
+   Client* cli;
+   Receiver* recv;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()(Self& self , boost::system::error_code ec = {})
+   {
+      reenter (coro) for (;;) {
+         yield cli->async_write(recv, std::move(self));
+         if (ec) {
+            cli->socket_.close();
+            self.complete(ec);
+            return;
+         }
 
          yield cli->wait_write_timer_.async_wait(std::move(self));
 
@@ -132,7 +171,7 @@ struct writer_op {
 };
 
 template <class Client, class Receiver, class Command>
-struct read_op {
+struct reader_op {
    Client* cli;
    Receiver* recv;
    boost::asio::coroutine coro;
