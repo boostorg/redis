@@ -41,8 +41,7 @@ namespace generic {
 template <class AsyncReadWriteStream, class Command>
 class client {
 public:
-   using stream_type = AsyncReadWriteStream;
-   using executor_type = typename stream_type::executor_type;
+   using executor_type = typename AsyncReadWriteStream::executor_type;
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
    /** \brief Constructor.
@@ -51,9 +50,10 @@ public:
     */
    client(boost::asio::any_io_executor ex)
    : socket_{ex}
-   , timer_{ex}
+   , read_timer_{ex}
+   , write_timer_{ex}
+   , wait_write_timer_{ex}
    {
-      timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
    /// Returns the executor.
@@ -87,7 +87,7 @@ public:
       }
 
       if (can_write)
-         timer_.cancel_one();
+         wait_write_timer_.cancel_one();
    }
 
    /** @brief Adds a command to the output command queue.
@@ -123,7 +123,7 @@ public:
       }
 
       if (can_write)
-         timer_.cancel_one();
+         wait_write_timer_.cancel_one();
    }
 
    /** @brief Adds a command to the output command queue.
@@ -158,7 +158,7 @@ public:
       }
 
       if (can_write)
-         timer_.cancel_one();
+         wait_write_timer_.cancel_one();
    }
 
    /** @brief Adds a command to the output command queue.
@@ -244,14 +244,13 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(run_op<client, Receiver>{this, &recv}, token, socket_, timer_);
+         >(detail::run_op<client, Receiver>{this, &recv}, token, socket_, read_timer_, write_timer_, wait_write_timer_);
    }
 
 private:
-   template <class T, class U, class V> friend struct read_op;
-   template <class T, class U> friend struct writer_op;
-   template <class T, class U> friend struct read_write_op;
-   template <class T, class U> friend struct run_op;
+   template <class T, class U, class V> friend struct detail::read_op;
+   template <class T, class U> friend struct detail::writer_op;
+   template <class T, class U> friend struct detail::run_op;
 
    struct request_info {
       // Request size in bytes.
@@ -276,11 +275,17 @@ private:
    std::vector<request_info> req_info_;
 
    // The stream.
-   stream_type socket_;
+   AsyncReadWriteStream socket_;
 
-   // Timer used to inform the write coroutine that it can write the
-   // next message in the output queue.
-   boost::asio::steady_timer timer_;
+   // Read operation timer.
+   boost::asio::steady_timer read_timer_;
+
+   // Writer timer.
+   boost::asio::steady_timer write_timer_;
+
+   // Timer used to inform the write operation that there is a message
+   // in the output queue.
+   boost::asio::steady_timer wait_write_timer_;
 
    // Redis endpoint.
    boost::asio::ip::tcp::endpoint endpoint_;
@@ -328,7 +333,6 @@ private:
       return !req_info_.empty();
    }
 
-   // Reads messages asynchronously.
    template <
       class Receiver,
       class CompletionToken = default_completion_token_type>
@@ -340,7 +344,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(read_op<client, Receiver, Command>{this, recv}, token, socket_);
+         >(detail::read_op<client, Receiver, Command>{this, recv}, token, socket_);
    }
 
    template <
@@ -354,21 +358,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(writer_op<client, Receiver>{this, recv}, token, socket_, timer_);
-   }
-
-   template <
-      class Receiver,
-      class CompletionToken = default_completion_token_type>
-   auto
-   async_read_write(
-      Receiver* recv,
-      CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(read_write_op<client, Receiver>{this, recv}, token, socket_, timer_);
+         >(detail::writer_op<client, Receiver>{this, recv}, token, socket_, wait_write_timer_);
    }
 };
 

@@ -20,35 +20,12 @@
 
 namespace aedis {
 namespace generic {
+namespace detail {
 
 #include <boost/asio/yield.hpp>
 
 template <class Client, class Receiver>
 struct run_op {
-   Client* cli;
-   Receiver* recv_;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void operator()(Self& self, boost::system::error_code ec = {})
-   {
-      reenter (coro) {
-         // TODO: Add a timeout on the connect.
-         yield cli->socket_.async_connect(cli->endpoint_, std::move(self));
-         if (ec) {
-            self.complete(ec);
-            return;
-         }
-
-         recv_->on_connect();
-         yield cli->async_read_write(recv_, std::move(self));
-         self.complete(ec);
-      }
-   }
-};
-
-template <class Client, class Receiver>
-struct read_write_op {
    Client* cli;
    Receiver* recv;
    boost::asio::coroutine coro;
@@ -62,6 +39,26 @@ struct read_write_op {
    {
       reenter (coro) {
 
+         // Tries a connection with a timeout. We can use the writer
+         // timer here as there is no ongoing write operation.
+         // TODO: Read the timeout from the client config.
+         cli->write_timer_.expires_after(std::chrono::milliseconds{2});
+         yield
+         boost::asio::experimental::make_parallel_group(
+            [this](auto token) { return cli->socket_.async_connect(cli->endpoint_, token);},
+            [this](auto token) { return cli->write_timer_.async_wait(token);}
+         ).async_wait(
+            boost::asio::experimental::wait_for_one(),
+            std::move(self));
+
+         switch (order[0]) {
+           case 0: recv->on_connect(); break;
+           case 1: self.complete(ec2); return;
+           default: assert(false);
+         }
+
+         // Starts the reader and writer ops.
+         cli->wait_write_timer_.expires_at(std::chrono::steady_clock::time_point::max());
          yield
          boost::asio::experimental::make_parallel_group(
             [this](auto token) { return cli->async_writer(recv, token);},
@@ -124,7 +121,7 @@ struct writer_op {
 
          recv->on_write(size);
 
-         yield cli->timer_.async_wait(std::move(self));
+         yield cli->wait_write_timer_.async_wait(std::move(self));
 
          if (cli->stop_writer_) {
             self.complete(ec);
@@ -194,8 +191,9 @@ struct read_op {
          if (t == resp3::type::push) {
             recv->on_push();
          } else {
-            if (cli->on_cmd(cmd))
-               cli->timer_.cancel_one();
+            if (cli->on_cmd(cmd)) {
+               cli->wait_write_timer_.cancel_one();
+            }
 
             recv->on_read(cmd);
          }
@@ -205,5 +203,6 @@ struct read_op {
 
 #include <boost/asio/unyield.hpp>
 
+} // detail
 } // generic
 } // aedis
