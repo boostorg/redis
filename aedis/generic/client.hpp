@@ -249,6 +249,7 @@ public:
 
 private:
    template <class T, class U, class V> friend struct detail::reader_op;
+   template <class T, class U, class V> friend struct detail::read_op;
    template <class T, class U> friend struct detail::writer_op;
    template <class T, class U> friend struct detail::write_op;
    template <class T, class U> friend struct detail::run_op;
@@ -291,7 +292,10 @@ private:
    // Redis endpoint.
    boost::asio::ip::tcp::endpoint endpoint_;
 
+   // Some state needed by the state machine.
    bool stop_writer_ = false;
+   resp3::type data_type = resp3::type::invalid;
+   Command cmd = Command::invalid;
 
    /* Prepares the back of the queue to receive further commands. 
     *
@@ -332,6 +336,20 @@ private:
       req_info_.erase(std::begin(req_info_));
 
       return !req_info_.empty();
+   }
+
+   template <
+      class Receiver,
+      class CompletionToken = default_completion_token_type>
+   auto
+   async_read(
+      Receiver* recv,
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::read_op<client, Receiver>{this, recv}, token, socket_);
    }
 
    template <

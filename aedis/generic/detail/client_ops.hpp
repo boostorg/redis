@@ -34,8 +34,7 @@ struct run_op {
    void operator()( Self& self
                   , std::array<std::size_t, 2> order = {}
                   , boost::system::error_code ec1 = {}
-                  , boost::system::error_code ec2 = {}
-                  )
+                  , boost::system::error_code ec2 = {})
    {
       reenter (coro) {
 
@@ -192,16 +191,74 @@ struct writer_op {
    }
 };
 
+template <class Client, class Receiver>
+struct read_op {
+   Client* cli;
+   Receiver* recv;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , std::array<std::size_t, 2> order = {}
+                  , boost::system::error_code ec1 = {}
+                  , std::size_t n = 0
+                  , boost::system::error_code ec2 = {})
+   {
+      reenter (coro) {
+         cli->read_timer_.expires_after(std::chrono::milliseconds{2});
+
+         yield
+         boost::asio::experimental::make_parallel_group(
+            [this](auto token) { return resp3::async_read(cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_), [recv_ = recv, cmd_ = cli->cmd](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {recv_->on_resp3(cmd_, nd, ec);}, token);},
+            [this](auto token) { return cli->read_timer_.async_wait(token);}
+         ).async_wait(
+            boost::asio::experimental::wait_for_one(),
+            std::move(self));
+
+         switch (order[0]) {
+            case 0:
+            {
+               if (ec1) {
+                  cli->socket_.close();
+                  self.complete(ec1);
+                  return;
+               }
+            } break;
+
+            case 1:
+            {
+               if (!ec2) {
+                  // The timer expired, we couldn't read the message
+                  // in the prescribed time.
+                  // TODO: Add own error code e.g. write_timeout.
+                  self.complete(boost::asio::error::connection_refused);
+                  return;
+               }
+            } break;
+
+            default: assert(false);
+         }
+
+         if (cli->data_type == resp3::type::push) {
+            recv->on_push();
+         } else {
+            if (cli->on_cmd(cli->cmd))
+               cli->wait_write_timer_.cancel_one();
+
+            // TODO: Pass the read size to on_read.
+            recv->on_read(cli->cmd);
+         }
+
+         self.complete({});
+      }
+   }
+};
+
 template <class Client, class Receiver, class Command>
 struct reader_op {
    Client* cli;
    Receiver* recv;
    boost::asio::coroutine coro;
-
-   // Consider moving this variables to the client to spare some
-   // memory in the competion handler.
-   resp3::type t = resp3::type::invalid;
-   Command cmd = Command::invalid;
 
    template <class Self>
    void operator()( Self& self
@@ -228,35 +285,18 @@ struct reader_op {
          }
 
          assert(!cli->read_buffer_.empty());
-         t = resp3::to_type(cli->read_buffer_.front());
-         cmd = Command::invalid;
-         if (t != resp3::type::push) {
+         cli->data_type = resp3::to_type(cli->read_buffer_.front());
+         cli->cmd = Command::invalid;
+         if (cli->data_type != resp3::type::push) {
             assert(!cli->commands_.empty());
-            cmd = cli->commands_.front();
+            cli->cmd = cli->commands_.front();
          }
 
-         // TODO: Add a timeout on the read.
-         yield
-         resp3::async_read(
-            cli->socket_,
-            boost::asio::dynamic_buffer(cli->read_buffer_),
-            [p = recv, c = cmd](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {p->on_resp3(c, nd, ec);},
-            std::move(self));
-
+         yield cli->async_read(recv, std::move(self));
          if (ec) {
             cli->stop_writer_ = true;
             self.complete(ec);
             return;
-         }
-
-         if (t == resp3::type::push) {
-            recv->on_push();
-         } else {
-            if (cli->on_cmd(cmd)) {
-               cli->wait_write_timer_.cancel_one();
-            }
-
-            recv->on_read(cmd);
          }
       }
    }
