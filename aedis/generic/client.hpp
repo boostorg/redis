@@ -8,6 +8,7 @@
 #pragma once
 
 #include <vector>
+#include <limits>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -44,17 +45,31 @@ public:
    using executor_type = typename AsyncReadWriteStream::executor_type;
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
+   struct config {
+      /// Timeout to read a complete message.
+      std::chrono::seconds read_timeout = std::chrono::seconds{5};
+
+      /// Timeout to write a message.
+      std::chrono::seconds write_timeout = std::chrono::seconds{5};
+
+      /// Timeout of the connect operation.
+      std::chrono::seconds connect_timeout = std::chrono::seconds{5};
+
+      /// The maximum size of a read.
+      std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
+   };
+
    /** \brief Constructor.
     *
     *  \param ex The executor.
     */
-   client(boost::asio::any_io_executor ex)
+   client(boost::asio::any_io_executor ex, config cfg = config{})
    : socket_{ex}
    , read_timer_{ex}
    , write_timer_{ex}
    , wait_write_timer_{ex}
-   {
-   }
+   , cfg_{cfg}
+   { }
 
    /// Returns the executor.
    auto get_executor() {return socket_.get_executor();}
@@ -79,11 +94,11 @@ public:
       sr.push(cmd, args...);
       auto const after = requests_.size();
       assert(after - before != 0);
-      req_info_.front().size += after - before;;
+      info_.front().size += after - before;;
 
       if (!has_push_response(cmd)) {
          commands_.push_back(cmd);
-         ++req_info_.front().cmds;
+         ++info_.front().cmds;
       }
 
       if (can_write)
@@ -115,11 +130,11 @@ public:
       sr.push_range2(cmd, key, begin, end);
       auto const after = requests_.size();
       assert(after - before != 0);
-      req_info_.front().size += after - before;;
+      info_.front().size += after - before;;
 
       if (!has_push_response(cmd)) {
          commands_.push_back(cmd);
-         ++req_info_.front().cmds;
+         ++info_.front().cmds;
       }
 
       if (can_write)
@@ -150,11 +165,11 @@ public:
       sr.push_range2(cmd, begin, end);
       auto const after = requests_.size();
       assert(after - before != 0);
-      req_info_.front().size += after - before;;
+      info_.front().size += after - before;;
 
       if (!has_push_response(cmd)) {
          commands_.push_back(cmd);
-         ++req_info_.front().cmds;
+         ++info_.front().cmds;
       }
 
       if (can_write)
@@ -254,49 +269,6 @@ private:
    template <class T, class U> friend struct detail::write_op;
    template <class T, class U> friend struct detail::run_op;
 
-   struct request_info {
-      // Request size in bytes.
-      std::size_t size = 0;
-
-      // The number of commands it contains excluding commands that
-      // have push types as responses, see has_push_response.
-      std::size_t cmds = 0;
-   };
-
-   // Buffer used in the read operations.
-   std::string read_buffer_;
-
-   // Requests payload.
-   std::string requests_;
-
-   // The commands contained in the requests.
-   // TODO: also keep the keys in addition to the commands.
-   std::vector<Command> commands_;
-
-   // Info about the requests.
-   std::vector<request_info> req_info_;
-
-   // The stream.
-   AsyncReadWriteStream socket_;
-
-   // Read operation timer.
-   boost::asio::steady_timer read_timer_;
-
-   // Writer timer.
-   boost::asio::steady_timer write_timer_;
-
-   // Timer used to inform the write operation that there is a message
-   // in the output queue.
-   boost::asio::steady_timer wait_write_timer_;
-
-   // Redis endpoint.
-   boost::asio::ip::tcp::endpoint endpoint_;
-
-   // Some state needed by the state machine.
-   bool stop_writer_ = false;
-   resp3::type data_type = resp3::type::invalid;
-   Command cmd = Command::invalid;
-
    /* Prepares the back of the queue to receive further commands. 
     *
     * If true is returned the request in the front of the queue can be
@@ -304,15 +276,15 @@ private:
     */
    bool prepare_next()
    {
-      if (req_info_.empty()) {
-         req_info_.push_back({});
+      if (info_.empty()) {
+         info_.push_back({});
          return true;
       }
 
-      if (req_info_.front().size == 0) {
+      if (info_.front().size == 0) {
          // It has already been written and we are waiting for the
          // responses.
-         req_info_.push_back({});
+         info_.push_back({});
          return false;
       }
 
@@ -325,17 +297,17 @@ private:
       // TODO: If the response to a discard is received we have to
       // remove all commands up until multi.
 
-      assert(!req_info_.empty());
+      assert(!info_.empty());
       assert(!commands_.empty());
 
       commands_.erase(std::begin(commands_));
 
-      if (--req_info_.front().cmds != 0)
+      if (--info_.front().cmds != 0)
          return false;
 
-      req_info_.erase(std::begin(req_info_));
+      info_.erase(std::begin(info_));
 
-      return !req_info_.empty();
+      return !info_.empty();
    }
 
    template <
@@ -394,6 +366,51 @@ private:
          , void(boost::system::error_code)
          >(detail::writer_op<client, Receiver>{this, recv}, token, socket_, wait_write_timer_);
    }
+
+   struct info {
+      // Request size in bytes.
+      std::size_t size = 0;
+
+      // The number of commands it contains excluding commands that
+      // have push types as responses, see has_push_response.
+      std::size_t cmds = 0;
+   };
+
+   // Buffer used in the read operations.
+   std::string read_buffer_;
+
+   // Requests payload.
+   std::string requests_;
+
+   // The commands contained in the requests.
+   // TODO: Keep the keys in addition to the command.
+   std::vector<Command> commands_;
+
+   // Info about the requests.
+   std::vector<info> info_;
+
+   // The stream.
+   AsyncReadWriteStream socket_;
+
+   // Read operation timer.
+   boost::asio::steady_timer read_timer_;
+
+   // Writer timer.
+   boost::asio::steady_timer write_timer_;
+
+   // Timer used to inform the write operation that there is a message
+   // in the output queue.
+   boost::asio::steady_timer wait_write_timer_;
+
+   // Redis endpoint.
+   boost::asio::ip::tcp::endpoint endpoint_;
+
+   // Some state needed by the state machine.
+   bool stop_writer_ = false;
+   resp3::type data_type = resp3::type::invalid;
+   Command cmd = Command::invalid;
+
+   config cfg_;
 };
 
 } // generic

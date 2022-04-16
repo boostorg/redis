@@ -40,8 +40,7 @@ struct run_op {
 
          // Tries a connection with a timeout. We can use the writer
          // timer here as there is no ongoing write operation.
-         // TODO: Read the timeout from the client config.
-         cli->write_timer_.expires_after(std::chrono::milliseconds{2});
+         cli->write_timer_.expires_after(cli->cfg_.connect_timeout);
          yield
          boost::asio::experimental::make_parallel_group(
             [this](auto token) { return cli->socket_.async_connect(cli->endpoint_, token);},
@@ -111,16 +110,14 @@ struct write_op {
    {
       reenter (coro) {
 
-         assert(!cli->req_info_.empty());
-         assert(cli->req_info_.front().size != 0);
+         assert(!cli->info_.empty());
+         assert(cli->info_.front().size != 0);
          assert(!cli->requests_.empty());
 
-         // TODO
-         cli->write_timer_.expires_after(std::chrono::milliseconds{2});
-
+         cli->write_timer_.expires_after(cli->cfg_.write_timeout);
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return boost::asio::async_write(cli->socket_, boost::asio::buffer(cli->requests_.data(), cli->req_info_.front().size), token);},
+            [this](auto token) { return boost::asio::async_write(cli->socket_, boost::asio::buffer(cli->requests_.data(), cli->info_.front().size), token);},
             [this](auto token) { return cli->write_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -149,14 +146,14 @@ struct write_op {
             default: assert(false);
          }
 
-         assert(n == cli->req_info_.front().size);
-         size = cli->req_info_.front().size;
+         assert(n == cli->info_.front().size);
+         size = cli->info_.front().size;
 
-         cli->requests_.erase(0, cli->req_info_.front().size);
-         cli->req_info_.front().size = 0;
+         cli->requests_.erase(0, cli->info_.front().size);
+         cli->info_.front().size = 0;
          
-         if (cli->req_info_.front().cmds == 0) 
-            cli->req_info_.erase(std::begin(cli->req_info_));
+         if (cli->info_.front().cmds == 0) 
+            cli->info_.erase(std::begin(cli->info_));
 
          recv->on_write(size);
          self.complete({});
@@ -205,11 +202,11 @@ struct read_op {
                   , boost::system::error_code ec2 = {})
    {
       reenter (coro) {
-         cli->read_timer_.expires_after(std::chrono::milliseconds{2});
+         cli->read_timer_.expires_after(cli->cfg_.read_timeout);
 
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return resp3::async_read(cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_), [recv_ = recv, cmd_ = cli->cmd](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {recv_->on_resp3(cmd_, nd, ec);}, token);},
+            [this](auto token) { return resp3::async_read(cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [recv_ = recv, cmd_ = cli->cmd](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {recv_->on_resp3(cmd_, nd, ec);}, token);},
             [this](auto token) { return cli->read_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -245,7 +242,6 @@ struct read_op {
             if (cli->on_cmd(cli->cmd))
                cli->wait_write_timer_.cancel_one();
 
-            // TODO: Pass the read size to on_read.
             recv->on_read(cli->cmd, n);
          }
 
@@ -273,7 +269,7 @@ struct reader_op {
             yield
             boost::asio::async_read_until(
                cli->socket_,
-               boost::asio::dynamic_buffer(cli->read_buffer_),
+               boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size),
                "\r\n",
                std::move(self));
 
