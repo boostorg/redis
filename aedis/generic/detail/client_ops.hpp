@@ -52,9 +52,27 @@ struct run_op {
             std::move(self));
 
          switch (order[0]) {
-           case 0: recv->on_connect(); break;
-           case 1: self.complete(ec2); return;
-           default: assert(false);
+            case 0:
+            {
+               if (ec1) {
+                  self.complete(ec1);
+                  return;
+               }
+               recv->on_connect();
+            } break;
+
+            case 1:
+            {
+               if (!ec2) {
+                  // The timer expired, we can't connect. Pass that to
+                  // the user and leave.
+                  // TODO: Use our own error code, not from asio.
+                  self.complete(boost::asio::error::connection_refused);
+                  return;
+               }
+            } break;
+
+            default: assert(false);
          }
 
          // Starts the reader and writer ops.
@@ -121,9 +139,13 @@ struct write_op {
 
             case 1:
             {
-               self.complete(ec2);
-               return;
-            }
+               if (!ec2) {
+                  // The timer expired, we couldn't write the message. 
+                  // TODO: Add own error code e.g. write_timeout.
+                  self.complete(boost::asio::error::connection_refused);
+                  return;
+               }
+            } break;
 
             default: assert(false);
          }
