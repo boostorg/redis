@@ -21,9 +21,9 @@ using aedis::generic::client;
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = node<std::string>;
 
-struct myreceiver {
+struct receiver {
 public:
-   myreceiver(client_type& db)
+   receiver(client_type& db)
    : adapter_{adapt(resp_)}
    , db_{&db} {}
 
@@ -58,7 +58,7 @@ public:
       std::cout << "Number of bytes written: " << n << std::endl;
    }
 
-   void on_push() { }
+   void on_push(std::size_t) { }
 
 private:
    response_type resp_;
@@ -70,7 +70,7 @@ int main()
 {
    net::io_context ioc;
    client_type db(ioc.get_executor());
-   myreceiver recv{db};
+   receiver recv{db};
 
    db.async_run(
        recv,

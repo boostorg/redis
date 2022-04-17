@@ -12,6 +12,7 @@
 #include <aedis/adapter/error.hpp>
 #include <aedis/redis/command.hpp>
 #include <aedis/sentinel/command.hpp>
+#include <aedis/generic/error.hpp>
 #include <aedis/generic/client.hpp>
 #include <aedis/generic/serializer.hpp>
 
@@ -480,7 +481,7 @@
        void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec);
     
        // Called when a response becomes available.
-       void on_read(command cmd);
+       void on_read(command cmd, std::size_t);
     
        // Called when a request has been writen to the socket.
        void on_write(std::size_t n);
@@ -530,7 +531,7 @@
        }
 
        void
-       on_resp3( command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
+       on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
        {
           // Direct the responses to the desired adapter.
           switch (cmd) {
@@ -541,7 +542,7 @@
           }
        }
 
-       void on_read(command cmd)
+       void on_read(command cmd, std::size_t)
        {
           switch (cmd) {
              case cmd1: // Data on std::get<T1>(resps_); break;
@@ -664,6 +665,10 @@
     $ CC=/opt/gcc-10.2.0/bin/gcc-10.2.0 CXX=/opt/gcc-10.2.0/bin/g++-10.2.0 CXXFLAGS="-g -Wall -Werror"  ./configure ...
     $ make distcheck
     ```
+
+    \section Acknowledgement
+
+    I would like to thank Vinícius dos Santos Oliveira for useful discussion about how Aedis consumes buffers in read operation (among other things).
 
     \section Referece
   

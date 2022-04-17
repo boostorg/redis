@@ -66,7 +66,7 @@ public:
       std::cout << "Number of bytes written: " << n << std::endl;
    }
 
-   void on_push()
+   void on_push(std::size_t)
    {
       for (auto& session: sessions_)
          session->deliver(resp_.at(3).value);

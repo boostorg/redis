@@ -17,6 +17,7 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/read.hpp>
+#include <aedis/generic/error.hpp>
 
 namespace aedis {
 namespace generic {
@@ -62,10 +63,7 @@ struct run_op {
             case 1:
             {
                if (!ec2) {
-                  // The timer expired, we can't connect. Pass that to
-                  // the user and leave.
-                  // TODO: Use our own error code, not from asio.
-                  self.complete(boost::asio::error::connection_refused);
+                  self.complete(generic::error::connect_timeout);
                   return;
                }
             } break;
@@ -136,9 +134,7 @@ struct write_op {
             case 1:
             {
                if (!ec2) {
-                  // The timer expired, we couldn't write the message. 
-                  // TODO: Add own error code e.g. write_timeout.
-                  self.complete(boost::asio::error::connection_refused);
+                  self.complete(generic::error::write_timeout);
                   return;
                }
             } break;
@@ -225,10 +221,7 @@ struct read_op {
             case 1:
             {
                if (!ec2) {
-                  // The timer expired, we couldn't read the message
-                  // in the prescribed time.
-                  // TODO: Add own error code e.g. write_timeout.
-                  self.complete(boost::asio::error::connection_refused);
+                  self.complete(generic::error::read_timeout);
                   return;
                }
             } break;
@@ -237,7 +230,7 @@ struct read_op {
          }
 
          if (cli->data_type == resp3::type::push) {
-            recv->on_push();
+            recv->on_push(n);
          } else {
             if (cli->on_cmd(cli->cmd))
                cli->wait_write_timer_.cancel_one();

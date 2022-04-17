@@ -52,7 +52,7 @@ public:
       std::cout << "Number of bytes written: " << n << std::endl;
    }
 
-   void on_push() { }
+   void on_push(std::size_t) { }
 
    void on_read(command cmd, std::size_t)
    {

@@ -13,3 +13,4 @@
 #include <aedis/resp3/detail/impl/parser.ipp>
 #include <aedis/resp3/impl/error.ipp>
 #include <aedis/adapter/impl/error.ipp>
+#include <aedis/generic/impl/error.ipp>
