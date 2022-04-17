@@ -196,7 +196,8 @@
     Simple error   | \c std::string                                             | Simple
     Blob string    | \c std::string, \c std::vector                             | Simple
     Blob error     | \c std::string, \c std::vector                             | Simple
-    Number         | `long long`, `int`, \c std::string                         | Simple
+    Number         | `long long`, `int`, `std::size_t`, \c std::string          | Simple
+    Double         | `double`, \c std::string                                   | Simple
     Null           | `boost::optional<T>`                                       | Simple
     Array          | \c std::vector, \c std::list, \c std::array, \c std::deque | Aggregate
     Map            | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate

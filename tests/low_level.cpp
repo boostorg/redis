@@ -534,19 +534,23 @@ void test_blob_string(net::io_context& ioc)
 
 void test_double(net::io_context& ioc)
 {
+   // TODO: Add test for double.
    auto const in01 = expect<node_type>{",1.23\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"1.23"}}, "double.node"};
    auto const in02 = expect<node_type>{",inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}, "double.node (inf)"};
    auto const in03 = expect<node_type>{",-inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"-inf"}}, "double.node (-inf)"};
+   auto const in04 = expect<double>{",1.23\r\n", double{1.23}, "double.double"};
 
    auto ex = ioc.get_executor();
 
    test_sync(ex, in01);
    test_sync(ex, in02);
    test_sync(ex, in03);
+   test_sync(ex, in04);
 
    test_async(ex, in01);
    test_async(ex, in02);
    test_async(ex, in03);
+   test_async(ex, in04);
 }
 
 void test_blob_error(net::io_context& ioc)

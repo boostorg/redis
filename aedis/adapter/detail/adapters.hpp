@@ -19,6 +19,8 @@
 #include <array>
 
 #include <boost/optional.hpp>
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/home/x3.hpp>
 #include <boost/utility/string_view.hpp>
 
 #include <aedis/resp3/type.hpp>
@@ -27,11 +29,23 @@
 #include <aedis/resp3/node.hpp>
 #include <aedis/adapter/error.hpp>
 
-// TODO: Add an adapter for float and double, from spirit.
-
 namespace aedis {
 namespace adapter {
 namespace detail {
+
+double
+parse_double(
+   char const* data,
+   std::size_t size,
+   boost::system::error_code& ec)
+{
+   static constexpr boost::spirit::x3::real_parser<double> p{};
+   double ret;
+   if (!parse(data, data + size, p, ret))
+      ec = error::not_a_double;
+
+   return ret;
+}
 
 // Serialization.
 
@@ -51,6 +65,14 @@ void from_string(
    boost::system::error_code& ec)
 {
    t = *sv.data() == 't';
+}
+
+void from_string(
+   double& d,
+   boost::string_view sv,
+   boost::system::error_code& ec)
+{
+   d = parse_double(sv.data(), sv.size(), ec);
 }
 
 template <class CharT, class Traits, class Allocator>

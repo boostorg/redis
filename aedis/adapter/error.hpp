@@ -41,6 +41,9 @@ enum class error
    /// Aggregate container has incompatible size.
    incompatible_size,
 
+   /// Not a double
+   not_a_double,
+
    /// Got RESP3 null type.
    null
 };

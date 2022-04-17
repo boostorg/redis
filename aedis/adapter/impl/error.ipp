@@ -31,6 +31,7 @@ struct error_category_impl : boost::system::error_category {
 	 case error::simple_error: return "Got RESP3 simple-error.";
 	 case error::blob_error: return "Got RESP3 blob-error.";
 	 case error::incompatible_size: return "Aggregate container has incompatible size.";
+	 case error::not_a_double: return "Not a double.";
 	 case error::null: return "Got RESP3 null.";
 	 default: assert(false);
       }
