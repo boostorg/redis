@@ -16,16 +16,11 @@
 
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
-
 using aedis::redis::command;
 using aedis::adapter::adapt;
 using aedis::generic::make_serializer;
 using net::ip::tcp;
-using net::write;
-using net::buffer;
-using net::dynamic_buffer;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using response_type = std::tuple<std::string, boost::optional<std::string>>;
 
 net::awaitable<void> example()
 {
@@ -44,17 +39,18 @@ net::awaitable<void> example()
    sr.push(command::set, "low-level-key", "some content", "EX", "2");
    sr.push(command::exec);
    sr.push(command::quit);
-   co_await net::async_write(socket, buffer(request));
+   co_await net::async_write(socket, net::buffer(request));
 
    std::tuple<std::string, boost::optional<std::string>> response;
 
    std::string buffer;
-   co_await resp3::async_read(socket, dynamic_buffer(buffer));
-   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // multi
-   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // ping
-   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // set
-   co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(response));
-   co_await resp3::async_read(socket, dynamic_buffer(buffer));
+   auto dbuffer = net::dynamic_buffer(buffer);
+   co_await resp3::async_read(socket, dbuffer); // hellp
+   co_await resp3::async_read(socket, dbuffer); // multi
+   co_await resp3::async_read(socket, dbuffer); // ping
+   co_await resp3::async_read(socket, dbuffer); // set
+   co_await resp3::async_read(socket, dbuffer, adapt(response));
+   co_await resp3::async_read(socket, dbuffer); // quit
 
    std::cout
       << "Ping: " << std::get<0>(response) << "\n"

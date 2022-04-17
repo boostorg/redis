@@ -20,8 +20,6 @@
 // TODO: What to do if users send a discard command not contained in a
 // transaction. The client object will try to pop the queue until a
 // multi is found.
-//
-// TODO: Pass max_size as a config parameter to the dynamic buffer.
 
 namespace aedis {
 namespace generic {
@@ -383,7 +381,6 @@ private:
    std::string requests_;
 
    // The commands contained in the requests.
-   // TODO: Keep the keys in addition to the command.
    std::vector<Command> commands_;
 
    // Info about the requests.

@@ -17,12 +17,10 @@
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
+using aedis::resp3::node;
 using aedis::redis::command;
 using aedis::generic::make_serializer;
 using net::ip::tcp;
-using net::write;
-using net::buffer;
-using net::dynamic_buffer;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
 net::awaitable<void> example()
@@ -42,14 +40,15 @@ net::awaitable<void> example()
    sr.push(command::quit);
    co_await net::async_write(socket, net::buffer(request));
 
-   auto adapter = [](resp3::node<boost::string_view> const& nd, boost::system::error_code&)
+   auto adapter = [](node<boost::string_view> const& nd, boost::system::error_code&)
    {
       std::cout << nd << std::endl;
    };
 
-   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // hello
-   co_await resp3::async_read(socket, dynamic_buffer(buffer), adapter);
-   co_await resp3::async_read(socket, dynamic_buffer(buffer)); // quit
+   auto dbuffer = net::dynamic_buffer(buffer);
+   co_await resp3::async_read(socket, dbuffer); // hello
+   co_await resp3::async_read(socket, dbuffer, adapter);
+   co_await resp3::async_read(socket, dbuffer); // quit
 }
 
 int main()
