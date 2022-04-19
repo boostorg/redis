@@ -92,11 +92,11 @@ public:
       sr.push(cmd, args...);
       auto const after = requests_.size();
       assert(after - before != 0);
-      info_.front().size += after - before;;
+      info_.back().size += after - before;;
 
       if (!has_push_response(cmd)) {
          commands_.push_back(cmd);
-         ++info_.front().cmds;
+         ++info_.back().cmds;
       }
 
       if (can_write)
@@ -128,11 +128,11 @@ public:
       sr.push_range2(cmd, key, begin, end);
       auto const after = requests_.size();
       assert(after - before != 0);
-      info_.front().size += after - before;;
+      info_.back().size += after - before;;
 
       if (!has_push_response(cmd)) {
          commands_.push_back(cmd);
-         ++info_.front().cmds;
+         ++info_.back().cmds;
       }
 
       if (can_write)
@@ -163,11 +163,11 @@ public:
       sr.push_range2(cmd, begin, end);
       auto const after = requests_.size();
       assert(after - before != 0);
-      info_.front().size += after - before;;
+      info_.back().size += after - before;;
 
       if (!has_push_response(cmd)) {
          commands_.push_back(cmd);
-         ++info_.front().cmds;
+         ++info_.back().cmds;
       }
 
       if (can_write)
@@ -290,7 +290,7 @@ private:
    }
 
    // Returns true when the next request can be writen.
-   bool on_cmd(Command)
+   bool on_cmd(Command cmd)
    {
       // TODO: If the response to a discard is received we have to
       // remove all commands up until multi.
