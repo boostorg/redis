@@ -36,23 +36,10 @@ public:
    , db_{db}
    {}
 
-
-   void on_connect()
-   {
-      db_->send(command::hello, 3);
-   }
-
    void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
    {
       adapter_(nd, ec);
    }
-
-   void on_write(std::size_t n)
-   { 
-      std::cout << "Number of bytes written: " << n << std::endl;
-   }
-
-   void on_push(std::size_t) { }
 
    void on_read(command cmd, std::size_t)
    {
@@ -70,6 +57,11 @@ public:
       }
 
       resp_.clear();
+   }
+
+   void on_write(std::size_t n)
+   { 
+      std::cout << "Number of bytes written: " << n << std::endl;
    }
 
    void add_user_session(std::shared_ptr<user_session_base> session)
@@ -110,9 +102,11 @@ int main()
 
       auto db = std::make_shared<client_type>(ioc.get_executor());
       auto recv = std::make_shared<receiver>(db);
+      db->set_read_handler([recv](command cmd, std::size_t n){recv->on_read(cmd, n);});
+      db->set_write_handler([recv](std::size_t n){recv->on_write(n);});
+      db->set_resp3_handler([recv](command cmd, auto const& nd, auto& ec){recv->on_resp3(cmd, nd, ec);});
 
       db->async_run(
-          *recv,
           {net::ip::make_address("127.0.0.1"), 6379},
           [](auto ec){ std::cout << ec.message() << std::endl;});
 

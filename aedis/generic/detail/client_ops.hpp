@@ -25,10 +25,9 @@ namespace detail {
 
 #include <boost/asio/yield.hpp>
 
-template <class Client, class Receiver>
+template <class Client>
 struct run_op {
    Client* cli;
-   Receiver* recv;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -57,7 +56,7 @@ struct run_op {
                   self.complete(ec1);
                   return;
                }
-               recv->on_connect();
+               cli->on_connect_();
             } break;
 
             case 1:
@@ -75,8 +74,8 @@ struct run_op {
          cli->wait_write_timer_.expires_at(std::chrono::steady_clock::time_point::max());
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return cli->writer(recv, token);},
-            [this](auto token) { return cli->reader(recv, token);}
+            [this](auto token) { return cli->writer(token);},
+            [this](auto token) { return cli->reader(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one_error(),
             std::move(self));
@@ -92,10 +91,9 @@ struct run_op {
 
 // Consider limiting the size of the pipelines by spliting that last
 // one in two if needed.
-template <class Client, class Receiver>
+template <class Client>
 struct write_op {
    Client* cli;
-   Receiver* recv;
    std::size_t size;
    boost::asio::coroutine coro;
 
@@ -151,23 +149,22 @@ struct write_op {
          if (cli->info_.front().cmds == 0) 
             cli->info_.erase(std::begin(cli->info_));
 
-         recv->on_write(size);
+         cli->on_write_(size);
          self.complete({});
       }
    }
 };
 
-template <class Client, class Receiver>
+template <class Client>
 struct writer_op {
    Client* cli;
-   Receiver* recv;
    boost::asio::coroutine coro;
 
    template <class Self>
    void operator()(Self& self , boost::system::error_code ec = {})
    {
       reenter (coro) for (;;) {
-         yield cli->async_write(recv, std::move(self));
+         yield cli->async_write(std::move(self));
          if (ec) {
             cli->socket_.close();
             self.complete(ec);
@@ -184,10 +181,9 @@ struct writer_op {
    }
 };
 
-template <class Client, class Receiver>
+template <class Client>
 struct read_op {
    Client* cli;
-   Receiver* recv;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -202,7 +198,7 @@ struct read_op {
 
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return resp3::async_read(cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [recv_ = recv, cmd_ = cli->cmd](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {recv_->on_resp3(cmd_, nd, ec);}, token);},
+            [this](auto token) { return resp3::async_read(cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [cli_ = cli](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {cli_->on_resp3_(cli_->cmd, nd, ec);}, token);},
             [this](auto token) { return cli->read_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -230,12 +226,12 @@ struct read_op {
          }
 
          if (cli->data_type == resp3::type::push) {
-            recv->on_push(n);
+            cli->on_push_(n);
          } else {
             if (cli->on_cmd(cli->cmd))
                cli->wait_write_timer_.cancel_one();
 
-            recv->on_read(cli->cmd, n);
+            cli->on_read_(cli->cmd, n);
          }
 
          self.complete({});
@@ -243,10 +239,9 @@ struct read_op {
    }
 };
 
-template <class Client, class Receiver, class Command>
+template <class Client, class Command>
 struct reader_op {
    Client* cli;
-   Receiver* recv;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -281,7 +276,7 @@ struct reader_op {
             cli->cmd = cli->commands_.front();
          }
 
-         yield cli->async_read(recv, std::move(self));
+         yield cli->async_read(std::move(self));
          if (ec) {
             cli->stop_writer_ = true;
             self.complete(ec);

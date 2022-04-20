@@ -27,11 +27,6 @@ public:
    : adapter_{adapt(resp_)}
    , db_{&db} {}
 
-   void on_connect()
-   {
-      db_->send(command::hello, 3);
-   }
-
    void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
    {
       adapter_(nd, ec);
@@ -58,8 +53,6 @@ public:
       std::cout << "Number of bytes written: " << n << std::endl;
    }
 
-   void on_push(std::size_t) { }
-
 private:
    response_type resp_;
    adapter_t<response_type> adapter_;
@@ -69,13 +62,16 @@ private:
 int main()
 {
    net::io_context ioc;
+
    client_type db(ioc.get_executor());
    receiver recv{db};
+   db.set_read_handler([&recv](command cmd, std::size_t n){recv.on_read(cmd, n);});
+   db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
+   db.set_resp3_handler([&recv](command cmd, auto const& nd, auto& ec){recv.on_resp3(cmd, nd, ec);});
 
    db.async_run(
-       recv,
-       {net::ip::make_address("127.0.0.1"), 6379},
-       [](auto ec){ std::cout << ec.message() << std::endl;});
+      {net::ip::make_address("127.0.0.1"), 6379},
+      [](auto ec){ std::cout << ec.message() << std::endl;});
 
    ioc.run();
 }

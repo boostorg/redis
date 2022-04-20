@@ -9,11 +9,13 @@
 
 #include <vector>
 #include <limits>
+#include <functional>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 
 #include <aedis/resp3/type.hpp>
+#include <aedis/resp3/node.hpp>
 #include <aedis/generic/detail/client_ops.hpp>
 #include <aedis/redis/command.hpp>
 
@@ -40,7 +42,21 @@ namespace generic {
 template <class AsyncReadWriteStream, class Command>
 class client {
 public:
+   /// Executor used.
    using executor_type = typename AsyncReadWriteStream::executor_type;
+
+   /// Type of the callback called on a message is received.
+   using read_handler_type = std::function<void(Command cmd, std::size_t)>;
+
+   /// Type of the callback called on a message is written.
+   using write_handler_type = std::function<void(std::size_t)>;
+
+   /// Type of the callback called on a push message is received.
+   using push_handler_type = std::function<void(std::size_t)>;
+
+   /// Type of the callback called when parts of a message are received.
+   using resp3_handler_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
+
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
    struct config {
@@ -67,7 +83,9 @@ public:
    , write_timer_{ex}
    , wait_write_timer_{ex}
    , cfg_{cfg}
-   { }
+   , on_connect_ {[this]() {send(Command::hello, 3);}}
+   {
+   }
 
    /// Returns the executor.
    auto get_executor() {return socket_.get_executor();}
@@ -243,13 +261,9 @@ public:
     *  @endcode
     *
     */
-   template <
-     class Receiver,
-     class CompletionToken = default_completion_token_type
-   >
+   template <class CompletionToken = default_completion_token_type>
    auto
    async_run(
-      Receiver& recv,
       boost::asio::ip::tcp::endpoint ep = {boost::asio::ip::make_address("127.0.0.1"), 6379},
       CompletionToken token = CompletionToken{})
    {
@@ -257,10 +271,25 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<client, Receiver>{this, &recv}, token, socket_, read_timer_, write_timer_, wait_write_timer_);
+         >(detail::run_op<client>{this}, token, socket_, read_timer_, write_timer_, wait_write_timer_);
    }
 
+   void set_read_handler(read_handler_type rh)
+      { on_read_ = std::move(rh); }
+
+   void set_write_handler(write_handler_type wh)
+      { on_write_ = std::move(wh); }
+
+   void set_push_handler(push_handler_type ph)
+      { on_push_ = std::move(ph); }
+
+   void set_resp3_handler(resp3_handler_type rh)
+      { on_resp3_ = std::move(rh); }
+
 private:
+   // Type of the callback that is called on success connect.
+   using connect_handler_type = std::function<void()>;
+
    template <class T, class U, class V> friend struct detail::reader_op;
    template <class T, class U, class V> friend struct detail::read_op;
    template <class T, class U> friend struct detail::writer_op;
@@ -308,61 +337,46 @@ private:
       return !info_.empty();
    }
 
-   template <
-      class Receiver,
-      class CompletionToken = default_completion_token_type>
+   template <class CompletionToken = default_completion_token_type>
    auto
-   async_read(
-      Receiver* recv,
-      CompletionToken&& token = default_completion_token_type{})
+   async_read(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_op<client, Receiver>{this, recv}, token, socket_);
+         >(detail::read_op<client>{this}, token, socket_);
    }
 
-   template <
-      class Receiver,
-      class CompletionToken = default_completion_token_type>
+   template <class CompletionToken = default_completion_token_type>
    auto
-   reader(
-      Receiver* recv,
-      CompletionToken&& token = default_completion_token_type{})
+   reader(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::reader_op<client, Receiver, Command>{this, recv}, token, socket_);
+         >(detail::reader_op<client, Command>{this}, token, socket_);
    }
 
    // Write with a timeout.
-   template <
-      class Receiver,
-      class CompletionToken = default_completion_token_type>
+   template <class CompletionToken = default_completion_token_type>
    auto
    async_write(
-      Receiver* recv,
       CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::write_op<client, Receiver>{this, recv}, token, socket_, write_timer_);
+         >(detail::write_op<client>{this}, token, socket_, write_timer_);
    }
 
-   template <
-      class Receiver,
-      class CompletionToken = default_completion_token_type>
+   template <class CompletionToken = default_completion_token_type>
    auto
-   writer(
-      Receiver* recv,
-      CompletionToken&& token = default_completion_token_type{})
+   writer(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::writer_op<client, Receiver>{this, recv}, token, socket_, wait_write_timer_);
+         >(detail::writer_op<client>{this}, token, socket_, wait_write_timer_);
    }
 
    struct info {
@@ -402,12 +416,19 @@ private:
    // Redis endpoint.
    boost::asio::ip::tcp::endpoint endpoint_;
 
-   // Some state needed by the state machine.
+   config cfg_;
+
+   // Callbacks.
+   read_handler_type on_read_ = [](Command, std::size_t){};
+   write_handler_type on_write_ = [](std::size_t){};
+   push_handler_type on_push_ = [](std::size_t){};
+   resp3_handler_type on_resp3_ = [](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {};
+   connect_handler_type on_connect_ = []() {};;
+
+   // Some state needed by the operations.
    bool stop_writer_ = false;
    resp3::type data_type = resp3::type::invalid;
    Command cmd = Command::invalid;
-
-   config cfg_;
 };
 
 } // generic
