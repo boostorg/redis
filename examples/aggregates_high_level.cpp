@@ -13,6 +13,8 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
+#include "print.hpp"
+
 namespace net = boost::asio;
 using aedis::resp3::node;
 using aedis::adapter::adapt;
@@ -39,31 +41,6 @@ std::map<std::string, std::string> map
    , {"key2", "value2"}
    , {"key3", "value3"}
    };
-
-// Helper function to print an aggregate in raw form.
-void print_and_clear_aggregate(T0& v)
-{
-   auto const m = element_multiplicity(v.front().data_type);
-   for (auto i = 0lu; i < m * v.front().aggregate_size; ++i)
-      std::cout << v[i + 1].value << " ";
-   std::cout << "\n";
-   v.clear();
-}
-
-// Prints an STL container.
-void print_and_clear(std::set<std::string>& cont)
-{
-   for (auto const& e: cont) std::cout << e << " ";
-   std::cout << "\n";
-   cont.clear();
-}
-
-void print_and_clear(std::map<std::string, std::string>& cont)
-{
-   for (auto const& e: cont)
-      std::cout << e.first << ": " << e.second << "\n";
-   cont.clear();
-}
 
 struct receiver {
 public:

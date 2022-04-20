@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include <iostream>
 #include <string>
+#include <iostream>
 
 #include <boost/asio/connect.hpp>
 
@@ -21,15 +21,6 @@ using aedis::generic::make_serializer;
 using aedis::adapter::adapt;
 using net::dynamic_buffer;
 using net::ip::tcp;
-
-using hello_type = std::tuple<
-   std::string, std::string,
-   std::string, std::string,
-   std::string, int,
-   std::string, int,
-   std::string, std::string,
-   std::string, std::string,
-   std::string, std::vector<std::string>>;
 
 int main()
 {
@@ -51,15 +42,13 @@ int main()
 
       // Responses
       std::string resp;
-      hello_type hello;
 
       // Reads the responses to all commands in the request.
       auto dbuffer = dynamic_buffer(buffer);
-      resp3::read(socket, dbuffer, adapt(hello));
+      resp3::read(socket, dbuffer);
       resp3::read(socket, dbuffer, adapt(resp));
       resp3::read(socket, dbuffer);
 
-      std::cout << std::get<0>(hello) << ": " << std::get<1>(hello) << std::endl;
       std::cout << "Ping: " << resp << std::endl;
 
    } catch (std::exception const& e) {

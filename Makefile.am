@@ -12,15 +12,13 @@ AM_LDFLAGS =
 AM_LDFLAGS += -pthread
 
 check_PROGRAMS =
-check_PROGRAMS += intro_sync_low_level
-check_PROGRAMS += serialization_sync_low_level
+check_PROGRAMS += intro_sync
+check_PROGRAMS += serialization_sync
 check_PROGRAMS += intro_high_level
 check_PROGRAMS += aggregates_high_level
-check_PROGRAMS += stl_containers
-check_PROGRAMS += serialization_high_level
 check_PROGRAMS += test_low_level
 if HAVE_CXX20
-check_PROGRAMS += intro_async_low_level
+check_PROGRAMS += transaction
 check_PROGRAMS += custom_adapter
 check_PROGRAMS += test_online
 endif
@@ -29,7 +27,7 @@ EXTRA_PROGRAMS =
 EXTRA_PROGRAMS += subscriber_high_level
 EXTRA_PROGRAMS += commands
 if HAVE_CXX20
-EXTRA_PROGRAMS += subscriber_low_level
+EXTRA_PROGRAMS += subscriber
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += chat_room
 endif
@@ -42,17 +40,15 @@ all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
 intro_high_level_SOURCES = $(top_srcdir)/examples/intro_high_level.cpp
 aggregates_high_level_SOURCES = $(top_srcdir)/examples/aggregates_high_level.cpp
-stl_containers_SOURCES = $(top_srcdir)/examples/stl_containers.cpp
-serialization_high_level_SOURCES = $(top_srcdir)/examples/serialization_high_level.cpp
-intro_sync_low_level_SOURCES = $(top_srcdir)/examples/intro_sync_low_level.cpp
-serialization_sync_low_level_SOURCES = $(top_srcdir)/examples/serialization_sync_low_level.cpp
+intro_sync_SOURCES = $(top_srcdir)/examples/intro_sync.cpp
+serialization_sync_SOURCES = $(top_srcdir)/examples/serialization_sync.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 subscriber_high_level_SOURCES = $(top_srcdir)/examples/subscriber_high_level.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 if HAVE_CXX20
 test_online_SOURCES = $(top_srcdir)/tests/online.cpp
-intro_async_low_level_SOURCES = $(top_srcdir)/examples/intro_async_low_level.cpp
-subscriber_low_level_SOURCES = $(top_srcdir)/examples/subscriber_low_level.cpp
+transaction_SOURCES = $(top_srcdir)/examples/transaction.cpp
+subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 custom_adapter_SOURCES = $(top_srcdir)/examples/custom_adapter.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
@@ -86,6 +82,8 @@ nobase_include_HEADERS =\
 
 nobase_noinst_HEADERS =\
   $(top_srcdir)/examples/user_session.hpp\
+  $(top_srcdir)/examples/print.hpp\
+  $(top_srcdir)/examples/mystruct.hpp\
   $(top_srcdir)/tests/check.hpp
 
 TESTS = $(check_PROGRAMS)
