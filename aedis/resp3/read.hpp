@@ -47,8 +47,9 @@ namespace resp3 {
  *  \returns The number of bytes that have been consumed from the dynamic buffer.
  *
  *  \remark This function calls buf.consume() in each chunk of data
- *  after it has been passed to the adapter. See also \ref
- *  low-level-read-buffers.
+ *  after it has been passed to the adapter.
+ *
+ *  TODO: Describe how buffers are consumed.
  */
 template <
   class SyncReadStream,
@@ -165,8 +166,8 @@ read(
  *  @endcode
  *
  *  \remark This function calls buf.consume() in each chunk of data
- *  after it has been passed to the adapter. See also \ref
- *  low-level-read-buffers.
+ *  after it has been passed to the adapter.
+ *  TODO: Describe how buffers are consumed.
  */
 template <
    class AsyncReadStream,

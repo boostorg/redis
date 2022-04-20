@@ -76,6 +76,7 @@ public:
    /** \brief Constructor.
     *
     *  \param ex The executor.
+    *  \param cfg Configuration parameters.
     */
    client(boost::asio::any_io_executor ex, config cfg = config{})
    : socket_{ex}
@@ -237,28 +238,8 @@ public:
     *  @li Start the async read operation that keeps reading responses to commands and server pushes.
     *  @li Start the async write operation that keeps sending commands to Redis.
     *
-    *  \param recv The receiver (see below)
     *  \param ep The address of the Redis server.
     *  \param token The completion token (ASIO jargon)
-    *
-    *  The receiver is a class that privides the following member functions
-    *
-    *  @code
-    *  class receiver {
-    *  public:
-    *     // Called when a new chunck of user data becomes available.
-    *     void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec);
-    *
-    *     // Called when a response becomes available.
-    *     void on_read(command cmd);
-    *
-    *     // Called when a request has been writen to the socket.
-    *     void on_write(std::size_t n);
-    *
-    *     // Called when a server push is received.
-    *     void on_push();
-    *  };
-    *  @endcode
     *
     */
    template <class CompletionToken = default_completion_token_type>
