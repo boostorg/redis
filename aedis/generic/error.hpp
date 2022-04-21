@@ -17,14 +17,18 @@ namespace generic {
  */
 enum class error
 {
-   /// Read operation has timed out.
-   read_timeout = 1,
+   /// Represents a timeout of the resolve operation.
+   resolve_timeout = 1,
 
-   /// Write operation has timed out.
+   /// Represents a timeout of the connect operation.
+   connect_timeout,
+
+   /// Represents a timeout of the read operation.
+   read_timeout,
+
+   /// Represents a timeout of the write operation.
    write_timeout,
 
-   /// Write operation has timed out.
-   connect_timeout,
 };
 
 /** \brief Converts an error in an boost::system::error_code object.

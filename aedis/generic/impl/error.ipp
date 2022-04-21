@@ -21,9 +21,10 @@ struct error_category_impl : boost::system::error_category {
    std::string message(int ev) const override
    {
       switch(static_cast<error>(ev)) {
+	 case error::resolve_timeout: return "Resolve operation timeout.";
+	 case error::connect_timeout: return "Connect operation timeout.";
 	 case error::read_timeout: return "Read operation timeout.";
 	 case error::write_timeout: return "Write operation timeout.";
-	 case error::connect_timeout: return "Connect operation timeout.";
 	 default: assert(false);
       }
    }

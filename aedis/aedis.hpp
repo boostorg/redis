@@ -439,16 +439,16 @@
 
     \section high-level-api High-level API
 
-    As stated earlier, the low-level API is very useful for short
-    lived connections, however, as long as we start using some Redis
-    features the need for lived connections become apparent
+    As stated earlier, the low-level API is very useful for tasks that
+    can be performed with short lived connections. Sometimes however,
+    the need for long-lived connections becomes apparent and compeling
 
     @li \b Server \b pushes: Short lived connections can't handle server pushes (e.g. https://redis.io/topics/client-side-caching and https://redis.io/topics/notifications).
     @li \b Pubsub: Just like server pushes, to use Redis pubsub users need long lasting connections (https://redis.io/topics/pubsub).
     @li \b Performance: Keep opening and closing connections impact performance.
     @li \b Pipeline: Code such as shown in \ref low-level-api don't support pipelines well since it can only send a fixed number of commands at time. It misses important optimization opportunities (https://redis.io/topics/pipelining).
 
-    A serious implementation the supports the points listed above is
+    A serious implementation that supports the points listed above is
     far from trivial as it involves the following async operations
 
     @li \c async_resolve: Resolve a hostname.
@@ -458,7 +458,7 @@
 
     In addition to that
 
-    @li each operation listed above requires a timer that runs concurrently with it.
+    @li each operation listed above requires a timer that runs concurrently with it so that users can detect a dead Redis Server.
     @li \c async_write operations require management of the message queue to prevent concurrent writes.
 
     To avoid imposing this burden on every user, Aedis provides its
@@ -475,18 +475,42 @@
        db.set_resp3_handler(resp3_callback);
        db.set_read_handler(read_callback);
 
-       db.async_run({net::ip::make_address("127.0.0.1"), 6379}, [](auto ec){ ... });
+       db.async_run("127.0.0.1", "6379", [](auto ec){ ... });
 
        ioc.run();
     }
     @endcode
 
-    The \c async_run function above follows Asio's asynchrony model.
-    For example, it is easy to implement a reconnect strategy when
-    using a coroutine
+    Most of the time, users will be only concerned with the
+    implementation of \c read_callback and \c resp3_callback. For
+    example
 
     @code
-    awaitable
+    struct receiver {
+       receiver(client_type& db) , adapter_{adapt(resp_)} {}
+
+       void on_read(command cmd, std::size_t)
+       {
+          std::cout << "on_read: " << cmd << ", " << n << "\n";
+       }
+    
+       void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
+       {
+          adapter_(nd, ec);
+       }
+    
+    private:
+       response_type resp_;
+       adapter_t<response_type> adapter_;
+    };
+    @endcode
+
+    The read and resp3 callbacks mentioned earlier become then
+
+    @code
+    receiver recv;
+    auto read_callback = [&recv](command cmd, std::size_t n){recv.on_read(cmd, n);};
+    auto resp3_callback = [&recv](command cmd, auto const& nd, auto& ec){recv.on_resp3(cmd, nd, ec);};
     @endcode
 
     \subsection high-level-sending-cmds Sending commands
@@ -511,58 +535,6 @@
     previously sent command. This is so because RESP3 is a
     request/response protocol, which means clients must wait for the
     response to a command before proceeding with the next one.
-
-    \subsection high-level-responses Responses
-
-    Aedis also provides some facilities to use use custom responses with the
-    high-level API. Assume for example you have many different custom
-    response types \c T1, \c T2 etc, a receiver that makes use of this looks
-    like
-
-    @code
-    using responses_tuple_type = std::tuple<T1, T2, T3>;
-    using adapters_tuple_type = adapters_t<responses_tuple_type>;
-
-    class myreceiver {
-    public:
-       myreceiver(...) : adapters_(make_adapters_tuple(resps_)) , {}
-
-       void on_connect()
-       {
-          db_->send(command::hello, 3);
-       }
-
-       void
-       on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
-       {
-          // Direct the responses to the desired adapter.
-          switch (cmd) {
-             case cmd1: adapter::get<T1>(adapters_)(nd, ec);
-             case cmd2: adapter::get<T2>(adapters_)(nd, ec);
-             case cmd3: adapter::get<T2>(adapters_)(nd, ec);
-             default:;
-          }
-       }
-
-       void on_read(command cmd, std::size_t)
-       {
-          switch (cmd) {
-             case cmd1: // Data on std::get<T1>(resps_); break;
-             case cmd2: // Data on std::get<T2>(resps_); break;
-             case cmd3: // Data on std::get<T3>(resps_); break;
-             default:;
-          }
-       }
-
-       void on_write(std::size_t n) { ... }
-
-       void on_push() { ... }
-
-    private:
-       responses_tuple_type resps_;
-       adapters_tuple_type adapters_;
-    };
-    @endcode
 
     \section examples Examples
 

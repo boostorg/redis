@@ -91,8 +91,7 @@ int main()
    db.set_push_handler([&recv](std::size_t n){recv.on_push(n);});
    db.set_resp3_handler([&recv](command cmd, auto const& nd, auto& ec){recv.on_resp3(cmd, nd, ec);});
 
-   db.async_run(
-      {net::ip::make_address("127.0.0.1"), 6379},
+   db.async_run("127.0.0.1", "6379",
       [](auto ec){ std::cout << ec.message() << std::endl;});
 
    ioc.run();

@@ -9,10 +9,11 @@
 
 #include <array>
 
-#include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/system.hpp>
 #include <boost/asio/write.hpp>
+#include <boost/asio/connect.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/asio/experimental/parallel_group.hpp>
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
@@ -24,6 +25,60 @@ namespace generic {
 namespace detail {
 
 #include <boost/asio/yield.hpp>
+
+template <class Client>
+struct resolve_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void
+   operator()( Self& self
+             , boost::system::error_code ec = {}
+             , boost::asio::ip::tcp::resolver::results_type res = {})
+   {
+      reenter (coro) {
+         yield
+         cli->resv_.async_resolve(cli->host_.data(), cli->port_.data(), std::move(self));
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         cli->endpoints_ = res;
+         self.complete({});
+      }
+   }
+};
+
+template <class Client>
+struct connect_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void
+   operator()( Self& self
+             , boost::system::error_code ec = {}
+             , boost::asio::ip::tcp::endpoint const& ep = {})
+   {
+      reenter (coro) {
+         yield
+         boost::asio::async_connect(
+            cli->socket_,
+            cli->endpoints_,
+            std::move(self));
+
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         cli->endpoint_ = ep;
+         self.complete({});
+      }
+   }
+};
 
 template <class Client>
 struct run_op {
@@ -38,12 +93,46 @@ struct run_op {
    {
       reenter (coro) {
 
+         // Tries to resolve with a timeout. We can use the writer
+         // timer here as there is no ongoing write operation.
+         cli->write_timer_.expires_after(cli->cfg_.resolve_timeout);
+
+         yield
+         boost::asio::experimental::make_parallel_group(
+            [this](auto token) { return cli->async_resolve(token);},
+            [this](auto token) { return cli->write_timer_.async_wait(token);}
+         ).async_wait(
+            boost::asio::experimental::wait_for_one(),
+            std::move(self));
+
+         switch (order[0]) {
+            case 0:
+            {
+               if (ec1) {
+                  self.complete(ec1);
+                  return;
+               }
+               //cli->on_resolve_();
+            } break;
+
+            case 1:
+            {
+               if (!ec2) {
+                  self.complete(generic::error::resolve_timeout);
+                  return;
+               }
+            } break;
+
+            default: assert(false);
+         }
+
          // Tries a connection with a timeout. We can use the writer
          // timer here as there is no ongoing write operation.
          cli->write_timer_.expires_after(cli->cfg_.connect_timeout);
+
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return cli->socket_.async_connect(cli->endpoint_, token);},
+            [this](auto token) { return cli->async_connect(token);},
             [this](auto token) { return cli->write_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
