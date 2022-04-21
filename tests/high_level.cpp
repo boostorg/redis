@@ -71,13 +71,8 @@ public:
 
    void on_read(command cmd, std::size_t)
    {
-      switch (cmd) {
-         case command::hello:
-         db_->send(command::quit);
-         break;
-
-         default:;
-      }
+      // quit will be sent more than once. It doesn't matter.
+      db_->send(command::quit);
    }
 
 private:
@@ -106,6 +101,8 @@ public:
 
    void on_write(std::size_t)
    {
+      // Notice this causes a loop, but since quit stops the
+      // connection it is not a problem.
       db_->send(command::quit);
    }
 
@@ -127,6 +124,76 @@ void test_hello2()
    receiver2 recv{db};
    //db.set_read_handler(print_read);
    db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
+   db.async_run("127.0.0.1", "6379", f);
+   ioc.run();
+}
+
+struct receiver3 {
+public:
+   receiver3(client_type& db) : db_{&db} {}
+
+   void on_write(std::size_t)
+   {
+      // Notice this causes a loop.
+      db_->send(command::subscribe, "channel");
+   }
+
+   void on_push(std::size_t)
+   {
+      db_->send(command::quit);
+   }
+
+private:
+   client_type* db_;
+};
+
+void test_push()
+{
+   auto f = [](auto ec)
+   {
+      expect_error(ec, net::error::misc_errors::eof);
+   };
+
+   net::io_context ioc;
+   client_type db(ioc.get_executor());
+   receiver3 recv{db};
+   db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
+   db.set_push_handler([&recv](std::size_t n){recv.on_push(n);});
+   db.async_run("127.0.0.1", "6379", f);
+   ioc.run();
+}
+
+struct receiver4 {
+public:
+   receiver4(client_type& db) : db_{&db} {}
+
+   void on_read()
+   {
+      // Notice this causes a loop.
+      db_->send(command::subscribe, "channel");
+   }
+
+   void on_push()
+   {
+      db_->send(command::quit);
+   }
+
+private:
+   client_type* db_;
+};
+
+void test_push2()
+{
+   auto f = [](auto ec)
+   {
+      expect_error(ec, net::error::misc_errors::eof);
+   };
+
+   net::io_context ioc;
+   client_type db(ioc.get_executor());
+   receiver4 recv{db};
+   db.set_read_handler([&recv](auto, auto){recv.on_read();});
+   db.set_push_handler([&recv](auto){recv.on_push();});
    db.async_run("127.0.0.1", "6379", f);
    ioc.run();
 }
@@ -497,6 +564,8 @@ int main()
    test_connect_error();
    test_hello();
    test_hello2();
+   test_push();
+   test_push2();
 
    //net::io_context ioc {1};
    //tcp::resolver resv(ioc);

@@ -221,7 +221,6 @@ struct write_op {
             case 0:
             {
                if (ec1) {
-                  cli->socket_.close();
                   self.complete(ec1);
                   return;
                }
@@ -306,7 +305,6 @@ struct read_op {
             case 0:
             {
                if (ec1) {
-                  cli->socket_.close();
                   self.complete(ec1);
                   return;
                }
@@ -360,8 +358,7 @@ struct reader_op {
                std::move(self));
 
             if (ec) {
-               cli->socket_.close();
-               cli->wait_write_timer_.expires_at(std::chrono::steady_clock::now());
+               cli->on_reader_exit();
                self.complete(ec);
                return;
             }
@@ -377,8 +374,7 @@ struct reader_op {
 
          yield cli->async_read(std::move(self));
          if (ec) {
-            cli->socket_.close();
-            cli->wait_write_timer_.expires_at(std::chrono::steady_clock::now());
+            cli->on_reader_exit();
             self.complete(ec);
             return;
          }

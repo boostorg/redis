@@ -322,13 +322,16 @@ private:
       }
 
       if (info_.front().size == 0) {
+         assert(info_.front().cmds != 0);
          // It has already been written and we are waiting for the
          // responses.
          info_.push_back({});
          return false;
       }
 
-      return false;
+      // When cmds = 0 there are only commands with push response on
+      // the request and we are not waiting for any response.
+      return info_.front().cmds == 0;
    }
 
    // Returns true when the next request can be writen.
@@ -419,6 +422,12 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::writer_op<client>{this}, token, socket_, wait_write_timer_);
+   }
+
+   void on_reader_exit()
+   {
+      socket_.close();
+      wait_write_timer_.expires_at(std::chrono::steady_clock::now());
    }
 
    // Stores information about a request.
