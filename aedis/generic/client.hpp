@@ -388,8 +388,7 @@ private:
          >(detail::read_op<client>{this}, token, socket_);
    }
 
-   // Loops on async_read described above. When an error occurrs this
-   // function will set stop_writer_ to true.
+   // Loops on async_read described above.
    template <class CompletionToken = default_completion_token_type>
    auto
    reader(CompletionToken&& token = default_completion_token_type{})
@@ -478,9 +477,6 @@ private:
 
    // Called when a connection is stablished.
    connect_handler_type on_connect_ = []() {};;
-
-   // See reader.
-   bool stop_writer_ = false;
 
    // Used by the read_op.
    resp3::type data_type = resp3::type::invalid;

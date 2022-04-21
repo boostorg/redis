@@ -161,6 +161,7 @@ struct run_op {
 
          // Starts the reader and writer ops.
          cli->wait_write_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+
          yield
          boost::asio::experimental::make_parallel_group(
             [this](auto token) { return cli->writer(token);},
@@ -170,8 +171,16 @@ struct run_op {
             std::move(self));
 
          switch (order[0]) {
-           case 0: self.complete(ec1); break;
-           case 1: self.complete(ec2); break;
+           case 0:
+           {
+              assert(ec1);
+              self.complete(ec1);
+           } break;
+           case 1:
+           {
+              assert(ec2);
+              self.complete(ec2);
+           } break;
            default: assert(false);
          }
       }
@@ -262,8 +271,8 @@ struct writer_op {
 
          yield cli->wait_write_timer_.async_wait(std::move(self));
 
-         if (cli->stop_writer_) {
-            self.complete(ec);
+         if (!cli->socket_.is_open()) {
+            self.complete(error::write_stop_requested);
             return;
          }
       }
@@ -351,7 +360,8 @@ struct reader_op {
                std::move(self));
 
             if (ec) {
-               cli->stop_writer_ = true;
+               cli->socket_.close();
+               cli->wait_write_timer_.expires_at(std::chrono::steady_clock::now());
                self.complete(ec);
                return;
             }
@@ -367,7 +377,8 @@ struct reader_op {
 
          yield cli->async_read(std::move(self));
          if (ec) {
-            cli->stop_writer_ = true;
+            cli->socket_.close();
+            cli->wait_write_timer_.expires_at(std::chrono::steady_clock::now());
             self.complete(ec);
             return;
          }

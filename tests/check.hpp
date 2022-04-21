@@ -19,7 +19,8 @@ void expect_eq(T const& a, T const& b, std::string const& msg = "")
    }
 }
 
-void expect_error(boost::system::error_code a, boost::system::error_condition expected = {})
+template <class T>
+void expect_error(boost::system::error_code a, T expected = {})
 {
    if (a == expected) {
       if (a)

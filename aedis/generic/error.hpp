@@ -29,6 +29,8 @@ enum class error
    /// Represents a timeout of the write operation.
    write_timeout,
 
+   /// Write stop requested.
+   write_stop_requested,
 };
 
 /** \brief Converts an error in an boost::system::error_code object.

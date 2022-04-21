@@ -31,7 +31,7 @@ int main()
       tcp::socket socket{ioc};
       net::connect(socket, res);
 
-      // Creates and sends a request to redis.
+      // Creates the request and writes to the socket.
       std::string buffer;
       auto sr = make_serializer(buffer);
       sr.push(command::hello, 3);

@@ -20,7 +20,7 @@ check_PROGRAMS += test_low_level
 if HAVE_CXX20
 check_PROGRAMS += transaction
 check_PROGRAMS += custom_adapter
-check_PROGRAMS += test_online
+check_PROGRAMS += test_high_level
 endif
 
 EXTRA_PROGRAMS =
@@ -46,7 +46,7 @@ commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 subscriber_high_level_SOURCES = $(top_srcdir)/examples/subscriber_high_level.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 if HAVE_CXX20
-test_online_SOURCES = $(top_srcdir)/tests/online.cpp
+test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
 transaction_SOURCES = $(top_srcdir)/examples/transaction.cpp
 subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 custom_adapter_SOURCES = $(top_srcdir)/examples/custom_adapter.cpp

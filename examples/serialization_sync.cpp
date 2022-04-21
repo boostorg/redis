@@ -49,7 +49,7 @@ int main()
       sr.push(command::quit);
       net::write(socket, net::buffer(request));
 
-      // Responses
+      // Object to store the response.
       mystruct out;
 
       // Reads the responses to all commands in the request.

@@ -15,6 +15,8 @@
 #include <boost/asio/detached.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/connect.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/system/errc.hpp>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
@@ -30,6 +32,104 @@ using aedis::adapter::adapt;
 using node_type = aedis::resp3::node<std::string>;
 using tcp = net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
+using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
+
+auto print_read = [](auto cmd, auto n)
+{
+   std::cout << cmd << ": " << n << std::endl;
+};
+
+void test_resolve_error()
+{
+   auto f = [](auto ec)
+   {
+      expect_error(ec, net::error::netdb_errors::host_not_found);
+   };
+
+   net::io_context ioc;
+   client_type db(ioc.get_executor());
+   db.async_run("Atibaia", "6379", f);
+   ioc.run();
+}
+
+void test_connect_error()
+{
+   auto f = [](auto ec)
+   {
+      expect_error(ec, net::error::basic_errors::connection_refused);
+   };
+
+   net::io_context ioc;
+   client_type db(ioc.get_executor());
+   db.async_run("127.0.0.1", "1", f);
+   ioc.run();
+}
+
+struct receiver1 {
+public:
+   receiver1(client_type& db) : db_{&db} {}
+
+   void on_read(command cmd, std::size_t)
+   {
+      switch (cmd) {
+         case command::hello:
+         db_->send(command::quit);
+         break;
+
+         default:;
+      }
+   }
+
+private:
+   client_type* db_;
+};
+
+// Test if a hello is automatically sent.
+void test_hello()
+{
+   auto f = [](auto ec)
+   {
+      expect_error(ec, net::error::misc_errors::eof);
+   };
+
+   net::io_context ioc;
+   client_type db(ioc.get_executor());
+   receiver1 recv{db};
+   db.set_read_handler([&recv](command cmd, std::size_t n){recv.on_read(cmd, n);});
+   db.async_run("127.0.0.1", "6379", f);
+   ioc.run();
+}
+
+struct receiver2 {
+public:
+   receiver2(client_type& db) : db_{&db} {}
+
+   void on_write(std::size_t)
+   {
+      db_->send(command::quit);
+   }
+
+private:
+   client_type* db_;
+};
+
+// Test if a hello is automatically sent but this time, uses on_write
+// to send the quit command. Notice quit will be sent twice.
+void test_hello2()
+{
+   auto f = [](auto ec)
+   {
+      expect_error(ec, net::error::misc_errors::eof);
+   };
+
+   net::io_context ioc;
+   client_type db(ioc.get_executor());
+   receiver2 recv{db};
+   //db.set_read_handler(print_read);
+   db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
+   db.async_run("127.0.0.1", "6379", f);
+   ioc.run();
+}
 
 std::vector<node_type> gresp;
 
@@ -393,11 +493,16 @@ test_general(net::ip::tcp::resolver::results_type const& res)
 
 int main()
 {
-   net::io_context ioc {1};
-   tcp::resolver resv(ioc);
-   auto const res = resv.resolve("127.0.0.1", "6379");
+   test_resolve_error();
+   test_connect_error();
+   test_hello();
+   test_hello2();
 
-   co_spawn(ioc, test_general(res), net::detached);
-   ioc.run();
+   //net::io_context ioc {1};
+   //tcp::resolver resv(ioc);
+   //auto const res = resv.resolve("127.0.0.1", "6379");
+
+   //co_spawn(ioc, test_general(res), net::detached);
+   //ioc.run();
 }
 

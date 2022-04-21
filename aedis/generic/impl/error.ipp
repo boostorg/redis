@@ -25,6 +25,7 @@ struct error_category_impl : boost::system::error_category {
 	 case error::connect_timeout: return "Connect operation timeout.";
 	 case error::read_timeout: return "Read operation timeout.";
 	 case error::write_timeout: return "Write operation timeout.";
+	 case error::write_stop_requested: return "Write stop requested.";
 	 default: assert(false);
       }
    }
