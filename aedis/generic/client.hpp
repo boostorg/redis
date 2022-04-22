@@ -10,6 +10,8 @@
 #include <vector>
 #include <limits>
 #include <functional>
+#include <iterator>
+#include <algorithm>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -82,18 +84,17 @@ public:
     *  \param cfg Configuration parameters.
     */
    client(boost::asio::any_io_executor ex, config cfg = config{})
-   : socket_{ex}
+   : socket_{std::make_shared<AsyncReadWriteStream>(ex)}
    , read_timer_{ex}
    , write_timer_{ex}
    , wait_write_timer_{ex}
    , resv_{ex}
    , cfg_{cfg}
-   , on_connect_ {[this]() {send(Command::hello, 3);}}
    {
    }
 
    /// Returns the executor.
-   auto get_executor() {return socket_.get_executor();}
+   auto get_executor() {return socket_->get_executor();}
 
    /** @brief Adds a command to the output command queue.
     *
@@ -278,7 +279,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<client>{this}, token, socket_, read_timer_, write_timer_, wait_write_timer_);
+         >(detail::run_op<client>{this}, token, *socket_, read_timer_, write_timer_, wait_write_timer_);
    }
 
    /// Set the read handler.
@@ -298,9 +299,6 @@ public:
       { on_resp3_ = std::move(rh); }
 
 private:
-   // Type of the callback that is called on success connect.
-   using connect_handler_type = std::function<void()>;
-
    template <class T, class V> friend struct detail::reader_op;
    template <class T> friend struct detail::read_op;
    template <class T> friend struct detail::writer_op;
@@ -308,6 +306,66 @@ private:
    template <class T> friend struct detail::run_op;
    template <class T> friend struct detail::connect_op;
    template <class T> friend struct detail::resolve_op;
+
+   void on_resolve()
+   {
+      // If we are comming from a connection that was lost we have to
+      // reset the socket to a fresh state.
+      socket_ =
+         std::make_shared<AsyncReadWriteStream>(read_timer_.get_executor());
+   }
+
+   void on_connect()
+   {
+      // When we are reconnecting we can't simply call send(hello)
+      // as that will add the command to the end of the queue, we need
+      // it as the first element.
+      if (info_.empty()) {
+         // Either we are connecting for the first time or there are
+         // no commands that were left unresponded from the last
+         // connection. We can send hello as usual.
+         assert(requests_.empty());
+         send(Command::hello, 3);
+         return;
+      }
+
+      if (info_.front().size == 0) {
+         // There is one request that was left unresponsed when we
+         // e.g. lost the connection, since we erase requests right
+         // after writing them to the socket (to avoid resubmission) it
+         // is lost and we have to remove it.
+         assert(requests_.size() >= info_.front().size);
+         assert(commands_.size() >= info_.front().cmds);
+
+         requests_.erase(0, info_.front().size);
+
+         commands_.erase(
+            std::begin(commands_),
+            std::begin(commands_) + info_.front().cmds);
+
+         info_.front().cmds = 0;
+
+         // Do not erase the info_ front as we will use it below.
+         // info_.erase(std::begin(info_));
+      }
+
+      std::string tmp;
+      serializer<std::string> sr(tmp);
+      sr.push(Command::hello, 3);
+      auto const hello_size = tmp.size();
+      std::copy(std::cbegin(requests_), std::cend(requests_), std::back_inserter(tmp));
+      requests_ = std::move(tmp);
+
+      info_.front().size = hello_size + info_.front().size;
+      ++info_.front().cmds;
+
+      // Push front.
+      commands_.push_back(Command::hello);
+      std::rotate(
+         std::begin(commands_),
+         std::prev(std::end(commands_)),
+         std::end(commands_));
+   }
 
    /* Prepares the back of the queue to receive further commands. 
     *
@@ -322,10 +380,12 @@ private:
       }
 
       if (info_.front().size == 0) {
+         // There is a pending response, we can't modify the front of
+         // the vector.
          assert(info_.front().cmds != 0);
-         // It has already been written and we are waiting for the
-         // responses.
-         info_.push_back({});
+         if (info_.size() == 1)
+            info_.push_back({});
+
          return false;
       }
 
@@ -362,7 +422,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::resolve_op<client>{this}, token, socket_);
+         >(detail::resolve_op<client>{this}, token, *socket_);
    }
 
    // Connects the socket to one of the endpoints in endpoints_ and
@@ -374,7 +434,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::connect_op<client>{this}, token, socket_);
+         >(detail::connect_op<client>{this}, token, *socket_);
    }
 
    // Reads a complete resp3 response from the socket using the
@@ -388,7 +448,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_op<client>{this}, token, socket_);
+         >(detail::read_op<client>{this}, token, *socket_);
    }
 
    // Loops on async_read described above.
@@ -399,7 +459,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::reader_op<client, Command>{this}, token, socket_);
+         >(detail::reader_op<client, Command>{this}, token, *socket_);
    }
 
    // Write with a timeout.
@@ -411,7 +471,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::write_op<client>{this}, token, socket_, write_timer_);
+         >(detail::write_op<client>{this}, token, *socket_, write_timer_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -421,12 +481,12 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::writer_op<client>{this}, token, socket_, wait_write_timer_);
+         >(detail::writer_op<client>{this}, token, *socket_, wait_write_timer_);
    }
 
    void on_reader_exit()
    {
-      socket_.close();
+      socket_->close();
       wait_write_timer_.expires_at(std::chrono::steady_clock::now());
    }
 
@@ -453,7 +513,7 @@ private:
    std::vector<info> info_;
 
    // The tcp socket.
-   AsyncReadWriteStream socket_;
+   std::shared_ptr<AsyncReadWriteStream> socket_;
 
    // Timer used with async_read.
    boost::asio::steady_timer read_timer_;
@@ -483,9 +543,6 @@ private:
    // Called by the parser after each new chunck of resp3 data is
    // processed.
    resp3_handler_type on_resp3_ = [](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {};
-
-   // Called when a connection is stablished.
-   connect_handler_type on_connect_ = []() {};;
 
    // Used by the read_op.
    resp3::type data_type = resp3::type::invalid;

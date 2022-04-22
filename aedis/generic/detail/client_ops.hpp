@@ -65,7 +65,7 @@ struct connect_op {
       reenter (coro) {
          yield
          boost::asio::async_connect(
-            cli->socket_,
+            *cli->socket_,
             cli->endpoints_,
             std::move(self));
 
@@ -112,7 +112,8 @@ struct run_op {
                   self.complete(ec1);
                   return;
                }
-               //cli->on_resolve_();
+
+               cli->on_resolve();
             } break;
 
             case 1:
@@ -145,7 +146,8 @@ struct run_op {
                   self.complete(ec1);
                   return;
                }
-               cli->on_connect_();
+
+               cli->on_connect();
             } break;
 
             case 1:
@@ -211,7 +213,7 @@ struct write_op {
          cli->write_timer_.expires_after(cli->cfg_.write_timeout);
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return boost::asio::async_write(cli->socket_, boost::asio::buffer(cli->requests_.data(), cli->info_.front().size), token);},
+            [this](auto token) { return boost::asio::async_write(*cli->socket_, boost::asio::buffer(cli->requests_.data(), cli->info_.front().size), token);},
             [this](auto token) { return cli->write_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -263,14 +265,14 @@ struct writer_op {
       reenter (coro) for (;;) {
          yield cli->async_write(std::move(self));
          if (ec) {
-            cli->socket_.close();
+            cli->socket_->close();
             self.complete(ec);
             return;
          }
 
          yield cli->wait_write_timer_.async_wait(std::move(self));
 
-         if (!cli->socket_.is_open()) {
+         if (!cli->socket_->is_open()) {
             self.complete(error::write_stop_requested);
             return;
          }
@@ -295,7 +297,7 @@ struct read_op {
 
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return resp3::async_read(cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [cli_ = cli](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {cli_->on_resp3_(cli_->cmd, nd, ec);}, token);},
+            [this](auto token) { return resp3::async_read(*cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [cli_ = cli](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {cli_->on_resp3_(cli_->cmd, nd, ec);}, token);},
             [this](auto token) { return cli->read_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -352,7 +354,7 @@ struct reader_op {
          if (cli->read_buffer_.empty()) {
             yield
             boost::asio::async_read_until(
-               cli->socket_,
+               *cli->socket_,
                boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size),
                "\r\n",
                std::move(self));
