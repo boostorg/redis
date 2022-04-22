@@ -84,8 +84,7 @@ public:
     *  \param cfg Configuration parameters.
     */
    client(boost::asio::any_io_executor ex, config cfg = config{})
-   : socket_{std::make_shared<AsyncReadWriteStream>(ex)}
-   , read_timer_{ex}
+   : read_timer_{ex}
    , write_timer_{ex}
    , wait_write_timer_{ex}
    , resv_{ex}
@@ -94,7 +93,7 @@ public:
    }
 
    /// Returns the executor.
-   auto get_executor() {return socket_->get_executor();}
+   auto get_executor() {return read_timer_.get_executor();}
 
    /** @brief Adds a command to the output command queue.
     *
@@ -279,7 +278,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<client>{this}, token, *socket_, read_timer_, write_timer_, wait_write_timer_);
+         >(detail::run_op<client>{this}, token, /* *socket_,*/ read_timer_, write_timer_, wait_write_timer_);
    }
 
    /// Set the read handler.
@@ -422,7 +421,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::resolve_op<client>{this}, token, *socket_);
+         >(detail::resolve_op<client>{this}, token, resv_.get_executor());
    }
 
    // Connects the socket to one of the endpoints in endpoints_ and
@@ -434,7 +433,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::connect_op<client>{this}, token, *socket_);
+         >(detail::connect_op<client>{this}, token, write_timer_.get_executor());
    }
 
    // Reads a complete resp3 response from the socket using the
@@ -448,7 +447,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_op<client>{this}, token, *socket_);
+         >(detail::read_op<client>{this}, token, read_timer_.get_executor());
    }
 
    // Loops on async_read described above.
@@ -459,7 +458,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::reader_op<client, Command>{this}, token, *socket_);
+         >(detail::reader_op<client, Command>{this}, token, read_timer_.get_executor());
    }
 
    // Write with a timeout.
@@ -471,7 +470,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::write_op<client>{this}, token, *socket_, write_timer_);
+         >(detail::write_op<client>{this}, token, write_timer_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -481,7 +480,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::writer_op<client>{this}, token, *socket_, wait_write_timer_);
+         >(detail::writer_op<client>{this}, token, wait_write_timer_);
    }
 
    void on_reader_exit()

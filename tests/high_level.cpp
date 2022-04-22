@@ -204,6 +204,8 @@ public:
    , adapter_{adapt(counter)}
    {}
 
+   void on_read(command) {}
+
    void on_write()
    {
       if (counter == 0) {
@@ -230,9 +232,10 @@ private:
    adapter_t<int> adapter_;
 };
 
+template <class Receiver>
 struct reconnect {
    client_type db;
-   receiver5 recv;
+   Receiver recv;
    boost::asio::steady_timer timer;
    net::coroutine coro;
 
@@ -241,6 +244,7 @@ struct reconnect {
    , recv{db}
    , timer{ex}
    {
+      db.set_read_handler([this](auto cmd, auto){recv.on_read(cmd);});
       db.set_write_handler([this](auto){recv.on_write();});
       db.set_resp3_handler([this](auto a, auto b, auto c){recv.on_resp3(a, b, c);});
    }
@@ -267,12 +271,51 @@ struct reconnect {
 void test_reconnect()
 {
    net::io_context ioc;
-   reconnect rec{ioc.get_executor()};
+   reconnect<receiver5> rec{ioc.get_executor()};
    rec.on_event({});
    ioc.run();
 }
 
-// TODO: test_reconnect2() using on_read instead of on_write.
+struct receiver6 {
+public:
+   int counter = 0;
+
+   receiver6(client_type& db)
+   : db_{&db}
+   , adapter_{adapt(counter)}
+   {}
+
+   void on_write() {}
+   void on_read(command cmd)
+   {
+      if (cmd == command::hello) {
+         db_->send(command::get, "receiver6-key");
+         if (counter == 0)
+            db_->send(command::del, "receiver6-key");
+         db_->send(command::incr, "receiver6-key");
+         db_->send(command::quit);
+         return;
+      }
+   }
+
+   void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
+   {
+      if (cmd == command::incr)
+         adapter_(nd, ec);
+   }
+
+private:
+   client_type* db_;
+   adapter_t<int> adapter_;
+};
+
+void test_reconnect2()
+{
+   net::io_context ioc;
+   reconnect<receiver6> rec{ioc.get_executor()};
+   rec.on_event({});
+   ioc.run();
+}
 
 std::vector<node_type> gresp;
 
@@ -643,6 +686,7 @@ int main()
    test_push();
    test_push2();
    test_reconnect();
+   test_reconnect2();
 
    //net::io_context ioc {1};
    //tcp::resolver resv(ioc);
