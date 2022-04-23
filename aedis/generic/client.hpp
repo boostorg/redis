@@ -12,6 +12,7 @@
 #include <functional>
 #include <iterator>
 #include <algorithm>
+#include <utility>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -20,10 +21,6 @@
 #include <aedis/resp3/node.hpp>
 #include <aedis/generic/detail/client_ops.hpp>
 #include <aedis/redis/command.hpp>
-
-// TODO: What to do if users send a discard command not contained in a
-// transaction. The client object will try to pop the queue until a
-// multi is found.
 
 namespace aedis {
 namespace generic {
@@ -115,10 +112,11 @@ public:
       sr.push(cmd, args...);
       auto const after = requests_.size();
       assert(after - before != 0);
-      info_.back().size += after - before;;
+      auto const d = after - before;
+      info_.back().size += d;;
 
       if (!has_push_response(cmd)) {
-         commands_.push_back(cmd);
+         commands_.push_back(std::make_pair(cmd, d));
          ++info_.back().cmds;
       }
 
@@ -151,10 +149,11 @@ public:
       sr.push_range2(cmd, key, begin, end);
       auto const after = requests_.size();
       assert(after - before != 0);
-      info_.back().size += after - before;;
+      auto const d = after - before;
+      info_.back().size += d;
 
       if (!has_push_response(cmd)) {
-         commands_.push_back(cmd);
+         commands_.push_back(std::make_pair(cmd, d));
          ++info_.back().cmds;
       }
 
@@ -186,10 +185,11 @@ public:
       sr.push_range2(cmd, begin, end);
       auto const after = requests_.size();
       assert(after - before != 0);
-      info_.back().size += after - before;;
+      auto const d = after - before;
+      info_.back().size += d;
 
       if (!has_push_response(cmd)) {
-         commands_.push_back(cmd);
+         commands_.push_back(std::make_pair(cmd, d));
          ++info_.back().cmds;
       }
 
@@ -359,7 +359,7 @@ private:
       ++info_.front().cmds;
 
       // Push front.
-      commands_.push_back(Command::hello);
+      commands_.push_back(std::make_pair(Command::hello, hello_size));
       std::rotate(
          std::begin(commands_),
          std::prev(std::end(commands_)),
@@ -396,9 +396,6 @@ private:
    // Returns true when the next request can be writen.
    bool on_cmd(Command cmd)
    {
-      // TODO: If the response to a discard is received we have to
-      // remove all commands up until multi.
-
       assert(!info_.empty());
       assert(!commands_.empty());
 
@@ -506,7 +503,7 @@ private:
    std::string requests_;
 
    // The commands contained in the requests.
-   std::vector<Command> commands_;
+   std::vector<std::pair<Command, std::size_t>> commands_;
 
    // Info about the requests.
    std::vector<info> info_;

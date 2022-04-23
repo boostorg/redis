@@ -371,7 +371,7 @@ struct reader_op {
          cli->cmd = Command::invalid;
          if (cli->data_type != resp3::type::push) {
             assert(!cli->commands_.empty());
-            cli->cmd = cli->commands_.front();
+            cli->cmd = cli->commands_.front().first;
          }
 
          yield cli->async_read(std::move(self));
