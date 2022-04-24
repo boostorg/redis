@@ -81,13 +81,18 @@ public:
     *  \param cfg Configuration parameters.
     */
    client(boost::asio::any_io_executor ex, config cfg = config{})
-   : read_timer_{ex}
+   : resv_{ex}
+   , read_timer_{ex}
    , write_timer_{ex}
    , wait_write_timer_{ex}
-   , resv_{ex}
    , cfg_{cfg}
-   {
-   }
+   , on_read_{[](Command, std::size_t){}}
+   , on_write_{[](std::size_t){}}
+   , on_push_{[](std::size_t){}}
+   , on_resp3_{[](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {}}
+   , type_{resp3::type::invalid}
+   , cmd_info_{std::make_pair<Command>(Command::invalid, 0)}
+   { }
 
    /// Returns the executor.
    auto get_executor() {return read_timer_.get_executor();}
@@ -298,6 +303,8 @@ public:
       { on_resp3_ = std::move(rh); }
 
 private:
+   using command_info_type = std::pair<Command, std::size_t>;
+
    template <class T, class V> friend struct detail::reader_op;
    template <class T> friend struct detail::read_op;
    template <class T> friend struct detail::writer_op;
@@ -394,7 +401,7 @@ private:
    }
 
    // Returns true when the next request can be writen.
-   bool on_cmd(Command cmd)
+   bool on_cmd(command_info_type)
    {
       assert(!info_.empty());
       assert(!commands_.empty());
@@ -496,17 +503,8 @@ private:
       std::size_t cmds = 0;
    };
 
-   // Buffer used by the read operations.
-   std::string read_buffer_;
-
-   // Requests payload.
-   std::string requests_;
-
-   // The commands contained in the requests.
-   std::vector<std::pair<Command, std::size_t>> commands_;
-
-   // Info about the requests.
-   std::vector<info> info_;
+   // Used to resolve the host on async_resolve.
+   boost::asio::ip::tcp::resolver resv_;
 
    // The tcp socket.
    std::shared_ptr<AsyncReadWriteStream> socket_;
@@ -521,30 +519,39 @@ private:
    // queue.
    boost::asio::steady_timer wait_write_timer_;
 
-   // Used to resolve the host on async_resolve.
-   boost::asio::ip::tcp::resolver resv_;
-
    // Configuration parameters.
    config cfg_;
 
    // Called when a complete message is read.
-   read_handler_type on_read_ = [](Command, std::size_t){};
+   read_handler_type on_read_;
 
    // Called when a request has been written to the socket.
-   write_handler_type on_write_ = [](std::size_t){};
+   write_handler_type on_write_;
 
    // Called when a complete push message is received.
-   push_handler_type on_push_ = [](std::size_t){};
+   push_handler_type on_push_;
 
    // Called by the parser after each new chunck of resp3 data is
    // processed.
-   resp3_handler_type on_resp3_ = [](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {};
+   resp3_handler_type on_resp3_;
+
+   // Buffer used by the read operations.
+   std::string read_buffer_;
+
+   // Requests payload.
+   std::string requests_;
+
+   // The commands contained in the requests.
+   std::vector<command_info_type> commands_;
+
+   // Info about the requests.
+   std::vector<info> info_;
 
    // Used by the read_op.
-   resp3::type data_type = resp3::type::invalid;
+   resp3::type type_;
 
    // Used by the read_op.
-   Command cmd = Command::invalid;
+   command_info_type cmd_info_;
 
    // See async_connect.
    boost::asio::ip::tcp::endpoint endpoint_;

@@ -297,7 +297,7 @@ struct read_op {
 
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return resp3::async_read(*cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [cli_ = cli](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {cli_->on_resp3_(cli_->cmd, nd, ec);}, token);},
+            [this](auto token) { return resp3::async_read(*cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [cli_ = cli](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {cli_->on_resp3_(cli_->cmd_info_.first, nd, ec);}, token);},
             [this](auto token) { return cli->read_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -323,13 +323,13 @@ struct read_op {
             default: assert(false);
          }
 
-         if (cli->data_type == resp3::type::push) {
+         if (cli->type_ == resp3::type::push) {
             cli->on_push_(n);
          } else {
-            if (cli->on_cmd(cli->cmd))
+            if (cli->on_cmd(cli->cmd_info_))
                cli->wait_write_timer_.cancel_one();
 
-            cli->on_read_(cli->cmd, n);
+            cli->on_read_(cli->cmd_info_.first, n);
          }
 
          self.complete({});
@@ -367,11 +367,11 @@ struct reader_op {
          }
 
          assert(!cli->read_buffer_.empty());
-         cli->data_type = resp3::to_type(cli->read_buffer_.front());
-         cli->cmd = Command::invalid;
-         if (cli->data_type != resp3::type::push) {
+         cli->type_ = resp3::to_type(cli->read_buffer_.front());
+         cli->cmd_info_ = std::make_pair<>(Command::invalid, 0);
+         if (cli->type_ != resp3::type::push) {
             assert(!cli->commands_.empty());
-            cli->cmd = cli->commands_.front().first;
+            cli->cmd_info_ = cli->commands_.front();
          }
 
          yield cli->async_read(std::move(self));
