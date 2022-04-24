@@ -27,6 +27,38 @@ namespace detail {
 #include <boost/asio/yield.hpp>
 
 template <class Client>
+struct check_idle_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void
+   operator()( Self& self
+             , boost::system::error_code ec = {}
+             , boost::asio::ip::tcp::resolver::results_type res = {})
+   {
+      reenter (coro) for(;;) {
+
+         cli->check_idle_timer_.expires_after(cli->cfg_.idle_timeout);
+         yield cli->check_idle_timer_.async_wait(std::move(self));
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         auto const now = std::chrono::steady_clock::now();
+         if (cli->last_data_ +  cli->cfg_.idle_timeout < now) {
+            cli->on_reader_exit();
+            self.complete(error::idle_timeout);
+            return;
+         }
+
+         cli->last_data_ = now;
+      }
+   }
+};
+
+template <class Client>
 struct resolve_op {
    Client* cli;
    boost::asio::coroutine coro;
@@ -81,7 +113,7 @@ struct connect_op {
 };
 
 template <class Client>
-struct run_op {
+struct init_op {
    Client* cli;
    boost::asio::coroutine coro;
 
@@ -161,13 +193,33 @@ struct run_op {
             default: assert(false);
          }
 
+         self.complete({});
+      }
+   }
+};
+
+template <class Client>
+struct read_write_check_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , std::array<std::size_t, 3> order = {}
+                  , boost::system::error_code ec1 = {}
+                  , boost::system::error_code ec2 = {}
+                  , boost::system::error_code ec3 = {})
+   {
+      reenter (coro) {
+
          // Starts the reader and writer ops.
          cli->wait_write_timer_.expires_at(std::chrono::steady_clock::time_point::max());
 
          yield
          boost::asio::experimental::make_parallel_group(
             [this](auto token) { return cli->writer(token);},
-            [this](auto token) { return cli->reader(token);}
+            [this](auto token) { return cli->reader(token);},
+            [this](auto token) { return cli->async_check_idle(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one_error(),
             std::move(self));
@@ -183,8 +235,40 @@ struct run_op {
               assert(ec2);
               self.complete(ec2);
            } break;
+           case 2:
+           {
+              assert(ec3);
+              self.complete(ec3);
+           } break;
            default: assert(false);
          }
+      }
+   }
+};
+
+template <class Client>
+struct run_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()(Self& self, boost::system::error_code ec = {})
+   {
+      reenter (coro) {
+
+         yield cli->async_init(std::move(self));
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         yield cli->async_read_write_check(std::move(self));
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         assert(false);
       }
    }
 };
@@ -374,6 +458,7 @@ struct reader_op {
             cli->cmd_info_ = cli->commands_.front();
          }
 
+         cli->last_data_ = std::chrono::steady_clock::now();
          yield cli->async_read(std::move(self));
          if (ec) {
             cli->on_reader_exit();

@@ -106,6 +106,7 @@ int main()
       db->set_write_handler([recv](std::size_t n){recv->on_write(n);});
       db->set_resp3_handler([recv](command cmd, auto const& nd, auto& ec){recv->on_resp3(cmd, nd, ec);});
 
+      // TODO: Close the listener when async_run returns.
       db->async_run("127.0.0.1", "6379",
           [](auto ec){ std::cout << ec.message() << std::endl;});
 

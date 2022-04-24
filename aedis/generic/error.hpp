@@ -29,6 +29,9 @@ enum class error
    /// Represents a timeout of the write operation.
    write_timeout,
 
+   /// Idle timeout.
+   idle_timeout,
+
    /// Write stop requested.
    write_stop_requested,
 };

@@ -13,14 +13,15 @@
 #include <iterator>
 #include <algorithm>
 #include <utility>
+#include <chrono>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
-#include <aedis/generic/detail/client_ops.hpp>
 #include <aedis/redis/command.hpp>
+#include <aedis/generic/detail/client_ops.hpp>
 
 namespace aedis {
 namespace generic {
@@ -71,6 +72,9 @@ public:
       /// Timeout to write a message.
       std::chrono::seconds write_timeout = std::chrono::seconds{5};
 
+      /// Time after which a connection is considered idle if no data is received.
+      std::chrono::seconds idle_timeout = std::chrono::seconds{10};
+
       /// The maximum size of a read.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
    };
@@ -85,11 +89,13 @@ public:
    , read_timer_{ex}
    , write_timer_{ex}
    , wait_write_timer_{ex}
+   , check_idle_timer_{ex}
    , cfg_{cfg}
    , on_read_{[](Command, std::size_t){}}
    , on_write_{[](std::size_t){}}
    , on_push_{[](std::size_t){}}
    , on_resp3_{[](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {}}
+   , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    , type_{resp3::type::invalid}
    , cmd_info_{std::make_pair<Command>(Command::invalid, 0)}
    { }
@@ -304,6 +310,7 @@ public:
 
 private:
    using command_info_type = std::pair<Command, std::size_t>;
+   using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
    template <class T, class V> friend struct detail::reader_op;
    template <class T> friend struct detail::read_op;
@@ -312,6 +319,9 @@ private:
    template <class T> friend struct detail::run_op;
    template <class T> friend struct detail::connect_op;
    template <class T> friend struct detail::resolve_op;
+   template <class T> friend struct detail::check_idle_op;
+   template <class T> friend struct detail::init_op;
+   template <class T> friend struct detail::read_write_check_op;
 
    void on_resolve()
    {
@@ -487,6 +497,36 @@ private:
          >(detail::writer_op<client>{this}, token, wait_write_timer_);
    }
 
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_init(CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::init_op<client>{this}, token, write_timer_, resv_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_read_write_check(CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::read_write_check_op<client>{this}, token, read_timer_, write_timer_, wait_write_timer_, check_idle_timer_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_check_idle(CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::check_idle_op<client>{this}, token, check_idle_timer_);
+   }
+
    void on_reader_exit()
    {
       socket_->close();
@@ -519,6 +559,9 @@ private:
    // queue.
    boost::asio::steady_timer wait_write_timer_;
 
+   // Check idle timer.
+   boost::asio::steady_timer check_idle_timer_;
+
    // Configuration parameters.
    config cfg_;
 
@@ -546,6 +589,9 @@ private:
 
    // Info about the requests.
    std::vector<info> info_;
+
+   // Last time we received data.
+   time_point_type last_data_;
 
    // Used by the read_op.
    resp3::type type_;
