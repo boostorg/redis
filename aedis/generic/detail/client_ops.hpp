@@ -26,16 +26,68 @@ namespace detail {
 
 #include <boost/asio/yield.hpp>
 
+template <class Client, class Command>
+struct ping_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void
+   operator()(Self& self, boost::system::error_code ec = {})
+   {
+      reenter (coro) {
+         // TODO: Prevent timeout zero.
+         cli->read_timer_.expires_after(cli->cfg_.idle_timeout / 2);
+         yield cli->read_timer_.async_wait(std::move(self));
+         if (ec) {
+            // operation_aborted: ok, not an error.
+            self.complete({});
+            return;
+         }
+
+         // The timer fired, send the ping.
+         cli->send(Command::ping);
+         self.complete({});
+      }
+   }
+};
+
+template <class Client>
+struct wait_data_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      reenter (coro) {
+         // Detached.
+         cli->async_ping_after([](boost::system::error_code ec){});
+
+         // Waits for incomming data.
+         yield boost::asio::async_read_until(*cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), "\r\n", std::move(self));
+
+         // Cancels the async_ping_after.
+         cli->read_timer_.cancel();
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         self.complete({});
+      }
+   }
+};
+
 template <class Client>
 struct check_idle_op {
    Client* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
-   void
-   operator()( Self& self
-             , boost::system::error_code ec = {}
-             , boost::asio::ip::tcp::resolver::results_type res = {})
+   void operator()(Self& self, boost::system::error_code ec = {})
    {
       reenter (coro) for(;;) {
 
@@ -295,9 +347,13 @@ struct write_op {
          assert(!cli->requests_.empty());
 
          cli->write_timer_.expires_after(cli->cfg_.write_timeout);
+         size = cli->info_.front().size;
+         // TODO: Add a sent flag to info to avoid using the size to
+         // check whether a request has already been sent.
+         cli->info_.front().size = 0;
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return boost::asio::async_write(*cli->socket_, boost::asio::buffer(cli->requests_.data(), cli->info_.front().size), token);},
+            [this](auto token) { return boost::asio::async_write(*cli->socket_, boost::asio::buffer(cli->requests_.data(), size), token);},
             [this](auto token) { return cli->write_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -323,12 +379,8 @@ struct write_op {
             default: assert(false);
          }
 
-         assert(n == cli->info_.front().size);
-         size = cli->info_.front().size;
-
-         cli->requests_.erase(0, cli->info_.front().size);
-         cli->info_.front().size = 0;
-         
+         assert(n == size);
+         cli->requests_.erase(0, size);
          if (cli->info_.front().cmds == 0) 
             cli->info_.erase(std::begin(cli->info_));
 
@@ -436,13 +488,7 @@ struct reader_op {
          boost::ignore_unused(n);
 
          if (cli->read_buffer_.empty()) {
-            yield
-            boost::asio::async_read_until(
-               *cli->socket_,
-               boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size),
-               "\r\n",
-               std::move(self));
-
+            yield cli->async_wait_for_data(std::move(self));
             if (ec) {
                cli->on_reader_exit();
                self.complete(ec);

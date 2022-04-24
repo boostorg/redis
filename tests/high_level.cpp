@@ -386,7 +386,7 @@ public:
    {
       if (!std::exchange(sent_, true)) {
          db_->send(command::del, "key");
-         db_->send(command::blpop, "key");
+         db_->send(command::client, "PAUSE", 2000);
       }
    }
 
@@ -408,7 +408,7 @@ void test_idle()
    cfg.connect_timeout = std::chrono::seconds{1};
    cfg.read_timeout = std::chrono::seconds{1};
    cfg.write_timeout = std::chrono::seconds{1};
-   cfg.idle_timeout = std::chrono::seconds{1};
+   cfg.idle_timeout = std::chrono::seconds{2};
    client_type db(ioc.get_executor(), cfg);
 
    receiver8 recv{db};
@@ -420,6 +420,7 @@ void test_idle()
 
 int main()
 {
+   // TODO: send client unpause before tests.
    test_resolve_error();
    test_connect_error();
    test_hello();

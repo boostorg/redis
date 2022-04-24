@@ -313,6 +313,7 @@ private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
    template <class T, class V> friend struct detail::reader_op;
+   template <class T, class V> friend struct detail::ping_op;
    template <class T> friend struct detail::read_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_op;
@@ -322,6 +323,7 @@ private:
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::init_op;
    template <class T> friend struct detail::read_write_check_op;
+   template <class T> friend struct detail::wait_data_op;
 
    void on_resolve()
    {
@@ -515,6 +517,26 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::read_write_check_op<client>{this}, token, read_timer_, write_timer_, wait_write_timer_, check_idle_timer_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_ping_after(CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::ping_op<client, Command>{this}, token, read_timer_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_wait_for_data(CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::wait_data_op<client>{this}, token, read_timer_);
    }
 
    template <class CompletionToken = default_completion_token_type>
