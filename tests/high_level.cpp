@@ -378,6 +378,46 @@ void test_discard()
    expect_eq(recv.counter, 1, "test_discard.");
 }
 
+struct receiver8 {
+public:
+   receiver8(client_type& db) : db_{&db} {}
+
+   void on_write(std::size_t)
+   {
+      if (!std::exchange(sent_, true)) {
+         db_->send(command::del, "key");
+         db_->send(command::blpop, "key");
+      }
+   }
+
+private:
+   bool sent_ = false;
+   client_type* db_;
+};
+
+void test_idle()
+{
+   auto f = [](auto ec)
+   {
+      expect_error(ec, aedis::generic::error::idle_timeout);
+   };
+
+   net::io_context ioc;
+   client_type::config cfg;
+   cfg.resolve_timeout = std::chrono::seconds{1};
+   cfg.connect_timeout = std::chrono::seconds{1};
+   cfg.read_timeout = std::chrono::seconds{1};
+   cfg.write_timeout = std::chrono::seconds{1};
+   cfg.idle_timeout = std::chrono::seconds{1};
+   client_type db(ioc.get_executor(), cfg);
+
+   receiver8 recv{db};
+   db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
+
+   db.async_run("127.0.0.1", "6379", f);
+   ioc.run();
+}
+
 int main()
 {
    test_resolve_error();
@@ -389,5 +429,6 @@ int main()
    test_reconnect();
    test_reconnect2();
    test_discard();
+   test_idle();
 }
 

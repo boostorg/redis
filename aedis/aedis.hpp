@@ -37,6 +37,7 @@
     @li Management of message queues.
     @li Simplified handling of server pushes.
     @li Zero asymptotic allocations by means of memory reuse.
+    @li Healthy checks.
 
     If you never heard about Redis the best place to start is on
     https://redis.io.  Now let us have a look at the low-level API.
@@ -458,8 +459,9 @@
 
     In addition to that
 
-    @li each operation listed above requires a timer that runs concurrently with it so that users can detect a dead Redis Server.
+    @li Each operation listed above requires timeout support.
     @li \c async_write operations require management of the message queue to prevent concurrent writes.
+    @li Healthy checks must be sent periodically by the client to detect a dead or unresponsive server.
 
     To avoid imposing this burden on every user, Aedis provides its
     own implementation. The general form of a program that uses the
