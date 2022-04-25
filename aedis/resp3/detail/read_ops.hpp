@@ -7,8 +7,7 @@
 
 #pragma once
 
-#include <string_view>
-
+#include <boost/assert.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/coroutine.hpp>
@@ -88,7 +87,7 @@ public:
             }
 
             n = parser_.bulk_length() + 2;
-            assert(buf_.size() >= n);
+            BOOST_ASSERT(buf_.size() >= n);
          }
 
          n = parser_.consume((char const*)buf_.data(0, n).data(), n, ec);

@@ -27,7 +27,7 @@ struct error_category_impl : boost::system::error_category {
 	 case error::write_timeout: return "Write operation timeout.";
 	 case error::idle_timeout: return "Idle timeout.";
 	 case error::write_stop_requested: return "Write stop requested.";
-	 default: assert(false);
+	 default: BOOST_ASSERT(false);
       }
    }
 };

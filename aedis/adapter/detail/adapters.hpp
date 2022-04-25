@@ -18,6 +18,7 @@
 #include <vector>
 #include <array>
 
+#include <boost/assert.hpp>
 #include <boost/optional.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/home/x3.hpp>
@@ -176,7 +177,7 @@ public:
          return;
       }
 
-      assert(nd.aggregate_size == 1);
+      BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
 	 ec = adapter::error::expects_set_aggregate;
@@ -215,7 +216,7 @@ public:
          return;
       }
 
-      assert(nd.aggregate_size == 1);
+      BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
 	 ec = adapter::error::expects_map_like_aggregate;
@@ -295,7 +296,7 @@ public:
             return;
          }
 
-         assert(nd.aggregate_size == 1);
+         BOOST_ASSERT(nd.aggregate_size == 1);
          from_string(result.at(i_), nd.value, ec);
       }
 
@@ -319,7 +320,7 @@ struct list_impl {
          return;
 
       if (!is_aggregate(nd.data_type)) {
-        assert(nd.aggregate_size == 1);
+        BOOST_ASSERT(nd.aggregate_size == 1);
         if (nd.depth < 1) {
            ec = adapter::error::expects_aggregate;
            return;
@@ -389,7 +390,7 @@ public:
       resp3::node<boost::string_view> const& nd,
       boost::system::error_code& ec)
    {
-      assert(result_);
+      BOOST_ASSERT(result_);
       impl_(*result_, nd, ec);
    }
 };

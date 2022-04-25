@@ -125,7 +125,7 @@ public:
       auto const before = requests_.size();
       sr.push(cmd, args...);
       auto const after = requests_.size();
-      assert(after - before != 0);
+      BOOST_ASSERT(after - before != 0);
       auto const d = after - before;
       info_.back().size += d;;
 
@@ -162,7 +162,7 @@ public:
       auto const before = requests_.size();
       sr.push_range2(cmd, key, begin, end);
       auto const after = requests_.size();
-      assert(after - before != 0);
+      BOOST_ASSERT(after - before != 0);
       auto const d = after - before;
       info_.back().size += d;
 
@@ -198,7 +198,7 @@ public:
       auto const before = requests_.size();
       sr.push_range2(cmd, begin, end);
       auto const after = requests_.size();
-      assert(after - before != 0);
+      BOOST_ASSERT(after - before != 0);
       auto const d = after - before;
       info_.back().size += d;
 
@@ -367,7 +367,7 @@ private:
          // Either we are connecting for the first time or there are
          // no commands that were left unresponded from the last
          // connection. We can send hello as usual.
-         assert(requests_.empty());
+         BOOST_ASSERT(requests_.empty());
          send(Command::hello, 3);
          return;
       }
@@ -427,7 +427,7 @@ private:
       if (info_.front().sent) {
          // There is a pending response, we can't modify the front of
          // the vector.
-         assert(info_.front().cmds != 0);
+         BOOST_ASSERT(info_.front().cmds != 0);
          if (info_.size() == 1)
             info_.push_back({});
 
@@ -442,8 +442,8 @@ private:
    // Returns true when the next request can be writen.
    bool on_cmd(command_info_type)
    {
-      assert(!info_.empty());
-      assert(!commands_.empty());
+      BOOST_ASSERT(!info_.empty());
+      BOOST_ASSERT(!commands_.empty());
 
       commands_.erase(std::begin(commands_));
 

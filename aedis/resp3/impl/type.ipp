@@ -5,9 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <boost/assert.hpp>
 #include <aedis/resp3/type.hpp>
-
-#include <cassert>
 
 namespace aedis {
 namespace resp3 {
@@ -85,7 +84,7 @@ char to_code(type t)
       case type::map:                  return '%';
 
       default:
-      assert(false);
+      BOOST_ASSERT(false);
       return ' ';
    }
 }

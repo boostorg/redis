@@ -11,6 +11,7 @@
 #include <system_error>
 #include <limits>
 
+#include <boost/assert.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/utility/string_view.hpp>
@@ -65,7 +66,7 @@ public:
          switch (bulk_) {
             case type::streamed_string_part:
             {
-               assert(bulk_length_ != 0);
+               BOOST_ASSERT(bulk_length_ != 0);
                adapter_({bulk_, 1, depth_, {data, bulk_length_}}, ec);
                if (ec)
                   return 0;

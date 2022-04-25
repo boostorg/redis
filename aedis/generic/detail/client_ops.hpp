@@ -13,6 +13,7 @@
 #include <boost/asio/write.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/assert.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 
 #include <aedis/resp3/type.hpp>
@@ -36,7 +37,7 @@ struct ping_op {
    operator()(Self& self, boost::system::error_code ec = {})
    {
       reenter (coro) {
-         assert((cli->cfg_.idle_timeout / 2) != std::chrono::seconds{0});
+         BOOST_ASSERT((cli->cfg_.idle_timeout / 2) != std::chrono::seconds{0});
          cli->read_timer_.expires_after(cli->cfg_.idle_timeout / 2);
          yield cli->read_timer_.async_wait(std::move(self));
          if (ec) {
@@ -208,7 +209,7 @@ struct init_op {
                }
             } break;
 
-            default: assert(false);
+            default: BOOST_ASSERT(false);
          }
 
          // Tries a connection with a timeout. We can use the writer
@@ -242,7 +243,7 @@ struct init_op {
                }
             } break;
 
-            default: assert(false);
+            default: BOOST_ASSERT(false);
          }
 
          self.complete({});
@@ -279,20 +280,20 @@ struct read_write_check_op {
          switch (order[0]) {
            case 0:
            {
-              assert(ec1);
+              BOOST_ASSERT(ec1);
               self.complete(ec1);
            } break;
            case 1:
            {
-              assert(ec2);
+              BOOST_ASSERT(ec2);
               self.complete(ec2);
            } break;
            case 2:
            {
-              assert(ec3);
+              BOOST_ASSERT(ec3);
               self.complete(ec3);
            } break;
-           default: assert(false);
+           default: BOOST_ASSERT(false);
          }
       }
    }
@@ -320,7 +321,7 @@ struct run_op {
             return;
          }
 
-         assert(false);
+         BOOST_ASSERT(false);
       }
    }
 };
@@ -339,9 +340,9 @@ struct write_op {
    {
       reenter (coro) {
 
-         assert(!cli->info_.empty());
-         assert(cli->info_.front().size != 0);
-         assert(!cli->requests_.empty());
+         BOOST_ASSERT(!cli->info_.empty());
+         BOOST_ASSERT(cli->info_.front().size != 0);
+         BOOST_ASSERT(!cli->requests_.empty());
 
          cli->write_timer_.expires_after(cli->cfg_.write_timeout);
          cli->info_.front().sent = true;
@@ -370,10 +371,14 @@ struct write_op {
                }
             } break;
 
-            default: assert(false);
+            default: BOOST_ASSERT(false);
          }
 
-         assert(n == cli->info_.front().size);
+         BOOST_ASSERT(!cli->info_.empty());
+         BOOST_ASSERT(cli->info_.front().size != 0);
+         BOOST_ASSERT(!cli->requests_.empty());
+         BOOST_ASSERT(n == cli->info_.front().size);
+
          cli->requests_.erase(0, n);
          cli->info_.front().size = 0;
          if (cli->info_.front().cmds == 0) 
@@ -451,7 +456,7 @@ struct read_op {
                }
             } break;
 
-            default: assert(false);
+            default: BOOST_ASSERT(false);
          }
 
          if (cli->type_ == resp3::type::push) {
@@ -491,11 +496,11 @@ struct reader_op {
             }
          }
 
-         assert(!cli->read_buffer_.empty());
+         BOOST_ASSERT(!cli->read_buffer_.empty());
          cli->type_ = resp3::to_type(cli->read_buffer_.front());
          cli->cmd_info_ = std::make_pair<>(Command::invalid, 0);
          if (cli->type_ != resp3::type::push) {
-            assert(!cli->commands_.empty());
+            BOOST_ASSERT(!cli->commands_.empty());
             cli->cmd_info_ = cli->commands_.front();
          }
 

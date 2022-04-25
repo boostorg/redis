@@ -5,6 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <boost/assert.hpp>
 #include <aedis/resp3/error.hpp>
 
 namespace aedis {
@@ -27,7 +28,7 @@ struct error_category_impl : boost::system::error_category {
 	 case error::exceeeds_max_nested_depth: return "Exceeds the maximum number of nested responses.";
 	 case error::unexpected_bool_value: return "Unexpected bool value.";
 	 case error::empty_field: return "Expected field value is empty.";
-	 default: assert(false);
+	 default: BOOST_ASSERT(false);
       }
    }
 };

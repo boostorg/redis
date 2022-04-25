@@ -8,6 +8,7 @@
 #pragma once
 
 #include <system_error>
+#include <boost/assert.hpp>
 
 namespace aedis {
 namespace adapter {
@@ -33,7 +34,7 @@ struct error_category_impl : boost::system::error_category {
 	 case error::incompatible_size: return "Aggregate container has incompatible size.";
 	 case error::not_a_double: return "Not a double.";
 	 case error::null: return "Got RESP3 null.";
-	 default: assert(false);
+	 default: BOOST_ASSERT(false);
       }
    }
 };
