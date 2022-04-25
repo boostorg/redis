@@ -36,7 +36,7 @@ struct ping_op {
    operator()(Self& self, boost::system::error_code ec = {})
    {
       reenter (coro) {
-         // TODO: Prevent timeout zero.
+         assert((cli->cfg_.idle_timeout / 2) != std::chrono::seconds{0});
          cli->read_timer_.expires_after(cli->cfg_.idle_timeout / 2);
          yield cli->read_timer_.async_wait(std::move(self));
          if (ec) {
@@ -325,12 +325,9 @@ struct run_op {
    }
 };
 
-// Consider limiting the size of the pipelines by spliting that last
-// one in two if needed.
 template <class Client>
 struct write_op {
    Client* cli;
-   std::size_t size;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -347,13 +344,10 @@ struct write_op {
          assert(!cli->requests_.empty());
 
          cli->write_timer_.expires_after(cli->cfg_.write_timeout);
-         size = cli->info_.front().size;
-         // TODO: Add a sent flag to info to avoid using the size to
-         // check whether a request has already been sent.
-         cli->info_.front().size = 0;
+         cli->info_.front().sent = true;
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return boost::asio::async_write(*cli->socket_, boost::asio::buffer(cli->requests_.data(), size), token);},
+            [this](auto token) { return boost::asio::async_write(*cli->socket_, boost::asio::buffer(cli->requests_.data(), cli->info_.front().size), token);},
             [this](auto token) { return cli->write_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -379,12 +373,13 @@ struct write_op {
             default: assert(false);
          }
 
-         assert(n == size);
-         cli->requests_.erase(0, size);
+         assert(n == cli->info_.front().size);
+         cli->requests_.erase(0, n);
+         cli->info_.front().size = 0;
          if (cli->info_.front().cmds == 0) 
             cli->info_.erase(std::begin(cli->info_));
 
-         cli->on_write_(size);
+         cli->on_write_(n);
          self.complete({});
       }
    }

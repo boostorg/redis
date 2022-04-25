@@ -372,14 +372,16 @@ private:
          return;
       }
 
-      if (info_.front().size == 0) {
-         // There is one request that was left unresponsed when we
+      if (info_.front().sent) {
+         // There is one request that was left unresponded when we
          // e.g. lost the connection, since we erase requests right
          // after writing them to the socket (to avoid resubmission) it
          // is lost and we have to remove it.
-         assert(requests_.size() >= info_.front().size);
-         assert(commands_.size() >= info_.front().cmds);
-
+         
+         // Noop if info_.front().size is already zero, which happens
+         // when the request was successfully writen to the socket.
+         // In the future we may want to avoid erasing but resend (at
+         // the risc of resubmission).
          requests_.erase(0, info_.front().size);
 
          commands_.erase(
@@ -422,7 +424,7 @@ private:
          return true;
       }
 
-      if (info_.front().size == 0) {
+      if (info_.front().sent) {
          // There is a pending response, we can't modify the front of
          // the vector.
          assert(info_.front().cmds != 0);
@@ -582,7 +584,11 @@ private:
 
    // Stores information about a request.
    struct info {
-      // Request size in bytes.
+      // Set to true before calling async_write.
+      bool sent = false;
+
+      // Request size in bytes. After a successful write it is set to
+      // zero.
       std::size_t size = 0;
 
       // The number of commands it contains. Commands with push
