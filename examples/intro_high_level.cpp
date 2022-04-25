@@ -53,6 +53,8 @@ public:
       std::cout << "Number of bytes written: " << n << std::endl;
    }
 
+   void on_push(std::size_t n) { }
+
 private:
    response_type resp_;
    adapter_t<response_type> adapter_;
@@ -64,10 +66,8 @@ int main()
    net::io_context ioc;
 
    client_type db(ioc.get_executor());
-   receiver recv{db};
-   db.set_read_handler([&recv](command cmd, std::size_t n){recv.on_read(cmd, n);});
-   db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
-   db.set_resp3_handler([&recv](command cmd, auto const& nd, auto& ec){recv.on_resp3(cmd, nd, ec);});
+   auto recv = std::make_shared<receiver>(db);
+   db.set_receiver(recv);
 
    db.async_run("127.0.0.1", "6379",
       [](auto ec){ std::cout << ec.message() << std::endl;});

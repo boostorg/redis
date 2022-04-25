@@ -308,6 +308,28 @@ public:
    void set_resp3_handler(resp3_handler_type rh)
       { on_resp3_ = std::move(rh); }
 
+   /** @brief Convenience callback setter
+    *
+    *  Expects a class with the following member functions
+    *
+    *  @code
+    *  struct receiver {
+    *     void on_resp3(Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec);
+    *     void on_read(Command cmd, std::size_t);
+    *     void on_write(std::size_t n);
+    *     void on_push(std::size_t n);
+    *  };
+    *  @endcode
+    */
+   template <class Receiver>
+   void set_receiver(std::shared_ptr<Receiver> recv)
+   {
+      on_resp3_ = [recv](Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec){recv->on_resp3(cmd, nd, ec);};
+      on_read_ = [recv](Command cmd, std::size_t n){recv->on_read(cmd, n);};
+      on_write_ = [recv](std::size_t n){recv->on_write(n);};
+      on_push_ = [recv](std::size_t n){recv->on_push(n);};
+   }
+
 private:
    using command_info_type = std::pair<Command, std::size_t>;
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;

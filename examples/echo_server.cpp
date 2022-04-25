@@ -45,8 +45,10 @@ public:
    {
       switch (cmd) {
          case command::ping:
-         sessions_.front()->deliver(resp_.front().value);
-         sessions_.pop();
+         if (resp_.front().value != "PONG") {
+            sessions_.front()->deliver(resp_.front().value);
+            sessions_.pop();
+         }
          break;
 
          case command::incr:
@@ -63,6 +65,8 @@ public:
    { 
       std::cout << "Number of bytes written: " << n << std::endl;
    }
+
+   void on_push(std::size_t n) { }
 
    void add_user_session(std::shared_ptr<user_session_base> session)
       { sessions_.push(session); }
@@ -86,9 +90,11 @@ listener(
 
       auto on_user_msg = [db, recv, session](std::string const& msg)
       {
-         db->send(command::ping, msg);
-         db->send(command::incr, "echo-counter");
-         recv->add_user_session(session);
+         if (!msg.empty()) {
+            db->send(command::ping, msg);
+            db->send(command::incr, "echo-counter");
+            recv->add_user_session(session);
+         }
       };
 
       session->start(on_user_msg);
@@ -102,9 +108,7 @@ int main()
 
       auto db = std::make_shared<client_type>(ioc.get_executor());
       auto recv = std::make_shared<receiver>(db);
-      db->set_read_handler([recv](command cmd, std::size_t n){recv->on_read(cmd, n);});
-      db->set_write_handler([recv](std::size_t n){recv->on_write(n);});
-      db->set_resp3_handler([recv](command cmd, auto const& nd, auto& ec){recv->on_resp3(cmd, nd, ec);});
+      db->set_receiver(recv);
 
       // TODO: Close the listener when async_run returns.
       db->async_run("127.0.0.1", "6379",
