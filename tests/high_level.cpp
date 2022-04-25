@@ -386,7 +386,7 @@ public:
    {
       if (!std::exchange(sent_, true)) {
          db_->send(command::del, "key");
-         db_->send(command::client, "PAUSE", 2000);
+         db_->send(command::client, "PAUSE", 5000);
       }
    }
 
@@ -418,9 +418,71 @@ void test_idle()
    ioc.run();
 }
 
+struct receiver9 {
+public:
+   bool ping = false;
+
+   receiver9(client_type& db) : db_{&db} , adapter_{adapt(counter_)} {}
+
+   void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
+   {
+      if (cmd == command::incr)
+         adapter_(nd, ec);
+   }
+
+   void on_push(std::size_t) {}
+
+   void on_write(std::size_t)
+   {
+      if (!std::exchange(sent_, true))
+         db_->send(command::del, "key");
+
+      db_->send(command::incr, "key");
+      db_->send(command::subscribe, "channel");
+   }
+
+   void on_read(command cmd, std::size_t)
+   {
+      db_->send(command::incr, "key");
+      db_->send(command::subscribe, "channel");
+      if (counter_ == 100000) {
+         std::cout << "Success: counter increase." << std::endl;
+         db_->send(command::quit);
+      }
+
+      if (cmd == command::ping)
+         ping = true;
+   }
+
+private:
+   bool sent_ = false;
+   client_type* db_;
+   int counter_ = 0;
+   adapter_t<int> adapter_;
+};
+
+void test_no_ping()
+{
+   auto f = [](auto ec)
+   {
+      expect_error(ec, net::error::misc_errors::eof);
+   };
+
+   net::io_context ioc;
+   client_type::config cfg;
+   cfg.idle_timeout = std::chrono::seconds{2};
+   client_type db(ioc.get_executor(), cfg);
+
+   auto recv = std::make_shared<receiver9>(db);
+   db.set_receiver(recv);
+   db.async_run("127.0.0.1", "6379", f);
+   ioc.run();
+
+   expect_eq(recv->ping, false, "No ping received.");
+}
+
 int main()
 {
-   // TODO: send client unpause before tests.
    test_resolve_error();
    test_connect_error();
    test_hello();
@@ -430,6 +492,9 @@ int main()
    test_reconnect();
    test_reconnect2();
    test_discard();
+   test_no_ping();
+
+   // Must come last as it send a client pause.
    test_idle();
 }
 

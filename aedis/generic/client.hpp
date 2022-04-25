@@ -98,7 +98,10 @@ public:
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    , type_{resp3::type::invalid}
    , cmd_info_{std::make_pair<Command>(Command::invalid, 0)}
-   { }
+   {
+      if (cfg.idle_timeout < std::chrono::seconds{2})
+         cfg.idle_timeout = std::chrono::seconds{2};
+   }
 
    /// Returns the executor.
    auto get_executor() {return read_timer_.get_executor();}
