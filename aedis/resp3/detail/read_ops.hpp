@@ -107,42 +107,6 @@ public:
    }
 };
 
-template <class AsyncReadStream, class DynamicBuffer>
-class type_op {
-private:
-   AsyncReadStream& stream_;
-   DynamicBuffer buf_;
-   boost::asio::coroutine coro_;
-
-public:
-   type_op(AsyncReadStream& stream, DynamicBuffer buf)
-   : stream_ {stream}
-   , buf_ {buf}
-   { }
-
-   template <class Self>
-   void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , std::size_t n = 0)
-   {
-      reenter (coro_) {
-
-         boost::ignore_unused(n);
-         if (buf_.size() == 0) {
-            yield boost::asio::async_read_until(stream_, buf_, "\r\n", std::move(self));
-            if (ec) {
-               self.complete(ec, type::invalid);
-               return;
-            }
-         }
-
-         auto const* data = (char const*)buf_.data(0, n).data();
-         auto const type = to_type(*data);
-         self.complete(ec, type);
-      }
-   }
-};
-
 #include <boost/asio/unyield.hpp>
 
 } // detail

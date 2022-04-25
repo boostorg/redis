@@ -5,6 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/home/x3.hpp>
+
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/type.hpp>
 
@@ -12,7 +15,8 @@ namespace aedis {
 namespace resp3 {
 namespace detail {
 
-std::size_t parse_uint(char const* data, std::size_t size, boost::system::error_code& ec)
+std::size_t
+parse_uint(char const* data, std::size_t size, boost::system::error_code& ec)
 {
    static constexpr boost::spirit::x3::uint_parser<std::size_t, 10> p{};
    std::size_t ret;

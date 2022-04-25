@@ -191,50 +191,6 @@ auto async_read(
         stream);
 }
 
-/** \brief Reads the RESP3 data type of the next incomming data.
- *  \ingroup any
- *
- *  This function will read the RESP3 data type of the next Redis
- *  response.  It is implemented in terms of one or more calls to @c
- *  asio::async_read_until and is known as a @a composed @a operation.
- *  Furthermore (Quoted from Beast docs)
- *
- *  > The implementation may read additional bytes from the stream that
- *  > lie past the end of the message being read. These additional
- *  > bytes are stored in the dynamic buffer, which must be preserved
- *  > for subsequent reads.
- *
- *  \param stream The stream from which to read.
- *  \param buffer A dynamic buffer (version 2).
- *  \param token The completion token.
- *
- *  The completion handler will receive as a parameter the RESP3 data
- *  type of the next response and must have the following signature
- *
- *  @code
- *  void(boost::system::error_code, type)
- *  @endcode
- *  
- *  \remark No data is consumed from the stream (as of x.consume()).
- */
-template <
-   class AsyncReadStream,
-   class DynamicBuffer,
-   class CompletionToken =
-      boost::asio::default_completion_token_t<typename AsyncReadStream::executor_type>
-   >
-auto async_read_type(
-   AsyncReadStream& stream,
-   DynamicBuffer buffer,
-   CompletionToken&& token =
-      boost::asio::default_completion_token_t<typename AsyncReadStream::executor_type>{})
-{
-   return boost::asio::async_compose
-      < CompletionToken
-      , void(boost::system::error_code, type)
-      >(detail::type_op<AsyncReadStream, DynamicBuffer> {stream, buffer}, token, stream);
-}
-
 } // resp3
 } // aedis
 
