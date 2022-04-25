@@ -1,8 +1,7 @@
-/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ * Distributed under the Boost Software License, Version 1.0. (See
+ * accompanying file LICENSE.txt)
  */
 
 #ifndef AEDIS_ADAPTER_ERROR_HPP
