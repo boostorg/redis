@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#ifndef AEDIS_CLIENT_OPS_HPP
-#define AEDIS_CLIENT_OPS_HPP
+#ifndef AEDIS_GENERIC_CLIENT_OPS_HPP
+#define AEDIS_GENERIC_CLIENT_OPS_HPP
 
 #include <array>
 
@@ -522,4 +522,4 @@ struct reader_op {
 } // generic
 } // aedis
 
-#endif // AEDIS_CLIENT_OPS_HPP
+#endif // AEDIS_GENERIC_CLIENT_OPS_HPP

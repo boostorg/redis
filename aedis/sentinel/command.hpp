@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_SENTINEL_COMMAND_HPP
+#define AEDIS_SENTINEL_COMMAND_HPP
 
 #include <ostream>
 
@@ -77,3 +78,5 @@ bool has_push_response(command cmd);
 
 } // sentinel
 } // aedis
+
+#endif // AEDIS_SENTINEL_COMMAND_HPP

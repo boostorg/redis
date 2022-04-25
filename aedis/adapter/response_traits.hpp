@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_ADAPTER_RESPONSE_TRAITS_HPP
+#define AEDIS_ADAPTER_RESPONSE_TRAITS_HPP
 
 #include <vector>
 #include <tuple>
@@ -165,3 +166,5 @@ struct response_traits<std::tuple<Ts...>>
 
 } // adapter
 } // aedis
+
+#endif // AEDIS_ADAPTER_RESPONSE_TRAITS_HPP

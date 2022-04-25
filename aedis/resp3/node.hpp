@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_RESP3_NODE_HPP
+#define AEDIS_RESP3_NODE_HPP
 
 #include <aedis/resp3/type.hpp>
 
@@ -93,3 +94,5 @@ std::ostream& operator<<(std::ostream& os, node<String> const& o)
 
 } // adapter
 } // aedis
+
+#endif // AEDIS_RESP3_NODE_HPP

@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_HPP
+#define AEDIS_HPP
 
 #include <aedis/resp3/read.hpp>
 #include <aedis/adapter/adapt.hpp>
@@ -654,3 +655,4 @@
 /** \defgroup any Reference
  */
 
+#endif // AEDIS_HPP

@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_RESP3_READ_OPS_HPP
+#define AEDIS_RESP3_READ_OPS_HPP
 
 #include <boost/assert.hpp>
 #include <boost/asio/read.hpp>
@@ -147,3 +148,5 @@ public:
 } // detail
 } // resp3
 } // aedis
+
+#endif // AEDIS_RESP3_READ_OPS_HPP

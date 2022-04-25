@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_RESP3_COMPOSE_HPP
+#define AEDIS_RESP3_COMPOSE_HPP
 
 #include <string>
 #include <tuple>
@@ -137,3 +138,5 @@ void add_separator(Request& to)
 
 } // resp3
 } // aedis
+
+#endif // AEDIS_RESP3_COMPOSE_HPP

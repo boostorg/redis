@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#ifndef AEDIS_CLIENT_HPP
-#define AEDIS_CLIENT_HPP
+#ifndef AEDIS_GENERIC_CLIENT_HPP
+#define AEDIS_GENERIC_CLIENT_HPP
 
 #include <vector>
 #include <limits>
@@ -669,4 +669,4 @@ private:
 } // generic
 } // aedis
 
-#endif // AEDIS_CLIENT_HPP
+#endif // AEDIS_GENERIC_CLIENT_HPP

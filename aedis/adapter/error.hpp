@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_ADAPTER_ERROR_HPP
+#define AEDIS_ADAPTER_ERROR_HPP
 
 #include <system_error>
 
@@ -67,3 +68,5 @@ template<>
 struct is_error_code_enum<::aedis::adapter::error> : std::true_type {};
 
 } // std
+
+#endif // AEDIS_ADAPTER_ERROR_HPP

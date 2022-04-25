@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#ifndef AEDIS_SERIALIZER_HPP
-#define AEDIS_SERIALIZER_HPP
+#ifndef AEDIS_GENERIC_SERIALIZER_HPP
+#define AEDIS_GENERIC_SERIALIZER_HPP
 
 #include <boost/hana.hpp>
 #include <aedis/resp3/compose.hpp>
@@ -203,4 +203,4 @@ make_serializer(std::basic_string<CharT, Traits, Allocator>& storage)
 } // generic
 } // aedis
 
-#endif // AEDIS_SERIALIZER_HPP
+#endif // AEDIS_GENERIC_SERIALIZER_HPP

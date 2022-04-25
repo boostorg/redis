@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_ADAPTER_ADAPT_HPP
+#define AEDIS_ADAPTER_ADAPT_HPP
 
 #include <aedis/adapter/response_traits.hpp>
 
@@ -74,3 +75,5 @@ auto adapt(T& t) noexcept
 
 } // adapter
 } // aedis
+
+#endif // AEDIS_ADAPTER_ADAPT_HPP

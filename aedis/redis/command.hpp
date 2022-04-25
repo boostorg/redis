@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_REDIS_COMMAND_HPP
+#define AEDIS_REDIS_COMMAND_HPP
 
 #include <ostream>
 #include <string>
@@ -456,3 +457,5 @@ bool has_push_response(command cmd);
 
 } // redis
 } // aedis
+
+#endif // AEDIS_REDIS_COMMAND_HPP

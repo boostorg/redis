@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_RESP3_READ_HPP
+#define AEDIS_RESP3_READ_HPP
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
@@ -238,3 +239,5 @@ auto async_read_type(
 } // aedis
 
 #include <boost/asio/unyield.hpp>
+
+#endif // AEDIS_RESP3_READ_HPP

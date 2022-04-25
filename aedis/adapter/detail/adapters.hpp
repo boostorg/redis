@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_ADAPTER_ADAPTERS_HPP
+#define AEDIS_ADAPTER_ADAPTERS_HPP
 
 #include <set>
 #include <unordered_set>
@@ -424,3 +425,5 @@ public:
 } // detail
 } // adapter
 } // aedis
+
+#endif // AEDIS_ADAPTER_ADAPTERS_HPP

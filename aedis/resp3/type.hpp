@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_RESP3_TYPE_HPP
+#define AEDIS_RESP3_TYPE_HPP
 
 #include <ostream>
 #include <vector>
@@ -94,3 +95,5 @@ type to_type(char c);
 
 } // resp3
 } // aedis
+
+#endif // AEDIS_RESP3_TYPE_HPP
