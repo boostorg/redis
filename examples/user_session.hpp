@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_USER_SESSION_HPP
+#define AEDIS_USER_SESSION_HPP
 
 #include <functional>
 
@@ -95,3 +96,4 @@ private:
 };
 
 } // aedis
+#endif // AEDIS_USER_SESSION_HPP

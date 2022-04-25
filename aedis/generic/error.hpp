@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef AEDIS_GENERIC_ERROR_HPP
+#define AEDIS_GENERIC_ERROR_HPP
 
 #include <boost/system/error_code.hpp>
 
@@ -55,3 +56,5 @@ template<>
 struct is_error_code_enum<::aedis::generic::error> : std::true_type {};
 
 } // std
+
+#endif // AEDIS_GENERIC_ERROR_HPP
