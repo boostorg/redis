@@ -17,6 +17,7 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/container/static_vector.hpp>
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
@@ -641,7 +642,7 @@ private:
    std::vector<command_info_type> commands_;
 
    // Info about the requests.
-   std::vector<info> info_;
+   boost::container::static_vector<info, 2> info_;
 
    // Last time we received data.
    time_point_type last_data_;
