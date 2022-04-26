@@ -44,10 +44,5 @@ boost::system::error_code make_error_code(error e)
     return boost::system::error_code{static_cast<int>(e), detail::category()};
 }
 
-boost::system::error_condition make_error_condition(error e)
-{
-  return boost::system::error_condition(static_cast<int>(e), detail::category());
-}
-
 } // generic
 } // aedis

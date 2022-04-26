@@ -53,11 +53,6 @@ enum class error
  */
 boost::system::error_code make_error_code(error e);
 
-/** \brief todo
- *  \ingroup any
- */
-boost::system::error_condition make_error_condition(error e);
-
 } // adapter
 } // aedis
 

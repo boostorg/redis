@@ -14,11 +14,10 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief RESP3 types
+/** \brief RESP3 data types.
     \ingroup any
   
-    For a detailed description of each RESP3 data type see
-    https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md.
+    The RESP3 specification can be found at https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md.
  */
 enum class type
 { /// Aggregate
@@ -57,32 +56,30 @@ enum class type
   invalid
 };
 
-/** \brief Returns the string representation of the type.
+/** \brief Converts the data type to a string.
  *  \ingroup any
  *  \param t RESP3 type.
  */
 char const* to_string(type t);
 
 /** \brief Writes the type to the output stream.
- *
- *  \ingroup operators
+ *  \ingroup any
  *  \param os Output stream.
  *  \param t RESP3 type.
  */
 std::ostream& operator<<(std::ostream& os, type t);
 
-/** \brief Returns true if the data type is an aggregate.
+/** \brief Checks whether the data type is an aggregate.
  *  \ingroup any
- *  \param t RESP3 type.
+ *  \param t RESP3 data type.
  */
 bool is_aggregate(type t);
 
-/** @brief Returns the element multilicity.
+/** @brief Checks the data type multilicity.
  *  \ingroup any
  *  \param t RESP3 type.
- *
- *  For type map and attribute this value is 2, all other types have
- *  value 1.
+ *  \returns For map and attribute data types this function returns 2.
+ *  All other types have value 1.
  */
 std::size_t element_multiplicity(type t);
 

@@ -20,9 +20,21 @@ namespace resp3 {
 
 constexpr char separator[] = "\r\n";
 
-/** @brief Adds data to the request.
+/** @brief Adds a bulk to the request.
  *  @ingroup any
- *  @todo: Remove from the public api.
+ *
+ *  This function is useful in serialization of your own data
+ *  structures in a request. For example
+ *
+ *  @code
+ *  void to_bulk(std::string& to, mystruct const& obj)
+ *  {
+ *     auto const str = // Convert obj to a string.
+ *     resp3::to_bulk(to, str);
+ *  }
+ *  @endcode
+ *
+ *  See more in \ref requests-serialization.
  */
 template <class Request>
 void to_bulk(Request& to, boost::string_view data)
@@ -85,8 +97,10 @@ struct add_bulk_impl<boost::hana::tuple<Ts...>> {
 
 } // detail
 
-/** @brief Adds a resp3 header to the store to.
+/** @brief Adds a resp3 header to the request.
  *  @ingroup any
+ *
+ *  See mystruct.hpp for an example.
  */
 template <class Request>
 void add_header(Request& to, type t, std::size_t size)
@@ -98,10 +112,9 @@ void add_header(Request& to, type t, std::size_t size)
    to += separator;
 }
 
-/** @brief Adds a rep3 bulk to the request.
- *  @ingroup any
+/* Adds a rep3 bulk to the request.
  *
- *  This function adds \c data as a bulk string to the request \c to.
+ * This function adds \c data as a bulk string to the request \c to.
  */
 template <class Request, class T>
 void add_bulk(Request& to, T const& data)
@@ -129,6 +142,11 @@ void add_blob(Request& to, boost::string_view blob)
    to += separator;
 }
 
+/** @brief Adds a separator to the request.
+ *  @ingroup any
+ *
+ *  See mystruct.hpp for an example.
+ */
 template <class Request>
 void add_separator(Request& to)
 {

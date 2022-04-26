@@ -16,10 +16,11 @@ namespace redis {
 /** \brief Redis commands.
  *  \ingroup any
  *
- *  For a full list of commands see https://redis.io/commands.
+ *  The full list of of commands can be found at
+ *  https://redis.io/commands.
  *
- *  \remark The list of commands below are read from Redis with the
- *  help of the command \c command.
+ *  \remark This list was created with the help of the \c command
+ *  command.
  */
 enum class command {
    /// https://redis.io/commands/acl
@@ -434,22 +435,20 @@ enum class command {
    invalid
 };
 
-/** \brief Converts a command to a string
+/** \brief Converts the command to a string.
  *  \ingroup any
- *
  *  \param c The command to convert.
  */
 char const* to_string(command c);
 
-/** \brief Write the text for a command name to an output stream.
- *  \ingroup operators
- *
+/** \brief Writes the command string to the stream.
+ *  \ingroup any
  *  \param os Output stream.
  *  \param c Redis command
  */
 std::ostream& operator<<(std::ostream& os, command c);
 
-/** \brief Returns true for commands with push response.
+/** \brief Checks whether a command has push response.
  *  \ingroup any
  */
 bool has_push_response(command cmd);

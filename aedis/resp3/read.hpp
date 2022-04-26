@@ -26,19 +26,20 @@ namespace resp3 {
  *  server push synchronously. For example
  *
  *  @code
- *  std::string buffer, resp;
+ *  int resp;
+ *  std::string buffer;
  *  resp3::read(socket, dynamic_buffer(buffer), adapt(resp));
  *  @endcode
  *
- *  For a complete example see low_level/sync_intro.cpp. This function
+ *  For a complete example see examples/intro_sync.cpp. This function
  *  is implemented in terms of one or more calls to @c
  *  asio::read_until and @c asio::read functions, and is known as a @a
- *  composed @a operation. Furthermore (Quoted from Beast docs)
+ *  composed @a operation.
  *
- *  > The implementation may read additional bytes from the stream that
- *  > lie past the end of the message being read. These additional
- *  > bytes are stored in the dynamic buffer, which must be preserved
- *  > for subsequent reads.
+ *  Furthermore, the implementation may read additional bytes from the
+ *  stream that lie past the end of the message being read. These
+ *  additional bytes are stored in the dynamic buffer, which must be
+ *  preserved for subsequent reads.
  *
  *  \param stream The stream from which to read e.g. a tcp socket.
  *  \param buf Dynamic buffer (version 2).
@@ -47,9 +48,8 @@ namespace resp3 {
  *  \returns The number of bytes that have been consumed from the dynamic buffer.
  *
  *  \remark This function calls buf.consume() in each chunk of data
- *  after it has been passed to the adapter.
- *
- *  TODO: Describe how buffers are consumed.
+ *  after it has been passed to the adapter. Users must not consume
+ *  the bytes after it returns.
  */
 template <
   class SyncReadStream,
@@ -108,7 +108,7 @@ read(
 /** \brief Reads a complete response to a command sychronously.
  *  \ingroup any
  *  
- *  Same as the other error-code overload but throws on error.
+ *  Same as the error_code overload but throws on error.
  */
 template<
    class SyncReadStream,
@@ -137,20 +137,19 @@ read(
  *
  *  @code
  *  std::string buffer;
- *  std::vector<std::string> response;
- *  co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(response));
+ *  std::set<std::string> resp;
+ *  co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
  *  @endcode
  *
- *  For a complete example see low_level/async_intro.cpp. This
- *  function is implemented in terms of one or more calls to @c
+ *  For a complete example see examples/transaction.cpp. This function
+ *  is implemented in terms of one or more calls to @c
  *  asio::async_read_until and @c asio::async_read functions, and is
- *  known as a @a composed @a operation. Furthermore (Quoted from
- *  Beast docs)
+ *  known as a @a composed @a operation.
  *
- *  > The implementation may read additional bytes from the stream that
- *  > lie past the end of the message being read. These additional
- *  > bytes are stored in the dynamic buffer, which must be preserved
- *  > for subsequent reads.
+ *  Furthermore, the implementation may read additional bytes from the
+ *  stream that lie past the end of the message being read. These
+ *  additional bytes are stored in the dynamic buffer, which must be
+ *  preserved for subsequent reads.
  *
  *  \param stream The stream from which to read e.g. a tcp socket.
  *  \param buffer Dynamic buffer (version 2).
@@ -166,8 +165,8 @@ read(
  *  @endcode
  *
  *  \remark This function calls buf.consume() in each chunk of data
- *  after it has been passed to the adapter.
- *  TODO: Describe how buffers are consumed.
+ *  after it has been passed to the adapter. Users must not consume
+ *  the bytes after it returns.
  */
 template <
    class AsyncReadStream,

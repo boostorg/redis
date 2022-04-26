@@ -21,15 +21,16 @@ namespace resp3 {
  *  Redis responses are the pre-order view of the response tree (see
  *  https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR).
  *
- *  The node class represent one element in the response tree. The string type
- *  is a template give more flexibility, for example
+ *  The node class represent one element in the response tree. The
+ *  string type is a template to give more flexibility. The library
+ *  uses
  *
  *  @li @c boost::string_view
  *  @li @c std::string
  *  @li @c boost::static_string
  *
- *  \remark Any Redis response can be received in an array of nodes, for
- *  example \c std::vector<node<std::string>>.
+ *  \remark Any Redis response can be received in an array of nodes,
+ *  for example \c std::vector<node<std::string>>.
  */
 template <class String>
 struct node {
@@ -42,7 +43,7 @@ struct node {
    /// The depth of this node in the response tree.
    std::size_t depth;
 
-   /// The actual data. For aggregate types this is always empty.
+   /// The actual data. For aggregate types this is usually empty.
    String value;
 };
 
@@ -79,7 +80,7 @@ bool operator==(node<String> const& a, node<String> const& b)
        && a.value == b.value;
 };
 
-/** \brief Writes the node to the stream.
+/** \brief Writes the node string to the stream.
  *  \ingroup any
  *
  *  NOTE: Binary data is not converted to text.

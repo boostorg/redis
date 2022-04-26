@@ -15,10 +15,11 @@ namespace sentinel {
 /** \brief Sentinel commands.
  *  \ingroup any
  *
- *  For a full list of commands see https://redis.io/topics/sentinel
+ *  The full list of Sentinel commands can be found at
+ *  https://redis.io/topics/sentinel.
  *
- *  \remark The list of commands below are read from Redis with the
- *  help of the command \c command.
+ *  \remark This list was created with the help of the \c command
+ *  command.
  */
 enum class command {
    /// https://redis.io/commands/acl
@@ -55,22 +56,20 @@ enum class command {
    invalid,
 };
 
-/** \brief Converts a sentinel command to a string
+/** \brief Converts the command to a string.
  *  \ingroup any
- *
  *  \param c The command to convert.
  */
 char const* to_string(command c);
 
-/** \brief Write the text for a sentinel command name to an output stream.
- *  \ingroup operators
- *
+/** \brief Writes the command string to the stream.
+ *  \ingroup any
  *  \param os Output stream.
  *  \param c Sentinel command
  */
 std::ostream& operator<<(std::ostream& os, command c);
 
-/** \brief Returns true for sentinel commands with push response.
+/** \brief Checks whether a command has push response.
  *  \ingroup any
  */
 bool has_push_response(command cmd);

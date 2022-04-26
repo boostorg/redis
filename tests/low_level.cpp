@@ -36,7 +36,7 @@ struct expect {
    std::string in;
    Result expected;
    std::string name;
-   boost::system::error_condition ec;
+   boost::system::error_code ec;
 };
 
 template <class Result>
@@ -108,12 +108,12 @@ void test_number(net::io_context& ioc)
    auto const in03 = expect<int>{":11\r\n", int{11}, "number.int"};
    auto const in04 = expect<boost::optional<int>>{":11\r\n", ok, "number.optional.int"};
    auto const in05 = expect<std::tuple<int>>{"*1\r\n:11\r\n", std::tuple<int>{11}, "number.tuple.int"};
-   auto const in06 = expect<boost::optional<int>>{"%11\r\n", boost::optional<int>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_simple_type)};
-   auto const in07 = expect<std::set<std::string>>{":11\r\n", std::set<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
-   auto const in08 = expect<std::unordered_set<std::string>>{":11\r\n", std::unordered_set<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
-   auto const in09 = expect<std::map<std::string, std::string>>{":11\r\n", std::map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
-   auto const in10 = expect<std::unordered_map<std::string, std::string>>{":11\r\n", std::unordered_map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
-   auto const in11 = expect<std::list<std::string>>{":11\r\n", std::list<std::string>{}, "number.optional.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_aggregate)};
+   auto const in06 = expect<boost::optional<int>>{"%11\r\n", boost::optional<int>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_simple_type)};
+   auto const in07 = expect<std::set<std::string>>{":11\r\n", std::set<std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_aggregate)};
+   auto const in08 = expect<std::unordered_set<std::string>>{":11\r\n", std::unordered_set<std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_aggregate)};
+   auto const in09 = expect<std::map<std::string, std::string>>{":11\r\n", std::map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_like_aggregate)};
+   auto const in10 = expect<std::unordered_map<std::string, std::string>>{":11\r\n", std::unordered_map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_like_aggregate)};
+   auto const in11 = expect<std::list<std::string>>{":11\r\n", std::list<std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_aggregate)};
 
    auto ex = ioc.get_executor();
 
@@ -155,11 +155,11 @@ void test_bool(net::io_context& ioc)
    auto const in13 = expect<boost::optional<bool>>{"#t\r\n", ok, "optional.int"};
 
    // Error
-   auto const in01 = expect<boost::optional<bool>>{"#11\r\n", boost::optional<bool>{}, "bool.error", aedis::resp3::make_error_condition(aedis::resp3::error::unexpected_bool_value)};
-   auto const in03 = expect<std::set<int>>{"#t\r\n", std::set<int>{}, "bool.error", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
-   auto const in04 = expect<std::unordered_set<int>>{"#t\r\n", std::unordered_set<int>{}, "bool.error", aedis::adapter::make_error_condition(aedis::adapter::error::expects_set_aggregate)};
-   auto const in05 = expect<std::map<int, int>>{"#t\r\n", std::map<int, int>{}, "bool.error", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
-   auto const in06 = expect<std::unordered_map<int, int>>{"#t\r\n", std::unordered_map<int, int>{}, "bool.error", aedis::adapter::make_error_condition(aedis::adapter::error::expects_map_like_aggregate)};
+   auto const in01 = expect<boost::optional<bool>>{"#11\r\n", boost::optional<bool>{}, "bool.error", aedis::resp3::make_error_code(aedis::resp3::error::unexpected_bool_value)};
+   auto const in03 = expect<std::set<int>>{"#t\r\n", std::set<int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_aggregate)};
+   auto const in04 = expect<std::unordered_set<int>>{"#t\r\n", std::unordered_set<int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_aggregate)};
+   auto const in05 = expect<std::map<int, int>>{"#t\r\n", std::map<int, int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_like_aggregate)};
+   auto const in06 = expect<std::unordered_map<int, int>>{"#t\r\n", std::unordered_map<int, int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_like_aggregate)};
 
    auto ex = ioc.get_executor();
 
@@ -319,7 +319,7 @@ void test_map(net::io_context& ioc)
    auto const in07 = expect<op_map_type>{wire, expected_1d, "map.optional.map"};
    auto const in08 = expect<op_vec_type>{wire, expected_1e, "map.optional.vector"};
    auto const in09 = expect<std::tuple<op_map_type>>{"*1\r\n" + wire, std::tuple<op_map_type>{expected_1d}, "map.transaction.optional.map"};
-   auto const in10 = expect<int>{"%11\r\n", int{}, "map.invalid.int", aedis::adapter::make_error_condition(aedis::adapter::error::expects_simple_type)};
+   auto const in10 = expect<int>{"%11\r\n", int{}, "map.invalid.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_simple_type)};
    auto const in11 = expect<tuple_type>{wire, e1f, "map.tuple"};
 
    auto ex = ioc.get_executor();
@@ -583,7 +583,7 @@ void test_verbatim_string(net::io_context& ioc)
 void test_big_number(net::io_context& ioc)
 {
    auto const in01 = expect<node_type>{"(3492890328409238509324850943850943825024385\r\n", node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}, "big_number.node"};
-   auto const in02 = expect<int>{"(\r\n", int{}, "big_number.error (empty field)", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
+   auto const in02 = expect<int>{"(\r\n", int{}, "big_number.error (empty field)", aedis::resp3::make_error_code(aedis::resp3::error::empty_field)};
 
    auto ex = ioc.get_executor();
 
@@ -620,11 +620,11 @@ void test_simple_string(net::io_context& ioc)
 
 void test_resp3(net::io_context& ioc)
 {
-   auto const in01 = expect<int>{"s11\r\n", int{}, "number.error", aedis::resp3::make_error_condition(aedis::resp3::error::invalid_type)};
-   auto const in02 = expect<int>{":adf\r\n", int{11}, "number.int", aedis::resp3::make_error_condition(aedis::resp3::error::not_a_number)};
-   auto const in03 = expect<int>{":\r\n", int{}, "number.error (empty field)", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
-   auto const in04 = expect<boost::optional<bool>>{"#\r\n", boost::optional<bool>{}, "bool.error", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
-   auto const in05 = expect<std::string>{",\r\n", std::string{}, "double.error (empty field)", aedis::resp3::make_error_condition(aedis::resp3::error::empty_field)};
+   auto const in01 = expect<int>{"s11\r\n", int{}, "number.error", aedis::resp3::make_error_code(aedis::resp3::error::invalid_type)};
+   auto const in02 = expect<int>{":adf\r\n", int{11}, "number.int", aedis::resp3::make_error_code(aedis::resp3::error::not_a_number)};
+   auto const in03 = expect<int>{":\r\n", int{}, "number.error (empty field)", aedis::resp3::make_error_code(aedis::resp3::error::empty_field)};
+   auto const in04 = expect<boost::optional<bool>>{"#\r\n", boost::optional<bool>{}, "bool.error", aedis::resp3::make_error_code(aedis::resp3::error::empty_field)};
+   auto const in05 = expect<std::string>{",\r\n", std::string{}, "double.error (empty field)", aedis::resp3::make_error_code(aedis::resp3::error::empty_field)};
 
    auto ex = ioc.get_executor();
 

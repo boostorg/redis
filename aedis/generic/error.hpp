@@ -41,11 +41,6 @@ enum class error
  */
 boost::system::error_code make_error_code(error e);
 
-/** \brief Make an error condition.
- *  \ingroup any
- */
-boost::system::error_condition make_error_condition(error e);
-
 } // generic
 } // aedis
 

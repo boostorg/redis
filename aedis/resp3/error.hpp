@@ -20,7 +20,7 @@ enum class error
    /// Invalid RESP3 type.
    invalid_type = 1,
 
-   /// Can't parse the string as an integer.
+   /// Can't parse the string as a number.
    not_a_number,
 
    /// Received less bytes than expected.
@@ -29,22 +29,17 @@ enum class error
    /// The maximum depth of a nested response was exceeded.
    exceeeds_max_nested_depth,
 
-   /// Unexpected bool value
+   /// Unexpects bool value.
    unexpected_bool_value,
 
    /// Expected field value is empty.
    empty_field
 };
 
-/** \brief Converts an error in an boost::system::error_code object.
+/** \brief Creates a error_code object from an error.
  *  \ingroup any
  */
 boost::system::error_code make_error_code(error e);
-
-/** \brief todo
- *  \ingroup any
- */
-boost::system::error_condition make_error_condition(error e);
 
 } // resp3
 } // aedis
