@@ -24,8 +24,8 @@ namespace adapter {
 /** @brief Traits class for response objects.
  *  @ingroup any
  *
- *  Provides traits for all supported response types i.e. all STL containers
- *  and C++ buil-in types.
+ *  Provides traits for all supported response types i.e. all STL
+ *  containers and C++ buil-in types.
  */
 template <class ResponseType>
 struct response_traits
@@ -42,7 +42,7 @@ struct response_traits
    static auto adapt(ResponseType& r) noexcept { return adapter_type{&r}; }
 };
 
-/// Template typedef for response_traits.
+/// Template alias for adapters.
 template <class T>
 using adapter_t = typename response_traits<T>::adapter_type;
 

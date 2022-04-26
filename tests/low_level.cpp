@@ -109,11 +109,11 @@ void test_number(net::io_context& ioc)
    auto const in04 = expect<boost::optional<int>>{":11\r\n", ok, "number.optional.int"};
    auto const in05 = expect<std::tuple<int>>{"*1\r\n:11\r\n", std::tuple<int>{11}, "number.tuple.int"};
    auto const in06 = expect<boost::optional<int>>{"%11\r\n", boost::optional<int>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_simple_type)};
-   auto const in07 = expect<std::set<std::string>>{":11\r\n", std::set<std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_aggregate)};
-   auto const in08 = expect<std::unordered_set<std::string>>{":11\r\n", std::unordered_set<std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_aggregate)};
-   auto const in09 = expect<std::map<std::string, std::string>>{":11\r\n", std::map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_like_aggregate)};
-   auto const in10 = expect<std::unordered_map<std::string, std::string>>{":11\r\n", std::unordered_map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_like_aggregate)};
-   auto const in11 = expect<std::list<std::string>>{":11\r\n", std::list<std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_aggregate)};
+   auto const in07 = expect<std::set<std::string>>{":11\r\n", std::set<std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_type)};
+   auto const in08 = expect<std::unordered_set<std::string>>{":11\r\n", std::unordered_set<std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_type)};
+   auto const in09 = expect<std::map<std::string, std::string>>{":11\r\n", std::map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_type)};
+   auto const in10 = expect<std::unordered_map<std::string, std::string>>{":11\r\n", std::unordered_map<std::string, std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_type)};
+   auto const in11 = expect<std::list<std::string>>{":11\r\n", std::list<std::string>{}, "number.optional.int", aedis::adapter::make_error_code(aedis::adapter::error::expects_aggregate_type)};
 
    auto ex = ioc.get_executor();
 
@@ -156,10 +156,10 @@ void test_bool(net::io_context& ioc)
 
    // Error
    auto const in01 = expect<boost::optional<bool>>{"#11\r\n", boost::optional<bool>{}, "bool.error", aedis::resp3::make_error_code(aedis::resp3::error::unexpected_bool_value)};
-   auto const in03 = expect<std::set<int>>{"#t\r\n", std::set<int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_aggregate)};
-   auto const in04 = expect<std::unordered_set<int>>{"#t\r\n", std::unordered_set<int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_aggregate)};
-   auto const in05 = expect<std::map<int, int>>{"#t\r\n", std::map<int, int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_like_aggregate)};
-   auto const in06 = expect<std::unordered_map<int, int>>{"#t\r\n", std::unordered_map<int, int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_like_aggregate)};
+   auto const in03 = expect<std::set<int>>{"#t\r\n", std::set<int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_type)};
+   auto const in04 = expect<std::unordered_set<int>>{"#t\r\n", std::unordered_set<int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_set_type)};
+   auto const in05 = expect<std::map<int, int>>{"#t\r\n", std::map<int, int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_type)};
+   auto const in06 = expect<std::unordered_map<int, int>>{"#t\r\n", std::unordered_map<int, int>{}, "bool.error", aedis::adapter::make_error_code(aedis::adapter::error::expects_map_type)};
 
    auto ex = ioc.get_executor();
 

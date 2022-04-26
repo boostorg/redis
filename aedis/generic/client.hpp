@@ -46,31 +46,31 @@ public:
    /// Executor used.
    using executor_type = typename AsyncReadWriteStream::executor_type;
 
-   /// Type of the callback called on a message is received.
+   /// Type of the callback called when a message is received.
    using read_handler_type = std::function<void(Command cmd, std::size_t)>;
 
-   /// Type of the callback called on a message is written.
+   /// Type of the callback called when a message is written.
    using write_handler_type = std::function<void(std::size_t)>;
 
-   /// Type of the callback called on a push message is received.
+   /// Type of the callback called when a push message is received.
    using push_handler_type = std::function<void(std::size_t)>;
 
-   /// Type of the callback called when parts of a message are received.
+   /// Type of the callback called when resp3 chuncks are received.
    using resp3_handler_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
    struct config {
-      /// Timeout of the resolve operation.
+      /// Timeout of the async_resolve operation.
       std::chrono::seconds resolve_timeout = std::chrono::seconds{5};
 
-      /// Timeout of the connect operation.
+      /// Timeout of the async_connect operation.
       std::chrono::seconds connect_timeout = std::chrono::seconds{5};
 
-      /// Timeout to read a complete message.
+      /// Timeout of the async_read operation.
       std::chrono::seconds read_timeout = std::chrono::seconds{5};
 
-      /// Timeout to write a message.
+      /// Timeout of the async_write operation.
       std::chrono::seconds write_timeout = std::chrono::seconds{5};
 
       /// Time after which a connection is considered idle if no data is received.
@@ -109,13 +109,10 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the output command queue and signals the write
-    *  operation there are new messages awaiting to be sent to Redis.
-    *
-    *  @sa serializer.hpp
-    *
-    *  @param cmd The command to send.
-    *  @param args Arguments to commands.
+    *  Adds a command to the commands output queue and signals the
+    *  writer operation there is new message awaiting to be sent.
+    *  Otherwise the function is equivalent to serializer::push.
+    *  @sa serializer.
     */
    template <class... Ts>
    void send(Command cmd, Ts const&... args)
@@ -141,15 +138,11 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the output command queue and signals the write
-    *  operation there are new messages awaiting to be sent to Redis.
-    *
-    *  @sa serializer.hpp
-    *
-    *  @param cmd The command.
-    *  @param key The key the commands refers to
-    *  @param begin Begin of the range.
-    *  @param end End of the range.
+    *  Adds a command to the commands output queue and signals the
+    *  writer operation there is new message awaiting to be sent.
+    *  Otherwise the function is equivalent to
+    *  serializer::push_range2.
+    *  @sa serializer.
     */
    template <class Key, class ForwardIterator>
    void send_range2(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
@@ -178,14 +171,11 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the output command queue and signals the write
-    *  operation there are new messages awaiting to be sent to Redis.
-    *
-    *  @sa serializer.hpp
-    *
-    *  @param cmd The command.
-    *  @param begin Begin of the range.
-    *  @param end End of the range.
+    *  Adds a command to the commands output queue and signals the
+    *  writer operation there is new message awaiting to be sent.
+    *  Otherwise the function is equivalent to
+    *  serializer::push_range2.
+    *  @sa serializer.
     */
    template <class ForwardIterator>
    void send_range2(Command cmd, ForwardIterator begin, ForwardIterator end)
@@ -214,14 +204,11 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the output command queue and signals the write
-    *  operation there are new messages awaiting to be sent to Redis.
-    *
-    *  @sa serializer.hpp
-    *
-    *  @param cmd The command.
-    *  @param key The key the commands refers to.
-    *  @param range Range of elements to send.
+    *  Adds a command to the commands output queue and signals the
+    *  writer operation there is new message awaiting to be sent.
+    *  Otherwise the function is equivalent to
+    *  serializer::push_range.
+    *  @sa serializer.
     */
    template <class Key, class Range>
    void send_range(Command cmd, Key const& key, Range const& range)
@@ -233,13 +220,11 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the output command queue and signals the write
-    *  operation there are new messages awaiting to be sent to Redis.
-    *
-    *  @sa serializer.hpp
-    *
-    *  @param cmd The command.
-    *  @param range End of the range.
+    *  Adds a command to the commands output queue and signals the
+    *  writer operation there is new message awaiting to be sent.
+    *  Otherwise the function is equivalent to
+    *  serializer::push_range.
+    *  @sa serializer.
     */
    template <class Range>
    void send_range(Command cmd, Range const& range)
@@ -253,24 +238,35 @@ public:
     *
     *  This class performs the following steps
     *
-    *  @li Resolves the Redis host as of \c async_resolve with the
-    *  timeout passed in config::resolve_timeout.
+    *  @li Resolve the Redis host as of \c async_resolve with the
+    *  timeout passed in client::config::resolve_timeout.
     *
-    *  @li Connects to one of the endpoints returned by the resolve
-    *  operation with the timeout passed in config::connect_timeout.
+    *  @li Connect to one of the endpoints returned by the resolve
+    *  operation with the timeout passed in client::config::connect_timeout.
     *
-    *  @li Starts the async read operation that keeps reading
-    *  incomming responses. Each individual read uses the timeout
-    *  passed on config::read_timeout. Calls the read or push callback
-    *  after every successful read, see set_read_handler and
-    *  set_push_handler.
+    *  @li Start the async read operation that keeps reading
+    *  incoming responses. Each individual read uses the timeout
+    *  passed on client::config::read_timeout. After each successful read
+    *  it will call the read or push callback.
     *
-    *  @li Start the async write operation that keeps sending commands
-    *  to Redis. Each individual write uses the timeout passed on
-    *  config::write_timeout. Calls the write callback after every
-    *  successful write.
+    *  @li Start the async write operation that wait for new commands
+    *  to be sent to Redis. Each individual write uses the timeout
+    *  passed on client::config::write_timeout. After a successful write it
+    *  will call the write callback.
     *
-    *  \param host Ip address of name of the Redis server.
+    *  @li Start the check idle operation with the timeout specified
+    *  in client::config::idle_timeout. If no data is received during that
+    *  time interval async_run returns generic::error::idle_timeout.
+    *
+    *  @li Start the healthy check operation that sends
+    *  redis::command::ping to Redis with a frequency equal to
+    *  client::config::idle_timeout / 2.
+    *
+    *  In addition to the callbacks mentioned above, the read
+    *  operations will call the resp3 callback as soon a new chunks
+    *  of data become available to the user.
+    *
+    *  \param host Ip address or name of the Redis server.
     *  \param port Port where the Redis server is listening.
     *  \param token The completion token.
     *
@@ -279,6 +275,18 @@ public:
     *  @code
     *  void f(boost::system::error_code);
     *  @endcode
+    *
+    *  Notice this function returns only when there is an error.
+    *
+    *  @remark
+    *
+    *  @li It is safe to call this function again after it has
+    *  returned. In that case, any outstanding commands will be sent
+    *  and not get lost.
+    *
+    *  @li If a disconnect occurs while the response to a request has
+    *  not been received, the client doesn't try to resend it to avoid
+    *  resubmission problem.
     */
    template <class CompletionToken = default_completion_token_type>
    auto
@@ -293,7 +301,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<client>{this}, token, /* *socket_,*/ read_timer_, write_timer_, wait_write_timer_);
+         >(detail::run_op<client>{this}, token, read_timer_, write_timer_, wait_write_timer_);
    }
 
    /// Set the read handler.
@@ -312,7 +320,7 @@ public:
    void set_resp3_handler(resp3_handler_type rh)
       { on_resp3_ = std::move(rh); }
 
-   /** @brief Convenience callback setter
+   /** @brief Convenience callback setter.
     *
     *  Expects a class with the following member functions
     *

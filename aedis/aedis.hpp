@@ -652,6 +652,8 @@
  */
 
 /** \defgroup any Reference
+ *
+ *  This page contains the documentaiton of all user facing code.
  */
 
 #endif // AEDIS_HPP

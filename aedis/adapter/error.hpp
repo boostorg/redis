@@ -12,7 +12,7 @@
 namespace aedis {
 namespace adapter {
 
-/** \brief Errors that may occurr when reading a response.
+/** \brief Adapter errors.
  *  \ingroup any
  */
 enum class error
@@ -21,13 +21,13 @@ enum class error
    expects_simple_type = 1,
 
    /// Expects aggregate type.
-   expects_aggregate,
+   expects_aggregate_type,
 
    /// Expects a map but got other aggregate.
-   expects_map_like_aggregate,
+   expects_map_type,
 
    /// Expects a set aggregate but got something else.
-   expects_set_aggregate,
+   expects_set_type,
 
    /// Nested response not supported.
    nested_aggregate_unsupported,
@@ -48,7 +48,7 @@ enum class error
    null
 };
 
-/** \brief todo
+/** \brief Creates a error_code object from an error.
  *  \ingroup any
  */
 boost::system::error_code make_error_code(error e);

@@ -12,21 +12,21 @@
 namespace aedis {
 namespace generic {
 
-/** \brief Errors from generic module
+/** \brief Errors from the generic module.
  *  \ingroup any
  */
 enum class error
 {
-   /// Represents a timeout of the resolve operation.
+   /// Represents the timeout of the resolve operation.
    resolve_timeout = 1,
 
-   /// Represents a timeout of the connect operation.
+   /// Represents the timeout of the connect operation.
    connect_timeout,
 
-   /// Represents a timeout of the read operation.
+   /// Represents the timeout of the read operation.
    read_timeout,
 
-   /// Represents a timeout of the write operation.
+   /// Represents the timeout of the write operation.
    write_timeout,
 
    /// Idle timeout.
@@ -36,7 +36,7 @@ enum class error
    write_stop_requested,
 };
 
-/** \brief Converts an error in an boost::system::error_code object.
+/** \brief Creates a error_code object from an error.
  *  \ingroup any
  */
 boost::system::error_code make_error_code(error e);

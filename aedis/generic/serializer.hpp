@@ -10,6 +10,12 @@
 #include <boost/hana.hpp>
 #include <aedis/resp3/compose.hpp>
 
+// NOTE: Consider detecting tuples in the type in the parameter pack
+// to calculate the header size correctly.
+//
+// NOTE: For some commands like hset it would be a good idea to assert
+// the value type is a pair.
+
 namespace aedis {
 namespace generic {
 
@@ -20,7 +26,7 @@ namespace generic {
  *  referred to in the redis documentation as a pipeline, see
  *  https://redis.io/topics/pipelining.
  *
- *  For example
+ *  Example
  *
  *  @code
  *  std::string request;
@@ -34,17 +40,10 @@ namespace generic {
  *  @endcode
  *
  *  \tparam Storage The storage type e.g \c std::string.
- *  \tparam Command The command to serialize.
  *
  *  \remarks  Non-string types will be converted to string by using \c
- *  to_string, which must be made available over ADL.
+ *  to_bulk, which must be made available over ADL.
  */
-
-// Consider detecting tuples in the type in the parameter pack to
-// calculate the header size correctly.
-//
-// NOTE: For some commands like hset it would be a good idea to assert
-// the value type is a pair.
 template <class Storage>
 class serializer {
 private:
@@ -53,8 +52,8 @@ private:
 public:
    /** \brief Constructor
     *  
-    *  \param storage Object where the serialized request will be
-    *  stored.
+    *  \param storage The underlying storage object i.e. where the
+    *  request is to be stored.
     */
    serializer(Storage& storage) : request_(&storage) {}
 
@@ -68,12 +67,11 @@ public:
     *  sr.push(command::set, "key", "some string", "EX", "2");
     *  \endcode
     *
-    *  will add the \c set command with payload "some string" and an
+    *  will add the \c set command with value "some string" and an
     *  expiration of 2 seconds.
     *
-    *  \param cmd The redis command.
-    *  \param args The arguments of the Redis command.
-    *
+    *  \param cmd The command e.g redis or sentinel command.
+    *  \param args Command arguments.
     */
    template <class Command, class... Ts>
    void push(Command cmd, Ts const&... args)
@@ -91,9 +89,10 @@ public:
 
    /** @brief Appends a new command to the end of the request.
     *  
-    *  This overload is useful for commands that require a key. For example
+    *  This overload is useful for commands that have a key and have a
+    *  dynamic range of arguments. For example
     *
-    *  \code{.cpp}
+    *  @code
     *  std::map<std::string, std::string> map
     *     { {"key1", "value1"}
     *     , {"key2", "value2"}
@@ -102,10 +101,10 @@ public:
     *
     *  request req;
     *  req.push_range2(command::hset, "key", std::cbegin(map), std::cend(map));
-    *  \endcode
+    *  @endcode
     *  
-    *  \param cmd The Redis command
-    *  \param key The key the Redis command refers to.
+    *  \param cmd The command e.g. Redis or Sentinel command.
+    *  \param key The command key.
     *  \param begin Iterator to the begin of the range.
     *  \param end Iterator to the end of the range.
     */
@@ -130,8 +129,8 @@ public:
 
    /** @brief Appends a new command to the end of the request.
     *
-    *  This overload is useful for commands that don't have a key. For
-    *  example
+    *  This overload is useful for commands that have a dynamic number
+    *  of arguments and don't have a key. For example
     *
     *  \code
     *  std::set<std::string> channels
@@ -165,7 +164,7 @@ public:
 
    /** @brief Appends a new command to the end of the request.
     *  
-    *  Similar to the range version.
+    *  Equivalent to the overload taking a range (i.e. send_range2).
     */
    template <class Command, class Key, class Range>
    void push_range(Command cmd, Key const& key, Range const& range)
@@ -177,7 +176,7 @@ public:
 
    /** @brief Appends a new command to the end of the request.
     *
-    *  Similar to the range version.
+    *  Equivalent to the overload taking a range (i.e. send_range2).
     */
    template <class Command, class Range>
    void push_range(Command cmd, Range const& range)

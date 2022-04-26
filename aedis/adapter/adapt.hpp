@@ -15,9 +15,10 @@ namespace adapter {
 /** \brief Creates a dummy response adapter.
     \ingroup any
   
-    The adapter returned by this function is dummy which means it
-    ignores responses. It is useful to avoid wasting time with
-    responses which are not needed. For example
+    The adapter returned by this function ignores responses. It is
+    useful to avoid wasting time with responses which are not needed.
+
+    Example:
 
     @code
     // Pushes and writes some commands to the server.
@@ -40,7 +41,7 @@ auto adapt() noexcept
 /** \brief Adapts user data to read operations.
  *  \ingroup any
  *
- *  All STL containers, \c std::tuple and built-in types are supported and
+ *  STL containers, \c std::tuple and built-in types are supported and
  *  can be used in conjunction with \c boost::optional<T>.
  *
  *  Example usage:

@@ -21,10 +21,10 @@ struct error_category_impl : boost::system::error_category {
    std::string message(int ev) const override
    {
       switch(static_cast<error>(ev)) {
-	 case error::expects_simple_type: return "Expects a simple RESP3 type";
-	 case error::expects_aggregate: return "Expects aggregate type";
-	 case error::expects_map_like_aggregate: return "Expects map aggregate";
-	 case error::expects_set_aggregate: return "Expects set aggregate";
+	 case error::expects_simple_type: return "Expects a simple RESP3 type.";
+	 case error::expects_aggregate_type: return "Expects aggregate type.";
+	 case error::expects_map_type: return "Expects map type.";
+	 case error::expects_set_type: return "Expects set type.";
 	 case error::nested_aggregate_unsupported: return "Nested aggregate unsupported.";
 	 case error::simple_error: return "Got RESP3 simple-error.";
 	 case error::blob_error: return "Got RESP3 blob-error.";

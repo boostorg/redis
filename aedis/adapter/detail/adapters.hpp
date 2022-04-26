@@ -173,14 +173,14 @@ public:
 
       if (is_aggregate(nd.data_type)) {
          if (nd.data_type != resp3::type::set)
-            ec = error::expects_set_aggregate;
+            ec = error::expects_set_type;
          return;
       }
 
       BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
-	 ec = adapter::error::expects_set_aggregate;
+	 ec = adapter::error::expects_set_type;
 	 return;
       }
 
@@ -212,14 +212,14 @@ public:
 
       if (is_aggregate(nd.data_type)) {
          if (element_multiplicity(nd.data_type) != 2)
-           ec = error::expects_map_like_aggregate;
+           ec = error::expects_map_type;
          return;
       }
 
       BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
-	 ec = adapter::error::expects_map_like_aggregate;
+	 ec = adapter::error::expects_map_type;
 	 return;
       }
 
@@ -292,7 +292,7 @@ public:
          }
       } else {
          if (i_ == -1) {
-            ec = adapter::error::expects_aggregate;
+            ec = adapter::error::expects_aggregate_type;
             return;
          }
 
@@ -322,7 +322,7 @@ struct list_impl {
       if (!is_aggregate(nd.data_type)) {
         BOOST_ASSERT(nd.aggregate_size == 1);
         if (nd.depth < 1) {
-           ec = adapter::error::expects_aggregate;
+           ec = adapter::error::expects_aggregate_type;
            return;
         }
 
