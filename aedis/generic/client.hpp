@@ -109,10 +109,10 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the commands output queue and signals the
+    *  Adds a command to the end of the next request and signals the
     *  writer operation there is new message awaiting to be sent.
-    *  Otherwise the function is equivalent to serializer::push.
-    *  @sa serializer.
+    *  Otherwise the function is equivalent to serializer::push.  @sa
+    *  serializer.
     */
    template <class... Ts>
    void send(Command cmd, Ts const&... args)
@@ -138,7 +138,7 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the commands output queue and signals the
+    *  Adds a command to the end of the next request and signals the
     *  writer operation there is new message awaiting to be sent.
     *  Otherwise the function is equivalent to
     *  serializer::push_range2.
@@ -171,7 +171,7 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the commands output queue and signals the
+    *  Adds a command to the end of the next request and signals the
     *  writer operation there is new message awaiting to be sent.
     *  Otherwise the function is equivalent to
     *  serializer::push_range2.
@@ -204,7 +204,7 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the commands output queue and signals the
+    *  Adds a command to the end of the next request and signals the
     *  writer operation there is new message awaiting to be sent.
     *  Otherwise the function is equivalent to
     *  serializer::push_range.
@@ -220,7 +220,7 @@ public:
 
    /** @brief Adds a command to the output command queue.
     *
-    *  Adds a command to the commands output queue and signals the
+    *  Adds a command to the end of the next request and signals the
     *  writer operation there is new message awaiting to be sent.
     *  Otherwise the function is equivalent to
     *  serializer::push_range.

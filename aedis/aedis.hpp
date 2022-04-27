@@ -643,6 +643,182 @@
     $ make distcheck
     ```
 
+    \section why-aedis Why Aedis
+
+    At the time of this writing there are seventeen Redis clients
+    listed in the [official](https://redis.io/docs/clients/#cpp) list.
+    With so many clients available it is not unlikely that users are
+    asking themselves why yet another one. In this section I will try
+    to compare Aedis to the most popular clients and why we need
+    Aedis.
+
+    The most popular clients ranked by github stars are
+
+    @li https://github.com/sewenew/redis-plus-plus
+    @li https://github.com/cpp-redis/cpp_redis
+    @li https://github.com/hmartiro/redox
+    @li https://github.com/nekipelov/redisclient
+    @li https://github.com/0xsky/xredis
+
+    Before we start it is worth mentioning some things none of these clients support
+
+    @li RESP3. Working with the less capable RESP2 version is still
+    possible in recent Redis version but it is expected to be dropped
+    soon. Without RESP3 is impossible to support some important Redis
+    features like client side caching, among other things.
+    @li The Asio asynchronous model.
+    @li Serializaiton of user data types that avoids temporaries.
+    @li Error handling with error-code and exception overload.
+    @li Healthy checks.
+    @li Fine control over memory allocation by means of allocators.
+
+    The remaining points will be addressed individually.
+
+    @subsection redis-plus-plus
+
+    Let us first have a look at what sending a command a pipeline and a
+    transaction look like
+
+    @code
+    auto redis = Redis("tcp://127.0.0.1:6379");
+
+    // Send commands
+    redis.set("key", "val");
+    auto val = redis.get("key"); // val is of type OptionalString.
+    if (val)
+        std::cout << *val << std::endl;
+
+    // Sending pipelines
+    auto pipe = redis.pipeline();
+    auto pipe_replies = pipe.set("key", "value")
+                            .get("key")
+                            .rename("key", "new-key")
+                            .rpush("list", {"a", "b", "c"})
+                            .lrange("list", 0, -1)
+                            .exec();
+
+    // Parse reply with reply type and index.
+    auto set_cmd_result = pipe_replies.get<bool>(0);
+    // ...
+
+    // Sending a transaction
+    auto tx = redis.transaction();
+    auto tx_replies = tx.incr("num0")
+                        .incr("num1")
+                        .mget({"num0", "num1"})
+                        .exec();
+
+    auto incr_result0 = tx_replies.get<long long>(0);
+    // ...
+    @endcode
+
+    Some of the problems with this API are
+
+    @li Heterogeneous treatment of commands, pipelines and transaction.
+    @li Having to manually finish the pipeline with \c .exec() is a mojor source of headache. This is not required by the protocol itself but results from the abstraction used.
+    @li Any Api that sends individual commands has a very restricted scope of usability and should be avoided in anything that needs minimum performance guarantees.
+    @li The API imposes exceptions on users, no error-code overload is provided.
+    @li No control over dynamic allocations.
+    @li No way to reuse the buffer for new calls to e.g. \c redis.get in order to avoid further dynamic memory allocations.
+    @li Error handling of resolve and connection no clear.
+
+    According to the documentation, pipelines in redis-plus-plus have
+    the following characteristics
+
+    > NOTE: By default, creating a Pipeline object is NOT cheap, since
+    > it creates a new connection.
+
+    This is clearly a downside of the API as pipelines should be the
+    default way of communicating and not an exception, paying such a
+    high price for each pipeline imposes a severe cost in performance.
+    Transactions also suffer from the very same problem
+
+    > NOTE: Creating a Transaction object is NOT cheap, since it
+    > creates a new connection.
+
+    In Aedis there is no difference between sending one command, a
+    pipeline or a transaction because creating the request is decopled
+    from the IO objects, for example
+
+    @code
+    std::string request;
+    auto sr = make_serializer(request);
+    sr.push(command::hello, 3);
+    sr.push(command::multi);
+    sr.push(command::ping, "Some message.");
+    sr.push(command::set, "low-level-key", "some content", "EX", "2");
+    sr.push(command::exec);
+    sr.push(command::ping, "Another message.");
+    net::write(socket, net::buffer(request));
+    @endcode
+
+    The request created above will be sent to Redis in a single
+    pipeline and imposes no restriction on what it contains e.g. the
+    number of commands, transactions etc. The problems mentioned above
+    simply do not exist in Aedis. The way responses are read is
+    also more flexible
+
+    @code
+    std::string buffer;
+    auto dbuffer = net::dynamic_buffer(buffer);
+
+    std::tuple<std::string, boost::optional<std::string>> response;
+    resp3::read(socket, dbuffer); // hellp
+    resp3::read(socket, dbuffer); // multi
+    resp3::read(socket, dbuffer); // ping
+    resp3::read(socket, dbuffer); // set
+    resp3::read(socket, dbuffer, adapt(response));
+    resp3::read(socket, dbuffer); // quit
+    @endcode
+
+    @li The response objects are passed by the caller to the read
+    functions so that he has fine control over memory allocations and
+    object lifetime.
+    @li The user can either use error-code or exceptions.
+    @li Each response can be read individually in the response object
+    avoiding temporaries.
+    @li It is possible to ignore responses.
+
+    This was the blocking API, now let us compare the async interface
+
+    > redis-plus-plus also supports async interface, however, async
+    > support for Transaction and Subscriber is still on the way.
+    > 
+    > The async interface depends on third-party event library, and so
+    > far, only libuv is supported.
+
+    Async code in redis-plus-plus looks like the following
+
+    @code
+    auto async_redis = AsyncRedis(opts, pool_opts);
+    
+    Future<string> ping_res = async_redis.ping();
+    
+    cout << ping_res.get() << endl;
+    @endcode
+
+    As the reader can see, the async interface is based on futures
+    which is also known to have a bad performance.  The biggest
+    problem however with this async design is that it makes it
+    impossible to write asynchronous programs correctly since it
+    starts an async operation on every command sent instead of
+    enqueueing a message and triggering a write. It is also not clear
+    how are pipelines realised with the design (if at all).
+
+    In Aedis the send function looks like this
+
+    @code
+    template <class... Ts>
+    void client::send(Command cmd, Ts const&... args);
+    @endcode
+
+    and the response is delivered through a callback.
+
+    @subsection cpp_redis
+    @subsection redox
+    @subsection redisclient
+    @subsection xRedis
+
     \section Acknowledgement
 
     I would like to thank Vinícius dos Santos Oliveira for useful discussion about how Aedis consumes buffers in read operation (among other things).
@@ -651,46 +827,6 @@
   
     See \subpage any.
 
-    \section why-aedis Why Aedis
-
-    With so many Redis clients available it is not unlikely that users
-    are asking themselves why yet another one. At the time of this
-    writing there are 17 clients listed in the
-    [official](https://redis.io/docs/clients/#cpp) list.
-
-    I will focus effort on analysing only the first five ranked by
-    github stars.
-
-    @li https://github.com/sewenew/redis-plus-plus
-    @li https://github.com/cpp-redis/cpp_redis
-    @li https://github.com/hmartiro/redox
-    @li https://github.com/nekipelov/redisclient
-    @li https://github.com/0xsky/xredis
-
-    Before we start it is worth mentioning that none of these clients
-
-    @li No support for RESP3, the lastest protocol version. This has
-    many consequences, one of them is that server pushes have to be
-    handled in a separate connection.
-
-    @li Support the Asio asynchronous model. None of the clients seems
-    to be able to work with coroutines.
-
-    @li Serializaiton of user data types that avoids temporaries.
-    @li Error handling with error-code and exception overload.
-    @li Have a clear multi-threading concept. 
-    @li Fine control over memory allocation e.g. via allocators.
-    @li No healthy checks.
-
-    @subsection redis-plus-plus
-
-    @li Based on hiredis.
-    @li Transaction and Pipelines are treated differently.
-
-    @subsection cpp_redis
-    @subsection redox
-    @subsection redisclient
-    @subsection xRedis
  */
 
 /** \defgroup any Reference
