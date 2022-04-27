@@ -7,10 +7,13 @@
 #ifndef AEDIS_ADAPTER_ADAPT_HPP
 #define AEDIS_ADAPTER_ADAPT_HPP
 
-#include <aedis/adapter/response_traits.hpp>
+#include <aedis/adapter/detail/response_traits.hpp>
 
 namespace aedis {
 namespace adapter {
+
+template <class T>
+using adapter_t = typename detail::adapter_t<T>;
 
 /** \brief Creates a dummy response adapter.
     \ingroup any
@@ -36,7 +39,7 @@ namespace adapter {
  */
 inline
 auto adapt() noexcept
-   { return response_traits<void>::adapt(); }
+   { return detail::response_traits<void>::adapt(); }
 
 /** \brief Adapts user data to read operations.
  *  \ingroup any
@@ -71,7 +74,7 @@ auto adapt() noexcept
  */
 template<class T>
 auto adapt(T& t) noexcept
-   { return response_traits<T>::adapt(t); }
+   { return detail::response_traits<T>::adapt(t); }
 
 } // adapter
 } // aedis

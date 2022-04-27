@@ -68,7 +68,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/adapter/error.hpp\
   $(top_srcdir)/aedis/adapter/impl/error.ipp\
   $(top_srcdir)/aedis/adapter/adapt.hpp\
-  $(top_srcdir)/aedis/adapter/response_traits.hpp\
+  $(top_srcdir)/aedis/adapter/detail/response_traits.hpp\
   $(top_srcdir)/aedis/resp3/node.hpp\
   $(top_srcdir)/aedis/resp3/compose.hpp\
   $(top_srcdir)/aedis/resp3/detail/read_ops.hpp\

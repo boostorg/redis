@@ -192,8 +192,7 @@ public:
  *  \param storage The string.
  */
 template <class CharT, class Traits, class Allocator>
-serializer<std::basic_string<CharT, Traits, Allocator>>
-make_serializer(std::basic_string<CharT, Traits, Allocator>& storage)
+auto make_serializer(std::basic_string<CharT, Traits, Allocator>& storage)
 {
    return serializer<std::basic_string<CharT, Traits, Allocator>>(storage);
 }

@@ -39,8 +39,9 @@
     @li Zero asymptotic allocations by means of memory reuse.
     @li Healthy checks.
 
-    If you never heard about Redis the best place to start is on
-    https://redis.io.  Now let us have a look at the low-level API.
+    If you are interested in a detailed comparison of Redis clients
+    and the design rationale behind Aedis jump to \ref why-aedis. Now
+    let us have a look at the low-level API.
 
     \section low-level-api Low-level API
 
@@ -649,6 +650,47 @@
     \section Referece
   
     See \subpage any.
+
+    \section why-aedis Why Aedis
+
+    With so many Redis clients available it is not unlikely that users
+    are asking themselves why yet another one. At the time of this
+    writing there are 17 clients listed in the
+    [official](https://redis.io/docs/clients/#cpp) list.
+
+    I will focus effort on analysing only the first five ranked by
+    github stars.
+
+    @li https://github.com/sewenew/redis-plus-plus
+    @li https://github.com/cpp-redis/cpp_redis
+    @li https://github.com/hmartiro/redox
+    @li https://github.com/nekipelov/redisclient
+    @li https://github.com/0xsky/xredis
+
+    Before we start it is worth mentioning that none of these clients
+
+    @li No support for RESP3, the lastest protocol version. This has
+    many consequences, one of them is that server pushes have to be
+    handled in a separate connection.
+
+    @li Support the Asio asynchronous model. None of the clients seems
+    to be able to work with coroutines.
+
+    @li Serializaiton of user data types that avoids temporaries.
+    @li Error handling with error-code and exception overload.
+    @li Have a clear multi-threading concept. 
+    @li Fine control over memory allocation e.g. via allocators.
+    @li No healthy checks.
+
+    @subsection redis-plus-plus
+
+    @li Based on hiredis.
+    @li Transaction and Pipelines are treated differently.
+
+    @subsection cpp_redis
+    @subsection redox
+    @subsection redisclient
+    @subsection xRedis
  */
 
 /** \defgroup any Reference

@@ -20,29 +20,20 @@
 
 namespace aedis {
 namespace adapter {
+namespace detail {
 
-/** @brief Traits class for response objects.
- *  @ingroup any
+/* Traits class for response objects.
  *
- *  Provides traits for all supported response types i.e. all STL
- *  containers and C++ buil-in types.
+ * Provides traits for all supported response types i.e. all STL
+ * containers and C++ buil-in types.
  */
 template <class ResponseType>
 struct response_traits
 {
-   /// The adapter type.
    using adapter_type = adapter::detail::wrapper<ResponseType>;
-
-   /** @brief Returns an adapter for the reponse r
-    *
-    *  @param r The response object e.g a C++ container.
-    *  @return An adapter suitable for use in resp3::read or resp3::async_read.
-    *  @remark Users can also use the free adapt function for type deduction.
-    */
    static auto adapt(ResponseType& r) noexcept { return adapter_type{&r}; }
 };
 
-/// Template alias for adapters.
 template <class T>
 using adapter_t = typename response_traits<T>::adapter_type;
 
@@ -163,6 +154,7 @@ struct response_traits<std::tuple<Ts...>>
    static auto adapt(response_type& r) noexcept { return adapter_type{&r}; }
 };
 
+} // detail
 } // adapter
 } // aedis
 
