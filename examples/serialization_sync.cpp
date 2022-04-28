@@ -24,7 +24,6 @@ using aedis::resp3::type;
 using aedis::redis::command;
 using aedis::generic::make_serializer;
 using aedis::adapter::adapt;
-using net::dynamic_buffer;
 using net::ip::tcp;
 
 int main()
@@ -53,10 +52,11 @@ int main()
 
       // Reads the responses to all commands in the request.
       std::string buffer;
-      resp3::read(socket, dynamic_buffer(buffer)); // hello
-      resp3::read(socket, dynamic_buffer(buffer)); // set
-      resp3::read(socket, dynamic_buffer(buffer), adapt(out)); // get
-      resp3::read(socket, dynamic_buffer(buffer)); // quit
+      auto dbuf = net::dynamic_buffer(buffer);
+      resp3::read(socket, dbuf); // hello
+      resp3::read(socket, dbuf); // set
+      resp3::read(socket, dbuf, adapt(out)); // get
+      resp3::read(socket, dbuf); // quit
 
       // Should be equal to what has been sent above.
       std::cout << out << std::endl;

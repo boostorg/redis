@@ -23,7 +23,6 @@ using aedis::generic::make_serializer;
 using net::ip::tcp;
 using net::write;
 using net::buffer;
-using net::dynamic_buffer;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
 net::awaitable<void> example()
@@ -43,10 +42,10 @@ net::awaitable<void> example()
 
    // Ignores the response to hello.
    std::string buffer;
-   co_await resp3::async_read(socket, dynamic_buffer(buffer));
+   co_await resp3::async_read(socket, net::dynamic_buffer(buffer));
 
    for (std::vector<node<std::string>> resp;;) {
-      co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
+      co_await resp3::async_read(socket, net::dynamic_buffer(buffer), adapt(resp));
       for (auto const& e: resp)
          std::cout << e << std::endl;
       resp.clear();

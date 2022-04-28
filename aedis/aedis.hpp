@@ -473,53 +473,37 @@
     {
        net::io_context ioc;
 
-       client<net::ip::tcp::socket> db{ioc.get_executor()};
+       client_type db(ioc.get_executor());
+       auto recv = std::make_shared<receiver>(db);
+       db.set_receiver(recv);
 
-       db.set_resp3_handler(resp3_callback);
-       db.set_read_handler(read_callback);
-
-       db.async_run("127.0.0.1", "6379", [](auto ec){ ... });
+       db.async_run("127.0.0.1", "6379", [](auto ec){ std::cout << ec.message() << std::endl;});
 
        ioc.run();
     }
     @endcode
 
-    Most of the time, users will be only concerned with the
-    implementation of \c read_callback and \c resp3_callback. For
-    example
+    Users are concerned only with the implementation of the
+    receiver. For example
 
     @code
     struct receiver {
-       receiver(client_type& db) , adapter_{adapt(resp_)} {}
-
-       void on_read(command cmd, std::size_t)
-       {
-          std::cout << "on_read: " << cmd << ", " << n << "\n";
-       }
+       void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec) { ...  }
     
-       void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
-       {
-          adapter_(nd, ec);
-       }
+       void on_read(command cmd, std::size_t) { ...  }
     
-    private:
-       response_type resp_;
-       adapter_t<response_type> adapter_;
+       void on_write(std::size_t n) { ... }
+    
+       void on_push(std::size_t n) { }
     };
     @endcode
 
-    The read and resp3 callbacks mentioned earlier become then
-
-    @code
-    receiver recv;
-    auto read_callback = [&recv](command cmd, std::size_t n){recv.on_read(cmd, n);};
-    auto resp3_callback = [&recv](command cmd, auto const& nd, auto& ec){recv.on_resp3(cmd, nd, ec);};
-    @endcode
+    The functions in the receiver are callbacks that are called by the client class.
 
     \subsection high-level-sending-cmds Sending commands
 
     The db object from the example above can be passed around to other
-    objects so commands can be sent from everywhere in the app.
+    objects so that commands can be sent from everywhere in the app.
     Sending commands is also similar to what has been discussed before
 
     @code
@@ -543,26 +527,27 @@
 
     To better fix what has been said above, users should have a look at some simple examples.
 
-    \b Low \b level \b API
+    \b Low \b level \b API (sync)
 
-    @li low_level/sync_intro.cpp: Shows how to use the Aedis synchronous api.
-    @li low_level/sync_serialization.cpp: Shows how serialize your own type avoiding copies.
-    @li low_level/async_intro.cpp: Show how to use the low level async api.
-    @li low_level/subscriber.cpp: Shows how channel subscription works at the low level.
-    @li low_level/adapter.cpp: Shows how to write a response adapter that prints to the screen, see \ref low-level-adapters.
+    @li intro_sync.cpp: Synchronous API usage example.
+    @li serialization_sync.cpp: Shows how serialize your own types.
+
+    \b Low \b level \b API (async-coroutine)
+
+    @li subscriber.cpp: Shows how channel subscription works at the low level.
+    @li transaction.cpp: Shows how to read the response to transactions.
+    @li custom_adapter.cpp: Shows how to write a response adapter that prints to the screen, see \ref low-level-adapters.
 
     \b High \b level \b API
 
-    @li high_level/intro.cpp: Some commands are sent to the Redis server and the responses are printed to screen. 
-    @li high_level/aggregates.cpp: Shows how receive RESP3 aggregate data types in a general way.
-    @li high_level/stl_containers.cpp: Shows how to read responses in STL containers.
-    @li high_level/serialization.cpp: Shows how to de/serialize your own data types.
-    @li high_level/subscriber.cpp: Shows how channel subscription works at a high level. See also https://redis.io/topics/pubsub.
+    @li intro_high_level.cpp: High level API usage example.
+    @li aggregates_high_level.cpp: Shows how receive RESP3 aggregate data types in a general way or in STL containers.
+    @li subscriber_high_level.cpp: Shows how channel [subscription](https://redis.io/topics/pubsub) works at a high level.
 
-    \b Asynchronous \b Servers
+    \b Asynchronous \b Servers (high level API)
 
-    @li high_level/echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server.
-    @li high_level/chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
+    @li echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server.
+    @li chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
 
     \section using-aedis Using Aedis
 
@@ -648,26 +633,23 @@
     At the time of this writing there are seventeen Redis clients
     listed in the [official](https://redis.io/docs/clients/#cpp) list.
     With so many clients available it is not unlikely that users are
-    asking themselves why yet another one. In this section I will try
+    asking themselves why yet another one.  In this section I will try
     to compare Aedis to the most popular clients and why we need
-    Aedis.
+    Aedis. Notice however that this is ongoing work as comparing
+    client objectively is difficult and time consuming.
 
-    The most popular clients ranked by github stars are
+    The most popular client at the moment of this writing ranked by
+    github stars is
 
     @li https://github.com/sewenew/redis-plus-plus
-    @li https://github.com/cpp-redis/cpp_redis
-    @li https://github.com/hmartiro/redox
-    @li https://github.com/nekipelov/redisclient
-    @li https://github.com/0xsky/xredis
 
-    Before we start it is worth mentioning some things none of these clients support
+    Before we start it is worth mentioning some of the things it does
+    not support
 
-    @li RESP3. Working with the less capable RESP2 version is still
-    possible in recent Redis version but it is expected to be dropped
-    soon. Without RESP3 is impossible to support some important Redis
-    features like client side caching, among other things.
+    @li RESP3. Without RESP3 is impossible to support some important
+    Redis features like client side caching, among other things.
     @li The Asio asynchronous model.
-    @li Serializaiton of user data types that avoids temporaries.
+    @li Serialization of user data types that avoids temporaries.
     @li Error handling with error-code and exception overload.
     @li Healthy checks.
     @li Fine control over memory allocation by means of allocators.
@@ -715,7 +697,7 @@
     Some of the problems with this API are
 
     @li Heterogeneous treatment of commands, pipelines and transaction.
-    @li Having to manually finish the pipeline with \c .exec() is a mojor source of headache. This is not required by the protocol itself but results from the abstraction used.
+    @li Having to manually finish the pipeline with \c .exec() is a major source of headache. This is not required by the protocol itself but results from the abstraction used.
     @li Any Api that sends individual commands has a very restricted scope of usability and should be avoided in anything that needs minimum performance guarantees.
     @li The API imposes exceptions on users, no error-code overload is provided.
     @li No control over dynamic allocations.
@@ -737,7 +719,7 @@
     > creates a new connection.
 
     In Aedis there is no difference between sending one command, a
-    pipeline or a transaction because creating the request is decopled
+    pipeline or a transaction because creating the request is decoupled
     from the IO objects, for example
 
     @code
@@ -814,14 +796,9 @@
 
     and the response is delivered through a callback.
 
-    @subsection cpp_redis
-    @subsection redox
-    @subsection redisclient
-    @subsection xRedis
-
     \section Acknowledgement
 
-    I would like to thank Vinícius dos Santos Oliveira for useful discussion about how Aedis consumes buffers in read operation (among other things).
+    I would like to thank Vinícius dos Santos Oliveira for useful discussion about how Aedis consumes buffers in the read operation (among other things).
 
     \section Referece
   
@@ -831,7 +808,7 @@
 
 /** \defgroup any Reference
  *
- *  This page contains the documentaiton of all user facing code.
+ *  This page contains the documentation of all user facing code.
  */
 
 #endif // AEDIS_HPP

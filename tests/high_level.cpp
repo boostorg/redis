@@ -25,7 +25,6 @@ using aedis::adapter::adapt;
 using aedis::adapter::adapter_t;
 using node_type = aedis::resp3::node<std::string>;
 using tcp = net::ip::tcp;
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<tcp::socket>;
 using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
 
 auto print_read = [](auto cmd, auto n)
