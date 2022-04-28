@@ -1,5 +1,12 @@
 var searchData=
 [
-  ['to_5fbulk_289',['to_bulk',['../group__any.html#ga4e21de126538a37995f90914afd51447',1,'aedis::resp3']]],
-  ['to_5fstring_290',['to_string',['../group__any.html#ga0bf1d33ed9519263e9760aa372879bc9',1,'aedis::redis::to_string()'],['../group__any.html#ga1fd47bfcbb0461e09ec55ea767454ce5',1,'aedis::resp3::to_string(node&lt; String &gt; const &amp;in)'],['../group__any.html#gae50b66df4a64aef687a28d38d6c15992',1,'aedis::resp3::to_string(type t)'],['../group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f',1,'aedis::sentinel::to_string()']]]
+  ['send_301',['send',['../classaedis_1_1generic_1_1client.html#a866062190bd85521821e76c8f0002227',1,'aedis::generic::client']]],
+  ['send_5frange_302',['send_range',['../classaedis_1_1generic_1_1client.html#ac37cacf2f7ea09b61eac5e56a11ea177',1,'aedis::generic::client::send_range(Command cmd, Key const &amp;key, Range const &amp;range)'],['../classaedis_1_1generic_1_1client.html#a6ca56de744e11499ce95c5436fe5c931',1,'aedis::generic::client::send_range(Command cmd, Range const &amp;range)']]],
+  ['send_5frange2_303',['send_range2',['../classaedis_1_1generic_1_1client.html#a1f5f93fcefc0e52b8c129ee712295bdd',1,'aedis::generic::client::send_range2(Command cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)'],['../classaedis_1_1generic_1_1client.html#a4c69aab2a471ffe740ae3408c7e54820',1,'aedis::generic::client::send_range2(Command cmd, ForwardIterator begin, ForwardIterator end)']]],
+  ['serializer_304',['serializer',['../classaedis_1_1generic_1_1serializer.html#accb039a3b391aef27b6e2113fe6875c6',1,'aedis::generic::serializer']]],
+  ['set_5fpush_5fhandler_305',['set_push_handler',['../classaedis_1_1generic_1_1client.html#aa867aaa8251c7618858c30e7cedd0dc7',1,'aedis::generic::client']]],
+  ['set_5fread_5fhandler_306',['set_read_handler',['../classaedis_1_1generic_1_1client.html#a8613db8c0089b1e8917752c96d0d6384',1,'aedis::generic::client']]],
+  ['set_5freceiver_307',['set_receiver',['../classaedis_1_1generic_1_1client.html#ae0a4aa77d4cc63788b1bc197bb2dc08a',1,'aedis::generic::client']]],
+  ['set_5fresp3_5fhandler_308',['set_resp3_handler',['../classaedis_1_1generic_1_1client.html#a3b15ebe205dcf22801aacdb3321b78a1',1,'aedis::generic::client']]],
+  ['set_5fwrite_5fhandler_309',['set_write_handler',['../classaedis_1_1generic_1_1client.html#af82cf3fb1b7e8345e99580bc90999cc5',1,'aedis::generic::client']]]
 ];

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -78,119 +78,124 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="title">serializer.hpp</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment"> *</span></div>
-<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * This Source Code Form is subject to the terms of the Mozilla Public</span></div>
-<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * License, v. 2.0. If a copy of the MPL was not distributed with this</span></div>
-<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> * file, You can obtain one at https://mozilla.org/MPL/2.0/.</span></div>
-<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment"> */</span></div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#pragma once</span></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * Distributed under the Boost Software License, Version 1.0. (See</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * accompanying file LICENSE.txt)</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> */</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160; </div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#ifndef AEDIS_GENERIC_SERIALIZER_HPP</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#define AEDIS_GENERIC_SERIALIZER_HPP</span></div>
 <div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
 <div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;boost/hana.hpp&gt;</span></div>
 <div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;aedis/resp3/compose.hpp&gt;</span></div>
 <div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">namespace </span>aedis {</div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="keyword">namespace </span>generic {</div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="comment">// Consider detecting tuples in the type in the parameter pack to</span></div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="comment">// calculate the header size correctly.</span></div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="comment">//</span></div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="comment">// NOTE: For some commands like hset it would be a good idea to assert</span></div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="comment">// the value type is a pair.</span></div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> Storage&gt;</div>
-<div class="line"><a name="l00049"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html">   49</a></span>&#160;<span class="keyword">class </span><a class="code" href="classaedis_1_1generic_1_1serializer.html">serializer</a> {</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;   Storage* request_;</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00059"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#accb039a3b391aef27b6e2113fe6875c6">   59</a></span>&#160;   <a class="code" href="classaedis_1_1generic_1_1serializer.html#accb039a3b391aef27b6e2113fe6875c6">serializer</a>(Storage&amp; storage) : request_(&amp;storage) {}</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class </span>Command, <span class="keyword">class</span>... Ts&gt;</div>
-<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f">   79</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f">push</a>(Command cmd, Ts <span class="keyword">const</span>&amp;... args)</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;   {</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;      <span class="keyword">using</span> boost::hana::for_each;</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      <span class="keyword">using</span> boost::hana::make_tuple;</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160; </div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;      <span class="keyword">auto</span> constexpr pack_size = <span class="keyword">sizeof</span>...(Ts);</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;      <a class="code" href="group__any.html#gac8fcdf9212230c9cf05a01097e9730af">resp3::add_header</a>(*request_, 1 + pack_size);</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160; </div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;      <a class="code" href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">resp3::add_bulk</a>(*request_, <a class="code" href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">to_string</a>(cmd));</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;      <a class="code" href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">resp3::add_bulk</a>(*request_, make_tuple(args...));</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;   }</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160; </div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">// NOTE: Consider detecting tuples in the type in the parameter pack</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// to calculate the header size correctly.</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// NOTE: For some commands like hset it would be a good idea to assert</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="comment">// the value type is a pair.</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">namespace </span>aedis {</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">namespace </span>generic {</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> Storage&gt;</div>
+<div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html">   48</a></span>&#160;<span class="keyword">class </span><a class="code" href="classaedis_1_1generic_1_1serializer.html">serializer</a> {</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;   Storage* request_;</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00058"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#accb039a3b391aef27b6e2113fe6875c6">   58</a></span>&#160;   <a class="code" href="classaedis_1_1generic_1_1serializer.html#accb039a3b391aef27b6e2113fe6875c6">serializer</a>(Storage&amp; storage) : request_(&amp;storage) {}</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160; </div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class </span>Command, <span class="keyword">class</span>... Ts&gt;</div>
+<div class="line"><a name="l00077"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f">   77</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f">push</a>(Command cmd, Ts <span class="keyword">const</span>&amp;... args)</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;   {</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;      <span class="keyword">using</span> boost::hana::for_each;</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      <span class="keyword">using</span> boost::hana::make_tuple;</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;      <span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>;</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160; </div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;      <span class="keyword">auto</span> constexpr pack_size = <span class="keyword">sizeof</span>...(Ts);</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;      <a class="code" href="group__any.html#ga4e14c4f077c580a6bbec018572583136">resp3::add_header</a>(*request_, type::array, 1 + pack_size);</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160; </div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;      resp3::add_bulk(*request_, <a class="code" href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">to_string</a>(cmd));</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;      resp3::add_bulk(*request_, make_tuple(args...));</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;   }</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160; </div>
 <div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Command, <span class="keyword">class</span> Key, <span class="keyword">class</span> ForwardIterator&gt;</div>
 <div class="line"><a name="l00112"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">  112</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">push_range2</a>(Command cmd, Key <span class="keyword">const</span>&amp; key, ForwardIterator begin, ForwardIterator end)</div>
 <div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;   {</div>
 <div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160; </div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;         <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160; </div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;      <span class="keyword">auto</span> constexpr size = resp3::bulk_counter&lt;value_type&gt;::size;</div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;      <a class="code" href="group__any.html#gac8fcdf9212230c9cf05a01097e9730af">resp3::add_header</a>(*request_, 2 + size * distance);</div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;      <a class="code" href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">resp3::add_bulk</a>(*request_, <a class="code" href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">to_string</a>(cmd));</div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;      <a class="code" href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">resp3::add_bulk</a>(*request_, key);</div>
-<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160; </div>
-<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;     <a class="code" href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">resp3::add_bulk</a>(*request_, *begin);</div>
-<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;   }</div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160; </div>
-<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Command, <span class="keyword">class</span> ForwardIterator&gt;</div>
-<div class="line"><a name="l00147"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#a54c8349e0815cafb58a817870aeb5565">  147</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html#a54c8349e0815cafb58a817870aeb5565">push_range2</a>(Command cmd, ForwardIterator begin, ForwardIterator end)</div>
-<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;   {</div>
-<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
-<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160; </div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;         <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;      <span class="keyword">auto</span> constexpr size = resp3::bulk_counter&lt;value_type&gt;::size;</div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;      <a class="code" href="group__any.html#gac8fcdf9212230c9cf05a01097e9730af">resp3::add_header</a>(*request_, 1 + size * distance);</div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;      <a class="code" href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">resp3::add_bulk</a>(*request_, <a class="code" href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">to_string</a>(cmd));</div>
-<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
-<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;     <a class="code" href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">resp3::add_bulk</a>(*request_, *begin);</div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;   }</div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
-<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Command, <span class="keyword">class</span> Key, <span class="keyword">class</span> Range&gt;</div>
-<div class="line"><a name="l00168"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a">  168</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a">push_range</a>(Command cmd, Key <span class="keyword">const</span>&amp; key, Range <span class="keyword">const</span>&amp; range)</div>
-<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;   {</div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;      <span class="keyword">using</span> std::begin;</div>
-<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;      <span class="keyword">using</span> std::end;</div>
-<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">push_range2</a>(cmd, key, begin(range), end(range));</div>
-<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;   }</div>
-<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160; </div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Command, <span class="keyword">class</span> Range&gt;</div>
-<div class="line"><a name="l00180"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#a6dd2ad102dc5b6d7164fe6af7ddcab76">  180</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html#a6dd2ad102dc5b6d7164fe6af7ddcab76">push_range</a>(Command cmd, Range <span class="keyword">const</span>&amp; range)</div>
-<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;   {</div>
-<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;      <span class="keyword">using</span> std::begin;</div>
-<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;      <span class="keyword">using</span> std::end;</div>
-<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">push_range2</a>(cmd, begin(range), end(range));</div>
-<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;   }</div>
-<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;};</div>
-<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160; </div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> CharT, <span class="keyword">class</span> Traits, <span class="keyword">class</span> Allocator&gt;</div>
-<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;serializer&lt;std::basic_string&lt;CharT, Traits, Allocator&gt;&gt;</div>
-<div class="line"><a name="l00194"></a><span class="lineno"><a class="line" href="group__any.html#gabc1edbc325e4f4f087248225eee6f64f">  194</a></span>&#160;<a class="code" href="group__any.html#gabc1edbc325e4f4f087248225eee6f64f">make_serializer</a>(std::basic_string&lt;CharT, Traits, Allocator&gt;&amp; storage)</div>
-<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;{</div>
-<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;   <span class="keywordflow">return</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html">serializer&lt;std::basic_string&lt;CharT, Traits, Allocator&gt;</a>&gt;(storage);</div>
-<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;}</div>
-<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160; </div>
-<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;} <span class="comment">// generic</span></div>
-<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html">aedis::generic::serializer</a></div><div class="ttdoc">Creates a Redis request from user data.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00049">serializer.hpp:49</a></div></div>
-<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_a066adc8eb627bb7a890063cc5cde9a5a"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a">aedis::generic::serializer::push_range</a></div><div class="ttdeci">void push_range(Command cmd, Key const &amp;key, Range const &amp;range)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00168">serializer.hpp:168</a></div></div>
-<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_a54c8349e0815cafb58a817870aeb5565"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#a54c8349e0815cafb58a817870aeb5565">aedis::generic::serializer::push_range2</a></div><div class="ttdeci">void push_range2(Command cmd, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00147">serializer.hpp:147</a></div></div>
-<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_a6dd2ad102dc5b6d7164fe6af7ddcab76"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#a6dd2ad102dc5b6d7164fe6af7ddcab76">aedis::generic::serializer::push_range</a></div><div class="ttdeci">void push_range(Command cmd, Range const &amp;range)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00180">serializer.hpp:180</a></div></div>
-<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_a898aefcbbd285fc32a970519e5f50f0f"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f">aedis::generic::serializer::push</a></div><div class="ttdeci">void push(Command cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00079">serializer.hpp:79</a></div></div>
-<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_accb039a3b391aef27b6e2113fe6875c6"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#accb039a3b391aef27b6e2113fe6875c6">aedis::generic::serializer::serializer</a></div><div class="ttdeci">serializer(Storage &amp;storage)</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00059">serializer.hpp:59</a></div></div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;      <span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>;</div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160; </div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;         <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160; </div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;      <span class="keyword">auto</span> constexpr size = resp3::bulk_counter&lt;value_type&gt;::size;</div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;      <a class="code" href="group__any.html#ga4e14c4f077c580a6bbec018572583136">resp3::add_header</a>(*request_, type::array, 2 + size * distance);</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;      resp3::add_bulk(*request_, <a class="code" href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">to_string</a>(cmd));</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;      resp3::add_bulk(*request_, key);</div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160; </div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;     resp3::add_bulk(*request_, *begin);</div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;   }</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160; </div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Command, <span class="keyword">class</span> ForwardIterator&gt;</div>
+<div class="line"><a name="l00148"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#a54c8349e0815cafb58a817870aeb5565">  148</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html#a54c8349e0815cafb58a817870aeb5565">push_range2</a>(Command cmd, ForwardIterator begin, ForwardIterator end)</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;   {</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;      <span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>;</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160; </div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;         <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;      <span class="keyword">auto</span> constexpr size = resp3::bulk_counter&lt;value_type&gt;::size;</div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;      <a class="code" href="group__any.html#ga4e14c4f077c580a6bbec018572583136">resp3::add_header</a>(*request_, type::array, 1 + size * distance);</div>
+<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;      resp3::add_bulk(*request_, <a class="code" href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">to_string</a>(cmd));</div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160; </div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;     resp3::add_bulk(*request_, *begin);</div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;   }</div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160; </div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Command, <span class="keyword">class</span> Key, <span class="keyword">class</span> Range&gt;</div>
+<div class="line"><a name="l00170"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a">  170</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a">push_range</a>(Command cmd, Key <span class="keyword">const</span>&amp; key, Range <span class="keyword">const</span>&amp; range)</div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;   {</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;      <span class="keyword">using</span> std::begin;</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;      <span class="keyword">using</span> std::end;</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">push_range2</a>(cmd, key, begin(range), end(range));</div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;   }</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160; </div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Command, <span class="keyword">class</span> Range&gt;</div>
+<div class="line"><a name="l00182"></a><span class="lineno"><a class="line" href="classaedis_1_1generic_1_1serializer.html#a6dd2ad102dc5b6d7164fe6af7ddcab76">  182</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html#a6dd2ad102dc5b6d7164fe6af7ddcab76">push_range</a>(Command cmd, Range <span class="keyword">const</span>&amp; range)</div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;   {</div>
+<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;      <span class="keyword">using</span> std::begin;</div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;      <span class="keyword">using</span> std::end;</div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;      <a class="code" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">push_range2</a>(cmd, begin(range), end(range));</div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;   }</div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;};</div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160; </div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> CharT, <span class="keyword">class</span> Traits, <span class="keyword">class</span> Allocator&gt;</div>
+<div class="line"><a name="l00195"></a><span class="lineno"><a class="line" href="group__any.html#ga4142e05fc5f5241f8c076882443e6fd1">  195</a></span>&#160;<span class="keyword">auto</span> <a class="code" href="group__any.html#ga4142e05fc5f5241f8c076882443e6fd1">make_serializer</a>(std::basic_string&lt;CharT, Traits, Allocator&gt;&amp; storage)</div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;{</div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;   <span class="keywordflow">return</span> <a class="code" href="classaedis_1_1generic_1_1serializer.html">serializer&lt;std::basic_string&lt;CharT, Traits, Allocator&gt;</a>&gt;(storage);</div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;}</div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160; </div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;} <span class="comment">// generic</span></div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_GENERIC_SERIALIZER_HPP</span></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html">aedis::generic::serializer</a></div><div class="ttdoc">Creates a Redis request from user data.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00048">serializer.hpp:48</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_a066adc8eb627bb7a890063cc5cde9a5a"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a">aedis::generic::serializer::push_range</a></div><div class="ttdeci">void push_range(Command cmd, Key const &amp;key, Range const &amp;range)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00170">serializer.hpp:170</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_a54c8349e0815cafb58a817870aeb5565"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#a54c8349e0815cafb58a817870aeb5565">aedis::generic::serializer::push_range2</a></div><div class="ttdeci">void push_range2(Command cmd, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00148">serializer.hpp:148</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_a6dd2ad102dc5b6d7164fe6af7ddcab76"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#a6dd2ad102dc5b6d7164fe6af7ddcab76">aedis::generic::serializer::push_range</a></div><div class="ttdeci">void push_range(Command cmd, Range const &amp;range)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00182">serializer.hpp:182</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_a898aefcbbd285fc32a970519e5f50f0f"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f">aedis::generic::serializer::push</a></div><div class="ttdeci">void push(Command cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00077">serializer.hpp:77</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_accb039a3b391aef27b6e2113fe6875c6"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#accb039a3b391aef27b6e2113fe6875c6">aedis::generic::serializer::serializer</a></div><div class="ttdeci">serializer(Storage &amp;storage)</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00058">serializer.hpp:58</a></div></div>
 <div class="ttc" id="aclassaedis_1_1generic_1_1serializer_html_ada0b3687fc4762363394195047fa1cf7"><div class="ttname"><a href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">aedis::generic::serializer::push_range2</a></div><div class="ttdeci">void push_range2(Command cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00112">serializer.hpp:112</a></div></div>
-<div class="ttc" id="agroup__any_html_ga0bf1d33ed9519263e9760aa372879bc9"><div class="ttname"><a href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">aedis::redis::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts a command to a string.</div></div>
-<div class="ttc" id="agroup__any_html_ga75185351a5ffd4123be907f8d659d2fb"><div class="ttname"><a href="group__any.html#ga75185351a5ffd4123be907f8d659d2fb">aedis::resp3::add_bulk</a></div><div class="ttdeci">void add_bulk(Request &amp;to, T const &amp;data)</div><div class="ttdoc">Adds a rep3 bulk to the request.</div><div class="ttdef"><b>Definition:</b> <a href="compose_8hpp_source.html#l00102">compose.hpp:102</a></div></div>
-<div class="ttc" id="agroup__any_html_gabc1edbc325e4f4f087248225eee6f64f"><div class="ttname"><a href="group__any.html#gabc1edbc325e4f4f087248225eee6f64f">aedis::generic::make_serializer</a></div><div class="ttdeci">serializer&lt; std::basic_string&lt; CharT, Traits, Allocator &gt; &gt; make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00194">serializer.hpp:194</a></div></div>
-<div class="ttc" id="agroup__any_html_gac8fcdf9212230c9cf05a01097e9730af"><div class="ttname"><a href="group__any.html#gac8fcdf9212230c9cf05a01097e9730af">aedis::resp3::add_header</a></div><div class="ttdeci">void add_header(Request &amp;to, std::size_t size)</div><div class="ttdoc">Adds a resp3 header to the store to.</div><div class="ttdef"><b>Definition:</b> <a href="compose_8hpp_source.html#l00087">compose.hpp:87</a></div></div>
+<div class="ttc" id="agroup__any_html_ga0bf1d33ed9519263e9760aa372879bc9"><div class="ttname"><a href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">aedis::redis::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts the command to a string.</div></div>
+<div class="ttc" id="agroup__any_html_ga4142e05fc5f5241f8c076882443e6fd1"><div class="ttname"><a href="group__any.html#ga4142e05fc5f5241f8c076882443e6fd1">aedis::generic::make_serializer</a></div><div class="ttdeci">auto make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00195">serializer.hpp:195</a></div></div>
+<div class="ttc" id="agroup__any_html_ga4e14c4f077c580a6bbec018572583136"><div class="ttname"><a href="group__any.html#ga4e14c4f077c580a6bbec018572583136">aedis::resp3::add_header</a></div><div class="ttdeci">void add_header(Request &amp;to, type t, std::size_t size)</div><div class="ttdoc">Adds a resp3 header to the request.</div><div class="ttdef"><b>Definition:</b> <a href="compose_8hpp_source.html#l00106">compose.hpp:106</a></div></div>
+<div class="ttc" id="agroup__any_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 data types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

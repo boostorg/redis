@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -78,57 +78,53 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="title">command.hpp</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment"> *</span></div>
-<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * This Source Code Form is subject to the terms of the Mozilla Public</span></div>
-<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * License, v. 2.0. If a copy of the MPL was not distributed with this</span></div>
-<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> * file, You can obtain one at https://mozilla.org/MPL/2.0/.</span></div>
-<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment"> */</span></div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#pragma once</span></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * Distributed under the Boost Software License, Version 1.0. (See</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * accompanying file LICENSE.txt)</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> */</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160; </div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#ifndef AEDIS_SENTINEL_COMMAND_HPP</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#define AEDIS_SENTINEL_COMMAND_HPP</span></div>
 <div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
 <div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;ostream&gt;</span></div>
 <div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160; </div>
 <div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="keyword">namespace </span>aedis {</div>
 <div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">namespace </span><a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29aecadec2924e86bf88d622ceb0855382d">sentinel</a> {</div>
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00023"></a><span class="lineno"><a class="line" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">   23</a></span>&#160;<span class="keyword">enum class</span> <a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> {</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29aa33915ba226b6dbd1edb3e09fac41ed9">acl</a>,</div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29afa53b91ccc1b78668d5af58e1ed3a485">auth</a>,</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a62608e08adc29a8d6dbc9754e659f125">client</a>,</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a1dccadfed7bcbb036c56a4afb97e906f">command</a>,</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a5d41402abc4b2a76b9719d911017c592">hello</a>,</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29acaf9b6b99962bf5c2264824231d7a40c">info</a>,</div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29adf911f0151f9ef021d410b4be5060972">ping</a>,</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29ad544bb3f0950271bcaed7728a515ddaf">psubscribe</a>,</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a9b6d0bb3102b87fae57bc4a39149518e">publish</a>,</div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a3b142efa33ad22af4aca82dcee60fec0">punsubscribe</a>,</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a29a7e96467b69a9f5a93332e29e9b0de">role</a>,</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29aecadec2924e86bf88d622ceb0855382d">sentinel</a>,</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a5924f03a95ee6f7277e5bdd1e81b8fdc">shutdown</a>,</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a4f893ee24950069dd823e083338a456d">subscribe</a>,</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29aa013658e30387f7a60cdaf0acf26850d">unsubscribe</a>,</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29afedb2d84cafe20862cb4399751a8a7e3">invalid</a>,</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;   <span class="comment">// For internal usege only, users should ignore this.</span></div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;   multi,</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;   <span class="comment">// For internal usege only, users should ignore this.</span></div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;   discard,</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;   <span class="comment">// For internal usege only, users should ignore this.</span></div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;   exec,</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;};</div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160; </div>
-<div class="line"><a name="l00069"></a><span class="lineno"><a class="line" href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">   69</a></span>&#160;<span class="keywordtype">char</span> <span class="keyword">const</span>* <a class="code" href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">to_string</a>(<a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> c);</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; </div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;std::ostream&amp; <a class="code" href="group__any.html#gabe641c301490af2c6b149cfabde5f5eb">operator&lt;&lt;</a>(std::ostream&amp; os, <a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> c);</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160; </div>
-<div class="line"><a name="l00082"></a><span class="lineno"><a class="line" href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">   82</a></span>&#160;<span class="keywordtype">bool</span> <a class="code" href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">has_push_response</a>(<a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> cmd);</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160; </div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;} <span class="comment">// sentinel</span></div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="ttc" id="agroup__any_html_ga61f4592d67beb56115b04cd4d5ab9c8f"><div class="ttname"><a href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">aedis::sentinel::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts a sentinel command to a string.</div></div>
-<div class="ttc" id="agroup__any_html_ga8372cd4e2ac5364b1666a01917529b32"><div class="ttname"><a href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">aedis::sentinel::has_push_response</a></div><div class="ttdeci">bool has_push_response(command cmd)</div><div class="ttdoc">Returns true for sentinel commands with push response.</div></div>
-<div class="ttc" id="agroup__any_html_ga9a6f3d1a56c2d4bd486a92f8d8f90c29"><div class="ttname"><a href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">aedis::sentinel::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Sentinel commands.</div><div class="ttdef"><b>Definition:</b> <a href="sentinel_2command_8hpp_source.html#l00023">command.hpp:23</a></div></div>
-<div class="ttc" id="agroup__any_html_gabe641c301490af2c6b149cfabde5f5eb"><div class="ttname"><a href="group__any.html#gabe641c301490af2c6b149cfabde5f5eb">aedis::resp3::operator&lt;&lt;</a></div><div class="ttdeci">std::ostream &amp; operator&lt;&lt;(std::ostream &amp;os, node&lt; String &gt; const &amp;o)</div><div class="ttdoc">Writes the node to the stream.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00088">node.hpp:88</a></div></div>
+<div class="line"><a name="l00024"></a><span class="lineno"><a class="line" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">   24</a></span>&#160;<span class="keyword">enum class</span> <a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> {</div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29aa33915ba226b6dbd1edb3e09fac41ed9">acl</a>,</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29afa53b91ccc1b78668d5af58e1ed3a485">auth</a>,</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a62608e08adc29a8d6dbc9754e659f125">client</a>,</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a1dccadfed7bcbb036c56a4afb97e906f">command</a>,</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a5d41402abc4b2a76b9719d911017c592">hello</a>,</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29acaf9b6b99962bf5c2264824231d7a40c">info</a>,</div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29adf911f0151f9ef021d410b4be5060972">ping</a>,</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29ad544bb3f0950271bcaed7728a515ddaf">psubscribe</a>,</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a9b6d0bb3102b87fae57bc4a39149518e">publish</a>,</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a3b142efa33ad22af4aca82dcee60fec0">punsubscribe</a>,</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a29a7e96467b69a9f5a93332e29e9b0de">role</a>,</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29aecadec2924e86bf88d622ceb0855382d">sentinel</a>,</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a5924f03a95ee6f7277e5bdd1e81b8fdc">shutdown</a>,</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a4f893ee24950069dd823e083338a456d">subscribe</a>,</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29aa013658e30387f7a60cdaf0acf26850d">unsubscribe</a>,</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;   <a class="code" href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29afedb2d84cafe20862cb4399751a8a7e3">invalid</a>,</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;};</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
+<div class="line"><a name="l00063"></a><span class="lineno"><a class="line" href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">   63</a></span>&#160;<span class="keywordtype">char</span> <span class="keyword">const</span>* <a class="code" href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">to_string</a>(<a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> c);</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
+<div class="line"><a name="l00070"></a><span class="lineno"><a class="line" href="group__any.html#gaef566c0da0bb6e1da8a236882448a1d6">   70</a></span>&#160;std::ostream&amp; <a class="code" href="group__any.html#gaef566c0da0bb6e1da8a236882448a1d6">operator&lt;&lt;</a>(std::ostream&amp; os, <a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> c);</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160; </div>
+<div class="line"><a name="l00075"></a><span class="lineno"><a class="line" href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">   75</a></span>&#160;<span class="keywordtype">bool</span> <a class="code" href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">has_push_response</a>(<a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> cmd);</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;} <span class="comment">// sentinel</span></div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_SENTINEL_COMMAND_HPP</span></div>
+<div class="ttc" id="agroup__any_html_ga61f4592d67beb56115b04cd4d5ab9c8f"><div class="ttname"><a href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">aedis::sentinel::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts the command to a string.</div></div>
+<div class="ttc" id="agroup__any_html_ga8372cd4e2ac5364b1666a01917529b32"><div class="ttname"><a href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">aedis::sentinel::has_push_response</a></div><div class="ttdeci">bool has_push_response(command cmd)</div><div class="ttdoc">Checks whether a command has push response.</div></div>
+<div class="ttc" id="agroup__any_html_ga9a6f3d1a56c2d4bd486a92f8d8f90c29"><div class="ttname"><a href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">aedis::sentinel::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Sentinel commands.</div><div class="ttdef"><b>Definition:</b> <a href="sentinel_2command_8hpp_source.html#l00024">command.hpp:24</a></div></div>
+<div class="ttc" id="agroup__any_html_gaef566c0da0bb6e1da8a236882448a1d6"><div class="ttname"><a href="group__any.html#gaef566c0da0bb6e1da8a236882448a1d6">aedis::sentinel::operator&lt;&lt;</a></div><div class="ttdeci">std::ostream &amp; operator&lt;&lt;(std::ostream &amp;os, command c)</div><div class="ttdoc">Writes the command string to the stream.</div></div>
 <div class="ttc" id="agroup__any_html_gga9a6f3d1a56c2d4bd486a92f8d8f90c29a1dccadfed7bcbb036c56a4afb97e906f"><div class="ttname"><a href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a1dccadfed7bcbb036c56a4afb97e906f">aedis::sentinel::command::command</a></div><div class="ttdeci">@ command</div><div class="ttdoc">https://redis.io/commands/command</div></div>
 <div class="ttc" id="agroup__any_html_gga9a6f3d1a56c2d4bd486a92f8d8f90c29a29a7e96467b69a9f5a93332e29e9b0de"><div class="ttname"><a href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a29a7e96467b69a9f5a93332e29e9b0de">aedis::sentinel::command::role</a></div><div class="ttdeci">@ role</div><div class="ttdoc">https://redis.io/commands/role</div></div>
 <div class="ttc" id="agroup__any_html_gga9a6f3d1a56c2d4bd486a92f8d8f90c29a3b142efa33ad22af4aca82dcee60fec0"><div class="ttname"><a href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a3b142efa33ad22af4aca82dcee60fec0">aedis::sentinel::command::punsubscribe</a></div><div class="ttdeci">@ punsubscribe</div><div class="ttdoc">https://redis.io/commands/punsubscribe</div></div>

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -119,26 +119,25 @@ class aedis::generic::serializer&lt; Storage &gt;</h3>
 
 <p>Creates a Redis request from user data. </p>
 <p>A request is composed of one or more redis commands and is referred to in the redis documentation as a pipeline, see <a href="https://redis.io/topics/pipelining">https://redis.io/topics/pipelining</a>.</p>
-<p>For example</p>
+<p>Example</p>
 <div class="fragment"><div class="line">std::string request;</div>
-<div class="line"><span class="keyword">auto</span> sr = <a class="code" href="group__any.html#gabc1edbc325e4f4f087248225eee6f64f">make_serializer</a>(request);</div>
+<div class="line"><span class="keyword">auto</span> sr = <a class="code" href="group__any.html#ga4142e05fc5f5241f8c076882443e6fd1">make_serializer</a>(request);</div>
 <div class="line">sr.push(command::hello, 3);</div>
 <div class="line">sr.push(command::flushall);</div>
 <div class="line">sr.push(command::ping);</div>
 <div class="line">sr.push(command::incr, <span class="stringliteral">&quot;key&quot;</span>);</div>
 <div class="line">sr.push(command::quit);</div>
 <div class="line">co_await async_write(socket, buffer(request));</div>
-<div class="ttc" id="agroup__any_html_gabc1edbc325e4f4f087248225eee6f64f"><div class="ttname"><a href="group__any.html#gabc1edbc325e4f4f087248225eee6f64f">aedis::generic::make_serializer</a></div><div class="ttdeci">serializer&lt; std::basic_string&lt; CharT, Traits, Allocator &gt; &gt; make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00194">serializer.hpp:194</a></div></div>
+<div class="ttc" id="agroup__any_html_ga4142e05fc5f5241f8c076882443e6fd1"><div class="ttname"><a href="group__any.html#ga4142e05fc5f5241f8c076882443e6fd1">aedis::generic::make_serializer</a></div><div class="ttdeci">auto make_serializer(std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</div><div class="ttdoc">Creates a serializer.</div><div class="ttdef"><b>Definition:</b> <a href="serializer_8hpp_source.html#l00195">serializer.hpp:195</a></div></div>
 </div><!-- fragment --><dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
-    <tr><td class="paramname">Storage</td><td>The storage type e.g <code>std::string</code>. </td></tr>
-    <tr><td class="paramname">Command</td><td>The command to serialize.</td></tr>
+    <tr><td class="paramname">Storage</td><td>The storage type e.g <code>std::string</code>.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section remark"><dt>Remarks</dt><dd>Non-string types will be converted to string by using <code>to_string</code>, which must be made available over ADL. </dd></dl>
+<dl class="section remark"><dt>Remarks</dt><dd>Non-string types will be converted to string by using <code>to_bulk</code>, which must be made available over ADL. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00049">49</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00048">48</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="accb039a3b391aef27b6e2113fe6875c6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#accb039a3b391aef27b6e2113fe6875c6">&#9670;&nbsp;</a></span>serializer()</h2>
@@ -169,12 +168,12 @@ template&lt;class Storage &gt; </div>
 <p>Constructor. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">storage</td><td>Object where the serialized request will be stored. </td></tr>
+    <tr><td class="paramname">storage</td><td>The underlying storage object i.e. where the request is to be stored. </td></tr>
   </table>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00059">59</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00058">58</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
 
 </div>
 </div>
@@ -222,16 +221,16 @@ template&lt;class Command , class... Ts&gt; </div>
 <div class="fragment"><div class="line">std::string request;</div>
 <div class="line"><span class="keyword">auto</span> sr = make_serializer&lt;command&gt;(request);</div>
 <div class="line">sr.push(command::set, <span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;some string&quot;</span>, <span class="stringliteral">&quot;EX&quot;</span>, <span class="stringliteral">&quot;2&quot;</span>);</div>
-</div><!-- fragment --><p>will add the <code>set</code> command with payload "some string" and an expiration of 2 seconds.</p>
+</div><!-- fragment --><p>will add the <code>set</code> command with value "some string" and an expiration of 2 seconds.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">cmd</td><td>The redis command. </td></tr>
-    <tr><td class="paramname">args</td><td>The arguments of the Redis command. </td></tr>
+    <tr><td class="paramname">cmd</td><td>The command e.g redis or sentinel command. </td></tr>
+    <tr><td class="paramname">args</td><td>Command arguments. </td></tr>
   </table>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00079">79</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00077">77</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
 
 </div>
 </div>
@@ -280,9 +279,9 @@ template&lt;class Command , class Key , class Range &gt; </div>
 </div><div class="memdoc">
 
 <p>Appends a new command to the end of the request. </p>
-<p>Similar to the range version. </p>
+<p>Equivalent to the overload taking a range (i.e. send_range2). </p>
 
-<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00168">168</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00170">170</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
 
 </div>
 </div>
@@ -325,9 +324,9 @@ template&lt;class Command , class Range &gt; </div>
 </div><div class="memdoc">
 
 <p>Appends a new command to the end of the request. </p>
-<p>Similar to the range version. </p>
+<p>Equivalent to the overload taking a range (i.e. send_range2). </p>
 
-<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00180">180</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00182">182</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
 
 </div>
 </div>
@@ -376,7 +375,7 @@ template&lt;class Command , class ForwardIterator &gt; </div>
 </div><div class="memdoc">
 
 <p>Appends a new command to the end of the request. </p>
-<p>This overload is useful for commands that don't have a key. For example</p>
+<p>This overload is useful for commands that have a dynamic number of arguments and don't have a key. For example</p>
 <div class="fragment"><div class="line">std::set&lt;std::string&gt; channels</div>
 <div class="line">   { <span class="stringliteral">&quot;channel1&quot;</span> , <span class="stringliteral">&quot;channel2&quot;</span> , <span class="stringliteral">&quot;channel3&quot;</span> }</div>
 <div class="line"> </div>
@@ -391,7 +390,7 @@ template&lt;class Command , class ForwardIterator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00147">147</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00148">148</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
 
 </div>
 </div>
@@ -446,8 +445,8 @@ template&lt;class Command , class Key , class ForwardIterator &gt; </div>
 </div><div class="memdoc">
 
 <p>Appends a new command to the end of the request. </p>
-<p>This overload is useful for commands that require a key. For example</p>
-<div class="fragment"><div class="line">std::map&lt;std::string, std::string&gt; <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a></div>
+<p>This overload is useful for commands that have a key and have a dynamic range of arguments. For example</p>
+<div class="fragment"><div class="line">std::map&lt;std::string, std::string&gt; map</div>
 <div class="line">   { {<span class="stringliteral">&quot;key1&quot;</span>, <span class="stringliteral">&quot;value1&quot;</span>}</div>
 <div class="line">   , {<span class="stringliteral">&quot;key2&quot;</span>, <span class="stringliteral">&quot;value2&quot;</span>}</div>
 <div class="line">   , {<span class="stringliteral">&quot;key3&quot;</span>, <span class="stringliteral">&quot;value3&quot;</span>}</div>
@@ -455,11 +454,10 @@ template&lt;class Command , class Key , class ForwardIterator &gt; </div>
 <div class="line"> </div>
 <div class="line">request req;</div>
 <div class="line">req.push_range2(command::hset, <span class="stringliteral">&quot;key&quot;</span>, std::cbegin(map), std::cend(map));</div>
-<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">aedis::resp3::type::map</a></div><div class="ttdeci">@ map</div><div class="ttdoc">Aggregate.</div></div>
 </div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">cmd</td><td>The Redis command </td></tr>
-    <tr><td class="paramname">key</td><td>The key the Redis command refers to. </td></tr>
+    <tr><td class="paramname">cmd</td><td>The command e.g. Redis or Sentinel command. </td></tr>
+    <tr><td class="paramname">key</td><td>The command key. </td></tr>
     <tr><td class="paramname">begin</td><td>Iterator to the begin of the range. </td></tr>
     <tr><td class="paramname">end</td><td>Iterator to the end of the range. </td></tr>
   </table>

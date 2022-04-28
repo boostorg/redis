@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['adapter_5ftype_295',['adapter_type',['../structaedis_1_1adapter_1_1response__traits.html#a0c3a5140f98a539258a227b817f6f97c',1,'aedis::adapter::response_traits']]]
+  ['executor_5ftype_316',['executor_type',['../classaedis_1_1generic_1_1client.html#a60775edf071e186ee2b163e56b2381ea',1,'aedis::generic::client']]]
 ];

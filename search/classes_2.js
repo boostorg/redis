@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['response_5ftraits_266',['response_traits',['../structaedis_1_1adapter_1_1response__traits.html',1,'aedis::adapter']]]
+  ['serializer_282',['serializer',['../classaedis_1_1generic_1_1serializer.html',1,'aedis::generic']]]
 ];

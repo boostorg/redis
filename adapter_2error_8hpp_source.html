@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -78,14 +78,14 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="title">error.hpp</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment"> *</span></div>
-<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * This Source Code Form is subject to the terms of the Mozilla Public</span></div>
-<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * License, v. 2.0. If a copy of the MPL was not distributed with this</span></div>
-<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> * file, You can obtain one at https://mozilla.org/MPL/2.0/.</span></div>
-<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment"> */</span></div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#pragma once</span></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * Distributed under the Boost Software License, Version 1.0. (See</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * accompanying file LICENSE.txt)</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> */</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160; </div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#ifndef AEDIS_ADAPTER_ERROR_HPP</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#define AEDIS_ADAPTER_ERROR_HPP</span></div>
 <div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
 <div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;system_error&gt;</span></div>
 <div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160; </div>
@@ -96,11 +96,11 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;{</div>
 <div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea3059263deaffd09ba4c0577fa6434741">expects_simple_type</a> = 1,</div>
 <div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaeaf1c0c02d271aca35e613ef87e57689ea">expects_aggregate</a>,</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea6a88f24ae0edc528aef4e5effa5811a1">expects_aggregate_type</a>,</div>
 <div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160; </div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea4d29f8cb503ac6d78dde2b56863b5d2c">expects_map_like_aggregate</a>,</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea14280a589b7a5aae04aa336c6cd0c0f0">expects_map_type</a>,</div>
 <div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160; </div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea0092eeb2e220de5f6d3a63833a14ff7d">expects_set_aggregate</a>,</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea7096c898a4d6be5f66ca9b496ab794d8">expects_set_type</a>,</div>
 <div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160; </div>
 <div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea282e8f3cb4ec85eb2efac03801229e11">nested_aggregate_unsupported</a>,</div>
 <div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160; </div>
@@ -110,33 +110,35 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea18a0cd8e67dab1a91bce2ee6ce1671c9">incompatible_size</a>,</div>
 <div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   <span class="keyword">null</span></div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;};</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
-<div class="line"><a name="l00051"></a><span class="lineno"><a class="line" href="group__any.html#ga8027e36a9d9120abfbf350046845b081">   51</a></span>&#160;boost::system::error_code <a class="code" href="group__any.html#gad4eae5b940fca4814383e6b8b4a9819c">make_error_code</a>(<a class="code" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">error</a> e);</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
-<div class="line"><a name="l00056"></a><span class="lineno"><a class="line" href="group__any.html#ga770ffc8e5f9c128a510ec85c8b38e9b9">   56</a></span>&#160;boost::system::error_condition <a class="code" href="group__any.html#ga4fb824d5c81de3156e92a8a140b0ee65">make_error_condition</a>(<a class="code" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">error</a> e);</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; </div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;} <span class="comment">// adapter</span></div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   <a class="code" href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaeacdcfe09c3c1ac0445d9358d176eaa0e0">not_a_double</a>,</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   <span class="keyword">null</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;};</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
+<div class="line"><a name="l00054"></a><span class="lineno"><a class="line" href="group__any.html#ga8027e36a9d9120abfbf350046845b081">   54</a></span>&#160;boost::system::error_code <a class="code" href="group__any.html#gad4eae5b940fca4814383e6b8b4a9819c">make_error_code</a>(<a class="code" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">error</a> e);</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;} <span class="comment">// adapter</span></div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="keyword">namespace </span>std {</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="keyword">namespace </span>std {</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160; </div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="keyword">template</span>&lt;&gt;</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="keyword">struct </span>is_error_code_enum&lt;::<a class="code" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">aedis::adapter::error</a>&gt; : std::true_type {};</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="keyword">template</span>&lt;&gt;</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="keyword">struct </span>is_error_code_enum&lt;::<a class="code" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">aedis::adapter::error</a>&gt; : std::true_type {};</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160; </div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;} <span class="comment">// std</span></div>
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;} <span class="comment">// std</span></div>
-<div class="ttc" id="agroup__any_html_ga0339088c80d8133b76ac4de633e9ddae"><div class="ttname"><a href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">aedis::adapter::error</a></div><div class="ttdeci">error</div><div class="ttdoc">Errors that may occurr when reading a response.</div><div class="ttdef"><b>Definition:</b> <a href="adapter_2error_8hpp_source.html#l00018">error.hpp:19</a></div></div>
-<div class="ttc" id="agroup__any_html_ga4fb824d5c81de3156e92a8a140b0ee65"><div class="ttname"><a href="group__any.html#ga4fb824d5c81de3156e92a8a140b0ee65">aedis::resp3::make_error_condition</a></div><div class="ttdeci">boost::system::error_condition make_error_condition(error e)</div><div class="ttdoc">todo</div></div>
-<div class="ttc" id="agroup__any_html_gad4eae5b940fca4814383e6b8b4a9819c"><div class="ttname"><a href="group__any.html#gad4eae5b940fca4814383e6b8b4a9819c">aedis::resp3::make_error_code</a></div><div class="ttdeci">boost::system::error_code make_error_code(error e)</div><div class="ttdoc">Converts an error in an boost::system::error_code object.</div></div>
-<div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaea0092eeb2e220de5f6d3a63833a14ff7d"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea0092eeb2e220de5f6d3a63833a14ff7d">aedis::adapter::error::expects_set_aggregate</a></div><div class="ttdeci">@ expects_set_aggregate</div><div class="ttdoc">Expects a set aggregate but got something else.</div></div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_ADAPTER_ERROR_HPP</span></div>
+<div class="ttc" id="agroup__any_html_ga0339088c80d8133b76ac4de633e9ddae"><div class="ttname"><a href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">aedis::adapter::error</a></div><div class="ttdeci">error</div><div class="ttdoc">Adapter errors.</div><div class="ttdef"><b>Definition:</b> <a href="adapter_2error_8hpp_source.html#l00018">error.hpp:19</a></div></div>
+<div class="ttc" id="agroup__any_html_gad4eae5b940fca4814383e6b8b4a9819c"><div class="ttname"><a href="group__any.html#gad4eae5b940fca4814383e6b8b4a9819c">aedis::resp3::make_error_code</a></div><div class="ttdeci">boost::system::error_code make_error_code(error e)</div><div class="ttdoc">Creates a error_code object from an error.</div></div>
+<div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaea14280a589b7a5aae04aa336c6cd0c0f0"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea14280a589b7a5aae04aa336c6cd0c0f0">aedis::adapter::error::expects_map_type</a></div><div class="ttdeci">@ expects_map_type</div><div class="ttdoc">Expects a map but got other aggregate.</div></div>
 <div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaea18a0cd8e67dab1a91bce2ee6ce1671c9"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea18a0cd8e67dab1a91bce2ee6ce1671c9">aedis::adapter::error::incompatible_size</a></div><div class="ttdeci">@ incompatible_size</div><div class="ttdoc">Aggregate container has incompatible size.</div></div>
 <div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaea282e8f3cb4ec85eb2efac03801229e11"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea282e8f3cb4ec85eb2efac03801229e11">aedis::adapter::error::nested_aggregate_unsupported</a></div><div class="ttdeci">@ nested_aggregate_unsupported</div><div class="ttdoc">Nested response not supported.</div></div>
 <div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaea3059263deaffd09ba4c0577fa6434741"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea3059263deaffd09ba4c0577fa6434741">aedis::adapter::error::expects_simple_type</a></div><div class="ttdeci">@ expects_simple_type</div><div class="ttdoc">Expects a simple RESP3 type but got an aggregate.</div></div>
-<div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaea4d29f8cb503ac6d78dde2b56863b5d2c"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea4d29f8cb503ac6d78dde2b56863b5d2c">aedis::adapter::error::expects_map_like_aggregate</a></div><div class="ttdeci">@ expects_map_like_aggregate</div><div class="ttdoc">Expects a map but got other aggregate.</div></div>
+<div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaea6a88f24ae0edc528aef4e5effa5811a1"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea6a88f24ae0edc528aef4e5effa5811a1">aedis::adapter::error::expects_aggregate_type</a></div><div class="ttdeci">@ expects_aggregate_type</div><div class="ttdoc">Expects aggregate type.</div></div>
+<div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaea7096c898a4d6be5f66ca9b496ab794d8"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaea7096c898a4d6be5f66ca9b496ab794d8">aedis::adapter::error::expects_set_type</a></div><div class="ttdeci">@ expects_set_type</div><div class="ttdoc">Expects a set aggregate but got something else.</div></div>
 <div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaeaae00ce17a8a0eaf50aba51f876c2d8b2"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaeaae00ce17a8a0eaf50aba51f876c2d8b2">aedis::adapter::error::simple_error</a></div><div class="ttdeci">@ simple_error</div><div class="ttdoc">Got RESP3 simple error.</div></div>
 <div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaeab7f2a05d1d80e9f8a04926d67dd1aba5"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaeab7f2a05d1d80e9f8a04926d67dd1aba5">aedis::adapter::error::blob_error</a></div><div class="ttdeci">@ blob_error</div><div class="ttdoc">Got RESP3 blob_error.</div></div>
-<div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaeaf1c0c02d271aca35e613ef87e57689ea"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaeaf1c0c02d271aca35e613ef87e57689ea">aedis::adapter::error::expects_aggregate</a></div><div class="ttdeci">@ expects_aggregate</div><div class="ttdoc">Expects aggregate type.</div></div>
+<div class="ttc" id="agroup__any_html_gga0339088c80d8133b76ac4de633e9ddaeacdcfe09c3c1ac0445d9358d176eaa0e0"><div class="ttname"><a href="group__any.html#gga0339088c80d8133b76ac4de633e9ddaeacdcfe09c3c1ac0445d9358d176eaa0e0">aedis::adapter::error::not_a_double</a></div><div class="ttdeci">@ not_a_double</div><div class="ttdoc">Not a double.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

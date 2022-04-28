@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: examples/high_level/intro.cpp Source File</title>
+<title>Aedis: examples/intro_high_level.cpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.0</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.1</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -70,39 +70,39 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><a class="el" href="dir_cec695b911ca3e60c472a4dd39f5437b.html">high_level</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="headertitle">
-<div class="title">intro.cpp</div>  </div>
+<div class="title">intro_high_level.cpp</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* Copyright (c) 2019 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment"> *</span></div>
-<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * This Source Code Form is subject to the terms of the Mozilla Public</span></div>
-<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * License, v. 2.0. If a copy of the MPL was not distributed with this</span></div>
-<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> * file, You can obtain one at https://mozilla.org/MPL/2.0/.</span></div>
-<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment"> */</span></div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#include &lt;string&gt;</span></div>
-<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160; </div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;aedis/aedis.hpp&gt;</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160; </div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="keyword">namespace </span>net = boost::asio;</div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a>;</div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a>;</div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a>;</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a>;</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a> = <a class="code" href="classaedis_1_1generic_1_1client.html">client&lt;net::ip::tcp::socket, command&gt;</a>;</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> response_type = <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">node&lt;std::string&gt;</a>;</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">using</span> adapter_type = aedis::adapter::adapter_t&lt;response_type&gt;;</div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * Distributed under the Boost Software License, Version 1.0. (See</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * accompanying file LICENSE.txt)</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> */</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160; </div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#include &lt;string&gt;</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;aedis/aedis.hpp&gt;</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">namespace </span>net = boost::asio;</div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a>;</div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="keyword">using</span> aedis::adapter::adapter_t;</div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a>;</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a>;</div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a>;</div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a> = <a class="code" href="classaedis_1_1generic_1_1client.html">client&lt;net::ip::tcp::socket, command&gt;</a>;</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">using</span> response_type = <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">node&lt;std::string&gt;</a>;</div>
 <div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">struct </span>myreceiver {</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">struct </span>receiver {</div>
 <div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;   myreceiver(<a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a>&amp; db)</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;   receiver(<a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a>&amp; db)</div>
 <div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;   : adapter_{<a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp_)}</div>
 <div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;   , db_{&amp;db} {}</div>
 <div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160; </div>
@@ -111,7 +111,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;      adapter_(nd, ec);</div>
 <div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;   }</div>
 <div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160; </div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;   <span class="keywordtype">void</span> on_read(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd)</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;   <span class="keywordtype">void</span> on_read(<a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd, std::size_t)</div>
 <div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;   {</div>
 <div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;      <span class="keywordflow">switch</span> (cmd) {</div>
 <div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;         <span class="keywordflow">case</span> command::hello:</div>
@@ -132,32 +132,32 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;      std::cout &lt;&lt; <span class="stringliteral">&quot;Number of bytes written: &quot;</span> &lt;&lt; n &lt;&lt; std::endl;</div>
 <div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;   }</div>
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;   <span class="keywordtype">void</span> on_push() { }</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;   <span class="keywordtype">void</span> on_push(std::size_t n) { }</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
 <div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;<span class="keyword">private</span>:</div>
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;   response_type resp_;</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;   adapter_type adapter_;</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;   adapter_t&lt;response_type&gt; adapter_;</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;   <a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a>* db_;</div>
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;};</div>
 <div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160; </div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="keywordtype">int</span> main()</div>
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;{</div>
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;   net::io_context ioc;</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;   <a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a> db(ioc.get_executor());</div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;   myreceiver recv{db};</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160; </div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;   db.async_run(</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;       recv,</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;       {net::ip::make_address(<span class="stringliteral">&quot;127.0.0.1&quot;</span>), 6379},</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;       [](<span class="keyword">auto</span> ec){ std::cout &lt;&lt; ec.message() &lt;&lt; std::endl;});</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160; </div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;   <a class="code" href="classaedis_1_1generic_1_1client.html">client_type</a> db(ioc.get_executor());</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;   <span class="keyword">auto</span> recv = std::make_shared&lt;receiver&gt;(db);</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;   db.set_receiver(recv);</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; </div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;   db.async_run(<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>,</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;      [](<span class="keyword">auto</span> ec){ std::cout &lt;&lt; ec.message() &lt;&lt; std::endl;});</div>
 <div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160; </div>
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;   ioc.run();</div>
 <div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;}</div>
 <div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
-<div class="ttc" id="aclassaedis_1_1generic_1_1client_html"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a></div><div class="ttdoc">A high level Redis client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00040">client.hpp:40</a></div></div>
-<div class="ttc" id="agroup__any_html_ga1e40a9e5ab61e7980b4be74bf0d4943d"><div class="ttname"><a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a void response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00029">adapt.hpp:29</a></div></div>
-<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00024">command.hpp:24</a></div></div>
-<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00035">node.hpp:35</a></div></div>
+<div class="ttc" id="aclassaedis_1_1generic_1_1client_html"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a></div><div class="ttdoc">A high level Redis client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00044">client.hpp:44</a></div></div>
+<div class="ttc" id="agroup__any_html_ga1e40a9e5ab61e7980b4be74bf0d4943d"><div class="ttname"><a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a dummy response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00041">adapt.hpp:41</a></div></div>
+<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00025">command.hpp:25</a></div></div>
+<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00036">node.hpp:36</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->
