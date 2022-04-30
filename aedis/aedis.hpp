@@ -479,7 +479,7 @@
        auto recv = std::make_shared<receiver>(db);
        db.set_receiver(recv);
 
-       db.async_run("127.0.0.1", "6379", [](auto ec){ std::cout << ec.message() << std::endl;});
+       db.async_run("127.0.0.1", "6379", [](auto ec){ ... });
 
        ioc.run();
     }

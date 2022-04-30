@@ -382,6 +382,7 @@ public:
 
    void on_write(std::size_t)
    {
+      std::cout << "on_write" << std::endl;
       if (!std::exchange(sent_, true)) {
          db_->send(command::del, "key");
          db_->send(command::client, "PAUSE", 5000);

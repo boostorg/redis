@@ -42,8 +42,7 @@ struct ping_after_op {
          cli->read_timer_.expires_after(cli->cfg_.idle_timeout / 2);
          yield cli->read_timer_.async_wait(std::move(self));
          if (ec) {
-            BOOST_ASSERT(ec == boost::asio::error::operation_aborted);
-            self.complete({}); // Not an error.
+            self.complete(ec);
             return;
          }
 
@@ -111,9 +110,23 @@ struct wait_for_data_op {
 
             case 1:
             {
-               BOOST_ASSERT(!ec2);
-               // Don't complete here as we are still waiting data.
-               // self.complete({});
+               // Here we have to handle a race between this operation
+               // and the idle check. We can have the following
+               // sequence of events
+               //
+               //    1. The parallel operation above is started.
+               //    2. async_ping_after finishes with success.
+               //    3. The idle check completes with error and
+               //    closes the socket.
+               //
+               // We should not pass the success of the timer as the
+               // result of this operation.
+
+               if (ec2)
+                  self.complete(ec2);
+               else
+                  self.complete(ec1);
+
             } break;
 
             default: BOOST_ASSERT(false);

@@ -24,7 +24,6 @@ using aedis::redis::command;
 using aedis::generic::client;
 using aedis::user_session;
 using aedis::user_session_base;
-
 using client_type = client<net::ip::tcp::socket, command>;
 using response_type = std::vector<node<std::string>>;
 
@@ -40,8 +39,10 @@ public:
       adapter_(nd, ec);
    }
 
-   void on_read(command cmd, std::size_t)
+   void on_read(command cmd, std::size_t n)
    {
+      std::cout << "on_read: " << cmd << " " << n << std::endl;
+
       switch (cmd) {
          case command::ping:
          if (resp_.front().value != "PONG") {
@@ -78,6 +79,24 @@ private:
 };
 
 net::awaitable<void>
+run_with_reconnect(std::shared_ptr<client_type> db)
+{
+   auto ex = co_await net::this_coro::executor;
+
+   boost::asio::steady_timer timer{ex};
+
+   for (boost::system::error_code ec;;) {
+      std::cout << "aaaa" << std::endl;
+      co_await db->async_run("127.0.0.1", "6379",
+            net::redirect_error(net::use_awaitable, ec));
+      std::cout << ec << std::endl;
+
+      timer.expires_after(std::chrono::seconds{2});
+      co_await timer.async_wait(net::redirect_error(net::use_awaitable, ec));
+   }
+}
+
+net::awaitable<void>
 listener(
     std::shared_ptr<net::ip::tcp::acceptor> acc,
     std::shared_ptr<client_type> db,
@@ -108,10 +127,7 @@ int main()
       auto db = std::make_shared<client_type>(ioc.get_executor());
       auto recv = std::make_shared<receiver>(db);
       db->set_receiver(recv);
-
-      // TODO: Close the listener when async_run returns.
-      db->async_run("127.0.0.1", "6379",
-          [](auto ec){ std::cout << ec.message() << std::endl;});
+      co_spawn(ioc, run_with_reconnect(db), net::detached);
 
       auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
       auto acc = std::make_shared<net::ip::tcp::acceptor>(ioc.get_executor(), endpoint);
