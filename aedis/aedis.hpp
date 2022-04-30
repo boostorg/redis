@@ -443,30 +443,32 @@
 
     As stated earlier, the low-level API is very useful for tasks that
     can be performed with short lived connections. Sometimes however,
-    the need for long-lived connections becomes apparent and compeling
+    the need for long-lived connections becomes compeling
 
-    @li \b Server \b pushes: Short lived connections can't handle server pushes (e.g. https://redis.io/topics/client-side-caching and https://redis.io/topics/notifications).
-    @li \b Pubsub: Just like server pushes, to use Redis pubsub users need long lasting connections (https://redis.io/topics/pubsub).
-    @li \b Performance: Keep opening and closing connections impact performance.
+    @li \b Server \b pushes: Short lived connections can't deal with server pushes, that means no [client side caching](https://redis.io/topics/client-side-caching), [notifications](https://redis.io/topics/notifications) and [pubsub](https://redis.io/topics/pubsub).
+    @li \b Performance: Keep opening and closing connections impact performance serverely.
     @li \b Pipeline: Code such as shown in \ref low-level-api don't support pipelines well since it can only send a fixed number of commands at time. It misses important optimization opportunities (https://redis.io/topics/pipelining).
 
     A serious implementation that supports the points listed above is
-    far from trivial as it involves the following async operations
+    far from trivial and involves many complex asynchronous operations
 
     @li \c async_resolve: Resolve a hostname.
     @li \c async_connect: Connect to Redis.
     @li \c async_read: Performed in a loop as long as the connection lives.
     @li \c async_write: Performed everytime a new message is added.
+    @li \c async_wait: To timout all operations above if the server becomes unresponsive.
 
     In addition to that
 
-    @li Each operation listed above requires timeout support.
     @li \c async_write operations require management of the message queue to prevent concurrent writes.
     @li Healthy checks must be sent periodically by the client to detect a dead or unresponsive server.
+    @li Recovery after a disconnection to avoid loosing enqueued commands.
 
-    To avoid imposing this burden on every user, Aedis provides its
-    own implementation. The general form of a program that uses the
-    high-level api looks like this
+    Expecting users to implement these points themselves is
+    unrealistic and could result in code that performs poorly and
+    can't handle errors properly.  To avoid all of that, Aedis
+    provides its own implementation. The general form of a program
+    that uses the high-level api looks like this
 
     @code
     int main()
@@ -487,18 +489,17 @@
     receiver. For example
 
     @code
+    // Callbacks.
     struct receiver {
        void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec) { ...  }
-    
        void on_read(command cmd, std::size_t) { ...  }
-    
        void on_write(std::size_t n) { ... }
-    
        void on_push(std::size_t n) { }
     };
     @endcode
 
-    The functions in the receiver are callbacks that are called by the client class.
+    The functions in the receiver above are callbacks that will be
+    called by the client class when events come.
 
     \subsection high-level-sending-cmds Sending commands
 

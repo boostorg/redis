@@ -30,15 +30,8 @@ namespace generic {
 /** \brief A high level Redis client.
  *  \ingroup any
  *
- *  This class represents a connection to the Redis server. Some of
- *  its most important features are
- *
- *  1. Automatic management of commands. The implementation will send
- *     commands and read responses automatically for the user.
- *  2. Memory reuse. Dynamic memory allocations will decrease with time.
- *
- *  For more details, please see the documentation of each individual
- *  function.
+ *  This class represents a connection to the Redis server.  For more
+ *  details, please see the documentation of each individual function.
  */
 template <class AsyncReadWriteStream, class Command>
 class client {
@@ -55,11 +48,13 @@ public:
    /// Type of the callback called when a push message is received.
    using push_handler_type = std::function<void(std::size_t)>;
 
-   /// Type of the callback called when resp3 chuncks are received.
+   /// Type of the callback called when resp3 data are received.
    using resp3_handler_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
+   /** @brief Configuration parameters.
+    */
    struct config {
       /// Timeout of the async_resolve operation.
       std::chrono::seconds resolve_timeout = std::chrono::seconds{5};
@@ -96,6 +91,7 @@ public:
    , on_write_{[](std::size_t){}}
    , on_push_{[](std::size_t){}}
    , on_resp3_{[](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {}}
+   , sr_{requests_}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    , type_{resp3::type::invalid}
    , cmd_info_{std::make_pair<Command>(Command::invalid, 0)}
@@ -119,12 +115,10 @@ public:
    {
       auto const can_write = prepare_next();
 
-      serializer<std::string> sr(requests_);
       auto const before = requests_.size();
-      sr.push(cmd, args...);
-      auto const after = requests_.size();
-      BOOST_ASSERT(after - before != 0);
-      auto const d = after - before;
+      sr_.push(cmd, args...);
+      auto const d = requests_.size() - before;
+      BOOST_ASSERT(d != 0);
       info_.back().size += d;;
 
       if (!has_push_response(cmd)) {
@@ -152,12 +146,10 @@ public:
 
       auto const can_write = prepare_next();
 
-      serializer<std::string> sr(requests_);
       auto const before = requests_.size();
-      sr.push_range2(cmd, key, begin, end);
-      auto const after = requests_.size();
-      BOOST_ASSERT(after - before != 0);
-      auto const d = after - before;
+      sr_.push_range2(cmd, key, begin, end);
+      auto const d = requests_.size() - before;
+      BOOST_ASSERT(d != 0);
       info_.back().size += d;
 
       if (!has_push_response(cmd)) {
@@ -185,12 +177,10 @@ public:
 
       auto const can_write = prepare_next();
 
-      serializer<std::string> sr(requests_);
       auto const before = requests_.size();
-      sr.push_range2(cmd, begin, end);
-      auto const after = requests_.size();
-      BOOST_ASSERT(after - before != 0);
-      auto const d = after - before;
+      sr_.push_range2(cmd, begin, end);
+      auto const d = requests_.size() - before;
+      BOOST_ASSERT(d != 0);
       info_.back().size += d;
 
       if (!has_push_response(cmd)) {
@@ -236,7 +226,7 @@ public:
 
    /** @brief Starts communication with the Redis server asynchronously.
     *
-    *  This class performs the following steps
+    *  This function performs the following steps
     *
     *  @li Resolve the Redis host as of \c async_resolve with the
     *  timeout passed in client::config::resolve_timeout.
@@ -244,27 +234,28 @@ public:
     *  @li Connect to one of the endpoints returned by the resolve
     *  operation with the timeout passed in client::config::connect_timeout.
     *
-    *  @li Start the async read operation that keeps reading
-    *  incoming responses. Each individual read uses the timeout
-    *  passed on client::config::read_timeout. After each successful read
-    *  it will call the read or push callback.
+    *  @li Start the async read operation that keeps reading incoming
+    *  responses. Each individual read uses the timeout passed on
+    *  client::config::read_timeout. After each successful read it
+    *  will call the read or push callback.
     *
-    *  @li Start the async write operation that wait for new commands
+    *  @li Start the async write operation that waits for new commands
     *  to be sent to Redis. Each individual write uses the timeout
-    *  passed on client::config::write_timeout. After a successful write it
-    *  will call the write callback.
+    *  passed on client::config::write_timeout. After a successful
+    *  write it will call the write callback.
     *
     *  @li Start the check idle operation with the timeout specified
-    *  in client::config::idle_timeout. If no data is received during that
-    *  time interval async_run returns generic::error::idle_timeout.
+    *  in client::config::idle_timeout. If no data is received during
+    *  that time interval async_run returns
+    *  generic::error::idle_timeout.
     *
     *  @li Start the healthy check operation that sends
     *  redis::command::ping to Redis with a frequency equal to
     *  client::config::idle_timeout / 2.
     *
     *  In addition to the callbacks mentioned above, the read
-    *  operations will call the resp3 callback as soon a new chunks
-    *  of data become available to the user.
+    *  operations will call the resp3 callback as soon a new chunks of
+    *  data become available to the user.
     *
     *  \param host Ip address or name of the Redis server.
     *  \param port Port where the Redis server is listening.
@@ -286,7 +277,7 @@ public:
     *
     *  @li If a disconnect occurs while the response to a request has
     *  not been received, the client doesn't try to resend it to avoid
-    *  resubmission problem.
+    *  resubmission.
     */
    template <class CompletionToken = default_completion_token_type>
    auto
@@ -347,8 +338,9 @@ private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
    template <class T, class V> friend struct detail::reader_op;
-   template <class T, class V> friend struct detail::ping_op;
+   template <class T, class V> friend struct detail::ping_after_op;
    template <class T> friend struct detail::read_op;
+   template <class T> friend struct detail::read_until_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_op;
    template <class T> friend struct detail::run_op;
@@ -357,11 +349,11 @@ private:
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::init_op;
    template <class T> friend struct detail::read_write_check_op;
-   template <class T> friend struct detail::wait_data_op;
+   template <class T> friend struct detail::wait_for_data_op;
 
    void on_resolve()
    {
-      // If we are comming from a connection that was lost we have to
+      // If we are coming from a connection that was lost we have to
       // reset the socket to a fresh state.
       socket_ =
          std::make_shared<AsyncReadWriteStream>(read_timer_.get_executor());
@@ -377,6 +369,7 @@ private:
          // no commands that were left unresponded from the last
          // connection. We can send hello as usual.
          BOOST_ASSERT(requests_.empty());
+         BOOST_ASSERT(commands_.empty());
          send(Command::hello, 3);
          return;
       }
@@ -393,6 +386,7 @@ private:
          // the risc of resubmission).
          requests_.erase(0, info_.front().size);
 
+         // Erases the commands that were lost as well.
          commands_.erase(
             std::begin(commands_),
             std::begin(commands_) + info_.front().cmds);
@@ -403,17 +397,25 @@ private:
          // info_.erase(std::begin(info_));
       }
 
-      std::string tmp;
-      serializer<std::string> sr(tmp);
-      sr.push(Command::hello, 3);
-      auto const hello_size = tmp.size();
-      std::copy(std::cbegin(requests_), std::cend(requests_), std::back_inserter(tmp));
-      requests_ = std::move(tmp);
+      // Code below will add a hello to the front of the request and
+      // update info_ and commands_ accordingly.
 
-      info_.front().size = hello_size + info_.front().size;
-      ++info_.front().cmds;
+      auto const old_size = requests_.size();
+      sr_.push(Command::hello, 3);
+      auto const hello_size = requests_.size() - old_size;;
 
-      // Push front.
+      // Now we have to rotate the hello to the front of the request
+      // (Remember it must always be the first command).
+      std::rotate(
+         std::begin(requests_),
+         std::begin(requests_) + old_size,
+         std::end(requests_));
+
+      // Updates info_.
+      info_.front().size += hello_size;
+      info_.front().cmds += 1;
+
+      // Updates commands_
       commands_.push_back(std::make_pair(Command::hello, hello_size));
       std::rotate(
          std::begin(commands_),
@@ -421,11 +423,9 @@ private:
          std::end(commands_));
    }
 
-   /* Prepares the back of the queue to receive further commands. 
-    *
-    * If true is returned the request in the front of the queue can be
-    * sent to the server. See async_write_some.
-    */
+   // Prepares the back of the queue to receive further commands.  If
+   // true is returned the request in the front of the queue can be
+   // sent to the server.
    bool prepare_next()
    {
       if (info_.empty()) {
@@ -448,7 +448,7 @@ private:
       return info_.front().cmds == 0;
    }
 
-   // Returns true when the next request can be writen.
+   // Returns true when the next request can be written.
    bool on_cmd(command_info_type)
    {
       BOOST_ASSERT(!info_.empty());
@@ -477,7 +477,7 @@ private:
    }
 
    // Connects the socket to one of the endpoints in endpoints_ and
-   // stores the successful enpoint in endpoint_.
+   // stores the successful endpoint in endpoint_.
    template <class CompletionToken = default_completion_token_type>
    auto
    async_connect(CompletionToken&& token = default_completion_token_type{})
@@ -486,6 +486,16 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::connect_op<client>{this}, token, write_timer_.get_executor());
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_read_until(CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::read_until_op<client>{this}, token, read_timer_.get_executor());
    }
 
    // Reads a complete resp3 response from the socket using the
@@ -562,7 +572,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::ping_op<client, Command>{this}, token, read_timer_);
+         >(detail::ping_after_op<client, Command>{this}, token, read_timer_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -572,7 +582,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::wait_data_op<client>{this}, token, read_timer_);
+         >(detail::wait_for_data_op<client>{this}, token, read_timer_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -636,15 +646,16 @@ private:
    // Called when a complete push message is received.
    push_handler_type on_push_;
 
-   // Called by the parser after each new chunck of resp3 data is
+   // Called by the parser after each new chunk of resp3 data is
    // processed.
    resp3_handler_type on_resp3_;
 
    // Buffer used by the read operations.
    std::string read_buffer_;
 
-   // Requests payload.
+   // Requests payload and its serializer.
    std::string requests_;
+   serializer<std::string> sr_;
 
    // The commands contained in the requests.
    std::vector<command_info_type> commands_;
@@ -667,10 +678,8 @@ private:
    // See async_resolve.
    boost::asio::ip::tcp::resolver::results_type endpoints_;
 
-   // Host passed to async_run.
+   // Host and port passed to async_run.
    boost::string_view host_;
-
-   // Port passed to async_run.
    boost::string_view port_;
 };
 
