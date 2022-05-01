@@ -32,7 +32,7 @@
     @li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
     @li Sync and async API.
 
-    In addition to that, Aedis provides a high level client that offers the following functionality
+    In addition to that, Aedis provides a high-level client that offers the following functionality
 
     @li Management of message queues.
     @li Simplified handling of server pushes.
@@ -54,7 +54,7 @@
     @li Get and return its old value.
     @li Quit
 
-    The coroutine-based async implementation of the steps above look like
+    The coroutine-based asynchronous implementation of the steps above look like
 
     @code
     net::awaitable<std::string> set(net::ip::tcp::endpoint ep)
@@ -95,9 +95,9 @@
 
     \subsection requests Requests
 
-    As stated above, request are created by defining a storage object
+    As stated above, requests are created by defining a storage object
     and a serializer that knows how to convert user data into valid
-    RESP3 wire-format.  Redis request are composed of one or more
+    RESP3 wire-format. They are composed of one or more
     commands (in Redis documentation they are called [pipelines](https://redis.io/topics/pipelining)),
     which means users can add
     as many commands to the request as they like, a feature that aids
@@ -192,21 +192,21 @@
     ---------|-------------------------------------|--------------
     lpush    | Number                              | https://redis.io/commands/lpush
     lrange   | Array                               | https://redis.io/commands/lrange
-    set      | Simple string, null or blob string  | https://redis.io/commands/set
-    get      | Blob string                         | https://redis.io/commands/get
+    set      | Simple-string, null or blob-string  | https://redis.io/commands/set
+    get      | Blob-string                         | https://redis.io/commands/get
     smembers | Set                                 | https://redis.io/commands/smembers
     hgetall  | Map                                 | https://redis.io/commands/hgetall
 
     Once the RESP3 type of a given response is known we can choose a
     proper C++ data structure to receive it in. Fortunately, this is a
-    simple task for most types. The table below summarise the options
+    simple task for most types. The table below summarises the options
 
     RESP3 type     | C++                                                          | Type
     ---------------|--------------------------------------------------------------|------------------
-    Simple string  | \c std::string                                             | Simple
-    Simple error   | \c std::string                                             | Simple
-    Blob string    | \c std::string, \c std::vector                             | Simple
-    Blob error     | \c std::string, \c std::vector                             | Simple
+    Simple-string  | \c std::string                                             | Simple
+    Simple-error   | \c std::string                                             | Simple
+    Blob-string    | \c std::string, \c std::vector                             | Simple
+    Blob-error     | \c std::string, \c std::vector                             | Simple
     Number         | `long long`, `int`, `std::size_t`, \c std::string          | Simple
     Double         | `double`, \c std::string                                   | Simple
     Null           | `boost::optional<T>`                                       | Simple
@@ -216,7 +216,7 @@
     Push           | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate
 
     Responses that contain nested aggregates or heterogeneous data
-    types will be given special treatment laster.  As of this writing,
+    types will be given special treatment later.  As of this writing,
     not all RESP3 types are used by the Redis server, which means in
     practice users will be concerned with a reduced subset of the
     RESP3 specification. Now let us see some examples
@@ -252,10 +252,10 @@
     co_await resp3::async_read(socket, dbuffer, adapt(vec));
     @endcode
 
-    In other words, it is pretty straightforward, just pass the result
-    of \c adapt to the read function and make sure the response data
-    type fits in the type you are calling @c adapter(...) with. All
-    standard C++ containers are supported by aedis.
+    In other words, it is straightforward, just pass the result of \c
+    adapt to the read function and make sure the response data type is
+    compatible with the data structure you are calling @c adapter(...)
+    with. All standard C++ containers are supported by Aedis.
 
     \subsubsection Optional
 
@@ -269,9 +269,8 @@
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(umap));
     @endcode
 
-    Everything else stays pretty much the same, before accessing data,
-    users will have to check or assert the optional contains a
-    value.
+    Everything else stays the same, before accessing data, users will
+    have to check or assert the optional contains a value.
 
     \subsubsection heterogeneous_aggregates Heterogeneous aggregates
 
@@ -279,7 +278,7 @@
     contain heterogeneous data, for example, an array that contains
     integers, strings nested sets etc. Aedis supports reading such
     aggregates in a \c std::tuple efficiently as long as the they
-    don't contain 2-order nested aggregates e.g. an array that
+    don't contain 3-order nested aggregates e.g. an array that
     contains an array of arrays. For example, to read the response to
     a \c hello command we can use the following response type.
 
@@ -321,11 +320,10 @@
     co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(trans));
     @endcode
 
-    Note that we are not ignoring the response to the commands
-    themselves above but whether they have been successfully queued.
-    Only after @c exec is received Redis will execute them in
-    sequence. The response will then be sent in a single chunk to the
-    client.
+    Note that above we are not ignoring the response to the commands
+    themselves but whether they have been successfully queued.  Only
+    after @c exec is received Redis will execute them in sequence and
+    send all responses together in an array.
 
     \subsubsection Serialization
 
@@ -334,7 +332,7 @@
     strings, for example
 
     @code
-    sr.push(command::set, "key", "{"Server": "Redis"}"); // Unquoted string
+    sr.push(command::set, "key", "{"Server": "Redis"}"); // Unquoted for readability.
     sr.push(command::get, "key")
     @endcode
 
@@ -365,14 +363,13 @@
 
     \subsubsection gen-case The general case
 
-    As already mentioned, there are cases where the response to Redis
+    As already mentioned, there are cases where responses to Redis
     commands won't fit in the model presented above, some examples are
 
     @li Commands (like \c set) whose response don't have a fixed
-    RESP3 type. Expecting an \c int and receiving a blob string
+    RESP3 type. Expecting an \c int and receiving a blob-string
     will result in error.
-    @li RESP3 responses that contain three levels of (nested) aggregates can't be
-    read in STL containers.
+    @li RESP3 aggregates that contain nested aggregates can't be read in STL containers.
     @li Transactions with a dynamic number of commands can't be read in a \c std::tuple.
 
     To deal with these cases Aedis provides the \c resp3::node
@@ -458,7 +455,7 @@
     @li \c async_write: Performed everytime a new message is added.
     @li \c async_wait: To timout all operations above if the server becomes unresponsive.
 
-    In addition to that
+    Notice that many of the operations above will run concurrently with each other and, in addition to that
 
     @li \c async_write operations require management of the message queue to prevent concurrent writes.
     @li Healthy checks must be sent periodically by the client to detect a dead or unresponsive server.
@@ -468,7 +465,7 @@
     unrealistic and could result in code that performs poorly and
     can't handle errors properly.  To avoid all of that, Aedis
     provides its own implementation. The general form of a program
-    that uses the high-level api looks like this
+    that uses the high-level API looks like this
 
     @code
     int main()
@@ -491,15 +488,47 @@
     @code
     // Callbacks.
     struct receiver {
-       void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec) { ...  }
+       void on_resp3(command cmd, node<string_view> const& nd, error_code& ec) { ...  }
        void on_read(command cmd, std::size_t) { ...  }
-       void on_write(std::size_t n) { ... }
        void on_push(std::size_t n) { }
+       void on_write(std::size_t n) { ... }
     };
     @endcode
 
     The functions in the receiver above are callbacks that will be
-    called by the client class when events come.
+    called when events arrives
+
+    @li \c on_resp3: Called when a new chunk of resp3 data is parsed.
+    @li \c on_read: Called after the response to a command has been successfully read.
+    @li \c on_push: Called when a server push is received.
+    @li \c on_write: Called after a request has been successfully written to the stream.
+
+    The callbacks above are never called on errors, instead the \c
+    async_run function returns. Reconnection is also supported, for
+    example
+
+    @code
+    net::awaitable<void> run(std::shared_ptr<client_type> db)
+    {
+       auto ex = co_await net::this_coro::executor;
+    
+       boost::asio::steady_timer timer{ex};
+    
+       for (error_code ec;;) {
+          co_await db->async_run("127.0.0.1", "6379", redirect_error(use_awaitable, ec));
+
+          // Log the error.
+          std::clog << ec.message() << std::endl;
+    
+          // Wait two seconds and try again.
+          timer.expires_after(std::chrono::seconds{2});
+          co_await timer.async_wait(redirect_error(use_awaitable, ec));
+       }
+    }
+    @endcode
+
+    when reconnecting the client will recover requests that haven't
+    been sent to Redis yet.
 
     \subsection high-level-sending-cmds Sending commands
 
@@ -519,10 +548,10 @@
     @endcode
 
     The \c send functions in this case will add commands to the output
-    queue and send them only if there is no pending response of a
-    previously sent command. This is so because RESP3 is a
-    request/response protocol, which means clients must wait for the
-    response to a command before proceeding with the next one.
+    queue and send them only if there is no pending response. This is
+    so because RESP3 is a request/response protocol, which means
+    clients must wait for responses before sending
+    the next request.
 
     \section examples Examples
 
@@ -539,16 +568,16 @@
     @li transaction.cpp: Shows how to read the response to transactions.
     @li custom_adapter.cpp: Shows how to write a response adapter that prints to the screen, see \ref low-level-adapters.
 
-    \b High \b level \b API
+    \b High \b level \b API (async only)
 
-    @li intro_high_level.cpp: High level API usage example.
+    @li intro_high_level.cpp: High-level API usage example.
     @li aggregates_high_level.cpp: Shows how receive RESP3 aggregate data types in a general way or in STL containers.
-    @li subscriber_high_level.cpp: Shows how channel [subscription](https://redis.io/topics/pubsub) works at a high level.
+    @li subscriber_high_level.cpp: Shows how channel [subscription](https://redis.io/topics/pubsub) works at a high-level.
 
-    \b Asynchronous \b Servers (high level API)
+    \b Asynchronous \b Servers (high-level API)
 
     @li echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server.
-    @li chat_room.cpp: Shows how to build a scalable chat room that scales to millions of users.
+    @li chat_room.cpp: Shows how to build a scalable chat room.
 
     \section using-aedis Using Aedis
 
@@ -582,7 +611,7 @@
     ```
 
     If you can't use \c configure and \c make (e.g. Windows users)
-    you can already add the directory where you unpacked aedis to the
+    you can already add the directory where you unpacked Aedis to the
     include directories in your project, otherwise run
   
     ```
@@ -651,7 +680,7 @@
     Redis features like client side caching, among other things.
     @li The Asio asynchronous model.
     @li Serialization of user data types that avoids temporaries.
-    @li Error handling with error-code and exception overload.
+    @li Error handling with error-code and exception overloads.
     @li Healthy checks.
     @li Fine control over memory allocation by means of allocators.
 
@@ -799,9 +828,12 @@
 
     \section Acknowledgement
 
-    I would like to thank Vinícius dos Santos Oliveira for useful discussion about how Aedis consumes buffers in the read operation (among other things).
+    Some people that were helpful in the development of Aedis
 
-    \section Referece
+    @li Richard Hodges ([madmongo1](https://github.com/madmongo1)): For answering pretty much every question I had about Asio and the design of asynchronous programs.
+    @li Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation (among other things).
+
+    \section Reference
   
     See \subpage any.
 
