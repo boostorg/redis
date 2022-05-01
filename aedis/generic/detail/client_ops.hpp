@@ -101,36 +101,8 @@ struct wait_for_data_op {
             boost::asio::experimental::wait_for_all(),
             std::move(self));
 
-         switch (order[0]) {
-            case 0:
-            {
-               // Complete regardless of the error.
-               self.complete(ec1);
-            } break;
-
-            case 1:
-            {
-               // Here we have to handle a race between this operation
-               // and the idle check. We can have the following
-               // sequence of events
-               //
-               //    1. The parallel operation above is started.
-               //    2. async_ping_after finishes with success.
-               //    3. The idle check completes with error and
-               //    closes the socket.
-               //
-               // We should not pass the success of the timer as the
-               // result of this operation.
-
-               if (ec2)
-                  self.complete(ec2);
-               else
-                  self.complete(ec1);
-
-            } break;
-
-            default: BOOST_ASSERT(false);
-         }
+         // The order of completion is not important.
+         self.complete(ec1);
       }
    }
 };
