@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['data_5ftype_313',['data_type',['../group__any.html#aae147962496e8ab3f52b2d8575307a5a',1,'aedis::resp3::node']]],
-  ['depth_314',['depth',['../group__any.html#a829e2bf6551568a60406fad87e44804d',1,'aedis::resp3::node']]]
+  ['connect_5ftimeout_311',['connect_timeout',['../classaedis_1_1generic_1_1client.html#ac5b5a6df9347266c8b6a8dbac4cf16e9',1,'aedis::generic::client::config']]]
 ];

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.1</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.2</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -88,7 +88,7 @@ Classes</h2></td></tr>
 <tr class="memdesc:structaedis_1_1resp3_1_1node"><td class="mdescLeft">&#160;</td><td class="mdescRight">A node in the response tree.  <a href="group__any.html#structaedis_1_1resp3_1_1node">More...</a><br /></td></tr>
 <tr class="separator:structaedis_1_1resp3_1_1node"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1serializer.html">aedis::generic::serializer&lt; Storage &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a Redis request from user data.  <a href="classaedis_1_1generic_1_1serializer.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates Redis requests from user data.  <a href="classaedis_1_1generic_1_1serializer.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
@@ -103,10 +103,10 @@ Enumerations</h2></td></tr>
 <tr class="memdesc:ga0339088c80d8133b76ac4de633e9ddae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adapter errors.  <a href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">More...</a><br /></td></tr>
 <tr class="separator:ga0339088c80d8133b76ac4de633e9ddae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga110bcc500f0ab112a466b6e955efa32e"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga110bcc500f0ab112a466b6e955efa32e">aedis::generic::error</a> </td></tr>
-<tr class="memdesc:ga110bcc500f0ab112a466b6e955efa32e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Errors from the generic module.  <a href="group__any.html#ga110bcc500f0ab112a466b6e955efa32e">More...</a><br /></td></tr>
+<tr class="memdesc:ga110bcc500f0ab112a466b6e955efa32e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generic errors.  <a href="group__any.html#ga110bcc500f0ab112a466b6e955efa32e">More...</a><br /></td></tr>
 <tr class="separator:ga110bcc500f0ab112a466b6e955efa32e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga3e898ab2126407e62f33851b31bee17a"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">aedis::resp3::error</a> </td></tr>
-<tr class="memdesc:ga3e898ab2126407e62f33851b31bee17a"><td class="mdescLeft">&#160;</td><td class="mdescRight">RESP3 parsing errors.  <a href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">More...</a><br /></td></tr>
+<tr class="memdesc:ga3e898ab2126407e62f33851b31bee17a"><td class="mdescLeft">&#160;</td><td class="mdescRight">RESP3 errors.  <a href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">More...</a><br /></td></tr>
 <tr class="separator:ga3e898ab2126407e62f33851b31bee17a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabdb6bdf6f96b4a7a91ed63d2324cef57"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a> </td></tr>
 <tr class="memdesc:gabdb6bdf6f96b4a7a91ed63d2324cef57"><td class="mdescLeft">&#160;</td><td class="mdescRight">RESP3 data types.  <a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">More...</a><br /></td></tr>
@@ -133,20 +133,6 @@ Functions</h2></td></tr>
 <tr class="memitem:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">aedis::resp3::async_read</a> (AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=ResponseAdapter{}, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</td></tr>
 <tr class="memdesc:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a complete response to a Redis command asynchronously.  <a href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">More...</a><br /></td></tr>
 <tr class="separator:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0092190b76e640757b1964016e5a97a4"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga0092190b76e640757b1964016e5a97a4">aedis::resp3::element_multiplicity</a> (<a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t)</td></tr>
-<tr class="memdesc:ga0092190b76e640757b1964016e5a97a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks the data type multilicity.  <a href="group__any.html#ga0092190b76e640757b1964016e5a97a4">More...</a><br /></td></tr>
-<tr class="separator:ga0092190b76e640757b1964016e5a97a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga5a4b50fdd5f839f149cf7527abc796c2"><td class="memItemLeft" align="right" valign="top"><a id="ga5a4b50fdd5f839f149cf7527abc796c2"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga5a4b50fdd5f839f149cf7527abc796c2">aedis::redis::has_push_response</a> (<a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> cmd)</td></tr>
-<tr class="memdesc:ga5a4b50fdd5f839f149cf7527abc796c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks whether a command has push response. <br /></td></tr>
-<tr class="separator:ga5a4b50fdd5f839f149cf7527abc796c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8372cd4e2ac5364b1666a01917529b32"><td class="memItemLeft" align="right" valign="top"><a id="ga8372cd4e2ac5364b1666a01917529b32"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">aedis::sentinel::has_push_response</a> (<a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> cmd)</td></tr>
-<tr class="memdesc:ga8372cd4e2ac5364b1666a01917529b32"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks whether a command has push response. <br /></td></tr>
-<tr class="separator:ga8372cd4e2ac5364b1666a01917529b32"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0de5e7e429d70f35ec2bcf143f73ed07"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">aedis::resp3::is_aggregate</a> (<a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t)</td></tr>
-<tr class="memdesc:ga0de5e7e429d70f35ec2bcf143f73ed07"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks whether the data type is an aggregate.  <a href="group__any.html#ga0de5e7e429d70f35ec2bcf143f73ed07">More...</a><br /></td></tr>
-<tr class="separator:ga0de5e7e429d70f35ec2bcf143f73ed07"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga8027e36a9d9120abfbf350046845b081"><td class="memItemLeft" align="right" valign="top"><a id="ga8027e36a9d9120abfbf350046845b081"></a>
 boost::system::error_code&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga8027e36a9d9120abfbf350046845b081">aedis::adapter::make_error_code</a> (<a class="el" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">error</a> e)</td></tr>
 <tr class="memdesc:ga8027e36a9d9120abfbf350046845b081"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a error_code object from an error. <br /></td></tr>
@@ -226,15 +212,9 @@ struct aedis::resp3::node&lt; String &gt;</h3>
 
 <p>A node in the response tree. </p>
 <p>Redis responses are the pre-order view of the response tree (see <a href="https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR">https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR</a>).</p>
-<p>The node class represent one element in the response tree. The string type is a template to give more flexibility. The library uses</p>
-<ul>
-<li><code>boost::string_view</code> </li>
-<li><code>std::string</code> </li>
-<li><code>boost::static_string</code> </li>
-</ul>
 <dl class="section remark"><dt>Remarks</dt><dd>Any Redis response can be received in an array of nodes, for example <code>std::vector&lt;node&lt;std::string&gt;&gt;</code>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00036">36</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00028">28</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 </div><table class="fieldtable">
 <tr><th colspan="3">Class Members</th></tr>
 <tr><td class="fieldtype">
@@ -836,7 +816,7 @@ The actual data. For aggregate types this is usually empty. </td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Errors from the generic module. </p>
+<p>Generic errors. </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga110bcc500f0ab112a466b6e955efa32ea1aadcfc9d4ed9466a35fbbf2e8e9da00"></a>resolve_timeout&#160;</td><td class="fielddoc"><p>Represents the timeout of the resolve operation. </p>
 </td></tr>
@@ -876,7 +856,7 @@ The actual data. For aggregate types this is usually empty. </td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>RESP3 parsing errors. </p>
+<p>RESP3 errors. </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aa4be989dbdfc566fa8ce10b9bbf9aa086"></a>invalid_type&#160;</td><td class="fielddoc"><p>Invalid RESP3 type. </p>
 </td></tr>
@@ -998,7 +978,7 @@ The actual data. For aggregate types this is usually empty. </td></tr>
 <div class="line"><a class="code" href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">resp3::read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp)); <span class="comment">// ping</span></div>
 <div class="line"><a class="code" href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">resp3::read</a>(socket, dynamic_buffer(buffer, <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>()));     <span class="comment">// quit</span></div>
 <div class="ttc" id="agroup__any_html_ga1e40a9e5ab61e7980b4be74bf0d4943d"><div class="ttname"><a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a dummy response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00041">adapt.hpp:41</a></div></div>
-<div class="ttc" id="agroup__any_html_gae85832036f8ac4d606df1c24fe27a28e"><div class="ttname"><a href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">aedis::resp3::read</a></div><div class="ttdeci">std::size_t read(SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter, boost::system::error_code &amp;ec)</div><div class="ttdoc">Reads a complete response to a command sychronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00060">read.hpp:60</a></div></div>
+<div class="ttc" id="agroup__any_html_gae85832036f8ac4d606df1c24fe27a28e"><div class="ttname"><a href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">aedis::resp3::read</a></div><div class="ttdeci">std::size_t read(SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter, boost::system::error_code &amp;ec)</div><div class="ttdoc">Reads a complete response to a command sychronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00058">read.hpp:58</a></div></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="adapt_8hpp_source.html#l00041">41</a> of file <a class="el" href="adapt_8hpp_source.html">adapt.hpp</a>.</p>
 
@@ -1035,7 +1015,7 @@ template&lt;class T &gt; </div>
 <p>Example usage:</p>
 <div class="fragment"><div class="line">std::unordered_map&lt;std::string, std::string&gt; cont;</div>
 <div class="line">co_await <a class="code" href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">async_read</a>(socket, buffer, <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(cont));</div>
-<div class="ttc" id="agroup__any_html_ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><div class="ttname"><a href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">aedis::resp3::async_read</a></div><div class="ttdeci">auto async_read(AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=ResponseAdapter{}, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</div><div class="ttdoc">Reads a complete response to a Redis command asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00177">read.hpp:177</a></div></div>
+<div class="ttc" id="agroup__any_html_ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><div class="ttname"><a href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">aedis::resp3::async_read</a></div><div class="ttdeci">auto async_read(AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=ResponseAdapter{}, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</div><div class="ttdoc">Reads a complete response to a Redis command asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00174">read.hpp:174</a></div></div>
 </div><!-- fragment --><p>For a transaction</p>
 <div class="fragment"><div class="line">sr.push(command::multi);</div>
 <div class="line">sr.push(command::ping, ...);</div>
@@ -1166,8 +1146,7 @@ template&lt;class AsyncReadStream , class DynamicBuffer , class ResponseAdapter 
 <div class="fragment"><div class="line">std::string buffer;</div>
 <div class="line">std::set&lt;std::string&gt; resp;</div>
 <div class="line">co_await <a class="code" href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">resp3::async_read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp));</div>
-</div><!-- fragment --><p>For a complete example see <a class="el" href="transaction_8cpp_source.html">examples/transaction.cpp</a>. This function is implemented in terms of one or more calls to <code>asio::async_read_until</code> and <code>asio::async_read</code> functions, and is known as a <em>composed</em> <em>operation</em>.</p>
-<p>Furthermore, the implementation may read additional bytes from the stream that lie past the end of the message being read. These additional bytes are stored in the dynamic buffer, which must be preserved for subsequent reads.</p>
+</div><!-- fragment --><p>For a complete example see <a class="el" href="transaction_8cpp_source.html">examples/transaction.cpp</a>. This function is implemented in terms of one or more calls to <code>asio::async_read_until</code> and <code>asio::async_read</code> functions, and is known as a <em>composed</em> <em>operation</em>. Furthermore, the implementation may read additional bytes from the stream that lie past the end of the message being read. These additional bytes are stored in the dynamic buffer, which must be preserved for subsequent reads.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">stream</td><td>The stream from which to read e.g. a tcp socket. </td></tr>
@@ -1181,60 +1160,7 @@ template&lt;class AsyncReadStream , class DynamicBuffer , class ResponseAdapter 
 <div class="fragment"><div class="line">void(boost::system::error_code, std::size_t);</div>
 </div><!-- fragment --><dl class="section remark"><dt>Remarks</dt><dd>This function calls buf.consume() in each chunk of data after it has been passed to the adapter. Users must not consume the bytes after it returns. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00177">177</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga0092190b76e640757b1964016e5a97a4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga0092190b76e640757b1964016e5a97a4">&#9670;&nbsp;</a></span>element_multiplicity()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::size_t aedis::resp3::element_multiplicity </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a>&#160;</td>
-          <td class="paramname"><em>t</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Checks the data type multilicity. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">t</td><td>RESP3 type. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>For map and attribute data types this function returns 2. All other types have value 1. </dd></dl>
-
-</div>
-</div>
-<a id="ga0de5e7e429d70f35ec2bcf143f73ed07"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga0de5e7e429d70f35ec2bcf143f73ed07">&#9670;&nbsp;</a></span>is_aggregate()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool aedis::resp3::is_aggregate </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a>&#160;</td>
-          <td class="paramname"><em>t</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Checks whether the data type is an aggregate. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">t</td><td>RESP3 data type. </td></tr>
-  </table>
-  </dd>
-</dl>
+<p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00174">174</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
 
 </div>
 </div>
@@ -1373,7 +1299,7 @@ template&lt;class String &gt; </div>
 <p>Writes the node string to the stream. </p>
 <p>NOTE: Binary data is not converted to text. </p>
 
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00089">89</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00081">81</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 
 </div>
 </div>
@@ -1459,8 +1385,7 @@ template&lt;class SyncReadStream , class DynamicBuffer , class ResponseAdapter &
 <div class="fragment"><div class="line"><span class="keywordtype">int</span> resp;</div>
 <div class="line">std::string buffer;</div>
 <div class="line"><a class="code" href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">resp3::read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp));</div>
-</div><!-- fragment --><p>For a complete example see <a class="el" href="intro__sync_8cpp_source.html">examples/intro_sync.cpp</a>. This function is implemented in terms of one or more calls to <code>asio::read_until</code> and <code>asio::read</code> functions, and is known as a <em>composed</em> <em>operation</em>.</p>
-<p>Furthermore, the implementation may read additional bytes from the stream that lie past the end of the message being read. These additional bytes are stored in the dynamic buffer, which must be preserved for subsequent reads.</p>
+</div><!-- fragment --><p>For a complete example see <a class="el" href="intro__sync_8cpp_source.html">examples/intro_sync.cpp</a>. This function is implemented in terms of one or more calls to <code>asio::read_until</code> and <code>asio::read</code> functions, and is known as a <em>composed</em> <em>operation</em>. Furthermore, the implementation may read additional bytes from the stream that lie past the end of the message being read. These additional bytes are stored in the dynamic buffer, which must be preserved for subsequent reads.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">stream</td><td>The stream from which to read e.g. a tcp socket. </td></tr>
@@ -1473,7 +1398,7 @@ template&lt;class SyncReadStream , class DynamicBuffer , class ResponseAdapter &
 <dl class="section return"><dt>Returns</dt><dd>The number of bytes that have been consumed from the dynamic buffer.</dd></dl>
 <dl class="section remark"><dt>Remarks</dt><dd>This function calls buf.consume() in each chunk of data after it has been passed to the adapter. Users must not consume the bytes after it returns. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00060">60</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00058">58</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
 
 </div>
 </div>
@@ -1514,7 +1439,7 @@ template&lt;class SyncReadStream , class DynamicBuffer , class ResponseAdapter  
 <p>Reads a complete response to a command sychronously. </p>
 <p>Same as the error_code overload but throws on error. </p>
 
-<p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00118">118</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00116">116</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
 
 </div>
 </div>
@@ -1638,7 +1563,7 @@ template&lt;class String &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00056">56</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00048">48</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 
 </div>
 </div>

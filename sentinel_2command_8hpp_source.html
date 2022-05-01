@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.1</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.2</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -115,14 +115,14 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
 <div class="line"><a name="l00070"></a><span class="lineno"><a class="line" href="group__any.html#gaef566c0da0bb6e1da8a236882448a1d6">   70</a></span>&#160;std::ostream&amp; <a class="code" href="group__any.html#gaef566c0da0bb6e1da8a236882448a1d6">operator&lt;&lt;</a>(std::ostream&amp; os, <a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> c);</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160; </div>
-<div class="line"><a name="l00075"></a><span class="lineno"><a class="line" href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">   75</a></span>&#160;<span class="keywordtype">bool</span> <a class="code" href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">has_push_response</a>(<a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> cmd);</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;} <span class="comment">// sentinel</span></div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_SENTINEL_COMMAND_HPP</span></div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="comment">// Checks whether a command has push response.</span></div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="keywordtype">bool</span> has_push_response(<a class="code" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> cmd);</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160; </div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;} <span class="comment">// sentinel</span></div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_SENTINEL_COMMAND_HPP</span></div>
 <div class="ttc" id="agroup__any_html_ga61f4592d67beb56115b04cd4d5ab9c8f"><div class="ttname"><a href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">aedis::sentinel::to_string</a></div><div class="ttdeci">char const  * to_string(command c)</div><div class="ttdoc">Converts the command to a string.</div></div>
-<div class="ttc" id="agroup__any_html_ga8372cd4e2ac5364b1666a01917529b32"><div class="ttname"><a href="group__any.html#ga8372cd4e2ac5364b1666a01917529b32">aedis::sentinel::has_push_response</a></div><div class="ttdeci">bool has_push_response(command cmd)</div><div class="ttdoc">Checks whether a command has push response.</div></div>
 <div class="ttc" id="agroup__any_html_ga9a6f3d1a56c2d4bd486a92f8d8f90c29"><div class="ttname"><a href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">aedis::sentinel::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Sentinel commands.</div><div class="ttdef"><b>Definition:</b> <a href="sentinel_2command_8hpp_source.html#l00024">command.hpp:24</a></div></div>
 <div class="ttc" id="agroup__any_html_gaef566c0da0bb6e1da8a236882448a1d6"><div class="ttname"><a href="group__any.html#gaef566c0da0bb6e1da8a236882448a1d6">aedis::sentinel::operator&lt;&lt;</a></div><div class="ttdeci">std::ostream &amp; operator&lt;&lt;(std::ostream &amp;os, command c)</div><div class="ttdoc">Writes the command string to the stream.</div></div>
 <div class="ttc" id="agroup__any_html_gga9a6f3d1a56c2d4bd486a92f8d8f90c29a1dccadfed7bcbb036c56a4afb97e906f"><div class="ttname"><a href="group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29a1dccadfed7bcbb036c56a4afb97e906f">aedis::sentinel::command::command</a></div><div class="ttdeci">@ command</div><div class="ttdoc">https://redis.io/commands/command</div></div>

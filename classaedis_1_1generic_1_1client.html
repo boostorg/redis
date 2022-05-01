@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.1</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.2</font> &#160; <br> Low level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -75,6 +75,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="classaedis_1_1generic_1_1client-members.html">List of all members</a>  </div>
@@ -88,32 +89,38 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 
 <p><code>#include &lt;<a class="el" href="client_8hpp_source.html">aedis/generic/client.hpp</a>&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:structaedis_1_1generic_1_1client_1_1config"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html#structaedis_1_1generic_1_1client_1_1config">config</a></td></tr>
+<tr class="memdesc:structaedis_1_1generic_1_1client_1_1config"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configuration parameters.  <a href="classaedis_1_1generic_1_1client.html#structaedis_1_1generic_1_1client_1_1config">More...</a><br /></td></tr>
+<tr class="separator:structaedis_1_1generic_1_1client_1_1config"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a60775edf071e186ee2b163e56b2381ea"><td class="memItemLeft" align="right" valign="top"><a id="a60775edf071e186ee2b163e56b2381ea"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html#a60775edf071e186ee2b163e56b2381ea">executor_type</a> = typename AsyncReadWriteStream::executor_type</td></tr>
-<tr class="memdesc:a60775edf071e186ee2b163e56b2381ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executor used. <br /></td></tr>
+<tr class="memdesc:a60775edf071e186ee2b163e56b2381ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executor type. <br /></td></tr>
 <tr class="separator:a60775edf071e186ee2b163e56b2381ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2d575c2ee7c49738ff4557bd5df09c36"><td class="memItemLeft" align="right" valign="top"><a id="a2d575c2ee7c49738ff4557bd5df09c36"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html#a2d575c2ee7c49738ff4557bd5df09c36">push_handler_type</a> = std::function&lt; void(std::size_t)&gt;</td></tr>
-<tr class="memdesc:a2d575c2ee7c49738ff4557bd5df09c36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the callback called when a push message is received. <br /></td></tr>
+<tr class="memdesc:a2d575c2ee7c49738ff4557bd5df09c36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback type of push operations. <br /></td></tr>
 <tr class="separator:a2d575c2ee7c49738ff4557bd5df09c36"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af4c259d8a1a9d757e090e01bb22491fd"><td class="memItemLeft" align="right" valign="top"><a id="af4c259d8a1a9d757e090e01bb22491fd"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html#af4c259d8a1a9d757e090e01bb22491fd">read_handler_type</a> = std::function&lt; void(Command cmd, std::size_t)&gt;</td></tr>
-<tr class="memdesc:af4c259d8a1a9d757e090e01bb22491fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the callback called when a message is received. <br /></td></tr>
+<tr class="memdesc:af4c259d8a1a9d757e090e01bb22491fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback type of read operations. <br /></td></tr>
 <tr class="separator:af4c259d8a1a9d757e090e01bb22491fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6d290f5dfdc534e8e186b13542509f83"><td class="memItemLeft" align="right" valign="top"><a id="a6d290f5dfdc534e8e186b13542509f83"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html#a6d290f5dfdc534e8e186b13542509f83">resp3_handler_type</a> = std::function&lt; void(Command, <a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">resp3::node</a>&lt; boost::string_view &gt; const  &amp;, boost::system::error_code &amp;)&gt;</td></tr>
-<tr class="memdesc:a6d290f5dfdc534e8e186b13542509f83"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the callback called when resp3 chuncks are received. <br /></td></tr>
+<tr class="memdesc:a6d290f5dfdc534e8e186b13542509f83"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback type of resp3 operations. <br /></td></tr>
 <tr class="separator:a6d290f5dfdc534e8e186b13542509f83"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac113cdd60eec88dabd531057162ae3bc"><td class="memItemLeft" align="right" valign="top"><a id="ac113cdd60eec88dabd531057162ae3bc"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html#ac113cdd60eec88dabd531057162ae3bc">write_handler_type</a> = std::function&lt; void(std::size_t)&gt;</td></tr>
-<tr class="memdesc:ac113cdd60eec88dabd531057162ae3bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the callback called when a message is written. <br /></td></tr>
+<tr class="memdesc:ac113cdd60eec88dabd531057162ae3bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback type of write operations. <br /></td></tr>
 <tr class="separator:ac113cdd60eec88dabd531057162ae3bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a421772a1171c4a66df7f0c6f8efe0113"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html#a421772a1171c4a66df7f0c6f8efe0113">client</a> (boost::asio::any_io_executor ex, config cfg=config{})</td></tr>
+<tr class="memitem:a421772a1171c4a66df7f0c6f8efe0113"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html#a421772a1171c4a66df7f0c6f8efe0113">client</a> (boost::asio::any_io_executor ex, <a class="el" href="classaedis_1_1generic_1_1client.html#structaedis_1_1generic_1_1client_1_1config">config</a> cfg=<a class="el" href="classaedis_1_1generic_1_1client.html#structaedis_1_1generic_1_1client_1_1config">config</a>{})</td></tr>
 <tr class="memdesc:a421772a1171c4a66df7f0c6f8efe0113"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor.  <a href="classaedis_1_1generic_1_1client.html#a421772a1171c4a66df7f0c6f8efe0113">More...</a><br /></td></tr>
 <tr class="separator:a421772a1171c4a66df7f0c6f8efe0113"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa2c8ad6055ae9b8629e76f6a4748ee37"><td class="memTemplParams" colspan="2">template&lt;class CompletionToken  = default_completion_token_type&gt; </td></tr>
@@ -170,15 +177,70 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 class aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</h3>
 
 <p>A high level Redis client. </p>
-<p>This class represents a connection to the Redis server. Some of its most important features are</p>
-<ol type="1">
-<li>Automatic management of commands. The implementation will send commands and read responses automatically for the user.</li>
-<li>Memory reuse. Dynamic memory allocations will decrease with time.</li>
-</ol>
-<p>For more details, please see the documentation of each individual function. </p>
+<p>This class keeps a connection open to the Redis server where commands can be sent at any time. For more details, please see the documentation of each individual function. </p>
 
-<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00044">44</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
-</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00037">37</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+</div><hr/><h2 class="groupheader">Class Documentation</h2>
+<a name="structaedis_1_1generic_1_1client_1_1config" id="structaedis_1_1generic_1_1client_1_1config"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#structaedis_1_1generic_1_1client_1_1config">&#9670;&nbsp;</a></span>aedis::generic::client::config</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct aedis::generic::client::config</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="textblock"><h3>template&lt;class AsyncReadWriteStream, class Command&gt;<br />
+struct aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;::config</h3>
+
+<p>Configuration parameters. </p>
+
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00058">58</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+</div><table class="fieldtable">
+<tr><th colspan="3">Class Members</th></tr>
+<tr><td class="fieldtype">
+<a id="ac5b5a6df9347266c8b6a8dbac4cf16e9"></a>seconds</td>
+<td class="fieldname">
+connect_timeout</td>
+<td class="fielddoc">
+Timeout of the <code>async_connect</code> operation. </td></tr>
+<tr><td class="fieldtype">
+<a id="a692f69e6e6d55db4ee3c526d378e6c2f"></a>seconds</td>
+<td class="fieldname">
+idle_timeout</td>
+<td class="fielddoc">
+Time after which a connection is considered idle if no data is received. </td></tr>
+<tr><td class="fieldtype">
+<a id="af87d993aeef852d4ea6636f5094ffaf6"></a>size_t</td>
+<td class="fieldname">
+max_read_size</td>
+<td class="fielddoc">
+The maximum size allwed in a read operation. </td></tr>
+<tr><td class="fieldtype">
+<a id="a7e13e35018671419ea69e53388f3a555"></a>seconds</td>
+<td class="fieldname">
+read_timeout</td>
+<td class="fielddoc">
+Timeout of the <code>async_read</code> operation. </td></tr>
+<tr><td class="fieldtype">
+<a id="a6f9f78f49dde260124c0f337bfe0eacb"></a>seconds</td>
+<td class="fieldname">
+resolve_timeout</td>
+<td class="fielddoc">
+Timeout of the <code>async_resolve</code> operation. </td></tr>
+<tr><td class="fieldtype">
+<a id="a923a4b437ae74fbe2adfc19cc50b6c46"></a>seconds</td>
+<td class="fieldname">
+write_timeout</td>
+<td class="fielddoc">
+Timeout of the <code>async_write</code> operation. </td></tr>
+</table>
+
+</div>
+</div>
+<h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a421772a1171c4a66df7f0c6f8efe0113"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a421772a1171c4a66df7f0c6f8efe0113">&#9670;&nbsp;</a></span>client()</h2>
 
@@ -199,8 +261,8 @@ template&lt;class AsyncReadWriteStream , class Command &gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">config&#160;</td>
-          <td class="paramname"><em>cfg</em> = <code>config{}</code>&#160;</td>
+          <td class="paramtype"><a class="el" href="classaedis_1_1generic_1_1client.html#structaedis_1_1generic_1_1client_1_1config">config</a>&#160;</td>
+          <td class="paramname"><em>cfg</em> = <code><a class="el" href="classaedis_1_1generic_1_1client.html#structaedis_1_1generic_1_1client_1_1config">config</a>{}</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -224,7 +286,7 @@ template&lt;class AsyncReadWriteStream , class Command &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00088">88</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00083">83</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
 
 </div>
 </div>
@@ -274,27 +336,40 @@ template&lt;class CompletionToken  = default_completion_token_type&gt; </div>
 </div><div class="memdoc">
 
 <p>Starts communication with the Redis server asynchronously. </p>
-<p>This class performs the following steps</p>
+<p>This function performs the following steps</p>
 <ul>
-<li>Resolve the Redis host as of <code>async_resolve</code> with the timeout passed in client::config::resolve_timeout.</li>
+<li>Resolves the Redis host as of <code>async_resolve</code> with the timeout passed in <a class="el" href="classaedis_1_1generic_1_1client.html#a6f9f78f49dde260124c0f337bfe0eacb" title="Timeout of the async_resolve operation.">client::config::resolve_timeout</a>.</li>
 </ul>
 <ul>
-<li>Connect to one of the endpoints returned by the resolve operation with the timeout passed in client::config::connect_timeout.</li>
+<li>Connects to one of the endpoints returned by the resolve operation with the timeout passed in <a class="el" href="classaedis_1_1generic_1_1client.html#ac5b5a6df9347266c8b6a8dbac4cf16e9" title="Timeout of the async_connect operation.">client::config::connect_timeout</a>.</li>
 </ul>
 <ul>
-<li>Start the async read operation that keeps reading incoming responses. Each individual read uses the timeout passed on client::config::read_timeout. After each successful read it will call the read or push callback.</li>
+<li>Starts the <code>async_read</code> operation that keeps reading incoming responses. Each individual read uses the timeout passed on <a class="el" href="classaedis_1_1generic_1_1client.html#a7e13e35018671419ea69e53388f3a555" title="Timeout of the async_read operation.">client::config::read_timeout</a>. After each successful read it will call the read or push callback.</li>
 </ul>
 <ul>
-<li>Start the async write operation that wait for new commands to be sent to Redis. Each individual write uses the timeout passed on client::config::write_timeout. After a successful write it will call the write callback.</li>
+<li>Starts the <code>async_write</code> operation that waits for new commands to be sent to Redis. Each individual write uses the timeout passed on <a class="el" href="classaedis_1_1generic_1_1client.html#a923a4b437ae74fbe2adfc19cc50b6c46" title="Timeout of the async_write operation.">client::config::write_timeout</a>. After a successful write it will call the write callback.</li>
 </ul>
 <ul>
-<li>Start the check idle operation with the timeout specified in client::config::idle_timeout. If no data is received during that time interval async_run returns <a class="el" href="group__any.html#gga110bcc500f0ab112a466b6e955efa32eaa89ad1b8aaa085e108ffd59e1b60c232" title="Idle timeout.">generic::error::idle_timeout</a>.</li>
+<li>Starts the check idle operation with the timeout specified in <a class="el" href="classaedis_1_1generic_1_1client.html#a692f69e6e6d55db4ee3c526d378e6c2f" title="Time after which a connection is considered idle if no data is received.">client::config::idle_timeout</a>. If no data is received during that time interval <code>async_run</code> completes with <a class="el" href="group__any.html#gga110bcc500f0ab112a466b6e955efa32eaa89ad1b8aaa085e108ffd59e1b60c232" title="Idle timeout.">generic::error::idle_timeout</a>.</li>
 </ul>
 <ul>
-<li>Start the healthy check operation that sends <a class="el" href="group__any.html#gga9661fea349313723a8ec955975184c0cadf911f0151f9ef021d410b4be5060972" title="https://redis.io/commands/ping">redis::command::ping</a> to Redis with a frequency equal to client::config::idle_timeout / 2.</li>
+<li>Starts the healthy check operation that sends <a class="el" href="group__any.html#gga9661fea349313723a8ec955975184c0cadf911f0151f9ef021d410b4be5060972" title="https://redis.io/commands/ping">redis::command::ping</a> to Redis with a frequency equal to <a class="el" href="classaedis_1_1generic_1_1client.html#a692f69e6e6d55db4ee3c526d378e6c2f" title="Time after which a connection is considered idle if no data is received.">client::config::idle_timeout</a> / 2.</li>
 </ul>
 <p>In addition to the callbacks mentioned above, the read operations will call the resp3 callback as soon a new chunks of data become available to the user.</p>
-<dl class="params"><dt>Parameters</dt><dd>
+<p>It is safe to call <code>async_run</code> after it has returned. In this case, any outstanding commands will be sent after the connection is restablished. If a disconnect occurs while the response to a request has not been received, the client doesn't try to resend it to avoid resubmission.</p>
+<p>Example:</p>
+<div class="fragment"><div class="line">awaitable&lt;void&gt; run_with_reconnect(std::shared_ptr&lt;client_type&gt; db)</div>
+<div class="line">{</div>
+<div class="line">   <span class="keyword">auto</span> ex = co_await this_coro::executor;</div>
+<div class="line">   asio::steady_timer timer{ex};</div>
+<div class="line"> </div>
+<div class="line">   <span class="keywordflow">for</span> (error_code ec;;) {</div>
+<div class="line">      co_await db-&gt;async_run(<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>, redirect_error(use_awaitable, ec));</div>
+<div class="line">      timer.expires_after(std::chrono::seconds{2});</div>
+<div class="line">      co_await timer.async_wait(redirect_error(use_awaitable, ec));</div>
+<div class="line">   }</div>
+<div class="line">}</div>
+</div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">host</td><td>Ip address or name of the Redis server. </td></tr>
     <tr><td class="paramname">port</td><td>Port where the Redis server is listening. </td></tr>
@@ -304,16 +379,9 @@ template&lt;class CompletionToken  = default_completion_token_type&gt; </div>
 </dl>
 <p>The completion token must have the following signature</p>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code);</div>
-</div><!-- fragment --><p>Notice this function returns only when there is an error.</p>
-<dl class="section remark"><dt>Remarks</dt><dd></dd></dl>
-<ul>
-<li>It is safe to call this function again after it has returned. In that case, any outstanding commands will be sent and not get lost.</li>
-</ul>
-<ul>
-<li>If a disconnect occurs while the response to a request has not been received, the client doesn't try to resend it to avoid resubmission problem. </li>
-</ul>
+</div><!-- fragment --><dl class="section return"><dt>Returns</dt><dd>This function returns only when there is an error. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00293">293</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00296">296</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
 
 </div>
 </div>
@@ -356,9 +424,9 @@ template&lt;class... Ts&gt; </div>
 </div><div class="memdoc">
 
 <p>Adds a command to the output command queue. </p>
-<p>Adds a command to the end of the next request and signals the writer operation there is new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f" title="Appends a new command to the end of the request.">serializer::push</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates a Redis request from user data.">serializer</a>. </dd></dl>
+<p>Adds a command to the end of the next request and signals the writer operation there is a new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f" title="Appends a new command to the end of the request.">serializer::push</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates Redis requests from user data.">serializer</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00118">118</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00114">114</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
 
 </div>
 </div>
@@ -407,9 +475,9 @@ template&lt;class Key , class Range &gt; </div>
 </div><div class="memdoc">
 
 <p>Adds a command to the output command queue. </p>
-<p>Adds a command to the end of the next request and signals the writer operation there is new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a" title="Appends a new command to the end of the request.">serializer::push_range</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates a Redis request from user data.">serializer</a>. </dd></dl>
+<p>Adds a command to the end of the next request and signals the writer operation there is a new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a" title="Appends a new command to the end of the request.">serializer::push_range</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates Redis requests from user data.">serializer</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00214">214</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00204">204</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
 
 </div>
 </div>
@@ -452,9 +520,9 @@ template&lt;class Range &gt; </div>
 </div><div class="memdoc">
 
 <p>Adds a command to the output command queue. </p>
-<p>Adds a command to the end of the next request and signals the writer operation there is new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a" title="Appends a new command to the end of the request.">serializer::push_range</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates a Redis request from user data.">serializer</a>. </dd></dl>
+<p>Adds a command to the end of the next request and signals the writer operation there is a new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a" title="Appends a new command to the end of the request.">serializer::push_range</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates Redis requests from user data.">serializer</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00230">230</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00220">220</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
 
 </div>
 </div>
@@ -503,9 +571,9 @@ template&lt;class ForwardIterator &gt; </div>
 </div><div class="memdoc">
 
 <p>Adds a command to the output command queue. </p>
-<p>Adds a command to the end of the next request and signals the writer operation there is new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7" title="Appends a new command to the end of the request.">serializer::push_range2</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates a Redis request from user data.">serializer</a>. </dd></dl>
+<p>Adds a command to the end of the next request and signals the writer operation there is a new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7" title="Appends a new command to the end of the request.">serializer::push_range2</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates Redis requests from user data.">serializer</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00181">181</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00173">173</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
 
 </div>
 </div>
@@ -560,9 +628,9 @@ template&lt;class Key , class ForwardIterator &gt; </div>
 </div><div class="memdoc">
 
 <p>Adds a command to the output command queue. </p>
-<p>Adds a command to the end of the next request and signals the writer operation there is new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7" title="Appends a new command to the end of the request.">serializer::push_range2</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates a Redis request from user data.">serializer</a>. </dd></dl>
+<p>Adds a command to the end of the next request and signals the writer operation there is a new message awaiting to be sent. Otherwise the function is equivalent to <a class="el" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7" title="Appends a new command to the end of the request.">serializer::push_range2</a>. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="classaedis_1_1generic_1_1serializer.html" title="Creates Redis requests from user data.">serializer</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00148">148</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00142">142</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
 
 </div>
 </div>
@@ -602,9 +670,9 @@ template&lt;class Receiver &gt; </div>
 <div class="line">   <span class="keywordtype">void</span> on_write(std::size_t n);</div>
 <div class="line">   <span class="keywordtype">void</span> on_push(std::size_t n);</div>
 <div class="line">};</div>
-<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00036">node.hpp:36</a></div></div>
+<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00028">node.hpp:28</a></div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00337">337</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="client_8hpp_source.html#l00340">340</a> of file <a class="el" href="client_8hpp_source.html">client.hpp</a>.</p>
 
 </div>
 </div>
