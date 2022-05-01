@@ -21,14 +21,6 @@ namespace resp3 {
  *  Redis responses are the pre-order view of the response tree (see
  *  https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR).
  *
- *  The node class represent one element in the response tree. The
- *  string type is a template to give more flexibility. The library
- *  uses
- *
- *  @li @c boost::string_view
- *  @li @c std::string
- *  @li @c boost::static_string
- *
  *  \remark Any Redis response can be received in an array of nodes,
  *  for example \c std::vector<node<std::string>>.
  */

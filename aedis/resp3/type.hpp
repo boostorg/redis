@@ -69,18 +69,12 @@ char const* to_string(type t);
  */
 std::ostream& operator<<(std::ostream& os, type t);
 
-/** \brief Checks whether the data type is an aggregate.
- *  \ingroup any
- *  \param t RESP3 data type.
+/* Checks whether the data type is an aggregate.
  */
 bool is_aggregate(type t);
 
-/** @brief Checks the data type multilicity.
- *  \ingroup any
- *  \param t RESP3 type.
- *  \returns For map and attribute data types this function returns 2.
- *  All other types have value 1.
- */
+// For map and attribute data types this function returns 2.  All
+// other types have value 1.
 std::size_t element_multiplicity(type t);
 
 // Returns the wire code of a given type.

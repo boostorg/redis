@@ -34,12 +34,10 @@ namespace resp3 {
  *  For a complete example see examples/intro_sync.cpp. This function
  *  is implemented in terms of one or more calls to @c
  *  asio::read_until and @c asio::read functions, and is known as a @a
- *  composed @a operation.
- *
- *  Furthermore, the implementation may read additional bytes from the
- *  stream that lie past the end of the message being read. These
- *  additional bytes are stored in the dynamic buffer, which must be
- *  preserved for subsequent reads.
+ *  composed @a operation. Furthermore, the implementation may read
+ *  additional bytes from the stream that lie past the end of the
+ *  message being read. These additional bytes are stored in the
+ *  dynamic buffer, which must be preserved for subsequent reads.
  *
  *  \param stream The stream from which to read e.g. a tcp socket.
  *  \param buf Dynamic buffer (version 2).
@@ -144,12 +142,11 @@ read(
  *  For a complete example see examples/transaction.cpp. This function
  *  is implemented in terms of one or more calls to @c
  *  asio::async_read_until and @c asio::async_read functions, and is
- *  known as a @a composed @a operation.
- *
- *  Furthermore, the implementation may read additional bytes from the
- *  stream that lie past the end of the message being read. These
- *  additional bytes are stored in the dynamic buffer, which must be
- *  preserved for subsequent reads.
+ *  known as a @a composed @a operation.  Furthermore, the
+ *  implementation may read additional bytes from the stream that lie
+ *  past the end of the message being read. These additional bytes are
+ *  stored in the dynamic buffer, which must be preserved for
+ *  subsequent reads.
  *
  *  \param stream The stream from which to read e.g. a tcp socket.
  *  \param buffer Dynamic buffer (version 2).

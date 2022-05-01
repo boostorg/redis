@@ -12,7 +12,7 @@
 namespace aedis {
 namespace generic {
 
-/** \brief Errors from the generic module.
+/** \brief Generic errors.
  *  \ingroup any
  */
 enum class error

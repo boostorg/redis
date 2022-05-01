@@ -19,7 +19,7 @@
 namespace aedis {
 namespace generic {
 
-/** @brief Creates a Redis request from user data.
+/** @brief Creates Redis requests from user data.
  *  \ingroup any
  *  
  *  A request is composed of one or more redis commands and is

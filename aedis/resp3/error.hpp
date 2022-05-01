@@ -12,7 +12,7 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief RESP3 parsing errors.
+/** \brief RESP3 errors.
  *  \ingroup any
  */
 enum class error

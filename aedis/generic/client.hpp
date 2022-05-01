@@ -29,25 +29,26 @@ namespace generic {
 /** \brief A high level Redis client.
  *  \ingroup any
  *
- *  This class represents a connection to the Redis server.  For more
- *  details, please see the documentation of each individual function.
+ *  This class keeps a connection open to the Redis server where
+ *  commands can be sent at any time. For more details, please see the
+ *  documentation of each individual function.
  */
 template <class AsyncReadWriteStream, class Command>
 class client {
 public:
-   /// Executor used.
+   /// Executor type.
    using executor_type = typename AsyncReadWriteStream::executor_type;
 
-   /// Type of the callback called when a message is received.
+   /// Callback type of read operations.
    using read_handler_type = std::function<void(Command cmd, std::size_t)>;
 
-   /// Type of the callback called when a message is written.
+   /// Callback type of write operations.
    using write_handler_type = std::function<void(std::size_t)>;
 
-   /// Type of the callback called when a push message is received.
+   /// Callback type of push operations.
    using push_handler_type = std::function<void(std::size_t)>;
 
-   /// Type of the callback called when resp3 data are received.
+   /// Callback type of resp3 operations.
    using resp3_handler_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
@@ -55,22 +56,22 @@ public:
    /** @brief Configuration parameters.
     */
    struct config {
-      /// Timeout of the async_resolve operation.
+      /// Timeout of the \c async_resolve operation.
       std::chrono::seconds resolve_timeout = std::chrono::seconds{5};
 
-      /// Timeout of the async_connect operation.
+      /// Timeout of the \c async_connect operation.
       std::chrono::seconds connect_timeout = std::chrono::seconds{5};
 
-      /// Timeout of the async_read operation.
+      /// Timeout of the \c async_read operation.
       std::chrono::seconds read_timeout = std::chrono::seconds{5};
 
-      /// Timeout of the async_write operation.
+      /// Timeout of the \c async_write operation.
       std::chrono::seconds write_timeout = std::chrono::seconds{5};
 
       /// Time after which a connection is considered idle if no data is received.
       std::chrono::seconds idle_timeout = std::chrono::seconds{10};
 
-      /// The maximum size of a read.
+      /// The maximum size allwed in a read operation.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
    };
 
@@ -105,7 +106,7 @@ public:
    /** @brief Adds a command to the output command queue.
     *
     *  Adds a command to the end of the next request and signals the
-    *  writer operation there is new message awaiting to be sent.
+    *  writer operation there is a new message awaiting to be sent.
     *  Otherwise the function is equivalent to serializer::push.  @sa
     *  serializer.
     */
@@ -132,7 +133,7 @@ public:
    /** @brief Adds a command to the output command queue.
     *
     *  Adds a command to the end of the next request and signals the
-    *  writer operation there is new message awaiting to be sent.
+    *  writer operation there is a new message awaiting to be sent.
     *  Otherwise the function is equivalent to
     *  serializer::push_range2.
     *  @sa serializer.
@@ -163,7 +164,7 @@ public:
    /** @brief Adds a command to the output command queue.
     *
     *  Adds a command to the end of the next request and signals the
-    *  writer operation there is new message awaiting to be sent.
+    *  writer operation there is a new message awaiting to be sent.
     *  Otherwise the function is equivalent to
     *  serializer::push_range2.
     *  @sa serializer.
@@ -194,7 +195,7 @@ public:
    /** @brief Adds a command to the output command queue.
     *
     *  Adds a command to the end of the next request and signals the
-    *  writer operation there is new message awaiting to be sent.
+    *  writer operation there is a new message awaiting to be sent.
     *  Otherwise the function is equivalent to
     *  serializer::push_range.
     *  @sa serializer.
@@ -210,7 +211,7 @@ public:
    /** @brief Adds a command to the output command queue.
     *
     *  Adds a command to the end of the next request and signals the
-    *  writer operation there is new message awaiting to be sent.
+    *  writer operation there is a new message awaiting to be sent.
     *  Otherwise the function is equivalent to
     *  serializer::push_range.
     *  @sa serializer.
@@ -227,34 +228,56 @@ public:
     *
     *  This function performs the following steps
     *
-    *  @li Resolve the Redis host as of \c async_resolve with the
+    *  @li Resolves the Redis host as of \c async_resolve with the
     *  timeout passed in client::config::resolve_timeout.
     *
-    *  @li Connect to one of the endpoints returned by the resolve
+    *  @li Connects to one of the endpoints returned by the resolve
     *  operation with the timeout passed in client::config::connect_timeout.
     *
-    *  @li Start the async read operation that keeps reading incoming
+    *  @li Starts the \c async_read operation that keeps reading incoming
     *  responses. Each individual read uses the timeout passed on
     *  client::config::read_timeout. After each successful read it
     *  will call the read or push callback.
     *
-    *  @li Start the async write operation that waits for new commands
+    *  @li Starts the \c async_write operation that waits for new commands
     *  to be sent to Redis. Each individual write uses the timeout
     *  passed on client::config::write_timeout. After a successful
     *  write it will call the write callback.
     *
-    *  @li Start the check idle operation with the timeout specified
+    *  @li Starts the check idle operation with the timeout specified
     *  in client::config::idle_timeout. If no data is received during
-    *  that time interval async_run returns
+    *  that time interval \c async_run completes with
     *  generic::error::idle_timeout.
     *
-    *  @li Start the healthy check operation that sends
+    *  @li Starts the healthy check operation that sends
     *  redis::command::ping to Redis with a frequency equal to
     *  client::config::idle_timeout / 2.
     *
     *  In addition to the callbacks mentioned above, the read
     *  operations will call the resp3 callback as soon a new chunks of
     *  data become available to the user.
+    *
+    *  It is safe to call \c async_run after it has returned.  In this
+    *  case, any outstanding commands will be sent after the
+    *  connection is restablished. If a disconnect occurs while the
+    *  response to a request has not been received, the client doesn't
+    *  try to resend it to avoid resubmission.
+    *
+    *  Example:
+    *
+    *  @code
+    *  awaitable<void> run_with_reconnect(std::shared_ptr<client_type> db)
+    *  {
+    *     auto ex = co_await this_coro::executor;
+    *     asio::steady_timer timer{ex};
+    *  
+    *     for (error_code ec;;) {
+    *        co_await db->async_run("127.0.0.1", "6379", redirect_error(use_awaitable, ec));
+    *        timer.expires_after(std::chrono::seconds{2});
+    *        co_await timer.async_wait(redirect_error(use_awaitable, ec));
+    *     }
+    *  }
+    *  @endcode
     *
     *  \param host Ip address or name of the Redis server.
     *  \param port Port where the Redis server is listening.
@@ -266,17 +289,7 @@ public:
     *  void f(boost::system::error_code);
     *  @endcode
     *
-    *  Notice this function returns only when there is an error.
-    *
-    *  @remark
-    *
-    *  @li It is safe to call this function again after it has
-    *  returned. In that case, any outstanding commands will be sent
-    *  and not get lost.
-    *
-    *  @li If a disconnect occurs while the response to a request has
-    *  not been received, the client doesn't try to resend it to avoid
-    *  resubmission.
+    *  \return This function returns only when there is an error.
     */
    template <class CompletionToken = default_completion_token_type>
    auto

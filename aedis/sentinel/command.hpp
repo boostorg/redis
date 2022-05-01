@@ -69,9 +69,7 @@ char const* to_string(command c);
  */
 std::ostream& operator<<(std::ostream& os, command c);
 
-/** \brief Checks whether a command has push response.
- *  \ingroup any
- */
+// Checks whether a command has push response.
 bool has_push_response(command cmd);
 
 } // sentinel
