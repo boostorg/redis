@@ -86,9 +86,7 @@ run_with_reconnect(std::shared_ptr<client_type> db)
    boost::asio::steady_timer timer{ex};
 
    for (boost::system::error_code ec;;) {
-      co_await db->async_run("127.0.0.1", "6379",
-            net::redirect_error(net::use_awaitable, ec));
-
+      co_await db->async_run(net::redirect_error(net::use_awaitable, ec));
       timer.expires_after(std::chrono::seconds{2});
       co_await timer.async_wait(net::redirect_error(net::use_awaitable, ec));
    }

@@ -476,7 +476,7 @@
        auto recv = std::make_shared<receiver>(db);
        db.set_receiver(recv);
 
-       db.async_run("127.0.0.1", "6379", [](auto ec){ ... });
+       db.async_run([](auto ec){ ... });
 
        ioc.run();
     }
@@ -515,7 +515,7 @@
        boost::asio::steady_timer timer{ex};
     
        for (error_code ec;;) {
-          co_await db->async_run("127.0.0.1", "6379", redirect_error(use_awaitable, ec));
+          co_await db->async_run(redirect_error(use_awaitable, ec));
 
           // Log the error.
           std::clog << ec.message() << std::endl;

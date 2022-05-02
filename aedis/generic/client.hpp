@@ -56,6 +56,12 @@ public:
    /** @brief Configuration parameters.
     */
    struct config {
+      /// Ip address or name of the Redis server.
+      std::string host = "127.0.0.1";
+
+      /// Port where the Redis server is listening.
+      std::string port = "6379";
+
       /// Timeout of the \c async_resolve operation.
       std::chrono::seconds resolve_timeout = std::chrono::seconds{5};
 
@@ -279,8 +285,6 @@ public:
     *  }
     *  @endcode
     *
-    *  \param host Ip address or name of the Redis server.
-    *  \param port Port where the Redis server is listening.
     *  \param token The completion token.
     *
     *  The completion token must have the following signature
@@ -292,15 +296,8 @@ public:
     *  \return This function returns only when there is an error.
     */
    template <class CompletionToken = default_completion_token_type>
-   auto
-   async_run(
-      boost::string_view host = "127.0.0.1",
-      boost::string_view port = "6379",
-      CompletionToken token = CompletionToken{})
+   auto async_run(CompletionToken token = CompletionToken{})
    {
-      host_ = host;
-      port_ = port;
-
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
@@ -689,10 +686,6 @@ private:
 
    // See async_resolve.
    boost::asio::ip::tcp::resolver::results_type endpoints_;
-
-   // Host and port passed to async_run.
-   boost::string_view host_;
-   boost::string_view port_;
 };
 
 } // generic

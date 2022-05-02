@@ -106,9 +106,7 @@ int main()
       auto db = std::make_shared<client_type>(ioc.get_executor());
       auto recv = std::make_shared<receiver>(db);
       db->set_receiver(recv);
-
-      db->async_run("127.0.0.1", "6379",
-          [](auto ec){ std::cout << ec.message() << std::endl;});
+      db->async_run([](auto ec){ std::cout << ec.message() << std::endl;});
 
       auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
       auto acc = std::make_shared<net::ip::tcp::acceptor>(ioc.get_executor(), endpoint);

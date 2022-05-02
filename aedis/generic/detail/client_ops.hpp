@@ -150,7 +150,11 @@ struct resolve_op {
       reenter (coro)
       {
          yield
-         cli->resv_.async_resolve(cli->host_.data(), cli->port_.data(), std::move(self));
+         cli->resv_.async_resolve(
+            cli->cfg_.host.data(),
+            cli->cfg_.port.data(),
+            std::move(self));
+
          if (ec) {
             self.complete(ec);
             return;

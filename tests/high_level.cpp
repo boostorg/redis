@@ -40,8 +40,10 @@ void test_resolve_error()
    };
 
    net::io_context ioc;
-   client_type db(ioc.get_executor());
-   db.async_run("Atibaia", "6379", f);
+   client_type::config cfg;
+   cfg.host = "Atibaia";
+   client_type db(ioc.get_executor(), cfg);
+   db.async_run(f);
    ioc.run();
 }
 
@@ -53,8 +55,10 @@ void test_connect_error()
    };
 
    net::io_context ioc;
-   client_type db(ioc.get_executor());
-   db.async_run("127.0.0.1", "1", f);
+   client_type::config cfg;
+   cfg.port = "1";
+   client_type db(ioc.get_executor(), cfg);
+   db.async_run(f);
    ioc.run();
 }
 
@@ -84,7 +88,7 @@ void test_hello()
    client_type db(ioc.get_executor());
    receiver1 recv{db};
    db.set_read_handler([&recv](command cmd, std::size_t n){recv.on_read(cmd, n);});
-   db.async_run("127.0.0.1", "6379", f);
+   db.async_run(f);
    ioc.run();
 }
 
@@ -117,7 +121,7 @@ void test_hello2()
    receiver2 recv{db};
    //db.set_read_handler(print_read);
    db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
-   db.async_run("127.0.0.1", "6379", f);
+   db.async_run(f);
    ioc.run();
 }
 
@@ -152,7 +156,7 @@ void test_push()
    receiver3 recv{db};
    db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
    db.set_push_handler([&recv](std::size_t n){recv.on_push(n);});
-   db.async_run("127.0.0.1", "6379", f);
+   db.async_run(f);
    ioc.run();
 }
 
@@ -187,7 +191,7 @@ void test_push2()
    receiver4 recv{db};
    db.set_read_handler([&recv](auto, auto){recv.on_read();});
    db.set_push_handler([&recv](auto){recv.on_push();});
-   db.async_run("127.0.0.1", "6379", f);
+   db.async_run(f);
    ioc.run();
 }
 
@@ -250,13 +254,13 @@ struct reconnect {
    void on_event(boost::system::error_code ec)
    {
       reenter (coro) for (;;) {
-         yield db.async_run("127.0.0.1", "6379",  [this](auto ec){ on_event(ec);});
+         yield db.async_run([this](auto ec){ on_event(ec);});
          expect_error(ec, net::error::misc_errors::eof);
          expect_eq(recv.counter, 1, "Reconnect counter 1.");
-         yield db.async_run("127.0.0.1", "6379",  [this](auto ec){ on_event(ec);});
+         yield db.async_run([this](auto ec){ on_event(ec);});
          expect_error(ec, net::error::misc_errors::eof);
          expect_eq(recv.counter, 2, "Reconnect counter 2.");
-         yield db.async_run("127.0.0.1", "6379",  [this](auto ec){ on_event(ec);});
+         yield db.async_run([this](auto ec){ on_event(ec);});
          expect_error(ec, net::error::misc_errors::eof);
          expect_eq(recv.counter, 3, "Reconnect counter 3.");
          return;
@@ -370,7 +374,7 @@ void test_discard()
    db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
    db.set_resp3_handler([&recv](auto a, auto b, auto c){recv.on_resp3(a, b, c);});
 
-   db.async_run("127.0.0.1", "6379", f);
+   db.async_run(f);
    ioc.run();
 
    expect_eq(recv.counter, 1, "test_discard.");
@@ -413,7 +417,7 @@ void test_idle()
    receiver8 recv{db};
    db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
 
-   db.async_run("127.0.0.1", "6379", f);
+   db.async_run(f);
    ioc.run();
 }
 
@@ -474,7 +478,7 @@ void test_no_ping()
 
    auto recv = std::make_shared<receiver9>(db);
    db.set_receiver(recv);
-   db.async_run("127.0.0.1", "6379", f);
+   db.async_run(f);
    ioc.run();
 
    expect_eq(recv->ping, false, "No ping received.");
