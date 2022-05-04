@@ -41,8 +41,6 @@ public:
 
    void on_read(command cmd, std::size_t n)
    {
-      std::cout << "on_read: " << cmd << " " << n << std::endl;
-
       switch (cmd) {
          case command::ping:
          if (resp_.front().value != "PONG") {
@@ -52,7 +50,7 @@ public:
          break;
 
          case command::incr:
-         std::cout << "Echos so far: " << resp_.front().value << std::endl;
+         //std::cout << "Echos so far: " << resp_.front().value << std::endl;
          break;
 
          default: /* Ignore */;
@@ -63,7 +61,6 @@ public:
 
    void on_write(std::size_t n)
    { 
-      std::cout << "Number of bytes written: " << n << std::endl;
    }
 
    void on_push(std::size_t n) { }

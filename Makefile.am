@@ -30,6 +30,7 @@ if HAVE_CXX20
 EXTRA_PROGRAMS += subscriber
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += chat_room
+EXTRA_PROGRAMS += echo_server_client
 endif
 
 CLEANFILES =
@@ -52,6 +53,7 @@ subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 custom_adapter_SOURCES = $(top_srcdir)/examples/custom_adapter.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
+echo_server_client_SOURCES = $(top_srcdir)/tools/echo_server_client.cpp
 endif
 
 nobase_include_HEADERS =\

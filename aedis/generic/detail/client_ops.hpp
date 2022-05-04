@@ -126,7 +126,7 @@ struct check_idle_op {
 
          auto const now = std::chrono::steady_clock::now();
          if (cli->last_data_ +  cli->cfg_.idle_timeout < now) {
-            cli->on_reader_exit();
+            cli->stop();
             self.complete(error::idle_timeout);
             return;
          }
@@ -228,8 +228,6 @@ struct init_op {
                   self.complete(ec1);
                   return;
                }
-
-               cli->on_resolve();
             } break;
 
             case 1:
@@ -242,6 +240,11 @@ struct init_op {
 
             default: BOOST_ASSERT(false);
          }
+
+         cli->socket_ =
+            std::make_shared<
+               typename Client::next_layer_type
+            >(cli->read_timer_.get_executor());
 
          // Tries a connection with a timeout. We can use the writer
          // timer here as there is no ongoing write operation.
@@ -262,8 +265,6 @@ struct init_op {
                   self.complete(ec1);
                   return;
                }
-
-               cli->on_connect();
             } break;
 
             case 1:
@@ -345,6 +346,8 @@ struct run_op {
             self.complete(ec);
             return;
          }
+
+         cli->prepare_state();
 
          yield cli->async_read_write_check(std::move(self));
          if (ec) {
@@ -523,7 +526,7 @@ struct reader_op {
          if (cli->read_buffer_.empty()) {
             yield cli->async_wait_for_data(std::move(self));
             if (ec) {
-               cli->on_reader_exit();
+               cli->stop();
                self.complete(ec);
                return;
             }
@@ -541,7 +544,7 @@ struct reader_op {
 
          yield cli->async_read(std::move(self));
          if (ec) {
-            cli->on_reader_exit();
+            cli->stop();
             self.complete(ec);
             return;
          }

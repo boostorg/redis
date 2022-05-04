@@ -32,6 +32,8 @@ namespace generic {
  *  This class keeps a connection open to the Redis server where
  *  commands can be sent at any time. For more details, please see the
  *  documentation of each individual function.
+ *
+ *  https://redis.io/docs/reference/sentinel-clients
  */
 template <class AsyncReadWriteStream, class Command>
 class client {
@@ -51,6 +53,9 @@ public:
    /// Callback type of resp3 operations.
    using resp3_handler_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
 
+   /// Type of the last layer
+   using next_layer_type = AsyncReadWriteStream;
+
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
    /** @brief Configuration parameters.
@@ -63,19 +68,19 @@ public:
       std::string port = "6379";
 
       /// Timeout of the \c async_resolve operation.
-      std::chrono::seconds resolve_timeout = std::chrono::seconds{5};
+      std::chrono::milliseconds resolve_timeout = std::chrono::seconds{5};
 
       /// Timeout of the \c async_connect operation.
-      std::chrono::seconds connect_timeout = std::chrono::seconds{5};
+      std::chrono::milliseconds connect_timeout = std::chrono::seconds{5};
 
       /// Timeout of the \c async_read operation.
-      std::chrono::seconds read_timeout = std::chrono::seconds{5};
+      std::chrono::milliseconds read_timeout = std::chrono::seconds{5};
 
       /// Timeout of the \c async_write operation.
-      std::chrono::seconds write_timeout = std::chrono::seconds{5};
+      std::chrono::milliseconds write_timeout = std::chrono::seconds{5};
 
       /// Time after which a connection is considered idle if no data is received.
-      std::chrono::seconds idle_timeout = std::chrono::seconds{10};
+      std::chrono::milliseconds idle_timeout = std::chrono::seconds{10};
 
       /// The maximum size allwed in a read operation.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
@@ -119,7 +124,7 @@ public:
    template <class... Ts>
    void send(Command cmd, Ts const&... args)
    {
-      auto const can_write = prepare_next();
+      auto const can_write = prepare_next_req();
 
       auto const before = requests_.size();
       sr_.push(cmd, args...);
@@ -150,7 +155,7 @@ public:
       if (begin == end)
          return;
 
-      auto const can_write = prepare_next();
+      auto const can_write = prepare_next_req();
 
       auto const before = requests_.size();
       sr_.push_range2(cmd, key, begin, end);
@@ -181,7 +186,7 @@ public:
       if (begin == end)
          return;
 
-      auto const can_write = prepare_next();
+      auto const can_write = prepare_next_req();
 
       auto const before = requests_.size();
       sr_.push_range2(cmd, begin, end);
@@ -342,6 +347,12 @@ public:
       on_push_ = [recv](std::size_t n){recv->on_push(n);};
    }
 
+   void stop()
+   {
+      socket_->close();
+      wait_write_timer_.expires_at(std::chrono::steady_clock::now());
+   }
+
 private:
    using command_info_type = std::pair<Command, std::size_t>;
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
@@ -360,15 +371,7 @@ private:
    template <class T> friend struct detail::read_write_check_op;
    template <class T> friend struct detail::wait_for_data_op;
 
-   void on_resolve()
-   {
-      // If we are coming from a connection that was lost we have to
-      // reset the socket to a fresh state.
-      socket_ =
-         std::make_shared<AsyncReadWriteStream>(read_timer_.get_executor());
-   }
-
-   void on_connect()
+   void prepare_state()
    {
       // When we are reconnecting we can't simply call send(hello)
       // as that will add the command to the end of the queue, we need
@@ -435,7 +438,7 @@ private:
    // Prepares the back of the queue to receive further commands.  If
    // true is returned the request in the front of the queue can be
    // sent to the server.
-   bool prepare_next()
+   bool prepare_next_req()
    {
       if (info_.empty()) {
          info_.push_back({});
@@ -602,12 +605,6 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::check_idle_op<client>{this}, token, check_idle_timer_);
-   }
-
-   void on_reader_exit()
-   {
-      socket_->close();
-      wait_write_timer_.expires_at(std::chrono::steady_clock::now());
    }
 
    // Stores information about a request.
