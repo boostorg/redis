@@ -408,6 +408,8 @@ struct write_op {
             default: BOOST_ASSERT(false);
          }
 
+         cli->bytes_written_ = n;
+
          BOOST_ASSERT(!cli->info_.empty());
          BOOST_ASSERT(cli->info_.front().size != 0);
          BOOST_ASSERT(!cli->requests_.empty());
@@ -418,7 +420,6 @@ struct write_op {
          if (cli->info_.front().cmds == 0) 
             cli->info_.erase(std::begin(cli->info_));
 
-         cli->on_write_(n);
          self.complete({});
       }
    }
@@ -441,6 +442,7 @@ struct writer_op {
             return;
          }
 
+         cli->on_write_(cli->bytes_written_);
          yield cli->wait_write_timer_.async_wait(std::move(self));
 
          if (!cli->socket_->is_open()) {
@@ -495,15 +497,7 @@ struct read_op {
             default: BOOST_ASSERT(false);
          }
 
-         if (cli->type_ == resp3::type::push) {
-            cli->on_read_(Command::invalid, n);
-         } else {
-            if (cli->on_cmd(cli->cmd_info_))
-               cli->wait_write_timer_.cancel_one();
-
-            cli->on_read_(cli->cmd_info_.first, n);
-         }
-
+         cli->cmd_info_.second = n;
          self.complete({});
       }
    }
@@ -548,6 +542,11 @@ struct reader_op {
             self.complete(ec);
             return;
          }
+
+         if (cli->after_read())
+            cli->wait_write_timer_.cancel_one();
+
+         cli->on_read_(cli->cmd_info_.first, cli->cmd_info_.second);
       }
    }
 };

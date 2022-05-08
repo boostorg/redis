@@ -17,6 +17,7 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/experimental/channel.hpp>
 
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
@@ -94,6 +95,7 @@ public:
    , write_timer_{ex}
    , wait_write_timer_{ex}
    , check_idle_timer_{ex}
+   , ch_{ex}
    , cfg_{cfg}
    , on_read_{[](Command, std::size_t){}}
    , on_write_{[](std::size_t){}}
@@ -344,6 +346,7 @@ public:
 private:
    using command_info_type = std::pair<Command, std::size_t>;
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
+   using channel_type = boost::asio::experimental::channel<void(boost::system::error_code, Command, std::size_t)>;
 
    template <class T, class V> friend struct detail::reader_op;
    template <class T, class V> friend struct detail::ping_after_op;
@@ -449,8 +452,11 @@ private:
    }
 
    // Returns true when the next request can be written.
-   bool on_cmd(command_info_type)
+   bool after_read()
    {
+      if (type_ == resp3::type::push)
+         return false;
+
       BOOST_ASSERT(!info_.empty());
       BOOST_ASSERT(!commands_.empty());
 
@@ -627,6 +633,9 @@ private:
    // Check idle timer.
    boost::asio::steady_timer check_idle_timer_;
 
+   // Channel used to communicate read events.
+   channel_type ch_;
+
    // Configuration parameters.
    config cfg_;
 
@@ -658,8 +667,6 @@ private:
 
    // Used by the read_op.
    resp3::type type_;
-
-   // Used by the read_op.
    command_info_type cmd_info_;
 
    // See async_connect.
@@ -667,6 +674,9 @@ private:
 
    // See async_resolve.
    boost::asio::ip::tcp::resolver::results_type endpoints_;
+
+   // write_op helper.
+   std::size_t bytes_written_ = 0;
 };
 
 } // generic

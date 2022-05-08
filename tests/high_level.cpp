@@ -385,7 +385,6 @@ public:
 
    void on_write(std::size_t)
    {
-      std::cout << "on_write" << std::endl;
       if (!std::exchange(sent_, true)) {
          db_->send(command::del, "key");
          db_->send(command::client, "PAUSE", 5000);
@@ -443,6 +442,9 @@ public:
 
    void on_read(command cmd, std::size_t)
    {
+      if (cmd == command::invalid)
+         return;
+
       db_->send(command::incr, "key");
       db_->send(command::subscribe, "channel");
       if (counter_ == 100000) {
