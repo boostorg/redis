@@ -47,8 +47,6 @@ public:
       }
    }
 
-   void on_push(std::size_t n) { }
-
 private:
    response_type resp_;
    adapter_t<response_type> adapter_;

@@ -51,19 +51,17 @@ public:
          case command::hello:
          db_->send(command::subscribe, "channel1", "channel2");
          break;
+
+         case command::invalid:
+         {
+            std::cout
+               << "Event: " << resp_.at(1).value << "\n"
+               << "Channel: " << resp_.at(2).value << "\n"
+               << "Message: " << resp_.at(3).value << "\n"
+               << std::endl;
+         } break;
          default:;
       }
-
-      resp_.clear();
-   }
-
-   void on_push(std::size_t)
-   {
-      std::cout
-         << "Event: " << resp_.at(1).value << "\n"
-         << "Channel: " << resp_.at(2).value << "\n"
-         << "Message: " << resp_.at(3).value << "\n"
-         << std::endl;
 
       resp_.clear();
    }

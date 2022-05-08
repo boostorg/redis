@@ -49,16 +49,14 @@ public:
          std::cout << "Messages so far: " << resp_.front().value << std::endl;
          break;
 
+         case command::invalid:
+         {
+            for (auto& session: sessions_)
+               session->deliver(resp_.at(3).value);
+         } break;
+
          default:;
       }
-
-      resp_.clear();
-   }
-
-   void on_push(std::size_t)
-   {
-      for (auto& session: sessions_)
-         session->deliver(resp_.at(3).value);
 
       resp_.clear();
    }

@@ -490,7 +490,6 @@
     struct receiver {
        void on_resp3(command cmd, node<string_view> const& nd, error_code& ec) { ...  }
        void on_read(command cmd, std::size_t) { ...  }
-       void on_push(std::size_t n) { }
     };
     @endcode
 
@@ -499,7 +498,6 @@
 
     @li \c on_resp3: Called when a new chunk of resp3 data is parsed.
     @li \c on_read: Called after the response to a command has been successfully read.
-    @li \c on_push: Called when a server push is received.
 
     The callbacks above are never called on errors, instead the \c
     async_run function returns. Reconnection is also supported, for

@@ -135,9 +135,10 @@ public:
       db_->send(command::subscribe, "channel");
    }
 
-   void on_push(std::size_t)
+   void on_read(command cmd, std::size_t)
    {
-      db_->send(command::quit);
+      if (cmd == command::invalid)
+         db_->send(command::quit);
    }
 
 private:
@@ -155,7 +156,7 @@ void test_push()
    client_type db(ioc.get_executor());
    receiver3 recv{db};
    db.set_write_handler([&recv](std::size_t n){recv.on_write(n);});
-   db.set_push_handler([&recv](std::size_t n){recv.on_push(n);});
+   db.set_read_handler([&recv](command cmd, std::size_t n){recv.on_read(cmd, n);});
    db.async_run(f);
    ioc.run();
 }
@@ -164,15 +165,14 @@ struct receiver4 {
 public:
    receiver4(client_type& db) : db_{&db} {}
 
-   void on_read()
+   void on_read(command cmd)
    {
-      // Notice this causes a loop.
-      db_->send(command::subscribe, "channel");
-   }
-
-   void on_push()
-   {
-      db_->send(command::quit);
+      if (cmd == command::invalid) {
+         db_->send(command::quit);
+      } else {
+         // Notice this causes a loop.
+         db_->send(command::subscribe, "channel");
+      }
    }
 
 private:
@@ -189,8 +189,7 @@ void test_push2()
    net::io_context ioc;
    client_type db(ioc.get_executor());
    receiver4 recv{db};
-   db.set_read_handler([&recv](auto, auto){recv.on_read();});
-   db.set_push_handler([&recv](auto){recv.on_push();});
+   db.set_read_handler([&recv](auto cmd, auto){recv.on_read(cmd);});
    db.async_run(f);
    ioc.run();
 }
@@ -432,8 +431,6 @@ public:
       if (cmd == command::incr)
          adapter_(nd, ec);
    }
-
-   void on_push(std::size_t) {}
 
    void on_write(std::size_t)
    {

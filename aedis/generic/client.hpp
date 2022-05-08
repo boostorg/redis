@@ -47,9 +47,6 @@ public:
    /// Callback type of write operations.
    using write_handler_type = std::function<void(std::size_t)>;
 
-   /// Callback type of push operations.
-   using push_handler_type = std::function<void(std::size_t)>;
-
    /// Callback type of resp3 operations.
    using resp3_handler_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
 
@@ -100,7 +97,6 @@ public:
    , cfg_{cfg}
    , on_read_{[](Command, std::size_t){}}
    , on_write_{[](std::size_t){}}
-   , on_push_{[](std::size_t){}}
    , on_resp3_{[](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {}}
    , sr_{requests_}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
@@ -317,10 +313,6 @@ public:
    void set_write_handler(write_handler_type wh)
       { on_write_ = std::move(wh); }
 
-   /// Set the push handler.
-   void set_push_handler(push_handler_type ph)
-      { on_push_ = std::move(ph); }
-
    /// Set the resp3 handler.
    void set_resp3_handler(resp3_handler_type rh)
       { on_resp3_ = std::move(rh); }
@@ -333,7 +325,6 @@ public:
     *  struct receiver {
     *     void on_resp3(Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec);
     *     void on_read(Command cmd, std::size_t);
-    *     void on_push(std::size_t n);
     *  };
     *  @endcode
     */
@@ -342,7 +333,6 @@ public:
    {
       on_resp3_ = [recv](Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec){recv->on_resp3(cmd, nd, ec);};
       on_read_ = [recv](Command cmd, std::size_t n){recv->on_read(cmd, n);};
-      on_push_ = [recv](std::size_t n){recv->on_push(n);};
    }
 
    void stop()
@@ -357,7 +347,7 @@ private:
 
    template <class T, class V> friend struct detail::reader_op;
    template <class T, class V> friend struct detail::ping_after_op;
-   template <class T> friend struct detail::read_op;
+   template <class T, class V> friend struct detail::read_op;
    template <class T> friend struct detail::read_until_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_op;
@@ -510,8 +500,7 @@ private:
 
    // Reads a complete resp3 response from the socket using the
    // timeout config::read_timeout.  On a successful read calls
-   // on_read_ or on_push_ depending on whether the response is a push
-   // or a response to a command.
+   // on_read_.
    template <class CompletionToken = default_completion_token_type>
    auto
    async_read(CompletionToken&& token = default_completion_token_type{})
@@ -519,7 +508,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_op<client>{this}, token, read_timer_.get_executor());
+         >(detail::read_op<client, Command>{this}, token, read_timer_.get_executor());
    }
 
    // Loops on async_read described above.
@@ -646,9 +635,6 @@ private:
 
    // Called when a request has been written to the socket.
    write_handler_type on_write_;
-
-   // Called when a complete push message is received.
-   push_handler_type on_push_;
 
    // Called by the parser after each new chunk of resp3 data is
    // processed.

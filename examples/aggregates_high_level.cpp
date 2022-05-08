@@ -100,8 +100,6 @@ public:
       }
    }
 
-   void on_push(std::size_t n) { }
-
 private:
    T0 resp0_;
    T1 resp1_;

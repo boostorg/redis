@@ -451,7 +451,7 @@ struct writer_op {
    }
 };
 
-template <class Client>
+template <class Client, class Command>
 struct read_op {
    Client* cli;
    boost::asio::coroutine coro;
@@ -496,7 +496,7 @@ struct read_op {
          }
 
          if (cli->type_ == resp3::type::push) {
-            cli->on_push_(n);
+            cli->on_read_(Command::invalid, n);
          } else {
             if (cli->on_cmd(cli->cmd_info_))
                cli->wait_write_timer_.cancel_one();
