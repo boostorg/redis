@@ -42,14 +42,11 @@ public:
    /// Executor type.
    using executor_type = typename AsyncReadWriteStream::executor_type;
 
-   /// Callback type of read operations.
-   using read_handler_type = std::function<void(Command cmd, std::size_t)>;
-
    /// Callback type of write operations.
    using write_handler_type = std::function<void(std::size_t)>;
 
    /// Callback type of resp3 operations.
-   using resp3_handler_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
+   using adapter_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
 
    /// Type of the last layer
    using next_layer_type = AsyncReadWriteStream;
@@ -97,9 +94,8 @@ public:
    , check_idle_timer_{ex}
    , ch_{ex}
    , cfg_{cfg}
-   , on_read_{[](Command, std::size_t){}}
    , on_write_{[](std::size_t){}}
-   , on_resp3_{[](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {}}
+   , adapter_{[](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {}}
    , sr_{requests_}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    , type_{resp3::type::invalid}
@@ -307,40 +303,27 @@ public:
          >(detail::run_op<client>{this}, token, read_timer_, write_timer_, wait_write_timer_);
    }
 
-   /// Set the read handler.
-   void set_read_handler(read_handler_type rh)
-      { on_read_ = std::move(rh); }
+   /** @brief Receives events produces by the run operation.
+    */
+   template <class CompletionToken = default_completion_token_type>
+   auto async_receive(CompletionToken token = CompletionToken{})
+   {
+      return ch_.async_receive(token);
+   }
 
    /// Set the write handler.
    void set_write_handler(write_handler_type wh)
       { on_write_ = std::move(wh); }
 
-   /// Set the resp3 handler.
-   void set_resp3_handler(resp3_handler_type rh)
-      { on_resp3_ = std::move(rh); }
+   /// Set the response adapter.
+   void set_adapter(adapter_type adapter)
+      { adapter_ = std::move(adapter); }
 
-   /** @brief Convenience callback setter.
-    *
-    *  Expects a class with the following member functions
-    *
-    *  @code
-    *  struct receiver {
-    *     void on_resp3(Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec);
-    *     void on_read(Command cmd, std::size_t);
-    *  };
-    *  @endcode
-    */
-   template <class Receiver>
-   void set_receiver(std::shared_ptr<Receiver> recv)
-   {
-      on_resp3_ = [recv](Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec){recv->on_resp3(cmd, nd, ec);};
-      on_read_ = [recv](Command cmd, std::size_t n){recv->on_read(cmd, n);};
-   }
-
-   void stop()
+   void close()
    {
       socket_->close();
       wait_write_timer_.expires_at(std::chrono::steady_clock::now());
+      ch_.close();
    }
 
 private:
@@ -505,8 +488,7 @@ private:
    }
 
    // Reads a complete resp3 response from the socket using the
-   // timeout config::read_timeout.  On a successful read calls
-   // on_read_.
+   // timeout config::read_timeout.
    template <class CompletionToken = default_completion_token_type>
    auto
    async_read(CompletionToken&& token = default_completion_token_type{})
@@ -639,15 +621,12 @@ private:
    // Configuration parameters.
    config cfg_;
 
-   // Called when a complete message is read.
-   read_handler_type on_read_;
-
    // Called when a request has been written to the socket.
    write_handler_type on_write_;
 
    // Called by the parser after each new chunk of resp3 data is
    // processed.
-   resp3_handler_type on_resp3_;
+   adapter_type adapter_;
 
    // Buffer used by the read operations.
    std::string read_buffer_;
@@ -678,6 +657,17 @@ private:
    // write_op helper.
    std::size_t bytes_written_ = 0;
 };
+
+/** @brief Makes a client adapter.
+ */
+template <class Command, class Adapter>
+auto make_client_adapter(Adapter adapter)
+{
+   return
+      [adapter]
+         (Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable
+            {adapter(nd, ec);};
+}
 
 } // generic
 } // aedis

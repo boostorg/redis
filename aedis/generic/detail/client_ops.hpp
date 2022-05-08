@@ -126,7 +126,7 @@ struct check_idle_op {
 
          auto const now = std::chrono::steady_clock::now();
          if (cli->last_data_ +  cli->cfg_.idle_timeout < now) {
-            cli->stop();
+            cli->close();
             self.complete(error::idle_timeout);
             return;
          }
@@ -471,7 +471,7 @@ struct read_op {
 
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return resp3::async_read(*cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [cli_ = cli](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {cli_->on_resp3_(cli_->cmd_info_.first, nd, ec);}, token);},
+            [this](auto token) { return resp3::async_read(*cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [cli_ = cli](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {cli_->adapter_(cli_->cmd_info_.first, nd, ec);}, token);},
             [this](auto token) { return cli->read_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -520,7 +520,7 @@ struct reader_op {
          if (cli->read_buffer_.empty()) {
             yield cli->async_wait_for_data(std::move(self));
             if (ec) {
-               cli->stop();
+               cli->close();
                self.complete(ec);
                return;
             }
@@ -538,7 +538,7 @@ struct reader_op {
 
          yield cli->async_read(std::move(self));
          if (ec) {
-            cli->stop();
+            cli->close();
             self.complete(ec);
             return;
          }
@@ -546,7 +546,17 @@ struct reader_op {
          if (cli->after_read())
             cli->wait_write_timer_.cancel_one();
 
-         cli->on_read_(cli->cmd_info_.first, cli->cmd_info_.second);
+         yield
+         cli->ch_.async_send(
+            boost::system::error_code{},
+            cli->cmd_info_.first, cli->cmd_info_.second,
+            std::move(self));
+
+         if (ec) {
+            cli->close();
+            self.complete(ec);
+            return;
+         }
       }
    }
 };

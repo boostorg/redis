@@ -5,19 +5,25 @@
  */
 
 #include <iostream>
+#include <vector>
+
+#include <boost/asio.hpp>
+#include <boost/asio/experimental/as_tuple.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-
-using aedis::resp3::node;
+using aedis::adapter::adapt;
 using aedis::sentinel::command;
 using aedis::generic::client;
-using aedis::adapter::adapt;
+using aedis::generic::make_client_adapter;
+using net::experimental::as_tuple;
 using client_type = client<net::ip::tcp::socket, command>;
-using response_type = std::vector<node<std::string>>;
-using adapter_type = aedis::adapter::adapter_t<response_type>;
+using node_type = aedis::resp3::node<boost::string_view>;
+using response_type = std::vector<aedis::resp3::node<std::string>>;
+using namespace net::experimental::awaitable_operators;
 
 /* In this example we send a subscription to a channel and start
  * reading server side messages indefinitely.
@@ -34,52 +40,48 @@ using adapter_type = aedis::adapter::adapter_t<response_type>;
  * example.
  */
 
-class receiver {
-public:
-   receiver(client_type& db)
-   : adapter_{adapt(resp_)}
-   , db_{&db} {}
+net::awaitable<void>
+reader(std::shared_ptr<client_type> db)
+{
+   response_type resp;
+   db->set_adapter(make_client_adapter<command>(adapt(resp)));
 
-   void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
-   {
-      adapter_(nd, ec);
-   }
+   for (;;) {
+      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      if (ec)
+         co_return;
 
-   void on_read(command cmd, std::size_t)
-   {
       switch (cmd) {
          case command::hello:
-         db_->send(command::subscribe, "channel1", "channel2");
+         db->send(command::subscribe, "channel1", "channel2");
          break;
 
          case command::invalid:
          {
             std::cout
-               << "Event: " << resp_.at(1).value << "\n"
-               << "Channel: " << resp_.at(2).value << "\n"
-               << "Message: " << resp_.at(3).value << "\n"
+               << "Event: "   << resp.at(1).value << "\n"
+               << "Channel: " << resp.at(2).value << "\n"
+               << "Message: " << resp.at(3).value << "\n"
                << std::endl;
          } break;
+
          default:;
       }
 
-      resp_.clear();
+      resp.clear();
    }
+}
 
-private:
-   response_type resp_;
-   adapter_type adapter_;
-   client_type* db_;
-};
+net::awaitable<void> run()
+{
+   auto ex = co_await net::this_coro::executor;
+   auto db = std::make_shared<client_type>(ex);
+   co_await (db->async_run(net::use_awaitable) && reader(db));
+}
 
 int main()
 {
    net::io_context ioc;
-   client_type db{ioc.get_executor()};
-   auto recv = std::make_shared<receiver>(db);
-   db.set_receiver(recv);
-
-   db.async_run([](auto ec){ std::cout << ec.message() << std::endl;});
-
+   net::co_spawn(ioc.get_executor(), run(), net::detached);
    ioc.run();
 }

@@ -6,63 +6,61 @@
 
 #include <string>
 #include <iostream>
+#include <memory>
+
+#include <boost/asio.hpp>
+#include <boost/asio/experimental/as_tuple.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
 using aedis::resp3::node;
-using aedis::adapter::adapter_t;
 using aedis::adapter::adapt;
 using aedis::redis::command;
-using aedis::generic::client;
+using aedis::generic::make_client_adapter;
+using net::experimental::as_tuple;
+using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
+using namespace net::experimental::awaitable_operators;
 
-using client_type = client<net::ip::tcp::socket, command>;
-using response_type = node<std::string>;
+net::awaitable<void>
+reader(std::shared_ptr<client_type> db)
+{
+   node<std::string> resp;
+   db->set_adapter(make_client_adapter<command>(adapt(resp)));
 
-struct receiver {
-public:
-   receiver(client_type& db)
-   : adapter_{adapt(resp_)}
-   , db_{&db} {}
+   for (;;) {
+      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      if (ec)
+         co_return;
 
-   void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
-   {
-      adapter_(nd, ec);
-   }
-
-   void on_read(command cmd, std::size_t)
-   {
       switch (cmd) {
          case command::hello:
-         db_->send(command::ping, "O rato roeu a roupa do rei de Roma");
-         db_->send(command::incr, "intro-counter");
-         db_->send(command::set, "intro-key", "Três pratos de trigo para três tigres");
-         db_->send(command::get, "intro-key");
-         db_->send(command::quit);
+         db->send(command::ping, "O rato roeu a roupa do rei de Roma");
+         db->send(command::incr, "intro-counter");
+         db->send(command::set, "intro-key", "Três pratos de trigo para três tigres");
+         db->send(command::get, "intro-key");
+         db->send(command::quit);
          break;
 
          default:
-         std::cout << resp_.value << std::endl;
+         std::cout << resp.value << std::endl;
       }
    }
+}
 
-private:
-   response_type resp_;
-   adapter_t<response_type> adapter_;
-   client_type* db_;
-};
+net::awaitable<void> run()
+{
+   auto ex = co_await net::this_coro::executor;
+   auto db = std::make_shared<client_type>(ex);
+   co_await (db->async_run(net::use_awaitable) && reader(db));
+}
 
 int main()
 {
    net::io_context ioc;
-
-   client_type db(ioc.get_executor());
-   auto recv = std::make_shared<receiver>(db);
-   db.set_receiver(recv);
-
-   db.async_run([](auto ec){ std::cout << ec.message() << std::endl;});
-
+   net::co_spawn(ioc.get_executor(), run(), net::detached);
    ioc.run();
 }
 

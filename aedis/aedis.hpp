@@ -38,6 +38,7 @@
     @li Simplified handling of server pushes.
     @li Zero asymptotic allocations by means of memory reuse.
     @li Healthy checks.
+    @li Back pressure.
 
     If you are interested in a detailed comparison of Redis clients
     and the design rationale behind Aedis jump to \ref why-aedis. Now
@@ -455,11 +456,13 @@
     @li \c async_write: Performed everytime a new message is added.
     @li \c async_wait: To timout all operations above if the server becomes unresponsive.
 
-    Notice that many of the operations above will run concurrently with each other and, in addition to that
+    Notice that many of the operations above will run concurrently
+    with each other and, in addition to that
 
     @li \c async_write operations require management of the message queue to prevent concurrent writes.
     @li Healthy checks must be sent periodically by the client to detect a dead or unresponsive server.
     @li Recovery after a disconnection to avoid loosing enqueued commands.
+    @li Back pressure.
 
     Expecting users to implement these points themselves is
     unrealistic and could result in code that performs poorly and
@@ -572,7 +575,7 @@
 
     \b Asynchronous \b Servers (high-level API)
 
-    @li echo_server.cpp: Shows the basic principles behind asynchronous communication with a database in an asynchronous server.
+    @li echo_server.cpp: Asynchronous TCP server that echos user messages over Redis.
     @li chat_room.cpp: Shows how to build a scalable chat room.
 
     \section using-aedis Using Aedis
