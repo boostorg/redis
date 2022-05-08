@@ -100,11 +100,6 @@ public:
       }
    }
 
-   void on_write(std::size_t n)
-   { 
-      std::cout << "on_write: " << n << std::endl;
-   }
-
    void on_push(std::size_t n) { }
 
 private:

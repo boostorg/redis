@@ -333,7 +333,6 @@ public:
     *  struct receiver {
     *     void on_resp3(Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec);
     *     void on_read(Command cmd, std::size_t);
-    *     void on_write(std::size_t n);
     *     void on_push(std::size_t n);
     *  };
     *  @endcode
@@ -343,7 +342,6 @@ public:
    {
       on_resp3_ = [recv](Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec){recv->on_resp3(cmd, nd, ec);};
       on_read_ = [recv](Command cmd, std::size_t n){recv->on_read(cmd, n);};
-      on_write_ = [recv](std::size_t n){recv->on_write(n);};
       on_push_ = [recv](std::size_t n){recv->on_push(n);};
    }
 

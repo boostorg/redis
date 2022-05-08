@@ -59,10 +59,6 @@ public:
       resp_.clear();
    }
 
-   void on_write(std::size_t n)
-   { 
-   }
-
    void on_push(std::size_t n) { }
 
    void add_user_session(std::shared_ptr<user_session_base> session)

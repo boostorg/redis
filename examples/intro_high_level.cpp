@@ -47,11 +47,6 @@ public:
       }
    }
 
-   void on_write(std::size_t n)
-   { 
-      std::cout << "Number of bytes written: " << n << std::endl;
-   }
-
    void on_push(std::size_t n) { }
 
 private:
