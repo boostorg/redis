@@ -240,89 +240,75 @@ void test_push2()
 
 //----------------------------------------------------------------
 
-//#include <boost/asio/yield.hpp>
-//
-//struct receiver5 {
-//public:
-//   int counter = 0;
-//
-//   receiver5(client_type& db)
-//   : db_{&db}
-//   , adapter_{adapt(counter)}
-//   {}
-//
-//   void on_read(command) {}
-//
-//   void on_write()
-//   {
-//      if (counter == 0) {
-//         // Avoid problems with previous runs.
-//         db_->send(command::del, "receiver5-key");
-//         db_->send(command::incr, "receiver5-key");
-//         db_->send(command::quit);
-//      }
-//
-//      if (counter == 1) {
-//         db_->send(command::incr, "receiver5-key");
-//         db_->send(command::quit);
-//      }
-//   }
-//
-//   void on_resp3(command cmd, node<boost::string_view> const& nd, boost::system::error_code& ec)
-//   {
-//      if (cmd == command::incr)
-//         adapter_(nd, ec);
-//   }
-//
-//private:
-//   client_type* db_;
-//   adapter_t<int> adapter_;
-//};
-//
-//template <class Receiver>
-//struct reconnect {
-//   client_type db;
-//   Receiver recv;
-//   boost::asio::steady_timer timer;
-//   net::coroutine coro;
-//
-//   reconnect(net::any_io_executor ex)
-//   : db{ex}
-//   , recv{db}
-//   , timer{ex}
-//   {
-//      db.set_read_handler([this](auto cmd, auto){recv.on_read(cmd);});
-//      db.set_write_handler([this](auto){recv.on_write();});
-//      db.set_resp3_handler([this](auto a, auto b, auto c){recv.on_resp3(a, b, c);});
-//   }
-//
-//   void on_event(boost::system::error_code ec)
-//   {
-//      reenter (coro) for (;;) {
-//         yield db.async_run([this](auto ec){ on_event(ec);});
-//         expect_error(ec, net::error::misc_errors::eof);
-//         expect_eq(recv.counter, 1, "Reconnect counter 1.");
-//         yield db.async_run([this](auto ec){ on_event(ec);});
-//         expect_error(ec, net::error::misc_errors::eof);
-//         expect_eq(recv.counter, 2, "Reconnect counter 2.");
-//         yield db.async_run([this](auto ec){ on_event(ec);});
-//         expect_error(ec, net::error::misc_errors::eof);
-//         expect_eq(recv.counter, 3, "Reconnect counter 3.");
-//         return;
-//      }
-//   }
-//};
-//
-//#include <boost/asio/unyield.hpp>
-//
-//void test_reconnect()
-//{
-//   net::io_context ioc;
-//   reconnect<receiver5> rec{ioc.get_executor()};
-//   rec.on_event({});
-//   ioc.run();
-//}
-//
+net::awaitable<void> reader5(std::shared_ptr<client_type> db)
+{
+   {
+      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      expect_error(ec, error_code{});
+      expect_eq(cmd, command::hello);
+   }
+
+   {
+      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      expect_error(ec, error_code{});
+      expect_eq(cmd, command::quit);
+   }
+
+   {
+      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled);
+   }
+
+   {
+      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      expect_error(ec, error_code{});
+      expect_eq(cmd, command::hello);
+   }
+
+   {
+      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      expect_error(ec, error_code{});
+      expect_eq(cmd, command::quit);
+   }
+
+   {
+      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled);
+   }
+}
+
+net::awaitable<void> run5(std::shared_ptr<client_type> db)
+{
+   {
+      auto [ec] = co_await db->async_run(as_tuple(net::use_awaitable));
+      expect_error(ec, net::error::misc_errors::eof);
+   }
+
+   {
+      auto [ec] = co_await db->async_run(as_tuple(net::use_awaitable));
+      expect_error(ec, net::error::misc_errors::eof);
+   }
+}
+
+// Test whether the client works after a reconnect.
+void test_reconnect()
+{
+   net::io_context ioc;
+   auto db = std::make_shared<client_type>(ioc.get_executor());
+
+   auto on_write = [i = 0, db](std::size_t) mutable
+   {
+      if (i++ < 3)
+         db->send(command::quit);
+   };
+
+   db->set_write_handler(on_write);
+
+   net::co_spawn(ioc.get_executor(), run5(db), net::detached);
+   net::co_spawn(ioc.get_executor(), reader5(db), net::detached);
+   ioc.run();
+}
+
 //struct receiver6 {
 //public:
 //   int counter = 0;
@@ -537,7 +523,7 @@ int main()
    test_hello2();
    test_push();
    test_push2();
-   //test_reconnect();
+   test_reconnect();
    //test_reconnect2();
    //test_discard();
    //test_no_ping();

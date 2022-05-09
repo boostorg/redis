@@ -319,11 +319,15 @@ public:
    void set_adapter(adapter_type adapter)
       { adapter_ = std::move(adapter); }
 
+   /** @brief Closes the connection with the database.
+    *  
+    *  The channels will be cancelled.
+    */
    void close()
    {
       socket_->close();
       wait_write_timer_.expires_at(std::chrono::steady_clock::now());
-      ch_.close();
+      ch_.cancel();
    }
 
 private:
