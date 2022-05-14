@@ -11,7 +11,20 @@ template <class T>
 void expect_eq(T const& a, T const& b, std::string const& msg = "")
 {
    if (a == b) {
-     std::cout << "Success: " << msg << std::endl;
+      if (!msg.empty())
+         std::cout << "Success: " << msg << std::endl;
+   } else {
+     std::cout << "Error: " << msg << std::endl;
+     exit(EXIT_FAILURE);
+   }
+}
+
+template <class T>
+void expect_neq(T const& a, T const& b, std::string const& msg = "")
+{
+   if (a != b) {
+      if (!msg.empty())
+         std::cout << "Success: " << msg << std::endl;
    } else {
      std::cout << "Error: " << msg << std::endl;
      exit(EXIT_FAILURE);
