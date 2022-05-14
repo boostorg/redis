@@ -20,6 +20,7 @@
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/read.hpp>
 #include <aedis/generic/error.hpp>
+#include <aedis/redis/command.hpp>
 
 namespace aedis {
 namespace generic {
@@ -331,7 +332,7 @@ struct read_write_check_op {
    }
 };
 
-template <class Client>
+template <class Client, class Command>
 struct run_op {
    Client* cli;
    boost::asio::coroutine coro;
@@ -347,7 +348,7 @@ struct run_op {
             return;
          }
 
-         cli->prepare_state();
+         cli->send(Command::hello, 3);
 
          yield cli->async_read_write_check(std::move(self));
          if (ec) {
@@ -374,15 +375,14 @@ struct write_op {
    {
       reenter (coro)
       {
-         BOOST_ASSERT(!cli->info_.empty());
-         BOOST_ASSERT(cli->info_.front().size != 0);
-         BOOST_ASSERT(!cli->requests_.empty());
+         BOOST_ASSERT(!cli->reqs_.empty());
+         BOOST_ASSERT(!cli->reqs_.front().first.empty());
 
          cli->write_timer_.expires_after(cli->cfg_.write_timeout);
-         cli->info_.front().sent = true;
+         cli->reqs_.front().second = true;
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return boost::asio::async_write(*cli->socket_, boost::asio::buffer(cli->requests_.data(), cli->info_.front().size), token);},
+            [this](auto token) { return boost::asio::async_write(*cli->socket_, boost::asio::buffer(cli->reqs_.front().first.data(), cli->reqs_.front().first.size()), token);},
             [this](auto token) { return cli->write_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -410,16 +410,13 @@ struct write_op {
 
          cli->bytes_written_ = n;
 
-         BOOST_ASSERT(!cli->info_.empty());
-         BOOST_ASSERT(cli->info_.front().size != 0);
-         BOOST_ASSERT(!cli->requests_.empty());
-         BOOST_ASSERT(n == cli->info_.front().size);
+         BOOST_ASSERT(!cli->reqs_.empty());
+         BOOST_ASSERT(!cli->reqs_.front().first.empty());
+         BOOST_ASSERT(!cli->reqs_.empty());
+         BOOST_ASSERT(n == cli->reqs_.front().first.size());
 
-         cli->requests_.erase(0, n);
-         cli->info_.front().size = 0;
-         if (cli->info_.front().cmds == 0) 
-            cli->info_.erase(std::begin(cli->info_));
-
+         if (cli->reqs_.front().first.commands().empty()) 
+            cli->reqs_.pop_front();
          self.complete({});
       }
    }
@@ -530,8 +527,8 @@ struct reader_op {
          cli->type_ = resp3::to_type(cli->read_buffer_.front());
          cli->cmd_info_ = std::make_pair(Command::invalid, 0);
          if (cli->type_ != resp3::type::push) {
-            BOOST_ASSERT(!cli->commands_.empty());
-            cli->cmd_info_ = cli->commands_.front();
+            BOOST_ASSERT(!cli->reqs_.front().first.commands().empty());
+            cli->cmd_info_ = cli->reqs_.front().first.commands().front();
          }
 
          cli->last_data_ = std::chrono::steady_clock::now();

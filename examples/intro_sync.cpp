@@ -16,9 +16,8 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
 using aedis::redis::command;
-using aedis::generic::make_serializer;
+using aedis::generic::serializer;
 using aedis::adapter::adapt;
-using net::dynamic_buffer;
 using net::ip::tcp;
 
 int main()
@@ -31,19 +30,17 @@ int main()
       net::connect(socket, res);
 
       // Creates the request and writes to the socket.
-      std::string buffer;
-      auto sr = make_serializer(buffer);
-      sr.push(command::hello, 3);
-      sr.push(command::ping);
-      sr.push(command::quit);
-      net::write(socket, net::buffer(buffer));
-      buffer.clear();
+      serializer<command> req;
+      req.push(command::hello, 3);
+      req.push(command::ping);
+      req.push(command::quit);
+      resp3::write(socket, req);
 
       // Responses
-      std::string resp;
+      std::string buffer, resp;
 
       // Reads the responses to all commands in the request.
-      auto dbuffer = dynamic_buffer(buffer);
+      auto dbuffer = net::dynamic_buffer(buffer);
       resp3::read(socket, dbuffer);
       resp3::read(socket, dbuffer, adapt(resp));
       resp3::read(socket, dbuffer);

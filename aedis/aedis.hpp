@@ -8,6 +8,7 @@
 #define AEDIS_HPP
 
 #include <aedis/resp3/read.hpp>
+#include <aedis/resp3/write.hpp>
 #include <aedis/adapter/adapt.hpp>
 #include <aedis/adapter/error.hpp>
 #include <aedis/redis/command.hpp>

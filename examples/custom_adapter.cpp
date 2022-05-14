@@ -18,7 +18,7 @@ namespace resp3 = aedis::resp3;
 
 using aedis::resp3::node;
 using aedis::redis::command;
-using aedis::generic::make_serializer;
+using aedis::generic::serializer;
 using net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
@@ -31,19 +31,18 @@ net::awaitable<void> example()
    tcp_socket socket{ex};
    co_await socket.async_connect(*std::begin(res));
 
-   std::string request, buffer;
-
-   auto sr = make_serializer(request);
-   sr.push(command::hello, 3);
-   sr.push(command::ping, "Some message.");
-   sr.push(command::quit);
-   co_await net::async_write(socket, net::buffer(request));
+   serializer<command> req;
+   req.push(command::hello, 3);
+   req.push(command::ping, "Some message.");
+   req.push(command::quit);
+   co_await resp3::async_write(socket, req);
 
    auto adapter = [](node<boost::string_view> const& nd, boost::system::error_code&)
    {
       std::cout << nd << std::endl;
    };
 
+   std::string buffer;
    auto dbuffer = net::dynamic_buffer(buffer);
    co_await resp3::async_read(socket, dbuffer); // hello
    co_await resp3::async_read(socket, dbuffer, adapter);

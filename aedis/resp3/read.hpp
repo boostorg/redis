@@ -14,7 +14,6 @@
 #include <boost/asio/read.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/async_result.hpp>
-#include <boost/asio/yield.hpp>
 
 namespace aedis {
 namespace resp3 {
@@ -188,7 +187,5 @@ auto async_read(
 
 } // resp3
 } // aedis
-
-#include <boost/asio/unyield.hpp>
 
 #endif // AEDIS_RESP3_READ_HPP

@@ -19,7 +19,7 @@ namespace resp3 = aedis::resp3;
 using aedis::resp3::node;
 using aedis::redis::command;
 using aedis::adapter::adapt;
-using aedis::generic::make_serializer;
+using aedis::generic::serializer;
 using net::ip::tcp;
 using net::write;
 using net::buffer;
@@ -34,11 +34,10 @@ net::awaitable<void> example()
    tcp_socket socket{ex};
    co_await socket.async_connect(*std::begin(res));
 
-   std::string request;
-   auto sr = make_serializer(request);
-   sr.push(command::hello, 3);
-   sr.push(command::subscribe, "channel1", "channel2");
-   co_await net::async_write(socket, buffer(request));
+   serializer<command> req;
+   req.push(command::hello, 3);
+   req.push(command::subscribe, "channel1", "channel2");
+   co_await resp3::async_write(socket, req);
 
    // Ignores the response to hello.
    std::string buffer;

@@ -17,7 +17,7 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
 using aedis::redis::command;
-using aedis::generic::make_serializer;
+using aedis::generic::serializer;
 using aedis::resp3::node;
 using aedis::adapter::adapt;
 using net::ip::tcp;
@@ -81,12 +81,11 @@ int main()
      tcp::socket socket{ioc};
      net::connect(socket, res);
 
-     std::string request;
-     auto sr = make_serializer(request);
-     sr.push(command::hello, 3);
-     sr.push(command::command);
-     sr.push(command::quit);
-     write(socket, buffer(request));
+     serializer<command> req;
+     req.push(command::hello, 3);
+     req.push(command::command);
+     req.push(command::quit);
+     write(socket, buffer(req.payload()));
 
      std::vector<node<std::string>> resp;
 
@@ -104,4 +103,3 @@ int main()
       std::cerr << e.what() << std::endl;
    }
 }
-

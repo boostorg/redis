@@ -22,7 +22,7 @@ namespace resp3 = aedis::resp3;
 
 using aedis::resp3::type;
 using aedis::redis::command;
-using aedis::generic::make_serializer;
+using aedis::generic::serializer;
 using aedis::adapter::adapt;
 using net::ip::tcp;
 
@@ -39,13 +39,12 @@ int main()
       mystruct in{42, "Some string"};
 
       // Creates and sends a request to redis.
-      std::string request;
-      auto sr = make_serializer(request);
-      sr.push(command::hello, 3);
-      sr.push(command::set, "key", in);
-      sr.push(command::get, "key");
-      sr.push(command::quit);
-      net::write(socket, net::buffer(request));
+      serializer<command> req;
+      req.push(command::hello, 3);
+      req.push(command::set, "key", in);
+      req.push(command::get, "key");
+      req.push(command::quit);
+      resp3::write(socket, req);
 
       // Object to store the response.
       mystruct out;

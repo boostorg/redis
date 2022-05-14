@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <utility>
 #include <chrono>
+#include <queue>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -22,7 +23,9 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/redis/command.hpp>
+#include <aedis/generic/serializer.hpp>
 #include <aedis/generic/detail/client_ops.hpp>
+#include <aedis/generic/serializer.hpp>
 
 namespace aedis {
 namespace generic {
@@ -96,7 +99,6 @@ public:
    , cfg_{cfg}
    , on_write_{[](std::size_t){}}
    , adapter_{[](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {}}
-   , sr_{requests_}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    , type_{resp3::type::invalid}
    , cmd_info_{std::make_pair<Command>(Command::invalid, 0)}
@@ -118,19 +120,8 @@ public:
    template <class... Ts>
    void send(Command cmd, Ts const&... args)
    {
-      auto const can_write = prepare_next_req();
-
-      auto const before = requests_.size();
-      sr_.push(cmd, args...);
-      auto const d = requests_.size() - before;
-      BOOST_ASSERT(d != 0);
-      info_.back().size += d;;
-
-      if (!has_push_response(cmd)) {
-         commands_.push_back(std::make_pair(cmd, d));
-         ++info_.back().cmds;
-      }
-
+      auto const can_write = prepare_back();
+      reqs_.back().first.push(cmd, args...);
       if (can_write)
          wait_write_timer_.cancel_one();
    }
@@ -149,19 +140,8 @@ public:
       if (begin == end)
          return;
 
-      auto const can_write = prepare_next_req();
-
-      auto const before = requests_.size();
-      sr_.push_range2(cmd, key, begin, end);
-      auto const d = requests_.size() - before;
-      BOOST_ASSERT(d != 0);
-      info_.back().size += d;
-
-      if (!has_push_response(cmd)) {
-         commands_.push_back(std::make_pair(cmd, d));
-         ++info_.back().cmds;
-      }
-
+      auto const can_write = prepare_back();
+      reqs_.back().first.push_range2(cmd, key, begin, end);
       if (can_write)
          wait_write_timer_.cancel_one();
    }
@@ -180,19 +160,8 @@ public:
       if (begin == end)
          return;
 
-      auto const can_write = prepare_next_req();
-
-      auto const before = requests_.size();
-      sr_.push_range2(cmd, begin, end);
-      auto const d = requests_.size() - before;
-      BOOST_ASSERT(d != 0);
-      info_.back().size += d;
-
-      if (!has_push_response(cmd)) {
-         commands_.push_back(std::make_pair(cmd, d));
-         ++info_.back().cmds;
-      }
-
+      auto const can_write = prepare_back();
+      reqs_.back().first.push_range2(cmd, begin, end);
       if (can_write)
          wait_write_timer_.cancel_one();
    }
@@ -300,7 +269,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<client>{this}, token, read_timer_, write_timer_, wait_write_timer_);
+         >(detail::run_op<client, Command>{this}, token, read_timer_, write_timer_, wait_write_timer_);
    }
 
    /** @brief Receives events produces by the run operation.
@@ -328,20 +297,20 @@ public:
       socket_->close();
       wait_write_timer_.expires_at(std::chrono::steady_clock::now());
       ch_.cancel();
+      reqs_ = {};
    }
 
 private:
-   using command_info_type = std::pair<Command, std::size_t>;
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
    using channel_type = boost::asio::experimental::channel<void(boost::system::error_code, Command, std::size_t)>;
 
    template <class T, class V> friend struct detail::reader_op;
    template <class T, class V> friend struct detail::ping_after_op;
    template <class T, class V> friend struct detail::read_op;
+   template <class T, class V> friend struct detail::run_op;
    template <class T> friend struct detail::read_until_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_op;
-   template <class T> friend struct detail::run_op;
    template <class T> friend struct detail::connect_op;
    template <class T> friend struct detail::resolve_op;
    template <class T> friend struct detail::check_idle_op;
@@ -349,93 +318,29 @@ private:
    template <class T> friend struct detail::read_write_check_op;
    template <class T> friend struct detail::wait_for_data_op;
 
-   void prepare_state()
-   {
-      // When we are reconnecting we can't simply call send(hello)
-      // as that will add the command to the end of the queue, we need
-      // it as the first element.
-      if (info_.empty()) {
-         // Either we are connecting for the first time or there are
-         // no commands that were left unresponded from the last
-         // connection. We can send hello as usual.
-         BOOST_ASSERT(requests_.empty());
-         BOOST_ASSERT(commands_.empty());
-         send(Command::hello, 3);
-         return;
-      }
-
-      if (info_.front().sent) {
-         // There is one request that was left unresponded when we
-         // e.g. lost the connection, since we erase requests right
-         // after writing them to the socket (to avoid resubmission) it
-         // is lost and we have to remove it.
-         
-         // Noop if info_.front().size is already zero, which happens
-         // when the request was successfully writen to the socket.
-         // In the future we may want to avoid erasing but resend (at
-         // the risc of resubmission).
-         requests_.erase(0, info_.front().size);
-
-         // Erases the commands that were lost as well.
-         commands_.erase(
-            std::begin(commands_),
-            std::begin(commands_) + info_.front().cmds);
-
-         info_.front().cmds = 0;
-
-         // Do not erase the info_ front as we will use it below.
-         // info_.erase(std::begin(info_));
-      }
-
-      // Code below will add a hello to the front of the request and
-      // update info_ and commands_ accordingly.
-
-      auto const old_size = requests_.size();
-      sr_.push(Command::hello, 3);
-      auto const hello_size = requests_.size() - old_size;;
-
-      // Now we have to rotate the hello to the front of the request
-      // (Remember it must always be the first command).
-      std::rotate(
-         std::begin(requests_),
-         std::begin(requests_) + old_size,
-         std::end(requests_));
-
-      // Updates info_.
-      info_.front().size += hello_size;
-      info_.front().cmds += 1;
-
-      // Updates commands_
-      commands_.push_back(std::make_pair(Command::hello, hello_size));
-      std::rotate(
-         std::begin(commands_),
-         std::prev(std::end(commands_)),
-         std::end(commands_));
-   }
-
    // Prepares the back of the queue to receive further commands.  If
    // true is returned the request in the front of the queue can be
    // sent to the server.
-   bool prepare_next_req()
+   bool prepare_back()
    {
-      if (info_.empty()) {
-         info_.push_back({});
+      if (reqs_.empty()) {
+         reqs_.push_back({});
          return true;
       }
 
-      if (info_.front().sent) {
+      if (reqs_.front().second) {
          // There is a pending response, we can't modify the front of
          // the vector.
-         BOOST_ASSERT(info_.front().cmds != 0);
-         if (info_.size() == 1)
-            info_.push_back({});
+         BOOST_ASSERT(!reqs_.front().first.commands().empty());
+         if (reqs_.size() == 1)
+            reqs_.push_back({});
 
          return false;
       }
 
       // When cmds = 0 there are only commands with push response on
       // the request and we are not waiting for any response.
-      return info_.front().cmds == 0;
+      return reqs_.front().first.commands().empty();
    }
 
    // Returns true when the next request can be written.
@@ -444,17 +349,17 @@ private:
       if (type_ == resp3::type::push)
          return false;
 
-      BOOST_ASSERT(!info_.empty());
-      BOOST_ASSERT(!commands_.empty());
+      BOOST_ASSERT(!reqs_.empty());
+      BOOST_ASSERT(!reqs_.front().first.commands().empty());
 
-      commands_.erase(std::begin(commands_));
+      reqs_.front().first.pop();
 
-      if (--info_.front().cmds != 0)
+      if (!reqs_.front().first.commands().empty())
          return false;
 
-      info_.erase(std::begin(info_));
+      reqs_.pop_front();
 
-      return !info_.empty();
+      return !reqs_.empty();
    }
 
    // Resolves the address passed in async_run and store the results
@@ -586,20 +491,6 @@ private:
          >(detail::check_idle_op<client>{this}, token, check_idle_timer_);
    }
 
-   // Stores information about a request.
-   struct info {
-      // Set to true before calling async_write.
-      bool sent = false;
-
-      // Request size in bytes. After a successful write it is set to
-      // zero.
-      std::size_t size = 0;
-
-      // The number of commands it contains. Commands with push
-      // responses are not counted.
-      std::size_t cmds = 0;
-   };
-
    // Used to resolve the host on async_resolve.
    boost::asio::ip::tcp::resolver resv_;
 
@@ -635,22 +526,15 @@ private:
    // Buffer used by the read operations.
    std::string read_buffer_;
 
-   // Requests payload and its serializer.
-   std::string requests_;
-   serializer<std::string> sr_;
-
-   // The commands contained in the requests.
-   std::vector<command_info_type> commands_;
-
    // Info about the requests.
-   std::vector<info> info_;
+   std::deque<std::pair<generic::serializer<Command>, bool>> reqs_;
 
    // Last time we received data.
    time_point_type last_data_;
 
    // Used by the read_op.
    resp3::type type_;
-   command_info_type cmd_info_;
+   typename generic::serializer<Command>::command_info_type cmd_info_;
 
    // See async_connect.
    boost::asio::ip::tcp::endpoint endpoint_;

@@ -24,7 +24,6 @@ namespace resp3 = aedis::resp3;
 
 using aedis::adapter::adapt;
 using aedis::adapter::adapter_t;
-using aedis::generic::make_serializer;
 using aedis::redis::command;
 using aedis::resp3::node;
 using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
@@ -265,13 +264,13 @@ net::awaitable<void> reader5(std::shared_ptr<client_type> db)
    {
       auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
-      expect_eq(cmd, command::hello);
+      expect_eq(cmd, command::hello, "Expects hello.");
    }
 
    {
       auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
-      expect_eq(cmd, command::quit);
+      expect_eq(cmd, command::quit, "Expects quit.");
    }
 
    {
@@ -301,8 +300,7 @@ void test_reconnect()
 
    auto on_write = [i = 0, db](std::size_t) mutable
    {
-      if (i++ < 3)
-         db->send(command::quit);
+      db->send(command::quit);
    };
 
    db->set_write_handler(on_write);
