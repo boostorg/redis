@@ -79,7 +79,7 @@ void test_connect_error()
 net::awaitable<void> reader1(std::shared_ptr<client_type> db)
 {
    {  // Read the hello.
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
    }
@@ -87,7 +87,7 @@ net::awaitable<void> reader1(std::shared_ptr<client_type> db)
    db->send(command::quit);
 
    {  // Read the quit.
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::quit);
    }
@@ -114,13 +114,13 @@ void test_hello()
 net::awaitable<void> reader2(std::shared_ptr<client_type> db)
 {
    {  // Read the hello.
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
    }
 
    {  // Read the quit.
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::quit);
    }
@@ -152,20 +152,20 @@ void test_hello2()
 net::awaitable<void> reader3(std::shared_ptr<client_type> db)
 {
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::invalid);
       db->send(command::quit);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::quit);
    }
@@ -212,21 +212,21 @@ private:
 net::awaitable<void> reader4(std::shared_ptr<client_type> db)
 {
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
       db->send(command::subscribe, "channel");
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::invalid);
       db->send(command::quit);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::quit);
    }
@@ -246,36 +246,36 @@ void test_push2()
 net::awaitable<void> reader5(std::shared_ptr<client_type> db)
 {
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::quit);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::quit);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled);
    }
 }
@@ -316,38 +316,38 @@ net::awaitable<void>
 reader6(std::shared_ptr<client_type> db)
 {
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
       db->send(command::quit);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::quit);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
       db->send(command::quit);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::quit);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled);
    }
 }
@@ -375,7 +375,7 @@ net::awaitable<void> reader7(std::shared_ptr<client_type> db)
    db->set_adapter(f);
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
       db->send(command::del, "key");
@@ -390,55 +390,55 @@ net::awaitable<void> reader7(std::shared_ptr<client_type> db)
    }
 
    { // del
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::del);
    }
 
    { // multi
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::multi);
    }
 
    { // ping
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::ping);
    }
 
    { // incr
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::incr);
    }
 
    { // ping
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::ping);
    }
 
    { // discard
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::discard);
    }
 
    { // ping
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::ping);
    }
 
    { // incr
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::incr);
    }
 
    { // quit
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::quit);
    }
@@ -475,14 +475,14 @@ private:
 net::awaitable<void> reader8(std::shared_ptr<client_type> db)
 {
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
       db->send(command::client, "PAUSE", 5000);
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::client);
    }
@@ -513,14 +513,14 @@ void test_idle()
 net::awaitable<void> reader9(std::shared_ptr<client_type> db)
 {
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::hello);
       db->send(command::del, "key");
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
       expect_eq(cmd, command::del);
    }
@@ -528,14 +528,14 @@ net::awaitable<void> reader9(std::shared_ptr<client_type> db)
    for (int i = 0; i < 10000; ++i) {
       db->send(command::incr, "key");
       db->send(command::subscribe, "channel");
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_neq(cmd, command::ping);
    }
 
    db->send(command::quit);
 
    for (;;) {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       expect_neq(cmd, command::ping);
       if (ec)
          co_return;

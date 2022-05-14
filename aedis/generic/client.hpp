@@ -306,7 +306,7 @@ public:
    /** @brief Receives events produces by the run operation.
     */
    template <class CompletionToken = default_completion_token_type>
-   auto async_receive(CompletionToken token = CompletionToken{})
+   auto async_read_one(CompletionToken token = CompletionToken{})
    {
       return ch_.async_receive(token);
    }

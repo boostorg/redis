@@ -80,7 +80,7 @@ reader(std::shared_ptr<client_type> db)
    db->set_adapter(adapter{resp0, resp1, resp2});
 
    for (;;) {
-      auto [ec, cmd, n] = co_await db->async_receive(as_tuple(net::use_awaitable));
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
       if (ec)
          co_return;
 
