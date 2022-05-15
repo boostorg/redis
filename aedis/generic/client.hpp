@@ -288,6 +288,15 @@ public:
    void set_adapter(adapter_type adapter)
       { adapter_ = std::move(adapter); }
 
+   /// Set the response adapter.
+   void set_adapter(std::function<void(resp3::node<boost::string_view> const&, boost::system::error_code&)> a)
+   {
+      adapter_ = 
+         [adapter = std::move(a)]
+            (Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable
+               {adapter(nd, ec);};
+   }
+
    /** @brief Closes the connection with the database.
     *  
     *  The channels will be cancelled.
@@ -545,17 +554,6 @@ private:
    // write_op helper.
    std::size_t bytes_written_ = 0;
 };
-
-/** @brief Makes a client adapter.
- */
-template <class Command, class Adapter>
-auto make_client_adapter(Adapter adapter)
-{
-   return
-      [adapter]
-         (Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable
-            {adapter(nd, ec);};
-}
 
 } // generic
 } // aedis

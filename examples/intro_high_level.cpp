@@ -19,7 +19,6 @@ namespace net = boost::asio;
 using aedis::resp3::node;
 using aedis::adapter::adapt;
 using aedis::redis::command;
-using aedis::generic::make_client_adapter;
 using net::experimental::as_tuple;
 using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
 using namespace net::experimental::awaitable_operators;
@@ -28,7 +27,7 @@ net::awaitable<void>
 reader(std::shared_ptr<client_type> db)
 {
    node<std::string> resp;
-   db->set_adapter(make_client_adapter<command>(adapt(resp)));
+   db->set_adapter(adapt(resp));
 
    for (;;) {
       auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
