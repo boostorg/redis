@@ -19,6 +19,7 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/read.hpp>
+#include <aedis/resp3/write.hpp>
 #include <aedis/generic/error.hpp>
 #include <aedis/redis/command.hpp>
 
@@ -47,7 +48,13 @@ struct ping_after_op {
             return;
          }
 
-         // The timer fired, send the ping.
+         // The timer fired, send the ping. If there is an ongoing
+         // command there is no need to send a new one.
+         if (!cli->reqs_.empty()) {
+            self.complete({});
+            return;
+         }
+
          cli->send(Command::ping);
          self.complete({});
       }
@@ -70,7 +77,7 @@ struct read_until_op {
          yield
          boost::asio::async_read_until(
             *cli->socket_,
-            boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size),
+            cli->make_dynamic_buffer(),
             "\r\n",
             std::move(self));
 
@@ -368,21 +375,46 @@ struct write_op {
 
    template <class Self>
    void operator()( Self& self
-                  , std::array<std::size_t, 2> order = {}
-                  , boost::system::error_code ec1 = {}
-                  , std::size_t n = 0
-                  , boost::system::error_code ec2 = {})
+                  , boost::system::error_code ec = {}
+                  , std::size_t n = 0)
    {
       reenter (coro)
       {
          BOOST_ASSERT(!cli->reqs_.empty());
          BOOST_ASSERT(!cli->reqs_.front().first.empty());
 
-         cli->write_timer_.expires_after(cli->cfg_.write_timeout);
          cli->reqs_.front().second = true;
+
+         yield
+         boost::asio::async_write(
+            *cli->socket_,
+            boost::asio::buffer(cli->reqs_.front().first.payload()),
+            std::move(self));
+
+         cli->bytes_written_ = n;
+         self.complete(ec);
+      }
+   }
+};
+
+template <class Client>
+struct write_with_timeout_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , std::array<std::size_t, 2> order = {}
+                  , boost::system::error_code ec1 = {}
+                  , boost::system::error_code ec2 = {})
+   {
+      reenter (coro)
+      {
+         cli->write_timer_.expires_after(cli->cfg_.write_timeout);
+
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return boost::asio::async_write(*cli->socket_, boost::asio::buffer(cli->reqs_.front().first.data(), cli->reqs_.front().first.size()), token);},
+            [this](auto token) { return cli->async_write(token);},
             [this](auto token) { return cli->write_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -408,15 +440,6 @@ struct write_op {
             default: BOOST_ASSERT(false);
          }
 
-         cli->bytes_written_ = n;
-
-         BOOST_ASSERT(!cli->reqs_.empty());
-         BOOST_ASSERT(!cli->reqs_.front().first.empty());
-         BOOST_ASSERT(!cli->reqs_.empty());
-         BOOST_ASSERT(n == cli->reqs_.front().first.size());
-
-         if (cli->reqs_.front().first.commands().empty()) 
-            cli->reqs_.pop_front();
          self.complete({});
       }
    }
@@ -428,16 +451,24 @@ struct writer_op {
    boost::asio::coroutine coro;
 
    template <class Self>
-   void operator()(Self& self , boost::system::error_code ec = {})
+   void operator()(Self& self, boost::system::error_code ec = {})
    {
       reenter (coro) for (;;)
       {
-         yield cli->async_write(std::move(self));
+         yield cli->async_write_with_timer(std::move(self));
          if (ec) {
             cli->socket_->close();
             self.complete(ec);
             return;
          }
+
+         BOOST_ASSERT(!cli->reqs_.empty());
+         BOOST_ASSERT(!cli->reqs_.front().first.empty());
+         BOOST_ASSERT(!cli->reqs_.empty());
+         BOOST_ASSERT(cli->bytes_written_ == cli->reqs_.front().first.size());
+
+         if (cli->reqs_.front().first.commands().empty()) 
+            cli->reqs_.pop();
 
          cli->on_write_(cli->bytes_written_);
          yield cli->wait_write_timer_.async_wait(std::move(self));
@@ -450,8 +481,39 @@ struct writer_op {
    }
 };
 
-template <class Client, class Command>
+template <class Client>
 struct read_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void
+   operator()( Self& self
+             , boost::system::error_code ec = {}
+             , std::size_t n = 0)
+   {
+      reenter (coro)
+      {
+         yield
+         resp3::async_read(
+            *cli->socket_,
+            cli->make_dynamic_buffer(),
+            cli->wrap_adapter(),
+            std::move(self));
+
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         cli->cmd_info_.second = n;
+         self.complete({});
+      }
+   }
+};
+
+template <class Client>
+struct read_with_timeout_op {
    Client* cli;
    boost::asio::coroutine coro;
 
@@ -459,7 +521,6 @@ struct read_op {
    void operator()( Self& self
                   , std::array<std::size_t, 2> order = {}
                   , boost::system::error_code ec1 = {}
-                  , std::size_t n = 0
                   , boost::system::error_code ec2 = {})
    {
       reenter (coro)
@@ -468,7 +529,7 @@ struct read_op {
 
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return resp3::async_read(*cli->socket_, boost::asio::dynamic_buffer(cli->read_buffer_, cli->cfg_.max_read_size), [cli_ = cli](resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable {cli_->adapter_(cli_->cmd_info_.first, nd, ec);}, token);},
+            [this](auto token) { return cli->async_read(token);},
             [this](auto token) { return cli->read_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -494,7 +555,6 @@ struct read_op {
             default: BOOST_ASSERT(false);
          }
 
-         cli->cmd_info_.second = n;
          self.complete({});
       }
    }
@@ -533,7 +593,7 @@ struct reader_op {
 
          cli->last_data_ = std::chrono::steady_clock::now();
 
-         yield cli->async_read(std::move(self));
+         yield cli->async_read_with_timeout(std::move(self));
          if (ec) {
             cli->close();
             self.complete(ec);
@@ -543,11 +603,20 @@ struct reader_op {
          if (cli->after_read())
             cli->wait_write_timer_.cancel_one();
 
-         yield
-         cli->ch_.async_send(
-            boost::system::error_code{},
-            cli->cmd_info_.first, cli->cmd_info_.second,
-            std::move(self));
+         if (cli->cmd_info_.first == Command::invalid) {
+            yield
+            cli->push_ch_.async_send(
+               boost::system::error_code{},
+               cli->cmd_info_.second,
+               std::move(self));
+         } else {
+            yield
+            cli->read_ch_.async_send(
+               boost::system::error_code{},
+               cli->cmd_info_.first,
+               cli->cmd_info_.second,
+               std::move(self));
+         }
 
          if (ec) {
             cli->close();

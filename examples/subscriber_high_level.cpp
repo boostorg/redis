@@ -40,32 +40,43 @@ using namespace net::experimental::awaitable_operators;
  */
 
 net::awaitable<void>
-reader(std::shared_ptr<client_type> db)
+push_reader(std::shared_ptr<client_type> db, response_type& resp)
 {
-   response_type resp;
-   db->set_adapter(adapt(resp));
-
    for (;;) {
-      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
+      auto [ec, cmd] = co_await db->async_read_push(as_tuple(net::use_awaitable));
+
+      std::cout
+         << "push_reader: " << ec.message() << ", "
+         << cmd << std::endl;
+
       if (ec)
          co_return;
 
-      switch (cmd) {
-         case command::hello:
+      std::cout
+         << "Event: "   << resp.at(1).value << "\n"
+         << "Channel: " << resp.at(2).value << "\n"
+         << "Message: " << resp.at(3).value << "\n"
+         << std::endl;
+
+      resp.clear();
+   }
+}
+
+net::awaitable<void>
+command_reader(std::shared_ptr<client_type> db, response_type& resp)
+{
+   for (;;) {
+      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
+
+      std::cout
+         << "command_reader: " << ec.message() << ", "
+         << cmd << ", " << n << std::endl;
+
+      if (ec)
+         co_return;
+
+      if (cmd == command::hello)
          db->send(command::subscribe, "channel1", "channel2");
-         break;
-
-         case command::invalid:
-         {
-            std::cout
-               << "Event: "   << resp.at(1).value << "\n"
-               << "Channel: " << resp.at(2).value << "\n"
-               << "Message: " << resp.at(3).value << "\n"
-               << std::endl;
-         } break;
-
-         default:;
-      }
 
       resp.clear();
    }
@@ -75,7 +86,15 @@ net::awaitable<void> run()
 {
    auto ex = co_await net::this_coro::executor;
    auto db = std::make_shared<client_type>(ex);
-   co_await (db->async_run(net::use_awaitable) && reader(db));
+
+   response_type resp;
+   db->set_adapter(adapt(resp));
+
+   co_await (
+      db->async_run(net::use_awaitable) &&
+      command_reader(db, resp) &&
+      push_reader(db, resp)
+   );
 }
 
 int main()

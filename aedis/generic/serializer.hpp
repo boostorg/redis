@@ -49,7 +49,6 @@ public:
    using command_info_type = std::pair<Command, std::size_t>;
 
 private:
-
    std::string payload_;
    std::vector<command_info_type> commands_;
 
@@ -59,6 +58,11 @@ public:
    auto empty() const { return payload_.empty(); }
    auto const* data() const { return payload_.data(); }
    auto const& payload() const { return payload_;}
+   void clear()
+   {
+      payload_.clear();
+      commands_.clear();
+   }
 
    void pop()
    {

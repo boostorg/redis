@@ -95,7 +95,8 @@ public:
    , write_timer_{ex}
    , wait_write_timer_{ex}
    , check_idle_timer_{ex}
-   , ch_{ex}
+   , read_ch_{ex}
+   , push_ch_{ex}
    , cfg_{cfg}
    , on_write_{[](std::size_t){}}
    , adapter_{[](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {}}
@@ -277,7 +278,15 @@ public:
    template <class CompletionToken = default_completion_token_type>
    auto async_read_one(CompletionToken token = CompletionToken{})
    {
-      return ch_.async_receive(token);
+      return read_ch_.async_receive(token);
+   }
+
+   /** @brief Receives events produced by the run operation.
+    */
+   template <class CompletionToken = default_completion_token_type>
+   auto async_read_push(CompletionToken token = CompletionToken{})
+   {
+      return push_ch_.async_receive(token);
    }
 
    /// Set the write handler.
@@ -305,21 +314,25 @@ public:
    {
       socket_->close();
       wait_write_timer_.expires_at(std::chrono::steady_clock::now());
-      ch_.cancel();
+      read_ch_.cancel();
+      push_ch_.cancel();
       reqs_ = {};
    }
 
 private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
-   using channel_type = boost::asio::experimental::channel<void(boost::system::error_code, Command, std::size_t)>;
+   using read_channel_type = boost::asio::experimental::channel<void(boost::system::error_code, Command, std::size_t)>;
+   using push_channel_type = boost::asio::experimental::channel<void(boost::system::error_code, std::size_t)>;
 
    template <class T, class V> friend struct detail::reader_op;
    template <class T, class V> friend struct detail::ping_after_op;
-   template <class T, class V> friend struct detail::read_op;
+   template <class T> friend struct detail::read_with_timeout_op;
+   template <class T> friend struct detail::read_op;
    template <class T, class V> friend struct detail::run_op;
    template <class T> friend struct detail::read_until_op;
-   template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_op;
+   template <class T> friend struct detail::writer_op;
+   template <class T> friend struct detail::write_with_timeout_op;
    template <class T> friend struct detail::connect_op;
    template <class T> friend struct detail::resolve_op;
    template <class T> friend struct detail::check_idle_op;
@@ -327,13 +340,28 @@ private:
    template <class T> friend struct detail::read_write_check_op;
    template <class T> friend struct detail::wait_for_data_op;
 
+   auto make_dynamic_buffer()
+   {
+      return boost::asio::dynamic_buffer(read_buffer_, cfg_.max_read_size);
+   }
+
+   auto wrap_adapter()
+   {
+      return [this]
+         (resp3::node<boost::string_view> const& nd,
+          boost::system::error_code& ec) mutable
+         {
+            adapter_(cmd_info_.first, nd, ec);
+         };
+   }
+
    // Prepares the back of the queue to receive further commands.  If
    // true is returned the request in the front of the queue can be
    // sent to the server.
    bool prepare_back()
    {
       if (reqs_.empty()) {
-         reqs_.push_back({});
+         reqs_.push({});
          return true;
       }
 
@@ -342,7 +370,7 @@ private:
          // the vector.
          BOOST_ASSERT(!reqs_.front().first.commands().empty());
          if (reqs_.size() == 1)
-            reqs_.push_back({});
+            reqs_.push({});
 
          return false;
       }
@@ -366,7 +394,7 @@ private:
       if (!reqs_.front().first.commands().empty())
          return false;
 
-      reqs_.pop_front();
+      reqs_.pop();
 
       return !reqs_.empty();
    }
@@ -409,15 +437,25 @@ private:
    // timeout config::read_timeout.
    template <class CompletionToken = default_completion_token_type>
    auto
+   async_read_with_timeout(CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::read_with_timeout_op<client>{this}, token, read_timer_.get_executor());
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
    async_read(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_op<client, Command>{this}, token, read_timer_.get_executor());
+         >(detail::read_op<client>{this}, token, read_timer_.get_executor());
    }
 
-   // Loops on async_read described above.
+   // Loops on async_read_with_timeout described above.
    template <class CompletionToken = default_completion_token_type>
    auto
    reader(CompletionToken&& token = default_completion_token_type{})
@@ -428,16 +466,26 @@ private:
          >(detail::reader_op<client, Command>{this}, token, read_timer_.get_executor());
    }
 
-   // Write with a timeout.
    template <class CompletionToken = default_completion_token_type>
    auto
-   async_write(
-      CompletionToken&& token = default_completion_token_type{})
+   async_write(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::write_op<client>{this}, token, write_timer_);
+   }
+
+   // Write with a timeout.
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_write_with_timer(
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::write_with_timeout_op<client>{this}, token, write_timer_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -509,7 +557,7 @@ private:
    // Timer used with async_read.
    boost::asio::steady_timer read_timer_;
 
-   // Timer used with async_write.
+   // Timer used with async_write_with_timer.
    boost::asio::steady_timer write_timer_;
 
    // Timer that is canceled when a new message is added to the output
@@ -520,7 +568,8 @@ private:
    boost::asio::steady_timer check_idle_timer_;
 
    // Channel used to communicate read events.
-   channel_type ch_;
+   read_channel_type read_ch_;
+   push_channel_type push_ch_;
 
    // Configuration parameters.
    config cfg_;
@@ -536,12 +585,12 @@ private:
    std::string read_buffer_;
 
    // Info about the requests.
-   std::deque<std::pair<generic::serializer<Command>, bool>> reqs_;
+   std::queue<std::pair<generic::serializer<Command>, bool>> reqs_;
 
    // Last time we received data.
    time_point_type last_data_;
 
-   // Used by the read_op.
+   // Used by the read_with_timeout_op.
    resp3::type type_;
    typename generic::serializer<Command>::command_info_type cmd_info_;
 

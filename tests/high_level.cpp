@@ -39,6 +39,18 @@ auto print_read = [](auto cmd, auto n)
    std::cout << cmd << ": " << n << std::endl;
 };
 
+net::awaitable<void>
+push_consumer(std::shared_ptr<client_type> db)
+{
+   for (;;) {
+      auto [ec, cmd] = co_await db->async_read_push(as_tuple(net::use_awaitable));
+
+      if (ec)
+         co_return;
+   }
+}
+
+
 //----------------------------------------------------------------
 
 void test_resolve_error()
@@ -148,7 +160,7 @@ void test_hello2()
 
 //----------------------------------------------------------------
 
-net::awaitable<void> reader3(std::shared_ptr<client_type> db)
+net::awaitable<void> push_consumer3(std::shared_ptr<client_type> db)
 {
    {
       auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
@@ -157,9 +169,8 @@ net::awaitable<void> reader3(std::shared_ptr<client_type> db)
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_read_push(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
-      expect_eq(cmd, command::invalid);
       db->send(command::quit);
    }
 
@@ -184,29 +195,11 @@ void test_push()
    db->set_write_handler(on_write);
 
    net::co_spawn(ioc.get_executor(), run1(db), net::detached);
-   net::co_spawn(ioc.get_executor(), reader3(db), net::detached);
+   net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
    ioc.run();
 }
 
 //----------------------------------------------------------------
-
-struct receiver4 {
-public:
-   receiver4(client_type& db) : db_{&db} {}
-
-   void on_read(command cmd)
-   {
-      if (cmd == command::invalid) {
-         db_->send(command::quit);
-      } else {
-         // Notice this causes a loop.
-         db_->send(command::subscribe, "channel");
-      }
-   }
-
-private:
-   client_type* db_;
-};
 
 net::awaitable<void> reader4(std::shared_ptr<client_type> db)
 {
@@ -218,9 +211,8 @@ net::awaitable<void> reader4(std::shared_ptr<client_type> db)
    }
 
    {
-      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_read_push(as_tuple(net::use_awaitable));
       expect_error(ec, error_code{});
-      expect_eq(cmd, command::invalid);
       db->send(command::quit);
    }
 
@@ -453,23 +445,6 @@ void test_discard()
    ioc.run();
 }
 
-struct receiver8 {
-public:
-   receiver8(client_type& db) : db_{&db} {}
-
-   void on_write(std::size_t)
-   {
-      if (!std::exchange(sent_, true)) {
-         db_->send(command::del, "key");
-         db_->send(command::client, "PAUSE", 5000);
-      }
-   }
-
-private:
-   bool sent_ = false;
-   client_type* db_;
-};
-
 net::awaitable<void> reader8(std::shared_ptr<client_type> db)
 {
    {
@@ -549,6 +524,7 @@ void test_no_ping()
    auto db = std::make_shared<client_type>(ioc.get_executor(), cfg);
    net::co_spawn(ioc.get_executor(), run1(db), net::detached);
    net::co_spawn(ioc.get_executor(), reader9(db), net::detached);
+   net::co_spawn(ioc.get_executor(), push_consumer(db), net::detached);
    ioc.run();
 }
 

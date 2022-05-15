@@ -50,7 +50,7 @@ auto async_write(
    CompletionToken&& token =
       boost::asio::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
 {
-   return boost::asio::async_write(stream, boost::asio::buffer(req.payload()));
+   return boost::asio::async_write(stream, boost::asio::buffer(req.payload()), token);
 }
 
 } // resp3

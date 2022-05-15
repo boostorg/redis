@@ -35,7 +35,14 @@ class receiver {
 public:
    net::awaitable<void> run(std::shared_ptr<client_type> db)
    {
-      co_await (reconnect(db) && reader(db));
+      response_type resp;
+      db->set_adapter(adapt(resp));
+
+      co_await (
+         reconnect(db) &&
+         command_reader(db, resp) &&
+         push_reader(db, resp)
+      );
    }
 
    auto add_user_session(std::shared_ptr<user_session_base> session)
@@ -44,11 +51,9 @@ public:
    void disable_reconnect() {reconnect_ = false;}
 
 private:
-   net::awaitable<void> reader(std::shared_ptr<client_type> db)
+   net::awaitable<void>
+   command_reader(std::shared_ptr<client_type> db, response_type& resp)
    {
-      response_type resp;
-      db->set_adapter(adapt(resp));
-
       for (;;) {
          auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
          if (ec)
@@ -63,14 +68,23 @@ private:
             std::cout << "Messages so far: " << resp.front().value << std::endl;
             break;
 
-            case command::invalid:
-            {
-               for (auto& session: sessions_)
-                  session->deliver(resp.at(3).value);
-            } break;
-
             default:;
          }
+
+         resp.clear();
+      }
+   }
+
+   net::awaitable<void>
+   push_reader(std::shared_ptr<client_type> db, response_type& resp)
+   {
+      for (;;) {
+         auto [ec, n] = co_await db->async_read_push(as_tuple(net::use_awaitable));
+         if (ec)
+            co_return;
+
+         for (auto& session: sessions_)
+            session->deliver(resp.at(3).value);
 
          resp.clear();
       }
