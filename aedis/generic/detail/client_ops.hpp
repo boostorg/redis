@@ -40,8 +40,7 @@ struct ping_after_op {
    {
       reenter (coro)
       {
-         BOOST_ASSERT((cli->cfg_.idle_timeout / 2) != std::chrono::seconds{0});
-         cli->read_timer_.expires_after(cli->cfg_.idle_timeout / 2);
+         cli->read_timer_.expires_after(cli->cfg_.ping_delay_timeout);
          yield cli->read_timer_.async_wait(std::move(self));
          if (ec) {
             self.complete(ec);
@@ -125,7 +124,7 @@ struct check_idle_op {
    {
       reenter (coro) for(;;)
       {
-         cli->check_idle_timer_.expires_after(cli->cfg_.idle_timeout);
+         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_delay_timeout);
          yield cli->check_idle_timer_.async_wait(std::move(self));
          if (ec) {
             self.complete(ec);
@@ -133,7 +132,7 @@ struct check_idle_op {
          }
 
          auto const now = std::chrono::steady_clock::now();
-         if (cli->last_data_ +  cli->cfg_.idle_timeout < now) {
+         if (cli->last_data_ +  (2 * cli->cfg_.ping_delay_timeout) < now) {
             cli->close();
             self.complete(error::idle_timeout);
             return;
@@ -205,7 +204,7 @@ struct connect_op {
 };
 
 template <class Client>
-struct init_op {
+struct resolve_with_timeout_op {
    Client* cli;
    boost::asio::coroutine coro;
 
@@ -249,11 +248,24 @@ struct init_op {
             default: BOOST_ASSERT(false);
          }
 
-         cli->socket_ =
-            std::make_shared<
-               typename Client::next_layer_type
-            >(cli->read_timer_.get_executor());
+         self.complete({});
+      }
+   }
+};
 
+template <class Client>
+struct connect_with_timeout_op {
+   Client* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , std::array<std::size_t, 2> order = {}
+                  , boost::system::error_code ec1 = {}
+                  , boost::system::error_code ec2 = {})
+   {
+      reenter (coro)
+      {
          // Tries a connection with a timeout. We can use the writer
          // timer here as there is no ongoing write operation.
          cli->write_timer_.expires_after(cli->cfg_.connect_timeout);
@@ -349,7 +361,18 @@ struct run_op {
    {
       reenter (coro)
       {
-         yield cli->async_init(std::move(self));
+         yield cli->async_resolve_with_timeout(std::move(self));
+         if (ec) {
+            self.complete(ec);
+            return;
+         }
+
+         cli->socket_ =
+            std::make_shared<
+               typename Client::next_layer_type
+            >(cli->read_timer_.get_executor());
+
+         yield cli->async_connect_with_timeout(std::move(self));
          if (ec) {
             self.complete(ec);
             return;

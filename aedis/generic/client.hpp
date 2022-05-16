@@ -77,8 +77,8 @@ public:
       /// Timeout of the \c async_write operation.
       std::chrono::milliseconds write_timeout = std::chrono::seconds{5};
 
-      /// Time after which a connection is considered idle if no data is received.
-      std::chrono::milliseconds idle_timeout = std::chrono::seconds{10};
+      /// Time after which a ping is sent if no data is received.
+      std::chrono::milliseconds ping_delay_timeout = std::chrono::seconds{5};
 
       /// The maximum size allwed in a read operation.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
@@ -104,8 +104,6 @@ public:
    , type_{resp3::type::invalid}
    , cmd_info_{std::make_pair<Command>(Command::invalid, 0)}
    {
-      if (cfg.idle_timeout < std::chrono::seconds{2})
-         cfg.idle_timeout = std::chrono::seconds{2};
    }
 
    /// Returns the executor.
@@ -219,14 +217,14 @@ public:
     *  passed on client::config::write_timeout. After a successful
     *  write it will call the write callback.
     *
-    *  @li Starts the check idle operation with the timeout specified
-    *  in client::config::idle_timeout. If no data is received during
-    *  that time interval \c async_run completes with
+    *  @li Starts the idle check operation with the timeout of twice
+    *  the value of client::config::ping_delay_timeout. If no data is
+    *  received during that time interval \c async_run completes with
     *  generic::error::idle_timeout.
     *
     *  @li Starts the healthy check operation that sends
     *  redis::command::ping to Redis with a frequency equal to
-    *  client::config::idle_timeout / 2.
+    *  client::config::ping_delay_timeout.
     *
     *  In addition to the callbacks mentioned above, the read
     *  operations will call the resp3 callback as soon a new chunks of
@@ -334,9 +332,10 @@ private:
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_with_timeout_op;
    template <class T> friend struct detail::connect_op;
+   template <class T> friend struct detail::connect_with_timeout_op;
    template <class T> friend struct detail::resolve_op;
+   template <class T> friend struct detail::resolve_with_timeout_op;
    template <class T> friend struct detail::check_idle_op;
-   template <class T> friend struct detail::init_op;
    template <class T> friend struct detail::read_write_check_op;
    template <class T> friend struct detail::wait_for_data_op;
 
@@ -400,7 +399,7 @@ private:
    }
 
    // Resolves the address passed in async_run and store the results
-   // in endpoints_.
+   // in the endpoints_ member variable.
    template <class CompletionToken = default_completion_token_type>
    auto
    async_resolve(CompletionToken&& token = default_completion_token_type{})
@@ -409,6 +408,20 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::resolve_op<client>{this}, token, resv_.get_executor());
+   }
+
+   // Calls client::async_resolve with the resolve timeout passed in
+   // the config. Uses the write_timer_ to perform the timeout op.
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_resolve_with_timeout(
+      CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::resolve_with_timeout_op<client>{this},
+               token, resv_.get_executor());
    }
 
    // Connects the socket to one of the endpoints in endpoints_ and
@@ -420,7 +433,21 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::connect_op<client>{this}, token, write_timer_.get_executor());
+         >(detail::connect_op<client>{this}, token,
+               write_timer_.get_executor());
+   }
+
+   // Calls client::async_connect with a timeout.
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   async_connect_with_timeout(
+         CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::connect_with_timeout_op<client>{this}, token,
+               write_timer_.get_executor());
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -496,16 +523,6 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::writer_op<client>{this}, token, wait_write_timer_);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_init(CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::init_op<client>{this}, token, write_timer_, resv_);
    }
 
    template <class CompletionToken = default_completion_token_type>

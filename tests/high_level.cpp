@@ -474,7 +474,7 @@ void test_idle()
    cfg.connect_timeout = std::chrono::seconds{1};
    cfg.read_timeout = std::chrono::seconds{1};
    cfg.write_timeout = std::chrono::seconds{1};
-   cfg.idle_timeout = std::chrono::seconds{2};
+   cfg.ping_delay_timeout = std::chrono::seconds{1};
 
    net::io_context ioc;
    auto db = std::make_shared<client_type>(ioc.get_executor(), cfg);
@@ -518,7 +518,7 @@ net::awaitable<void> reader9(std::shared_ptr<client_type> db)
 void test_no_ping()
 {
    client_type::config cfg;
-   cfg.idle_timeout = std::chrono::seconds{2};
+   cfg.ping_delay_timeout = std::chrono::seconds{1};
 
    net::io_context ioc;
    auto db = std::make_shared<client_type>(ioc.get_executor(), cfg);
