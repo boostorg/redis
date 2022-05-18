@@ -22,7 +22,7 @@ namespace resp3 = aedis::resp3;
 
 using aedis::resp3::type;
 using aedis::redis::command;
-using aedis::generic::serializer;
+using aedis::generic::request;
 using aedis::adapter::adapt;
 using net::ip::tcp;
 
@@ -39,7 +39,7 @@ int main()
       mystruct in{42, "Some string"};
 
       // Creates and sends a request to redis.
-      serializer<command> req;
+      request<command> req;
       req.push(command::hello, 3);
       req.push(command::set, "key", in);
       req.push(command::get, "key");

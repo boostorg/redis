@@ -23,9 +23,8 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/redis/command.hpp>
-#include <aedis/generic/serializer.hpp>
+#include <aedis/generic/request.hpp>
 #include <aedis/generic/detail/client_ops.hpp>
-#include <aedis/generic/serializer.hpp>
 
 namespace aedis {
 namespace generic {
@@ -113,8 +112,8 @@ public:
     *
     *  Adds a command to the end of the next request and signals the
     *  writer operation there is a new message awaiting to be sent.
-    *  Otherwise the function is equivalent to serializer::push.  @sa
-    *  serializer.
+    *  Otherwise the function is equivalent to request::push.  @sa
+    *  request.
     */
    template <class... Ts>
    void send(Command cmd, Ts const&... args)
@@ -130,8 +129,8 @@ public:
     *  Adds a command to the end of the next request and signals the
     *  writer operation there is a new message awaiting to be sent.
     *  Otherwise the function is equivalent to
-    *  serializer::push_range2.
-    *  @sa serializer.
+    *  request::push_range2.
+    *  @sa request.
     */
    template <class Key, class ForwardIterator>
    void send_range2(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
@@ -150,8 +149,8 @@ public:
     *  Adds a command to the end of the next request and signals the
     *  writer operation there is a new message awaiting to be sent.
     *  Otherwise the function is equivalent to
-    *  serializer::push_range2.
-    *  @sa serializer.
+    *  request::push_range2.
+    *  @sa request.
     */
    template <class ForwardIterator>
    void send_range2(Command cmd, ForwardIterator begin, ForwardIterator end)
@@ -170,8 +169,8 @@ public:
     *  Adds a command to the end of the next request and signals the
     *  writer operation there is a new message awaiting to be sent.
     *  Otherwise the function is equivalent to
-    *  serializer::push_range.
-    *  @sa serializer.
+    *  request::push_range.
+    *  @sa request.
     */
    template <class Key, class Range>
    void send_range(Command cmd, Key const& key, Range const& range)
@@ -186,8 +185,8 @@ public:
     *  Adds a command to the end of the next request and signals the
     *  writer operation there is a new message awaiting to be sent.
     *  Otherwise the function is equivalent to
-    *  serializer::push_range.
-    *  @sa serializer.
+    *  request::push_range.
+    *  @sa request.
     */
    template <class Range>
    void send_range(Command cmd, Range const& range)
@@ -602,14 +601,14 @@ private:
    std::string read_buffer_;
 
    // Info about the requests.
-   std::queue<std::pair<generic::serializer<Command>, bool>> reqs_;
+   std::queue<std::pair<generic::request<Command>, bool>> reqs_;
 
    // Last time we received data.
    time_point_type last_data_;
 
    // Used by the read_with_timeout_op.
    resp3::type type_;
-   typename generic::serializer<Command>::command_info_type cmd_info_;
+   typename generic::request<Command>::command_info_type cmd_info_;
 
    // See async_connect.
    boost::asio::ip::tcp::endpoint endpoint_;

@@ -15,7 +15,7 @@
 #include <aedis/sentinel/command.hpp>
 #include <aedis/generic/error.hpp>
 #include <aedis/generic/client.hpp>
-#include <aedis/generic/serializer.hpp>
+#include <aedis/generic/request.hpp>
 
 /** \mainpage Documentation
     \tableofcontents

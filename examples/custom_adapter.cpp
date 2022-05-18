@@ -18,7 +18,7 @@ namespace resp3 = aedis::resp3;
 
 using aedis::resp3::node;
 using aedis::redis::command;
-using aedis::generic::serializer;
+using aedis::generic::request;
 using net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
@@ -31,7 +31,7 @@ net::awaitable<void> example()
    tcp_socket socket{ex};
    co_await socket.async_connect(*std::begin(res));
 
-   serializer<command> req;
+   request<command> req;
    req.push(command::hello, 3);
    req.push(command::ping, "Some message.");
    req.push(command::quit);

@@ -60,7 +60,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/src.hpp\
   $(top_srcdir)/aedis/redis/command.hpp\
   $(top_srcdir)/aedis/generic/client.hpp\
-  $(top_srcdir)/aedis/generic/serializer.hpp\
+  $(top_srcdir)/aedis/generic/request.hpp\
   $(top_srcdir)/aedis/generic/error.hpp\
   $(top_srcdir)/aedis/generic/impl/error.ipp\
   $(top_srcdir)/aedis/generic/detail/client_ops.hpp\

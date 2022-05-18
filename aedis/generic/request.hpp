@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_GENERIC_SERIALIZER_HPP
-#define AEDIS_GENERIC_SERIALIZER_HPP
+#ifndef AEDIS_GENERIC_REQUEST_HPP
+#define AEDIS_GENERIC_REQUEST_HPP
 
 #include <boost/hana.hpp>
 #include <aedis/resp3/compose.hpp>
@@ -44,7 +44,7 @@ namespace generic {
  *  to_bulk, which must be made available over ADL.
  */
 template <class Command>
-class serializer {
+class request {
 public:
    using command_info_type = std::pair<Command, std::size_t>;
 

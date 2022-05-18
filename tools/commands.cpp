@@ -17,7 +17,7 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
 using aedis::redis::command;
-using aedis::generic::serializer;
+using aedis::generic::request;
 using aedis::resp3::node;
 using aedis::adapter::adapt;
 using net::ip::tcp;
@@ -81,7 +81,7 @@ int main()
      tcp::socket socket{ioc};
      net::connect(socket, res);
 
-     serializer<command> req;
+     request<command> req;
      req.push(command::hello, 3);
      req.push(command::command);
      req.push(command::quit);
