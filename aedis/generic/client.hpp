@@ -18,6 +18,7 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/async_result.hpp>
 #include <boost/asio/experimental/channel.hpp>
 
 #include <aedis/resp3/type.hpp>
@@ -25,6 +26,9 @@
 #include <aedis/redis/command.hpp>
 #include <aedis/generic/request.hpp>
 #include <aedis/generic/detail/client_ops.hpp>
+
+// TODO: Send hello automatically.
+// TODO: Don't pass pong to the adapter.
 
 namespace aedis {
 namespace generic {
@@ -91,6 +95,7 @@ public:
    client(boost::asio::any_io_executor ex, config cfg = config{})
    : resv_{ex}
    , read_timer_{ex}
+   , ping_timer_{ex}
    , write_timer_{ex}
    , wait_write_timer_{ex}
    , check_idle_timer_{ex}
@@ -107,94 +112,6 @@ public:
 
    /// Returns the executor.
    auto get_executor() {return read_timer_.get_executor();}
-
-   /** @brief Adds a command to the output command queue.
-    *
-    *  Adds a command to the end of the next request and signals the
-    *  writer operation there is a new message awaiting to be sent.
-    *  Otherwise the function is equivalent to request::push.  @sa
-    *  request.
-    */
-   template <class... Ts>
-   void send(Command cmd, Ts const&... args)
-   {
-      auto const can_write = prepare_back();
-      reqs_.back().first.push(cmd, args...);
-      if (can_write)
-         wait_write_timer_.cancel_one();
-   }
-
-   /** @brief Adds a command to the output command queue.
-    *
-    *  Adds a command to the end of the next request and signals the
-    *  writer operation there is a new message awaiting to be sent.
-    *  Otherwise the function is equivalent to
-    *  request::push_range2.
-    *  @sa request.
-    */
-   template <class Key, class ForwardIterator>
-   void send_range2(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
-   {
-      if (begin == end)
-         return;
-
-      auto const can_write = prepare_back();
-      reqs_.back().first.push_range2(cmd, key, begin, end);
-      if (can_write)
-         wait_write_timer_.cancel_one();
-   }
-
-   /** @brief Adds a command to the output command queue.
-    *
-    *  Adds a command to the end of the next request and signals the
-    *  writer operation there is a new message awaiting to be sent.
-    *  Otherwise the function is equivalent to
-    *  request::push_range2.
-    *  @sa request.
-    */
-   template <class ForwardIterator>
-   void send_range2(Command cmd, ForwardIterator begin, ForwardIterator end)
-   {
-      if (begin == end)
-         return;
-
-      auto const can_write = prepare_back();
-      reqs_.back().first.push_range2(cmd, begin, end);
-      if (can_write)
-         wait_write_timer_.cancel_one();
-   }
-
-   /** @brief Adds a command to the output command queue.
-    *
-    *  Adds a command to the end of the next request and signals the
-    *  writer operation there is a new message awaiting to be sent.
-    *  Otherwise the function is equivalent to
-    *  request::push_range.
-    *  @sa request.
-    */
-   template <class Key, class Range>
-   void send_range(Command cmd, Key const& key, Range const& range)
-   {
-      using std::begin;
-      using std::end;
-      send_range2(cmd, key, begin(range), end(range));
-   }
-
-   /** @brief Adds a command to the output command queue.
-    *
-    *  Adds a command to the end of the next request and signals the
-    *  writer operation there is a new message awaiting to be sent.
-    *  Otherwise the function is equivalent to
-    *  request::push_range.
-    *  @sa request.
-    */
-   template <class Range>
-   void send_range(Command cmd, Range const& range)
-   {
-      using std::begin;
-      using std::end;
-      send_range2(cmd, begin(range), end(range));
-   }
 
    /** @brief Starts communication with the Redis server asynchronously.
     *
@@ -267,15 +184,28 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<client, Command>{this}, token, read_timer_, write_timer_, wait_write_timer_);
+         >(detail::run_op<client, Command>{this}, token, read_timer_);
    }
 
-   /** @brief Receives events produces by the run operation.
+   void add_request(request<Command>& req)
+   {
+      auto const can_write = prepare_back();
+      reqs_.back().req = &req;
+      if (can_write)
+         wait_write_timer_.cancel_one();
+   }
+
+   /** @brief Asynchrnously executes schedules a command for execution.
     */
    template <class CompletionToken = default_completion_token_type>
-   auto async_read_one(CompletionToken token = CompletionToken{})
+   auto async_exec(
+      request<Command>& req,
+      CompletionToken token = CompletionToken{})
    {
-      return read_ch_.async_receive(token);
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code, std::size_t, std::size_t)
+         >(detail::exec_op<client>{this, &req}, token, read_timer_);
    }
 
    /** @brief Receives events produced by the run operation.
@@ -300,7 +230,10 @@ public:
       adapter_ = 
          [adapter = std::move(a)]
             (Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable
-               {adapter(nd, ec);};
+      {
+         if (cmd != Command::ping)
+            adapter(nd, ec);
+      };
    }
 
    /** @brief Closes the connection with the database.
@@ -311,6 +244,7 @@ public:
    {
       socket_->close();
       wait_write_timer_.expires_at(std::chrono::steady_clock::now());
+      ping_timer_.cancel();
       read_ch_.cancel();
       push_ch_.cancel();
       reqs_ = {};
@@ -318,15 +252,15 @@ public:
 
 private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
-   using read_channel_type = boost::asio::experimental::channel<void(boost::system::error_code, Command, std::size_t)>;
-   using push_channel_type = boost::asio::experimental::channel<void(boost::system::error_code, std::size_t)>;
+   using read_channel_type = boost::asio::experimental::channel<void(boost::system::error_code, std::size_t)>;
+   using write_channel_type = boost::asio::experimental::channel<void(boost::system::error_code, std::size_t)>;
+   using request_type = generic::request<Command>;
 
    template <class T, class V> friend struct detail::reader_op;
-   template <class T, class V> friend struct detail::ping_after_op;
+   template <class T, class V> friend struct detail::ping_op;
    template <class T> friend struct detail::read_with_timeout_op;
    template <class T> friend struct detail::read_op;
    template <class T, class V> friend struct detail::run_op;
-   template <class T> friend struct detail::read_until_op;
    template <class T> friend struct detail::write_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_with_timeout_op;
@@ -335,8 +269,8 @@ private:
    template <class T> friend struct detail::resolve_op;
    template <class T> friend struct detail::resolve_with_timeout_op;
    template <class T> friend struct detail::check_idle_op;
-   template <class T> friend struct detail::read_write_check_op;
-   template <class T> friend struct detail::wait_for_data_op;
+   template <class T> friend struct detail::read_write_check_ping_op;
+   template <class T> friend struct detail::exec_op;
 
    auto make_dynamic_buffer()
    {
@@ -356,45 +290,32 @@ private:
    // Prepares the back of the queue to receive further commands.  If
    // true is returned the request in the front of the queue can be
    // sent to the server.
+   //bool prepare_back()
+   //{
+   //   if (reqs_.empty()) {
+   //      reqs_.push({write_channel_type{read_timer_.get_executor()}, nullptr, false});
+   //      return true;
+   //   }
+
+   //   if (reqs_.front().sent) {
+   //      // There is a pending response, we can't modify the front of
+   //      // the vector.
+   //      BOOST_ASSERT(!reqs_.front().req->commands().empty());
+   //      if (reqs_.size() == 1)
+   //         reqs_.push({write_channel_type{read_timer_.get_executor()}, nullptr, false});
+
+   //      return false;
+   //   }
+
+   //   // When cmds = 0 there are only commands with push response on
+   //   // the request and we are not waiting for any response.
+   //   return reqs_.front().req->commands().empty();
+   //}
    bool prepare_back()
    {
-      if (reqs_.empty()) {
-         reqs_.push({});
-         return true;
-      }
-
-      if (reqs_.front().second) {
-         // There is a pending response, we can't modify the front of
-         // the vector.
-         BOOST_ASSERT(!reqs_.front().first.commands().empty());
-         if (reqs_.size() == 1)
-            reqs_.push({});
-
-         return false;
-      }
-
-      // When cmds = 0 there are only commands with push response on
-      // the request and we are not waiting for any response.
-      return reqs_.front().first.commands().empty();
-   }
-
-   // Returns true when the next request can be written.
-   bool after_read()
-   {
-      if (type_ == resp3::type::push)
-         return false;
-
-      BOOST_ASSERT(!reqs_.empty());
-      BOOST_ASSERT(!reqs_.front().first.commands().empty());
-
-      reqs_.front().first.pop();
-
-      if (!reqs_.front().first.commands().empty())
-         return false;
-
-      reqs_.pop();
-
-      return !reqs_.empty();
+      auto const can_write = reqs_.empty();
+      reqs_.push({write_channel_type{read_timer_.get_executor()}, nullptr, false});
+      return can_write;
    }
 
    // Resolves the address passed in async_run and store the results
@@ -449,16 +370,6 @@ private:
                write_timer_.get_executor());
    }
 
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_read_until(CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::read_until_op<client>{this}, token, read_timer_.get_executor());
-   }
-
    // Reads a complete resp3 response from the socket using the
    // timeout config::read_timeout.
    template <class CompletionToken = default_completion_token_type>
@@ -505,7 +416,7 @@ private:
    // Write with a timeout.
    template <class CompletionToken = default_completion_token_type>
    auto
-   async_write_with_timer(
+   async_write_with_timeout(
       CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
@@ -526,32 +437,22 @@ private:
 
    template <class CompletionToken = default_completion_token_type>
    auto
-   async_read_write_check(CompletionToken&& token = default_completion_token_type{})
+   async_read_write_check_ping(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_write_check_op<client>{this}, token, read_timer_, write_timer_, wait_write_timer_, check_idle_timer_);
+         >(detail::read_write_check_ping_op<client>{this}, token, read_timer_, write_timer_, wait_write_timer_, check_idle_timer_);
    }
 
    template <class CompletionToken = default_completion_token_type>
    auto
-   async_ping_after(CompletionToken&& token = default_completion_token_type{})
+   async_ping(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::ping_after_op<client, Command>{this}, token, read_timer_);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_wait_for_data(CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::wait_for_data_op<client>{this}, token, read_timer_);
+         >(detail::ping_op<client, Command>{this}, token, read_timer_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -573,7 +474,10 @@ private:
    // Timer used with async_read.
    boost::asio::steady_timer read_timer_;
 
-   // Timer used with async_write_with_timer.
+   // Ping timer.
+   boost::asio::steady_timer ping_timer_;
+
+   // Timer used with async_write_with_timeout.
    boost::asio::steady_timer write_timer_;
 
    // Timer that is canceled when a new message is added to the output
@@ -585,7 +489,7 @@ private:
 
    // Channel used to communicate read events.
    read_channel_type read_ch_;
-   push_channel_type push_ch_;
+   read_channel_type push_ch_;
 
    // Configuration parameters.
    config cfg_;
@@ -601,14 +505,21 @@ private:
    std::string read_buffer_;
 
    // Info about the requests.
-   std::queue<std::pair<generic::request<Command>, bool>> reqs_;
+   struct req_info {
+      write_channel_type channel;
+      request_type* req = nullptr;
+      bool sent = false;
+   };
+
+   // Request queue.
+   std::queue<req_info> reqs_;
 
    // Last time we received data.
    time_point_type last_data_;
 
    // Used by the read_with_timeout_op.
    resp3::type type_;
-   typename generic::request<Command>::command_info_type cmd_info_;
+   typename request_type::command_info_type cmd_info_;
 
    // See async_connect.
    boost::asio::ip::tcp::endpoint endpoint_;
@@ -618,6 +529,7 @@ private:
 
    // write_op helper.
    std::size_t bytes_written_ = 0;
+   request_type req_;
 };
 
 } // generic

@@ -5,12 +5,9 @@
  */
 
 #include <string>
-#include <iostream>
 #include <memory>
-
-#include <boost/asio.hpp>
-#include <boost/asio/experimental/as_tuple.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
+#include <vector>
+#include <cstdio>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
@@ -19,47 +16,49 @@ namespace net = boost::asio;
 using aedis::resp3::node;
 using aedis::adapter::adapt;
 using aedis::redis::command;
-using net::experimental::as_tuple;
+using aedis::generic::request;
 using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
-using namespace net::experimental::awaitable_operators;
 
-net::awaitable<void>
-reader(std::shared_ptr<client_type> db)
+auto run_handler =[](auto ec)
 {
-   node<std::string> resp;
-   db->set_adapter(adapt(resp));
+   std::printf("Run: %s\n", ec.message().data());
+};
 
-   for (;;) {
-      auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
-      if (ec)
-         co_return;
-
-      switch (cmd) {
-         case command::hello:
-         db->send(command::ping, "O rato roeu a roupa do rei de Roma");
-         db->send(command::incr, "intro-counter");
-         db->send(command::set, "intro-key", "Três pratos de trigo para três tigres");
-         db->send(command::get, "intro-key");
-         db->send(command::quit);
-         break;
-
-         default:
-         std::cout << resp.value << std::endl;
-      }
-   }
-}
-
-net::awaitable<void> run()
+auto exec_handler = [](auto ec, std::size_t write_size, std::size_t read_size)
 {
-   auto ex = co_await net::this_coro::executor;
-   auto db = std::make_shared<client_type>(ex);
-   co_await (db->async_run(net::use_awaitable) && reader(db));
-}
+   std::printf("Exec: %s %u %u\n", ec.message().data(), write_size, read_size);
+};
 
 int main()
 {
-   net::io_context ioc;
-   net::co_spawn(ioc.get_executor(), run(), net::detached);
-   ioc.run();
-}
+   std::vector<node<std::string>> resp;
 
+   net::io_context ioc;
+
+   client_type db{ioc.get_executor()};
+   db.set_adapter(adapt(resp));
+
+   request<command> req1;
+   req1.push(command::hello, 3);
+   db.async_exec(req1, exec_handler);
+
+   request<command> req2;
+   req2.push(command::set, "intro-key", "message1");
+   req2.push(command::get, "intro-key");
+   db.async_exec(req2, exec_handler);
+
+   request<command> req3;
+   req3.push(command::set, "intro-key", "message2");
+   req3.push(command::get, "intro-key");
+   db.async_exec(req3, exec_handler);
+
+   request<command> req4;
+   req4.push(command::quit);
+   db.async_exec(req4, exec_handler);
+
+   db.async_run(run_handler);
+   ioc.run();
+
+   for (auto const& e: resp)
+      std::cout << e.value << std::endl;
+}
