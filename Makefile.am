@@ -15,8 +15,8 @@ check_PROGRAMS =
 check_PROGRAMS += intro_sync
 check_PROGRAMS += serialization_sync
 check_PROGRAMS += test_low_level
-check_PROGRAMS += intro_high_level
-check_PROGRAMS += aggregates_high_level
+check_PROGRAMS += intro
+check_PROGRAMS += stl
 if HAVE_CXX20
 check_PROGRAMS += test_high_level
 check_PROGRAMS += transaction
@@ -24,10 +24,10 @@ check_PROGRAMS += custom_adapter
 endif
 
 EXTRA_PROGRAMS =
-EXTRA_PROGRAMS += subscriber_high_level
+EXTRA_PROGRAMS += subscriber
 EXTRA_PROGRAMS += commands
 if HAVE_CXX20
-EXTRA_PROGRAMS += subscriber
+EXTRA_PROGRAMS += subscriber_low_level
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += chat_room
 EXTRA_PROGRAMS += echo_server_client
@@ -39,18 +39,18 @@ CLEANFILES += $(EXTRA_PROGRAMS)
 .PHONY: all
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
-intro_sync_SOURCES = $(top_srcdir)/examples/intro_sync.cpp
-serialization_sync_SOURCES = $(top_srcdir)/examples/serialization_sync.cpp
+intro_sync_SOURCES = $(top_srcdir)/tests/intro_sync.cpp
+serialization_sync_SOURCES = $(top_srcdir)/tests/serialization_sync.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
-subscriber_high_level_SOURCES = $(top_srcdir)/examples/subscriber_high_level.cpp
+subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
-intro_high_level_SOURCES = $(top_srcdir)/examples/intro_high_level.cpp
-aggregates_high_level_SOURCES = $(top_srcdir)/examples/aggregates_high_level.cpp
+intro_SOURCES = $(top_srcdir)/examples/intro.cpp
+stl_SOURCES = $(top_srcdir)/examples/stl.cpp
 if HAVE_CXX20
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
-transaction_SOURCES = $(top_srcdir)/examples/transaction.cpp
-subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
-custom_adapter_SOURCES = $(top_srcdir)/examples/custom_adapter.cpp
+transaction_SOURCES = $(top_srcdir)/tests/transaction.cpp
+subscriber_low_level_SOURCES = $(top_srcdir)/tests/subscriber.cpp
+custom_adapter_SOURCES = $(top_srcdir)/tests/custom_adapter.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
 echo_server_client_SOURCES = $(top_srcdir)/tools/echo_server_client.cpp
@@ -79,6 +79,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/resp3/impl/error.ipp\
   $(top_srcdir)/aedis/resp3/type.hpp\
   $(top_srcdir)/aedis/resp3/read.hpp\
+  $(top_srcdir)/aedis/resp3/write.hpp\
   $(top_srcdir)/aedis/redis/impl/command.ipp\
   $(top_srcdir)/aedis/sentinel/impl/command.ipp\
   $(top_srcdir)/aedis/resp3/detail/impl/parser.ipp\

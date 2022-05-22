@@ -15,7 +15,7 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
-#include "mystruct.hpp"
+#include <examples/mystruct.hpp>
 
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;

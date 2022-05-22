@@ -48,10 +48,7 @@ struct exec_op {
 
          // Notice we use the back of the queue.
          yield
-         cli->reqs_.back().channel.async_send(
-            boost::system::error_code{},
-            10, // Just a placeholder as we have nothing to send.
-            std::move(self));
+         cli->reqs_.back().channel.async_receive(std::move(self));
 
          if (ec) {
             self.complete(ec, 0, 0);
@@ -421,7 +418,14 @@ struct write_op {
    {
       reenter (coro)
       {
-         yield cli->reqs_.front().channel.async_receive(std::move(self));
+         // We don't actually send anything over the channel, it is
+         // just used to synchronized with the exec_op.
+         yield
+         cli->reqs_.front().channel.async_send(
+            boost::system::error_code{},
+            10, // Just a placeholder as we have nothing to send.
+            std::move(self));
+
          if (ec) {
             self.complete(ec);
             return;
