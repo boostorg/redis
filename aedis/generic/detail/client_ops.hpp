@@ -516,10 +516,6 @@ struct writer_op {
          BOOST_ASSERT(!cli->reqs_.empty());
          BOOST_ASSERT(cli->bytes_written_ == cli->reqs_.front().req->size());
 
-         //if (cli->reqs_.front().req->commands().empty()) 
-         //   cli->reqs_.pop();
-
-         cli->on_write_(cli->bytes_written_);
          yield cli->wait_write_timer_.async_wait(std::move(self));
 
          if (!cli->socket_->is_open()) {

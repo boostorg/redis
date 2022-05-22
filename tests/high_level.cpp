@@ -52,7 +52,7 @@ void test_resolve_error()
    net::io_context ioc;
    client_type::config cfg;
    cfg.host = "Atibaia";
-   client_type db(ioc.get_executor(), cfg);
+   client_type db(ioc.get_executor(), adapt(), cfg);
    db.async_run(f);
    ioc.run();
 }
@@ -69,7 +69,7 @@ void test_connect_error()
    net::io_context ioc;
    client_type::config cfg;
    cfg.port = "1";
-   client_type db(ioc.get_executor(), cfg);
+   client_type db(ioc.get_executor(), adapt(), cfg);
    db.async_run(f);
    ioc.run();
 }
@@ -188,7 +188,7 @@ void test_idle()
    cfg.ping_delay_timeout = std::chrono::seconds{1};
 
    net::io_context ioc;
-   auto db = std::make_shared<client_type>(ioc.get_executor(), cfg);
+   auto db = std::make_shared<client_type>(ioc.get_executor(), adapt(), cfg);
 
    request<command> req;
    req.push(command::hello, 3);

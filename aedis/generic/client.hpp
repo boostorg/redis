@@ -24,10 +24,10 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/redis/command.hpp>
+#include <aedis/adapter/adapt.hpp>
 #include <aedis/generic/request.hpp>
 #include <aedis/generic/detail/client_ops.hpp>
 
-// TODO: Send hello automatically.
 // TODO: Don't pass pong to the adapter.
 
 namespace aedis {
@@ -48,11 +48,11 @@ public:
    /// Executor type.
    using executor_type = typename AsyncReadWriteStream::executor_type;
 
-   /// Callback type of write operations.
-   using write_handler_type = std::function<void(std::size_t)>;
-
    /// Callback type of resp3 operations.
    using adapter_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
+
+   /// resp3 callback type (version without command).
+   using adapter_type2 = std::function<void(resp3::node<boost::string_view> const&, boost::system::error_code&)>;
 
    /// Type of the last layer
    using next_layer_type = AsyncReadWriteStream;
@@ -92,7 +92,10 @@ public:
     *  \param ex The executor.
     *  \param cfg Configuration parameters.
     */
-   client(boost::asio::any_io_executor ex, config cfg = config{})
+   client(
+      boost::asio::any_io_executor ex,
+      adapter_type adapter,
+      config cfg = config{})
    : resv_{ex}
    , read_timer_{ex}
    , ping_timer_{ex}
@@ -102,13 +105,22 @@ public:
    , read_ch_{ex}
    , push_ch_{ex}
    , cfg_{cfg}
-   , on_write_{[](std::size_t){}}
-   , adapter_{[](Command, resp3::node<boost::string_view> const&, boost::system::error_code&) {}}
+   , adapter_{adapter}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    , type_{resp3::type::invalid}
    , cmd_info_{std::make_pair<Command>(Command::invalid, 0)}
    {
    }
+
+   client(
+      boost::asio::any_io_executor ex,
+      adapter_type2 a = adapter::adapt(),
+      config cfg = config{})
+   : client(
+         ex,
+         [adapter = std::move(a)] (Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { if (cmd != Command::ping) adapter(nd, ec); },
+         cfg)
+   {}
 
    /// Returns the executor.
    auto get_executor() {return read_timer_.get_executor();}
@@ -216,24 +228,20 @@ public:
       return push_ch_.async_receive(token);
    }
 
-   /// Set the write handler.
-   void set_write_handler(write_handler_type wh)
-      { on_write_ = std::move(wh); }
-
    /// Set the response adapter.
    void set_adapter(adapter_type adapter)
       { adapter_ = std::move(adapter); }
 
    /// Set the response adapter.
-   void set_adapter(std::function<void(resp3::node<boost::string_view> const&, boost::system::error_code&)> a)
+   void set_adapter(adapter_type2 a)
    {
-      adapter_ = 
+      adapter_ =
          [adapter = std::move(a)]
             (Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable
-      {
-         if (cmd != Command::ping)
-            adapter(nd, ec);
-      };
+         {
+            if (cmd != Command::ping)
+               adapter(nd, ec);
+         };
    }
 
    /** @brief Closes the connection with the database.
@@ -495,9 +503,6 @@ private:
 
    // Configuration parameters.
    config cfg_;
-
-   // Called when a request has been written to the socket.
-   write_handler_type on_write_;
 
    // Called by the parser after each new chunk of resp3 data is
    // processed.

@@ -67,12 +67,12 @@ private:
 };
 
 
-auto run_handler =[](auto ec)
+auto on_run =[](auto ec)
 {
    std::printf("Run: %s\n", ec.message().data());
 };
 
-auto exec_handler = [](auto ec, std::size_t write_size, std::size_t read_size)
+auto on_exec = [](auto ec, std::size_t write_size, std::size_t read_size)
 {
    std::printf("Exec: %s %u %u\n", ec.message().data(), write_size, read_size);
 };
@@ -84,9 +84,7 @@ int main()
    T2 resp2;
 
    net::io_context ioc;
-
-   client_type db{ioc.get_executor()};
-   db.set_adapter(adapter{resp0, resp1, resp2});
+   client_type db{ioc.get_executor(), adapter{resp0, resp1, resp2}};
 
    request<command> req;
    req.push(command::hello, 3);
@@ -97,9 +95,9 @@ int main()
    req.push(command::smembers, "sadd-key");
    req.push(command::hgetall, "hset-key");
    req.push(command::quit);
-   db.async_exec(req, exec_handler);
+   db.async_exec(req, on_exec);
 
-   db.async_run(run_handler);
+   db.async_run(on_run);
    ioc.run();
 
    print_and_clear_aggregate(resp0);
