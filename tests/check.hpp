@@ -43,6 +43,12 @@ void expect_error(boost::system::error_code a, T expected = {})
    }
 }
 
+inline
+void expect_no_error(boost::system::error_code ec)
+{
+   expect_error(ec, boost::system::error_code{});
+}
+
 template <class T>
 void check_empty(T const& t)
 {

@@ -242,6 +242,8 @@ public:
     */
    void close()
    {
+      // TODO: Channels should not be canceled if we want to
+      // reconnect.
       socket_->close();
       wait_write_timer_.expires_at(std::chrono::steady_clock::now());
       ping_timer_.cancel();

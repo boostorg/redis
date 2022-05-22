@@ -60,10 +60,10 @@ struct exec_op {
 
          // Reads the pipeline.
          // Notice we use the front of the queue.
-         for (;;) {
-            BOOST_ASSERT(!cli->reqs_.empty());
-            BOOST_ASSERT(!cli->reqs_.front().req->commands().empty());
+         BOOST_ASSERT(!cli->reqs_.empty());
+         BOOST_ASSERT(!cli->reqs_.front().req->commands().empty());
 
+         while (!cli->reqs_.front().req->commands().empty()) {
             yield cli->read_ch_.async_receive(std::move(self));
             if (ec) {
                self.complete(ec, 0, 0);
@@ -73,16 +73,16 @@ struct exec_op {
             read_size += n;
 
             cli->reqs_.front().req->pop();
-
-            if (cli->reqs_.front().req->commands().empty()) {
-               cli->reqs_.pop();
-               if (!cli->reqs_.empty())
-                  cli->wait_write_timer_.cancel_one();
-
-               self.complete({}, cli->bytes_written_, read_size);
-               return;
-            }
          }
+
+         BOOST_ASSERT(cli->reqs_.front().req->commands().empty());
+
+         cli->reqs_.pop();
+         if (!cli->reqs_.empty())
+            cli->wait_write_timer_.cancel_one();
+
+         self.complete({}, cli->bytes_written_, read_size);
+         return;
       }
    }
 };
