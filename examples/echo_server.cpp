@@ -53,7 +53,8 @@ private:
             resp.clear();
             msg.erase(0, n);
          }
-      } catch (std::exception&) {
+      } catch (std::exception const& e) {
+         std::cout << "Error: " << e.what() << std::endl;
          socket_.close();
       }
    }
@@ -68,6 +69,7 @@ listener(
 {
    for (;;) {
       auto socket = co_await acc->async_accept(net::use_awaitable);
+      std::cout << "New" << std::endl;
       auto session = std::make_shared<user_session>(std::move(socket));
       session->start(db);
    }
