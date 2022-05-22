@@ -85,7 +85,6 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/resp3/impl/type.ipp
 
 nobase_noinst_HEADERS =\
-  $(top_srcdir)/examples/user_session.hpp\
   $(top_srcdir)/examples/print.hpp\
   $(top_srcdir)/examples/mystruct.hpp\
   $(top_srcdir)/tests/check.hpp

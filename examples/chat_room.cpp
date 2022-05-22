@@ -10,121 +10,124 @@
 #include <iostream>
 
 #include <boost/asio.hpp>
-#include <boost/asio/experimental/as_tuple.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
-
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
-
-#include "user_session.hpp"
 
 namespace net = boost::asio;
 using aedis::resp3::node;
 using aedis::adapter::adapt;
 using aedis::redis::command;
-using aedis::user_session;
-using aedis::user_session_base;
+using aedis::generic::request;
 using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
-using node_type = aedis::resp3::node<boost::string_view>;
-using error_code = boost::system::error_code;
-using net::experimental::as_tuple;
-using namespace net::experimental::awaitable_operators;
 
-class receiver {
+class user_session:
+   public std::enable_shared_from_this<user_session> {
 public:
-   net::awaitable<void> run(std::shared_ptr<client_type> db)
-   {
-      response_type resp;
-      db->set_adapter(adapt(resp));
+   user_session(net::ip::tcp::socket socket)
+   : socket_(std::move(socket))
+   , timer_(socket_.get_executor())
+      { timer_.expires_at(std::chrono::steady_clock::time_point::max()); }
 
-      co_await (
-         reconnect(db) &&
-         command_reader(db, resp) &&
-         push_reader(db, resp)
-      );
+   void
+   start(std::shared_ptr<client_type> db,
+         std::shared_ptr<response_type> resp)
+   {
+      co_spawn(socket_.get_executor(),
+          [self = shared_from_this(), db, resp]{ return self->reader(db, resp); },
+          net::detached);
+
+      co_spawn(socket_.get_executor(),
+          [self = shared_from_this()]{ return self->writer(); },
+          net::detached);
    }
 
-   auto add_user_session(std::shared_ptr<user_session_base> session)
-      { sessions_.push_back(session); }
-
-   void disable_reconnect() {reconnect_ = false;}
+   void deliver(std::string const& msg)
+   {
+      write_msgs_.push_back(msg);
+      timer_.cancel_one();
+   }
 
 private:
    net::awaitable<void>
-   command_reader(std::shared_ptr<client_type> db, response_type& resp)
+   reader(
+      std::shared_ptr<client_type> db,
+      std::shared_ptr<response_type> resp)
    {
-      for (;;) {
-         auto [ec, cmd, n] = co_await db->async_read_one(as_tuple(net::use_awaitable));
-         if (ec)
-            co_return;
-
-         switch (cmd) {
-            case command::hello:
-            db->send(command::subscribe, "channel");
-            break;
-
-            case command::incr:
-            std::cout << "Messages so far: " << resp.front().value << std::endl;
-            break;
-
-            default:;
+      try {
+         for (std::string msg;;) {
+            auto const n = co_await net::async_read_until(socket_, net::dynamic_buffer(msg, 1024), "\n", net::use_awaitable);
+            request<command> req;
+            req.push(command::publish, "channel", msg);
+            req.push(command::incr, "chat-room-counter");
+            co_await db->async_exec(req, net::use_awaitable);
+            std::cout << "Messsages so far: " << resp->at(1).value << std::endl;
+            resp->clear();
+            msg.erase(0, n);
          }
-
-         resp.clear();
+      } catch (std::exception&) {
+         stop();
       }
    }
 
-   net::awaitable<void>
-   push_reader(std::shared_ptr<client_type> db, response_type& resp)
+   net::awaitable<void> writer()
    {
-      for (;;) {
-         auto [ec, n] = co_await db->async_read_push(as_tuple(net::use_awaitable));
-         if (ec)
-            co_return;
-
-         for (auto& session: sessions_)
-            session->deliver(resp.at(3).value);
-
-         resp.clear();
+      try {
+         while (socket_.is_open()) {
+            if (write_msgs_.empty()) {
+               boost::system::error_code ec;
+               co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));
+            } else {
+               co_await net::async_write(socket_, net::buffer(write_msgs_.front()), net::use_awaitable);
+               write_msgs_.pop_front();
+            }
+         }
+      } catch (std::exception&) {
+        stop();
       }
    }
 
-   net::awaitable<void> reconnect(std::shared_ptr<client_type> db)
+   void stop()
    {
-      auto ex = co_await net::this_coro::executor;
-      boost::asio::steady_timer timer{ex};
-
-      for (boost::system::error_code ec; reconnect_;) {
-         co_await db->async_run(net::redirect_error(net::use_awaitable, ec));
-
-         // Wait two seconds and try again.
-         timer.expires_after(std::chrono::seconds{1});
-         co_await timer.async_wait(net::redirect_error(net::use_awaitable, ec));
-      }
+      socket_.close();
+      timer_.cancel();
    }
 
-   bool reconnect_ = true;
-   std::vector<std::shared_ptr<user_session_base>> sessions_;
+   net::ip::tcp::socket socket_;
+   net::steady_timer timer_;
+   std::deque<std::string> write_msgs_;
 };
+
+using sessions_type = std::vector<std::shared_ptr<user_session>>;
+
+net::awaitable<void>
+push_reader(
+   std::shared_ptr<client_type> db,
+   std::shared_ptr<response_type> resp,
+   std::shared_ptr<sessions_type> sessions)
+{
+   for (;;) {
+      co_await db->async_read_push(net::use_awaitable);
+
+      for (auto& session: *sessions)
+         session->deliver(resp->at(3).value);
+
+      resp->clear();
+   }
+}
 
 net::awaitable<void>
 listener(
     std::shared_ptr<net::ip::tcp::acceptor> acc,
     std::shared_ptr<client_type> db,
-    std::shared_ptr<receiver> recv)
+    std::shared_ptr<sessions_type> sessions,
+    std::shared_ptr<response_type> resp)
 {
-   auto on_user_msg = [db](std::string const& msg)
-   {
-      db->send(command::publish, "channel", msg);
-      db->send(command::incr, "message-counter");
-   };
-
    for (;;) {
       auto socket = co_await acc->async_accept(net::use_awaitable);
       auto session = std::make_shared<user_session>(std::move(socket));
-      session->start(on_user_msg);
-      recv->add_user_session(session);
+      sessions->push_back(session);
+      session->start(db, resp);
    }
 }
 
@@ -135,18 +138,29 @@ int main()
 
       // Redis client and receiver.
       auto db = std::make_shared<client_type>(ioc.get_executor());
-      auto recv = std::make_shared<receiver>();
-      co_spawn(ioc, [db, recv]{ return recv->run(db);}, net::detached);
+      db->async_run([](auto ec){ std::cout << ec.message() << std::endl;});
+
+      // Sends hello and subscribes to the channel. Ignores the
+      // response.
+      request<command> req;
+      req.push(command::hello, 3);
+      req.push(command::subscribe, "channel");
+      db->async_exec(req, [](auto, auto, auto){});
+
+      auto resp = std::make_shared<response_type>();
+      db->set_adapter(adapt(*resp));
+
+      auto sessions = std::make_shared<sessions_type>();
+      net::co_spawn(ioc.get_executor(), push_reader(db, resp, sessions), net::detached);
 
       // TCP acceptor.
       auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
       auto acc = std::make_shared<net::ip::tcp::acceptor>(ioc.get_executor(), endpoint);
-      co_spawn(ioc, listener(acc, db, recv), net::detached);
+      co_spawn(ioc, listener(acc, db, sessions, resp), net::detached);
 
       // Signal handler.
       net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);
-      signals.async_wait([acc, db, recv] (auto, int) { 
-            recv->disable_reconnect();
+      signals.async_wait([acc, db] (auto, int) { 
             acc->cancel();
             db->close();
       });

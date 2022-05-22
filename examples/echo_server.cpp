@@ -49,6 +49,7 @@ private:
             req.push(command::incr, "echo-server-counter");
             co_await db->async_exec(req, net::use_awaitable);
             co_await net::async_write(socket_, net::buffer(resp.at(1).value), net::use_awaitable);
+            std::cout << "Echos so far: " << resp.at(2) << std::endl;
             resp.clear();
             msg.erase(0, n);
          }
@@ -81,7 +82,7 @@ int main()
       auto db = std::make_shared<client_type>(ioc.get_executor());
       db->async_run([](auto ec){ std::cout << ec.message() << std::endl;});
 
-      // Sends the hello and ignores the response.
+      // Sends hello and ignores the response.
       request<command> req;
       req.push(command::hello, 3);
       db->async_exec(req, [](auto, auto, auto){});
