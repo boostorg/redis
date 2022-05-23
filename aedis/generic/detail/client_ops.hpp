@@ -395,6 +395,8 @@ struct run_op {
             return;
          }
 
+         // TODO: Send hello here.
+
          yield cli->async_read_write_check_ping(std::move(self));
          if (ec) {
             self.complete(ec);
@@ -638,6 +640,11 @@ struct reader_op {
             }
          }
 
+         // TODO: Treat type::invalid as error.
+         // TODO: I noticed that unsolicited simple-error events are
+         // sent by the server (-MISCONF). Send them through the
+         // channel. The only way to detect them is check whether the
+         // queue is empty.
          BOOST_ASSERT(!cli->read_buffer_.empty());
          cli->type_ = resp3::to_type(cli->read_buffer_.front());
          cli->cmd_info_ = std::make_pair(Command::invalid, 0);

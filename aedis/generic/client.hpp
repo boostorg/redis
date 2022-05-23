@@ -29,6 +29,7 @@
 #include <aedis/generic/detail/client_ops.hpp>
 
 // TODO: Don't pass pong to the adapter.
+// TODO: Merge the requests payload.
 
 namespace aedis {
 namespace generic {

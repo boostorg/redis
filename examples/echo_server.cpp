@@ -19,59 +19,45 @@ using aedis::adapter::adapt;
 using aedis::generic::request;
 using aedis::redis::command;
 using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
+using response_type = std::vector<aedis::resp3::node<std::string>>;
+using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 
-class user_session: public std::enable_shared_from_this<user_session> {
-public:
-   user_session(net::ip::tcp::socket socket)
-   : socket_(std::move(socket))
-   { }
-
-   void start(std::shared_ptr<client_type> db)
-   {
-      co_spawn(socket_.get_executor(),
-          [self = shared_from_this(), db]{ return self->echo_loop(db); },
-          net::detached);
-   }
-
-private:
-   net::awaitable<void>
-   echo_loop(std::shared_ptr<client_type> db)
-   {
-      std::vector<aedis::resp3::node<std::string>> resp;
-      db->set_adapter(adapt(resp));
-
-      try {
-         for (std::string msg;;) {
-            auto const n = co_await net::async_read_until(socket_, net::dynamic_buffer(msg, 1024), "\n", net::use_awaitable);
-            request<command> req;
-            req.push(command::set, "echo-server-key", msg);
-            req.push(command::get, "echo-server-key");
-            req.push(command::incr, "echo-server-counter");
-            co_await db->async_exec(req, net::use_awaitable);
-            co_await net::async_write(socket_, net::buffer(resp.at(1).value), net::use_awaitable);
-            std::cout << "Echos so far: " << resp.at(2) << std::endl;
-            resp.clear();
-            msg.erase(0, n);
-         }
-      } catch (std::exception const& e) {
-         std::cout << "Error: " << e.what() << std::endl;
-         socket_.close();
+net::awaitable<void>
+echo_loop(
+   tcp_socket socket,
+   std::shared_ptr<client_type> db,
+   std::shared_ptr<response_type> resp)
+{
+   try {
+      for (std::string msg;;) {
+         auto const n = co_await net::async_read_until(socket, net::dynamic_buffer(msg, 1024), "\n", net::use_awaitable);
+         request<command> req;
+         req.push(command::set, "echo-server-key", msg);
+         req.push(command::get, "echo-server-key");
+         req.push(command::incr, "echo-server-counter");
+         co_await db->async_exec(req, net::use_awaitable);
+         co_await net::async_write(socket, net::buffer(resp->at(1).value), net::use_awaitable);
+         std::cout << "Echos so far: " << resp->at(2) << std::endl;
+         resp->clear();
+         msg.erase(0, n);
       }
+   } catch (std::exception const& e) {
+      std::cout << "Error: " << e.what() << std::endl;
    }
-
-   net::ip::tcp::socket socket_;
-};
+}
 
 net::awaitable<void>
 listener(
-    std::shared_ptr<net::ip::tcp::acceptor> acc,
-    std::shared_ptr<client_type> db)
+    std::shared_ptr<tcp_acceptor> acc,
+    std::shared_ptr<client_type> db,
+    std::shared_ptr<response_type> resp)
 {
+   auto ex = co_await net::this_coro::executor;
+
    for (;;) {
-      auto socket = co_await acc->async_accept(net::use_awaitable);
-      std::cout << "New" << std::endl;
-      auto session = std::make_shared<user_session>(std::move(socket));
-      session->start(db);
+      auto socket = co_await acc->async_accept();
+      net::co_spawn(ex, echo_loop(std::move(socket), db, resp), net::detached);
    }
 }
 
@@ -81,7 +67,8 @@ int main()
       net::io_context ioc;
 
       // Redis client.
-      auto db = std::make_shared<client_type>(ioc.get_executor());
+      auto resp = std::make_shared<response_type>();
+      auto db = std::make_shared<client_type>(ioc.get_executor(), adapt(*resp));
       db->async_run([](auto ec){ std::cout << ec.message() << std::endl;});
 
       // Sends hello and ignores the response.
@@ -91,15 +78,8 @@ int main()
 
       // TCP acceptor.
       auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
-      auto acc = std::make_shared<net::ip::tcp::acceptor>(ioc.get_executor(), endpoint);
-      co_spawn(ioc, listener(acc, db), net::detached);
-
-      // Signal handler.
-      net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);
-      signals.async_wait([acc, db] (auto, int) { 
-            acc->cancel();
-            db->close();
-      });
+      auto acc = std::make_shared<tcp_acceptor>(ioc.get_executor(), endpoint);
+      co_spawn(ioc, listener(acc, db, resp), net::detached);
 
       ioc.run();
    } catch (std::exception const& e) {
