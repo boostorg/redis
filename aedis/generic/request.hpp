@@ -46,6 +46,7 @@ namespace generic {
 template <class Command>
 class request {
 public:
+   using command_type = Command;
    using command_info_type = std::pair<Command, std::size_t>;
 
 private:

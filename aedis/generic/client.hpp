@@ -102,14 +102,12 @@ public:
    , ping_timer_{ex}
    , write_timer_{ex}
    , wait_write_timer_{ex}
-   , check_idle_timer_{ex}
+   , idle_check_timer{ex}
    , read_ch_{ex}
    , push_ch_{ex}
    , cfg_{cfg}
    , adapter_{adapter}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
-   , type_{resp3::type::invalid}
-   , cmd_info_{std::make_pair<Command>(Command::invalid, 0)}
    {
    }
 
@@ -217,7 +215,7 @@ public:
    {
       return boost::asio::async_compose
          < CompletionToken
-         , void(boost::system::error_code, std::size_t, std::size_t)
+         , void(boost::system::error_code, std::size_t)
          >(detail::exec_op<client>{this, &req}, token, read_timer_);
    }
 
@@ -269,17 +267,15 @@ private:
 
    template <class T, class V> friend struct detail::reader_op;
    template <class T, class V> friend struct detail::ping_op;
-   template <class T> friend struct detail::read_with_timeout_op;
-   template <class T> friend struct detail::read_op;
+   template <class T, class V> friend struct detail::read_with_timeout_op;
    template <class T, class V> friend struct detail::run_op;
+   template <class T, class V> friend struct detail::exec_op2;
    template <class T> friend struct detail::write_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_with_timeout_op;
-   template <class T> friend struct detail::connect_op;
    template <class T> friend struct detail::connect_with_timeout_op;
-   template <class T> friend struct detail::resolve_op;
    template <class T> friend struct detail::resolve_with_timeout_op;
-   template <class T> friend struct detail::check_idle_op;
+   template <class T> friend struct detail::idle_check_op;
    template <class T> friend struct detail::read_write_check_ping_op;
    template <class T> friend struct detail::exec_op;
 
@@ -288,13 +284,13 @@ private:
       return boost::asio::dynamic_buffer(read_buffer_, cfg_.max_read_size);
    }
 
-   auto wrap_adapter()
+   auto select_adapter(Command cmd)
    {
-      return [this]
+      return [this, cmd]
          (resp3::node<boost::string_view> const& nd,
           boost::system::error_code& ec) mutable
          {
-            adapter_(cmd_info_.first, nd, ec);
+            adapter_(cmd, nd, ec);
          };
    }
 
@@ -329,18 +325,6 @@ private:
       return can_write;
    }
 
-   // Resolves the address passed in async_run and store the results
-   // in the endpoints_ member variable.
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_resolve(CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::resolve_op<client>{this}, token, resv_.get_executor());
-   }
-
    // Calls client::async_resolve with the resolve timeout passed in
    // the config. Uses the write_timer_ to perform the timeout op.
    template <class CompletionToken = default_completion_token_type>
@@ -353,19 +337,6 @@ private:
          , void(boost::system::error_code)
          >(detail::resolve_with_timeout_op<client>{this},
                token, resv_.get_executor());
-   }
-
-   // Connects the socket to one of the endpoints in endpoints_ and
-   // stores the successful endpoint in endpoint_.
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_connect(CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::connect_op<client>{this}, token,
-               write_timer_.get_executor());
    }
 
    // Calls client::async_connect with a timeout.
@@ -385,22 +356,15 @@ private:
    // timeout config::read_timeout.
    template <class CompletionToken = default_completion_token_type>
    auto
-   async_read_with_timeout(CompletionToken&& token = default_completion_token_type{})
+   async_read_with_timeout(
+      Command cmd,
+      CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::read_with_timeout_op<client>{this}, token, read_timer_.get_executor());
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_read(CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::read_op<client>{this}, token, read_timer_.get_executor());
+         , void(boost::system::error_code, std::size_t)
+         >(detail::read_with_timeout_op<client, Command>{this, cmd},
+               token, read_timer_.get_executor());
    }
 
    // Loops on async_read_with_timeout described above.
@@ -420,7 +384,7 @@ private:
    {
       return boost::asio::async_compose
          < CompletionToken
-         , void(boost::system::error_code)
+         , void(boost::system::error_code, std::size_t)
          >(detail::write_op<client>{this}, token, write_timer_);
    }
 
@@ -432,7 +396,7 @@ private:
    {
       return boost::asio::async_compose
          < CompletionToken
-         , void(boost::system::error_code)
+         , void(boost::system::error_code, std::size_t)
          >(detail::write_with_timeout_op<client>{this}, token, write_timer_);
    }
 
@@ -453,7 +417,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_write_check_ping_op<client>{this}, token, read_timer_, write_timer_, wait_write_timer_, check_idle_timer_);
+         >(detail::read_write_check_ping_op<client>{this}, token, read_timer_, write_timer_, wait_write_timer_, idle_check_timer);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -468,37 +432,34 @@ private:
 
    template <class CompletionToken = default_completion_token_type>
    auto
-   async_check_idle(CompletionToken&& token = default_completion_token_type{})
+   async_idle_check(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::check_idle_op<client>{this}, token, check_idle_timer_);
+         >(detail::idle_check_op<client>{this}, token, idle_check_timer);
    }
 
-   // Used to resolve the host on async_resolve.
+   template <class CompletionToken = default_completion_token_type>
+   auto async_exec2(
+      request_type& req,
+      CompletionToken token = CompletionToken{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::exec_op2<client, request_type>{this, &req},
+               token, read_timer_);
+   }
+
+   // IO objects
    boost::asio::ip::tcp::resolver resv_;
-
-   // The tcp socket.
    std::shared_ptr<AsyncReadWriteStream> socket_;
-
-   // Timer used with async_read.
    boost::asio::steady_timer read_timer_;
-
-   // Ping timer.
    boost::asio::steady_timer ping_timer_;
-
-   // Timer used with async_write_with_timeout.
    boost::asio::steady_timer write_timer_;
-
-   // Timer that is canceled when a new message is added to the output
-   // queue.
    boost::asio::steady_timer wait_write_timer_;
-
-   // Check idle timer.
-   boost::asio::steady_timer check_idle_timer_;
-
-   // Channel used to communicate read events.
+   boost::asio::steady_timer idle_check_timer;
    read_channel_type read_ch_;
    read_channel_type push_ch_;
 
@@ -525,18 +486,10 @@ private:
    // Last time we received data.
    time_point_type last_data_;
 
-   // Used by the read_with_timeout_op.
-   resp3::type type_;
-   typename request_type::command_info_type cmd_info_;
-
-   // See async_connect.
-   boost::asio::ip::tcp::endpoint endpoint_;
-
    // See async_resolve.
    boost::asio::ip::tcp::resolver::results_type endpoints_;
 
    // write_op helper.
-   std::size_t bytes_written_ = 0;
    request_type req_;
 };
 

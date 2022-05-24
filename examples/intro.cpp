@@ -24,9 +24,9 @@ auto run_handler =[](auto ec)
    std::printf("Run: %s\n", ec.message().data());
 };
 
-auto exec_handler = [](auto ec, std::size_t write_size, std::size_t read_size)
+auto exec_handler = [](auto ec, std::size_t read_size)
 {
-   std::printf("Exec: %s %u %u\n", ec.message().data(), write_size, read_size);
+   std::printf("Exec: %s %lu\n", ec.message().data(), read_size);
 };
 
 int main()
@@ -37,10 +37,6 @@ int main()
 
    client_type db{ioc.get_executor()};
    db.set_adapter(adapt(resp));
-
-   request<command> req1;
-   req1.push(command::hello, 3);
-   db.async_exec(req1, exec_handler);
 
    request<command> req2;
    req2.push(command::set, "intro-key", "message1");

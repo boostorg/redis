@@ -145,7 +145,7 @@ int main()
       request<command> req;
       req.push(command::hello, 3);
       req.push(command::subscribe, "channel");
-      db->async_exec(req, [](auto, auto, auto){});
+      db->async_exec(req, [](auto, auto){});
 
       auto resp = std::make_shared<response_type>();
       db->set_adapter(adapt(*resp));

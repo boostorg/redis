@@ -74,7 +74,7 @@ int main()
       // Sends hello and ignores the response.
       request<command> req;
       req.push(command::hello, 3);
-      db->async_exec(req, [](auto, auto, auto){});
+      db->async_exec(req, [](auto, auto){});
 
       // TCP acceptor.
       auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};

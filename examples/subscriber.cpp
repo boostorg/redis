@@ -67,7 +67,7 @@ int main()
    request<command> req;
    req.push(command::hello, 3);
    req.push(command::subscribe, "channel1", "channel2");
-   db->async_exec(req, [&](auto, auto, auto){req.clear();});
+   db->async_exec(req, [&](auto, auto){req.clear();});
 
    db->async_run(run_handler);
    ioc.run();

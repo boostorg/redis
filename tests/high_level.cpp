@@ -85,7 +85,7 @@ void test_quit()
    request<command> req;
    req.push(command::hello, 3);
    req.push(command::quit);
-   db->async_exec(req, [](auto ec, auto w, auto r){
+   db->async_exec(req, [](auto ec, auto r){
       expect_no_error(ec);
       //expect_eq(w, 36UL);
       //expect_eq(r, 152UL);
@@ -124,7 +124,7 @@ void test_push()
    req.push(command::subscribe, "channel");
    req.push(command::quit);
 
-   db->async_exec(req, [](auto ec, auto w, auto r){
+   db->async_exec(req, [](auto ec, auto r){
       expect_no_error(ec);
       //expect_eq(w, 68UL);
       //expect_eq(r, 151UL);
@@ -147,7 +147,7 @@ net::awaitable<void> run5(std::shared_ptr<client_type> db)
       request<command> req;
       req.push(command::hello, 3);
       req.push(command::quit);
-      db->async_exec(req, [](auto ec, auto, auto){
+      db->async_exec(req, [](auto ec, auto){
          expect_no_error(ec);
       });
 
@@ -159,7 +159,7 @@ net::awaitable<void> run5(std::shared_ptr<client_type> db)
       request<command> req;
       req.push(command::hello, 3);
       req.push(command::quit);
-      db->async_exec(req, [](auto ec, auto, auto){
+      db->async_exec(req, [](auto ec, auto){
          expect_no_error(ec);
       });
 
@@ -194,7 +194,7 @@ void test_idle()
    req.push(command::hello, 3);
    req.push(command::client, "PAUSE", 5000);
 
-   db->async_exec(req, [](auto ec, auto w, auto r){
+   db->async_exec(req, [](auto ec, auto r){
       expect_no_error(ec);
    });
 

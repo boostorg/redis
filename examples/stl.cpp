@@ -72,9 +72,9 @@ auto on_run =[](auto ec)
    std::printf("Run: %s\n", ec.message().data());
 };
 
-auto on_exec = [](auto ec, std::size_t write_size, std::size_t read_size)
+auto on_exec = [](auto ec, std::size_t read_size)
 {
-   std::printf("Exec: %s %u %u\n", ec.message().data(), write_size, read_size);
+   std::printf("Exec: %s %lu\n", ec.message().data(), read_size);
 };
 
 int main()
@@ -87,7 +87,6 @@ int main()
    client_type db{ioc.get_executor(), adapter{resp0, resp1, resp2}};
 
    request<command> req;
-   req.push(command::hello, 3);
    req.push_range(command::rpush, "rpush-key", vec);
    req.push_range(command::sadd, "sadd-key", set);
    req.push_range(command::hset, "hset-key", map);
