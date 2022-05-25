@@ -29,62 +29,40 @@ using T0 = std::vector<aedis::resp3::node<std::string>>;
 using T1 = std::set<std::string>;
 using T2 = std::map<std::string, std::string>;
 
-// Some containers we will store in Redis as example.
-std::vector<int> vec
-   {1, 2, 3, 4, 5, 6};
-
-std::set<std::string> set
-   {"one", "two", "three", "four"};
-
-std::map<std::string, std::string> map
-   { {"key1", "value1"}
-   , {"key2", "value2"}
-   , {"key3", "value3"}
-   };
-
-struct adapter {
-public:
-   adapter(T0& resp0, T1& resp1, T2& resp2)
-   : adapter0_{adapt(resp0)}
-   , adapter1_{adapt(resp1)}
-   , adapter2_{adapt(resp2)}
-   { }
-
-   void operator()(command cmd, node_type const& nd, error_code& ec)
-   {
-      switch (cmd) {
-         case command::lrange:   adapter0_(nd, ec); break;
-         case command::smembers: adapter1_(nd, ec); break;
-         case command::hgetall:  adapter2_(nd, ec); break;
-         default:;
-      }
-   }
-
-private:
-   adapter_t<T0> adapter0_;
-   adapter_t<T1> adapter1_;
-   adapter_t<T2> adapter2_;
-};
-
-
-auto on_run =[](auto ec)
-{
-   std::printf("Run: %s\n", ec.message().data());
-};
-
-auto on_exec = [](auto ec, std::size_t read_size)
-{
-   std::printf("Exec: %s %lu\n", ec.message().data(), read_size);
-};
-
 int main()
 {
    T0 resp0;
    T1 resp1;
    T2 resp2;
 
+   auto adapter =
+      [ a0 = adapt(resp0)
+      , a1 = adapt(resp1)
+      , a2 = adapt(resp2)
+      ](command cmd, node_type const& nd, error_code& ec) mutable
+   {
+      switch (cmd) {
+         case command::lrange:   a0(nd, ec); break;
+         case command::smembers: a1(nd, ec); break;
+         case command::hgetall:  a2(nd, ec); break;
+         default:;
+      }
+   };
+
    net::io_context ioc;
-   connection db{ioc.get_executor(), adapter{resp0, resp1, resp2}};
+   connection db{ioc.get_executor(), adapter};
+
+   std::vector<int> vec
+      {1, 2, 3, 4, 5, 6};
+
+   std::set<std::string> set
+      {"one", "two", "three", "four"};
+
+   std::map<std::string, std::string> map
+      { {"key1", "value1"}
+      , {"key2", "value2"}
+      , {"key3", "value3"}
+      };
 
    request<command> req;
    req.push_range(command::rpush, "rpush-key", vec);
@@ -94,9 +72,15 @@ int main()
    req.push(command::smembers, "sadd-key");
    req.push(command::hgetall, "hset-key");
    req.push(command::quit);
-   db.async_exec(req, on_exec);
 
-   db.async_run(on_run);
+   db.async_exec(req, [](auto ec, std::size_t read_size) {
+      std::printf("Exec: %s %lu\n", ec.message().data(), read_size);
+   });
+
+   db.async_run([](auto ec) {
+      std::printf("Run: %s\n", ec.message().data());
+   });
+
    ioc.run();
 
    print_and_clear_aggregate(resp0);
