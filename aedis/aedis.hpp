@@ -14,8 +14,8 @@
 #include <aedis/redis/command.hpp>
 #include <aedis/sentinel/command.hpp>
 #include <aedis/generic/error.hpp>
-#include <aedis/generic/client.hpp>
 #include <aedis/generic/request.hpp>
+#include <aedis/generic/connection.hpp>
 
 /** \mainpage Documentation
     \tableofcontents

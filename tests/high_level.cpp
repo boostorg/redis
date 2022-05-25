@@ -10,7 +10,6 @@
 #include <boost/asio.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
@@ -27,9 +26,8 @@ using aedis::adapter::adapter_t;
 using aedis::redis::command;
 using aedis::resp3::node;
 using aedis::generic::request;
-using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
+using connection = aedis::generic::connection<command>;
 using error_code = boost::system::error_code;
-using namespace net::experimental::awaitable_operators;
 using net::experimental::as_tuple;
 using node_type = aedis::resp3::node<boost::string_view>;
 using tcp = net::ip::tcp;
@@ -50,9 +48,9 @@ void test_resolve_error()
    };
 
    net::io_context ioc;
-   client_type::config cfg;
+   connection::config cfg;
    cfg.host = "Atibaia";
-   client_type db(ioc.get_executor(), adapt(), cfg);
+   connection db(ioc.get_executor(), adapt(), cfg);
    db.async_run(f);
    ioc.run();
 }
@@ -67,9 +65,9 @@ void test_connect_error()
    };
 
    net::io_context ioc;
-   client_type::config cfg;
+   connection::config cfg;
    cfg.port = "1";
-   client_type db(ioc.get_executor(), adapt(), cfg);
+   connection db(ioc.get_executor(), adapt(), cfg);
    db.async_run(f);
    ioc.run();
 }
@@ -80,7 +78,7 @@ void test_connect_error()
 void test_quit()
 {
    net::io_context ioc;
-   auto db = std::make_shared<client_type>(ioc.get_executor());
+   auto db = std::make_shared<connection>(ioc.get_executor());
 
    request<command> req;
    req.push(command::hello, 3);
@@ -101,7 +99,7 @@ void test_quit()
 //----------------------------------------------------------------
 
 net::awaitable<void>
-push_consumer3(std::shared_ptr<client_type> db)
+push_consumer3(std::shared_ptr<connection> db)
 {
    {
       auto [ec, n] = co_await db->async_read_push(as_tuple(net::use_awaitable));
@@ -117,7 +115,7 @@ push_consumer3(std::shared_ptr<client_type> db)
 void test_push()
 {
    net::io_context ioc;
-   auto db = std::make_shared<client_type>(ioc.get_executor());
+   auto db = std::make_shared<connection>(ioc.get_executor());
 
    request<command> req;
    req.push(command::hello, 3);
@@ -141,7 +139,7 @@ void test_push()
 
 ////----------------------------------------------------------------
 
-net::awaitable<void> run5(std::shared_ptr<client_type> db)
+net::awaitable<void> run5(std::shared_ptr<connection> db)
 {
    {
       request<command> req;
@@ -172,7 +170,7 @@ net::awaitable<void> run5(std::shared_ptr<client_type> db)
 void test_reconnect()
 {
    net::io_context ioc;
-   auto db = std::make_shared<client_type>(ioc.get_executor());
+   auto db = std::make_shared<connection>(ioc.get_executor());
 
    net::co_spawn(ioc.get_executor(), run5(db), net::detached);
    ioc.run();
@@ -180,7 +178,7 @@ void test_reconnect()
 
 void test_idle()
 {
-   client_type::config cfg;
+   connection::config cfg;
    cfg.resolve_timeout = std::chrono::seconds{1};
    cfg.connect_timeout = std::chrono::seconds{1};
    cfg.read_timeout = std::chrono::seconds{1};
@@ -188,7 +186,7 @@ void test_idle()
    cfg.ping_delay_timeout = std::chrono::seconds{1};
 
    net::io_context ioc;
-   auto db = std::make_shared<client_type>(ioc.get_executor(), adapt(), cfg);
+   auto db = std::make_shared<connection>(ioc.get_executor(), adapt(), cfg);
 
    request<command> req;
    req.push(command::hello, 3);

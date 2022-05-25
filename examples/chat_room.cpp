@@ -18,7 +18,7 @@ using aedis::resp3::node;
 using aedis::adapter::adapt;
 using aedis::redis::command;
 using aedis::generic::request;
-using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
+using connection = aedis::generic::connection<command>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 class user_session:
@@ -30,7 +30,7 @@ public:
       { timer_.expires_at(std::chrono::steady_clock::time_point::max()); }
 
    void
-   start(std::shared_ptr<client_type> db,
+   start(std::shared_ptr<connection> db,
          std::shared_ptr<response_type> resp)
    {
       co_spawn(socket_.get_executor(),
@@ -51,7 +51,7 @@ public:
 private:
    net::awaitable<void>
    reader(
-      std::shared_ptr<client_type> db,
+      std::shared_ptr<connection> db,
       std::shared_ptr<response_type> resp)
    {
       try {
@@ -102,7 +102,7 @@ using sessions_type = std::vector<std::shared_ptr<user_session>>;
 
 net::awaitable<void>
 push_reader(
-   std::shared_ptr<client_type> db,
+   std::shared_ptr<connection> db,
    std::shared_ptr<response_type> resp,
    std::shared_ptr<sessions_type> sessions)
 {
@@ -119,7 +119,7 @@ push_reader(
 net::awaitable<void>
 listener(
     std::shared_ptr<net::ip::tcp::acceptor> acc,
-    std::shared_ptr<client_type> db,
+    std::shared_ptr<connection> db,
     std::shared_ptr<sessions_type> sessions,
     std::shared_ptr<response_type> resp)
 {
@@ -137,13 +137,12 @@ int main()
       net::io_context ioc{1};
 
       // Redis client and receiver.
-      auto db = std::make_shared<client_type>(ioc.get_executor());
+      auto db = std::make_shared<connection>(ioc.get_executor());
       db->async_run([](auto ec){ std::cout << ec.message() << std::endl;});
 
       // Sends hello and subscribes to the channel. Ignores the
       // response.
       request<command> req;
-      req.push(command::hello, 3);
       req.push(command::subscribe, "channel");
       db->async_exec(req, [](auto, auto){});
 

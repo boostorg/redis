@@ -20,7 +20,7 @@ using aedis::adapter::adapt;
 using aedis::adapter::adapter_t;
 using aedis::redis::command;
 using aedis::generic::request;
-using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
+using connection = aedis::generic::connection<command>;
 using node_type = aedis::resp3::node<boost::string_view>;
 using error_code = boost::system::error_code;
 
@@ -84,7 +84,7 @@ int main()
    T2 resp2;
 
    net::io_context ioc;
-   client_type db{ioc.get_executor(), adapter{resp0, resp1, resp2}};
+   connection db{ioc.get_executor(), adapter{resp0, resp1, resp2}};
 
    request<command> req;
    req.push_range(command::rpush, "rpush-key", vec);

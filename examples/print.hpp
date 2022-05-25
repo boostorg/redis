@@ -20,7 +20,6 @@ using aedis::resp3::node;
 using aedis::adapter::adapt;
 using aedis::adapter::adapter_t;
 using aedis::redis::command;
-using aedis::generic::client;
 
 void print_and_clear_aggregate(std::vector<aedis::resp3::node<std::string>>& v)
 {

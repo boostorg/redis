@@ -15,7 +15,7 @@ namespace net = boost::asio;
 using aedis::adapter::adapt;
 using aedis::redis::command;
 using aedis::generic::request;
-using client_type = aedis::generic::client<net::ip::tcp::socket, command>;
+using connection = aedis::generic::connection<command>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 /* In this example we send a subscription to a channel and start
@@ -34,7 +34,7 @@ using response_type = std::vector<aedis::resp3::node<std::string>>;
  */
 
 net::awaitable<void>
-push_reader(std::shared_ptr<client_type> db, response_type& resp)
+push_reader(std::shared_ptr<connection> db, response_type& resp)
 {
    for (;;) {
       auto n = co_await db->async_read_push(net::use_awaitable);
@@ -60,12 +60,11 @@ int main()
 
    net::io_context ioc;
 
-   auto db = std::make_shared<client_type>(ioc.get_executor());
+   auto db = std::make_shared<connection>(ioc.get_executor());
    db->set_adapter(adapt(resp));
    net::co_spawn(ioc.get_executor(), push_reader(db, resp), net::detached);
 
    request<command> req;
-   req.push(command::hello, 3);
    req.push(command::subscribe, "channel1", "channel2");
    db->async_exec(req, [&](auto, auto){req.clear();});
 

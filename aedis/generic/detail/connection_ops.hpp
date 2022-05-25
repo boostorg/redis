@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_GENERIC_CLIENT_OPS_HPP
-#define AEDIS_GENERIC_CLIENT_OPS_HPP
+#ifndef AEDIS_GENERIC_CONNECTION_OPS_HPP
+#define AEDIS_GENERIC_CONNECTION_OPS_HPP
 
 #include <array>
 
@@ -29,10 +29,10 @@ namespace detail {
 
 #include <boost/asio/yield.hpp>
 
-template <class Client, class Request>
-struct exec_op2 {
-   Client* cli;
-   typename Client::request_type* req;
+template <class Conn, class Request>
+struct exec_internal_impl_op {
+   Conn* cli;
+   typename Conn::request_type* req;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -53,7 +53,6 @@ struct exec_op2 {
             return;
          }
 
-         // Say hello and ignores the response.
          yield
          resp3::async_read(
             *cli->socket_,
@@ -66,10 +65,60 @@ struct exec_op2 {
    }
 };
 
-template <class Client>
+template <class Conn, class Request>
+struct exec_internal_op {
+   Conn* cli;
+   typename Conn::request_type* req;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , std::array<std::size_t, 2> order = {}
+                  , boost::system::error_code ec1 = {}
+                  , boost::system::error_code ec2 = {})
+   {
+      reenter (coro)
+      {
+         // Idle timeout.
+         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_delay_timeout);
+
+         yield
+         boost::asio::experimental::make_parallel_group(
+            [this](auto token) { return cli->async_exec_internal_impl(*req, token);},
+            [this](auto token) { return cli->check_idle_timer_.async_wait(token);}
+         ).async_wait(
+            boost::asio::experimental::wait_for_one(),
+            std::move(self));
+
+         switch (order[0]) {
+            case 0:
+            {
+               if (ec1) {
+                  self.complete(ec1);
+                  return;
+               }
+            } break;
+
+            case 1:
+            {
+               if (!ec2) {
+                  self.complete(error::idle_timeout);
+                  return;
+               }
+            } break;
+
+            default: BOOST_ASSERT(false);
+         }
+
+         self.complete({});
+      }
+   }
+};
+
+template <class Conn>
 struct exec_op {
-   Client* cli;
-   typename Client::request_type* req;
+   Conn* cli;
+   typename Conn::request_type* req;
    std::size_t read_size = 0;
    boost::asio::coroutine coro;
 
@@ -121,9 +170,9 @@ struct exec_op {
    }
 };
 
-template <class Client, class Command>
+template <class Conn, class Command>
 struct ping_op {
-   Client* cli;
+   Conn* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -160,9 +209,9 @@ struct ping_op {
    }
 };
 
-template <class Client>
+template <class Conn>
 struct idle_check_op {
-   Client* cli;
+   Conn* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -170,8 +219,8 @@ struct idle_check_op {
    {
       reenter (coro) for (;;)
       {
-         cli->idle_check_timer.expires_after(2 * cli->cfg_.ping_delay_timeout);
-         yield cli->idle_check_timer.async_wait(std::move(self));
+         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_delay_timeout);
+         yield cli->check_idle_timer_.async_wait(std::move(self));
          if (ec) {
             self.complete(ec);
             return;
@@ -189,9 +238,9 @@ struct idle_check_op {
    }
 };
 
-template <class Client>
+template <class Conn>
 struct resolve_with_timeout_op {
-   Client* cli;
+   Conn* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -227,7 +276,7 @@ struct resolve_with_timeout_op {
             case 1:
             {
                if (!ec2) {
-                  self.complete(generic::error::resolve_timeout);
+                  self.complete(error::resolve_timeout);
                   return;
                }
             } break;
@@ -241,9 +290,9 @@ struct resolve_with_timeout_op {
    }
 };
 
-template <class Client>
+template <class Conn>
 struct connect_with_timeout_op {
-   Client* cli;
+   Conn* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -279,7 +328,7 @@ struct connect_with_timeout_op {
             case 1:
             {
                if (!ec2) {
-                  self.complete(generic::error::connect_timeout);
+                  self.complete(error::connect_timeout);
                   return;
                }
             } break;
@@ -292,9 +341,9 @@ struct connect_with_timeout_op {
    }
 };
 
-template <class Client>
+template <class Conn>
 struct read_write_check_ping_op {
-   Client* cli;
+   Conn* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -347,9 +396,9 @@ struct read_write_check_ping_op {
    }
 };
 
-template <class Client, class Command>
+template <class Conn, class Command>
 struct run_op {
-   Client* cli;
+   Conn* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -365,7 +414,7 @@ struct run_op {
 
          cli->socket_ =
             std::make_shared<
-               typename Client::next_layer_type
+               typename Conn::next_layer_type
             >(cli->read_timer_.get_executor());
 
          yield cli->async_connect_with_timeout(std::move(self));
@@ -376,7 +425,7 @@ struct run_op {
 
          cli->req_.clear();
          cli->req_.push(Command::hello, 3);
-         yield cli->async_exec2(cli->req_, std::move(self));
+         yield cli->async_exec_internal(cli->req_, std::move(self));
          if (ec) {
             self.complete(ec);
             return;
@@ -393,9 +442,9 @@ struct run_op {
    }
 };
 
-template <class Client>
+template <class Conn>
 struct write_op {
-   Client* cli;
+   Conn* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -434,9 +483,9 @@ struct write_op {
    }
 };
 
-template <class Client>
+template <class Conn>
 struct write_with_timeout_op {
-   Client* cli;
+   Conn* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -470,7 +519,7 @@ struct write_with_timeout_op {
             case 1:
             {
                if (!ec2) {
-                  self.complete(generic::error::write_timeout, 0);
+                  self.complete(error::write_timeout, 0);
                   return;
                }
             } break;
@@ -483,9 +532,9 @@ struct write_with_timeout_op {
    }
 };
 
-template <class Client>
+template <class Conn>
 struct writer_op {
-   Client* cli;
+   Conn* cli;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -505,24 +554,22 @@ struct writer_op {
             }
          }
 
-         BOOST_ASSERT(!cli->reqs_.empty());
-         BOOST_ASSERT(!cli->reqs_.front().req->empty());
-         BOOST_ASSERT(!cli->reqs_.empty());
-         BOOST_ASSERT(n == cli->reqs_.front().req->size());
-
          yield cli->wait_write_timer_.async_wait(std::move(self));
 
          if (!cli->socket_->is_open()) {
             self.complete(error::write_stop_requested);
             return;
          }
+
+         BOOST_ASSERT(!cli->reqs_.empty());
+         BOOST_ASSERT(!cli->reqs_.front().req->empty());
       }
    }
 };
 
-template <class Client, class Command>
+template <class Conn, class Command>
 struct read_with_timeout_op {
-   Client* cli;
+   Conn* cli;
    Command cmd;
    boost::asio::coroutine coro;
 
@@ -557,7 +604,7 @@ struct read_with_timeout_op {
             case 1:
             {
                if (!ec2) {
-                  self.complete(generic::error::read_timeout, 0);
+                  self.complete(error::read_timeout, 0);
                   return;
                }
             } break;
@@ -570,9 +617,9 @@ struct read_with_timeout_op {
    }
 };
 
-template <class Client, class Command>
+template <class Conn, class Command>
 struct reader_op {
-   Client* cli;
+   Conn* cli;
    resp3::type type_ =  resp3::type::invalid;
    Command cmd_ = Command::invalid;
    boost::asio::coroutine coro;
@@ -654,4 +701,4 @@ struct reader_op {
 } // generic
 } // aedis
 
-#endif // AEDIS_GENERIC_CLIENT_OPS_HPP
+#endif // AEDIS_GENERIC_CONNECTION_OPS_HPP

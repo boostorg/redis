@@ -47,7 +47,7 @@ int main()
       auto ep = *std::begin(res);
 
       int n = 100;
-      for (int i = 0; i < 2; ++i)
+      for (int i = 0; i < 100; ++i)
          net::co_spawn(ioc, example(ep, "Some message\n", n), net::detached);
 
       ioc.run();
