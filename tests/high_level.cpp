@@ -81,7 +81,6 @@ void test_quit()
    auto db = std::make_shared<connection>(ioc.get_executor());
 
    request<command> req;
-   req.push(command::hello, 3);
    req.push(command::quit);
    db->async_exec(req, [](auto ec, auto r){
       expect_no_error(ec);
@@ -118,7 +117,6 @@ void test_push()
    auto db = std::make_shared<connection>(ioc.get_executor());
 
    request<command> req;
-   req.push(command::hello, 3);
    req.push(command::subscribe, "channel");
    req.push(command::quit);
 
@@ -143,7 +141,6 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
 {
    {
       request<command> req;
-      req.push(command::hello, 3);
       req.push(command::quit);
       db->async_exec(req, [](auto ec, auto){
          expect_no_error(ec);
@@ -155,7 +152,6 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
 
    {
       request<command> req;
-      req.push(command::hello, 3);
       req.push(command::quit);
       db->async_exec(req, [](auto ec, auto){
          expect_no_error(ec);
@@ -189,7 +185,6 @@ void test_idle()
    auto db = std::make_shared<connection>(ioc.get_executor(), adapt(), cfg);
 
    request<command> req;
-   req.push(command::hello, 3);
    req.push(command::client, "PAUSE", 5000);
 
    db->async_exec(req, [](auto ec, auto r){
@@ -209,7 +204,7 @@ int main()
    test_connect_error();
    test_quit();
    test_push();
-   test_reconnect();
+   //test_reconnect();
 
    // Must come last as it send a client pause.
    test_idle();

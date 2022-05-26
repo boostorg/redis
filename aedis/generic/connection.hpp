@@ -8,6 +8,7 @@
 #define AEDIS_GENERIC_CONNECTION_HPP
 
 #include <vector>
+#include <deque>
 #include <limits>
 #include <functional>
 #include <iterator>
@@ -15,6 +16,7 @@
 #include <utility>
 #include <chrono>
 #include <queue>
+#include <memory>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -29,7 +31,6 @@
 #include <aedis/generic/detail/connection_ops.hpp>
 
 // TODO: Don't pass pong to the adapter.
-// TODO: Merge the requests payload.
 
 namespace aedis {
 namespace generic {
@@ -57,6 +58,9 @@ public:
 
    /// Type of the last layer
    using next_layer_type = AsyncReadWriteStream;
+
+   /// Type of requests used by the connection.
+   using request_type = generic::request<Command>;
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
@@ -108,8 +112,7 @@ public:
    , cfg_{cfg}
    , adapter_{adapter}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
-   {
-   }
+   { }
 
    connection(
       boost::asio::any_io_executor ex,
@@ -198,19 +201,11 @@ public:
          >(detail::run_op<connection, Command>{this}, token, read_timer_);
    }
 
-   void add_request(request<Command>& req)
-   {
-      auto const can_write = prepare_back();
-      reqs_.back().req = &req;
-      if (can_write)
-         wait_write_timer_.cancel_one();
-   }
-
    /** @brief Asynchrnously executes schedules a command for execution.
     */
    template <class CompletionToken = default_completion_token_type>
    auto async_exec(
-      request<Command>& req,
+      request_type const& req,
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
@@ -256,6 +251,9 @@ public:
       ping_timer_.cancel();
       read_ch_.cancel();
       push_ch_.cancel();
+      for (auto& e: reqs_)
+         e.timer->cancel();
+
       reqs_ = {};
    }
 
@@ -263,14 +261,13 @@ private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
    using read_channel_type = boost::asio::experimental::channel<void(boost::system::error_code, std::size_t)>;
    using write_channel_type = boost::asio::experimental::channel<void(boost::system::error_code, std::size_t)>;
-   using request_type = generic::request<Command>;
 
    template <class T, class V> friend struct detail::reader_op;
    template <class T, class V> friend struct detail::ping_op;
    template <class T, class V> friend struct detail::read_with_timeout_op;
    template <class T, class V> friend struct detail::run_op;
-   template <class T, class V> friend struct detail::exec_internal_impl_op;
-   template <class T, class V> friend struct detail::exec_internal_op;
+   template <class T> friend struct detail::exec_internal_impl_op;
+   template <class T> friend struct detail::exec_internal_op;
    template <class T> friend struct detail::write_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_with_timeout_op;
@@ -279,6 +276,23 @@ private:
    template <class T> friend struct detail::idle_check_op;
    template <class T> friend struct detail::read_write_check_ping_op;
    template <class T> friend struct detail::exec_op;
+
+   void
+   add_request(
+      request_type const& req,
+      std::shared_ptr<boost::asio::steady_timer> timer)
+   {
+      auto const can_write = reqs_.empty();
+      reqs_.push_back({timer, req.commands().size()});
+      n_cmds_next_ += req.commands().size();
+      payload_next_ += req.payload();
+      for (auto cmd : req.commands())
+         cmds_.push(cmd.first);
+      if (can_write) {
+         BOOST_ASSERT(n_cmds_ == 0);
+         wait_write_timer_.cancel_one();
+      }
+   }
 
    auto make_dynamic_buffer()
    {
@@ -293,37 +307,6 @@ private:
          {
             adapter_(cmd, nd, ec);
          };
-   }
-
-   // Prepares the back of the queue to receive further commands.  If
-   // true is returned the request in the front of the queue can be
-   // sent to the server.
-   //bool prepare_back()
-   //{
-   //   if (reqs_.empty()) {
-   //      reqs_.push({write_channel_type{read_timer_.get_executor()}, nullptr, false});
-   //      return true;
-   //   }
-
-   //   if (reqs_.front().sent) {
-   //      // There is a pending response, we can't modify the front of
-   //      // the vector.
-   //      BOOST_ASSERT(!reqs_.front().req->commands().empty());
-   //      if (reqs_.size() == 1)
-   //         reqs_.push({write_channel_type{read_timer_.get_executor()}, nullptr, false});
-
-   //      return false;
-   //   }
-
-   //   // When cmds = 0 there are only commands with push response on
-   //   // the request and we are not waiting for any response.
-   //   return reqs_.front().req->commands().empty();
-   //}
-   bool prepare_back()
-   {
-      auto const can_write = reqs_.empty();
-      reqs_.push({write_channel_type{read_timer_.get_executor()}, nullptr, false});
-      return can_write;
    }
 
    // Calls connection::async_resolve with the resolve timeout passed in
@@ -443,25 +426,25 @@ private:
 
    template <class CompletionToken = default_completion_token_type>
    auto async_exec_internal_impl(
-      request_type& req,
+      request_type const& req,
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::exec_internal_impl_op<connection, request_type>{this, &req},
+         >(detail::exec_internal_impl_op<connection>{this, &req},
                token, read_timer_);
    }
 
    template <class CompletionToken = default_completion_token_type>
    auto async_exec_internal(
-      request_type& req,
+      request_type const& req,
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::exec_internal_op<connection, request_type>{this, &req},
+         >(detail::exec_internal_op<connection>{this, &req},
                token, read_timer_);
    }
 
@@ -486,20 +469,22 @@ private:
    // Buffer used by the read operations.
    std::string read_buffer_;
 
-   // Info about the requests.
    struct req_info {
-      write_channel_type channel;
-      request_type* req = nullptr;
-      bool sent = false;
+      std::shared_ptr<boost::asio::steady_timer> timer;
+      std::size_t n_cmds = 0;
    };
 
-   // Request queue.
-   std::queue<req_info> reqs_;
+   std::size_t n_cmds_ = 0;
+   std::size_t n_cmds_next_ = 0;
+   std::string payload_;
+   std::string payload_next_;
+   std::deque<req_info> reqs_;
+   std::queue<Command> cmds_;
 
    // Last time we received data.
    time_point_type last_data_;
 
-   // See async_resolve.
+   // The result of async_resolve.
    boost::asio::ip::tcp::resolver::results_type endpoints_;
 
    // write_op helper.

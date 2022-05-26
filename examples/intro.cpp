@@ -41,6 +41,7 @@ int main()
    req.push(command::get, "intro-key");
    req.push(command::quit);
    db.async_exec(req, exec_handler);
+   db.async_exec(req, exec_handler);
 
    db.async_run(run_handler);
    ioc.run();
