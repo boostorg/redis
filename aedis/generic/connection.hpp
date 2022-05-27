@@ -103,9 +103,10 @@ public:
       config cfg = config{})
    : resv_{ex}
    , read_timer_{ex}
+   , wait_write_timer_{ex}
    , ping_timer_{ex}
    , write_timer_{ex}
-   , wait_write_timer_{ex}
+   , wait_read_timer_{ex}
    , check_idle_timer_{ex}
    , read_ch_{ex}
    , push_ch_{ex}
@@ -247,6 +248,7 @@ public:
       // TODO: Channels should not be canceled if we want to
       // reconnect.
       socket_->close();
+      wait_read_timer_.expires_at(std::chrono::steady_clock::now());
       wait_write_timer_.expires_at(std::chrono::steady_clock::now());
       ping_timer_.cancel();
       read_ch_.cancel();
@@ -452,9 +454,10 @@ private:
    boost::asio::ip::tcp::resolver resv_;
    std::shared_ptr<AsyncReadWriteStream> socket_;
    boost::asio::steady_timer read_timer_;
+   boost::asio::steady_timer wait_write_timer_;
    boost::asio::steady_timer ping_timer_;
    boost::asio::steady_timer write_timer_;
-   boost::asio::steady_timer wait_write_timer_;
+   boost::asio::steady_timer wait_read_timer_;
    boost::asio::steady_timer check_idle_timer_;
    read_channel_type read_ch_;
    read_channel_type push_ch_;

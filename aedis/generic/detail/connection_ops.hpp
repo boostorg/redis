@@ -148,8 +148,11 @@ struct exec_op {
          // Notice we use the front of the queue.
          BOOST_ASSERT(!cli->reqs_.empty());
          while (cli->reqs_.front().n_cmds != 0) {
-            yield cli->read_ch_.async_receive(std::move(self));
+            BOOST_ASSERT(!cli->cmds_.empty());
+            yield
+            cli->async_read_with_timeout(cli->cmds_.front(), std::move(self));
             if (ec) {
+               cli->close();
                self.complete(ec, 0);
                return;
             }
@@ -165,14 +168,22 @@ struct exec_op {
             cli->cmds_.pop();
          }
 
+         BOOST_ASSERT(!cli->reqs_.empty());
          BOOST_ASSERT(cli->reqs_.front().n_cmds == 0);
          cli->reqs_.pop_front(); // TODO: Recycle timers.
 
-         if (!cli->reqs_.empty()) {
-            if (cli->n_cmds_ == 0)
+         if (cli->n_cmds_ == 0) {
+            // We are done with the pipeline and can resumes listening
+            // on the socket and send pending requests if there is
+            // any.
+            cli->wait_read_timer_.cancel_one();
+            if (!cli->reqs_.empty())
                cli->wait_write_timer_.cancel_one();
-            else
-               cli->reqs_.front().timer->cancel_one();
+         } else {
+            // We are not done with the pipeline and can continue
+            // reading.
+            BOOST_ASSERT(!cli->reqs_.empty());
+            cli->reqs_.front().timer->cancel_one();
          }
 
          self.complete({}, read_size);
@@ -558,8 +569,6 @@ struct writer_op {
                self.complete(ec);
                return;
             }
-
-            cli->reqs_.front().timer->cancel_one();
          }
 
          yield cli->wait_write_timer_.async_wait(std::move(self));
@@ -638,19 +647,16 @@ struct reader_op {
 
       reenter (coro) for (;;)
       {
-         if (cli->read_buffer_.empty()) {
-            yield
-            boost::asio::async_read_until(
-               *cli->socket_,
-               cli->make_dynamic_buffer(),
-               "\r\n",
-               std::move(self));
-
-            if (ec) {
-               cli->close();
-               self.complete(ec);
-               return;
-            }
+         yield
+         boost::asio::async_read_until(
+            *cli->socket_,
+            cli->make_dynamic_buffer(),
+            "\r\n",
+            std::move(self));
+         if (ec) {
+            cli->close();
+            self.complete(ec);
+            return;
          }
 
          // TODO: Treat type::invalid as error.
@@ -670,23 +676,29 @@ struct reader_op {
 
          cli->last_data_ = std::chrono::steady_clock::now();
 
-         yield cli->async_read_with_timeout(cmd_, std::move(self));
-         if (ec) {
-            cli->close();
-            self.complete(ec);
-            return;
-         }
-
          if (cmd_ == Command::invalid) {
-            yield cli->push_ch_.async_send({}, n, std::move(self));
-         } else {
-            yield cli->read_ch_.async_send({}, n, std::move(self));
-         }
+            yield cli->async_read_with_timeout(cmd_, std::move(self));
+            if (ec) {
+               cli->close();
+               self.complete(ec);
+               return;
+            }
 
-         if (ec) {
-            cli->close();
-            self.complete(ec);
-            return;
+            yield cli->push_ch_.async_send({}, n, std::move(self));
+            if (ec) {
+               cli->close();
+               self.complete(ec);
+               return;
+            }
+         } else {
+            // Trigger processing of the response.
+            cli->reqs_.front().timer->cancel_one();
+            cli->wait_read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+            yield cli->wait_read_timer_.async_wait(std::move(self));
+            if (!cli->socket_->is_open()) {
+               self.complete(ec);
+               return;
+            }
          }
       }
    }
