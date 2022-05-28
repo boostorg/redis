@@ -115,6 +115,40 @@ struct exec_internal_op {
    }
 };
 
+template <class Conn, class Command>
+struct read_push_op {
+   Conn* cli;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void
+   operator()( Self& self
+             , boost::system::error_code ec = {}
+             , std::size_t n = 0)
+   {
+      reenter (coro)
+      {
+         cli->wait_push_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+         yield cli->wait_push_timer_.async_wait(std::move(self));
+         if (!cli->socket_->is_open()) {
+            self.complete(ec, 0);
+            return;
+         }
+
+         yield
+         resp3::async_read(
+            *cli->socket_,
+            cli->make_dynamic_buffer(),
+            cli->select_adapter(Command::invalid),
+            std::move(self));
+
+         cli->wait_read_timer_.cancel_one();
+         self.complete(ec, n);
+         return;
+      }
+   }
+};
+
 template <class Conn>
 struct exec_op {
    Conn* cli;
@@ -133,20 +167,20 @@ struct exec_op {
       {
          // TODO: Check first if there is a recycled channel
          // available.
-         timer = std::make_shared<boost::asio::steady_timer>(cli->read_timer_.get_executor());
+         timer = std::make_shared<boost::asio::steady_timer>(cli->resv_.get_executor());
          timer->expires_at(std::chrono::steady_clock::time_point::max());
          cli->add_request(*req, timer);
 
          // Notice we use the back of the queue.
          yield timer->async_wait(std::move(self));
          if (!cli->socket_->is_open()) {
-            // TODO: Pass the correct error.
-            self.complete(error::idle_timeout, 0);
+            self.complete(ec, 0);
             return;
          }
 
          // Notice we use the front of the queue.
          BOOST_ASSERT(!cli->reqs_.empty());
+         BOOST_ASSERT(cli->reqs_.front().n_cmds != 0);
          while (cli->reqs_.front().n_cmds != 0) {
             BOOST_ASSERT(!cli->cmds_.empty());
             yield
@@ -234,7 +268,7 @@ struct ping_op {
 };
 
 template <class Conn>
-struct idle_check_op {
+struct check_idle_op {
    Conn* cli;
    boost::asio::coroutine coro;
 
@@ -439,7 +473,7 @@ struct run_op {
          cli->socket_ =
             std::make_shared<
                typename Conn::next_layer_type
-            >(cli->read_timer_.get_executor());
+            >(cli->resv_.get_executor());
 
          yield cli->async_connect_with_timeout(std::move(self));
          if (ec) {
@@ -588,8 +622,6 @@ struct writer_op {
 template <class Conn, class Command>
 struct reader_op {
    Conn* cli;
-   resp3::type type_ =  resp3::type::invalid;
-   Command cmd_ = Command::invalid;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -618,50 +650,25 @@ struct reader_op {
          // Sent by the server (-MISCONF). Send them through the
          // channel. The only way to detect them is check whether the
          // queue is empty.
-         BOOST_ASSERT(!cli->read_buffer_.empty());
-         type_ = resp3::to_type(cli->read_buffer_.front());
-         cmd_ = Command::invalid;
-         if (type_ != resp3::type::push) {
-            BOOST_ASSERT(!cli->reqs_.empty());
-            BOOST_ASSERT(cli->reqs_.front().n_cmds != 0);
-            BOOST_ASSERT(!cli->cmds_.empty());
-            cmd_ = cli->cmds_.front();
-         }
 
          cli->last_data_ = std::chrono::steady_clock::now();
-
-         if (cmd_ == Command::invalid) {
-            yield
-            resp3::async_read(
-               *cli->socket_,
-               cli->make_dynamic_buffer(),
-               cli->select_adapter(Command::invalid),
-               std::move(self));
-            if (ec) {
-               cli->close();
-               self.complete(ec);
-               return;
-            }
-
-            yield cli->push_ch_.async_send({}, n, std::move(self));
-            if (ec) {
-               cli->close();
-               self.complete(ec);
-               return;
-            }
+         if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
+            cli->wait_push_timer_.cancel_one();
          } else {
-            // Trigger processing of the response.
+            BOOST_ASSERT(!cli->cmds_.empty());
+            BOOST_ASSERT(cli->reqs_.front().n_cmds != 0);
             cli->reqs_.front().timer->cancel_one();
-            cli->wait_read_timer_.expires_after(cli->cfg_.read_timeout);
-            yield cli->wait_read_timer_.async_wait(std::move(self));
-            if (!ec) {
-               self.complete(error::read_timeout);
-               return;
-            }
-            if (!cli->socket_->is_open()) {
-               self.complete(ec);
-               return;
-            }
+         }
+
+         cli->wait_read_timer_.expires_after(cli->cfg_.read_timeout);
+         yield cli->wait_read_timer_.async_wait(std::move(self));
+         if (!ec) {
+            self.complete(error::read_timeout);
+            return;
+         }
+         if (!cli->socket_->is_open()) {
+            self.complete(ec);
+            return;
          }
       }
    }

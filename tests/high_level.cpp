@@ -107,7 +107,7 @@ push_consumer3(std::shared_ptr<connection> db)
 
    {
       auto [ec, n] = co_await db->async_read_push(as_tuple(net::use_awaitable));
-      expect_error(ec, net::experimental::channel_errc::channel_cancelled);
+      expect_error(ec, boost::asio::error::operation_aborted);
    }
 }
 
