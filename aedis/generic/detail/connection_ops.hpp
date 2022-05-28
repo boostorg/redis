@@ -22,6 +22,7 @@
 #include <aedis/resp3/write.hpp>
 #include <aedis/generic/error.hpp>
 #include <aedis/redis/command.hpp>
+#include <aedis/adapter/adapt.hpp>
 
 namespace aedis {
 namespace generic {
@@ -80,7 +81,7 @@ struct exec_internal_op {
       reenter (coro)
       {
          // Idle timeout.
-         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_delay_timeout);
+         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_interval);
 
          yield
          boost::asio::experimental::make_parallel_group(
@@ -115,9 +116,10 @@ struct exec_internal_op {
    }
 };
 
-template <class Conn, class Command>
+template <class Conn, class Command, class Adapter>
 struct read_push_op {
    Conn* cli;
+   Adapter adapter;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -128,31 +130,41 @@ struct read_push_op {
    {
       reenter (coro)
       {
-         cli->wait_push_timer_.expires_at(std::chrono::steady_clock::time_point::max());
-         yield cli->wait_push_timer_.async_wait(std::move(self));
-         if (!cli->socket_->is_open()) {
-            self.complete(ec, 0);
-            return;
+         //std::cout << "push_op: waiting to process push." << std::endl;
+         if (cli->waiting_pushes_ == 0) {
+            yield cli->wait_push_timer_.async_wait(std::move(self));
+            if (!cli->socket_->is_open()) {
+               self.complete(ec, 0);
+               return;
+            }
+
+            //std::cout << "push_op: After wait." << std::endl;
+            BOOST_ASSERT(cli->waiting_pushes_ == 1);
          }
 
+
+         //std::cout << "push_op: starting to process the push." << std::endl;
          yield
          resp3::async_read(
             *cli->socket_,
             cli->make_dynamic_buffer(),
-            cli->select_adapter(Command::invalid),
+            adapter,
             std::move(self));
 
+         //std::cout << "push_op: finish, calling the reader_op." << std::endl;
          cli->wait_read_timer_.cancel_one();
+         cli->waiting_pushes_ = 0;
          self.complete(ec, n);
          return;
       }
    }
 };
 
-template <class Conn>
+template <class Conn, class Adapter>
 struct exec_op {
    Conn* cli;
    typename Conn::request_type const* req;
+   Adapter adapter;
    std::shared_ptr<boost::asio::steady_timer> timer;
    std::size_t read_size = 0;
    boost::asio::coroutine coro;
@@ -171,6 +183,7 @@ struct exec_op {
          timer->expires_at(std::chrono::steady_clock::time_point::max());
          cli->add_request(*req, timer);
 
+         //std::cout << "exec_op: waiting to process a read " << cli->reqs_.size() << std::endl;
          // Notice we use the back of the queue.
          yield timer->async_wait(std::move(self));
          if (!cli->socket_->is_open()) {
@@ -178,16 +191,31 @@ struct exec_op {
             return;
          }
 
-         // Notice we use the front of the queue.
          BOOST_ASSERT(!cli->reqs_.empty());
-         BOOST_ASSERT(cli->reqs_.front().n_cmds != 0);
+         if (cli->reqs_.front().n_cmds == 0) {
+            // Some requests don't have response, so we have to exit
+            // the operation earlier.
+            cli->reqs_.pop_front(); // TODO: Recycle timers.
+
+            // If there is no ongoing push-read operation we can
+            // request the timer to proceed, otherwise we can just
+            // exit.
+            if (cli->waiting_pushes_ == 0) {
+               //std::cout << "exec_op: requesting read op to proceed." << std::endl;
+               cli->wait_read_timer_.cancel_one();
+            }
+            self.complete({}, 0);
+            return;
+         }
+
+         // Notice we use the front of the queue.
          while (cli->reqs_.front().n_cmds != 0) {
             BOOST_ASSERT(!cli->cmds_.empty());
             yield
             resp3::async_read(
                *cli->socket_,
                cli->make_dynamic_buffer(),
-               cli->select_adapter(cli->cmds_.front()),
+               [adpt = adapter, cmd = cli->cmds_.front()] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(cmd, nd, ec); },
                std::move(self));
             if (ec) {
                cli->close();
@@ -214,9 +242,12 @@ struct exec_op {
             // We are done with the pipeline and can resumes listening
             // on the socket and send pending requests if there is
             // any.
+            //std::cout << "exec_op: requesting read op to proceed." << std::endl;
             cli->wait_read_timer_.cancel_one();
-            if (!cli->reqs_.empty())
+            if (!cli->reqs_.empty()) {
+               //std::cout << "exec_op: Requesting a write." << std::endl;
                cli->wait_write_timer_.cancel_one();
+            }
          } else {
             // We are not done with the pipeline and can continue
             // reading.
@@ -243,22 +274,18 @@ struct ping_op {
    {
       reenter (coro) for (;;)
       {
-         cli->ping_timer_.expires_after(cli->cfg_.ping_delay_timeout);
+         //std::cout << "ping_op: waiting to send a ping." << std::endl;
+         cli->ping_timer_.expires_after(cli->cfg_.ping_interval);
          yield cli->ping_timer_.async_wait(std::move(self));
          if (ec) {
-            // The timer has been canceled, continue.
             self.complete(ec);
             return;
          }
 
-         // The timer fired, send the ping. If there is an ongoing
-         // command there is no need to send a new one.
-         if (!cli->reqs_.empty())
-            continue;
-
+         //std::cout << "ping_op: Sending a command." << std::endl;
          cli->req_.clear();
          cli->req_.push(Command::ping);
-         yield cli->async_exec(cli->req_, std::move(self));
+         yield cli->async_exec(cli->req_, adapter::adapt(), std::move(self));
          if (ec) {
             self.complete(ec);
             return;
@@ -277,7 +304,7 @@ struct check_idle_op {
    {
       reenter (coro) for (;;)
       {
-         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_delay_timeout);
+         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_interval);
          yield cli->check_idle_timer_.async_wait(std::move(self));
          if (ec) {
             self.complete(ec);
@@ -285,7 +312,7 @@ struct check_idle_op {
          }
 
          auto const now = std::chrono::steady_clock::now();
-         if (cli->last_data_ +  (2 * cli->cfg_.ping_delay_timeout) < now) {
+         if (cli->last_data_ +  (2 * cli->cfg_.ping_interval) < now) {
             cli->close();
             self.complete(error::idle_timeout);
             return;
@@ -415,7 +442,7 @@ struct read_write_check_ping_op {
       reenter (coro)
       {
          // Starts the reader and writer ops.
-         cli->wait_write_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+         //std::cout << "read_write_check_ping_op: Setting the timer." << std::endl;
 
          yield
          boost::asio::experimental::make_parallel_group(
@@ -512,6 +539,7 @@ struct write_op {
    {
       reenter (coro)
       {
+         //std::cout << "write_op: before." << std::endl;
          BOOST_ASSERT(!cli->reqs_.empty());
          BOOST_ASSERT(!cli->payload_next_.empty());
 
@@ -526,6 +554,19 @@ struct write_op {
             *cli->socket_,
             boost::asio::buffer(cli->payload_),
             std::move(self));
+         //std::cout << "write_op: after." << std::endl;
+
+         BOOST_ASSERT(!cli->reqs_.empty());
+         if (cli->reqs_.front().n_cmds == 0) {
+            // Some requests don't have response, so their timers
+            // won't be canceled on read op, we have to do it here.
+            cli->reqs_.front().timer->cancel_one();
+            // Notice we don't have to call
+            // cli->wait_read_timer_.cancel_one(); as that operation
+            // is ongoing.
+            self.complete({}, n);
+            return;
+         }
 
          cli->payload_.clear();
          self.complete(ec, n);
@@ -556,6 +597,8 @@ struct write_with_timeout_op {
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
             std::move(self));
+
+         //std::cout << "write_with_timeout_op: completed." << std::endl;
 
          switch (order[0]) {
             case 0:
@@ -599,7 +642,6 @@ struct writer_op {
          // The timer must be however canceled so we can unblock the
          // channel.
 
-         //if (cli->n_cmds_ == 0 && !cli->reqs_.empty()) {
          if (!cli->reqs_.empty()) {
             yield cli->async_write_with_timeout(std::move(self));
             if (ec) {
@@ -609,12 +651,14 @@ struct writer_op {
             }
          }
 
+         //std::cout << "writer_op: waiting to write." << std::endl;
          yield cli->wait_write_timer_.async_wait(std::move(self));
-
          if (!cli->socket_->is_open()) {
             self.complete(error::write_stop_requested);
             return;
          }
+
+         //std::cout << "writer_op: Write requested: " << ec.message() << std::endl;
       }
    }
 };
@@ -633,6 +677,7 @@ struct reader_op {
 
       reenter (coro) for (;;)
       {
+         //std::cout << "reader_op: waiting data." << std::endl;
          yield
          boost::asio::async_read_until(
             *cli->socket_,
@@ -653,19 +698,26 @@ struct reader_op {
 
          cli->last_data_ = std::chrono::steady_clock::now();
          if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
+            //std::cout << "reader_op: Requesting the push op." << std::endl;
+            cli->waiting_pushes_ = 1;
             cli->wait_push_timer_.cancel_one();
          } else {
+            //std::cout << "reader_op: Requesting the read op." << std::endl;
             BOOST_ASSERT(!cli->cmds_.empty());
             BOOST_ASSERT(cli->reqs_.front().n_cmds != 0);
             cli->reqs_.front().timer->cancel_one();
          }
 
+         //std::cout << "reader_op: waiting to read." << std::endl;
          cli->wait_read_timer_.expires_after(cli->cfg_.read_timeout);
          yield cli->wait_read_timer_.async_wait(std::move(self));
+         //std::cout << "reader_op: after wait: " << ec.message() << std::endl;
          if (!ec) {
+            //std::cout << "reader_op: error1." << std::endl;
             self.complete(error::read_timeout);
             return;
          }
+
          if (!cli->socket_->is_open()) {
             self.complete(ec);
             return;

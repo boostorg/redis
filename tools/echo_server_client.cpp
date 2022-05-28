@@ -46,8 +46,8 @@ int main()
       auto const res = resv.resolve("127.0.0.1", "55555");
       auto ep = *std::begin(res);
 
-      int n = 100;
-      for (int i = 0; i < 100; ++i)
+      int n = 10000;
+      for (int i = 0; i < 500; ++i)
          net::co_spawn(ioc, example(ep, "Some message\n", n), net::detached);
 
       ioc.run();

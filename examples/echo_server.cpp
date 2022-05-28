@@ -37,7 +37,7 @@ echo_loop(
          req.push(command::incr, "echo-server-counter");
          req.push(command::set, "echo-server-key", msg);
          req.push(command::get, "echo-server-key");
-         co_await db->async_exec(req, net::use_awaitable);
+         co_await db->async_exec(req, adapt(*resp), net::use_awaitable);
          resp->at(0).value += ": ";
          resp->at(0).value += resp->at(2).value;
          co_await net::async_write(socket, net::buffer(resp->at(0).value));
@@ -52,10 +52,10 @@ echo_loop(
 net::awaitable<void>
 listener(
     std::shared_ptr<tcp_acceptor> acc,
-    std::shared_ptr<connection> db,
-    std::shared_ptr<response_type> resp)
+    std::shared_ptr<connection> db)
 {
    auto ex = co_await net::this_coro::executor;
+   auto resp = std::make_shared<response_type>();
 
    for (;;) {
       auto socket = co_await acc->async_accept();
@@ -63,20 +63,22 @@ listener(
    }
 }
 
+auto handler =[](auto ec, auto...)
+   { std::cout << ec.message() << std::endl; };
+
 int main()
 {
    try {
       net::io_context ioc;
 
       // Redis client.
-      auto resp = std::make_shared<response_type>();
-      auto db = std::make_shared<connection>(ioc.get_executor(), adapt(*resp));
-      db->async_run([](auto ec){ std::cout << ec.message() << std::endl;});
+      auto db = std::make_shared<connection>(ioc);
+      db->async_run(handler);
 
       // TCP acceptor.
       auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
-      auto acc = std::make_shared<tcp_acceptor>(ioc.get_executor(), endpoint);
-      co_spawn(ioc, listener(acc, db, resp), net::detached);
+      auto acc = std::make_shared<tcp_acceptor>(ioc, endpoint);
+      co_spawn(ioc, listener(acc, db), net::detached);
 
       ioc.run();
    } catch (std::exception const& e) {

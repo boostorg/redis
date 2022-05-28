@@ -60,7 +60,7 @@ private:
             request<command> req;
             req.push(command::publish, "channel", msg);
             req.push(command::incr, "chat-room-counter");
-            co_await db->async_exec(req, net::use_awaitable);
+            co_await db->async_exec(req, adapt(*resp), net::use_awaitable);
             std::cout << "Messsages so far: " << resp->at(1).value << std::endl;
             resp->clear();
             msg.erase(0, n);
@@ -101,13 +101,13 @@ private:
 using sessions_type = std::vector<std::shared_ptr<user_session>>;
 
 net::awaitable<void>
-push_reader(
+reader(
    std::shared_ptr<connection> db,
    std::shared_ptr<response_type> resp,
    std::shared_ptr<sessions_type> sessions)
 {
    for (;;) {
-      co_await db->async_read_push(net::use_awaitable);
+      co_await db->async_read_push(adapt(*resp), net::use_awaitable);
 
       for (auto& session: *sessions)
          session->deliver(resp->at(3).value);
@@ -131,26 +131,28 @@ listener(
    }
 }
 
+auto handler =[](auto ec, auto...)
+   { std::cout << ec.message() << std::endl; };
+
 int main()
 {
    try {
       net::io_context ioc{1};
 
       // Redis client and receiver.
-      auto db = std::make_shared<connection>(ioc.get_executor());
-      db->async_run([](auto ec){ std::cout << ec.message() << std::endl;});
+      auto db = std::make_shared<connection>(ioc);
+      db->async_run(handler);
 
       // Sends hello and subscribes to the channel. Ignores the
       // response.
       request<command> req;
       req.push(command::subscribe, "channel");
-      db->async_exec(req, [](auto, auto){});
+      db->async_exec(req, adapt(), handler);
 
       auto resp = std::make_shared<response_type>();
-      db->set_adapter(adapt(*resp));
 
       auto sessions = std::make_shared<sessions_type>();
-      net::co_spawn(ioc.get_executor(), push_reader(db, resp, sessions), net::detached);
+      net::co_spawn(ioc, reader(db, resp, sessions), net::detached);
 
       // TCP acceptor.
       auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
@@ -160,8 +162,8 @@ int main()
       // Signal handler.
       net::signal_set signals(ioc.get_executor(), SIGINT, SIGTERM);
       signals.async_wait([acc, db] (auto, int) { 
-            acc->cancel();
-            db->close();
+         acc->cancel();
+         db->close();
       });
 
       ioc.run();

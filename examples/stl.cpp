@@ -29,6 +29,9 @@ using T0 = std::vector<aedis::resp3::node<std::string>>;
 using T1 = std::set<std::string>;
 using T2 = std::map<std::string, std::string>;
 
+auto handler =[](auto ec, auto...)
+   { std::cout << ec.message() << std::endl; };
+
 int main()
 {
    T0 resp0;
@@ -50,7 +53,7 @@ int main()
    };
 
    net::io_context ioc;
-   connection db{ioc.get_executor(), adapter};
+   connection db{ioc};
 
    std::vector<int> vec
       {1, 2, 3, 4, 5, 6};
@@ -73,13 +76,8 @@ int main()
    req.push(command::hgetall, "hset-key");
    req.push(command::quit);
 
-   db.async_exec(req, [](auto ec, std::size_t read_size) {
-      std::printf("Exec: %s %lu\n", ec.message().data(), read_size);
-   });
-
-   db.async_run([](auto ec) {
-      std::printf("Run: %s\n", ec.message().data());
-   });
+   db.async_exec(req, adapter, handler);
+   db.async_run(handler);
 
    ioc.run();
 

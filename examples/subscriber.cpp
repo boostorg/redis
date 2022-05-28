@@ -33,11 +33,11 @@ using response_type = std::vector<aedis::resp3::node<std::string>>;
  * example.
  */
 
-net::awaitable<void>
-push_reader(std::shared_ptr<connection> db, response_type& resp)
+net::awaitable<void> reader(std::shared_ptr<connection> db)
 {
+   response_type resp;
    for (;;) {
-      auto n = co_await db->async_read_push(net::use_awaitable);
+      auto n = co_await db->async_read_push(adapt(resp), net::use_awaitable);
       std::cout
          << "Size: "   << n << "\n"
          << "Event: "   << resp.at(1).value << "\n"
@@ -49,25 +49,22 @@ push_reader(std::shared_ptr<connection> db, response_type& resp)
    }
 }
 
-auto run_handler =[](auto ec)
+net::awaitable<void> subscriber(std::shared_ptr<connection> db)
 {
-   std::printf("Run: %s\n", ec.message().data());
-};
+   request<command> req;
+   req.push(command::subscribe, "channel1", "channel2");
+   co_await db->async_exec(req, adapt(), net::use_awaitable);
+}
+
+auto handler = [](auto ec, auto...)
+   { std::cout << ec.message() << std::endl; };
 
 int main()
 {
-   response_type resp;
-
    net::io_context ioc;
-
-   auto db = std::make_shared<connection>(ioc.get_executor());
-   db->set_adapter(adapt(resp));
-   net::co_spawn(ioc.get_executor(), push_reader(db, resp), net::detached);
-
-   request<command> req;
-   req.push(command::subscribe, "channel1", "channel2");
-   db->async_exec(req, [&](auto, auto){req.clear();});
-
-   db->async_run(run_handler);
+   auto db = std::make_shared<connection>(ioc);
+   net::co_spawn(ioc, reader(db), net::detached);
+   net::co_spawn(ioc, subscriber(db), net::detached);
+   db->async_run(handler);
    ioc.run();
 }

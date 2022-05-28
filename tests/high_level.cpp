@@ -50,7 +50,7 @@ void test_resolve_error()
    net::io_context ioc;
    connection::config cfg;
    cfg.host = "Atibaia";
-   connection db(ioc.get_executor(), adapt(), cfg);
+   connection db(ioc, cfg);
    db.async_run(f);
    ioc.run();
 }
@@ -67,7 +67,7 @@ void test_connect_error()
    net::io_context ioc;
    connection::config cfg;
    cfg.port = "1";
-   connection db(ioc.get_executor(), adapt(), cfg);
+   connection db(ioc, cfg);
    db.async_run(f);
    ioc.run();
 }
@@ -78,11 +78,11 @@ void test_connect_error()
 void test_quit()
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc.get_executor());
+   auto db = std::make_shared<connection>(ioc);
 
    request<command> req;
    req.push(command::quit);
-   db->async_exec(req, [](auto ec, auto r){
+   db->async_exec(req, adapt(), [](auto ec, auto r){
       expect_no_error(ec);
       //expect_eq(w, 36UL);
       //expect_eq(r, 152UL);
@@ -101,12 +101,12 @@ net::awaitable<void>
 push_consumer3(std::shared_ptr<connection> db)
 {
    {
-      auto [ec, n] = co_await db->async_read_push(as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_read_push(adapt(), as_tuple(net::use_awaitable));
       expect_no_error(ec);
    }
 
    {
-      auto [ec, n] = co_await db->async_read_push(as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_read_push(adapt(), as_tuple(net::use_awaitable));
       expect_error(ec, boost::asio::error::operation_aborted);
    }
 }
@@ -114,13 +114,13 @@ push_consumer3(std::shared_ptr<connection> db)
 void test_push()
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc.get_executor());
+   auto db = std::make_shared<connection>(ioc);
 
    request<command> req;
    req.push(command::subscribe, "channel");
    req.push(command::quit);
 
-   db->async_exec(req, [](auto ec, auto r){
+   db->async_exec(req, adapt(), [](auto ec, auto r){
       expect_no_error(ec);
       //expect_eq(w, 68UL);
       //expect_eq(r, 151UL);
@@ -142,7 +142,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
    {
       request<command> req;
       req.push(command::quit);
-      db->async_exec(req, [](auto ec, auto){
+      db->async_exec(req, adapt(), [](auto ec, auto){
          expect_no_error(ec);
       });
 
@@ -153,7 +153,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
    {
       request<command> req;
       req.push(command::quit);
-      db->async_exec(req, [](auto ec, auto){
+      db->async_exec(req, adapt(), [](auto ec, auto){
          expect_no_error(ec);
       });
 
@@ -168,7 +168,7 @@ void test_reconnect()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc.get_executor());
 
-   net::co_spawn(ioc.get_executor(), run5(db), net::detached);
+   net::co_spawn(ioc, run5(db), net::detached);
    ioc.run();
 }
 
@@ -179,15 +179,15 @@ void test_idle()
    cfg.connect_timeout = std::chrono::seconds{1};
    cfg.read_timeout = std::chrono::seconds{1};
    cfg.write_timeout = std::chrono::seconds{1};
-   cfg.ping_delay_timeout = std::chrono::seconds{1};
+   cfg.ping_interval = std::chrono::seconds{1};
 
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc.get_executor(), adapt(), cfg);
+   auto db = std::make_shared<connection>(ioc, cfg);
 
    request<command> req;
    req.push(command::client, "PAUSE", 5000);
 
-   db->async_exec(req, [](auto ec, auto r){
+   db->async_exec(req, adapt(), [](auto ec, auto r){
       expect_no_error(ec);
    });
 

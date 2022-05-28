@@ -17,6 +17,7 @@
 #include <chrono>
 #include <queue>
 #include <memory>
+#include <type_traits>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -44,15 +45,13 @@ namespace generic {
  */
 template <class Command, class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection {
+private:
+   using adapter_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
+   using adapter_type2 = std::function<void(resp3::node<boost::string_view> const&, boost::system::error_code&)>;
+
 public:
    /// Executor type.
    using executor_type = typename AsyncReadWriteStream::executor_type;
-
-   /// Callback type of resp3 operations.
-   using adapter_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
-
-   /// resp3 callback type (version without command).
-   using adapter_type2 = std::function<void(resp3::node<boost::string_view> const&, boost::system::error_code&)>;
 
    /// Type of the last layer
    using next_layer_type = AsyncReadWriteStream;
@@ -84,7 +83,7 @@ public:
       std::chrono::milliseconds write_timeout = std::chrono::seconds{5};
 
       /// Time after which a ping is sent if no data is received.
-      std::chrono::milliseconds ping_delay_timeout = std::chrono::seconds{5};
+      std::chrono::milliseconds ping_interval = std::chrono::seconds{5};
 
       /// The maximum size allwed in a read operation.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
@@ -95,10 +94,7 @@ public:
     *  \param ex The executor.
     *  \param cfg Configuration parameters.
     */
-   connection(
-      boost::asio::any_io_executor ex,
-      adapter_type adapter,
-      config cfg = config{})
+   connection(boost::asio::any_io_executor ex, config cfg = config{})
    : resv_{ex}
    , wait_write_timer_{ex}
    , ping_timer_{ex}
@@ -107,19 +103,15 @@ public:
    , wait_push_timer_{ex}
    , check_idle_timer_{ex}
    , cfg_{cfg}
-   , adapter_{adapter}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
-   { }
+   {
+      wait_push_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+      wait_write_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+   }
 
-   connection(
-      boost::asio::any_io_executor ex,
-      adapter_type2 a = adapter::adapt(),
-      config cfg = config{})
-   : connection(
-         ex,
-         [adapter = std::move(a)] (Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { if (cmd != Command::ping) adapter(nd, ec); },
-         cfg)
-   {}
+   connection(boost::asio::io_context& ioc, config cfg = config{})
+   : connection(ioc.get_executor(), cfg)
+   { }
 
    /// Returns the executor.
    auto get_executor() {return resv_.get_executor();}
@@ -145,13 +137,13 @@ public:
     *  write it will call the write callback.
     *
     *  @li Starts the idle check operation with the timeout of twice
-    *  the value of connection::config::ping_delay_timeout. If no data is
+    *  the value of connection::config::ping_interval. If no data is
     *  received during that time interval \c async_run completes with
     *  generic::error::idle_timeout.
     *
     *  @li Starts the healthy check operation that sends
     *  redis::command::ping to Redis with a frequency equal to
-    *  connection::config::ping_delay_timeout.
+    *  connection::config::ping_interval.
     *
     *  In addition to the callbacks mentioned above, the read
     *  operations will call the resp3 callback as soon a new chunks of
@@ -200,42 +192,53 @@ public:
 
    /** @brief Asynchrnously schedules a command for execution.
     */
-   template <class CompletionToken = default_completion_token_type>
+   template <
+      class Adapter = adapter::detail::response_traits<void>::adapter_type,
+      class CompletionToken = default_completion_token_type,
+      std::enable_if_t<std::is_convertible<Adapter, adapter_type>::value, bool> = true>
    auto async_exec(
       request_type const& req,
+      Adapter adapter = adapter::adapt(),
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::exec_op<connection>{this, &req}, token, resv_);
+         >(detail::exec_op<connection, Adapter>{this, &req, adapter}, token, resv_);
    }
 
+   template <
+      class Adapter = adapter::detail::response_traits<void>::adapter_type,
+      class CompletionToken = default_completion_token_type,
+      std::enable_if_t<std::is_convertible<Adapter, adapter_type2>::value, bool> = true>
+   auto async_exec(
+      request_type const& req,
+      Adapter adapter = adapter::adapt(),
+      CompletionToken token = CompletionToken{})
+   {
+      auto wrap = [adapter]
+         (Command, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable
+            { adapter(nd, ec); };
+
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code, std::size_t)
+         >(detail::exec_op<connection, decltype(wrap)>{this, &req, wrap}, token, resv_);
+   }
    /** @brief Receives events produced by the run operation.
     */
-   template <class CompletionToken = default_completion_token_type>
-   auto async_read_push(CompletionToken token = CompletionToken{})
+   template <
+      class Adapter = adapter::detail::response_traits<void>::adapter_type,
+      class CompletionToken = default_completion_token_type>
+   auto
+   async_read_push(
+      Adapter adapter = adapter::adapt(),
+      CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::read_push_op<connection, Command>{this}, token, resv_);
-   }
-
-   /// Set the response adapter.
-   void set_adapter(adapter_type adapter)
-      { adapter_ = std::move(adapter); }
-
-   /// Set the response adapter.
-   void set_adapter(adapter_type2 a)
-   {
-      adapter_ =
-         [adapter = std::move(a)]
-            (Command cmd, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable
-         {
-            if (cmd != Command::ping)
-               adapter(nd, ec);
-         };
+         >(detail::read_push_op<connection, Command, Adapter>{this, adapter}, token, resv_);
    }
 
    /** @brief Closes the connection with the database.
@@ -244,6 +247,7 @@ public:
     */
    void close()
    {
+      //std::cout << "close: closing." << std::endl;
       socket_->close();
       wait_read_timer_.expires_at(std::chrono::steady_clock::now());
       wait_push_timer_.expires_at(std::chrono::steady_clock::now());
@@ -259,10 +263,11 @@ public:
 private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
-   template <class T, class V> friend struct detail::reader_op;
-   template <class T, class V> friend struct detail::ping_op;
-   template <class T, class V> friend struct detail::run_op;
-   template <class T, class V> friend struct detail::read_push_op;
+   template <class T, class U, class V> friend struct detail::read_push_op;
+   template <class T, class U> friend struct detail::reader_op;
+   template <class T, class U> friend struct detail::ping_op;
+   template <class T, class U> friend struct detail::run_op;
+   template <class T, class u> friend struct detail::exec_op;
    template <class T> friend struct detail::exec_internal_impl_op;
    template <class T> friend struct detail::exec_internal_op;
    template <class T> friend struct detail::write_op;
@@ -272,7 +277,6 @@ private:
    template <class T> friend struct detail::resolve_with_timeout_op;
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::read_write_check_ping_op;
-   template <class T> friend struct detail::exec_op;
 
    void
    add_request(
@@ -283,10 +287,12 @@ private:
       reqs_.push_back({timer, req.commands().size()});
       n_cmds_next_ += req.commands().size();
       payload_next_ += req.payload();
+      BOOST_ASSERT(!payload_next_.empty());
       for (auto cmd : req.commands())
          cmds_.push(cmd.first);
       if (can_write) {
          BOOST_ASSERT(n_cmds_ == 0);
+         //std::cout << "add_request: Requesting a write2." << std::endl;
          wait_write_timer_.cancel_one();
       }
    }
@@ -294,16 +300,6 @@ private:
    auto make_dynamic_buffer()
    {
       return boost::asio::dynamic_buffer(read_buffer_, cfg_.max_read_size);
-   }
-
-   auto select_adapter(Command cmd)
-   {
-      return [this, cmd]
-         (resp3::node<boost::string_view> const& nd,
-          boost::system::error_code& ec) mutable
-         {
-            adapter_(cmd, nd, ec);
-         };
    }
 
    // Calls connection::async_resolve with the resolve timeout passed in
@@ -373,7 +369,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::writer_op<connection>{this}, token, wait_write_timer_);
+         >(detail::writer_op<connection>{this}, token, resv_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -443,10 +439,6 @@ private:
    // Configuration parameters.
    config cfg_;
 
-   // Called by the parser after each new chunk of resp3 data is
-   // processed.
-   adapter_type adapter_;
-
    // Buffer used by the read operations.
    std::string read_buffer_;
 
@@ -455,6 +447,7 @@ private:
       std::size_t n_cmds = 0;
    };
 
+   std::size_t waiting_pushes_ = 0;
    std::size_t n_cmds_ = 0;
    std::size_t n_cmds_next_ = 0;
    std::string payload_;
