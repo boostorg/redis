@@ -202,7 +202,7 @@ public:
          >(detail::run_op<connection, Command>{this}, token, read_timer_);
    }
 
-   /** @brief Asynchrnously executes schedules a command for execution.
+   /** @brief Asynchrnously schedules a command for execution.
     */
    template <class CompletionToken = default_completion_token_type>
    auto async_exec(
@@ -266,7 +266,6 @@ private:
 
    template <class T, class V> friend struct detail::reader_op;
    template <class T, class V> friend struct detail::ping_op;
-   template <class T, class V> friend struct detail::read_with_timeout_op;
    template <class T, class V> friend struct detail::run_op;
    template <class T> friend struct detail::exec_internal_impl_op;
    template <class T> friend struct detail::exec_internal_op;
@@ -336,21 +335,6 @@ private:
          , void(boost::system::error_code)
          >(detail::connect_with_timeout_op<connection>{this}, token,
                write_timer_.get_executor());
-   }
-
-   // Reads a complete resp3 response from the socket using the
-   // timeout config::read_timeout.
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_read_with_timeout(
-      Command cmd,
-      CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(detail::read_with_timeout_op<connection, Command>{this, cmd},
-               token, read_timer_.get_executor());
    }
 
    // Loops on async_read_with_timeout described above.

@@ -150,7 +150,11 @@ struct exec_op {
          while (cli->reqs_.front().n_cmds != 0) {
             BOOST_ASSERT(!cli->cmds_.empty());
             yield
-            cli->async_read_with_timeout(cli->cmds_.front(), std::move(self));
+            resp3::async_read(
+               *cli->socket_,
+               cli->make_dynamic_buffer(),
+               cli->select_adapter(cli->cmds_.front()),
+               std::move(self));
             if (ec) {
                cli->close();
                self.complete(ec, 0);
@@ -582,56 +586,6 @@ struct writer_op {
 };
 
 template <class Conn, class Command>
-struct read_with_timeout_op {
-   Conn* cli;
-   Command cmd;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void operator()( Self& self
-                  , std::array<std::size_t, 2> order = {}
-                  , boost::system::error_code ec1 = {}
-                  , std::size_t n = 0
-                  , boost::system::error_code ec2 = {})
-   {
-      reenter (coro)
-      {
-         cli->read_timer_.expires_after(cli->cfg_.read_timeout);
-
-         yield
-         boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return resp3::async_read(*cli->socket_, cli->make_dynamic_buffer(), cli->select_adapter(cmd), token);},
-            [this](auto token) { return cli->read_timer_.async_wait(token);}
-         ).async_wait(
-            boost::asio::experimental::wait_for_one(),
-            std::move(self));
-
-         switch (order[0]) {
-            case 0:
-            {
-               if (ec1) {
-                  self.complete(ec1, 0);
-                  return;
-               }
-            } break;
-
-            case 1:
-            {
-               if (!ec2) {
-                  self.complete(error::read_timeout, 0);
-                  return;
-               }
-            } break;
-
-            default: BOOST_ASSERT(false);
-         }
-
-         self.complete({}, n);
-      }
-   }
-};
-
-template <class Conn, class Command>
 struct reader_op {
    Conn* cli;
    resp3::type type_ =  resp3::type::invalid;
@@ -677,7 +631,12 @@ struct reader_op {
          cli->last_data_ = std::chrono::steady_clock::now();
 
          if (cmd_ == Command::invalid) {
-            yield cli->async_read_with_timeout(cmd_, std::move(self));
+            yield
+            resp3::async_read(
+               *cli->socket_,
+               cli->make_dynamic_buffer(),
+               cli->select_adapter(Command::invalid),
+               std::move(self));
             if (ec) {
                cli->close();
                self.complete(ec);
@@ -693,8 +652,12 @@ struct reader_op {
          } else {
             // Trigger processing of the response.
             cli->reqs_.front().timer->cancel_one();
-            cli->wait_read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+            cli->wait_read_timer_.expires_after(cli->cfg_.read_timeout);
             yield cli->wait_read_timer_.async_wait(std::move(self));
+            if (!ec) {
+               self.complete(error::read_timeout);
+               return;
+            }
             if (!cli->socket_->is_open()) {
                self.complete(ec);
                return;
