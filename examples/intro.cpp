@@ -5,21 +5,17 @@
  */
 
 #include <string>
-#include <memory>
-#include <vector>
-#include <cstdio>
 #include <tuple>
-
+#include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
 namespace generic = aedis::generic;
 
-using aedis::resp3::node;
 using aedis::redis::command;
 using aedis::generic::request;
-using connection = aedis::generic::connection<command>;
+using connection = generic::connection<command>;
 
 auto handler =[](auto ec, auto...)
    { std::cout << ec.message() << std::endl; };

@@ -4,18 +4,21 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
 #include <vector>
-
+#include <string>
+#include <vector>
+#include <iostream>
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
 namespace generic = aedis::generic;
+namespace adapter = aedis::adapter;
 using aedis::redis::command;
 using aedis::generic::request;
-using connection = aedis::generic::connection<command>;
+using connection = generic::connection<command>;
+using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 /* In this example we send a subscription to a channel and start
  * reading server side messages indefinitely.
@@ -31,13 +34,14 @@ using connection = aedis::generic::connection<command>;
  * The messages will then appear on the terminal you are running the
  * example.
  */
-
 net::awaitable<void> reader(std::shared_ptr<connection> db)
 {
-   std::vector<aedis::resp3::node<std::string>> resp;
+   request<command> req;
+   req.push(command::subscribe, "channel");
+   co_await db->async_exec(req, generic::adapt(), net::use_awaitable);
 
-   for (;;) {
-      auto n = co_await db->async_read_push(aedis::adapter::adapt(resp), net::use_awaitable);
+   for (response_type resp;;) {
+      auto n = co_await db->async_read_push(adapter::adapt(resp), net::use_awaitable);
       std::cout
          << "Size: "   << n << "\n"
          << "Event: "   << resp.at(1).value << "\n"
@@ -49,13 +53,6 @@ net::awaitable<void> reader(std::shared_ptr<connection> db)
    }
 }
 
-net::awaitable<void> subscriber(std::shared_ptr<connection> db)
-{
-   request<command> req;
-   req.push(command::subscribe, "channel1", "channel2");
-   co_await db->async_exec(req, generic::adapt(), net::use_awaitable);
-}
-
 auto handler = [](auto ec, auto...)
    { std::cout << ec.message() << std::endl; };
 
@@ -64,7 +61,6 @@ int main()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, reader(db), net::detached);
-   net::co_spawn(ioc, subscriber(db), net::detached);
    db->async_run(handler);
    ioc.run();
 }

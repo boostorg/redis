@@ -8,11 +8,9 @@
 #include <set>
 #include <vector>
 #include <iostream>
-
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
-
 #include "print.hpp"
 
 namespace net = boost::asio;

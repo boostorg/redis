@@ -4,45 +4,37 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <queue>
-#include <vector>
 #include <string>
 #include <iostream>
-
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
 namespace generic = aedis::generic;
-using aedis::resp3::node;
-using aedis::generic::request;
+using generic::request;
 using aedis::redis::command;
-using response_type = std::vector<aedis::resp3::node<std::string>>;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using connection = aedis::generic::connection<command>;
+using connection = generic::connection<command>;
 
 net::awaitable<void>
-echo_loop(
-   tcp_socket socket,
-   std::shared_ptr<connection> db,
-   std::shared_ptr<response_type> resp)
+echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
 {
    try {
       std::string msg;
-      for (auto dbuffer = net::dynamic_buffer(msg, 1024);;) {
+      request<command> req;
+      auto dbuffer = net::dynamic_buffer(msg, 1024);
+      for (;;) {
          auto const n = co_await net::async_read_until(socket, dbuffer, "\n");
-         request<command> req;
          req.push(command::incr, "echo-server-counter");
-         req.push(command::set, "echo-server-key", msg);
-         req.push(command::get, "echo-server-key");
-         co_await db->async_exec(req, generic::adapt(*resp), net::use_awaitable);
-         resp->at(0).value += ": ";
-         resp->at(0).value += resp->at(2).value;
-         co_await net::async_write(socket, net::buffer(resp->at(0).value));
-         resp->clear();
+         req.push(command::ping, msg);
+         std::tuple<std::string, std::string> resp;
+         co_await db->async_exec(req, generic::adapt(resp), net::use_awaitable);
+         auto const msg = std::get<0>(resp) + ") " + std::get<1>(resp);
+         co_await net::async_write(socket, net::buffer(msg));
          dbuffer.consume(n);
+         req.clear();
       }
    } catch (std::exception const& e) {
       std::cout << "Error: " << e.what() << std::endl;
@@ -55,11 +47,10 @@ listener(
     std::shared_ptr<connection> db)
 {
    auto ex = co_await net::this_coro::executor;
-   auto resp = std::make_shared<response_type>();
 
    for (;;) {
       auto socket = co_await acc->async_accept();
-      net::co_spawn(ex, echo_loop(std::move(socket), db, resp), net::detached);
+      net::co_spawn(ex, echo_loop(std::move(socket), db), net::detached);
    }
 }
 
