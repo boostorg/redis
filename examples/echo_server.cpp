@@ -14,8 +14,8 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+namespace generic = aedis::generic;
 using aedis::resp3::node;
-using aedis::adapter::adapt;
 using aedis::generic::request;
 using aedis::redis::command;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
@@ -37,7 +37,7 @@ echo_loop(
          req.push(command::incr, "echo-server-counter");
          req.push(command::set, "echo-server-key", msg);
          req.push(command::get, "echo-server-key");
-         co_await db->async_exec(req, adapt(*resp), net::use_awaitable);
+         co_await db->async_exec(req, generic::adapt(*resp), net::use_awaitable);
          resp->at(0).value += ": ";
          resp->at(0).value += resp->at(2).value;
          co_await net::async_write(socket, net::buffer(resp->at(0).value));

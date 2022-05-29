@@ -28,8 +28,7 @@ namespace detail {
  * containers and C++ buil-in types.
  */
 template <class ResponseType>
-struct response_traits
-{
+struct response_traits {
    using adapter_type = adapter::detail::wrapper<ResponseType>;
    static auto adapt(ResponseType& r) noexcept { return adapter_type{&r}; }
 };
@@ -38,30 +37,25 @@ template <class T>
 using adapter_t = typename response_traits<T>::adapter_type;
 
 template <class T>
-struct response_traits<resp3::node<T>>
-{
+struct response_traits<resp3::node<T>> {
    using response_type = resp3::node<T>;
    using adapter_type = adapter::detail::general_simple<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 
 template <class String, class Allocator>
-struct response_traits<std::vector<resp3::node<String>, Allocator>>
-{
+struct response_traits<std::vector<resp3::node<String>, Allocator>> {
    using response_type = std::vector<resp3::node<String>, Allocator>;
    using adapter_type = adapter::detail::general_aggregate<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 
 template <>
-struct response_traits<void>
-{
+struct response_traits<void> {
    using response_type = void;
    using adapter_type = resp3::detail::ignore_response;
    static auto adapt() noexcept { return adapter_type{}; }
 };
-
-namespace detail {
 
 // Duplicated here to avoid circular include dependency.
 template<class T>
@@ -144,13 +138,11 @@ public:
    }
 };
 
-} // detail
-
 template <class... Ts>
 struct response_traits<std::tuple<Ts...>>
 {
    using response_type = std::tuple<Ts...>;
-   using adapter_type = detail::static_aggregate_adapter<response_type>;
+   using adapter_type = static_aggregate_adapter<response_type>;
    static auto adapt(response_type& r) noexcept { return adapter_type{&r}; }
 };
 

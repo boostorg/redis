@@ -20,8 +20,9 @@
 
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
+namespace generic = aedis::generic;
+namespace adapter = aedis::adapter;
 
-using aedis::adapter::adapt;
 using aedis::adapter::adapter_t;
 using aedis::redis::command;
 using aedis::resp3::node;
@@ -82,7 +83,7 @@ void test_quit()
 
    request<command> req;
    req.push(command::quit);
-   db->async_exec(req, adapt(), [](auto ec, auto r){
+   db->async_exec(req, generic::adapt(), [](auto ec, auto r){
       expect_no_error(ec);
       //expect_eq(w, 36UL);
       //expect_eq(r, 152UL);
@@ -101,12 +102,12 @@ net::awaitable<void>
 push_consumer3(std::shared_ptr<connection> db)
 {
    {
-      auto [ec, n] = co_await db->async_read_push(adapt(), as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_read_push(adapter::adapt(), as_tuple(net::use_awaitable));
       expect_no_error(ec);
    }
 
    {
-      auto [ec, n] = co_await db->async_read_push(adapt(), as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_read_push(adapter::adapt(), as_tuple(net::use_awaitable));
       expect_error(ec, boost::asio::error::operation_aborted);
    }
 }
@@ -120,7 +121,7 @@ void test_push()
    req.push(command::subscribe, "channel");
    req.push(command::quit);
 
-   db->async_exec(req, adapt(), [](auto ec, auto r){
+   db->async_exec(req, generic::adapt(), [](auto ec, auto r){
       expect_no_error(ec);
       //expect_eq(w, 68UL);
       //expect_eq(r, 151UL);
@@ -142,7 +143,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
    {
       request<command> req;
       req.push(command::quit);
-      db->async_exec(req, adapt(), [](auto ec, auto){
+      db->async_exec(req, generic::adapt(), [](auto ec, auto){
          expect_no_error(ec);
       });
 
@@ -153,7 +154,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
    {
       request<command> req;
       req.push(command::quit);
-      db->async_exec(req, adapt(), [](auto ec, auto){
+      db->async_exec(req, generic::adapt(), [](auto ec, auto){
          expect_no_error(ec);
       });
 
@@ -187,7 +188,7 @@ void test_idle()
    request<command> req;
    req.push(command::client, "PAUSE", 5000);
 
-   db->async_exec(req, adapt(), [](auto ec, auto r){
+   db->async_exec(req, generic::adapt(), [](auto ec, auto r){
       expect_no_error(ec);
    });
 

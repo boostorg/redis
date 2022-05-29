@@ -22,7 +22,7 @@
 #include <aedis/resp3/write.hpp>
 #include <aedis/generic/error.hpp>
 #include <aedis/redis/command.hpp>
-#include <aedis/adapter/adapt.hpp>
+#include <aedis/generic/adapt.hpp>
 
 namespace aedis {
 namespace generic {
@@ -116,7 +116,7 @@ struct exec_internal_op {
    }
 };
 
-template <class Conn, class Command, class Adapter>
+template <class Conn, class Adapter>
 struct read_push_op {
    Conn* cli;
    Adapter adapter;
@@ -167,6 +167,7 @@ struct exec_op {
    Adapter adapter;
    std::shared_ptr<boost::asio::steady_timer> timer;
    std::size_t read_size = 0;
+   std::size_t index = 0;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -198,12 +199,13 @@ struct exec_op {
             cli->reqs_.pop_front(); // TODO: Recycle timers.
 
             // If there is no ongoing push-read operation we can
-            // request the timer to proceed, otherwise we can just
+            // request the reader to proceed, otherwise we can just
             // exit.
             if (cli->waiting_pushes_ == 0) {
                //std::cout << "exec_op: requesting read op to proceed." << std::endl;
                cli->wait_read_timer_.cancel_one();
             }
+
             self.complete({}, 0);
             return;
          }
@@ -211,12 +213,16 @@ struct exec_op {
          // Notice we use the front of the queue.
          while (cli->reqs_.front().n_cmds != 0) {
             BOOST_ASSERT(!cli->cmds_.empty());
+
             yield
             resp3::async_read(
                *cli->socket_,
                cli->make_dynamic_buffer(),
-               [adpt = adapter, cmd = cli->cmds_.front()] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(cmd, nd, ec); },
+               [i = index, adpt = adapter, cmd = cli->cmds_.front()] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, cmd, nd, ec); },
                std::move(self));
+
+            ++index;
+
             if (ec) {
                cli->close();
                self.complete(ec, 0);
@@ -285,7 +291,7 @@ struct ping_op {
          //std::cout << "ping_op: Sending a command." << std::endl;
          cli->req_.clear();
          cli->req_.push(Command::ping);
-         yield cli->async_exec(cli->req_, adapter::adapt(), std::move(self));
+         yield cli->async_exec(cli->req_, generic::adapt(), std::move(self));
          if (ec) {
             self.complete(ec);
             return;

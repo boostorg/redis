@@ -14,8 +14,9 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+namespace generic = aedis::generic;
+
 using aedis::resp3::node;
-using aedis::adapter::adapt;
 using aedis::redis::command;
 using aedis::generic::request;
 using connection = aedis::generic::connection<command>;
@@ -29,13 +30,14 @@ int main()
    req.push(command::ping, "Ping example");
    req.push(command::quit);
 
-   std::string resp;
+   std::tuple<std::string, std::string> resp;
 
    net::io_context ioc;
    connection db{ioc};
-   db.async_exec(req, adapt(resp), handler);
+   db.async_exec(req, generic::adapt(resp), handler);
    db.async_run(handler);
    ioc.run();
 
-   std::cout << resp << std::endl;
+   std::cout << std::get<0>(resp) << std::endl;
+   std::cout << std::get<1>(resp) << std::endl;
 }

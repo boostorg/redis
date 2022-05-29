@@ -14,8 +14,9 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+namespace generic = aedis::generic;
+namespace adapter = aedis::adapter;
 using aedis::resp3::node;
-using aedis::adapter::adapt;
 using aedis::redis::command;
 using aedis::generic::request;
 using connection = aedis::generic::connection<command>;
@@ -60,7 +61,7 @@ private:
             request<command> req;
             req.push(command::publish, "channel", msg);
             req.push(command::incr, "chat-room-counter");
-            co_await db->async_exec(req, adapt(*resp), net::use_awaitable);
+            co_await db->async_exec(req, generic::adapt(*resp), net::use_awaitable);
             std::cout << "Messsages so far: " << resp->at(1).value << std::endl;
             resp->clear();
             msg.erase(0, n);
@@ -107,7 +108,7 @@ reader(
    std::shared_ptr<sessions_type> sessions)
 {
    for (;;) {
-      co_await db->async_read_push(adapt(*resp), net::use_awaitable);
+      co_await db->async_read_push(adapter::adapt(*resp), net::use_awaitable);
 
       for (auto& session: *sessions)
          session->deliver(resp->at(3).value);
@@ -147,7 +148,7 @@ int main()
       // response.
       request<command> req;
       req.push(command::subscribe, "channel");
-      db->async_exec(req, adapt(), handler);
+      db->async_exec(req, generic::adapt(), handler);
 
       auto resp = std::make_shared<response_type>();
 

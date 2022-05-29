@@ -16,6 +16,7 @@
 #include <aedis/generic/error.hpp>
 #include <aedis/generic/request.hpp>
 #include <aedis/generic/connection.hpp>
+#include <aedis/generic/adapt.hpp>
 
 /** \mainpage Documentation
     \tableofcontents

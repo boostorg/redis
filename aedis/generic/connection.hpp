@@ -25,11 +25,9 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/redis/command.hpp>
-#include <aedis/adapter/adapt.hpp>
+#include <aedis/generic/adapt.hpp>
 #include <aedis/generic/request.hpp>
 #include <aedis/generic/detail/connection_ops.hpp>
-
-// TODO: Don't pass pong to the adapter.
 
 namespace aedis {
 namespace generic {
@@ -45,10 +43,6 @@ namespace generic {
  */
 template <class Command, class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection {
-private:
-   using adapter_type = std::function<void(Command, resp3::node<boost::string_view> const&, boost::system::error_code&)>;
-   using adapter_type2 = std::function<void(resp3::node<boost::string_view> const&, boost::system::error_code&)>;
-
 public:
    /// Executor type.
    using executor_type = typename AsyncReadWriteStream::executor_type;
@@ -193,12 +187,11 @@ public:
    /** @brief Asynchrnously schedules a command for execution.
     */
    template <
-      class Adapter = adapter::detail::response_traits<void>::adapter_type,
-      class CompletionToken = default_completion_token_type,
-      std::enable_if_t<std::is_convertible<Adapter, adapter_type>::value, bool> = true>
+      class Adapter = detail::response_traits<void>::adapter_type,
+      class CompletionToken = default_completion_token_type>
    auto async_exec(
       request_type const& req,
-      Adapter adapter = adapter::adapt(),
+      Adapter adapter = generic::adapt(),
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
@@ -207,28 +200,10 @@ public:
          >(detail::exec_op<connection, Adapter>{this, &req, adapter}, token, resv_);
    }
 
-   template <
-      class Adapter = adapter::detail::response_traits<void>::adapter_type,
-      class CompletionToken = default_completion_token_type,
-      std::enable_if_t<std::is_convertible<Adapter, adapter_type2>::value, bool> = true>
-   auto async_exec(
-      request_type const& req,
-      Adapter adapter = adapter::adapt(),
-      CompletionToken token = CompletionToken{})
-   {
-      auto wrap = [adapter]
-         (Command, resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable
-            { adapter(nd, ec); };
-
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(detail::exec_op<connection, decltype(wrap)>{this, &req, wrap}, token, resv_);
-   }
    /** @brief Receives events produced by the run operation.
     */
    template <
-      class Adapter = adapter::detail::response_traits<void>::adapter_type,
+      class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = default_completion_token_type>
    auto
    async_read_push(
@@ -238,7 +213,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::read_push_op<connection, Command, Adapter>{this, adapter}, token, resv_);
+         >(detail::read_push_op<connection, Adapter>{this, adapter}, token, resv_);
    }
 
    /** @brief Closes the connection with the database.
@@ -263,11 +238,11 @@ public:
 private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
-   template <class T, class U, class V> friend struct detail::read_push_op;
    template <class T, class U> friend struct detail::reader_op;
    template <class T, class U> friend struct detail::ping_op;
    template <class T, class U> friend struct detail::run_op;
-   template <class T, class u> friend struct detail::exec_op;
+   template <class T, class U> friend struct detail::exec_op;
+   template <class T, class U> friend struct detail::read_push_op;
    template <class T> friend struct detail::exec_internal_impl_op;
    template <class T> friend struct detail::exec_internal_op;
    template <class T> friend struct detail::write_op;

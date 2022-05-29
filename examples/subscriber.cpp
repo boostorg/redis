@@ -12,11 +12,10 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-using aedis::adapter::adapt;
+namespace generic = aedis::generic;
 using aedis::redis::command;
 using aedis::generic::request;
 using connection = aedis::generic::connection<command>;
-using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 /* In this example we send a subscription to a channel and start
  * reading server side messages indefinitely.
@@ -35,9 +34,10 @@ using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 net::awaitable<void> reader(std::shared_ptr<connection> db)
 {
-   response_type resp;
+   std::vector<aedis::resp3::node<std::string>> resp;
+
    for (;;) {
-      auto n = co_await db->async_read_push(adapt(resp), net::use_awaitable);
+      auto n = co_await db->async_read_push(aedis::adapter::adapt(resp), net::use_awaitable);
       std::cout
          << "Size: "   << n << "\n"
          << "Event: "   << resp.at(1).value << "\n"
@@ -53,7 +53,7 @@ net::awaitable<void> subscriber(std::shared_ptr<connection> db)
 {
    request<command> req;
    req.push(command::subscribe, "channel1", "channel2");
-   co_await db->async_exec(req, adapt(), net::use_awaitable);
+   co_await db->async_exec(req, generic::adapt(), net::use_awaitable);
 }
 
 auto handler = [](auto ec, auto...)

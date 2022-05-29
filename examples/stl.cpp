@@ -16,8 +16,7 @@
 #include "print.hpp"
 
 namespace net = boost::asio;
-using aedis::adapter::adapt;
-using aedis::adapter::adapter_t;
+namespace adapter = aedis::adapter;
 using aedis::redis::command;
 using aedis::generic::request;
 using connection = aedis::generic::connection<command>;
@@ -39,10 +38,10 @@ int main()
    T2 resp2;
 
    auto adapter =
-      [ a0 = adapt(resp0)
-      , a1 = adapt(resp1)
-      , a2 = adapt(resp2)
-      ](command cmd, node_type const& nd, error_code& ec) mutable
+      [ a0 = adapter::adapt(resp0)
+      , a1 = adapter::adapt(resp1)
+      , a2 = adapter::adapt(resp2)
+      ](std::size_t, command cmd, node_type const& nd, error_code& ec) mutable
    {
       switch (cmd) {
          case command::lrange:   a0(nd, ec); break;
