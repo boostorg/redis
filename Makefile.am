@@ -13,11 +13,10 @@ AM_LDFLAGS += -pthread
 
 check_PROGRAMS =
 check_PROGRAMS += intro_sync
-check_PROGRAMS += serialization_sync
-check_PROGRAMS += test_low_level
 check_PROGRAMS += intro
-check_PROGRAMS += stl
+check_PROGRAMS += containers
 check_PROGRAMS += adapter
+check_PROGRAMS += test_low_level
 if HAVE_CXX20
 check_PROGRAMS += test_high_level
 endif
@@ -38,12 +37,11 @@ CLEANFILES += $(EXTRA_PROGRAMS)
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
 intro_sync_SOURCES = $(top_srcdir)/tests/intro_sync.cpp
-serialization_sync_SOURCES = $(top_srcdir)/tests/serialization_sync.cpp
 commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 intro_SOURCES = $(top_srcdir)/examples/intro.cpp
-stl_SOURCES = $(top_srcdir)/examples/stl.cpp
+containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 adapter_SOURCES = $(top_srcdir)/examples/adapter.cpp
 if HAVE_CXX20
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp

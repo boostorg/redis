@@ -12,13 +12,13 @@
 
 #include <aedis/aedis.hpp>
 
-// TODO: Use json instead.
 // Arbitrary struct to de/serialize.
 struct mystruct {
    std::int32_t x;
    std::string y;
 };
 
+// TODO: Use json instead.
 // Serializes mystruct
 void to_bulk(std::string& to, mystruct const& obj)
 {

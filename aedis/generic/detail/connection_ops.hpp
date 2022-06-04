@@ -130,7 +130,6 @@ struct read_push_op {
    {
       reenter (coro)
       {
-         //std::cout << "push_op: waiting to process push." << std::endl;
          if (cli->waiting_pushes_ == 0) {
             yield cli->wait_push_timer_.async_wait(std::move(self));
             if (!cli->socket_->is_open()) {
@@ -138,12 +137,10 @@ struct read_push_op {
                return;
             }
 
-            //std::cout << "push_op: After wait." << std::endl;
             BOOST_ASSERT(cli->waiting_pushes_ == 1);
          }
 
 
-         //std::cout << "push_op: starting to process the push." << std::endl;
          yield
          resp3::async_read(
             *cli->socket_,
@@ -151,7 +148,6 @@ struct read_push_op {
             adapter,
             std::move(self));
 
-         //std::cout << "push_op: finish, calling the reader_op." << std::endl;
          cli->wait_read_timer_.cancel_one();
          cli->waiting_pushes_ = 0;
          self.complete(ec, n);
@@ -184,7 +180,6 @@ struct exec_op {
          timer->expires_at(std::chrono::steady_clock::time_point::max());
          cli->add_request(*req, timer);
 
-         //std::cout << "exec_op: waiting to process a read " << cli->reqs_.size() << std::endl;
          // Notice we use the back of the queue.
          yield timer->async_wait(std::move(self));
          if (!cli->socket_->is_open()) {
@@ -202,7 +197,6 @@ struct exec_op {
             // request the reader to proceed, otherwise we can just
             // exit.
             if (cli->waiting_pushes_ == 0) {
-               //std::cout << "exec_op: requesting read op to proceed." << std::endl;
                cli->wait_read_timer_.cancel_one();
             }
 
@@ -248,10 +242,8 @@ struct exec_op {
             // We are done with the pipeline and can resumes listening
             // on the socket and send pending requests if there is
             // any.
-            //std::cout << "exec_op: requesting read op to proceed." << std::endl;
             cli->wait_read_timer_.cancel_one();
             if (!cli->reqs_.empty()) {
-               //std::cout << "exec_op: Requesting a write." << std::endl;
                cli->wait_write_timer_.cancel_one();
             }
          } else {
@@ -280,7 +272,6 @@ struct ping_op {
    {
       reenter (coro) for (;;)
       {
-         //std::cout << "ping_op: waiting to send a ping." << std::endl;
          cli->ping_timer_.expires_after(cli->cfg_.ping_interval);
          yield cli->ping_timer_.async_wait(std::move(self));
          if (ec) {
@@ -288,7 +279,6 @@ struct ping_op {
             return;
          }
 
-         //std::cout << "ping_op: Sending a command." << std::endl;
          cli->req_.clear();
          cli->req_.push(Command::ping);
          yield cli->async_exec(cli->req_, generic::adapt(), std::move(self));
@@ -499,7 +489,6 @@ struct read_write_check_ping_op {
       reenter (coro)
       {
          // Starts the reader and writer ops.
-         //std::cout << "read_write_check_ping_op: Setting the timer." << std::endl;
 
          yield
          boost::asio::experimental::make_parallel_group(
@@ -596,7 +585,6 @@ struct write_op {
    {
       reenter (coro)
       {
-         //std::cout << "write_op: before." << std::endl;
          BOOST_ASSERT(!cli->reqs_.empty());
          BOOST_ASSERT(!cli->payload_next_.empty());
 
@@ -611,7 +599,6 @@ struct write_op {
             *cli->socket_,
             boost::asio::buffer(cli->payload_),
             std::move(self));
-         //std::cout << "write_op: after." << std::endl;
 
          BOOST_ASSERT(!cli->reqs_.empty());
          if (cli->reqs_.front().n_cmds == 0) {
@@ -654,8 +641,6 @@ struct write_with_timeout_op {
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
             std::move(self));
-
-         //std::cout << "write_with_timeout_op: completed." << std::endl;
 
          switch (order[0]) {
             case 0:
@@ -708,14 +693,11 @@ struct writer_op {
             }
          }
 
-         //std::cout << "writer_op: waiting to write." << std::endl;
          yield cli->wait_write_timer_.async_wait(std::move(self));
          if (!cli->socket_->is_open()) {
             self.complete(error::write_stop_requested);
             return;
          }
-
-         //std::cout << "writer_op: Write requested: " << ec.message() << std::endl;
       }
    }
 };
@@ -734,7 +716,6 @@ struct reader_op {
 
       reenter (coro) for (;;)
       {
-         //std::cout << "reader_op: waiting data." << std::endl;
          yield
          boost::asio::async_read_until(
             *cli->socket_,
@@ -755,22 +736,17 @@ struct reader_op {
 
          cli->last_data_ = std::chrono::steady_clock::now();
          if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
-            //std::cout << "reader_op: Requesting the push op." << std::endl;
             cli->waiting_pushes_ = 1;
             cli->wait_push_timer_.cancel_one();
          } else {
-            //std::cout << "reader_op: Requesting the read op." << std::endl;
             BOOST_ASSERT(!cli->cmds_.empty());
             BOOST_ASSERT(cli->reqs_.front().n_cmds != 0);
             cli->reqs_.front().timer->cancel_one();
          }
 
-         //std::cout << "reader_op: waiting to read." << std::endl;
          cli->wait_read_timer_.expires_after(cli->cfg_.read_timeout);
          yield cli->wait_read_timer_.async_wait(std::move(self));
-         //std::cout << "reader_op: after wait: " << ec.message() << std::endl;
          if (!ec) {
-            //std::cout << "reader_op: error1." << std::endl;
             self.complete(error::read_timeout);
             return;
          }

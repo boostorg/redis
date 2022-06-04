@@ -12,6 +12,7 @@
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
 #include "print.hpp"
+#include "mystruct.hpp"
 
 namespace net = boost::asio;
 namespace generic = aedis::generic;
@@ -22,7 +23,7 @@ using connection = aedis::generic::connection<command>;
 
 // Response used in this example.
 using C1 = std::vector<int>;
-using C2 = std::set<std::string>;
+using C2 = std::set<mystruct>;
 using C3 = std::map<std::string, std::string>;
 
 auto handler =[](auto ec, auto...)
@@ -35,7 +36,7 @@ int main()
 
    // Request that sends the containers.
    C1 vec {1, 2, 3, 4, 5, 6};
-   C2 set {"one", "two", "three", "four"};
+   C2 set {{1, "one"}, {2, "two"}, {3, "three"}, {4, "four"}};
    C3 map {{"key1", "value1"}, {"key2", "value2"}, {"key3", "value3"}};
 
    request<command> req1;
