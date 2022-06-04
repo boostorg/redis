@@ -46,33 +46,17 @@ namespace generic {
 template <class Command>
 class request {
 public:
-   using command_type = Command;
-   using command_info_type = std::pair<Command, std::size_t>;
-
-private:
-   std::string payload_;
-   std::vector<command_info_type> commands_;
-
-public:
+   /// Returns a list of commands contained in this request.
    auto const& commands() const { return commands_;};
-   auto size() const { return payload_.size();}
-   auto empty() const { return payload_.empty(); }
-   auto const* data() const { return payload_.data(); }
+
+   /// Returns the request payload.
    auto const& payload() const { return payload_;}
+
+   /// Clears the request preserving allocated memory.
    void clear()
    {
       payload_.clear();
       commands_.clear();
-   }
-
-   void pop()
-   {
-      BOOST_ASSERT(!commands_.empty());
-      commands_.erase(std::begin(commands_));
-
-      // TODO: Erase the payload, perhaps by adding an offset of
-      // already acknolodged commands.
-      // TODO: Add function to enable laze pop.
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -218,6 +202,11 @@ public:
       using std::end;
       push_range2(cmd, begin(range), end(range));
    }
+
+private:
+   using command_info_type = std::pair<Command, std::size_t>;
+   std::string payload_;
+   std::vector<command_info_type> commands_;
 };
 
 } // generic

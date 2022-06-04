@@ -8,23 +8,15 @@
 #define AEDIS_GENERIC_CONNECTION_HPP
 
 #include <vector>
-#include <deque>
-#include <limits>
-#include <functional>
-#include <iterator>
-#include <algorithm>
-#include <utility>
-#include <chrono>
 #include <queue>
+#include <limits>
+#include <chrono>
 #include <memory>
 #include <type_traits>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 
-#include <aedis/resp3/type.hpp>
-#include <aedis/resp3/node.hpp>
-#include <aedis/redis/command.hpp>
 #include <aedis/generic/adapt.hpp>
 #include <aedis/generic/request.hpp>
 #include <aedis/generic/detail/connection_ops.hpp>
@@ -207,13 +199,13 @@ public:
       class CompletionToken = default_completion_token_type>
    auto
    async_read_push(
-      Adapter adapter = adapter::adapt(),
+      Adapter adapter = generic::adapt(),
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::read_push_op<connection, Adapter>{this, adapter}, token, resv_);
+         >(detail::read_push_op<connection, Adapter, Command>{this, adapter}, token, resv_);
    }
 
    /** @brief Closes the connection with the database.
@@ -238,11 +230,11 @@ public:
 private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
+   template <class T, class U, class V> friend struct detail::read_push_op;
    template <class T, class U> friend struct detail::reader_op;
    template <class T, class U> friend struct detail::ping_op;
    template <class T, class U> friend struct detail::run_op;
    template <class T, class U> friend struct detail::exec_op;
-   template <class T, class U> friend struct detail::read_push_op;
    template <class T> friend struct detail::exec_internal_impl_op;
    template <class T> friend struct detail::exec_internal_op;
    template <class T> friend struct detail::write_op;

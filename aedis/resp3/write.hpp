@@ -12,8 +12,6 @@
 namespace aedis {
 namespace resp3 {
 
-/** @brief TODO
- */
 template<
    class SyncWriteStream,
    class Request
@@ -23,8 +21,6 @@ std::size_t write(SyncWriteStream& stream, Request const& req)
    return boost::asio::write(stream, boost::asio::buffer(req.payload()));
 }
 
-/** @brief TODO
- */
 template<
     class SyncWriteStream,
     class Request
@@ -37,8 +33,6 @@ std::size_t write(
    return boost::asio::write(stream, boost::asio::buffer(req.payload()), ec);
 }
 
-/** @brief Writes a request asynchronously.
- */
 template<
    class AsyncWriteStream,
    class Request,

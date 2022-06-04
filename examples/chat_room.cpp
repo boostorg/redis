@@ -15,8 +15,6 @@
 
 namespace net = boost::asio;
 namespace generic = aedis::generic;
-namespace adapter = aedis::adapter;
-using aedis::resp3::node;
 using aedis::redis::command;
 using aedis::generic::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
@@ -59,7 +57,7 @@ private:
          for (;;) {
             auto const n = co_await net::async_read_until(socket_, dbuffer, "\n");
             req.push(command::publish, "channel", msg);
-            co_await db->async_exec(req, generic::adapt());
+            co_await db->async_exec(req);
             req.clear();
             msg.erase(0, n);
          }
@@ -105,10 +103,10 @@ reader(
 {
    request<command> req;
    req.push(command::subscribe, "channel");
-   co_await db->async_exec(req, generic::adapt());
+   co_await db->async_exec(req);
 
    for (response_type resp;;) {
-      co_await db->async_read_push(adapter::adapt(resp));
+      co_await db->async_read_push(generic::adapt(resp));
 
       for (auto& session: *sessions)
          session->deliver(resp.at(3).value);

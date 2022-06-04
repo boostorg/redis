@@ -21,7 +21,6 @@
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/write.hpp>
 #include <aedis/generic/error.hpp>
-#include <aedis/redis/command.hpp>
 #include <aedis/generic/adapt.hpp>
 
 namespace aedis {
@@ -116,7 +115,7 @@ struct exec_internal_op {
    }
 };
 
-template <class Conn, class Adapter>
+template <class Conn, class Adapter, class Command>
 struct read_push_op {
    Conn* cli;
    Adapter adapter;
@@ -140,12 +139,11 @@ struct read_push_op {
             BOOST_ASSERT(cli->waiting_pushes_ == 1);
          }
 
-
          yield
          resp3::async_read(
             *cli->socket_,
             cli->make_dynamic_buffer(),
-            adapter,
+            [adpt = adapter](resp3::node<boost::string_view> const& n, boost::system::error_code& ec) mutable { adpt(std::size_t(-1), Command::invalid, n, ec);},
             std::move(self));
 
          cli->wait_read_timer_.cancel_one();
@@ -174,8 +172,7 @@ struct exec_op {
    {
       reenter (coro)
       {
-         // TODO: Check first if there is a recycled channel
-         // available.
+         // TODO: Check first if there is a recycled timer available.
          timer = std::make_shared<boost::asio::steady_timer>(cli->resv_.get_executor());
          timer->expires_at(std::chrono::steady_clock::time_point::max());
          cli->add_request(*req, timer);
@@ -196,9 +193,8 @@ struct exec_op {
             // If there is no ongoing push-read operation we can
             // request the reader to proceed, otherwise we can just
             // exit.
-            if (cli->waiting_pushes_ == 0) {
+            if (cli->waiting_pushes_ == 0)
                cli->wait_read_timer_.cancel_one();
-            }
 
             self.complete({}, 0);
             return;
@@ -728,14 +724,20 @@ struct reader_op {
             return;
          }
 
-         // TODO: Treat type::invalid as error.
-         // TODO: I noticed that unsolicited simple-error events are
-         // Sent by the server (-MISCONF). Send them through the
-         // channel. The only way to detect them is check whether the
-         // queue is empty.
-
          cli->last_data_ = std::chrono::steady_clock::now();
+
          if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
+            cli->waiting_pushes_ = 1;
+            cli->wait_push_timer_.cancel_one();
+         } else if (cli->reqs_.empty()) {
+            // This situation is odd. I have noticed that unsolicited
+            // simple-error events are sent by the server (-MISCONF)
+            // under certain conditions. I expect them to have type
+            // push so we can distinguish them from responses to
+            // commands, but it is a simple-error. If we are lucky
+            // enough to receive them when the command queue is empty
+            // we can treat them as server pushes, otherwise it is
+            // impossible to handle them properly.
             cli->waiting_pushes_ = 1;
             cli->wait_push_timer_.cancel_one();
          } else {

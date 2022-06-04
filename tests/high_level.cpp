@@ -21,16 +21,12 @@
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 namespace generic = aedis::generic;
-namespace adapter = aedis::adapter;
 
-using aedis::adapter::adapter_t;
 using aedis::redis::command;
-using aedis::resp3::node;
 using aedis::generic::request;
 using connection = aedis::generic::connection<command>;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
-using node_type = aedis::resp3::node<boost::string_view>;
 using tcp = net::ip::tcp;
 using boost::system::error_code;
 
@@ -102,12 +98,12 @@ net::awaitable<void>
 push_consumer3(std::shared_ptr<connection> db)
 {
    {
-      auto [ec, n] = co_await db->async_read_push(adapter::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_read_push(generic::adapt(), as_tuple(net::use_awaitable));
       expect_no_error(ec);
    }
 
    {
-      auto [ec, n] = co_await db->async_read_push(adapter::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_read_push(generic::adapt(), as_tuple(net::use_awaitable));
       expect_error(ec, boost::asio::error::operation_aborted);
    }
 }
