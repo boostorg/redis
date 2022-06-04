@@ -381,28 +381,34 @@ struct resolve_with_timeout_op {
    }
 };
 
-template <class Conn>
-struct connect_with_timeout_op {
-   Conn* cli;
+template <
+   class Protocol,
+   class Executor,
+   class EndpointSequence
+   >
+struct connect_with_timeout_impl_op {
+   boost::asio::basic_socket<Protocol, Executor>* socket;
+   boost::asio::steady_timer* timer;
+   EndpointSequence* endpoints;
    boost::asio::coroutine coro;
 
    template <class Self>
    void operator()( Self& self
                   , std::array<std::size_t, 2> order = {}
                   , boost::system::error_code ec1 = {}
-                  , boost::asio::ip::tcp::endpoint const& ep = {}
+                  , typename Protocol::endpoint const& ep = {}
                   , boost::system::error_code ec2 = {})
    {
       reenter (coro)
       {
-         // Tries a connection with a timeout. We can use the writer
-         // timer here as there is no ongoing write operation.
-         cli->write_timer_.expires_after(cli->cfg_.connect_timeout);
-
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return boost::asio::async_connect(*cli->socket_, cli->endpoints_, token);},
-            [this](auto token) { return cli->write_timer_.async_wait(token);}
+            [this](auto token)
+            {
+               auto f = [](boost::system::error_code const&, typename Protocol::endpoint const&) { return true; };
+               return boost::asio::async_connect(*socket, *endpoints, f, token);
+            },
+            [this](auto token) { return timer->async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
             std::move(self));
@@ -411,7 +417,7 @@ struct connect_with_timeout_op {
             case 0:
             {
                if (ec1) {
-                  self.complete(ec1);
+                  self.complete(ec1, ep);
                   return;
                }
             } break;
@@ -419,7 +425,7 @@ struct connect_with_timeout_op {
             case 1:
             {
                if (!ec2) {
-                  self.complete(error::connect_timeout);
+                  self.complete(error::connect_timeout, ep);
                   return;
                }
             } break;
@@ -427,7 +433,52 @@ struct connect_with_timeout_op {
             default: BOOST_ASSERT(false);
          }
 
-         self.complete({});
+         self.complete({}, ep);
+      }
+   }
+};
+
+template <
+   class Protocol,
+   class Executor,
+   class EndpointSequence,
+   class CompletionToken = boost::asio::default_completion_token_t<Executor>
+   >
+auto async_connect_with_timeout(
+      boost::asio::basic_socket<Protocol, Executor>& socket,
+      boost::asio::steady_timer& timer,
+      EndpointSequence ep,
+      CompletionToken&& token = boost::asio::default_completion_token_t<Executor>{})
+{
+   return boost::asio::async_compose
+      < CompletionToken
+      , void(boost::system::error_code, typename Protocol::endpoint const&)
+      >(connect_with_timeout_impl_op<Protocol, Executor, EndpointSequence>
+            {&socket, &timer, &ep}, token, socket, timer);
+}
+
+template <class Conn>
+struct connect_with_timeout_op {
+   Conn* conn;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , boost::asio::ip::tcp::endpoint const& ep = {})
+   {
+      reenter (coro)
+      {
+         conn->write_timer_.expires_after(conn->cfg_.connect_timeout);
+
+         yield
+         async_connect_with_timeout(
+            *conn->socket_,
+            conn->write_timer_,
+            conn->endpoints_,
+            std::move(self));
+
+         self.complete(ec);
       }
    }
 };

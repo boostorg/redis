@@ -300,8 +300,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::connect_with_timeout_op<connection>{this}, token,
-               resv_.get_executor());
+         >(detail::connect_with_timeout_op<connection>{this}, token, resv_);
    }
 
    // Loops on async_read_with_timeout described above.

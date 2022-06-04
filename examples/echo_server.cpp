@@ -16,7 +16,7 @@ using generic::request;
 using aedis::redis::command;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using connection = generic::connection<command>;
+using connection = generic::connection<command, tcp_socket>;
 
 net::awaitable<void>
 echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
@@ -30,7 +30,7 @@ echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
          req.push(command::incr, "echo-server-counter");
          req.push(command::ping, msg);
          std::tuple<std::string, std::string> resp;
-         co_await db->async_exec(req, generic::adapt(resp), net::use_awaitable);
+         co_await db->async_exec(req, generic::adapt(resp));
          auto const msg = std::get<0>(resp) + ") " + std::get<1>(resp);
          co_await net::async_write(socket, net::buffer(msg));
          dbuffer.consume(n);
