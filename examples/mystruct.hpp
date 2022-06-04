@@ -12,6 +12,7 @@
 
 #include <aedis/aedis.hpp>
 
+// TODO: Use json instead.
 // Arbitrary struct to de/serialize.
 struct mystruct {
    std::int32_t x;

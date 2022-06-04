@@ -17,17 +17,15 @@ check_PROGRAMS += serialization_sync
 check_PROGRAMS += test_low_level
 check_PROGRAMS += intro
 check_PROGRAMS += stl
+check_PROGRAMS += adapter
 if HAVE_CXX20
 check_PROGRAMS += test_high_level
-check_PROGRAMS += transaction
-check_PROGRAMS += custom_adapter
 endif
 
 EXTRA_PROGRAMS =
 EXTRA_PROGRAMS += subscriber
 EXTRA_PROGRAMS += commands
 if HAVE_CXX20
-EXTRA_PROGRAMS += subscriber_low_level
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += chat_room
 EXTRA_PROGRAMS += echo_server_client
@@ -46,11 +44,9 @@ subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 intro_SOURCES = $(top_srcdir)/examples/intro.cpp
 stl_SOURCES = $(top_srcdir)/examples/stl.cpp
+adapter_SOURCES = $(top_srcdir)/examples/adapter.cpp
 if HAVE_CXX20
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
-transaction_SOURCES = $(top_srcdir)/tests/transaction.cpp
-subscriber_low_level_SOURCES = $(top_srcdir)/tests/subscriber.cpp
-custom_adapter_SOURCES = $(top_srcdir)/tests/custom_adapter.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
 echo_server_client_SOURCES = $(top_srcdir)/tools/echo_server_client.cpp

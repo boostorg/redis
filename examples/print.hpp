@@ -21,7 +21,7 @@ using aedis::adapter::adapt;
 using aedis::adapter::adapter_t;
 using aedis::redis::command;
 
-void print_and_clear_aggregate(std::vector<aedis::resp3::node<std::string>>& v)
+void print_aggr(std::vector<aedis::resp3::node<std::string>>& v)
 {
    auto const m = aedis::resp3::element_multiplicity(v.front().data_type);
    for (auto i = 0lu; i < m * v.front().aggregate_size; ++i)
@@ -30,17 +30,28 @@ void print_and_clear_aggregate(std::vector<aedis::resp3::node<std::string>>& v)
    v.clear();
 }
 
-void print_and_clear(std::set<std::string>& cont)
+template <class T>
+void print(std::vector<T> const& cont)
 {
    for (auto const& e: cont) std::cout << e << " ";
    std::cout << "\n";
-   cont.clear();
 }
 
-void print_and_clear(std::map<std::string, std::string>& cont)
+template <class T>
+void print(std::set<T> const& cont)
+{
+   for (auto const& e: cont) std::cout << e << " ";
+   std::cout << "\n";
+}
+
+void print(std::map<std::string, std::string> const& cont)
 {
    for (auto const& e: cont)
       std::cout << e.first << ": " << e.second << "\n";
-   cont.clear();
+}
+
+void print(std::string const& e)
+{
+   std::cout << e << std::endl;
 }
 

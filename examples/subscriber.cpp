@@ -17,7 +17,8 @@ namespace generic = aedis::generic;
 namespace adapter = aedis::adapter;
 using aedis::redis::command;
 using aedis::generic::request;
-using connection = generic::connection<command>;
+using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+using connection = generic::connection<command, tcp_socket>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 /* In this example we send a subscription to a channel and start
@@ -38,10 +39,10 @@ net::awaitable<void> reader(std::shared_ptr<connection> db)
 {
    request<command> req;
    req.push(command::subscribe, "channel");
-   co_await db->async_exec(req, generic::adapt(), net::use_awaitable);
+   co_await db->async_exec(req, generic::adapt());
 
    for (response_type resp;;) {
-      auto n = co_await db->async_read_push(adapter::adapt(resp), net::use_awaitable);
+      auto n = co_await db->async_read_push(adapter::adapt(resp));
       std::cout
          << "Size: "   << n << "\n"
          << "Event: "   << resp.at(1).value << "\n"

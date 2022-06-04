@@ -21,7 +21,7 @@ using aedis::redis::command;
 using aedis::generic::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using connection = aedis::generic::connection<command>;
+using connection = aedis::generic::connection<command, tcp_socket>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 class user_session:
@@ -59,7 +59,7 @@ private:
          for (;;) {
             auto const n = co_await net::async_read_until(socket_, dbuffer, "\n");
             req.push(command::publish, "channel", msg);
-            co_await db->async_exec(req, generic::adapt(), net::use_awaitable);
+            co_await db->async_exec(req, generic::adapt());
             req.clear();
             msg.erase(0, n);
          }
@@ -105,10 +105,10 @@ reader(
 {
    request<command> req;
    req.push(command::subscribe, "channel");
-   co_await db->async_exec(req, generic::adapt(), net::use_awaitable);
+   co_await db->async_exec(req, generic::adapt());
 
    for (response_type resp;;) {
-      co_await db->async_read_push(adapter::adapt(resp), net::use_awaitable);
+      co_await db->async_read_push(adapter::adapt(resp));
 
       for (auto& session: *sessions)
          session->deliver(resp.at(3).value);
