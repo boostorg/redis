@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_GENERIC_REQUEST_HPP
-#define AEDIS_GENERIC_REQUEST_HPP
+#ifndef AEDIS_RESP3_REQUEST_HPP
+#define AEDIS_RESP3_REQUEST_HPP
 
 #include <boost/hana.hpp>
 #include <aedis/resp3/compose.hpp>
@@ -17,7 +17,7 @@
 // the value type is a pair.
 
 namespace aedis {
-namespace generic {
+namespace resp3 {
 
 /** @brief Creates Redis requests from user data.
  *  \ingroup any
@@ -209,7 +209,7 @@ private:
    std::vector<command_info_type> commands_;
 };
 
-} // generic
+} // resp3
 } // aedis
 
-#endif // AEDIS_GENERIC_SERIALIZER_HPP
+#endif // AEDIS_RESP3_SERIALIZER_HPP

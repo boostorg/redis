@@ -4,17 +4,16 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <aedis/generic/error.hpp>
+#include <aedis/error.hpp>
 
 namespace aedis {
-namespace generic {
 namespace detail {
 
 struct error_category_impl : boost::system::error_category {
 
    char const* name() const noexcept override
    {
-      return "aedis.generic";
+      return "aedis";
    }
 
    std::string message(int ev) const override
@@ -25,7 +24,6 @@ struct error_category_impl : boost::system::error_category {
 	 case error::read_timeout: return "Read operation timeout.";
 	 case error::write_timeout: return "Write operation timeout.";
 	 case error::idle_timeout: return "Idle timeout.";
-	 case error::write_stop_requested: return "Write stop requested.";
 	 default: BOOST_ASSERT(false);
       }
    }
@@ -44,5 +42,4 @@ boost::system::error_code make_error_code(error e)
     return boost::system::error_code{static_cast<int>(e), detail::category()};
 }
 
-} // generic
 } // aedis

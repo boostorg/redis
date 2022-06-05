@@ -17,8 +17,8 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 
+#include <aedis/resp3/request.hpp>
 #include <aedis/generic/adapt.hpp>
-#include <aedis/generic/request.hpp>
 #include <aedis/generic/detail/connection_ops.hpp>
 
 namespace aedis {
@@ -43,19 +43,13 @@ public:
    using next_layer_type = AsyncReadWriteStream;
 
    /// Type of requests used by the connection.
-   using request_type = generic::request<Command>;
+   using request_type = resp3::request<Command>;
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
    /** @brief Configuration parameters.
     */
    struct config {
-      /// Ip address or name of the Redis server.
-      std::string host = "127.0.0.1";
-
-      /// Port where the Redis server is listening.
-      std::string port = "6379";
-
       /// Timeout of the \c async_resolve operation.
       std::chrono::milliseconds resolve_timeout = std::chrono::seconds{5};
 
@@ -168,12 +162,16 @@ public:
     *  \return This function returns only when there is an error.
     */
    template <class CompletionToken = default_completion_token_type>
-   auto async_run(CompletionToken token = CompletionToken{})
+   auto
+   async_run(
+      boost::string_view host = "127.0.0.1",
+      boost::string_view port = "6379",
+      CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<connection, Command>{this}, token, resv_);
+         >(detail::run_op<connection, Command>{this, host, port}, token, resv_);
    }
 
    /** @brief Asynchrnously schedules a command for execution.
@@ -236,9 +234,7 @@ private:
    template <class T, class U> friend struct detail::ping_op;
    template <class T, class U> friend struct detail::run_op;
    template <class T, class U> friend struct detail::exec_op;
-   template <class T> friend struct detail::exec_internal_impl_op;
    template <class T> friend struct detail::exec_internal_op;
-   template <class T> friend struct detail::write_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::write_with_timeout_op;
    template <class T> friend struct detail::connect_with_timeout_op;
@@ -268,22 +264,20 @@ private:
    }
 
    auto make_dynamic_buffer()
-   {
-      return boost::asio::dynamic_buffer(read_buffer_, cfg_.max_read_size);
-   }
+      { return boost::asio::dynamic_buffer(read_buffer_, cfg_.max_read_size); }
 
-   // Calls connection::async_resolve with the resolve timeout passed in
-   // the config. Uses the write_timer_ to perform the timeout op.
    template <class CompletionToken = default_completion_token_type>
    auto
    async_resolve_with_timeout(
+      boost::string_view host,
+      boost::string_view port,
       CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::resolve_with_timeout_op<connection>{this},
-               token, resv_.get_executor());
+         >(detail::resolve_with_timeout_op<connection>{this, host, port},
+            token, resv_);
    }
 
    // Calls connection::async_connect with a timeout.
@@ -307,16 +301,6 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::reader_op<connection, Command>{this}, token, resv_.get_executor());
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_write(CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(detail::write_op<connection>{this}, token, resv_);
    }
 
    // Write with a timeout.
@@ -369,18 +353,6 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::check_idle_op<connection>{this}, token, check_idle_timer_);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto async_exec_internal_impl(
-      request_type const& req,
-      CompletionToken token = CompletionToken{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::exec_internal_impl_op<connection>{this, &req},
-               token, resv_);
    }
 
    template <class CompletionToken = default_completion_token_type>

@@ -15,8 +15,8 @@
 
 namespace net = boost::asio;
 namespace generic = aedis::generic;
+using aedis::resp3::request;
 using aedis::redis::command;
-using aedis::generic::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 using connection = aedis::generic::connection<command, tcp_socket>;
@@ -139,7 +139,7 @@ int main()
 
       // Redis client and receiver.
       auto db = std::make_shared<connection>(ioc);
-      db->async_run(handler);
+      db->async_run("127.0.0.1", "6379", handler);
 
       auto sessions = std::make_shared<sessions_type>();
       net::co_spawn(ioc, reader(db, sessions), net::detached);

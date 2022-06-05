@@ -4,13 +4,12 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_GENERIC_ERROR_HPP
-#define AEDIS_GENERIC_ERROR_HPP
+#ifndef AEDIS_ERROR_HPP
+#define AEDIS_ERROR_HPP
 
 #include <boost/system/error_code.hpp>
 
 namespace aedis {
-namespace generic {
 
 /** \brief Generic errors.
  *  \ingroup any
@@ -31,9 +30,6 @@ enum class error
 
    /// Idle timeout.
    idle_timeout,
-
-   /// Write stop requested.
-   write_stop_requested,
 };
 
 /** \brief Creates a error_code object from an error.
@@ -41,14 +37,13 @@ enum class error
  */
 boost::system::error_code make_error_code(error e);
 
-} // generic
 } // aedis
 
 namespace std {
 
 template<>
-struct is_error_code_enum<::aedis::generic::error> : std::true_type {};
+struct is_error_code_enum<::aedis::error> : std::true_type {};
 
 } // std
 
-#endif // AEDIS_GENERIC_ERROR_HPP
+#endif // AEDIS_ERROR_HPP

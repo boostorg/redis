@@ -22,8 +22,8 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 namespace generic = aedis::generic;
 
+using aedis::resp3::request;
 using aedis::redis::command;
-using aedis::generic::request;
 using connection = aedis::generic::connection<command>;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
@@ -45,10 +45,8 @@ void test_resolve_error()
    };
 
    net::io_context ioc;
-   connection::config cfg;
-   cfg.host = "Atibaia";
-   connection db(ioc, cfg);
-   db.async_run(f);
+   connection db(ioc);
+   db.async_run("Atibaia", "6379", f);
    ioc.run();
 }
 
@@ -62,10 +60,8 @@ void test_connect_error()
    };
 
    net::io_context ioc;
-   connection::config cfg;
-   cfg.port = "1";
-   connection db(ioc, cfg);
-   db.async_run(f);
+   connection db(ioc);
+   db.async_run("127.0.0.1", "1", f);
    ioc.run();
 }
 
@@ -85,7 +81,7 @@ void test_quit()
       //expect_eq(r, 152UL);
    });
 
-   db->async_run([](auto ec){
+   db->async_run("127.0.0.1", "6379", [](auto ec){
       expect_error(ec, net::error::misc_errors::eof);
    });
 
@@ -125,7 +121,7 @@ void test_push()
 
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
 
-   db->async_run([](auto ec){
+   db->async_run("127.0.0.1", "6379", [](auto ec){
       expect_error(ec, net::error::misc_errors::eof);
    });
 
@@ -143,7 +139,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
          expect_no_error(ec);
       });
 
-      auto [ec] = co_await db->async_run(as_tuple(net::use_awaitable));
+      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
       expect_error(ec, net::error::misc_errors::eof);
    }
 
@@ -154,7 +150,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
          expect_no_error(ec);
       });
 
-      auto [ec] = co_await db->async_run(as_tuple(net::use_awaitable));
+      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
       expect_error(ec, net::error::misc_errors::eof);
    }
 }
@@ -188,8 +184,8 @@ void test_idle()
       expect_no_error(ec);
    });
 
-   db->async_run([](auto ec){
-      expect_error(ec, aedis::generic::error::idle_timeout);
+   db->async_run("127.0.0.1", "6379", [](auto ec){
+      expect_error(ec, aedis::error::idle_timeout);
    });
 
    ioc.run();

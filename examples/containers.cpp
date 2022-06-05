@@ -17,8 +17,8 @@
 namespace net = boost::asio;
 namespace generic = aedis::generic;
 using boost::optional;
+using aedis::resp3::request;
 using aedis::redis::command;
-using aedis::generic::request;
 using connection = aedis::generic::connection<command>;
 
 // Response used in this example.
@@ -43,7 +43,6 @@ int main()
    req1.push_range(command::rpush, "rpush-key", vec);
    req1.push_range(command::sadd, "sadd-key", set);
    req1.push_range(command::hset, "hset-key", map);
-   db.async_exec(req1, generic::adapt(), handler);
 
    // Request that retrieves the containers.
    request<command> req2;
@@ -63,9 +62,9 @@ int main()
       std::string // quit
    > resp;
 
+   db.async_exec(req1, generic::adapt(), handler);
    db.async_exec(req2, generic::adapt(resp), handler);
-
-   db.async_run(handler);
+   db.async_run("127.0.0.1", "6379", handler);
    ioc.run();
 
    auto const& r = std::get<4>(resp);

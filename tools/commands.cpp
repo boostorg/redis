@@ -16,8 +16,8 @@
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
+using aedis::resp3::request;
 using aedis::redis::command;
-using aedis::generic::request;
 using aedis::resp3::node;
 using aedis::adapter::adapt;
 using net::ip::tcp;

@@ -14,8 +14,8 @@
 
 namespace net = boost::asio;
 namespace generic = aedis::generic;
+using aedis::resp3::request;
 using aedis::redis::command;
-using aedis::generic::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using connection = generic::connection<command, tcp_socket>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
@@ -61,6 +61,6 @@ int main()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, reader(db), net::detached);
-   db->async_run(handler);
+   db->async_run("127.0.0.1", "6379", handler);
    ioc.run();
 }

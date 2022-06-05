@@ -9,18 +9,19 @@
 
 #include <array>
 
+#include <boost/assert.hpp>
 #include <boost/system.hpp>
 #include <boost/asio/write.hpp>
-#include <boost/asio/connect.hpp>
 #include <boost/core/ignore_unused.hpp>
-#include <boost/assert.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 
+#include <aedis/error.hpp>
+#include <aedis/detail/net.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/read.hpp>
+#include <aedis/resp3/exec.hpp>
 #include <aedis/resp3/write.hpp>
-#include <aedis/generic/error.hpp>
 #include <aedis/generic/adapt.hpp>
 
 namespace aedis {
@@ -30,36 +31,18 @@ namespace detail {
 #include <boost/asio/yield.hpp>
 
 template <class Conn>
-struct exec_internal_impl_op {
-   Conn* cli;
-   typename Conn::request_type const* req;
+struct connect_with_timeout_op {
+   Conn* conn;
    boost::asio::coroutine coro;
 
    template <class Self>
    void operator()( Self& self
                   , boost::system::error_code ec = {}
-                  , std::size_t n = 0)
+                  , boost::asio::ip::tcp::endpoint const& ep = {})
    {
       reenter (coro)
       {
-         yield
-         boost::asio::async_write(
-            *cli->socket_,
-            boost::asio::buffer(req->payload()),
-            std::move(self));
-
-         if (ec) {
-            self.complete(ec);
-            return;
-         }
-
-         yield
-         resp3::async_read(
-            *cli->socket_,
-            cli->make_dynamic_buffer(),
-            [](resp3::node<boost::string_view> const&, boost::system::error_code&) { },
-            std::move(self));
-
+         yield aedis::detail::async_connect(*conn->socket_, conn->write_timer_, conn->endpoints_, std::move(self));
          self.complete(ec);
       }
    }
@@ -73,44 +56,35 @@ struct exec_internal_op {
 
    template <class Self>
    void operator()( Self& self
-                  , std::array<std::size_t, 2> order = {}
-                  , boost::system::error_code ec1 = {}
-                  , boost::system::error_code ec2 = {})
+                  , boost::system::error_code ec = {}
+                  , std::size_t n = 0)
    {
       reenter (coro)
       {
-         // Idle timeout.
-         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_interval);
+         yield resp3::async_exec( *cli->socket_, cli->check_idle_timer_, *req, adapter::adapt(), cli->make_dynamic_buffer(), std::move(self));
+         self.complete(ec);
+      }
+   }
+};
 
+template <class Conn>
+struct resolve_with_timeout_op {
+   Conn* cli;
+   boost::string_view host;
+   boost::string_view port;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , boost::asio::ip::tcp::resolver::results_type res = {})
+   {
+      reenter (coro)
+      {
          yield
-         boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return cli->async_exec_internal_impl(*req, token);},
-            [this](auto token) { return cli->check_idle_timer_.async_wait(token);}
-         ).async_wait(
-            boost::asio::experimental::wait_for_one(),
-            std::move(self));
-
-         switch (order[0]) {
-            case 0:
-            {
-               if (ec1) {
-                  self.complete(ec1);
-                  return;
-               }
-            } break;
-
-            case 1:
-            {
-               if (!ec2) {
-                  self.complete(error::idle_timeout);
-                  return;
-               }
-            } break;
-
-            default: BOOST_ASSERT(false);
-         }
-
-         self.complete({});
+         aedis::detail::async_resolve(cli->resv_, cli->write_timer_, host, port, std::move(self));
+         cli->endpoints_ = res;
+         self.complete(ec);
       }
    }
 };
@@ -317,160 +291,6 @@ struct check_idle_op {
 };
 
 template <class Conn>
-struct resolve_with_timeout_op {
-   Conn* cli;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void operator()( Self& self
-                  , std::array<std::size_t, 2> order = {}
-                  , boost::system::error_code ec1 = {}
-                  , boost::asio::ip::tcp::resolver::results_type res = {}
-                  , boost::system::error_code ec2 = {})
-   {
-      reenter (coro)
-      {
-         // Tries to resolve with a timeout. We can use the writer
-         // timer here as there is no ongoing write operation.
-         cli->write_timer_.expires_after(cli->cfg_.resolve_timeout);
-
-         yield
-         boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return cli->resv_.async_resolve(cli->cfg_.host.data(), cli->cfg_.port.data(), token);},
-            [this](auto token) { return cli->write_timer_.async_wait(token);}
-         ).async_wait(
-            boost::asio::experimental::wait_for_one(),
-            std::move(self));
-
-         switch (order[0]) {
-            case 0:
-            {
-               if (ec1) {
-                  self.complete(ec1);
-                  return;
-               }
-            } break;
-
-            case 1:
-            {
-               if (!ec2) {
-                  self.complete(error::resolve_timeout);
-                  return;
-               }
-            } break;
-
-            default: BOOST_ASSERT(false);
-         }
-
-         cli->endpoints_ = res;
-         self.complete({});
-      }
-   }
-};
-
-template <
-   class Protocol,
-   class Executor,
-   class EndpointSequence
-   >
-struct connect_with_timeout_impl_op {
-   boost::asio::basic_socket<Protocol, Executor>* socket;
-   boost::asio::steady_timer* timer;
-   EndpointSequence* endpoints;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void operator()( Self& self
-                  , std::array<std::size_t, 2> order = {}
-                  , boost::system::error_code ec1 = {}
-                  , typename Protocol::endpoint const& ep = {}
-                  , boost::system::error_code ec2 = {})
-   {
-      reenter (coro)
-      {
-         yield
-         boost::asio::experimental::make_parallel_group(
-            [this](auto token)
-            {
-               auto f = [](boost::system::error_code const&, typename Protocol::endpoint const&) { return true; };
-               return boost::asio::async_connect(*socket, *endpoints, f, token);
-            },
-            [this](auto token) { return timer->async_wait(token);}
-         ).async_wait(
-            boost::asio::experimental::wait_for_one(),
-            std::move(self));
-
-         switch (order[0]) {
-            case 0:
-            {
-               if (ec1) {
-                  self.complete(ec1, ep);
-                  return;
-               }
-            } break;
-
-            case 1:
-            {
-               if (!ec2) {
-                  self.complete(error::connect_timeout, ep);
-                  return;
-               }
-            } break;
-
-            default: BOOST_ASSERT(false);
-         }
-
-         self.complete({}, ep);
-      }
-   }
-};
-
-template <
-   class Protocol,
-   class Executor,
-   class EndpointSequence,
-   class CompletionToken = boost::asio::default_completion_token_t<Executor>
-   >
-auto async_connect_with_timeout(
-      boost::asio::basic_socket<Protocol, Executor>& socket,
-      boost::asio::steady_timer& timer,
-      EndpointSequence ep,
-      CompletionToken&& token = boost::asio::default_completion_token_t<Executor>{})
-{
-   return boost::asio::async_compose
-      < CompletionToken
-      , void(boost::system::error_code, typename Protocol::endpoint const&)
-      >(connect_with_timeout_impl_op<Protocol, Executor, EndpointSequence>
-            {&socket, &timer, &ep}, token, socket, timer);
-}
-
-template <class Conn>
-struct connect_with_timeout_op {
-   Conn* conn;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , boost::asio::ip::tcp::endpoint const& ep = {})
-   {
-      reenter (coro)
-      {
-         conn->write_timer_.expires_after(conn->cfg_.connect_timeout);
-
-         yield
-         async_connect_with_timeout(
-            *conn->socket_,
-            conn->write_timer_,
-            conn->endpoints_,
-            std::move(self));
-
-         self.complete(ec);
-      }
-   }
-};
-
-template <class Conn>
 struct read_write_check_ping_op {
    Conn* cli;
    boost::asio::coroutine coro;
@@ -527,6 +347,8 @@ struct read_write_check_ping_op {
 template <class Conn, class Command>
 struct run_op {
    Conn* cli;
+   boost::string_view host;
+   boost::string_view port;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -534,7 +356,8 @@ struct run_op {
    {
       reenter (coro)
       {
-         yield cli->async_resolve_with_timeout(std::move(self));
+         cli->write_timer_.expires_after(cli->cfg_.resolve_timeout);
+         yield cli->async_resolve_with_timeout(host, port, std::move(self));
          if (ec) {
             self.complete(ec);
             return;
@@ -545,6 +368,7 @@ struct run_op {
                typename Conn::next_layer_type
             >(cli->resv_.get_executor());
 
+         cli->write_timer_.expires_after(cli->cfg_.connect_timeout);
          yield cli->async_connect_with_timeout(std::move(self));
          if (ec) {
             self.complete(ec);
@@ -553,6 +377,7 @@ struct run_op {
 
          cli->req_.clear();
          cli->req_.push(Command::hello, 3);
+         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_interval);
          yield cli->async_exec_internal(cli->req_, std::move(self));
          if (ec) {
             cli->close();
@@ -572,51 +397,6 @@ struct run_op {
 };
 
 template <class Conn>
-struct write_op {
-   Conn* cli;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , std::size_t n = 0)
-   {
-      reenter (coro)
-      {
-         BOOST_ASSERT(!cli->reqs_.empty());
-         BOOST_ASSERT(!cli->payload_next_.empty());
-
-         // Prepare for the next write.
-         cli->n_cmds_ = cli->n_cmds_next_;
-         cli->n_cmds_next_ = 0;
-         cli->payload_ = cli->payload_next_;
-         cli->payload_next_.clear();
-
-         yield
-         boost::asio::async_write(
-            *cli->socket_,
-            boost::asio::buffer(cli->payload_),
-            std::move(self));
-
-         BOOST_ASSERT(!cli->reqs_.empty());
-         if (cli->reqs_.front()->n_cmds == 0) {
-            // Some requests don't have response, so their timers
-            // won't be canceled on read op, we have to do it here.
-            cli->reqs_.front()->timer.cancel_one();
-            // Notice we don't have to call
-            // cli->wait_read_timer_.cancel_one(); as that operation
-            // is ongoing.
-            self.complete({}, n);
-            return;
-         }
-
-         cli->payload_.clear();
-         self.complete(ec, n);
-      }
-   }
-};
-
-template <class Conn>
 struct write_with_timeout_op {
    Conn* cli;
    boost::asio::coroutine coro;
@@ -630,11 +410,9 @@ struct write_with_timeout_op {
    {
       reenter (coro)
       {
-         cli->write_timer_.expires_after(cli->cfg_.write_timeout);
-
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return cli->async_write(token);},
+            [this](auto token) { return boost::asio::async_write(*cli->socket_, boost::asio::buffer(cli->payload_), token);},
             [this](auto token) { return cli->write_timer_.async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -678,22 +456,40 @@ struct writer_op {
    {
       reenter (coro) for (;;)
       {
-         // When cli->cmds_ we are still processing the last request.
-         // The timer must be however canceled so we can unblock the
-         // channel.
-
          if (!cli->reqs_.empty()) {
+            BOOST_ASSERT(!cli->reqs_.empty());
+            BOOST_ASSERT(!cli->payload_next_.empty());
+
+            // Prepare for the next write.
+            cli->n_cmds_ = cli->n_cmds_next_;
+            cli->n_cmds_next_ = 0;
+            cli->payload_ = cli->payload_next_;
+            cli->payload_next_.clear();
+
+            cli->write_timer_.expires_after(cli->cfg_.write_timeout);
             yield cli->async_write_with_timeout(std::move(self));
             if (ec) {
                cli->close();
                self.complete(ec);
                return;
             }
+
+            cli->payload_.clear();
+            BOOST_ASSERT(!cli->reqs_.empty());
+            if (cli->reqs_.front()->n_cmds == 0) {
+               // Some requests don't have response, so their timers
+               // won't be canceled on read op, we have to do it here.
+               cli->reqs_.front()->timer.cancel_one();
+               // Notice we don't have to call
+               // cli->wait_read_timer_.cancel_one(); as that
+               // operation is ongoing.
+            }
          }
 
          yield cli->wait_write_timer_.async_wait(std::move(self));
          if (!cli->socket_->is_open()) {
-            self.complete(error::write_stop_requested);
+            // The completion has been explicited requested.
+            self.complete({});
             return;
          }
       }

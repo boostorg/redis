@@ -13,8 +13,8 @@
 namespace net = boost::asio;
 namespace generic = aedis::generic;
 
+using aedis::resp3::request;
 using aedis::redis::command;
-using aedis::generic::request;
 using connection = generic::connection<command>;
 
 auto handler =[](auto ec, auto...)
@@ -31,7 +31,7 @@ int main()
    net::io_context ioc;
    connection db{ioc};
    db.async_exec(req, generic::adapt(resp), handler);
-   db.async_run(handler);
+   db.async_run("127.0.0.1", "6379", handler);
    ioc.run();
 
    std::cout << std::get<0>(resp) << std::endl;

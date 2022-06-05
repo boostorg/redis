@@ -25,8 +25,8 @@
 #include <boost/utility/string_view.hpp>
 
 #include <aedis/resp3/type.hpp>
+#include <aedis/resp3/request.hpp>
 #include <aedis/resp3/detail/parser.hpp>
-#include <aedis/generic/request.hpp>
 #include <aedis/resp3/node.hpp>
 #include <aedis/adapter/error.hpp>
 

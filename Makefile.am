@@ -52,12 +52,12 @@ endif
 
 nobase_include_HEADERS =\
   $(top_srcdir)/aedis/src.hpp\
+  $(top_srcdir)/aedis/error.hpp\
+  $(top_srcdir)/aedis/impl/error.ipp\
+  $(top_srcdir)/aedis/detail/net.hpp\
   $(top_srcdir)/aedis/redis/command.hpp\
   $(top_srcdir)/aedis/generic/connection.hpp\
-  $(top_srcdir)/aedis/generic/request.hpp\
-  $(top_srcdir)/aedis/generic/error.hpp\
   $(top_srcdir)/aedis/generic/adapt.hpp\
-  $(top_srcdir)/aedis/generic/impl/error.ipp\
   $(top_srcdir)/aedis/generic/detail/connection_ops.hpp\
   $(top_srcdir)/aedis/sentinel/command.hpp\
   $(top_srcdir)/aedis/aedis.hpp\
@@ -74,7 +74,9 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/resp3/impl/error.ipp\
   $(top_srcdir)/aedis/resp3/type.hpp\
   $(top_srcdir)/aedis/resp3/read.hpp\
+  $(top_srcdir)/aedis/resp3/exec.hpp\
   $(top_srcdir)/aedis/resp3/write.hpp\
+  $(top_srcdir)/aedis/resp3/request.hpp\
   $(top_srcdir)/aedis/redis/impl/command.ipp\
   $(top_srcdir)/aedis/sentinel/impl/command.ipp\
   $(top_srcdir)/aedis/resp3/detail/impl/parser.ipp\

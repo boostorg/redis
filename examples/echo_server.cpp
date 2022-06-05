@@ -12,7 +12,7 @@
 
 namespace net = boost::asio;
 namespace generic = aedis::generic;
-using generic::request;
+using aedis::resp3::request;
 using aedis::redis::command;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
@@ -39,7 +39,7 @@ net::awaitable<void> listener()
 {
    auto ex = co_await net::this_coro::executor;
    auto db = std::make_shared<connection>(ex);
-   db->async_run(net::detached);
+   db->async_run("127.0.0.1", "6379", net::detached);
 
    tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});
    for (;;)
