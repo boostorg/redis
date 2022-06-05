@@ -178,7 +178,7 @@ struct exec_op {
          info->timer.expires_at(std::chrono::steady_clock::time_point::max());
          yield info->timer.async_wait(std::move(self));
          if (info->stop) {
-            // TODO: Recycle timer.
+            cli->release_req_info(info);
             self.complete(ec, 0);
             return;
          }
@@ -187,7 +187,8 @@ struct exec_op {
          if (cli->reqs_.front()->n_cmds == 0) {
             // Some requests don't have response, so we have to exit
             // the operation earlier.
-            cli->reqs_.pop_front(); // TODO: Recycle timers.
+            cli->release_req_info(info);
+            cli->reqs_.pop_front();
 
             // If there is no ongoing push-read operation we can
             // request the reader to proceed, otherwise we can just
@@ -231,7 +232,8 @@ struct exec_op {
 
          BOOST_ASSERT(!cli->reqs_.empty());
          BOOST_ASSERT(cli->reqs_.front()->n_cmds == 0);
-         cli->reqs_.pop_front(); // TODO: Recycle timers.
+         cli->release_req_info(info);
+         cli->reqs_.pop_front();
 
          if (cli->n_cmds_ == 0) {
             // We are done with the pipeline and can resumes listening

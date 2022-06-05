@@ -246,14 +246,17 @@ private:
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::read_write_check_ping_op;
 
+   struct req_info {
+      boost::asio::steady_timer timer;
+      std::size_t n_cmds = 0;
+      bool stop = false;
+   };
+
    void add_request(request_type const& req)
    {
-      // TODO: Check first if there is a recycled timer available.
-
       BOOST_ASSERT(!req.payload().empty());
       auto const can_write = reqs_.empty();
-      auto info = std::make_shared<req_info>(boost::asio::steady_timer{resv_.get_executor()}, req.commands().size());
-      reqs_.push_back(info);
+      reqs_.push_back(make_req_info(req.commands().size()));
       n_cmds_next_ += req.commands().size();
       payload_next_ += req.payload();
       for (auto cmd : req.commands())
@@ -392,6 +395,25 @@ private:
                token, resv_);
    }
 
+   std::shared_ptr<req_info> make_req_info(std::size_t cmds)
+   {
+      if (pool_.empty())
+         return std::make_shared<req_info>(
+            boost::asio::steady_timer{resv_.get_executor()},
+            cmds, false);
+
+      auto ret = pool_.back();
+      ret->n_cmds = cmds;
+      ret->stop = false;
+      pool_.pop_back();
+      return ret;
+   }
+
+   void release_req_info(std::shared_ptr<req_info> info)
+   {
+      pool_.push_back(info);
+   }
+
    // IO objects
    boost::asio::ip::tcp::resolver resv_;
    std::shared_ptr<AsyncReadWriteStream> socket_;
@@ -408,19 +430,14 @@ private:
    // Buffer used by the read operations.
    std::string read_buffer_;
 
-   struct req_info {
-      boost::asio::steady_timer timer;
-      std::size_t n_cmds = 0;
-      bool stop = false;
-   };
-
    std::size_t waiting_pushes_ = 0;
    std::size_t n_cmds_ = 0;
    std::size_t n_cmds_next_ = 0;
    std::string payload_;
    std::string payload_next_;
    std::deque<std::shared_ptr<req_info>> reqs_;
-   std::queue<Command> cmds_;
+   std::queue<Command> cmds_; // TODO: Make this part of req_info.
+   std::vector<std::shared_ptr<req_info>> pool_;
 
    // Last time we received data.
    time_point_type last_data_;
