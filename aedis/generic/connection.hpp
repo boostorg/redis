@@ -214,15 +214,16 @@ public:
     */
    void close()
    {
-      //std::cout << "close: closing." << std::endl;
       socket_->close();
       wait_read_timer_.expires_at(std::chrono::steady_clock::now());
       wait_push_timer_.expires_at(std::chrono::steady_clock::now());
       wait_write_timer_.expires_at(std::chrono::steady_clock::now());
       check_idle_timer_.expires_at(std::chrono::steady_clock::now());
       ping_timer_.cancel();
-      for (auto& e: reqs_)
-         e.timer->cancel();
+      for (auto& e: reqs_) {
+         e->stop = true;
+         e->timer.cancel_one();
+      }
 
       reqs_ = {};
    }
@@ -245,21 +246,20 @@ private:
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::read_write_check_ping_op;
 
-   void
-   add_request(
-      request_type const& req,
-      std::shared_ptr<boost::asio::steady_timer> timer)
+   void add_request(request_type const& req)
    {
+      // TODO: Check first if there is a recycled timer available.
+
+      BOOST_ASSERT(!req.payload().empty());
       auto const can_write = reqs_.empty();
-      reqs_.push_back({timer, req.commands().size()});
+      auto info = std::make_shared<req_info>(boost::asio::steady_timer{resv_.get_executor()}, req.commands().size());
+      reqs_.push_back(info);
       n_cmds_next_ += req.commands().size();
       payload_next_ += req.payload();
-      BOOST_ASSERT(!payload_next_.empty());
       for (auto cmd : req.commands())
          cmds_.push(cmd.first);
       if (can_write) {
          BOOST_ASSERT(n_cmds_ == 0);
-         //std::cout << "add_request: Requesting a write2." << std::endl;
          wait_write_timer_.cancel_one();
       }
    }
@@ -409,8 +409,9 @@ private:
    std::string read_buffer_;
 
    struct req_info {
-      std::shared_ptr<boost::asio::steady_timer> timer;
+      boost::asio::steady_timer timer;
       std::size_t n_cmds = 0;
+      bool stop = false;
    };
 
    std::size_t waiting_pushes_ = 0;
@@ -418,7 +419,7 @@ private:
    std::size_t n_cmds_next_ = 0;
    std::string payload_;
    std::string payload_next_;
-   std::deque<req_info> reqs_;
+   std::deque<std::shared_ptr<req_info>> reqs_;
    std::queue<Command> cmds_;
 
    // Last time we received data.
@@ -427,7 +428,6 @@ private:
    // The result of async_resolve.
    boost::asio::ip::tcp::resolver::results_type endpoints_;
 
-   // write_op helper.
    request_type req_;
 };
 

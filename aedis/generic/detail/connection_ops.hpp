@@ -159,7 +159,7 @@ struct exec_op {
    Conn* cli;
    typename Conn::request_type const* req;
    Adapter adapter;
-   std::shared_ptr<boost::asio::steady_timer> timer;
+   std::shared_ptr<typename Conn::req_info> info;
    std::size_t read_size = 0;
    std::size_t index = 0;
    boost::asio::coroutine coro;
@@ -172,20 +172,19 @@ struct exec_op {
    {
       reenter (coro)
       {
-         // TODO: Check first if there is a recycled timer available.
-         timer = std::make_shared<boost::asio::steady_timer>(cli->resv_.get_executor());
-         timer->expires_at(std::chrono::steady_clock::time_point::max());
-         cli->add_request(*req, timer);
-
+         cli->add_request(*req);
          // Notice we use the back of the queue.
-         yield timer->async_wait(std::move(self));
-         if (!cli->socket_->is_open()) {
+         info = cli->reqs_.back();
+         info->timer.expires_at(std::chrono::steady_clock::time_point::max());
+         yield info->timer.async_wait(std::move(self));
+         if (info->stop) {
+            // TODO: Recycle timer.
             self.complete(ec, 0);
             return;
          }
 
          BOOST_ASSERT(!cli->reqs_.empty());
-         if (cli->reqs_.front().n_cmds == 0) {
+         if (cli->reqs_.front()->n_cmds == 0) {
             // Some requests don't have response, so we have to exit
             // the operation earlier.
             cli->reqs_.pop_front(); // TODO: Recycle timers.
@@ -201,7 +200,7 @@ struct exec_op {
          }
 
          // Notice we use the front of the queue.
-         while (cli->reqs_.front().n_cmds != 0) {
+         while (cli->reqs_.front()->n_cmds != 0) {
             BOOST_ASSERT(!cli->cmds_.empty());
 
             yield
@@ -221,17 +220,17 @@ struct exec_op {
 
             read_size += n;
 
-            BOOST_ASSERT(cli->reqs_.front().n_cmds != 0);
+            BOOST_ASSERT(cli->reqs_.front()->n_cmds != 0);
             BOOST_ASSERT(cli->n_cmds_ != 0);
             BOOST_ASSERT(!cli->cmds_.empty());
 
-            --cli->reqs_.front().n_cmds;
+            --cli->reqs_.front()->n_cmds;
             --cli->n_cmds_;
             cli->cmds_.pop();
          }
 
          BOOST_ASSERT(!cli->reqs_.empty());
-         BOOST_ASSERT(cli->reqs_.front().n_cmds == 0);
+         BOOST_ASSERT(cli->reqs_.front()->n_cmds == 0);
          cli->reqs_.pop_front(); // TODO: Recycle timers.
 
          if (cli->n_cmds_ == 0) {
@@ -246,7 +245,7 @@ struct exec_op {
             // We are not done with the pipeline and can continue
             // reading.
             BOOST_ASSERT(!cli->reqs_.empty());
-            cli->reqs_.front().timer->cancel_one();
+            cli->reqs_.front()->timer.cancel_one();
          }
 
          self.complete({}, read_size);
@@ -554,6 +553,7 @@ struct run_op {
          cli->req_.push(Command::hello, 3);
          yield cli->async_exec_internal(cli->req_, std::move(self));
          if (ec) {
+            cli->close();
             self.complete(ec);
             return;
          }
@@ -597,10 +597,10 @@ struct write_op {
             std::move(self));
 
          BOOST_ASSERT(!cli->reqs_.empty());
-         if (cli->reqs_.front().n_cmds == 0) {
+         if (cli->reqs_.front()->n_cmds == 0) {
             // Some requests don't have response, so their timers
             // won't be canceled on read op, we have to do it here.
-            cli->reqs_.front().timer->cancel_one();
+            cli->reqs_.front()->timer.cancel_one();
             // Notice we don't have to call
             // cli->wait_read_timer_.cancel_one(); as that operation
             // is ongoing.
@@ -742,8 +742,8 @@ struct reader_op {
             cli->wait_push_timer_.cancel_one();
          } else {
             BOOST_ASSERT(!cli->cmds_.empty());
-            BOOST_ASSERT(cli->reqs_.front().n_cmds != 0);
-            cli->reqs_.front().timer->cancel_one();
+            BOOST_ASSERT(cli->reqs_.front()->n_cmds != 0);
+            cli->reqs_.front()->timer.cancel_one();
          }
 
          cli->wait_read_timer_.expires_after(cli->cfg_.read_timeout);
