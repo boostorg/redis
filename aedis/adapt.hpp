@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_GENERIC_ADAPT_HPP
-#define AEDIS_GENERIC_ADAPT_HPP
+#ifndef AEDIS_ADAPT_HPP
+#define AEDIS_ADAPT_HPP
 
 #include <tuple>
 
@@ -19,7 +19,6 @@
 #include <aedis/adapter/detail/response_traits.hpp>
 
 namespace aedis {
-namespace generic {
 namespace detail {
 
 struct ignore_adapter {
@@ -128,7 +127,6 @@ auto adapt(T& t) noexcept
    return detail::response_traits<T>::adapt(t);
 }
 
-} // generic
 } // aedis
 
-#endif // AEDIS_GENERIC_ADAPT_HPP
+#endif // AEDIS_ADAPT_HPP

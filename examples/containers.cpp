@@ -15,11 +15,11 @@
 #include "mystruct.hpp"
 
 namespace net = boost::asio;
-namespace generic = aedis::generic;
 using boost::optional;
+using aedis::adapt;
+using aedis::command;
 using aedis::resp3::request;
-using aedis::redis::command;
-using connection = aedis::generic::connection<command>;
+using connection = aedis::connection<command>;
 
 // Response used in this example.
 using C1 = std::vector<int>;
@@ -62,8 +62,8 @@ int main()
       std::string // quit
    > resp;
 
-   db.async_exec(req1, generic::adapt(), handler);
-   db.async_exec(req2, generic::adapt(resp), handler);
+   db.async_exec(req1, aedis::adapt(), handler);
+   db.async_exec(req2, aedis::adapt(resp), handler);
    db.async_run("127.0.0.1", "6379", handler);
    ioc.run();
 

@@ -14,12 +14,12 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-namespace generic = aedis::generic;
+using aedis::adapt;
+using aedis::command;
 using aedis::resp3::request;
-using aedis::redis::command;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using connection = aedis::generic::connection<command, tcp_socket>;
+using connection = aedis::connection<command, tcp_socket>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 class user_session:
@@ -106,7 +106,7 @@ reader(
    co_await db->async_exec(req);
 
    for (response_type resp;;) {
-      co_await db->async_read_push(generic::adapt(resp));
+      co_await db->async_read_push(adapt(resp));
 
       for (auto& session: *sessions)
          session->deliver(resp.at(3).value);

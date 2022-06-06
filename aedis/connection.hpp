@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_GENERIC_CONNECTION_HPP
-#define AEDIS_GENERIC_CONNECTION_HPP
+#ifndef AEDIS_CONNECTION_HPP
+#define AEDIS_CONNECTION_HPP
 
 #include <vector>
 #include <queue>
@@ -17,12 +17,11 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 
+#include <aedis/adapt.hpp>
 #include <aedis/resp3/request.hpp>
-#include <aedis/generic/adapt.hpp>
-#include <aedis/generic/detail/connection_ops.hpp>
+#include <aedis/detail/connection_ops.hpp>
 
 namespace aedis {
-namespace generic {
 
 /** \brief A high level Redis connection.
  *  \ingroup any
@@ -119,7 +118,7 @@ public:
     *  @li Starts the idle check operation with the timeout of twice
     *  the value of connection::config::ping_interval. If no data is
     *  received during that time interval \c async_run completes with
-    *  generic::error::idle_timeout.
+    *  error::idle_timeout.
     *
     *  @li Starts the healthy check operation that sends
     *  redis::command::ping to Redis with a frequency equal to
@@ -181,7 +180,7 @@ public:
       class CompletionToken = default_completion_token_type>
    auto async_exec(
       request_type const& req,
-      Adapter adapter = generic::adapt(),
+      Adapter adapter = aedis::adapt(),
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
@@ -197,7 +196,7 @@ public:
       class CompletionToken = default_completion_token_type>
    auto
    async_read_push(
-      Adapter adapter = generic::adapt(),
+      Adapter adapter = aedis::adapt(),
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
@@ -407,7 +406,6 @@ private:
    request_type req_;
 };
 
-} // generic
 } // aedis
 
-#endif // AEDIS_GENERIC_CONNECTION_HPP
+#endif // AEDIS_CONNECTION_HPP

@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_GENERIC_CONNECTION_OPS_HPP
-#define AEDIS_GENERIC_CONNECTION_OPS_HPP
+#ifndef AEDIS_CONNECTION_OPS_HPP
+#define AEDIS_CONNECTION_OPS_HPP
 
 #include <array>
 
@@ -15,6 +15,7 @@
 #include <boost/core/ignore_unused.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 
+#include <aedis/adapt.hpp>
 #include <aedis/error.hpp>
 #include <aedis/detail/net.hpp>
 #include <aedis/resp3/type.hpp>
@@ -22,10 +23,8 @@
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/exec.hpp>
 #include <aedis/resp3/write.hpp>
-#include <aedis/generic/adapt.hpp>
 
 namespace aedis {
-namespace generic {
 namespace detail {
 
 #include <boost/asio/yield.hpp>
@@ -252,7 +251,7 @@ struct ping_op {
 
          cli->req_.clear();
          cli->req_.push(Command::ping);
-         yield cli->async_exec(cli->req_, generic::adapt(), std::move(self));
+         yield cli->async_exec(cli->req_, aedis::adapt(), std::move(self));
          if (ec) {
             self.complete(ec);
             return;
@@ -516,7 +515,6 @@ struct reader_op {
 #include <boost/asio/unyield.hpp>
 
 } // detail
-} // generic
 } // aedis
 
-#endif // AEDIS_GENERIC_CONNECTION_OPS_HPP
+#endif // AEDIS_CONNECTION_OPS_HPP

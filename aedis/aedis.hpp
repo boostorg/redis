@@ -8,16 +8,15 @@
 #define AEDIS_HPP
 
 #include <aedis/error.hpp>
+#include <aedis/command.hpp>
+#include <aedis/adapt.hpp>
+#include <aedis/connection.hpp>
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/exec.hpp>
 #include <aedis/resp3/request.hpp>
 #include <aedis/adapter/adapt.hpp>
 #include <aedis/adapter/error.hpp>
-#include <aedis/redis/command.hpp>
-#include <aedis/sentinel/command.hpp>
-#include <aedis/generic/connection.hpp>
-#include <aedis/generic/adapt.hpp>
 
 /** \mainpage Documentation
     \tableofcontents

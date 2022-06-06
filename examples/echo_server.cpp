@@ -11,12 +11,12 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-namespace generic = aedis::generic;
+using aedis::adapt;
+using aedis::command;
 using aedis::resp3::request;
-using aedis::redis::command;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using connection = generic::connection<command, tcp_socket>;
+using connection = aedis::connection<command, tcp_socket>;
 
 net::awaitable<void> echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
 {
@@ -26,7 +26,7 @@ net::awaitable<void> echo_loop(tcp_socket socket, std::shared_ptr<connection> db
          request<command> req;
          req.push(command::ping, buffer);
          std::tuple<std::string> resp;
-         co_await db->async_exec(req, generic::adapt(resp));
+         co_await db->async_exec(req, adapt(resp));
          co_await net::async_write(socket, net::buffer(std::get<0>(resp)));
          buffer.erase(0, n);
       }

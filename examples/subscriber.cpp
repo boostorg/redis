@@ -13,11 +13,11 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-namespace generic = aedis::generic;
+using aedis::adapt;
+using aedis::command;
 using aedis::resp3::request;
-using aedis::redis::command;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using connection = generic::connection<command, tcp_socket>;
+using connection = aedis::connection<command, tcp_socket>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 /* In this example we send a subscription to a channel and start
@@ -41,7 +41,7 @@ net::awaitable<void> reader(std::shared_ptr<connection> db)
    co_await db->async_exec(req);
 
    for (response_type resp;;) {
-      auto n = co_await db->async_read_push(generic::adapt(resp));
+      auto n = co_await db->async_read_push(adapt(resp));
       std::cout
          << "Size: "   << n << "\n"
          << "Event: "   << resp.at(1).value << "\n"

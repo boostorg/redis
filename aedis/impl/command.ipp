@@ -4,10 +4,9 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <aedis/redis/command.hpp>
+#include <aedis/command.hpp>
 
 namespace aedis {
-namespace redis {
 
 char const* to_string(command c)
 {
@@ -143,6 +142,7 @@ char const* to_string(command c)
       "SDIFF",
       "SDIFFSTORE",
       "SELECT",
+      "SENTINEL",
       "SET",
       "SETBIT",
       "SETEX",
@@ -241,5 +241,4 @@ bool has_push_response(command cmd)
    }
 }
 
-} // redis
 } // aedis

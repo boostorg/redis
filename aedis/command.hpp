@@ -4,14 +4,13 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_REDIS_COMMAND_HPP
-#define AEDIS_REDIS_COMMAND_HPP
+#ifndef AEDIS_COMMAND_HPP
+#define AEDIS_COMMAND_HPP
 
 #include <ostream>
 #include <string>
 
 namespace aedis {
-namespace redis {
 
 /** \brief Redis commands.
  *  \ingroup any
@@ -285,6 +284,8 @@ enum class command {
    sdiffstore,
    /// https://redis.io/commands/select
    select,
+   /// https://redis.io/topics/sentinel
+   sentinel,
    /// https://redis.io/commands/set
    set,
    /// https://redis.io/commands/setbit
@@ -451,7 +452,6 @@ std::ostream& operator<<(std::ostream& os, command c);
 // Checks whether a command has push response.
 bool has_push_response(command cmd);
 
-} // redis
 } // aedis
 
-#endif // AEDIS_REDIS_COMMAND_HPP
+#endif // AEDIS_COMMAND_HPP

@@ -15,9 +15,9 @@
 
 namespace net = boost::asio;
 namespace adapter = aedis::adapter;
+using aedis::command;
 using aedis::resp3::request;
-using aedis::redis::command;
-using connection = aedis::generic::connection<command>;
+using connection = aedis::connection<command>;
 using node_type = aedis::resp3::node<boost::string_view>;
 using error_code = boost::system::error_code;
 
