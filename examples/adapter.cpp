@@ -26,6 +26,11 @@ auto handler =[](auto ec, auto...)
 
 int main()
 {
+   request req;
+   req.push(command::ping);
+   req.push(command::incr, "some-key");
+   req.push(command::quit);
+
    std::string r0;
    int r1;
 
@@ -43,14 +48,7 @@ int main()
 
    net::io_context ioc;
    connection db{ioc};
-
-   request req;
-   req.push(command::ping);
-   req.push(command::incr, "some-key");
-   req.push(command::quit);
-
-   db.async_exec(req, adapter, handler);
-   db.async_run("127.0.0.1", "6379", handler);
+   db.async_exec("127.0.0.1", "6379", req, adapter, handler);
    ioc.run();
 
    std::cout

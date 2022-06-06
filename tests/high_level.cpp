@@ -87,6 +87,20 @@ void test_quit()
    ioc.run();
 }
 
+void test_quit2()
+{
+   request req;
+   req.push(command::quit);
+
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc);
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto n){
+      expect_no_error(ec);
+   });
+
+   ioc.run();
+}
+
 //----------------------------------------------------------------
 
 net::awaitable<void>
@@ -111,19 +125,10 @@ void test_push()
    request req;
    req.push(command::subscribe, "channel");
    req.push(command::quit);
-
-   db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
       expect_no_error(ec);
-      //expect_eq(w, 68UL);
-      //expect_eq(r, 151UL);
    });
-
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
-
-   db->async_run("127.0.0.1", "6379", [](auto ec){
-      expect_error(ec, net::error::misc_errors::eof);
-   });
-
    ioc.run();
 }
 
@@ -195,6 +200,7 @@ int main()
    test_resolve_error();
    test_connect_error();
    test_quit();
+   test_quit2();
    test_push();
    //test_reconnect();
 

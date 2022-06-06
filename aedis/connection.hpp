@@ -177,13 +177,32 @@ public:
       class CompletionToken = default_completion_token_type>
    auto async_exec(
       resp3::request const& req,
-      Adapter adapter = aedis::adapt(),
+      Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
          >(detail::exec_op<connection, Adapter>{this, &req, adapter}, token, resv_);
+   }
+
+   /** @brief Asynchrnously schedules a command for execution.
+    */
+   template <
+      class Adapter = detail::response_traits<void>::adapter_type,
+      class CompletionToken = default_completion_token_type>
+   auto async_exec(
+      boost::string_view host,
+      boost::string_view port,
+      resp3::request const& req,
+      Adapter adapter = adapt(),
+      CompletionToken token = CompletionToken{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code, std::size_t)
+         >(detail::runexec_op<connection, Adapter>
+            {this, host, port, &req, adapter}, token, resv_);
    }
 
    /** @brief Receives events produced by the run operation.
@@ -193,7 +212,7 @@ public:
       class CompletionToken = default_completion_token_type>
    auto
    async_read_push(
-      Adapter adapter = aedis::adapt(),
+      Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
@@ -230,6 +249,7 @@ private:
    template <class T> friend struct detail::ping_op;
    template <class T> friend struct detail::run_op;
    template <class T, class U> friend struct detail::exec_op;
+   template <class T, class U> friend struct detail::runexec_op;
    template <class T> friend struct detail::exec_internal_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::connect_with_timeout_op;

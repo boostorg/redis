@@ -4,7 +4,6 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <vector>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -16,9 +15,9 @@ namespace net = boost::asio;
 using aedis::adapt;
 using aedis::command;
 using aedis::resp3::request;
+using aedis::resp3::node;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using connection = aedis::connection<tcp_socket>;
-using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 /* In this example we send a subscription to a channel and start
  * reading server side messages indefinitely.
@@ -36,15 +35,11 @@ using response_type = std::vector<aedis::resp3::node<std::string>>;
  */
 net::awaitable<void> reader(std::shared_ptr<connection> db)
 {
-   request req;
-   req.push(command::subscribe, "channel");
-   co_await db->async_exec(req);
-
-   for (response_type resp;;) {
+   for (std::vector<node<std::string>> resp;;) {
       auto n = co_await db->async_read_push(adapt(resp));
       std::cout
-         << "Size: "   << n << "\n"
-         << "Event: "   << resp.at(1).value << "\n"
+         << "Size: " << n << "\n"
+         << "Event: " << resp.at(1).value << "\n"
          << "Channel: " << resp.at(2).value << "\n"
          << "Message: " << resp.at(3).value << "\n"
          << std::endl;
@@ -60,7 +55,9 @@ int main()
 {
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
+   request req;
+   req.push(command::subscribe, "channel");
+   db->async_exec("127.0.0.1", "6379", req, adapt(), handler);
    net::co_spawn(ioc, reader(db), net::detached);
-   db->async_run("127.0.0.1", "6379", handler);
    ioc.run();
 }

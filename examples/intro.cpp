@@ -30,8 +30,7 @@ int main()
 
    net::io_context ioc;
    connection db{ioc};
-   db.async_exec(req, adapt(resp), handler);
-   db.async_run("127.0.0.1", "6379", handler);
+   db.async_exec("127.0.0.1", "6379", req, adapt(resp), handler);
    ioc.run();
 
    std::cout << std::get<0>(resp) << std::endl;

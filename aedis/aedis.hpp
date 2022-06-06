@@ -22,7 +22,7 @@
   
     \section Overview
   
-    Aedis is a [Redis](https://redis.io/) client library built on top
+    Aedis is a high-level [Redis](https://redis.io/) client library built on top
     of [Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
     that provides simple and efficient communication with a Redis
     server. Some of its distinctive features are
@@ -31,9 +31,9 @@
     @li First class support for STL containers and C++ built-in types.
     @li Serialization and deserialization of your own data types that avoid unnecessary copies.
     @li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
-    @li Sync and async API.
 
-    In addition to that, Aedis provides a high-level client that offers the following functionality
+    In addition to that, Aedis provides a high-level client that
+    offers the following functionality
 
     @li Management of message queues.
     @li Simplified handling of server pushes.

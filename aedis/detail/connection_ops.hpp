@@ -513,6 +513,47 @@ struct reader_op {
    }
 };
 
+template <class Conn, class Adapter>
+struct runexec_op {
+   Conn* cli;
+   boost::string_view host;
+   boost::string_view port;
+   resp3::request const* req;
+   Adapter adapter;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , std::array<std::size_t, 2> order = {}
+                  , boost::system::error_code ec1 = {}
+                  , boost::system::error_code ec2 = {}
+                  , std::size_t n = 0)
+   {
+      reenter (coro)
+      {
+         yield
+         boost::asio::experimental::make_parallel_group(
+            [this](auto token) { return cli->async_run(host, port, token);},
+            [this](auto token) { return cli->async_exec(*req, adapter, token);}
+         ).async_wait(
+            boost::asio::experimental::wait_for_all(),
+            std::move(self));
+
+         switch (order[0]) {
+           case 0:
+           {
+              self.complete(ec1, n);
+           } break;
+           case 1:
+           {
+              self.complete(ec2, n);
+           } break;
+           default: BOOST_ASSERT(false);
+         }
+      }
+   }
+};
+
 #include <boost/asio/unyield.hpp>
 
 } // detail
