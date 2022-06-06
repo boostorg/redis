@@ -16,7 +16,6 @@
 #include <aedis/resp3/exec.hpp>
 #include <aedis/resp3/request.hpp>
 #include <aedis/adapter/adapt.hpp>
-#include <aedis/adapter/error.hpp>
 
 /** \mainpage Documentation
     \tableofcontents

@@ -13,7 +13,7 @@
 #include <boost/assert.hpp>
 #include <boost/utility/string_view.hpp>
 
-#include <aedis/resp3/error.hpp>
+#include <aedis/error.hpp>
 #include <aedis/resp3/node.hpp>
 
 namespace aedis {
@@ -193,7 +193,7 @@ public:
             } break;
             default:
             {
-	       ec = error::invalid_type;
+	       ec = error::invalid_data_type;
 	       return 0;
             }
          }

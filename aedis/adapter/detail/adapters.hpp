@@ -24,11 +24,11 @@
 #include <boost/spirit/home/x3.hpp>
 #include <boost/utility/string_view.hpp>
 
+#include <aedis/error.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/request.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/node.hpp>
-#include <aedis/adapter/error.hpp>
 
 namespace aedis {
 namespace adapter {
@@ -91,9 +91,9 @@ from_string(
 void set_on_resp3_error(resp3::type t, boost::system::error_code& ec)
 {
    switch (t) {
-      case resp3::type::simple_error: ec = adapter::error::simple_error; return;
-      case resp3::type::blob_error: ec = adapter::error::blob_error; return;
-      case resp3::type::null: ec = adapter::error::null; return;
+      case resp3::type::simple_error: ec = error::simple_error; return;
+      case resp3::type::blob_error: ec = error::blob_error; return;
+      case resp3::type::null: ec = error::null; return;
       default: return;
    }
 }
@@ -144,7 +144,7 @@ public:
          return;
 
       if (is_aggregate(n.data_type)) {
-         ec = adapter::error::expects_simple_type;
+         ec = error::expects_simple_type;
          return;
       }
 
@@ -180,7 +180,7 @@ public:
       BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
-	 ec = adapter::error::expects_set_type;
+	 ec = error::expects_set_type;
 	 return;
       }
 
@@ -219,7 +219,7 @@ public:
       BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
-	 ec = adapter::error::expects_map_type;
+	 ec = error::expects_map_type;
 	 return;
       }
 
@@ -282,7 +282,7 @@ public:
 
       if (is_aggregate(nd.data_type)) {
 	 if (i_ != -1) {
-            ec = adapter::error::nested_aggregate_unsupported;
+            ec = error::nested_aggregate_unsupported;
             return;
          }
 
@@ -292,7 +292,7 @@ public:
          }
       } else {
          if (i_ == -1) {
-            ec = adapter::error::expects_aggregate_type;
+            ec = error::expects_aggregate_type;
             return;
          }
 
@@ -322,7 +322,7 @@ struct list_impl {
       if (!is_aggregate(nd.data_type)) {
         BOOST_ASSERT(nd.aggregate_size == 1);
         if (nd.depth < 1) {
-           ec = adapter::error::expects_aggregate_type;
+           ec = error::expects_aggregate_type;
            return;
         }
 

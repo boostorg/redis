@@ -13,10 +13,10 @@
 #include <boost/mp11.hpp>
 #include <boost/variant2.hpp>
 
+#include <aedis/error.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/read.hpp>
 #include <aedis/adapter/detail/adapters.hpp>
-#include <aedis/adapter/error.hpp>
 
 namespace aedis {
 namespace adapter {
