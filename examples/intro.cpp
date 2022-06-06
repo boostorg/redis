@@ -15,14 +15,14 @@ namespace net = boost::asio;
 using aedis::adapt;
 using aedis::command;
 using aedis::resp3::request;
-using connection = aedis::connection<command>;
+using connection = aedis::connection<>;
 
 auto handler =[](auto ec, auto...)
    { std::cout << ec.message() << std::endl; };
 
 int main()
 {
-   request<command> req;
+   request req;
    req.push(command::ping, "Ping example");
    req.push(command::quit);
 

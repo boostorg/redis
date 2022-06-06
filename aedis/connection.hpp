@@ -32,7 +32,7 @@ namespace aedis {
  *
  *  https://redis.io/docs/reference/sentinel-clients
  */
-template <class Command, class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
+template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection {
 public:
    /// Executor type.
@@ -40,9 +40,6 @@ public:
 
    /// Type of the last layer
    using next_layer_type = AsyncReadWriteStream;
-
-   /// Type of requests used by the connection.
-   using request_type = resp3::request<Command>;
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
@@ -121,7 +118,7 @@ public:
     *  error::idle_timeout.
     *
     *  @li Starts the healthy check operation that sends
-    *  redis::command::ping to Redis with a frequency equal to
+    *  command::ping to Redis with a frequency equal to
     *  connection::config::ping_interval.
     *
     *  In addition to the callbacks mentioned above, the read
@@ -170,7 +167,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<connection, Command>{this, host, port}, token, resv_);
+         >(detail::run_op<connection>{this, host, port}, token, resv_);
    }
 
    /** @brief Asynchrnously schedules a command for execution.
@@ -179,7 +176,7 @@ public:
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = default_completion_token_type>
    auto async_exec(
-      request_type const& req,
+      resp3::request const& req,
       Adapter adapter = aedis::adapt(),
       CompletionToken token = CompletionToken{})
    {
@@ -202,7 +199,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::read_push_op<connection, Adapter, Command>{this, adapter}, token, resv_);
+         >(detail::read_push_op<connection, Adapter>{this, adapter}, token, resv_);
    }
 
    /** @brief Closes the connection with the database.
@@ -228,10 +225,10 @@ public:
 private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
-   template <class T, class U, class V> friend struct detail::read_push_op;
-   template <class T, class U> friend struct detail::reader_op;
-   template <class T, class U> friend struct detail::ping_op;
-   template <class T, class U> friend struct detail::run_op;
+   template <class T, class U> friend struct detail::read_push_op;
+   template <class T> friend struct detail::reader_op;
+   template <class T> friend struct detail::ping_op;
+   template <class T> friend struct detail::run_op;
    template <class T, class U> friend struct detail::exec_op;
    template <class T> friend struct detail::exec_internal_op;
    template <class T> friend struct detail::writer_op;
@@ -246,7 +243,7 @@ private:
       bool stop = false;
    };
 
-   void add_request(request_type const& req)
+   void add_request(resp3::request const& req)
    {
       BOOST_ASSERT(!req.payload().empty());
       auto const can_write = reqs_.empty();
@@ -298,7 +295,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::reader_op<connection, Command>{this}, token, resv_.get_executor());
+         >(detail::reader_op<connection>{this}, token, resv_.get_executor());
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -328,7 +325,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::ping_op<connection, Command>{this}, token, resv_);
+         >(detail::ping_op<connection>{this}, token, resv_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -343,7 +340,7 @@ private:
 
    template <class CompletionToken = default_completion_token_type>
    auto async_exec_internal(
-      request_type const& req,
+      resp3::request const& req,
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
@@ -394,7 +391,7 @@ private:
    std::string payload_;
    std::string payload_next_;
    std::deque<std::shared_ptr<req_info>> reqs_;
-   std::queue<Command> cmds_;
+   std::queue<command> cmds_;
    std::vector<std::shared_ptr<req_info>> pool_;
 
    // Last time we received data.
@@ -403,7 +400,7 @@ private:
    // The result of async_resolve.
    boost::asio::ip::tcp::resolver::results_type endpoints_;
 
-   request_type req_;
+   resp3::request req_;
 };
 
 } // aedis

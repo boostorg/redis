@@ -23,7 +23,7 @@ namespace resp3 = aedis::resp3;
 
 using aedis::command;
 using aedis::resp3::request;
-using connection = aedis::connection<command>;
+using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 using tcp = net::ip::tcp;
@@ -72,7 +72,7 @@ void test_quit()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
 
-   request<command> req;
+   request req;
    req.push(command::quit);
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
       expect_no_error(ec);
@@ -108,7 +108,7 @@ void test_push()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
 
-   request<command> req;
+   request req;
    req.push(command::subscribe, "channel");
    req.push(command::quit);
 
@@ -132,7 +132,7 @@ void test_push()
 net::awaitable<void> run5(std::shared_ptr<connection> db)
 {
    {
-      request<command> req;
+      request req;
       req.push(command::quit);
       db->async_exec(req, aedis::adapt(), [](auto ec, auto){
          expect_no_error(ec);
@@ -143,7 +143,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
    }
 
    {
-      request<command> req;
+      request req;
       req.push(command::quit);
       db->async_exec(req, aedis::adapt(), [](auto ec, auto){
          expect_no_error(ec);
@@ -176,7 +176,7 @@ void test_idle()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
 
-   request<command> req;
+   request req;
    req.push(command::client, "PAUSE", 5000);
 
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){

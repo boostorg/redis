@@ -8,6 +8,7 @@
 #define AEDIS_RESP3_REQUEST_HPP
 
 #include <boost/hana.hpp>
+#include <aedis/command.hpp>
 #include <aedis/resp3/compose.hpp>
 
 // NOTE: Consider detecting tuples in the type in the parameter pack
@@ -43,7 +44,6 @@ namespace resp3 {
  *  \remarks  Non-string types will be converted to string by using \c
  *  to_bulk, which must be made available over ADL.
  */
-template <class Command>
 class request {
 public:
    /// Returns a list of commands contained in this request.
@@ -76,7 +76,7 @@ public:
     *  \param args Command arguments.
     */
    template <class... Ts>
-   void push(Command cmd, Ts const&... args)
+   void push(command cmd, Ts const&... args)
    {
       using boost::hana::for_each;
       using boost::hana::make_tuple;
@@ -115,7 +115,7 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class Key, class ForwardIterator>
-   void push_range2(Command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void push_range2(command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
       using resp3::type;
@@ -157,7 +157,7 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class ForwardIterator>
-   void push_range2(Command cmd, ForwardIterator begin, ForwardIterator end)
+   void push_range2(command cmd, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
       using resp3::type;
@@ -184,7 +184,7 @@ public:
     *  Equivalent to the overload taking a range (i.e. send_range2).
     */
    template <class Key, class Range>
-   void push_range(Command cmd, Key const& key, Range const& range)
+   void push_range(command cmd, Key const& key, Range const& range)
    {
       using std::begin;
       using std::end;
@@ -196,7 +196,7 @@ public:
     *  Equivalent to the overload taking a range (i.e. send_range2).
     */
    template <class Range>
-   void push_range(Command cmd, Range const& range)
+   void push_range(command cmd, Range const& range)
    {
       using std::begin;
       using std::end;
@@ -204,7 +204,7 @@ public:
    }
 
 private:
-   using command_info_type = std::pair<Command, std::size_t>;
+   using command_info_type = std::pair<command, std::size_t>;
    std::string payload_;
    std::vector<command_info_type> commands_;
 };

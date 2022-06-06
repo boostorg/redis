@@ -23,6 +23,7 @@
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/exec.hpp>
 #include <aedis/resp3/write.hpp>
+#include <aedis/resp3/request.hpp>
 
 namespace aedis {
 namespace detail {
@@ -50,7 +51,7 @@ struct connect_with_timeout_op {
 template <class Conn>
 struct exec_internal_op {
    Conn* cli;
-   typename Conn::request_type const* req;
+   resp3::request const* req;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -88,7 +89,7 @@ struct resolve_with_timeout_op {
    }
 };
 
-template <class Conn, class Adapter, class Command>
+template <class Conn, class Adapter>
 struct read_push_op {
    Conn* cli;
    Adapter adapter;
@@ -116,7 +117,7 @@ struct read_push_op {
          resp3::async_read(
             *cli->socket_,
             cli->make_dynamic_buffer(),
-            [adpt = adapter](resp3::node<boost::string_view> const& n, boost::system::error_code& ec) mutable { adpt(std::size_t(-1), Command::invalid, n, ec);},
+            [adpt = adapter](resp3::node<boost::string_view> const& n, boost::system::error_code& ec) mutable { adpt(std::size_t(-1), command::invalid, n, ec);},
             std::move(self));
 
          cli->wait_read_timer_.cancel_one();
@@ -130,7 +131,7 @@ struct read_push_op {
 template <class Conn, class Adapter>
 struct exec_op {
    Conn* cli;
-   typename Conn::request_type const* req;
+   resp3::request const* req;
    Adapter adapter;
    std::shared_ptr<typename Conn::req_info> info;
    std::size_t read_size = 0;
@@ -229,7 +230,7 @@ struct exec_op {
    }
 };
 
-template <class Conn, class Command>
+template <class Conn>
 struct ping_op {
    Conn* cli;
    boost::asio::coroutine coro;
@@ -250,7 +251,7 @@ struct ping_op {
          }
 
          cli->req_.clear();
-         cli->req_.push(Command::ping);
+         cli->req_.push(command::ping);
          yield cli->async_exec(cli->req_, aedis::adapt(), std::move(self));
          if (ec) {
             self.complete(ec);
@@ -343,7 +344,7 @@ struct read_write_check_ping_op {
    }
 };
 
-template <class Conn, class Command>
+template <class Conn>
 struct run_op {
    Conn* cli;
    boost::string_view host;
@@ -375,7 +376,7 @@ struct run_op {
          }
 
          cli->req_.clear();
-         cli->req_.push(Command::hello, 3);
+         cli->req_.push(command::hello, 3);
          cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_interval);
          yield cli->async_exec_internal(cli->req_, std::move(self));
          if (ec) {
@@ -450,7 +451,7 @@ struct writer_op {
    }
 };
 
-template <class Conn, class Command>
+template <class Conn>
 struct reader_op {
    Conn* cli;
    boost::asio::coroutine coro;

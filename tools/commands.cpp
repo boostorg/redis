@@ -81,7 +81,7 @@ int main()
      tcp::socket socket{ioc};
      net::connect(socket, res);
 
-     request<command> req;
+     request req;
      req.push(command::hello, 3);
      req.push(command::command);
      req.push(command::quit);

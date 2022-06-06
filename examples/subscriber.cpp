@@ -17,7 +17,7 @@ using aedis::adapt;
 using aedis::command;
 using aedis::resp3::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using connection = aedis::connection<command, tcp_socket>;
+using connection = aedis::connection<tcp_socket>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 /* In this example we send a subscription to a channel and start
@@ -36,7 +36,7 @@ using response_type = std::vector<aedis::resp3::node<std::string>>;
  */
 net::awaitable<void> reader(std::shared_ptr<connection> db)
 {
-   request<command> req;
+   request req;
    req.push(command::subscribe, "channel");
    co_await db->async_exec(req);
 

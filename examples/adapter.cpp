@@ -17,7 +17,7 @@ namespace net = boost::asio;
 namespace adapter = aedis::adapter;
 using aedis::command;
 using aedis::resp3::request;
-using connection = aedis::connection<command>;
+using connection = aedis::connection<>;
 using node_type = aedis::resp3::node<boost::string_view>;
 using error_code = boost::system::error_code;
 
@@ -44,7 +44,7 @@ int main()
    net::io_context ioc;
    connection db{ioc};
 
-   request<command> req;
+   request req;
    req.push(command::ping);
    req.push(command::incr, "some-key");
    req.push(command::quit);

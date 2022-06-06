@@ -16,14 +16,14 @@ using aedis::command;
 using aedis::resp3::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using connection = aedis::connection<command, tcp_socket>;
+using connection = aedis::connection<tcp_socket>;
 
 net::awaitable<void> echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
 {
    try {
       for (std::string buffer;;) {
          auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
-         request<command> req;
+         request req;
          req.push(command::ping, buffer);
          std::tuple<std::string> resp;
          co_await db->async_exec(req, adapt(resp));

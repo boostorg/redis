@@ -28,13 +28,12 @@ namespace detail {
 
 template <
    class AsyncStream,
-   class Command,
    class Adapter,
    class DynamicBuffer
    >
 struct exec_op {
    AsyncStream* socket;
-   request<Command> const* req;
+   request const* req;
    Adapter adapter;
    DynamicBuffer dbuf;
    boost::asio::coroutine coro;
@@ -69,14 +68,13 @@ struct exec_op {
 
 template <
    class AsyncStream,
-   class Command,
    class Adapter,
    class DynamicBuffer,
    class CompletionToken = boost::asio::default_completion_token_t<typename AsyncStream::executor_type>
    >
 auto async_exec(
    AsyncStream& socket,
-   request<Command> const& req,
+   request const& req,
    Adapter adapter,
    DynamicBuffer dbuf,
    CompletionToken token = CompletionToken{})
@@ -84,7 +82,7 @@ auto async_exec(
    return boost::asio::async_compose
       < CompletionToken
       , void(boost::system::error_code, std::size_t)
-      >(detail::exec_op<AsyncStream, Command, Adapter, DynamicBuffer>
+      >(detail::exec_op<AsyncStream, Adapter, DynamicBuffer>
          {&socket, &req, adapter, dbuf}, token, socket);
 }
 
@@ -94,14 +92,13 @@ namespace detail {
 
 template <
    class AsyncStream,
-   class Command,
    class Adapter,
    class DynamicBuffer
    >
 struct exec_with_timeout_op {
    AsyncStream* socket;
    boost::asio::steady_timer* timer;
-   request<Command> const* req;
+   request const* req;
    Adapter adapter;
    DynamicBuffer dbuf;
    boost::asio::coroutine coro;
@@ -154,7 +151,6 @@ struct exec_with_timeout_op {
 
 template <
    class AsyncStream,
-   class Command,
    class Adapter,
    class DynamicBuffer,
    class CompletionToken = boost::asio::default_completion_token_t<typename AsyncStream::executor_type>
@@ -162,7 +158,7 @@ template <
 auto async_exec(
    AsyncStream& socket,
    boost::asio::steady_timer& timer,
-   request<Command> const& req,
+   request const& req,
    Adapter adapter,
    DynamicBuffer dbuf,
    CompletionToken token = CompletionToken{})
@@ -170,7 +166,7 @@ auto async_exec(
    return boost::asio::async_compose
       < CompletionToken
       , void(boost::system::error_code, std::size_t)
-      >(detail::exec_with_timeout_op<AsyncStream, Command, Adapter, DynamicBuffer>
+      >(detail::exec_with_timeout_op<AsyncStream, Adapter, DynamicBuffer>
          {&socket, &timer, &req, adapter, dbuf}, token, socket, timer);
 }
 

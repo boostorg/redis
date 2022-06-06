@@ -19,7 +19,7 @@ using aedis::command;
 using aedis::resp3::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using connection = aedis::connection<command, tcp_socket>;
+using connection = aedis::connection<tcp_socket>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 class user_session:
@@ -52,7 +52,7 @@ private:
    {
       try {
          std::string msg;
-         request<command> req;
+         request req;
          auto dbuffer = net::dynamic_buffer(msg, 1024);
          for (;;) {
             auto const n = co_await net::async_read_until(socket_, dbuffer, "\n");
@@ -101,7 +101,7 @@ reader(
    std::shared_ptr<connection> db,
    std::shared_ptr<sessions_type> sessions)
 {
-   request<command> req;
+   request req;
    req.push(command::subscribe, "channel");
    co_await db->async_exec(req);
 

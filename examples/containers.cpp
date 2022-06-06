@@ -19,7 +19,7 @@ using boost::optional;
 using aedis::adapt;
 using aedis::command;
 using aedis::resp3::request;
-using connection = aedis::connection<command>;
+using connection = aedis::connection<>;
 
 // Response used in this example.
 using C1 = std::vector<int>;
@@ -39,13 +39,13 @@ int main()
    C2 set {{1, "one"}, {2, "two"}, {3, "three"}, {4, "four"}};
    C3 map {{"key1", "value1"}, {"key2", "value2"}, {"key3", "value3"}};
 
-   request<command> req1;
+   request req1;
    req1.push_range(command::rpush, "rpush-key", vec);
    req1.push_range(command::sadd, "sadd-key", set);
    req1.push_range(command::hset, "hset-key", map);
 
    // Request that retrieves the containers.
-   request<command> req2;
+   request req2;
    req2.push(command::multi);
    req2.push(command::lrange, "rpush-key", 0, -1);
    req2.push(command::smembers, "sadd-key");

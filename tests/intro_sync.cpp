@@ -30,7 +30,7 @@ int main()
       net::connect(socket, res);
 
       // Creates the request and writes to the socket.
-      request<command> req;
+      request req;
       req.push(command::hello, 3);
       req.push(command::ping);
       req.push(command::quit);
