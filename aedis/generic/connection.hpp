@@ -236,7 +236,6 @@ private:
    template <class T, class U> friend struct detail::exec_op;
    template <class T> friend struct detail::exec_internal_op;
    template <class T> friend struct detail::writer_op;
-   template <class T> friend struct detail::write_with_timeout_op;
    template <class T> friend struct detail::connect_with_timeout_op;
    template <class T> friend struct detail::resolve_with_timeout_op;
    template <class T> friend struct detail::check_idle_op;
@@ -301,18 +300,6 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::reader_op<connection, Command>{this}, token, resv_.get_executor());
-   }
-
-   // Write with a timeout.
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_write_with_timeout(
-      CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(detail::write_with_timeout_op<connection>{this}, token, resv_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -408,7 +395,7 @@ private:
    std::string payload_;
    std::string payload_next_;
    std::deque<std::shared_ptr<req_info>> reqs_;
-   std::queue<Command> cmds_; // TODO: Make this part of req_info.
+   std::queue<Command> cmds_;
    std::vector<std::shared_ptr<req_info>> pool_;
 
    // Last time we received data.

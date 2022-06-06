@@ -126,6 +126,55 @@ struct resolve_op {
    }
 };
 
+template <class AsyncWriteStream>
+struct write_op {
+   AsyncWriteStream* socket;
+   boost::asio::steady_timer* timer;
+   boost::asio::mutable_buffer buffer;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , std::array<std::size_t, 2> order = {}
+                  , boost::system::error_code ec1 = {}
+                  , std::size_t n = 0
+                  , boost::system::error_code ec2 = {})
+   {
+      reenter (coro)
+      {
+         yield
+         boost::asio::experimental::make_parallel_group(
+            [this](auto token) { return boost::asio::async_write(*socket, buffer, token);},
+            [this](auto token) { return timer->async_wait(token);}
+         ).async_wait(
+            boost::asio::experimental::wait_for_one(),
+            std::move(self));
+
+         switch (order[0]) {
+            case 0:
+            {
+               if (ec1) {
+                  self.complete(ec1, 0);
+                  return;
+               }
+            } break;
+
+            case 1:
+            {
+               if (!ec2) {
+                  self.complete(aedis::error::write_timeout, 0);
+                  return;
+               }
+            } break;
+
+            default: BOOST_ASSERT(false);
+         }
+
+         self.complete({}, n);
+      }
+   }
+};
+
 #include <boost/asio/unyield.hpp>
 
 template <
@@ -164,6 +213,23 @@ auto async_resolve(
       >(resolve_op{&resv, &timer, host, port}, token, resv, timer);
 }
 
+template <
+   class AsyncWriteStream,
+   class CompletionToken =
+      boost::asio::default_completion_token_t<typename AsyncWriteStream::executor_type>
+   >
+auto
+async_write(
+   AsyncWriteStream& socket,
+   boost::asio::steady_timer& timer,
+   boost::asio::mutable_buffer buffer,
+   CompletionToken&& token = CompletionToken{})
+{
+   return boost::asio::async_compose
+      < CompletionToken
+      , void(boost::system::error_code, std::size_t)
+      >(write_op<AsyncWriteStream>{&socket, &timer, buffer}, token, socket, timer);
+}
 } // detail
 } // aedis
 
