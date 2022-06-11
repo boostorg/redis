@@ -16,6 +16,8 @@
 
 #include "check.hpp"
 
+// TODO: Test with subscribe that has wrong number of arguments.
+
 //std::cout << "aaaa " << ec.message() << " " << cmd << " " << n << std::endl;
 
 namespace net = boost::asio;
@@ -95,7 +97,7 @@ void test_quit2()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto n){
-      expect_no_error(ec);
+      expect_error(ec, net::error::misc_errors::eof);
    });
 
    ioc.run();
@@ -126,7 +128,7 @@ void test_push()
    req.push(command::subscribe, "channel");
    req.push(command::quit);
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_no_error(ec);
+      expect_error(ec, net::error::misc_errors::eof);
    });
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
    ioc.run();
@@ -169,6 +171,60 @@ void test_reconnect()
    ioc.run();
 }
 
+void test_no_push_reader1()
+{
+   connection::config cfg;
+
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc, cfg);
+
+   request req;
+   req.push(command::subscribe, "channel");
+
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
+      expect_error(ec, aedis::error::read_timeout);
+   });
+
+   ioc.run();
+}
+
+void test_no_push_reader2()
+{
+   connection::config cfg;
+
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc, cfg);
+
+   request req;
+   // Wrong command.
+   req.push(command::subscribe);
+
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
+      expect_error(ec, aedis::error::read_timeout);
+   });
+
+   ioc.run();
+}
+
+void test_no_push_reader3()
+{
+   connection::config cfg;
+
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc, cfg);
+
+   request req;
+   // Wrong command.
+   req.push(command::ping, "Message");
+   req.push(command::subscribe);
+
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
+      expect_error(ec, aedis::error::read_timeout);
+   });
+
+   ioc.run();
+}
+
 void test_idle()
 {
    connection::config cfg;
@@ -202,6 +258,10 @@ int main()
    test_quit();
    test_quit2();
    test_push();
+   test_no_push_reader1();
+   test_no_push_reader2();
+   test_no_push_reader3();
+   // TODO: Reconnect is not working.
    //test_reconnect();
 
    // Must come last as it send a client pause.

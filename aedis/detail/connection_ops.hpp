@@ -175,6 +175,9 @@ struct exec_op {
          }
 
          // Notice we use the front of the queue.
+         BOOST_ASSERT(!cli->read_buffer_.empty());
+         BOOST_ASSERT(resp3::to_type(cli->read_buffer_.front()) != resp3::type::push);
+         BOOST_ASSERT(resp3::to_type(cli->read_buffer_.front()) != resp3::type::invalid);
          while (cli->reqs_.front()->n_cmds != 0) {
             BOOST_ASSERT(!cli->cmds_.empty());
 
@@ -429,6 +432,11 @@ struct writer_op {
                return;
             }
 
+            if (!cli->socket_->is_open()) {
+               self.complete({});
+               return;
+            }
+
             cli->payload_.clear();
             BOOST_ASSERT(!cli->reqs_.empty());
             if (cli->reqs_.front()->n_cmds == 0) {
@@ -501,11 +509,13 @@ struct reader_op {
          cli->wait_read_timer_.expires_after(cli->cfg_.read_timeout);
          yield cli->wait_read_timer_.async_wait(std::move(self));
          if (!ec) {
+            cli->close();
             self.complete(error::read_timeout);
             return;
          }
 
          if (!cli->socket_->is_open()) {
+            cli->close();
             self.complete(ec);
             return;
          }
@@ -536,19 +546,14 @@ struct runexec_op {
             [this](auto token) { return cli->async_run(host, port, token);},
             [this](auto token) { return cli->async_exec(*req, adapter, token);}
          ).async_wait(
-            boost::asio::experimental::wait_for_all(),
+            boost::asio::experimental::wait_for_one_error(),
             std::move(self));
 
-         switch (order[0]) {
-           case 0:
-           {
-              self.complete(ec1, n);
-           } break;
-           case 1:
-           {
-              self.complete(ec2, n);
-           } break;
-           default: BOOST_ASSERT(false);
+         if (!ec2) {
+            // If there was no error in the async_exec we complete
+            // with the async_run error, if any.
+            self.complete(ec1, n);
+            return;
          }
       }
    }

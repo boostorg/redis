@@ -335,7 +335,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_write_check_ping_op<connection>{this}, token, resv_, resv_);
+         >(detail::read_write_check_ping_op<connection>{this}, token, resv_);
    }
 
    template <class CompletionToken = default_completion_token_type>
