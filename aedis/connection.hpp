@@ -213,10 +213,17 @@ public:
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
+      auto f =
+         [adapter]
+         (resp3::node<boost::string_view> const& node, boost::system::error_code& ec) mutable
+         {
+            adapter(std::size_t(-1), command::invalid, node, ec);
+         };
+
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::read_push_op<connection, Adapter>{this, adapter}, token, resv_);
+         >(detail::read_push_op<connection, decltype(f)>{this, f}, token, resv_);
    }
 
    /** @brief Closes the connection with the database.
@@ -246,6 +253,7 @@ private:
    template <class T> friend struct detail::ping_op;
    template <class T> friend struct detail::run_op;
    template <class T, class U> friend struct detail::exec_op;
+   template <class T, class U> friend struct detail::read_next_op;
    template <class T, class U> friend struct detail::runexec_op;
    template <class T> friend struct detail::exec_internal_op;
    template <class T> friend struct detail::connect_with_timeout_op;
@@ -353,6 +361,20 @@ private:
          , void(boost::system::error_code)
          >(detail::exec_internal_op<connection>{this, &req},
                token, resv_);
+   }
+
+   template <
+      class Adapter = detail::response_traits<void>::adapter_type,
+      class CompletionToken = default_completion_token_type>
+   auto
+   async_read_next(
+      Adapter adapter = adapt(),
+      CompletionToken token = CompletionToken{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code, std::size_t)
+         >(detail::read_next_op<connection, Adapter>{this, adapter}, token, resv_);
    }
 
    std::shared_ptr<req_info> make_req_info(std::size_t cmds)

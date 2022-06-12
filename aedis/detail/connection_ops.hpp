@@ -110,20 +110,16 @@ struct read_push_op {
             return;
          }
 
+         BOOST_ASSERT(cli->socket_ != nullptr);
          yield
-         resp3::async_read(
-            *cli->socket_,
-            cli->make_dynamic_buffer(),
-            [adpt = adapter](resp3::node<boost::string_view> const& n, boost::system::error_code& ec) mutable { adpt(std::size_t(-1), command::invalid, n, ec);},
-            std::move(self));
-
+         resp3::async_read(*cli->socket_, cli->make_dynamic_buffer(), adapter, std::move(self));
          if (ec) {
             cli->push_channel_.cancel();
             self.complete(ec, 0);
             return;
          }
 
-         read_size = 0;
+         read_size = n;
 
          yield
          cli->push_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
@@ -134,6 +130,82 @@ struct read_push_op {
 
          self.complete(ec, read_size);
          return;
+      }
+   }
+};
+
+template <class Conn, class Adapter>
+struct read_next_op {
+   Conn* cli;
+   Adapter adapter;
+   std::size_t read_size = 0;
+   std::size_t index = 0;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void
+   operator()( Self& self
+             , boost::system::error_code ec = {}
+             , std::size_t n = 0)
+   {
+      reenter (coro)
+      {
+         // Loop reading the responses to this request.
+         BOOST_ASSERT(!cli->reqs_.empty());
+         while (cli->reqs_.front()->n_cmds != 0) {
+            BOOST_ASSERT(!cli->cmds_.empty());
+
+            //-----------------------------------
+            // Section to handle pushes in the middle of a request.
+            if (cli->read_buffer_.empty()) {
+               // Read in some data.
+               yield boost::asio::async_read_until(*cli->socket_, cli->make_dynamic_buffer(), "\r\n", std::move(self));
+               if (ec) {
+                  cli->close();
+                  self.complete(ec, 0);
+                  return;
+               }
+            }
+
+            // If the next request is a push we have to handle it to
+            // the read_push_op wait for it to be done and continue.
+            if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
+               yield async_send_receive(cli->push_channel_, std::move(self));
+               if (ec) {
+                  cli->read_channel_.cancel();
+                  self.complete(ec, 0);
+                  return;
+               }
+            }
+            //-----------------------------------
+
+            yield
+            resp3::async_read(
+               *cli->socket_,
+               cli->make_dynamic_buffer(),
+               [i = index, adpt = adapter, cmd = cli->cmds_.front()] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, cmd, nd, ec); },
+               std::move(self));
+
+            ++index;
+
+            if (ec) {
+               cli->close();
+               self.complete(ec, 0);
+               return;
+            }
+
+            read_size += n;
+
+            BOOST_ASSERT(cli->reqs_.front()->n_cmds != 0);
+            BOOST_ASSERT(cli->n_cmds_ != 0);
+            BOOST_ASSERT(!cli->cmds_.empty());
+
+            --cli->reqs_.front()->n_cmds;
+            --cli->n_cmds_;
+            cli->cmds_.pop();
+         }
+
+         self.complete({}, read_size);
       }
    }
 };
@@ -253,69 +325,19 @@ struct exec_op {
          }
 
          //----------------------------------------------------------------
-
-         // Notice we use the front of the queue.
-         BOOST_ASSERT(!cli->reqs_.empty());
-
-         // Loop reading the responses to this request.
-         while (cli->reqs_.front()->n_cmds != 0) {
-            BOOST_ASSERT(!cli->cmds_.empty());
-
-            //-----------------------------------
-            // Section to handle pushes in the middle of a request.
-            if (cli->read_buffer_.empty()) {
-               // Read in some data.
-               yield boost::asio::async_read_until(*cli->socket_, cli->make_dynamic_buffer(), "\r\n", std::move(self));
-               if (ec) {
-                  cli->close();
-                  self.complete(ec, 0);
-                  return;
-               }
-            }
-
-            // If the next request is a push we have to handle it to
-            // the read_push_op wait for it to be done and continue.
-
-            if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
-               yield async_send_receive(cli->push_channel_, std::move(self));
-               if (ec) {
-                  cli->read_channel_.cancel();
-                  self.complete(ec, 0);
-                  return;
-               }
-            }
-            //-----------------------------------
-
-            yield
-            resp3::async_read(
-               *cli->socket_,
-               cli->make_dynamic_buffer(),
-               [i = index, adpt = adapter, cmd = cli->cmds_.front()] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, cmd, nd, ec); },
-               std::move(self));
-
-            ++index;
-
-            if (ec) {
-               cli->close();
-               self.complete(ec, 0);
-               return;
-            }
-
-            read_size += n;
-
-            BOOST_ASSERT(cli->reqs_.front()->n_cmds != 0);
-            BOOST_ASSERT(cli->n_cmds_ != 0);
-            BOOST_ASSERT(!cli->cmds_.empty());
-
-            --cli->reqs_.front()->n_cmds;
-            --cli->n_cmds_;
-            cli->cmds_.pop();
+         yield cli->async_read_next(adapter, std::move(self));
+         if (ec) {
+            self.complete(ec, 0);
+            return;
          }
 
          BOOST_ASSERT(!cli->reqs_.empty());
          BOOST_ASSERT(cli->reqs_.front()->n_cmds == 0);
          cli->release_req_info(info);
          cli->reqs_.pop_front();
+
+         if (!cli->reqs_.empty())
+            cli->reqs_.front()->timer.cancel_one();
 
          if (cli->n_cmds_ == 0) {
             // Done with the pipeline.
@@ -325,10 +347,6 @@ struct exec_op {
                self.complete(ec, 0);
                return;
             }
-         }
-
-         if (!cli->reqs_.empty()) {
-            cli->reqs_.front()->timer.cancel_one();
          }
 
          self.complete({}, read_size);
