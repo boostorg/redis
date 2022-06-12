@@ -175,6 +175,30 @@ struct write_op {
    }
 };
 
+template <class Channel>
+struct send_receive_op {
+   Channel* channel;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      reenter (coro)
+      {
+         yield channel->async_send(boost::system::error_code{}, 0, std::move(self));
+         if (ec) {
+            self.complete(ec, 0);
+            return;
+         }
+
+         yield channel->async_receive(std::move(self));
+         self.complete(ec, 0);
+      }
+   }
+};
+
 #include <boost/asio/unyield.hpp>
 
 template <
@@ -229,6 +253,19 @@ async_write(
       < CompletionToken
       , void(boost::system::error_code, std::size_t)
       >(write_op<AsyncWriteStream>{&socket, &timer, buffer}, token, socket, timer);
+}
+
+template <
+   class Channel,
+   class CompletionToken =
+      boost::asio::default_completion_token_t<typename Channel::executor_type>
+   >
+auto async_send_receive(Channel& channel, CompletionToken&& token = CompletionToken{})
+{
+   return boost::asio::async_compose
+      < CompletionToken
+      , void(boost::system::error_code, std::size_t)
+      >(send_receive_op<Channel>{&channel}, token, channel);
 }
 } // detail
 } // aedis

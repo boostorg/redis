@@ -118,6 +118,7 @@ struct read_push_op {
             std::move(self));
 
          if (ec) {
+            cli->push_channel_.cancel();
             self.complete(ec, 0);
             return;
          }
@@ -244,6 +245,7 @@ struct exec_op {
             }
 
             if (info->stop) {
+               cli->read_channel_.cancel();
                cli->release_req_info(info);
                self.complete(ec, 0);
                return;
@@ -275,16 +277,9 @@ struct exec_op {
             // the read_push_op wait for it to be done and continue.
 
             if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
-               yield
-               cli->push_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+               yield async_send_receive(cli->push_channel_, std::move(self));
                if (ec) {
-                  self.complete(ec, 0);
-                  return;
-               }
-
-               // Waits the read push op to complete.
-               yield cli->push_channel_.async_receive(std::move(self));
-               if (ec) {
+                  cli->read_channel_.cancel();
                   self.complete(ec, 0);
                   return;
                }
@@ -528,7 +523,6 @@ struct reader_op {
 
          // Handles unsolicited events.
          if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push || cli->reqs_.empty()) {
-            // TODO: Pack this in an operation.
             // Regarding cli->reqs_.empty() above: This situation is
             // odd. I have noticed that unsolicited simple-error
             // events are sent by the server (-MISCONF) under certain
@@ -539,16 +533,7 @@ struct reader_op {
             // server pushes, otherwise it is impossible to handle
             // them properly.
 
-            // Handles control to the read push op.
-            yield
-            cli->push_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
-            if (ec) {
-               self.complete(ec);
-               return;
-            }
-
-            // Waits the read push op to complete.
-            yield cli->push_channel_.async_receive(std::move(self));
+            yield async_send_receive(cli->push_channel_, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -557,30 +542,17 @@ struct reader_op {
             BOOST_ASSERT(!cli->cmds_.empty());
             BOOST_ASSERT(cli->reqs_.front()->n_cmds != 0);
 
-            yield
-            cli->read_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+            yield async_send_receive(cli->read_channel_, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
             }
+         }
 
-            if (!cli->socket_->is_open()) {
-               cli->close();
-               self.complete(ec);
-               return;
-            }
-
-            yield cli->read_channel_.async_receive(std::move(self));
-            if (ec) {
-               self.complete(ec);
-               return;
-            }
-
-            if (!cli->socket_->is_open()) {
-               cli->close();
-               self.complete(ec);
-               return;
-            }
+         if (!cli->socket_->is_open()) {
+            cli->close();
+            self.complete(ec);
+            return;
          }
       }
    }
