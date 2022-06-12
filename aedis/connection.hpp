@@ -16,6 +16,7 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/experimental/channel.hpp>
 
 #include <aedis/adapt.hpp>
 #include <aedis/resp3/request.hpp>
@@ -72,17 +73,14 @@ public:
     */
    connection(boost::asio::any_io_executor ex, config cfg = config{})
    : resv_{ex}
-   , wait_write_timer_{ex}
    , ping_timer_{ex}
    , write_timer_{ex}
-   , wait_read_timer_{ex}
-   , wait_push_timer_{ex}
+   , read_channel_{ex}
+   , push_channel_{ex}
    , check_idle_timer_{ex}
    , cfg_{cfg}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
-      wait_push_timer_.expires_at(std::chrono::steady_clock::time_point::max());
-      wait_write_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
    connection(boost::asio::io_context& ioc, config cfg = config{})
@@ -228,9 +226,8 @@ public:
    void close()
    {
       socket_->close();
-      wait_read_timer_.expires_at(std::chrono::steady_clock::now());
-      wait_push_timer_.expires_at(std::chrono::steady_clock::now());
-      wait_write_timer_.expires_at(std::chrono::steady_clock::now());
+      read_channel_.cancel();
+      push_channel_.cancel();
       check_idle_timer_.expires_at(std::chrono::steady_clock::now());
       ping_timer_.cancel();
       for (auto& e: reqs_) {
@@ -251,7 +248,6 @@ private:
    template <class T, class U> friend struct detail::exec_op;
    template <class T, class U> friend struct detail::runexec_op;
    template <class T> friend struct detail::exec_internal_op;
-   template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::connect_with_timeout_op;
    template <class T> friend struct detail::resolve_with_timeout_op;
    template <class T> friend struct detail::check_idle_op;
@@ -263,19 +259,18 @@ private:
       bool stop = false;
    };
 
-   void add_request(resp3::request const& req)
+   bool add_request(resp3::request const& req)
    {
       BOOST_ASSERT(!req.payload().empty());
       auto const can_write = reqs_.empty();
       reqs_.push_back(make_req_info(req.commands().size()));
+      reqs_.back()->timer.expires_at(std::chrono::steady_clock::time_point::max());
       n_cmds_next_ += req.commands().size();
       payload_next_ += req.payload();
       for (auto cmd : req.commands())
          cmds_.push(cmd.first);
-      if (can_write) {
-         BOOST_ASSERT(n_cmds_ == 0);
-         wait_write_timer_.cancel_one();
-      }
+
+      return can_write;
    }
 
    auto make_dynamic_buffer()
@@ -316,16 +311,6 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::reader_op<connection>{this}, token, resv_.get_executor());
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   writer(CompletionToken&& token = default_completion_token_type{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::writer_op<connection>{this}, token, resv_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -389,14 +374,15 @@ private:
       pool_.push_back(info);
    }
 
+   using channel_type = boost::asio::experimental::channel<void(boost::system::error_code, std::size_t)>;
+
    // IO objects
    boost::asio::ip::tcp::resolver resv_;
    std::shared_ptr<AsyncReadWriteStream> socket_;
-   boost::asio::steady_timer wait_write_timer_;
    boost::asio::steady_timer ping_timer_;
    boost::asio::steady_timer write_timer_;
-   boost::asio::steady_timer wait_read_timer_;
-   boost::asio::steady_timer wait_push_timer_;
+   channel_type read_channel_;
+   channel_type push_channel_;
    boost::asio::steady_timer check_idle_timer_;
 
    // Configuration parameters.
@@ -405,7 +391,6 @@ private:
    // Buffer used by the read operations.
    std::string read_buffer_;
 
-   std::size_t waiting_pushes_ = 0;
    std::size_t n_cmds_ = 0;
    std::size_t n_cmds_next_ = 0;
    std::string payload_;

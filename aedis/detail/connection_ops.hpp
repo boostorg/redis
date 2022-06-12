@@ -93,6 +93,7 @@ template <class Conn, class Adapter>
 struct read_push_op {
    Conn* cli;
    Adapter adapter;
+   std::size_t read_size;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -103,14 +104,10 @@ struct read_push_op {
    {
       reenter (coro)
       {
-         if (cli->waiting_pushes_ == 0) {
-            yield cli->wait_push_timer_.async_wait(std::move(self));
-            if (!cli->socket_->is_open()) {
-               self.complete(ec, 0);
-               return;
-            }
-
-            BOOST_ASSERT(cli->waiting_pushes_ == 1);
+         yield cli->push_channel_.async_receive(std::move(self));
+         if (ec) {
+            self.complete(ec, 0);
+            return;
          }
 
          yield
@@ -120,9 +117,21 @@ struct read_push_op {
             [adpt = adapter](resp3::node<boost::string_view> const& n, boost::system::error_code& ec) mutable { adpt(std::size_t(-1), command::invalid, n, ec);},
             std::move(self));
 
-         cli->wait_read_timer_.cancel_one();
-         cli->waiting_pushes_ = 0;
-         self.complete(ec, n);
+         if (ec) {
+            self.complete(ec, 0);
+            return;
+         }
+
+         read_size = 0;
+
+         yield
+         cli->push_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+         if (ec) {
+            self.complete(ec, 0);
+            return;
+         }
+
+         self.complete(ec, read_size);
          return;
       }
    }
@@ -146,40 +155,141 @@ struct exec_op {
    {
       reenter (coro)
       {
-         cli->add_request(*req);
-         // Notice we use the back of the queue.
-         info = cli->reqs_.back();
-         info->timer.expires_at(std::chrono::steady_clock::time_point::max());
-         yield info->timer.async_wait(std::move(self));
-         if (info->stop) {
-            cli->release_req_info(info);
-            self.complete(ec, 0);
-            return;
+         // add_request will add the request payload to the buffer and
+         // return true if it can be written to the socket i.e. There
+         // is no ongoing request.
+         if (cli->add_request(*req) && cli->socket_) {
+            // We can proceeed and write the request to the socket.
+            BOOST_ASSERT(cli->n_cmds_ == 0);
+            info = cli->reqs_.back();
+         } else {
+            // There is an ongoing request being processed, when the
+            // response to this specific request arrives, the timer
+            // below will be canceled, either in the end of this
+            // operation (if it is in the middle of a pipeline) or on
+            // the reader_op (if it is the first in the pipeline).
+            // Notice we use the back of the queue.
+            info = cli->reqs_.back();
+            yield info->timer.async_wait(std::move(self));
+            if (info->stop) {
+               cli->release_req_info(info);
+               self.complete(boost::asio::error::basic_errors::operation_aborted, 0);
+               return;
+            }
          }
+
+         //----------------------------------------------------------------
+         // Write operation.
 
          BOOST_ASSERT(!cli->reqs_.empty());
-         if (cli->reqs_.front()->n_cmds == 0) {
-            // Some requests don't have response, so we have to exit
-            // the operation earlier.
-            cli->release_req_info(info);
-            cli->reqs_.pop_front();
 
-            // If there is no ongoing push-read operation we can
-            // request the reader to proceed, otherwise we can just
-            // exit.
-            if (cli->waiting_pushes_ == 0)
-               cli->wait_read_timer_.cancel_one();
+         // If n_cmds_ is zero there no ongoing request being
+         // processed so we can write. Otherwise, the payload
+         // corresponding to this request has already been sent in
+         // previous pipelines so that there is nothing to send.
+         if (cli->n_cmds_ == 0) {
+            BOOST_ASSERT(!cli->payload_next_.empty());
 
-            self.complete({}, 0);
-            return;
+            // Copies the request to variable that won't be touched
+            // while async_write is suspended.
+            std::swap(cli->n_cmds_next_, cli->n_cmds_);
+            std::swap(cli->payload_next_, cli->payload_);
+            cli->n_cmds_next_ = 0;
+            cli->payload_next_.clear();
+
+            cli->write_timer_.expires_after(cli->cfg_.write_timeout);
+            yield aedis::detail::async_write(
+               *cli->socket_, cli->write_timer_, boost::asio::buffer(cli->payload_),
+               std::move(self));
+            if (ec) {
+               cli->close();
+               self.complete(ec, 0);
+               return;
+            }
+
+            // A stop may have been requested while the write
+            // operation was suspended.
+            if (info->stop) {
+               self.complete(boost::asio::error::basic_errors::operation_aborted, 0);
+               return;
+            }
+
+            // If we add support for reconnect in the future, we may
+            // want to keep the payload around until all responses
+            // have been written.
+            cli->payload_.clear();
+
+            BOOST_ASSERT(!cli->reqs_.empty());
+
+            // If the connection that we have just written has no
+            // expected response e.g. subscribe, we can complete the
+            // operation here as there is nothing to read.
+            if (cli->reqs_.front()->n_cmds == 0) {
+               cli->release_req_info(info);
+               cli->reqs_.pop_front();
+               if (!cli->reqs_.empty()) {
+                  cli->reqs_.front()->timer.cancel_one();
+               }
+               self.complete({}, 0);
+               return;
+            }
+
+            // Waits for the response to arrive. Notice cannot skip
+            // this as between and async_write and async_read we
+            // may receive a server push.
+            yield cli->read_channel_.async_receive(std::move(self));
+            if (ec) {
+               self.complete(ec, 0);
+               return;
+            }
+
+            if (info->stop) {
+               cli->release_req_info(info);
+               self.complete(ec, 0);
+               return;
+            }
          }
 
+         //----------------------------------------------------------------
+
          // Notice we use the front of the queue.
-         BOOST_ASSERT(!cli->read_buffer_.empty());
-         BOOST_ASSERT(resp3::to_type(cli->read_buffer_.front()) != resp3::type::push);
-         BOOST_ASSERT(resp3::to_type(cli->read_buffer_.front()) != resp3::type::invalid);
+         BOOST_ASSERT(!cli->reqs_.empty());
+
+         // Loop reading the responses to this request.
          while (cli->reqs_.front()->n_cmds != 0) {
             BOOST_ASSERT(!cli->cmds_.empty());
+
+            //-----------------------------------
+            // Section to handle pushes in the middle of a request.
+            if (cli->read_buffer_.empty()) {
+               // Read in some data.
+               yield boost::asio::async_read_until(*cli->socket_, cli->make_dynamic_buffer(), "\r\n", std::move(self));
+               if (ec) {
+                  cli->close();
+                  self.complete(ec, 0);
+                  return;
+               }
+            }
+
+            // If the next request is a push we have to handle it to
+            // the read_push_op wait for it to be done and continue.
+
+            if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
+               yield
+               cli->push_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+               if (ec) {
+                  self.complete(ec, 0);
+                  return;
+               }
+
+               // Waits the read push op to complete.
+               yield cli->push_channel_.async_receive(std::move(self));
+               if (ec) {
+                  self.complete(ec, 0);
+                  return;
+               }
+            }
+            //-----------------------------------
 
             yield
             resp3::async_read(
@@ -213,17 +323,16 @@ struct exec_op {
          cli->reqs_.pop_front();
 
          if (cli->n_cmds_ == 0) {
-            // We are done with the pipeline and can resumes listening
-            // on the socket and send pending requests if there is
-            // any.
-            cli->wait_read_timer_.cancel_one();
-            if (!cli->reqs_.empty()) {
-               cli->wait_write_timer_.cancel_one();
+            // Done with the pipeline.
+            yield
+            cli->read_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+            if (ec) {
+               self.complete(ec, 0);
+               return;
             }
-         } else {
-            // We are not done with the pipeline and can continue
-            // reading.
-            BOOST_ASSERT(!cli->reqs_.empty());
+         }
+
+         if (!cli->reqs_.empty()) {
             cli->reqs_.front()->timer.cancel_one();
          }
 
@@ -300,19 +409,15 @@ struct read_write_check_ping_op {
 
    template <class Self>
    void operator()( Self& self
-                  , std::array<std::size_t, 4> order = {}
+                  , std::array<std::size_t, 3> order = {}
+                  , boost::system::error_code ec0 = {}
                   , boost::system::error_code ec1 = {}
-                  , boost::system::error_code ec2 = {}
-                  , boost::system::error_code ec3 = {}
-                  , boost::system::error_code ec4 = {})
+                  , boost::system::error_code ec2 = {})
    {
       reenter (coro)
       {
-         // Starts the reader and writer ops.
-
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return cli->writer(token);},
             [this](auto token) { return cli->reader(token);},
             [this](auto token) { return cli->async_idle_check(token);},
             [this](auto token) { return cli->async_ping(token);}
@@ -323,23 +428,18 @@ struct read_write_check_ping_op {
          switch (order[0]) {
            case 0:
            {
-              BOOST_ASSERT(ec1);
-              self.complete(ec1);
+              BOOST_ASSERT(ec0);
+              self.complete(ec0);
            } break;
            case 1:
            {
-              BOOST_ASSERT(ec2);
-              self.complete(ec2);
+              BOOST_ASSERT(ec1);
+              self.complete(ec1);
            } break;
            case 2:
            {
-              BOOST_ASSERT(ec3);
-              self.complete(ec3);
-           } break;
-           case 3:
-           {
-              BOOST_ASSERT(ec4);
-              self.complete(ec4);
+              BOOST_ASSERT(ec2);
+              self.complete(ec2);
            } break;
            default: BOOST_ASSERT(false);
          }
@@ -388,6 +488,10 @@ struct run_op {
             return;
          }
 
+         if (!cli->reqs_.empty()) {
+            cli->reqs_.front()->timer.cancel_one();
+         }
+
          yield cli->async_read_write_check_ping(std::move(self));
          if (ec) {
             self.complete(ec);
@@ -395,66 +499,6 @@ struct run_op {
          }
 
          BOOST_ASSERT(false);
-      }
-   }
-};
-
-template <class Conn>
-struct writer_op {
-   Conn* cli;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void
-   operator()(Self& self,
-              boost::system::error_code ec = {},
-              std::size_t n = 0)
-   {
-      reenter (coro) for (;;)
-      {
-         if (!cli->reqs_.empty()) {
-            BOOST_ASSERT(!cli->reqs_.empty());
-            BOOST_ASSERT(!cli->payload_next_.empty());
-
-            // Prepare for the next write.
-            cli->n_cmds_ = cli->n_cmds_next_;
-            cli->n_cmds_next_ = 0;
-            cli->payload_ = cli->payload_next_;
-            cli->payload_next_.clear();
-
-            cli->write_timer_.expires_after(cli->cfg_.write_timeout);
-            yield aedis::detail::async_write(
-               *cli->socket_, cli->write_timer_, boost::asio::buffer(cli->payload_),
-               std::move(self));
-            if (ec) {
-               cli->close();
-               self.complete(ec);
-               return;
-            }
-
-            if (!cli->socket_->is_open()) {
-               self.complete({});
-               return;
-            }
-
-            cli->payload_.clear();
-            BOOST_ASSERT(!cli->reqs_.empty());
-            if (cli->reqs_.front()->n_cmds == 0) {
-               // Some requests don't have response, so their timers
-               // won't be canceled on read op, we have to do it here.
-               cli->reqs_.front()->timer.cancel_one();
-               // Notice we don't have to call
-               // cli->wait_read_timer_.cancel_one(); as that
-               // operation is ongoing.
-            }
-         }
-
-         yield cli->wait_write_timer_.async_wait(std::move(self));
-         if (!cli->socket_->is_open()) {
-            // The completion has been explicited requested.
-            self.complete({});
-            return;
-         }
       }
    }
 };
@@ -473,11 +517,7 @@ struct reader_op {
 
       reenter (coro) for (;;)
       {
-         yield boost::asio::async_read_until(
-            *cli->socket_,
-            cli->make_dynamic_buffer(),
-            "\r\n",
-            std::move(self));
+         yield boost::asio::async_read_until(*cli->socket_, cli->make_dynamic_buffer(), "\r\n", std::move(self));
          if (ec) {
             cli->close();
             self.complete(ec);
@@ -486,38 +526,61 @@ struct reader_op {
 
          cli->last_data_ = std::chrono::steady_clock::now();
 
-         if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
-            cli->waiting_pushes_ = 1;
-            cli->wait_push_timer_.cancel_one();
-         } else if (cli->reqs_.empty()) {
-            // This situation is odd. I have noticed that unsolicited
-            // simple-error events are sent by the server (-MISCONF)
-            // under certain conditions. I expect them to have type
-            // push so we can distinguish them from responses to
-            // commands, but it is a simple-error. If we are lucky
-            // enough to receive them when the command queue is empty
-            // we can treat them as server pushes, otherwise it is
-            // impossible to handle them properly.
-            cli->waiting_pushes_ = 1;
-            cli->wait_push_timer_.cancel_one();
+         // Handles unsolicited events.
+         if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push || cli->reqs_.empty()) {
+            // TODO: Pack this in an operation.
+            // Regarding cli->reqs_.empty() above: This situation is
+            // odd. I have noticed that unsolicited simple-error
+            // events are sent by the server (-MISCONF) under certain
+            // conditions. I expect them to have type push so we can
+            // distinguish them from responses to commands, but it is
+            // a simple-error. If we are lucky enough to receive them
+            // when the command queue is empty we can treat them as
+            // server pushes, otherwise it is impossible to handle
+            // them properly.
+
+            // Handles control to the read push op.
+            yield
+            cli->push_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
+
+            // Waits the read push op to complete.
+            yield cli->push_channel_.async_receive(std::move(self));
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
          } else {
             BOOST_ASSERT(!cli->cmds_.empty());
             BOOST_ASSERT(cli->reqs_.front()->n_cmds != 0);
-            cli->reqs_.front()->timer.cancel_one();
-         }
 
-         cli->wait_read_timer_.expires_after(cli->cfg_.read_timeout);
-         yield cli->wait_read_timer_.async_wait(std::move(self));
-         if (!ec) {
-            cli->close();
-            self.complete(error::read_timeout);
-            return;
-         }
+            yield
+            cli->read_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
 
-         if (!cli->socket_->is_open()) {
-            cli->close();
-            self.complete(ec);
-            return;
+            if (!cli->socket_->is_open()) {
+               cli->close();
+               self.complete(ec);
+               return;
+            }
+
+            yield cli->read_channel_.async_receive(std::move(self));
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
+
+            if (!cli->socket_->is_open()) {
+               cli->close();
+               self.complete(ec);
+               return;
+            }
          }
       }
    }

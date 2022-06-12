@@ -32,13 +32,13 @@ void expect_neq(T const& a, T const& b, std::string const& msg = "")
 }
 
 template <class T>
-void expect_error(boost::system::error_code a, T expected = {})
+void expect_error(boost::system::error_code a, T expected = {}, std::string const& msg = "")
 {
    if (a == expected) {
       if (a)
-         std::cout << "Success: " << a.message() << " (" << a.category().name() << ")" << std::endl;
+         std::cout << "Success: " << a.message() << " (" << a.category().name() << ") " << msg << std::endl;
    } else {
-      std::cout << "Error: " << a.message() << " (" << a.category().name() << ")" << std::endl;
+      std::cout << "Error: " << a.message() << " (" << a.category().name() << ") " << msg << std::endl;
       exit(EXIT_FAILURE);
    }
 }

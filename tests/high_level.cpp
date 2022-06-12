@@ -17,6 +17,8 @@
 #include "check.hpp"
 
 // TODO: Test with subscribe that has wrong number of arguments.
+// TODO: I observed that running the echo_server_client with session
+// and 10000 messages will result in a timeout, which is wrong.
 
 //std::cout << "aaaa " << ec.message() << " " << cmd << " " << n << std::endl;
 
@@ -40,14 +42,11 @@ auto print_read = [](auto cmd, auto n)
 
 void test_resolve_error()
 {
-   auto f = [](auto ec)
-   {
-      expect_error(ec, net::error::netdb_errors::host_not_found);
-   };
-
    net::io_context ioc;
    connection db(ioc);
-   db.async_run("Atibaia", "6379", f);
+   db.async_run("Atibaia", "6379", [](auto ec) {
+      expect_error(ec, net::error::netdb_errors::host_not_found, "test_resolve_error");
+   });
    ioc.run();
 }
 
@@ -55,14 +54,11 @@ void test_resolve_error()
 
 void test_connect_error()
 {
-   auto f = [](auto ec)
-   {
-      expect_error(ec, net::error::basic_errors::connection_refused);
-   };
-
    net::io_context ioc;
    connection db(ioc);
-   db.async_run("127.0.0.1", "1", f);
+   db.async_run("127.0.0.1", "1", [](auto ec) {
+      expect_error(ec, net::error::basic_errors::connection_refused, "test_connect_error");
+   });
    ioc.run();
 }
 
@@ -78,12 +74,10 @@ void test_quit()
    req.push(command::quit);
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
       expect_no_error(ec);
-      //expect_eq(w, 36UL);
-      //expect_eq(r, 152UL);
    });
 
    db->async_run("127.0.0.1", "6379", [](auto ec){
-      expect_error(ec, net::error::misc_errors::eof);
+      expect_error(ec, net::error::misc_errors::eof, "test_quit");
    });
 
    ioc.run();
@@ -97,7 +91,7 @@ void test_quit2()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto n){
-      expect_error(ec, net::error::misc_errors::eof);
+      expect_error(ec, net::error::misc_errors::eof, "test_quit2");
    });
 
    ioc.run();
@@ -115,7 +109,7 @@ push_consumer3(std::shared_ptr<connection> db)
 
    {
       auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_error(ec, boost::asio::error::operation_aborted);
+      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "push_consumer3");
    }
 }
 
@@ -128,7 +122,7 @@ void test_push()
    req.push(command::subscribe, "channel");
    req.push(command::quit);
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, net::error::misc_errors::eof);
+      expect_error(ec, net::error::misc_errors::eof, "test_push");
    });
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
    ioc.run();
@@ -146,7 +140,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
       });
 
       auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
-      expect_error(ec, net::error::misc_errors::eof);
+      expect_error(ec, net::error::misc_errors::eof, "run5");
    }
 
    {
@@ -157,7 +151,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
       });
 
       auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
-      expect_error(ec, net::error::misc_errors::eof);
+      expect_error(ec, net::error::misc_errors::eof, "run5");
    }
 }
 
@@ -182,7 +176,7 @@ void test_no_push_reader1()
    req.push(command::subscribe, "channel");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::read_timeout);
+      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader1");
    });
 
    ioc.run();
@@ -200,7 +194,7 @@ void test_no_push_reader2()
    req.push(command::subscribe);
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::read_timeout);
+      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader2");
    });
 
    ioc.run();
@@ -219,7 +213,7 @@ void test_no_push_reader3()
    req.push(command::subscribe);
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::read_timeout);
+      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader3");
    });
 
    ioc.run();
@@ -245,9 +239,35 @@ void test_idle()
    });
 
    db->async_run("127.0.0.1", "6379", [](auto ec){
-      expect_error(ec, aedis::error::idle_timeout);
+      expect_error(ec, aedis::error::idle_timeout, "test_idle");
    });
 
+   ioc.run();
+}
+
+auto handler =[](auto ec, auto...)
+   { std::cout << ec.message() << std::endl; };
+
+void test_push3()
+{
+   request req1;
+   req1.push(command::ping, "Message1");
+
+   request req2;
+   req2.push(command::subscribe, "channel");
+
+   request req3;
+   req3.push(command::ping, "Message2");
+   req3.push(command::quit);
+
+   std::tuple<std::string, std::string> resp;
+
+   net::io_context ioc;
+   connection db{ioc};
+   db.async_exec(req1, aedis::adapt(resp), handler);
+   db.async_exec(req2, aedis::adapt(resp), handler);
+   db.async_exec(req3, aedis::adapt(resp), handler);
+   db.async_run("127.0.0.1", "6379", handler);
    ioc.run();
 }
 
@@ -258,6 +278,7 @@ int main()
    test_quit();
    test_quit2();
    test_push();
+   test_push3();
    test_no_push_reader1();
    test_no_push_reader2();
    test_no_push_reader3();
