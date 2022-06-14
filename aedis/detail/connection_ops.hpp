@@ -197,11 +197,9 @@ struct read_next_op {
             read_size += n;
 
             BOOST_ASSERT(cli->reqs_.front()->n_cmds != 0);
-            BOOST_ASSERT(cli->n_cmds_ != 0);
             BOOST_ASSERT(!cli->cmds_.empty());
 
             --cli->reqs_.front()->n_cmds;
-            --cli->n_cmds_;
             cli->cmds_.pop();
          }
 
@@ -231,9 +229,8 @@ struct exec_op {
          // add_request will add the request payload to the buffer and
          // return true if it can be written to the socket i.e. There
          // is no ongoing request.
-         if (cli->add_request(*req) && cli->socket_) {
+         if (cli->add_request(*req)) {
             // We can proceeed and write the request to the socket.
-            BOOST_ASSERT(cli->n_cmds_ == 0);
             info = cli->reqs_.back();
          } else {
             // There is an ongoing request being processed, when the
@@ -256,24 +253,22 @@ struct exec_op {
 
          BOOST_ASSERT(!cli->reqs_.empty());
 
-         // If n_cmds_ is zero there no ongoing request being
-         // processed so we can write. Otherwise, the payload
-         // corresponding to this request has already been sent in
-         // previous pipelines so that there is nothing to send.
-         if (cli->n_cmds_ == 0) {
+         if (cli->cmds_.empty() && cli->payload_.empty()) {
+            // If get here there is no request being processed (so we
+            // can write). Otherwise, the payload corresponding to
+            // this request has already been sent in previous
+            // pipelines and there is nothing to send.
             BOOST_ASSERT(!cli->payload_next_.empty());
 
             // Copies the request to variable that won't be touched
             // while async_write is suspended.
-            std::swap(cli->n_cmds_next_, cli->n_cmds_);
+            std::swap(cli->cmds_next_, cli->cmds_);
             std::swap(cli->payload_next_, cli->payload_);
-            cli->n_cmds_next_ = 0;
+            cli->cmds_next_ = {};
             cli->payload_next_.clear();
 
             cli->write_timer_.expires_after(cli->cfg_.write_timeout);
-            yield aedis::detail::async_write(
-               *cli->socket_, cli->write_timer_, boost::asio::buffer(cli->payload_),
-               std::move(self));
+            yield aedis::detail::async_write(*cli->socket_, cli->write_timer_, boost::asio::buffer(cli->payload_), std::move(self));
             if (ec) {
                cli->close();
                self.complete(ec, 0);
@@ -287,29 +282,11 @@ struct exec_op {
                return;
             }
 
-            // If we add support for reconnect in the future, we may
-            // want to keep the payload around until all responses
-            // have been written.
             cli->payload_.clear();
 
-            BOOST_ASSERT(!cli->reqs_.empty());
-
-            // If the connection that we have just written has no
-            // expected response e.g. subscribe, we can complete the
-            // operation here as there is nothing to read.
-            if (cli->reqs_.front()->n_cmds == 0) {
-               cli->release_req_info(info);
-               cli->reqs_.pop_front();
-               if (!cli->reqs_.empty()) {
-                  cli->reqs_.front()->timer.cancel_one();
-               }
-               self.complete({}, 0);
-               return;
-            }
-
-            // Waits for the response to arrive. Notice cannot skip
-            // this as between and async_write and async_read we
-            // may receive a server push.
+            // Waits for the reader to receive the response. Notice
+            // we cannot skip this step as between and async_write and
+            // async_read we may receive a server push.
             yield cli->read_channel_.async_receive(std::move(self));
             if (ec) {
                self.complete(ec, 0);
@@ -324,7 +301,32 @@ struct exec_op {
             }
          }
 
+         // If the connection we have just written has no expected
+         // response e.g. subscribe, the operation has to be
+         // completed here.
+         BOOST_ASSERT(!cli->reqs_.empty());
+         if (cli->reqs_.front()->n_cmds == 0) {
+            cli->release_req_info(info);
+            cli->reqs_.pop_front();
+
+            if (!cli->reqs_.empty())
+               cli->reqs_.front()->timer.cancel_one();
+
+            if (cli->cmds_.empty()) {
+               // Done with the pipeline, handles read control to the reader op.
+               yield cli->read_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+               if (ec) {
+                  self.complete(ec, 0);
+                  return;
+               }
+            }
+
+            self.complete({}, 0);
+            return;
+         }
+
          //----------------------------------------------------------------
+
          yield cli->async_read_next(adapter, std::move(self));
          if (ec) {
             self.complete(ec, 0);
@@ -339,10 +341,9 @@ struct exec_op {
          if (!cli->reqs_.empty())
             cli->reqs_.front()->timer.cancel_one();
 
-         if (cli->n_cmds_ == 0) {
-            // Done with the pipeline.
-            yield
-            cli->read_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+         if (cli->cmds_.empty()) {
+            // Done with the pipeline, handles read control to the reader op.
+            yield cli->read_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
             if (ec) {
                self.complete(ec, 0);
                return;
@@ -539,18 +540,27 @@ struct reader_op {
 
          cli->last_data_ = std::chrono::steady_clock::now();
 
-         // Handles unsolicited events.
-         if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push || cli->reqs_.empty()) {
-            // Regarding cli->reqs_.empty() above: This situation is
-            // odd. I have noticed that unsolicited simple-error
-            // events are sent by the server (-MISCONF) under certain
-            // conditions. I expect them to have type push so we can
-            // distinguish them from responses to commands, but it is
-            // a simple-error. If we are lucky enough to receive them
-            // when the command queue is empty we can treat them as
-            // server pushes, otherwise it is impossible to handle
-            // them properly.
-
+         // We handle unsolicited events in the following way
+         //
+         // 1. Its resp3 type is a push.
+         //
+         // 2. A non-push type is received with an empty requests
+         //    queue. I have noticed this is possible (e.g. -MISCONF).
+         //    I expect them to have type push so we can distinguish
+         //    them from responses to commands, but it is a
+         //    simple-error. If we are lucky enough to receive them
+         //    when the command queue is empty we can treat them as
+         //    server pushes, otherwise it is impossible to handle
+         //    them properly
+         //
+         // 3. The request does not expect any response but we got
+         //    one. This may happen if for example, subscribe with
+         //    wrong syntax.
+         //
+         BOOST_ASSERT(!cli->read_buffer_.empty());
+         if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push
+             || cli->reqs_.empty()
+             || (!cli->reqs_.empty() && cli->reqs_.front()->n_cmds == 0)) {
             yield async_send_receive(cli->push_channel_, std::move(self));
             if (ec) {
                self.complete(ec);

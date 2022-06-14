@@ -270,15 +270,14 @@ private:
    bool add_request(resp3::request const& req)
    {
       BOOST_ASSERT(!req.payload().empty());
-      auto const can_write = reqs_.empty();
+      auto const empty = reqs_.empty();
       reqs_.push_back(make_req_info(req.commands().size()));
       reqs_.back()->timer.expires_at(std::chrono::steady_clock::time_point::max());
-      n_cmds_next_ += req.commands().size();
       payload_next_ += req.payload();
       for (auto cmd : req.commands())
-         cmds_.push(cmd.first);
+         cmds_next_.push(cmd.first);
 
-      return can_write;
+      return empty && socket_ != nullptr;
    }
 
    auto make_dynamic_buffer()
@@ -413,12 +412,11 @@ private:
    // Buffer used by the read operations.
    std::string read_buffer_;
 
-   std::size_t n_cmds_ = 0;
-   std::size_t n_cmds_next_ = 0;
    std::string payload_;
    std::string payload_next_;
-   std::deque<std::shared_ptr<req_info>> reqs_;
    std::queue<command> cmds_;
+   std::queue<command> cmds_next_;
+   std::deque<std::shared_ptr<req_info>> reqs_;
    std::vector<std::shared_ptr<req_info>> pool_;
 
    // Last time we received data.
