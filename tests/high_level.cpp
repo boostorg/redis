@@ -16,10 +16,6 @@
 
 #include "check.hpp"
 
-// TODO: Test with subscribe that has wrong number of arguments.
-// TODO: I observed that running the echo_server_client with session
-// and 10000 messages will result in a timeout, which is wrong.
-
 //std::cout << "aaaa " << ec.message() << " " << cmd << " " << n << std::endl;
 
 namespace net = boost::asio;
@@ -64,7 +60,7 @@ void test_connect_error()
 
 //----------------------------------------------------------------
 
-// Test if quit make async_run exit.
+// Test if quit causes async_run to exit.
 void test_quit()
 {
    net::io_context ioc;
@@ -100,7 +96,7 @@ void test_quit2()
 //----------------------------------------------------------------
 
 net::awaitable<void>
-push_consumer3(std::shared_ptr<connection> db)
+push_consumer1(std::shared_ptr<connection> db)
 {
    {
       auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
@@ -109,11 +105,12 @@ push_consumer3(std::shared_ptr<connection> db)
 
    {
       auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "push_consumer3");
+      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "push_consumer1");
    }
 }
 
-void test_push()
+// Tests whether a push is indeed delivered.
+void test_push1()
 {
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
@@ -121,10 +118,12 @@ void test_push()
    request req;
    req.push(command::subscribe, "channel");
    req.push(command::quit);
+
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, net::error::misc_errors::eof, "test_push");
+      expect_error(ec, net::error::misc_errors::eof, "test_push1");
    });
-   net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
+
+   net::co_spawn(ioc.get_executor(), push_consumer1(db), net::detached);
    ioc.run();
 }
 
@@ -165,6 +164,7 @@ void test_reconnect()
    ioc.run();
 }
 
+// Checks whether we get idle timeout when no push reader is set.
 void test_no_push_reader1()
 {
    connection::config cfg;
@@ -248,7 +248,7 @@ void test_idle()
 auto handler =[](auto ec, auto...)
    { std::cout << ec.message() << std::endl; };
 
-void test_push3()
+void test_push2()
 {
    request req1;
    req1.push(command::ping, "Message1");
@@ -271,19 +271,96 @@ void test_push3()
    ioc.run();
 }
 
+net::awaitable<void>
+push_consumer3(std::shared_ptr<connection> db)
+{
+   for (;;)
+      co_await db->async_read_push(aedis::adapt(), net::use_awaitable);
+}
+
+void test_push3()
+{
+   request req1;
+   req1.push(command::ping, "Message1");
+
+   request req2;
+   req2.push(command::subscribe, "channel");
+
+   request req3;
+   req3.push(command::quit);
+
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc);
+   db->async_exec(req1, aedis::adapt(), handler);
+   db->async_exec(req2, aedis::adapt(), handler);
+   db->async_exec(req2, aedis::adapt(), handler);
+   db->async_exec(req1, aedis::adapt(), handler);
+   db->async_exec(req2, aedis::adapt(), handler);
+   db->async_exec(req1, aedis::adapt(), handler);
+   db->async_exec(req2, aedis::adapt(), handler);
+   db->async_exec(req2, aedis::adapt(), handler);
+   db->async_exec(req1, aedis::adapt(), handler);
+   db->async_exec(req2, aedis::adapt(), handler);
+   db->async_exec(req3, aedis::adapt(), handler);
+   db->async_run("127.0.0.1", "6379", handler);
+   net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
+   ioc.run();
+}
+
+void test_exec_while_processing()
+{
+   request req1;
+   req1.push(command::ping, "Message1");
+
+   request req2;
+   req2.push(command::subscribe, "channel");
+
+   request req3;
+   req3.push(command::quit);
+
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc);
+
+   db->async_exec(req1, aedis::adapt(), [db, &req1](auto ec, auto) {
+      db->async_exec(req1, aedis::adapt(), handler);
+   });
+
+   db->async_exec(req1, aedis::adapt(), [db, &req2](auto ec, auto) {
+      db->async_exec(req2, aedis::adapt(), handler);
+   });
+
+   db->async_exec(req2, aedis::adapt(), [db, &req2](auto ec, auto) {
+      db->async_exec(req2, aedis::adapt(), handler);
+   });
+
+   db->async_exec(req1, aedis::adapt(), [db, &req1](auto ec, auto) {
+      db->async_exec(req1, aedis::adapt(), handler);
+   });
+
+   db->async_exec(req2, aedis::adapt(), [db, &req3](auto ec, auto) {
+      db->async_exec(req3, aedis::adapt(), handler);
+   });
+
+   db->async_run("127.0.0.1", "6379", handler);
+   net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
+   ioc.run();
+}
+
 int main()
 {
    test_resolve_error();
    test_connect_error();
    test_quit();
    test_quit2();
-   test_push();
+   test_push1();
+   test_push2();
    test_push3();
    test_no_push_reader1();
    test_no_push_reader2();
    test_no_push_reader3();
    // TODO: Reconnect is not working.
    //test_reconnect();
+   test_exec_while_processing();
 
    // Must come last as it send a client pause.
    test_idle();
