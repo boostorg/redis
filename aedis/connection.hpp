@@ -253,7 +253,9 @@ private:
    template <class T> friend struct detail::ping_op;
    template <class T> friend struct detail::run_op;
    template <class T, class U> friend struct detail::exec_op;
-   template <class T, class U> friend struct detail::read_next_op;
+   template <class T, class U> friend struct detail::exec_read_op;
+   template <class T, class U> friend struct detail::exec_write_op;
+   template <class T, class U> friend struct detail::exec_exit_op;
    template <class T, class U> friend struct detail::runexec_op;
    template <class T> friend struct detail::exec_internal_op;
    template <class T> friend struct detail::connect_with_timeout_op;
@@ -265,6 +267,13 @@ private:
       boost::asio::steady_timer timer;
       std::size_t n_cmds = 0;
       bool stop = false;
+
+      bool expects_response() const noexcept { return n_cmds != 0;}
+
+      void pop() noexcept
+      {
+         --n_cmds;
+      }
    };
 
    bool add_request(resp3::request const& req)
@@ -366,14 +375,32 @@ private:
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = default_completion_token_type>
    auto
-   async_read_next(
+   async_exec_read(
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::read_next_op<connection, Adapter>{this, adapter}, token, resv_);
+         >(detail::exec_read_op<connection, Adapter>{this, adapter}, token, resv_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto async_exec_write(CompletionToken token = CompletionToken{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code, std::size_t)
+         >(detail::exec_write_op<connection>{this}, token, resv_);
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto async_exec_exit(CompletionToken token = CompletionToken{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::exec_exit_op<connection>{this}, token, resv_);
    }
 
    std::shared_ptr<req_info> make_req_info(std::size_t cmds)
