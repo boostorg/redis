@@ -69,7 +69,7 @@ void test_quit()
    request req;
    req.push(command::quit);
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
-      expect_no_error(ec);
+      expect_no_error(ec, "test_quit");
    });
 
    db->async_run("127.0.0.1", "6379", [](auto ec){
@@ -100,7 +100,7 @@ push_consumer1(std::shared_ptr<connection> db)
 {
    {
       auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_no_error(ec);
+      expect_no_error(ec, "push_consumer");
    }
 
    {
@@ -135,7 +135,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
       request req;
       req.push(command::quit);
       db->async_exec(req, aedis::adapt(), [](auto ec, auto){
-         expect_no_error(ec);
+         expect_no_error(ec, "run5");
       });
 
       auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
@@ -146,7 +146,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
       request req;
       req.push(command::quit);
       db->async_exec(req, aedis::adapt(), [](auto ec, auto){
-         expect_no_error(ec);
+         expect_no_error(ec, "run5");
       });
 
       auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
@@ -235,7 +235,7 @@ void test_idle()
    req.push(command::client, "PAUSE", 5000);
 
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
-      expect_no_error(ec);
+      expect_no_error(ec, "test_idle");
    });
 
    db->async_run("127.0.0.1", "6379", [](auto ec){
@@ -358,7 +358,6 @@ int main()
    test_no_push_reader1();
    test_no_push_reader2();
    test_no_push_reader3();
-   // TODO: Reconnect is not working.
    //test_reconnect();
    test_exec_while_processing();
 

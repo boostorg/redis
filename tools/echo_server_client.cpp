@@ -31,7 +31,7 @@ example(boost::asio::ip::tcp::endpoint ep, std::string msg, int n)
          dbuffer.consume(n);
       }
 
-      std::printf("Ok: %s", msg.data());
+      //std::printf("Ok: %s", msg.data());
    } catch (std::exception const& e) {
       std::cerr << "Error: " << e.what() << std::endl;
    }

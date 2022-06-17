@@ -18,7 +18,8 @@
 namespace aedis {
 namespace resp3 {
 
-/** \brief Reads a complete response to a command sychronously.
+/** \internal
+ *  \brief Reads a complete response to a command sychronously.
  *  \ingroup any
  *
  *  This function reads a complete response to a command or a
@@ -102,7 +103,8 @@ read(
    return consumed;
 }
 
-/** \brief Reads a complete response to a command sychronously.
+/** \internal
+ *  \brief Reads a complete response to a command sychronously.
  *  \ingroup any
  *  
  *  Same as the error_code overload but throws on error.
@@ -126,7 +128,8 @@ read(
    return n;
 }
 
-/** @brief Reads a complete response to a Redis command asynchronously.
+/** \internal
+ *  \brief Reads a complete response to a Redis command asynchronously.
  *  \ingroup any
  *
  *  This function reads a complete response to a command or a

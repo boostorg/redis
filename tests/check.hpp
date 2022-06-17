@@ -44,9 +44,9 @@ void expect_error(boost::system::error_code a, T expected = {}, std::string cons
 }
 
 inline
-void expect_no_error(boost::system::error_code ec)
+void expect_no_error(boost::system::error_code ec, std::string const& msg)
 {
-   expect_error(ec, boost::system::error_code{});
+   expect_error(ec, boost::system::error_code{}, msg);
 }
 
 template <class T>

@@ -97,8 +97,9 @@ struct add_bulk_impl<boost::hana::tuple<Ts...>> {
 
 } // detail
 
-/** @brief Adds a resp3 header to the request.
- *  @ingroup any
+/** \internal
+ *  \brief Adds a resp3 header to the request.
+ *  \ingroup any
  *
  *  See mystruct.hpp for an example.
  */
@@ -142,8 +143,9 @@ void add_blob(Request& to, boost::string_view blob)
    to += separator;
 }
 
-/** @brief Adds a separator to the request.
- *  @ingroup any
+/** \internal
+ *  \brief Adds a separator to the request.
+ *  \ingroup any
  *
  *  See mystruct.hpp for an example.
  */

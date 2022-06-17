@@ -15,7 +15,8 @@ namespace adapter {
 template <class T>
 using adapter_t = typename detail::adapter_t<T>;
 
-/** \brief Creates a dummy response adapter.
+/** \internal
+    \brief Creates a dummy response adapter.
     \ingroup any
   
     The adapter returned by this function ignores responses. It is
@@ -41,7 +42,8 @@ inline
 auto adapt() noexcept
    { return detail::response_traits<void>::adapt(); }
 
-/** \brief Adapts user data to read operations.
+/** \internal
+ *  \brief Adapts user data to read operations.
  *  \ingroup any
  *
  *  STL containers, \c std::tuple and built-in types are supported and

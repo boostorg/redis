@@ -222,15 +222,7 @@ struct exec_write_op {
    {
       reenter (coro)
       {
-         BOOST_ASSERT(!cli->payload_next_.empty());
-
-         // Copies the request to the variables that won't be touched
-         // while async_write is suspended.
-         std::swap(cli->cmds_next_, cli->cmds_);
-         std::swap(cli->payload_next_, cli->payload_);
-         cli->cmds_next_ = {};
-         cli->payload_next_.clear();
-
+         cli->coalesce_requests();
          cli->write_timer_.expires_after(cli->cfg_.write_timeout);
          yield aedis::detail::async_write(*cli->socket_, cli->write_timer_, boost::asio::buffer(cli->payload_), std::move(self));
          if (ec) {

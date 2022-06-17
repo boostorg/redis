@@ -35,10 +35,12 @@ net::awaitable<void> echo_loop(tcp_socket socket, std::shared_ptr<connection> db
    }
 }
 
-net::awaitable<void> listener()
+net::awaitable<void> listener(bool coalesce_requests)
 {
    auto ex = co_await net::this_coro::executor;
-   auto db = std::make_shared<connection>(ex);
+   connection::config cfg;
+   cfg.coalesce_requests = coalesce_requests;
+   auto db = std::make_shared<connection>(ex, cfg);
    db->async_run("127.0.0.1", "6379", net::detached);
 
    tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});
@@ -46,11 +48,11 @@ net::awaitable<void> listener()
       net::co_spawn(ex, echo_loop(co_await acc.async_accept(), db), net::detached);
 }
 
-int main()
+int main(int argc, char* argv[])
 {
    try {
       net::io_context ioc;
-      co_spawn(ioc, listener(), net::detached);
+      co_spawn(ioc, listener(argc == 1), net::detached);
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

@@ -64,6 +64,9 @@ public:
 
       /// The maximum size allwed in a read operation.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
+
+      // Whether to coalesce requests.
+      bool coalesce_requests = true;
    };
 
    /** \brief Constructor.
@@ -265,26 +268,24 @@ private:
 
    struct req_info {
       boost::asio::steady_timer timer;
+      resp3::request const* req = nullptr;
       std::size_t n_cmds = 0;
       bool stop = false;
 
       bool expects_response() const noexcept { return n_cmds != 0;}
-
-      void pop() noexcept
-      {
-         --n_cmds;
-      }
+      void pop() noexcept { --n_cmds; }
    };
 
    bool add_request(resp3::request const& req)
    {
       BOOST_ASSERT(!req.payload().empty());
       auto const empty = reqs_.empty();
-      reqs_.push_back(make_req_info(req.commands().size()));
+
+      reqs_.push_back(make_req_info());
       reqs_.back()->timer.expires_at(std::chrono::steady_clock::time_point::max());
-      payload_next_ += req.payload();
-      for (auto cmd : req.commands())
-         cmds_next_.push(cmd.first);
+      reqs_.back()->req = &req;
+      reqs_.back()->n_cmds = req.commands().size();
+      reqs_.back()->stop = false;
 
       return empty && socket_ != nullptr;
    }
@@ -403,16 +404,12 @@ private:
          >(detail::exec_exit_op<connection>{this}, token, resv_);
    }
 
-   std::shared_ptr<req_info> make_req_info(std::size_t cmds)
+   std::shared_ptr<req_info> make_req_info()
    {
       if (pool_.empty())
-         return std::make_shared<req_info>(
-            boost::asio::steady_timer{resv_.get_executor()},
-            cmds, false);
+         return std::make_shared<req_info>(boost::asio::steady_timer{resv_.get_executor()});
 
       auto ret = pool_.back();
-      ret->n_cmds = cmds;
-      ret->stop = false;
       pool_.pop_back();
       return ret;
    }
@@ -420,6 +417,22 @@ private:
    void release_req_info(std::shared_ptr<req_info> info)
    {
       pool_.push_back(info);
+   }
+
+   void coalesce_requests()
+   {
+      // Coaleces all requests: Copies the request to the variables
+      // that won't be touched while async_write is suspended.
+      BOOST_ASSERT(payload_.empty());
+      BOOST_ASSERT(!reqs_.empty());
+
+      auto const size = cfg_.coalesce_requests ? reqs_.size() : 1;
+      for (auto i = 0UL; i < size; ++i) {
+         payload_ += reqs_.at(i)->req->payload();
+         for (auto cmd : reqs_.at(i)->req->commands()) {
+            cmds_.push(cmd.first);
+         }
+      }
    }
 
    using channel_type = boost::asio::experimental::channel<void(boost::system::error_code, std::size_t)>;
@@ -440,9 +453,7 @@ private:
    std::string read_buffer_;
 
    std::string payload_;
-   std::string payload_next_;
    std::queue<command> cmds_;
-   std::queue<command> cmds_next_;
    std::deque<std::shared_ptr<req_info>> reqs_;
    std::vector<std::shared_ptr<req_info>> pool_;
 
