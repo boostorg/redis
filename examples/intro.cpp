@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <string>
 #include <tuple>
+#include <string>
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
@@ -17,20 +17,19 @@ using aedis::command;
 using aedis::resp3::request;
 using connection = aedis::connection<>;
 
-auto handler =[](auto ec, auto...)
-   { std::cout << ec.message() << std::endl; };
-
 int main()
 {
+   net::io_context ioc;
+
    request req;
    req.push(command::ping, "Ping example");
    req.push(command::quit);
-
    std::tuple<std::string, std::string> resp;
 
-   net::io_context ioc;
    connection db{ioc};
-   db.async_exec("127.0.0.1", "6379", req, adapt(resp), handler);
+   db.async_exec("127.0.0.1", "6379", req, adapt(resp),
+      [](auto ec, auto) { std::cout << ec.message() << std::endl; });
+
    ioc.run();
 
    std::cout << std::get<0>(resp) << std::endl;

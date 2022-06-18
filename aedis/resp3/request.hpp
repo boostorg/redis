@@ -23,7 +23,7 @@ namespace resp3 {
 /** @brief Creates Redis requests from user data.
  *  \ingroup any
  *  
- *  A request is composed of one or more redis commands and is
+ *  A request is composed of one or more Redis commands and is
  *  referred to in the redis documentation as a pipeline, see
  *  https://redis.io/topics/pipelining.
  *
@@ -46,11 +46,27 @@ namespace resp3 {
  */
 class request {
 public:
-   /// Returns a list of commands contained in this request.
-   auto const& commands() const { return commands_;};
+   /** \brief Returns a list of commands contained in this request.
+    *  
+    *  \returns A container with the commands contained in the request
+    *  with their sizes: \c std::vector<std::pair<command, std::size_t>>.
+    */
+   auto const& commands() const noexcept { return commands_;};
 
    /// Returns the request payload.
-   auto const& payload() const { return payload_;}
+   auto const& payload() const noexcept { return payload_;}
+
+   /// Enable retry for this request object.
+   void enable_retry() noexcept { retry_ = true; }
+
+   /** \brief Returns \c true is \c enable_retry has been called.
+    *
+    *  This flag is used by the \c connection object to determine
+    *  whether it should try to resend the request when a failure
+    *  occurs, for example because the Redis server crashed and a
+    *  failover operation is going on.
+    */
+   bool retry() const noexcept { return retry_;}
 
    /// Clears the request preserving allocated memory.
    void clear()
@@ -64,9 +80,8 @@ public:
     *  For example
     *
     *  \code
-    *  std::string request;
-    *  auto sr = make_serializer<command>(request);
-    *  sr.push(command::set, "key", "some string", "EX", "2");
+    *  request req;
+    *  req.push(command::set, "key", "some string", "EX", "2");
     *  \endcode
     *
     *  will add the \c set command with value "some string" and an
@@ -204,9 +219,9 @@ public:
    }
 
 private:
-   using command_info_type = std::pair<command, std::size_t>;
    std::string payload_;
-   std::vector<command_info_type> commands_;
+   std::vector<std::pair<command, std::size_t>> commands_;
+   bool retry_ = false;
 };
 
 } // resp3

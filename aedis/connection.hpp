@@ -47,25 +47,25 @@ public:
    /** @brief Configuration parameters.
     */
    struct config {
-      /// Timeout of the \c async_resolve operation.
+      /// Timeout of the resolve operation.
       std::chrono::milliseconds resolve_timeout = std::chrono::seconds{5};
 
-      /// Timeout of the \c async_connect operation.
+      /// Timeout of the connect operation.
       std::chrono::milliseconds connect_timeout = std::chrono::seconds{5};
 
-      /// Timeout of the \c async_read operation.
+      /// Timeout of the read operation.
       std::chrono::milliseconds read_timeout = std::chrono::seconds{5};
 
-      /// Timeout of the \c async_write operation.
+      /// Timeout of the write operation.
       std::chrono::milliseconds write_timeout = std::chrono::seconds{5};
 
-      /// Time after which a ping is sent if no data is received.
+      /// Time interval ping operations.
       std::chrono::milliseconds ping_interval = std::chrono::seconds{5};
 
-      /// The maximum size allwed in a read operation.
+      /// The maximum size allowed of read operations.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
 
-      // Whether to coalesce requests.
+      /// Whether to coalesce requests or not.
       bool coalesce_requests = true;
    };
 
@@ -97,57 +97,32 @@ public:
     *
     *  This function performs the following steps
     *
-    *  @li Resolves the Redis host as of \c async_resolve with the
+    *  \li Resolves the Redis host as of \c async_resolve with the
     *  timeout passed in connection::config::resolve_timeout.
     *
-    *  @li Connects to one of the endpoints returned by the resolve
+    *  \li Connects to one of the endpoints returned by the resolve
     *  operation with the timeout passed in connection::config::connect_timeout.
     *
-    *  @li Starts the \c async_read operation that keeps reading incoming
-    *  responses. Each individual read uses the timeout passed on
-    *  connection::config::read_timeout. After each successful read it
-    *  will call the read or push callback.
-    *
-    *  @li Starts the \c async_write operation that waits for new commands
-    *  to be sent to Redis. Each individual write uses the timeout
-    *  passed on connection::config::write_timeout. After a successful
-    *  write it will call the write callback.
-    *
-    *  @li Starts the idle check operation with the timeout of twice
+    *  \li Starts the idle check operation with the timeout of twice
     *  the value of connection::config::ping_interval. If no data is
     *  received during that time interval \c async_run completes with
     *  error::idle_timeout.
     *
-    *  @li Starts the healthy check operation that sends
-    *  command::ping to Redis with a frequency equal to
+    *  \li Starts the healthy check operation that sends command::ping
+    *  to Redis with a frequency equal to
     *  connection::config::ping_interval.
     *
-    *  In addition to the callbacks mentioned above, the read
-    *  operations will call the resp3 callback as soon a new chunks of
-    *  data become available to the user.
+    *  \li Start reading from the socket and deliver events to the
+    *  request started with \c async_exec or \c async_read_push.
     *
-    *  It is safe to call \c async_run after it has returned.  In this
+    *  It is safe to call \c async_run again after it has returned.  In this
     *  case, any outstanding commands will be sent after the
-    *  connection is restablished. If a disconnect occurs while the
-    *  response to a request has not been received, the connection doesn't
-    *  try to resend it to avoid resubmission.
+    *  connection is restablished.
     *
-    *  Example:
+    * For an example see echo_server.cpp.
     *
-    *  @code
-    *  awaitable<void> run_with_reconnect(std::shared_ptr<connection_type> db)
-    *  {
-    *     auto ex = co_await this_coro::executor;
-    *     asio::steady_timer timer{ex};
-    *  
-    *     for (error_code ec;;) {
-    *        co_await db->async_run("127.0.0.1", "6379", redirect_error(use_awaitable, ec));
-    *        timer.expires_after(std::chrono::seconds{2});
-    *        co_await timer.async_wait(redirect_error(use_awaitable, ec));
-    *     }
-    *  }
-    *  @endcode
-    *
+    *  \param host The Redis address.
+    *  \param port The Redis port.
     *  \param token The completion token.
     *
     *  The completion token must have the following signature
@@ -171,7 +146,22 @@ public:
          >(detail::run_op<connection>{this, host, port}, token, resv_);
    }
 
-   /** @brief Asynchrnously schedules a command for execution.
+   /** @brief Executes a request on the redis server.
+    *
+    *  \param req The request object.
+    *  \param adapter The response adapter.
+    *  \param token The Asio completion token.
+    *
+    *  For an example see containers.cpp.
+    *
+    *  The completion token must have the following signature
+    *
+    *  @code
+    *  void f(boost::system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the response that has
+    *  just been read.
     */
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
@@ -187,7 +177,28 @@ public:
          >(detail::exec_op<connection, Adapter>{this, &req, adapter}, token, resv_);
    }
 
-   /** @brief Asynchrnously schedules a command for execution.
+   /** @brief Connects and executes a single request.
+    *
+    *  Combines \c async_run and the other \c async_exec overload in a
+    *  single function. This function is useful for users that want to
+    *  send a single request to the server.
+    *
+    *  \param host The address of the Redis server.
+    *  \param port The port of the Redis server.
+    *  \param req The request object.
+    *  \param adapter The response adapter.
+    *  \param token The Asio completion token.
+    *
+    *  For an example see intro.cpp.
+    *
+    *  The completion token must have the following signature
+    *
+    *  @code
+    *  void f(boost::system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the response that has
+    *  just been read.
     */
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
@@ -206,7 +217,25 @@ public:
             {this, host, port, &req, adapter}, token, resv_);
    }
 
-   /** @brief Receives events produced by the run operation.
+   /** @brief Receives Redis unsolicited events like pushes.
+    *
+    *  Users that expect unsolicited events should call this function
+    *  in a loop. If an unsolicited events comes in and there is no
+    *  reader, the connection will hang and eventually timeout.
+    *
+    *  \param adapter The response adapter.
+    *  \param token The Asio completion token.
+    *
+    *  For an example see subscriber.cpp.
+    *
+    *  The completion token must have the following signature
+    *
+    *  @code
+    *  void f(boost::system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the response that has
+    *  just been read.
     */
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
@@ -230,8 +259,9 @@ public:
    }
 
    /** @brief Closes the connection with the database.
-    *  
-    *  The channels will be cancelled.
+    *
+    *  The prefered way to close a connection is to send a \c quit
+    *  command.
     */
    void close()
    {

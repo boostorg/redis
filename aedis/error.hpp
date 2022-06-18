@@ -80,7 +80,8 @@ enum class error
    null
 };
 
-/** \brief Creates a error_code object from an error.
+/** \internal
+ *  \brief Creates a error_code object from an error.
  *  \ingroup any
  */
 boost::system::error_code make_error_code(error e);
