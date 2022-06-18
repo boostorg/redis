@@ -134,24 +134,22 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
    {
       request req;
       req.push(command::quit);
-      db->async_exec(req, aedis::adapt(), [](auto ec, auto){
-         expect_no_error(ec, "run5");
+      db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
+         // TODO: Why not eof instead of operation_aborted.
+         expect_error(ec, net::error::basic_errors::operation_aborted, "run5");
       });
-
-      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
-      expect_error(ec, net::error::misc_errors::eof, "run5");
    }
 
    {
       request req;
       req.push(command::quit);
-      db->async_exec(req, aedis::adapt(), [](auto ec, auto){
-         expect_no_error(ec, "run5");
+      db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
+         // TODO: Why not eof instead of operation_aborted.
+         expect_error(ec, net::error::basic_errors::operation_aborted, "run5");
       });
-
-      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
-      expect_error(ec, net::error::misc_errors::eof, "run5");
    }
+
+   co_return;
 }
 
 // Test whether the client works after a reconnect.
@@ -358,7 +356,7 @@ int main()
    test_no_push_reader1();
    test_no_push_reader2();
    test_no_push_reader3();
-   //test_reconnect();
+   test_reconnect();
    test_exec_while_processing();
 
    // Must come last as it send a client pause.
