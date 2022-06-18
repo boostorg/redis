@@ -22,172 +22,118 @@
   
     \section Overview
   
-    Aedis is a high-level [Redis](https://redis.io/) client library built on top
-    of [Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
+    Aedis is a high-level [Redis](https://redis.io/) client library
+    built on top of [Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
     that provides simple and efficient communication with a Redis
     server. Some of its distinctive features are
 
-    @li Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-    @li First class support for STL containers and C++ built-in types.
-    @li Serialization and deserialization of your own data types that avoid unnecessary copies.
-    @li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
+    \li Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
+    \li First class support for STL containers and C++ built-in types.
+    \li Serialization and deserialization of your own data types.
+    \li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
+    \li Zero asymptotic allocations by means of memory reuse.
+    \li Healthy checks and back pressure.
 
-    In addition to that, Aedis provides a high-level client that
-    offers the following functionality
+    The Aedis API is simple, intuitive and hides most of the low level
+    asynchronous operations away from the user, for example, the code
+    below pings a message to the server
 
-    @li Management of message queues.
-    @li Simplified handling of server pushes.
-    @li Zero asymptotic allocations by means of memory reuse.
-    @li Healthy checks.
-    @li Back pressure.
-
-    If you are interested in a detailed comparison of Redis clients
-    and the design rationale behind Aedis jump to \ref why-aedis. Now
-    let us have a look at the low-level API.
-
-    \section low-level-api Low-level API
-
-    The low-level API is very useful for tasks that can be performed
-    in short lived connections, for example, assume we want to perform
-    the following steps
-
-    @li Set the value of a Redis key.
-    @li Set the expiration of that key to two seconds.
-    @li Get and return its old value.
-    @li Quit
-
-    The coroutine-based asynchronous implementation of the steps above look like
-
-    @code
-    net::awaitable<std::string> set(net::ip::tcp::endpoint ep)
+    \code
+    int main()
     {
-       // To make code less verbose
-       using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+       net::io_context ioc;
 
-       tcp_socket socket{co_await net::this_coro::executor};
-       co_await socket.async_connect(ep);
-    
-       std::string buffer, response;
+       request req;
+       req.push(command::ping, "Ping example");
+       req.push(command::quit);
+       std::tuple<std::string, std::string> resp;
 
-       auto sr = make_serializer(request);
-       sr.push(command::hello, 3);
-       sr.push(command::set, "key", "Value", "EX", "2", "get");
-       sr.push(command::quit);
-       co_await net::async_write(socket, net::buffer(buffer));
-       buffer.clear();
-    
-       auto dbuffer = net::dynamic_buffer(read_buffer);
-       co_await resp3::async_read(socket, dbuffer); // Hello ignored.
-       co_await resp3::async_read(socket, dbuffer, adapt(response)); // Set
-       co_await resp3::async_read(socket, dbuffer); // Quit ignored.
-    
-       co_return response;
+       connection db{ioc};
+       db.async_exec("127.0.0.1", "6379", req, adapt(resp),
+          [](auto ec, auto) { std::cout << ec.message() << std::endl; });
+
+       ioc.run();
+
+       std::cout << std::get<0>(resp) << std::endl;
+       std::cout << std::get<1>(resp) << std::endl;
     }
-    @endcode
+    \endcode
 
-    The simplicity of the code above makes it self explanatory
+    For a detailed comparison of Redis clients and the design
+    rationale behind Aedis jump to \ref why-aedis.
 
-    @li Connect to the Redis server.
-    @li Declare a \c std::string to hold the request and add some commands in it with a serializer.
-    @li Write the payload to the socket and read the responses in the same order they were sent.
-    @li Return the response to the user.
+    \section requests Requests
 
-    The @c hello command above is always required and must be sent
-    first as it informs we want to communicate over RESP3.
-
-    \subsection requests Requests
-
-    As stated above, requests are created by defining a storage object
-    and a serializer that knows how to convert user data into valid
-    RESP3 wire-format. They are composed of one or more
-    commands (in Redis documentation they are called [pipelines](https://redis.io/topics/pipelining)),
-    which means users can add
-    as many commands to the request as they like, a feature that aids
-    performance.
-
-    The individual commands in a request assume many
-    different forms
-
-    @li With and without keys.
-    @li Variable length arguments.
-    @li Ranges.
-    @li etc.
-
-    To account for all these variations, the \c serializer class
-    offers some member functions, each of them with a couple of
-    overloads, for example
+    Redis requests are composed of one of more Redis commands (in
+    Redis documentation they are called
+    [pipelines](https://redis.io/topics/pipelining)). For example
 
     @code
-    // Some data to send to Redis.
-    std::string value = "some value";
+    // Request where we will push some commands.
+    request req;
 
+    // Command with variable length of arguments.
+    req.push(command::set, "key", "some value", value, "EX", "2");
+
+    // Pushes a set.
     std::list<std::string> list {"channel1", "channel2", "channel3"};
+    req.push_range(command::subscribe, list);
 
+    // Same as above but as an iterator range.
+    req.push_range2(command::subscribe, std::cbegin(list), std::cend(list));
+
+    // Sends a map.
     std::map<std::string, mystruct> map
        { {"key1", "value1"}
        , {"key2", "value2"}
        , {"key3", "value3"}};
-
-    // Command with no arguments
-    sr.push(command::quit);
-
-    // Command with variable lenght arguments.
-    sr.push(command::set, "key", value, "EX", "2");
-
-    // Sends a container, no key.
-    sr.push_range(command::subscribe, list);
-
-    // Same as above but an iterator range.
-    sr.push_range2(command::subscribe, std::cbegin(list), std::cend(list));
-
-    // Sends a container, with key.
-    sr.push_range(command::hset, "key", map);
-
-    // Same as above but as iterator range.
-    sr.push_range2(command::hset, "key", std::cbegin(map), std::cend(map));
+    req.push_range(command::hset, "key", map);
     @endcode
 
-    Once all commands have been added to the request, we can write it
-    as usual by writing the payload to the socket
+    Sending a request to Redis is then peformed with the 
 
     @code
-    co_await net::async_write(socket, buffer(request));
+    co_await db->async_exec(req, adapt(resp));
     @endcode
 
-    \subsubsection requests-serialization Serialization
+    The second argument \c adapt(resp) will be explained in \ref requests.
 
-    The \c send and \c send_range functions above work with integers
+    \subsection requests-serialization Serialization
+
+    The \c push and \c push_range functions above work with integers
     e.g. \c int and \c std::string out of the box. To send your own
-    data type defined the \c to_bulk function like this
+    data type defined a \c to_bulk function like this
 
     @code
-    // Example struct.
     struct mystruct {
-      // ...
+       // Example struct.
     };
     
     void to_bulk(std::string& to, mystruct const& obj)
     {
-       // Convert to obj string and call to_bulk (see also add_header
-       // and add_separator)
-       auto dummy = "Dummy serializaiton string.";
+       // Convert to obj string and call to_bulk.
+       std::string dummy = "Dummy serializaiton string.";
        aedis::resp3::to_bulk(to, dummy);
     }
+    @endcode
 
-    std::map<std::string, mystruct> map
-       { {"key1", {...}}
-       , {"key2", {...}}
-       , {"key3", {...}}};
+    Once \c to_bulk is defined and accessible over ADL \c mystruct can
+    be passed to the \c request
 
-    db.send_range(command::hset, "key", map);
+    @code
+    request req;
+
+    std::map<std::string, mystruct> map {...};
+
+    req.push_range(command::hset, "key", map);
     @endcode
 
     It is quite common to store json string in Redis for example.
 
-    \subsection low-level-responses Responses
+    \section low-level-responses Responses
 
     To read responses effectively, users must know their RESP3 type,
-    this can be found in the Redis documentation of each command
+    this can be found in the Redis documentation for each command
     (https://redis.io/commands). For example
 
     Command  | RESP3 type                          | Documentation
@@ -218,10 +164,10 @@
     Push           | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate
 
     Responses that contain nested aggregates or heterogeneous data
-    types will be given special treatment later.  As of this writing,
-    not all RESP3 types are used by the Redis server, which means in
-    practice users will be concerned with a reduced subset of the
-    RESP3 specification. Now let us see some examples
+    types will be given special treatment later in \ref gen-case.  As
+    of this writing, not all RESP3 types are used by the Redis server,
+    which means in practice users will be concerned with a reduced
+    subset of the RESP3 specification. Now let us see some examples
 
     @code
     auto dbuffer = dynamic_buffer(buffer);
@@ -259,7 +205,7 @@
     compatible with the data structure you are calling @c adapter(...)
     with. All standard C++ containers are supported by Aedis.
 
-    \subsubsection Optional
+    \subsection Optional
 
     It is not uncommon for apps to access keys that do not exist or
     that have already expired in the Redis server, to deal with these
@@ -274,7 +220,7 @@
     Everything else stays the same, before accessing data, users will
     have to check or assert the optional contains a value.
 
-    \subsubsection heterogeneous_aggregates Heterogeneous aggregates
+    \subsection heterogeneous_aggregates Heterogeneous aggregates
 
     There are cases where Redis returns aggregates that
     contain heterogeneous data, for example, an array that contains
@@ -327,7 +273,7 @@
     after @c exec is received Redis will execute them in sequence and
     send all responses together in an array.
 
-    \subsubsection Serialization
+    \subsection Serialization
 
     As mentioned in \ref requests-serialization, it is common for
     users to serialized data before sending it to Redis e.g.  json
@@ -363,7 +309,7 @@
     After that, you can start receiving data efficiently in the desired
     types e.g. \c mystruct, \c std::map<std::string, mystruct> etc.
 
-    \subsubsection gen-case The general case
+    \subsection gen-case The general case
 
     As already mentioned, there are cases where responses to Redis
     commands won't fit in the model presented above, some examples are
@@ -421,7 +367,7 @@
 
     In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. \c smembers.
 
-    \subsubsection low-level-adapters Adapters
+    \subsection low-level-adapters Adapters
 
     Users that are not satisfied with any of the options above can
     write their own adapters very easily. For example, the adapter below
@@ -437,121 +383,6 @@
     @endcode
 
     See more in the \ref examples section.
-
-    \section high-level-api High-level API
-
-    As stated earlier, the low-level API is very useful for tasks that
-    can be performed with short lived connections. Sometimes however,
-    the need for long-lived connections becomes compeling
-
-    @li \b Server \b pushes: Short lived connections can't deal with server pushes, that means no [client side caching](https://redis.io/topics/client-side-caching), [notifications](https://redis.io/topics/notifications) and [pubsub](https://redis.io/topics/pubsub).
-    @li \b Performance: Keep opening and closing connections impact performance serverely.
-    @li \b Pipeline: Code such as shown in \ref low-level-api don't support pipelines well since it can only send a fixed number of commands at time. It misses important optimization opportunities (https://redis.io/topics/pipelining).
-
-    A serious implementation that supports the points listed above is
-    far from trivial and involves many complex asynchronous operations
-
-    @li \c async_resolve: Resolve a hostname.
-    @li \c async_connect: Connect to Redis.
-    @li \c async_read: Performed in a loop as long as the connection lives.
-    @li \c async_write: Performed everytime a new message is added.
-    @li \c async_wait: To timout all operations above if the server becomes unresponsive.
-
-    Notice that many of the operations above will run concurrently
-    with each other and, in addition to that
-
-    @li \c async_write operations require management of the message queue to prevent concurrent writes.
-    @li Healthy checks must be sent periodically by the client to detect a dead or unresponsive server.
-    @li Recovery after a disconnection to avoid loosing enqueued commands.
-    @li Back pressure.
-
-    Expecting users to implement these points themselves is
-    unrealistic and could result in code that performs poorly and
-    can't handle errors properly.  To avoid all of that, Aedis
-    provides its own implementation. The general form of a program
-    that uses the high-level API looks like this
-
-    @code
-    int main()
-    {
-       net::io_context ioc;
-
-       client_type db(ioc.get_executor());
-       auto recv = std::make_shared<receiver>(db);
-       db.set_receiver(recv);
-
-       db.async_run([](auto ec){ ... });
-
-       ioc.run();
-    }
-    @endcode
-
-    Users are concerned only with the implementation of the
-    receiver. For example
-
-    @code
-    // Callbacks.
-    struct receiver {
-       void on_resp3(command cmd, node<string_view> const& nd, error_code& ec) { ...  }
-       void on_read(command cmd, std::size_t) { ...  }
-    };
-    @endcode
-
-    The functions in the receiver above are callbacks that will be
-    called when events arrives
-
-    @li \c on_resp3: Called when a new chunk of resp3 data is parsed.
-    @li \c on_read: Called after the response to a command has been successfully read.
-
-    The callbacks above are never called on errors, instead the \c
-    async_run function returns. Reconnection is also supported, for
-    example
-
-    @code
-    net::awaitable<void> run(std::shared_ptr<client_type> db)
-    {
-       auto ex = co_await net::this_coro::executor;
-    
-       boost::asio::steady_timer timer{ex};
-    
-       for (error_code ec;;) {
-          co_await db->async_run(redirect_error(use_awaitable, ec));
-
-          // Log the error.
-          std::clog << ec.message() << std::endl;
-    
-          // Wait two seconds and try again.
-          timer.expires_after(std::chrono::seconds{2});
-          co_await timer.async_wait(redirect_error(use_awaitable, ec));
-       }
-    }
-    @endcode
-
-    when reconnecting the client will recover requests that haven't
-    been sent to Redis yet.
-
-    \subsection high-level-sending-cmds Sending commands
-
-    The db object from the example above can be passed around to other
-    objects so that commands can be sent from everywhere in the app.
-    Sending commands is also similar to what has been discussed before
-
-    @code
-    void foo(client<net::ip::tcp::socket>& db)
-    {
-       db.send(command::ping, "O rato roeu a roupa do rei de Roma");
-       db.send(command::incr, "counter");
-       db.send(command::set, "key", "Três pratos de trigo para três tigres");
-       db.send(command::get, "key");
-       ...
-    }
-    @endcode
-
-    The \c send functions in this case will add commands to the output
-    queue and send them only if there is no pending response. This is
-    so because RESP3 is a request/response protocol, which means
-    clients must wait for responses before sending
-    the next request.
 
     \section examples Examples
 
@@ -598,7 +429,7 @@
     - Tested with gcc: 7.5.0, 8.4.0, 9.3.0, 10.3.0.
     - Tested with clang: 11.0.0, 10.0.0, 9.0.1, 8.0.1, 7.0.1.
   
-    \subsection Installation
+    \section Installation
 
     The first thing to do is to download and unpack Aedis
 
@@ -641,7 +472,7 @@
     $ make check
     ```
 
-    \subsection Developers
+    \section Developers
   
     To generate the build system run
   
