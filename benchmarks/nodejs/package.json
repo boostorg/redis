@@ -1,0 +1,4 @@
+{
+   "type": "module",
+   "dependencies": { "redis": "^4.1.0" }
+}
