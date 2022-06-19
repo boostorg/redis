@@ -26,6 +26,7 @@ EXTRA_PROGRAMS += subscriber
 EXTRA_PROGRAMS += commands
 if HAVE_CXX20
 EXTRA_PROGRAMS += echo_server
+EXTRA_PROGRAMS += echo_server_direct
 EXTRA_PROGRAMS += chat_room
 EXTRA_PROGRAMS += echo_server_client
 endif
@@ -46,6 +47,7 @@ adapter_SOURCES = $(top_srcdir)/examples/adapter.cpp
 if HAVE_CXX20
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
+echo_server_direct_SOURCES = $(top_srcdir)/tools/echo_server_direct.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
 echo_server_client_SOURCES = $(top_srcdir)/tools/echo_server_client.cpp
 endif
