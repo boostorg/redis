@@ -1,24 +1,24 @@
 use tokio::net::TcpListener;
-use tokio::prelude::*;
-use futures::prelude::*;
-use std::rc::Rc;
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
+use tokio::sync::Mutex;
+use std::sync::{Arc};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut listener = TcpListener::bind("127.0.0.1:55555").await?;
+    let listener = TcpListener::bind("127.0.0.1:55555").await?;
     let client = redis::Client::open("redis://127.0.0.1/").unwrap();
-    let mut con = client.get_async_connection().await?;
+    let con = Arc::new(Mutex::new(client.get_async_connection().await?));
 
     loop {
+        let conn = Arc::clone(&con);
         let (mut socket, _) = listener.accept().await?;
 
         tokio::spawn(async move {
             let mut buf = [0; 1024];
 
-            // In a loop, read data from the socket and write the data back.
             loop {
                 let n = match socket.read(&mut buf).await {
-                    // socket closed
                     Ok(n) if n == 0 => return,
                     Ok(n) => n,
                     Err(e) => {
@@ -27,13 +27,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 };
 
-                //let result =
-                //    redis::cmd("PING")
-                //    .arg("Message")
-                //    .query_async::<redis::aio::Connection, String>(&mut con).await;
+                let mut local_conn = conn.lock().await;
 
-                // Write the data back
-                if let Err(e) = socket.write_all(&buf[0..n]).await {
+                let result =
+                    redis::cmd("PING")
+                    .arg(&buf[0..n])
+                    .query_async::<redis::aio::Connection, String>(&mut local_conn).await.unwrap();
+
+                if let Err(e) = socket.write_all(result.as_bytes()).await {
                     eprintln!("failed to write to socket; err = {:?}", e);
                     return;
                 }
