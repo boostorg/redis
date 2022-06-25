@@ -42,16 +42,17 @@ struct connect_with_timeout_op {
    {
       reenter (coro)
       {
-         yield aedis::detail::async_connect(*conn->socket_, conn->write_timer_, conn->endpoints_, std::move(self));
+         BOOST_ASSERT(conn->socket_ != nullptr);
+         conn->ping_timer_.expires_after(conn->cfg_.connect_timeout);
+         yield aedis::detail::async_connect(*conn->socket_, conn->ping_timer_, conn->endpoints_, std::move(self));
          self.complete(ec);
       }
    }
 };
 
 template <class Conn>
-struct exec_internal_op {
-   Conn* cli;
-   resp3::request const* req;
+struct hello_op {
+   Conn* conn;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -61,7 +62,11 @@ struct exec_internal_op {
    {
       reenter (coro)
       {
-         yield resp3::async_exec( *cli->socket_, cli->check_idle_timer_, *req, adapter::adapt(), cli->make_dynamic_buffer(), std::move(self));
+         BOOST_ASSERT(conn->socket_ != nullptr);
+         conn->req_.clear();
+         conn->req_.push(command::hello, 3);
+         conn->ping_timer_.expires_after(std::chrono::seconds{2});
+         yield resp3::async_exec(*conn->socket_, conn->ping_timer_, conn->req_, adapter::adapt(), conn->make_dynamic_buffer(), std::move(self));
          self.complete(ec);
       }
    }
@@ -69,7 +74,7 @@ struct exec_internal_op {
 
 template <class Conn>
 struct resolve_with_timeout_op {
-   Conn* cli;
+   Conn* conn;
    boost::string_view host;
    boost::string_view port;
    boost::asio::coroutine coro;
@@ -81,9 +86,9 @@ struct resolve_with_timeout_op {
    {
       reenter (coro)
       {
-         yield
-         aedis::detail::async_resolve(cli->resv_, cli->write_timer_, host, port, std::move(self));
-         cli->endpoints_ = res;
+         conn->ping_timer_.expires_after(conn->cfg_.resolve_timeout);
+         yield aedis::detail::async_resolve(conn->resv_, conn->ping_timer_, host, port, std::move(self));
+         conn->endpoints_ = res;
          self.complete(ec);
       }
    }
@@ -91,7 +96,7 @@ struct resolve_with_timeout_op {
 
 template <class Conn, class Adapter>
 struct read_push_op {
-   Conn* cli;
+   Conn* conn;
    Adapter adapter;
    std::size_t read_size;
    boost::asio::coroutine coro;
@@ -104,25 +109,23 @@ struct read_push_op {
    {
       reenter (coro)
       {
-         yield cli->push_channel_.async_receive(std::move(self));
+         yield conn->push_channel_.async_receive(std::move(self));
          if (ec) {
             self.complete(ec, 0);
             return;
          }
 
-         BOOST_ASSERT(cli->socket_ != nullptr);
-         yield
-         resp3::async_read(*cli->socket_, cli->make_dynamic_buffer(), adapter, std::move(self));
+         BOOST_ASSERT(conn->socket_ != nullptr);
+         yield resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
          if (ec) {
-            cli->push_channel_.cancel();
+            conn->push_channel_.cancel();
             self.complete(ec, 0);
             return;
          }
 
          read_size = n;
 
-         yield
-         cli->push_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+         yield conn->push_channel_.async_send({}, 0, std::move(self));
          if (ec) {
             self.complete(ec, 0);
             return;
@@ -136,7 +139,7 @@ struct read_push_op {
 
 template <class Conn, class Adapter>
 struct exec_read_op {
-   Conn* cli;
+   Conn* conn;
    Adapter adapter;
    std::size_t read_size = 0;
    std::size_t index = 0;
@@ -151,17 +154,19 @@ struct exec_read_op {
       reenter (coro)
       {
          // Loop reading the responses to this request.
-         BOOST_ASSERT(!cli->reqs_.empty());
-         while (cli->reqs_.front()->expects_response()) {
-            BOOST_ASSERT(!cli->cmds_.empty());
+         BOOST_ASSERT(!conn->reqs_.empty());
+         while (conn->reqs_.front()->expects_response()) {
+            BOOST_ASSERT(!conn->cmds_.empty());
 
             //-----------------------------------
-            // Section to handle pushes in the middle of a request.
-            if (cli->read_buffer_.empty()) {
-               // Read in some data.
-               yield boost::asio::async_read_until(*cli->socket_, cli->make_dynamic_buffer(), "\r\n", std::move(self));
+            // If we detect a push in the middle of a request we have
+            // to hand it to the push consumer. To do that we need
+            // some data in the read bufer.
+            if (conn->read_buffer_.empty()) {
+               BOOST_ASSERT(conn->socket_ != nullptr);
+               yield boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
                if (ec) {
-                  cli->close();
+                  conn->close();
                   self.complete(ec, 0);
                   return;
                }
@@ -169,10 +174,10 @@ struct exec_read_op {
 
             // If the next request is a push we have to handle it to
             // the read_push_op wait for it to be done and continue.
-            if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push) {
-               yield async_send_receive(cli->push_channel_, std::move(self));
+            if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
+               yield async_send_receive(conn->push_channel_, std::move(self));
                if (ec) {
-                  cli->read_channel_.cancel();
+                  conn->read_channel_.cancel();
                   self.complete(ec, 0);
                   return;
                }
@@ -180,27 +185,25 @@ struct exec_read_op {
             //-----------------------------------
 
             yield
-            resp3::async_read(
-               *cli->socket_,
-               cli->make_dynamic_buffer(),
-               [i = index, adpt = adapter, cmd = cli->cmds_.front()] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, cmd, nd, ec); },
+            resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(),
+               [i = index, adpt = adapter, cmd = conn->cmds_.front()] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, cmd, nd, ec); },
                std::move(self));
 
             ++index;
 
             if (ec) {
-               cli->close();
+               conn->close();
                self.complete(ec, 0);
                return;
             }
 
             read_size += n;
 
-            BOOST_ASSERT(cli->reqs_.front()->expects_response());
-            cli->reqs_.front()->pop();
+            BOOST_ASSERT(conn->reqs_.front()->expects_response());
+            conn->reqs_.front()->pop();
 
-            BOOST_ASSERT(!cli->cmds_.empty());
-            cli->cmds_.pop();
+            BOOST_ASSERT(!conn->cmds_.empty());
+            conn->cmds_.pop();
          }
 
          self.complete({}, read_size);
@@ -210,7 +213,7 @@ struct exec_read_op {
 
 template <class Conn>
 struct exec_write_op {
-   Conn* cli;
+   Conn* conn;
    std::size_t write_size = 0;
    boost::asio::coroutine coro;
 
@@ -222,24 +225,25 @@ struct exec_write_op {
    {
       reenter (coro)
       {
-         cli->coalesce_requests();
-         cli->write_timer_.expires_after(cli->cfg_.write_timeout);
-         yield aedis::detail::async_write(*cli->socket_, cli->write_timer_, boost::asio::buffer(cli->payload_), std::move(self));
+         conn->coalesce_requests();
+         yield boost::asio::async_write(*conn->socket_, boost::asio::buffer(conn->payload_), std::move(self));
          if (ec) {
-            cli->close();
+            conn->close();
             self.complete(ec, 0);
             return;
          }
 
          write_size = n;
 
-         // We have to clear the payload right after the read op is
-         // done as we use it to flag there is no ongoing write.
-         cli->payload_.clear();
+         // We have to clear the payload right after the read op in
+         // order to to use it as a flag that informs there is no
+         // ongoing write.
+         conn->payload_.clear();
 
          // After the reader receives the response to the command
-         // above it will handle us control over the read operation.
-         yield cli->read_channel_.async_receive(std::move(self));
+         // above it will wait untill we signal we are done with the
+         // write by writing in the channel.
+         yield conn->read_channel_.async_receive(std::move(self));
          self.complete(ec, write_size);
          return;
       }
@@ -248,7 +252,7 @@ struct exec_write_op {
 
 template <class Conn>
 struct exec_exit_op {
-   Conn* cli;
+   Conn* conn;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -259,12 +263,12 @@ struct exec_exit_op {
    {
       reenter (coro)
       {
-         BOOST_ASSERT(!cli->reqs_.empty());
-         cli->release_req_info(cli->reqs_.front());
-         cli->reqs_.pop_front();
+         BOOST_ASSERT(!conn->reqs_.empty());
+         conn->release_req_info(conn->reqs_.front());
+         conn->reqs_.pop_front();
 
-         if (!cli->reqs_.empty())
-            cli->reqs_.front()->timer.cancel_one();
+         if (!conn->reqs_.empty())
+            conn->reqs_.front()->timer.cancel_one();
 
          // Handles control of the read operation to the reader. There
          // are two reasons for that
@@ -275,8 +279,8 @@ struct exec_exit_op {
          // 2. There are enqueued commands that will be written, while
          // we are writing we have to listen for messages. e.g. server
          // pushes.
-         if (cli->cmds_.empty()) {
-            yield cli->read_channel_.async_send(boost::system::error_code{}, 0, std::move(self));
+         if (conn->cmds_.empty()) {
+            yield conn->read_channel_.async_send({}, 0, std::move(self));
          }
 
          self.complete(ec);
@@ -287,7 +291,7 @@ struct exec_exit_op {
 
 template <class Conn, class Adapter>
 struct exec_op {
-   Conn* cli;
+   Conn* conn;
    resp3::request const* req;
    Adapter adapter;
    std::shared_ptr<typename Conn::req_info> info;
@@ -302,45 +306,45 @@ struct exec_op {
    {
       reenter (coro)
       {
-         if (!cli->add_request(*req)) {
+         if (!conn->add_request(*req)) {
             // There is an ongoing request being processed, when the
             // response to this specific request arrives, the timer
             // below will be canceled, either in the end of this
             // operation (if it is in the middle of a pipeline) or on
             // the reader_op (if it is the first in the pipeline).
             // Notice we use the back of the queue.
-            info = cli->reqs_.back();
+            info = conn->reqs_.back();
             yield info->timer.async_wait(std::move(self));
             if (info->stop) {
-               cli->release_req_info(info);
+               conn->release_req_info(info);
                self.complete(boost::asio::error::basic_errors::operation_aborted, 0);
                return;
             }
          }
 
-         BOOST_ASSERT(!cli->reqs_.empty());
-         if (cli->cmds_.empty() && cli->payload_.empty()) {
-            yield cli->async_exec_write(std::move(self));
+         BOOST_ASSERT(!conn->reqs_.empty());
+         if (conn->cmds_.empty() && conn->payload_.empty()) {
+            yield conn->async_exec_write(std::move(self));
             if (ec) {
                self.complete(ec, 0);
                return;
             }
          }
 
-         BOOST_ASSERT(!cli->reqs_.empty());
-         if (cli->reqs_.front()->expects_response()) {
-            yield cli->async_exec_read(adapter, std::move(self));
+         BOOST_ASSERT(!conn->reqs_.empty());
+         if (conn->reqs_.front()->expects_response()) {
+            yield conn->async_exec_read(adapter, std::move(self));
             if (ec) {
                self.complete(ec, 0);
                return;
             }
 
             read_size = n;
-            BOOST_ASSERT(!cli->reqs_.empty());
-            BOOST_ASSERT(!cli->reqs_.front()->expects_response());
+            BOOST_ASSERT(!conn->reqs_.empty());
+            BOOST_ASSERT(!conn->reqs_.front()->expects_response());
          }
 
-         yield cli->async_exec_exit(std::move(self));
+         yield conn->async_exec_exit(std::move(self));
          self.complete({}, read_size);
       }
    }
@@ -348,7 +352,7 @@ struct exec_op {
 
 template <class Conn>
 struct ping_op {
-   Conn* cli;
+   Conn* conn;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -359,16 +363,16 @@ struct ping_op {
    {
       reenter (coro) for (;;)
       {
-         cli->ping_timer_.expires_after(cli->cfg_.ping_interval);
-         yield cli->ping_timer_.async_wait(std::move(self));
+         conn->ping_timer_.expires_after(conn->cfg_.ping_interval);
+         yield conn->ping_timer_.async_wait(std::move(self));
          if (ec) {
             self.complete(ec);
             return;
          }
 
-         cli->req_.clear();
-         cli->req_.push(command::ping);
-         yield cli->async_exec(cli->req_, aedis::adapt(), std::move(self));
+         conn->req_.clear();
+         conn->req_.push(command::ping);
+         yield conn->async_exec(conn->req_, aedis::adapt(), std::move(self));
          if (ec) {
             self.complete(ec);
             return;
@@ -379,7 +383,7 @@ struct ping_op {
 
 template <class Conn>
 struct check_idle_op {
-   Conn* cli;
+   Conn* conn;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -387,28 +391,28 @@ struct check_idle_op {
    {
       reenter (coro) for (;;)
       {
-         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_interval);
-         yield cli->check_idle_timer_.async_wait(std::move(self));
+         conn->check_idle_timer_.expires_after(2 * conn->cfg_.ping_interval);
+         yield conn->check_idle_timer_.async_wait(std::move(self));
          if (ec) {
             self.complete(ec);
             return;
          }
 
          auto const now = std::chrono::steady_clock::now();
-         if (cli->last_data_ +  (2 * cli->cfg_.ping_interval) < now) {
-            cli->close();
+         if (conn->last_data_ +  (2 * conn->cfg_.ping_interval) < now) {
+            conn->close();
             self.complete(error::idle_timeout);
             return;
          }
 
-         cli->last_data_ = now;
+         conn->last_data_ = now;
       }
    }
 };
 
 template <class Conn>
-struct read_write_check_ping_op {
-   Conn* cli;
+struct start_op {
+   Conn* conn;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -422,9 +426,9 @@ struct read_write_check_ping_op {
       {
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return cli->reader(token);},
-            [this](auto token) { return cli->async_idle_check(token);},
-            [this](auto token) { return cli->async_ping(token);}
+            [this](auto token) { return conn->reader(token);},
+            [this](auto token) { return conn->async_check_idle(token);},
+            [this](auto token) { return conn->async_ping(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one_error(),
             std::move(self));
@@ -453,7 +457,7 @@ struct read_write_check_ping_op {
 
 template <class Conn>
 struct run_op {
-   Conn* cli;
+   Conn* conn;
    boost::string_view host;
    boost::string_view port;
    boost::asio::coroutine coro;
@@ -463,40 +467,31 @@ struct run_op {
    {
       reenter (coro)
       {
-         cli->write_timer_.expires_after(cli->cfg_.resolve_timeout);
-         yield cli->async_resolve_with_timeout(host, port, std::move(self));
+         yield conn->async_resolve_with_timeout(host, port, std::move(self));
          if (ec) {
             self.complete(ec);
             return;
          }
 
-         cli->socket_ =
-            std::make_shared<
-               typename Conn::next_layer_type
-            >(cli->resv_.get_executor());
+         conn->socket_ = std::make_shared<typename Conn::next_layer_type>(conn->resv_.get_executor());
 
-         cli->write_timer_.expires_after(cli->cfg_.connect_timeout);
-         yield cli->async_connect_with_timeout(std::move(self));
+         yield conn->async_connect_with_timeout(std::move(self));
          if (ec) {
             self.complete(ec);
             return;
          }
 
-         cli->req_.clear();
-         cli->req_.push(command::hello, 3);
-         cli->check_idle_timer_.expires_after(2 * cli->cfg_.ping_interval);
-         yield cli->async_exec_internal(cli->req_, std::move(self));
+         yield conn->async_hello(std::move(self));
          if (ec) {
-            cli->close();
+            conn->close();
             self.complete(ec);
             return;
          }
 
-         if (!cli->reqs_.empty()) {
-            cli->reqs_.front()->timer.cancel_one();
-         }
+         if (!conn->reqs_.empty())
+            conn->reqs_.front()->timer.cancel_one();
 
-         yield cli->async_read_write_check_ping(std::move(self));
+         yield conn->async_start(std::move(self));
          if (ec) {
             self.complete(ec);
             return;
@@ -509,7 +504,7 @@ struct run_op {
 
 template <class Conn>
 struct reader_op {
-   Conn* cli;
+   Conn* conn;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -521,14 +516,14 @@ struct reader_op {
 
       reenter (coro) for (;;)
       {
-         yield boost::asio::async_read_until(*cli->socket_, cli->make_dynamic_buffer(), "\r\n", std::move(self));
+         yield boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
          if (ec) {
-            cli->close();
+            conn->close();
             self.complete(ec);
             return;
          }
 
-         cli->last_data_ = std::chrono::steady_clock::now();
+         conn->last_data_ = std::chrono::steady_clock::now();
 
          // We handle unsolicited events in the following way
          //
@@ -547,28 +542,28 @@ struct reader_op {
          //    one. This may happen if for example, subscribe with
          //    wrong syntax.
          //
-         BOOST_ASSERT(!cli->read_buffer_.empty());
-         if (resp3::to_type(cli->read_buffer_.front()) == resp3::type::push
-             || cli->reqs_.empty()
-             || (!cli->reqs_.empty() && !cli->reqs_.front()->expects_response())) {
-            yield async_send_receive(cli->push_channel_, std::move(self));
+         BOOST_ASSERT(!conn->read_buffer_.empty());
+         if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push
+             || conn->reqs_.empty()
+             || (!conn->reqs_.empty() && !conn->reqs_.front()->expects_response())) {
+            yield async_send_receive(conn->push_channel_, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
             }
          } else {
-            BOOST_ASSERT(!cli->cmds_.empty());
-            BOOST_ASSERT(cli->reqs_.front()->expects_response());
+            BOOST_ASSERT(!conn->cmds_.empty());
+            BOOST_ASSERT(conn->reqs_.front()->expects_response());
 
-            yield async_send_receive(cli->read_channel_, std::move(self));
+            yield async_send_receive(conn->read_channel_, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
             }
          }
 
-         if (!cli->socket_->is_open()) {
-            cli->close();
+         if (!conn->socket_->is_open()) {
+            conn->close();
             self.complete(ec);
             return;
          }
@@ -578,7 +573,7 @@ struct reader_op {
 
 template <class Conn, class Adapter>
 struct runexec_op {
-   Conn* cli;
+   Conn* conn;
    boost::string_view host;
    boost::string_view port;
    resp3::request const* req;
@@ -596,8 +591,8 @@ struct runexec_op {
       {
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return cli->async_run(host, port, token);},
-            [this](auto token) { return cli->async_exec(*req, adapter, token);}
+            [this](auto token) { return conn->async_run(host, port, token);},
+            [this](auto token) { return conn->async_exec(*req, adapter, token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one_error(),
             std::move(self));

@@ -222,8 +222,6 @@ void test_idle()
    connection::config cfg;
    cfg.resolve_timeout = std::chrono::seconds{1};
    cfg.connect_timeout = std::chrono::seconds{1};
-   cfg.read_timeout = std::chrono::seconds{1};
-   cfg.write_timeout = std::chrono::seconds{1};
    cfg.ping_interval = std::chrono::seconds{1};
 
    net::io_context ioc;

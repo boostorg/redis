@@ -56,9 +56,6 @@ public:
       /// Timeout of the read operation.
       std::chrono::milliseconds read_timeout = std::chrono::seconds{5};
 
-      /// Timeout of the write operation.
-      std::chrono::milliseconds write_timeout = std::chrono::seconds{5};
-
       /// Time interval ping operations.
       std::chrono::milliseconds ping_interval = std::chrono::seconds{5};
 
@@ -77,10 +74,9 @@ public:
    connection(boost::asio::any_io_executor ex, config cfg = config{})
    : resv_{ex}
    , ping_timer_{ex}
-   , write_timer_{ex}
+   , check_idle_timer_{ex}
    , read_channel_{ex}
    , push_channel_{ex}
-   , check_idle_timer_{ex}
    , cfg_{cfg}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
@@ -290,11 +286,11 @@ private:
    template <class T, class U> friend struct detail::exec_write_op;
    template <class T, class U> friend struct detail::exec_exit_op;
    template <class T, class U> friend struct detail::runexec_op;
-   template <class T> friend struct detail::exec_internal_op;
+   template <class T> friend struct detail::hello_op;
    template <class T> friend struct detail::connect_with_timeout_op;
    template <class T> friend struct detail::resolve_with_timeout_op;
    template <class T> friend struct detail::check_idle_op;
-   template <class T> friend struct detail::read_write_check_ping_op;
+   template <class T> friend struct detail::start_op;
 
    struct req_info {
       boost::asio::steady_timer timer;
@@ -362,12 +358,12 @@ private:
 
    template <class CompletionToken = default_completion_token_type>
    auto
-   async_read_write_check_ping(CompletionToken&& token = default_completion_token_type{})
+   async_start(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::read_write_check_ping_op<connection>{this}, token, resv_);
+         >(detail::start_op<connection>{this}, token, resv_);
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -382,7 +378,7 @@ private:
 
    template <class CompletionToken = default_completion_token_type>
    auto
-   async_idle_check(CompletionToken&& token = default_completion_token_type{})
+   async_check_idle(CompletionToken&& token = default_completion_token_type{})
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -391,15 +387,12 @@ private:
    }
 
    template <class CompletionToken = default_completion_token_type>
-   auto async_exec_internal(
-      resp3::request const& req,
-      CompletionToken token = CompletionToken{})
+   auto async_hello(CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::exec_internal_op<connection>{this, &req},
-               token, resv_);
+         >(detail::hello_op<connection>{this}, token, resv_);
    }
 
    template <
@@ -471,10 +464,9 @@ private:
    boost::asio::ip::tcp::resolver resv_;
    std::shared_ptr<AsyncReadWriteStream> socket_;
    boost::asio::steady_timer ping_timer_;
-   boost::asio::steady_timer write_timer_;
+   boost::asio::steady_timer check_idle_timer_;
    channel_type read_channel_;
    channel_type push_channel_;
-   boost::asio::steady_timer check_idle_timer_;
 
    // Configuration parameters.
    config cfg_;

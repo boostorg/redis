@@ -32,11 +32,11 @@
     \li Serialization and deserialization of your own data types.
     \li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
     \li Zero asymptotic allocations by means of memory reuse.
-    \li Healthy checks and back pressure.
+    \li Healthy checks, back pressure and low latency.
 
-    The Aedis API is simple, intuitive and hides most of the low level
-    asynchronous operations away from the user, for example, the code
-    below pings a message to the server
+    The Aedis API hides most of the low level asynchronous operations
+    away from the user, for example, the code below pings a message to
+    the server
 
     \code
     int main()
