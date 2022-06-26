@@ -39,11 +39,11 @@ void print(std::vector<T> const& cont)
 template <class T>
 void print(std::set<T> const& cont)
 {
-   for (auto const& e: cont) std::cout << e << " ";
-   std::cout << "\n";
+   for (auto const& e: cont) std::cout << e << "\n";
 }
 
-void print(std::map<std::string, std::string> const& cont)
+template <class T, class U>
+void print(std::map<T, U> const& cont)
 {
    for (auto const& e: cont)
       std::cout << e.first << ": " << e.second << "\n";
