@@ -52,7 +52,7 @@ parse_double(
 
 template <class T>
 typename std::enable_if<std::is_integral<T>::value, void>::type
-from_string(
+from_bulk(
    T& i,
    boost::string_view sv,
    boost::system::error_code& ec)
@@ -60,7 +60,7 @@ from_string(
    i = resp3::detail::parse_uint(sv.data(), sv.size(), ec);
 }
 
-void from_string(
+void from_bulk(
    bool& t,
    boost::string_view sv,
    boost::system::error_code& ec)
@@ -68,7 +68,7 @@ void from_string(
    t = *sv.data() == 't';
 }
 
-void from_string(
+void from_bulk(
    double& d,
    boost::string_view sv,
    boost::system::error_code& ec)
@@ -78,7 +78,7 @@ void from_string(
 
 template <class CharT, class Traits, class Allocator>
 void
-from_string(
+from_bulk(
    std::basic_string<CharT, Traits, Allocator>& s,
    boost::string_view sv,
    boost::system::error_code&)
@@ -148,7 +148,7 @@ public:
          return;
       }
 
-      from_string(result, n.value, ec);
+      from_bulk(result, n.value, ec);
    }
 };
 
@@ -185,7 +185,7 @@ public:
       }
 
       typename Result::key_type obj;
-      from_string(obj, nd.value, ec);
+      from_bulk(obj, nd.value, ec);
       hint_ = result.insert(hint_, std::move(obj));
    }
 };
@@ -225,11 +225,11 @@ public:
 
       if (on_key_) {
          typename Result::key_type obj;
-         from_string(obj, nd.value, ec);
+         from_bulk(obj, nd.value, ec);
          current_ = result.insert(current_, {std::move(obj), {}});
       } else {
          typename Result::mapped_type obj;
-         from_string(obj, nd.value, ec);
+         from_bulk(obj, nd.value, ec);
          current_->second = std::move(obj);
       }
 
@@ -257,7 +257,7 @@ public:
          result.reserve(result.size() + m * nd.aggregate_size);
       } else {
          result.push_back({});
-         from_string(result.back(), nd.value, ec);
+         from_bulk(result.back(), nd.value, ec);
       }
    }
 };
@@ -297,7 +297,7 @@ public:
          }
 
          BOOST_ASSERT(nd.aggregate_size == 1);
-         from_string(result.at(i_), nd.value, ec);
+         from_bulk(result.at(i_), nd.value, ec);
       }
 
       ++i_;
@@ -327,7 +327,7 @@ struct list_impl {
         }
 
         result.push_back({});
-        from_string(result.back(), nd.value, ec);
+        from_bulk(result.back(), nd.value, ec);
       }
    }
 };

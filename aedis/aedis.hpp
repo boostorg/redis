@@ -287,7 +287,7 @@
     For performance and convenience reasons, we may want to avoid
     receiving the response to the \c get command above as a string
     just to convert it later to a e.g. deserialized json. To support
-    this, Aedis calls a user defined \c from_string function while
+    this, Aedis calls a user defined \c from_bulk function while
     parsing the response. In simple terms, define your type
 
     @code
@@ -296,11 +296,11 @@
     };
     @endcode
 
-    and deserialize it from a string in a function \c from_string with
+    and deserialize it from a string in a function \c from_bulk with
     the following signature
 
     @code
-    void from_string(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
+    void from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
     {
        // Deserializes p into obj.
     }
@@ -363,7 +363,7 @@
     @li \c std::vector<node<std::string>: Works always.
     @li \c std::vector<std::string>: Efficient and flat, all elements as string.
     @li \c std::map<std::string, std::string>: Efficient if you need the data as a \c std::map
-    @li \c std::map<U, V>: Efficient if you are storing serialized data. Avoids temporaries and requires \c from_string for \c U and \c V.
+    @li \c std::map<U, V>: Efficient if you are storing serialized data. Avoids temporaries and requires \c from_bulk for \c U and \c V.
 
     In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. \c smembers.
 
