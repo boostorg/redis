@@ -166,7 +166,6 @@ struct exec_read_op {
                BOOST_ASSERT(conn->socket_ != nullptr);
                yield boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
                if (ec) {
-                  conn->close();
                   self.complete(ec, 0);
                   return;
                }
@@ -177,7 +176,6 @@ struct exec_read_op {
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
                yield async_send_receive(conn->push_channel_, std::move(self));
                if (ec) {
-                  conn->read_channel_.cancel();
                   self.complete(ec, 0);
                   return;
                }
@@ -192,7 +190,6 @@ struct exec_read_op {
             ++index;
 
             if (ec) {
-               conn->close();
                self.complete(ec, 0);
                return;
             }
@@ -228,7 +225,6 @@ struct exec_write_op {
          conn->coalesce_requests();
          yield boost::asio::async_write(*conn->socket_, boost::asio::buffer(conn->payload_), std::move(self));
          if (ec) {
-            conn->close();
             self.complete(ec, 0);
             return;
          }
@@ -279,9 +275,8 @@ struct exec_exit_op {
          // 2. There are enqueued commands that will be written, while
          // we are writing we have to listen for messages. e.g. server
          // pushes.
-         if (conn->cmds_.empty()) {
+         if (conn->cmds_.empty())
             yield conn->read_channel_.async_send({}, 0, std::move(self));
-         }
 
          self.complete(ec);
          return;
@@ -316,8 +311,9 @@ struct exec_op {
             info = conn->reqs_.back();
             yield info->timer.async_wait(std::move(self));
             if (info->stop) {
+               BOOST_ASSERT(!!ec);
                conn->release_req_info(info);
-               self.complete(boost::asio::error::basic_errors::operation_aborted, 0);
+               self.complete(ec, 0);
                return;
             }
          }
@@ -326,6 +322,7 @@ struct exec_op {
          if (conn->cmds_.empty() && conn->payload_.empty()) {
             yield conn->async_exec_write(std::move(self));
             if (ec) {
+               conn->close();
                self.complete(ec, 0);
                return;
             }
@@ -335,6 +332,7 @@ struct exec_op {
          if (conn->reqs_.front()->expects_response()) {
             yield conn->async_exec_read(adapter, std::move(self));
             if (ec) {
+               conn->close();
                self.complete(ec, 0);
                return;
             }
@@ -345,7 +343,7 @@ struct exec_op {
          }
 
          yield conn->async_exec_exit(std::move(self));
-         self.complete({}, read_size);
+         self.complete(ec, read_size);
       }
    }
 };
@@ -492,12 +490,7 @@ struct run_op {
             conn->reqs_.front()->timer.cancel_one();
 
          yield conn->async_start(std::move(self));
-         if (ec) {
-            self.complete(ec);
-            return;
-         }
-
-         BOOST_ASSERT(false);
+         self.complete(ec);
       }
    }
 };
@@ -516,6 +509,7 @@ struct reader_op {
 
       reenter (coro) for (;;)
       {
+         BOOST_ASSERT(conn->socket_->is_open());
          yield boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
          if (ec) {
             conn->close();
@@ -547,23 +541,13 @@ struct reader_op {
              || conn->reqs_.empty()
              || (!conn->reqs_.empty() && !conn->reqs_.front()->expects_response())) {
             yield async_send_receive(conn->push_channel_, std::move(self));
-            if (ec) {
-               self.complete(ec);
-               return;
-            }
          } else {
             BOOST_ASSERT(!conn->cmds_.empty());
             BOOST_ASSERT(conn->reqs_.front()->expects_response());
-
             yield async_send_receive(conn->read_channel_, std::move(self));
-            if (ec) {
-               self.complete(ec);
-               return;
-            }
          }
 
-         if (!conn->socket_->is_open()) {
-            conn->close();
+         if (ec) {
             self.complete(ec);
             return;
          }
@@ -597,11 +581,12 @@ struct runexec_op {
             boost::asio::experimental::wait_for_one_error(),
             std::move(self));
 
-         if (!ec2) {
+         if (ec2) {
+            self.complete(ec2, n);
+         } else {
             // If there was no error in the async_exec we complete
             // with the async_run error, if any.
             self.complete(ec1, n);
-            return;
          }
       }
    }

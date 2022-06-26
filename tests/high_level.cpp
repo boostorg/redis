@@ -135,8 +135,8 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
       request req;
       req.push(command::quit);
       db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
-         // TODO: Why not eof instead of operation_aborted.
-         expect_error(ec, net::error::basic_errors::operation_aborted, "run5");
+         // TODO: This should be eof.
+         expect_error(ec, net::error::basic_errors::operation_aborted, "run5a");
       });
    }
 
@@ -144,8 +144,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
       request req;
       req.push(command::quit);
       db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
-         // TODO: Why not eof instead of operation_aborted.
-         expect_error(ec, net::error::basic_errors::operation_aborted, "run5");
+         expect_error(ec, net::error::misc_errors::eof, "run5b");
       });
    }
 
@@ -174,7 +173,7 @@ void test_no_push_reader1()
    req.push(command::subscribe, "channel");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader1");
+      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "test_no_push_reader1");
    });
 
    ioc.run();
@@ -192,7 +191,7 @@ void test_no_push_reader2()
    req.push(command::subscribe);
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader2");
+      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "test_no_push_reader2");
    });
 
    ioc.run();
