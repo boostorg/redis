@@ -283,8 +283,8 @@ private:
    template <class T> friend struct detail::run_op;
    template <class T, class U> friend struct detail::exec_op;
    template <class T, class U> friend struct detail::exec_read_op;
-   template <class T, class U> friend struct detail::exec_write_op;
-   template <class T, class U> friend struct detail::exec_exit_op;
+   template <class T> friend struct detail::exec_write_op;
+   template <class T> friend struct detail::exec_exit_op;
    template <class T, class U> friend struct detail::runexec_op;
    template <class T> friend struct detail::hello_op;
    template <class T> friend struct detail::connect_with_timeout_op;

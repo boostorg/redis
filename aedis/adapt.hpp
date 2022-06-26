@@ -66,7 +66,7 @@ public:
 template <class Vector>
 class vector_adapter {
 private:
-   using adapter_type = adapter::detail::response_traits<Vector>::adapter_type;
+   using adapter_type = typename adapter::detail::response_traits<Vector>::adapter_type;
    adapter_type adapter_;
 
 public:

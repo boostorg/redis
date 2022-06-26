@@ -275,8 +275,9 @@ struct exec_exit_op {
          // 2. There are enqueued commands that will be written, while
          // we are writing we have to listen for messages. e.g. server
          // pushes.
-         if (conn->cmds_.empty())
+         if (conn->cmds_.empty()) {
             yield conn->read_channel_.async_send({}, 0, std::move(self));
+         }
 
          self.complete(ec);
          return;
