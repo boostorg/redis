@@ -244,9 +244,9 @@ public:
       auto f =
          [adapter]
          (resp3::node<boost::string_view> const& node, boost::system::error_code& ec) mutable
-         {
-            adapter(std::size_t(-1), command::invalid, node, ec);
-         };
+      {
+         adapter(std::size_t(-1), node, ec);
+      };
 
       return boost::asio::async_compose
          < CompletionToken
@@ -310,7 +310,7 @@ private:
       reqs_.push_back(make_req_info());
       reqs_.back()->timer.expires_at(std::chrono::steady_clock::time_point::max());
       reqs_.back()->req = &req;
-      reqs_.back()->n_cmds = req.commands().size();
+      reqs_.back()->n_cmds = req.commands();
       reqs_.back()->stop = false;
 
       return empty && socket_ != nullptr;
@@ -452,9 +452,7 @@ private:
       auto const size = cfg_.coalesce_requests ? reqs_.size() : 1;
       for (auto i = 0UL; i < size; ++i) {
          payload_ += reqs_.at(i)->req->payload();
-         for (auto cmd : reqs_.at(i)->req->commands()) {
-            cmds_.push(cmd.first);
-         }
+         cmds_ += reqs_.at(i)->req->commands();
       }
    }
 
@@ -475,7 +473,7 @@ private:
    std::string read_buffer_;
 
    std::string payload_;
-   std::queue<command> cmds_;
+   std::size_t cmds_ = 0;
    std::deque<std::shared_ptr<req_info>> reqs_;
    std::vector<std::shared_ptr<req_info>> pool_;
 

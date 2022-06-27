@@ -16,7 +16,6 @@ check_PROGRAMS += intro_sync
 check_PROGRAMS += intro
 check_PROGRAMS += containers
 check_PROGRAMS += serialization
-check_PROGRAMS += adapter
 check_PROGRAMS += test_low_level
 if HAVE_CXX20
 check_PROGRAMS += test_high_level
@@ -24,7 +23,6 @@ endif
 
 EXTRA_PROGRAMS =
 EXTRA_PROGRAMS += subscriber
-EXTRA_PROGRAMS += commands
 if HAVE_CXX20
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += echo_server_direct
@@ -39,13 +37,11 @@ CLEANFILES += $(EXTRA_PROGRAMS)
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
 intro_sync_SOURCES = $(top_srcdir)/tests/intro_sync.cpp
-commands_SOURCES = $(top_srcdir)/tools/commands.cpp
 subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 intro_SOURCES = $(top_srcdir)/examples/intro.cpp
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
-adapter_SOURCES = $(top_srcdir)/examples/adapter.cpp
 if HAVE_CXX20
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp

@@ -64,7 +64,7 @@ struct hello_op {
       {
          BOOST_ASSERT(conn->socket_ != nullptr);
          conn->req_.clear();
-         conn->req_.push(command::hello, 3);
+         conn->req_.push("HELLO", 3);
          conn->ping_timer_.expires_after(std::chrono::seconds{2});
          yield resp3::async_exec(*conn->socket_, conn->ping_timer_, conn->req_, adapter::adapt(), conn->make_dynamic_buffer(), std::move(self));
          self.complete(ec);
@@ -156,7 +156,7 @@ struct exec_read_op {
          // Loop reading the responses to this request.
          BOOST_ASSERT(!conn->reqs_.empty());
          while (conn->reqs_.front()->expects_response()) {
-            BOOST_ASSERT(!conn->cmds_.empty());
+            BOOST_ASSERT(conn->cmds_ != 0);
 
             //-----------------------------------
             // If we detect a push in the middle of a request we have
@@ -184,7 +184,7 @@ struct exec_read_op {
 
             yield
             resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(),
-               [i = index, adpt = adapter, cmd = conn->cmds_.front()] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, cmd, nd, ec); },
+               [i = index, adpt = adapter] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, nd, ec); },
                std::move(self));
 
             ++index;
@@ -199,8 +199,8 @@ struct exec_read_op {
             BOOST_ASSERT(conn->reqs_.front()->expects_response());
             conn->reqs_.front()->pop();
 
-            BOOST_ASSERT(!conn->cmds_.empty());
-            conn->cmds_.pop();
+            BOOST_ASSERT(conn->cmds_ != 0);
+            --conn->cmds_;
          }
 
          self.complete({}, read_size);
@@ -275,7 +275,7 @@ struct exec_exit_op {
          // 2. There are enqueued commands that will be written, while
          // we are writing we have to listen for messages. e.g. server
          // pushes.
-         if (conn->cmds_.empty()) {
+         if (conn->cmds_ == 0) {
             yield conn->read_channel_.async_send({}, 0, std::move(self));
          }
 
@@ -320,7 +320,7 @@ struct exec_op {
          }
 
          BOOST_ASSERT(!conn->reqs_.empty());
-         if (conn->cmds_.empty() && conn->payload_.empty()) {
+         if (conn->cmds_ == 0 && conn->payload_.empty()) {
             yield conn->async_exec_write(std::move(self));
             if (ec) {
                conn->close();
@@ -370,7 +370,7 @@ struct ping_op {
          }
 
          conn->req_.clear();
-         conn->req_.push(command::ping);
+         conn->req_.push("PING");
          yield conn->async_exec(conn->req_, aedis::adapt(), std::move(self));
          if (ec) {
             self.complete(ec);
@@ -543,7 +543,7 @@ struct reader_op {
              || (!conn->reqs_.empty() && !conn->reqs_.front()->expects_response())) {
             yield async_send_receive(conn->push_channel_, std::move(self));
          } else {
-            BOOST_ASSERT(!conn->cmds_.empty());
+            BOOST_ASSERT(conn->cmds_ != 0);
             BOOST_ASSERT(conn->reqs_.front()->expects_response());
             yield async_send_receive(conn->read_channel_, std::move(self));
          }

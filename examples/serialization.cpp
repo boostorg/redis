@@ -17,7 +17,6 @@
 #include "print.hpp"
 
 namespace net = boost::asio;
-using aedis::command;
 using aedis::resp3::request;
 using connection = aedis::connection<>;
 using namespace boost::json;
@@ -92,9 +91,9 @@ int main()
       };
 
    request req;
-   req.push_range(command::sadd, "sadd-key", users);
-   req.push(command::smembers, "sadd-key");
-   req.push(command::quit);
+   req.push_range("SADD", "sadd-key", users);
+   req.push("SMEMBERS", "sadd-key");
+   req.push("QUIT");
 
    std::tuple<int, std::set<user>, std::string> resp;
 

@@ -21,7 +21,6 @@
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
-using aedis::command;
 using aedis::resp3::request;
 using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
@@ -67,7 +66,7 @@ void test_quit()
    auto db = std::make_shared<connection>(ioc);
 
    request req;
-   req.push(command::quit);
+   req.push("QUIT");
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
       expect_no_error(ec, "test_quit");
    });
@@ -82,7 +81,7 @@ void test_quit()
 void test_quit2()
 {
    request req;
-   req.push(command::quit);
+   req.push("QUIT");
 
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
@@ -116,8 +115,8 @@ void test_push1()
    auto db = std::make_shared<connection>(ioc);
 
    request req;
-   req.push(command::subscribe, "channel");
-   req.push(command::quit);
+   req.push("SUBSCRIBE", "channel");
+   req.push("QUIT");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
       expect_error(ec, net::error::misc_errors::eof, "test_push1");
@@ -133,7 +132,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
 {
    {
       request req;
-      req.push(command::quit);
+      req.push("QUIT");
       db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
          // TODO: This should be eof.
          expect_error(ec, net::error::basic_errors::operation_aborted, "run5a");
@@ -142,7 +141,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
 
    {
       request req;
-      req.push(command::quit);
+      req.push("QUIT");
       db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
          expect_error(ec, net::error::misc_errors::eof, "run5b");
       });
@@ -170,7 +169,7 @@ void test_no_push_reader1()
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
-   req.push(command::subscribe, "channel");
+   req.push("SUBSCRIBE", "channel");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
       expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "test_no_push_reader1");
@@ -188,7 +187,7 @@ void test_no_push_reader2()
 
    request req;
    // Wrong command.
-   req.push(command::subscribe);
+   req.push("SUBSCRIBE");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
       expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "test_no_push_reader2");
@@ -206,8 +205,8 @@ void test_no_push_reader3()
 
    request req;
    // Wrong command.
-   req.push(command::ping, "Message");
-   req.push(command::subscribe);
+   req.push("PING", "Message");
+   req.push("SUBSCRIBE");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
       expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader3");
@@ -227,7 +226,7 @@ void test_idle()
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
-   req.push(command::client, "PAUSE", 5000);
+   req.push("CLIENT", "PAUSE", 5000);
 
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
       expect_no_error(ec, "test_idle");
@@ -246,14 +245,14 @@ auto handler =[](auto ec, auto...)
 void test_push2()
 {
    request req1;
-   req1.push(command::ping, "Message1");
+   req1.push("PING", "Message1");
 
    request req2;
-   req2.push(command::subscribe, "channel");
+   req2.push("SUBSCRIBE", "channel");
 
    request req3;
-   req3.push(command::ping, "Message2");
-   req3.push(command::quit);
+   req3.push("PING", "Message2");
+   req3.push("QUIT");
 
    std::tuple<std::string, std::string> resp;
 
@@ -276,13 +275,13 @@ push_consumer3(std::shared_ptr<connection> db)
 void test_push3()
 {
    request req1;
-   req1.push(command::ping, "Message1");
+   req1.push("PING", "Message1");
 
    request req2;
-   req2.push(command::subscribe, "channel");
+   req2.push("SUBSCRIBE", "channel");
 
    request req3;
-   req3.push(command::quit);
+   req3.push("QUIT");
 
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
@@ -305,13 +304,13 @@ void test_push3()
 void test_exec_while_processing()
 {
    request req1;
-   req1.push(command::ping, "Message1");
+   req1.push("PING", "Message1");
 
    request req2;
-   req2.push(command::subscribe, "channel");
+   req2.push("SUBSCRIBE", "channel");
 
    request req3;
-   req3.push(command::quit);
+   req3.push("QUIT");
 
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);

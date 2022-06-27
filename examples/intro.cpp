@@ -13,7 +13,6 @@
 namespace net = boost::asio;
 
 using aedis::adapt;
-using aedis::command;
 using aedis::resp3::request;
 using connection = aedis::connection<>;
 
@@ -22,8 +21,9 @@ int main()
    net::io_context ioc;
 
    request req;
-   req.push(command::ping, "Ping example");
-   req.push(command::quit);
+   req.push("PING", "Ping example");
+   req.push("QUIT");
+
    std::tuple<std::string, std::string> resp;
 
    connection db{ioc};

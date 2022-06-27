@@ -8,7 +8,6 @@
 #define AEDIS_RESP3_REQUEST_HPP
 
 #include <boost/hana.hpp>
-#include <aedis/command.hpp>
 #include <aedis/resp3/compose.hpp>
 
 // NOTE: Consider detecting tuples in the type in the parameter pack
@@ -31,11 +30,11 @@ namespace resp3 {
  *
  *  @code
  *  request r;
- *  r.push(command::hello, 3);
- *  r.push(command::flushall);
- *  r.push(command::ping);
- *  r.push(command::incr, "key");
- *  r.push(command::quit);
+ *  r.push("HELLO", 3);
+ *  r.push("FLUSHALL");
+ *  r.push("PING");
+ *  r.push("PING", "key");
+ *  r.push("QUIT");
  *  co_await async_write(socket, buffer(r));
  *  @endcode
  *
@@ -46,12 +45,12 @@ namespace resp3 {
  */
 class request {
 public:
-   /** \brief Returns a list of commands contained in this request.
+   /** \brief Returns the number of commands contained in this request.
     *  
-    *  \returns A container with the commands contained in the request
-    *  with their sizes: \c std::vector<std::pair<command, std::size_t>>.
+    *  \returns A container with the commands contained in the
+    *  request.
     */
-   auto const& commands() const noexcept { return commands_;};
+   std::size_t commands() const noexcept { return commands_;};
 
    /// Returns the request payload.
    auto const& payload() const noexcept { return payload_;}
@@ -72,7 +71,7 @@ public:
    void clear()
    {
       payload_.clear();
-      commands_.clear();
+      commands_ = 0;
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -81,7 +80,7 @@ public:
     *
     *  \code
     *  request req;
-    *  req.push(command::set, "key", "some string", "EX", "2");
+    *  req.push("SET", "key", "some string", "EX", "2");
     *  \endcode
     *
     *  will add the \c set command with value "some string" and an
@@ -91,7 +90,7 @@ public:
     *  \param args Command arguments.
     */
    template <class... Ts>
-   void push(command cmd, Ts const&... args)
+   void push(boost::string_view cmd, Ts const&... args)
    {
       using boost::hana::for_each;
       using boost::hana::make_tuple;
@@ -100,12 +99,12 @@ public:
       auto const before = payload_.size();
       auto constexpr pack_size = sizeof...(Ts);
       resp3::add_header(payload_, type::array, 1 + pack_size);
-      resp3::add_bulk(payload_, to_string(cmd));
+      resp3::add_bulk(payload_, cmd);
       resp3::add_bulk(payload_, make_tuple(args...));
 
       auto const after = payload_.size();
       if (!has_push_response(cmd))
-         commands_.push_back(std::make_pair(cmd, after - before));
+         ++commands_;
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -121,7 +120,7 @@ public:
     *     };
     *
     *  request req;
-    *  req.push_range2(command::hset, "key", std::cbegin(map), std::cend(map));
+    *  req.push_range2("HSET", "key", std::cbegin(map), std::cend(map));
     *  @endcode
     *  
     *  \param cmd The command e.g. Redis or Sentinel command.
@@ -130,7 +129,7 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class Key, class ForwardIterator>
-   void push_range2(command cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void push_range2(boost::string_view cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
       using resp3::type;
@@ -143,7 +142,7 @@ public:
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
       resp3::add_header(payload_, type::array, 2 + size * distance);
-      resp3::add_bulk(payload_, to_string(cmd));
+      resp3::add_bulk(payload_, cmd);
       resp3::add_bulk(payload_, key);
 
       for (; begin != end; ++begin)
@@ -151,7 +150,7 @@ public:
 
       auto const after = payload_.size();
       if (!has_push_response(cmd))
-         commands_.push_back(std::make_pair(cmd, after - before));
+         ++commands_;
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -164,7 +163,7 @@ public:
     *     { "channel1" , "channel2" , "channel3" }
     *
     *  request req;
-    *  req.push(command::subscribe, std::cbegin(channels), std::cedn(channels));
+    *  req.push("SUBSCRIBE", std::cbegin(channels), std::cedn(channels));
     *  \endcode
     *
     *  \param cmd The Redis command
@@ -172,7 +171,7 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class ForwardIterator>
-   void push_range2(command cmd, ForwardIterator begin, ForwardIterator end)
+   void push_range2(boost::string_view cmd, ForwardIterator begin, ForwardIterator end)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
       using resp3::type;
@@ -184,14 +183,14 @@ public:
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
       resp3::add_header(payload_, type::array, 1 + size * distance);
-      resp3::add_bulk(payload_, to_string(cmd));
+      resp3::add_bulk(payload_, cmd);
 
       for (; begin != end; ++begin)
 	 resp3::add_bulk(payload_, *begin);
 
       auto const after = payload_.size();
       if (!has_push_response(cmd))
-         commands_.push_back(std::make_pair(cmd, before - after));
+         ++commands_;
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -199,7 +198,7 @@ public:
     *  Equivalent to the overload taking a range (i.e. send_range2).
     */
    template <class Key, class Range>
-   void push_range(command cmd, Key const& key, Range const& range)
+   void push_range(boost::string_view cmd, Key const& key, Range const& range)
    {
       using std::begin;
       using std::end;
@@ -211,7 +210,7 @@ public:
     *  Equivalent to the overload taking a range (i.e. send_range2).
     */
    template <class Range>
-   void push_range(command cmd, Range const& range)
+   void push_range(boost::string_view cmd, Range const& range)
    {
       using std::begin;
       using std::end;
@@ -220,7 +219,7 @@ public:
 
 private:
    std::string payload_;
-   std::vector<std::pair<command, std::size_t>> commands_;
+   std::size_t commands_ = 0;
    bool retry_ = false;
 };
 

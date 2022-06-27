@@ -12,7 +12,6 @@
 
 namespace net = boost::asio;
 using aedis::adapt;
-using aedis::command;
 using aedis::resp3::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
@@ -27,7 +26,7 @@ net::awaitable<void> echo_loop(tcp_socket socket, std::shared_ptr<connection> db
 
       for (;;) {
          auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
-         req.push(command::ping, buffer);
+         req.push("PING", buffer);
          co_await db->async_exec(req, adapt(resp));
          co_await net::async_write(socket, net::buffer(std::get<0>(resp)));
          std::get<0>(resp).clear();

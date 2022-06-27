@@ -15,7 +15,6 @@
 
 namespace net = boost::asio;
 using aedis::adapt;
-using aedis::command;
 using aedis::resp3::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
@@ -56,7 +55,7 @@ private:
          auto dbuffer = net::dynamic_buffer(msg, 1024);
          for (;;) {
             auto const n = co_await net::async_read_until(socket_, dbuffer, "\n");
-            req.push(command::publish, "channel", msg);
+            req.push("PUBLISH", "channel", msg);
             co_await db->async_exec(req);
             req.clear();
             msg.erase(0, n);
@@ -102,7 +101,7 @@ reader(
    std::shared_ptr<sessions_type> sessions)
 {
    request req;
-   req.push(command::subscribe, "channel");
+   req.push("SUBSCRIBE", "channel");
    co_await db->async_exec(req);
 
    for (response_type resp;;) {

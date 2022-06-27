@@ -22,11 +22,9 @@ namespace aedis {
 namespace detail {
 
 struct ignore_adapter {
-   template <class Command>
    void
    operator()(
       std::size_t i,
-      Command cmd,
       resp3::node<boost::string_view> const& nd,
       boost::system::error_code& ec)
    {
@@ -49,11 +47,9 @@ public:
       adapter::detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, r);
    }
 
-   template <class Command>
    void
    operator()(
       std::size_t i,
-      Command cmd,
       resp3::node<boost::string_view> const& nd,
       boost::system::error_code& ec)
    {
@@ -72,11 +68,9 @@ private:
 public:
    vector_adapter(Vector& v) : adapter_{adapter::adapt(v)} { }
 
-   template <class Command>
    void
    operator()(
       std::size_t i,
-      Command cmd,
       resp3::node<boost::string_view> const& nd,
       boost::system::error_code& ec)
    {

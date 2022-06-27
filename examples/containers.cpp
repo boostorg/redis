@@ -14,7 +14,6 @@
 namespace net = boost::asio;
 using boost::optional;
 using aedis::adapt;
-using aedis::command;
 using aedis::resp3::request;
 using connection = aedis::connection<>;
 
@@ -27,13 +26,13 @@ int main()
       {{"key1", 10}, {"key2", 20}, {"key3", 30}};
 
    request req;
-   req.push_range(command::rpush, "rpush-key", vec);
-   req.push_range(command::hset, "hset-key", map);
-   req.push(command::multi);
-   req.push(command::lrange, "rpush-key", 0, -1);
-   req.push(command::hgetall, "hset-key");
-   req.push(command::exec);
-   req.push(command::quit);
+   req.push_range("RPUSH", "rpush-key", vec);
+   req.push_range("HSET", "hset-key", map);
+   req.push("MULTI");
+   req.push("LRANGE", "rpush-key", 0, -1);
+   req.push("HGETALL", "hset-key");
+   req.push("EXEC");
+   req.push("QUIT");
 
    std::tuple<
       std::string, // rpush

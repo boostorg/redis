@@ -13,7 +13,6 @@
 
 namespace net = boost::asio;
 using aedis::adapt;
-using aedis::command;
 using aedis::resp3::request;
 using aedis::resp3::node;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
@@ -56,7 +55,7 @@ int main()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    request req;
-   req.push(command::subscribe, "channel");
+   req.push("SUBSCRIBE", "channel");
    db->async_exec("127.0.0.1", "6379", req, adapt(), handler);
    net::co_spawn(ioc, reader(db), net::detached);
    ioc.run();

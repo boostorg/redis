@@ -15,7 +15,6 @@
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
-using aedis::command;
 using aedis::resp3::request;
 using aedis::adapter::adapt;
 using net::ip::tcp;
@@ -31,9 +30,9 @@ int main()
 
       // Creates the request and writes to the socket.
       request req;
-      req.push(command::hello, 3);
-      req.push(command::ping);
-      req.push(command::quit);
+      req.push("HELLO", 3);
+      req.push("PING");
+      req.push("QUIT");
       resp3::write(socket, req);
 
       // Responses
