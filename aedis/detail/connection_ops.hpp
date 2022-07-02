@@ -8,6 +8,7 @@
 #define AEDIS_CONNECTION_OPS_HPP
 
 #include <array>
+#include <algorithm>
 
 #include <boost/assert.hpp>
 #include <boost/system.hpp>
@@ -208,83 +209,6 @@ struct exec_read_op {
    }
 };
 
-template <class Conn>
-struct exec_write_op {
-   Conn* conn;
-   std::size_t write_size = 0;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void
-   operator()( Self& self
-             , boost::system::error_code ec = {}
-             , std::size_t n = 0)
-   {
-      reenter (coro)
-      {
-         conn->coalesce_requests();
-         yield boost::asio::async_write(*conn->socket_, boost::asio::buffer(conn->payload_), std::move(self));
-         if (ec) {
-            self.complete(ec, 0);
-            return;
-         }
-
-         write_size = n;
-
-         // We have to clear the payload right after the read op in
-         // order to to use it as a flag that informs there is no
-         // ongoing write.
-         conn->payload_.clear();
-
-         // After the reader receives the response to the command
-         // above it will wait untill we signal we are done with the
-         // write by writing in the channel.
-         yield conn->read_channel_.async_receive(std::move(self));
-         self.complete(ec, write_size);
-         return;
-      }
-   }
-};
-
-template <class Conn>
-struct exec_exit_op {
-   Conn* conn;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void
-   operator()( Self& self
-             , boost::system::error_code ec = {}
-             , std::size_t n = 0)
-   {
-      reenter (coro)
-      {
-         BOOST_ASSERT(!conn->reqs_.empty());
-         conn->release_req_info(conn->reqs_.front());
-         conn->reqs_.pop_front();
-
-         if (!conn->reqs_.empty())
-            conn->reqs_.front()->timer.cancel_one();
-
-         // Handles control of the read operation to the reader. There
-         // are two reasons for that
-         //
-         // 1. There may be no enqueued command and we have to
-         // continuously listen on the socket.
-         //
-         // 2. There are enqueued commands that will be written, while
-         // we are writing we have to listen for messages. e.g. server
-         // pushes.
-         if (conn->cmds_ == 0) {
-            yield conn->read_channel_.async_send({}, 0, std::move(self));
-         }
-
-         self.complete(ec);
-         return;
-      }
-   }
-};
-
 template <class Conn, class Adapter>
 struct exec_op {
    Conn* conn;
@@ -302,48 +226,43 @@ struct exec_op {
    {
       reenter (coro)
       {
-         if (!conn->add_request(*req)) {
-            // There is an ongoing request being processed, when the
-            // response to this specific request arrives, the timer
-            // below will be canceled, either in the end of this
-            // operation (if it is in the middle of a pipeline) or on
-            // the reader_op (if it is the first in the pipeline).
-            // Notice we use the back of the queue.
-            info = conn->reqs_.back();
-            yield info->timer.async_wait(std::move(self));
-            if (info->stop) {
-               BOOST_ASSERT(!!ec);
-               conn->release_req_info(info);
-               self.complete(ec, 0);
-               return;
-            }
+         conn->add_request(*req);
+         info = conn->reqs_.back();
+         yield info->timer.async_wait(std::move(self));
+         if (info->stop) {
+            BOOST_ASSERT(!!ec);
+            conn->release_req_info(info);
+            self.complete(ec, 0);
+            return;
+         }
+          
+         if (req->commands() == 0) {
+            self.complete({}, 0);
+            return;
          }
 
-         BOOST_ASSERT(!conn->reqs_.empty());
-         if (conn->cmds_ == 0 && conn->payload_.empty()) {
-            yield conn->async_exec_write(std::move(self));
-            if (ec) {
-               conn->close();
-               self.complete(ec, 0);
-               return;
-            }
+         yield conn->async_exec_read(adapter, std::move(self));
+         if (ec) {
+            conn->close();
+            self.complete(ec, 0);
+            return;
          }
 
-         BOOST_ASSERT(!conn->reqs_.empty());
-         if (conn->reqs_.front()->expects_response()) {
-            yield conn->async_exec_read(adapter, std::move(self));
-            if (ec) {
-               conn->close();
-               self.complete(ec, 0);
-               return;
-            }
+         read_size = n;
 
-            read_size = n;
+         BOOST_ASSERT(!conn->reqs_.empty());
+         conn->release_req_info(conn->reqs_.front());
+         conn->reqs_.pop_front();
+
+         if (conn->cmds_ == 0) {
+            yield conn->read_channel_.async_send({}, 0, std::move(self));
+            if (!conn->reqs_.empty())
+               conn->writer_timer_.cancel();
+         } else {
             BOOST_ASSERT(!conn->reqs_.empty());
-            BOOST_ASSERT(!conn->reqs_.front()->expects_response());
+            conn->reqs_.front()->timer.cancel_one();
          }
 
-         yield conn->async_exec_exit(std::move(self));
          self.complete(ec, read_size);
       }
    }
@@ -416,16 +335,18 @@ struct start_op {
 
    template <class Self>
    void operator()( Self& self
-                  , std::array<std::size_t, 3> order = {}
+                  , std::array<std::size_t, 4> order = {}
                   , boost::system::error_code ec0 = {}
                   , boost::system::error_code ec1 = {}
-                  , boost::system::error_code ec2 = {})
+                  , boost::system::error_code ec2 = {}
+                  , boost::system::error_code ec3 = {})
    {
       reenter (coro)
       {
          yield
          boost::asio::experimental::make_parallel_group(
             [this](auto token) { return conn->reader(token);},
+            [this](auto token) { return conn->writer(token);},
             [this](auto token) { return conn->async_check_idle(token);},
             [this](auto token) { return conn->async_ping(token);}
          ).async_wait(
@@ -447,6 +368,11 @@ struct start_op {
            {
               BOOST_ASSERT(ec2);
               self.complete(ec2);
+           } break;
+           case 3:
+           {
+              BOOST_ASSERT(ec3);
+              self.complete(ec3);
            } break;
            default: BOOST_ASSERT(false);
          }
@@ -487,11 +413,45 @@ struct run_op {
             return;
          }
 
-         if (!conn->reqs_.empty())
-            conn->reqs_.front()->timer.cancel_one();
-
          yield conn->async_start(std::move(self));
          self.complete(ec);
+      }
+   }
+};
+
+template <class Conn>
+struct writer_op {
+   Conn* conn;
+   typename Conn::reqs_type::iterator end;
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()( Self& self
+                  , boost::system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      boost::ignore_unused(n);
+
+      reenter (coro) for (;;)
+      {
+         while (!conn->reqs_.empty() && conn->cmds_ == 0 && conn->payload_.empty()) {
+            conn->coalesce_requests();
+            end = conn->reqs_.end();
+            yield boost::asio::async_write(*conn->socket_, boost::asio::buffer(conn->payload_), std::move(self));
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
+
+            conn->on_write(end);
+         }
+
+         yield conn->writer_timer_.async_wait(std::move(self));
+         if (!conn->socket_->is_open()) {
+            self.complete(ec);
+            return;
+         }
+
       }
    }
 };
@@ -544,8 +504,10 @@ struct reader_op {
             yield async_send_receive(conn->push_channel_, std::move(self));
          } else {
             BOOST_ASSERT(conn->cmds_ != 0);
+            BOOST_ASSERT(!conn->reqs_.empty());
             BOOST_ASSERT(conn->reqs_.front()->expects_response());
-            yield async_send_receive(conn->read_channel_, std::move(self));
+            conn->reqs_.front()->timer.cancel();
+            yield conn->read_channel_.async_receive(std::move(self));
          }
 
          if (ec) {

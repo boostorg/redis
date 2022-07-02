@@ -75,11 +75,13 @@ public:
    : resv_{ex}
    , ping_timer_{ex}
    , check_idle_timer_{ex}
+   , writer_timer_{ex}
    , read_channel_{ex}
    , push_channel_{ex}
    , cfg_{cfg}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
+      writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
    connection(boost::asio::io_context& ioc, config cfg = config{})
@@ -265,6 +267,7 @@ public:
       read_channel_.cancel();
       push_channel_.cancel();
       check_idle_timer_.expires_at(std::chrono::steady_clock::now());
+      writer_timer_.cancel();
       ping_timer_.cancel();
       for (auto& e: reqs_) {
          e->stop = true;
@@ -275,23 +278,6 @@ public:
    }
 
 private:
-   using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
-
-   template <class T, class U> friend struct detail::read_push_op;
-   template <class T> friend struct detail::reader_op;
-   template <class T> friend struct detail::ping_op;
-   template <class T> friend struct detail::run_op;
-   template <class T, class U> friend struct detail::exec_op;
-   template <class T, class U> friend struct detail::exec_read_op;
-   template <class T> friend struct detail::exec_write_op;
-   template <class T> friend struct detail::exec_exit_op;
-   template <class T, class U> friend struct detail::runexec_op;
-   template <class T> friend struct detail::hello_op;
-   template <class T> friend struct detail::connect_with_timeout_op;
-   template <class T> friend struct detail::resolve_with_timeout_op;
-   template <class T> friend struct detail::check_idle_op;
-   template <class T> friend struct detail::start_op;
-
    struct req_info {
       boost::asio::steady_timer timer;
       resp3::request const* req = nullptr;
@@ -299,21 +285,57 @@ private:
       bool stop = false;
 
       bool expects_response() const noexcept { return n_cmds != 0;}
-      void pop() noexcept { --n_cmds; }
+      void pop() noexcept
+      {
+         BOOST_ASSERT(n_cmds != 0);
+         --n_cmds;
+      }
    };
 
-   bool add_request(resp3::request const& req)
-   {
-      BOOST_ASSERT(!req.payload().empty());
-      auto const empty = reqs_.empty();
+   using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
+   using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
+   template <class T, class U> friend struct detail::read_push_op;
+   template <class T> friend struct detail::reader_op;
+   template <class T> friend struct detail::writer_op;
+   template <class T> friend struct detail::ping_op;
+   template <class T> friend struct detail::run_op;
+   template <class T, class U> friend struct detail::exec_op;
+   template <class T, class U> friend struct detail::exec_read_op;
+   template <class T, class U> friend struct detail::runexec_op;
+   template <class T> friend struct detail::hello_op;
+   template <class T> friend struct detail::connect_with_timeout_op;
+   template <class T> friend struct detail::resolve_with_timeout_op;
+   template <class T> friend struct detail::check_idle_op;
+   template <class T> friend struct detail::start_op;
+
+   void on_write(typename reqs_type::iterator end)
+   {
+      // We have to clear the payload right after the read op in
+      // order to to use it as a flag that informs there is no
+      // ongoing write.
+      payload_.clear();
+
+      auto point = std::stable_partition(std::begin(reqs_), end, [](auto const& ptr) {
+         return ptr->req->commands() != 0;
+      });
+
+      std::for_each(point, end, [](auto const& ptr) {
+            ptr->timer.cancel();
+      });
+
+      reqs_.erase(point, end);
+   }
+   void add_request(resp3::request const& req)
+   {
       reqs_.push_back(make_req_info());
       reqs_.back()->timer.expires_at(std::chrono::steady_clock::time_point::max());
       reqs_.back()->req = &req;
       reqs_.back()->n_cmds = req.commands();
       reqs_.back()->stop = false;
 
-      return empty && socket_ != nullptr;
+      if (socket_ != nullptr && cmds_ == 0 && payload_.empty())
+         writer_timer_.cancel();
    }
 
    auto make_dynamic_buffer()
@@ -354,6 +376,16 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::reader_op<connection>{this}, token, resv_.get_executor());
+   }
+
+   template <class CompletionToken = default_completion_token_type>
+   auto
+   writer(CompletionToken&& token = default_completion_token_type{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::writer_op<connection>{this}, token, resv_.get_executor());
    }
 
    template <class CompletionToken = default_completion_token_type>
@@ -409,24 +441,6 @@ private:
          >(detail::exec_read_op<connection, Adapter>{this, adapter}, token, resv_);
    }
 
-   template <class CompletionToken = default_completion_token_type>
-   auto async_exec_write(CompletionToken token = CompletionToken{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(detail::exec_write_op<connection>{this}, token, resv_);
-   }
-
-   template <class CompletionToken = default_completion_token_type>
-   auto async_exec_exit(CompletionToken token = CompletionToken{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::exec_exit_op<connection>{this}, token, resv_);
-   }
-
    std::shared_ptr<req_info> make_req_info()
    {
       if (pool_.empty())
@@ -463,6 +477,7 @@ private:
    std::shared_ptr<AsyncReadWriteStream> socket_;
    boost::asio::steady_timer ping_timer_;
    boost::asio::steady_timer check_idle_timer_;
+   boost::asio::steady_timer writer_timer_;
    channel_type read_channel_;
    channel_type push_channel_;
 
@@ -474,7 +489,7 @@ private:
 
    std::string payload_;
    std::size_t cmds_ = 0;
-   std::deque<std::shared_ptr<req_info>> reqs_;
+   reqs_type reqs_;
    std::vector<std::shared_ptr<req_info>> pool_;
 
    // Last time we received data.

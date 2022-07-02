@@ -172,7 +172,7 @@ void test_no_push_reader1()
    req.push("SUBSCRIBE", "channel");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "test_no_push_reader1");
+      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader1");
    });
 
    ioc.run();
@@ -190,7 +190,7 @@ void test_no_push_reader2()
    req.push("SUBSCRIBE");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "test_no_push_reader2");
+      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader2");
    });
 
    ioc.run();
@@ -352,7 +352,7 @@ int main()
    test_no_push_reader1();
    test_no_push_reader2();
    test_no_push_reader3();
-   test_reconnect();
+   //test_reconnect();
    test_exec_while_processing();
 
    // Must come last as it send a client pause.
