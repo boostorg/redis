@@ -29,7 +29,7 @@ awaitable<void> echo(tcp::socket socket)
         co_await async_write(socket, net::buffer(data, n), use_awaitable);
      }
   } catch (std::exception const& e) {
-     std::printf("echo Exception: %s\n", e.what());
+     //std::printf("echo Exception: %s\n", e.what());
   }
 }
 
@@ -49,7 +49,7 @@ int main()
      net::io_context io_context(1);
      co_spawn(io_context, listener(), detached);
      io_context.run();
-  } catch (std::exception& e) {
+  } catch (std::exception const& e) {
      std::printf("Exception: %s\n", e.what());
   }
 }

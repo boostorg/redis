@@ -46,8 +46,8 @@ if HAVE_CXX20
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
-echo_server_direct_SOURCES = $(top_srcdir)/benchmarks/cpp/echo_server_direct.cpp
-echo_server_client_SOURCES = $(top_srcdir)/benchmarks/cpp/echo_server_client.cpp
+echo_server_direct_SOURCES = $(top_srcdir)/benchmarks/cpp/asio/echo_server_direct.cpp
+echo_server_client_SOURCES = $(top_srcdir)/benchmarks/cpp/asio/echo_server_client.cpp
 endif
 
 nobase_include_HEADERS =\
