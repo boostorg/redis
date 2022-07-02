@@ -133,18 +133,15 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
    {
       request req;
       req.push("QUIT");
-      db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
-         // TODO: This should be eof.
-         expect_error(ec, net::error::basic_errors::operation_aborted, "run5a");
-      });
+      auto [ec, n] = co_await db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), as_tuple(net::use_awaitable));
+      expect_error(ec, net::error::misc_errors::eof, "run5a");
    }
 
    {
       request req;
       req.push("QUIT");
-      db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
-         expect_error(ec, net::error::misc_errors::eof, "run5b");
-      });
+      auto [ec, n] = co_await db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), as_tuple(net::use_awaitable));
+      expect_error(ec, net::error::misc_errors::eof, "run5b");
    }
 
    co_return;
@@ -352,7 +349,7 @@ int main()
    test_no_push_reader1();
    test_no_push_reader2();
    test_no_push_reader3();
-   //test_reconnect();
+   test_reconnect();
    test_exec_while_processing();
 
    // Must come last as it send a client pause.

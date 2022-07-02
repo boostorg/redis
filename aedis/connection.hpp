@@ -264,6 +264,8 @@ public:
    void close()
    {
       socket_->close();
+      cmds_ = 0;
+      payload_ = {};
       read_channel_.cancel();
       push_channel_.cancel();
       check_idle_timer_.expires_at(std::chrono::steady_clock::now());
