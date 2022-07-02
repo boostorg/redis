@@ -278,12 +278,17 @@ public:
 
 private:
    struct req_info {
+      req_info(boost::asio::any_io_executor ex)
+      : timer{ex}
+      {}
+
       boost::asio::steady_timer timer;
       resp3::request const* req = nullptr;
       std::size_t n_cmds = 0;
       bool stop = false;
 
       bool expects_response() const noexcept { return n_cmds != 0;}
+
       void pop() noexcept
       {
          BOOST_ASSERT(n_cmds != 0);
@@ -431,7 +436,7 @@ private:
    std::shared_ptr<req_info> make_req_info()
    {
       if (pool_.empty())
-         return std::make_shared<req_info>(boost::asio::steady_timer{resv_.get_executor()});
+         return std::make_shared<req_info>(resv_.get_executor());
 
       auto ret = pool_.back();
       pool_.pop_back();
