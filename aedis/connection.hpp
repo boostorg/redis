@@ -48,16 +48,13 @@ public:
     */
    struct config {
       /// Timeout of the resolve operation.
-      std::chrono::milliseconds resolve_timeout = std::chrono::seconds{5};
+      std::chrono::milliseconds resolve_timeout = std::chrono::seconds{10};
 
       /// Timeout of the connect operation.
-      std::chrono::milliseconds connect_timeout = std::chrono::seconds{5};
-
-      /// Timeout of the read operation.
-      std::chrono::milliseconds read_timeout = std::chrono::seconds{5};
+      std::chrono::milliseconds connect_timeout = std::chrono::seconds{10};
 
       /// Time interval ping operations.
-      std::chrono::milliseconds ping_interval = std::chrono::seconds{5};
+      std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
 
       /// The maximum size allowed of read operations.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
@@ -343,12 +340,12 @@ private:
    auto make_dynamic_buffer()
       { return boost::asio::dynamic_buffer(read_buffer_, cfg_.max_read_size); }
 
-   template <class CompletionToken = default_completion_token_type>
+   template <class CompletionToken>
    auto
    async_resolve_with_timeout(
       boost::string_view host,
       boost::string_view port,
-      CompletionToken&& token = default_completion_token_type{})
+      CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -357,11 +354,8 @@ private:
             token, resv_);
    }
 
-   // Calls connection::async_connect with a timeout.
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_connect_with_timeout(
-         CompletionToken&& token = default_completion_token_type{})
+   template <class CompletionToken>
+   auto async_connect_with_timeout(CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -370,9 +364,8 @@ private:
    }
 
    // Loops on async_read_with_timeout described above.
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   reader(CompletionToken&& token = default_completion_token_type{})
+   template <class CompletionToken>
+   auto reader(CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -380,9 +373,8 @@ private:
          >(detail::reader_op<connection>{this}, token, resv_.get_executor());
    }
 
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   writer(CompletionToken&& token = default_completion_token_type{})
+   template <class CompletionToken>
+   auto writer(CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -390,9 +382,9 @@ private:
          >(detail::writer_op<connection>{this}, token, resv_.get_executor());
    }
 
-   template <class CompletionToken = default_completion_token_type>
+   template <class CompletionToken>
    auto
-   async_start(CompletionToken&& token = default_completion_token_type{})
+   async_start(CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -400,9 +392,8 @@ private:
          >(detail::start_op<connection>{this}, token, resv_);
    }
 
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_ping(CompletionToken&& token = default_completion_token_type{})
+   template <class CompletionToken>
+   auto async_ping(CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -410,9 +401,8 @@ private:
          >(detail::ping_op<connection>{this}, token, resv_);
    }
 
-   template <class CompletionToken = default_completion_token_type>
-   auto
-   async_check_idle(CompletionToken&& token = default_completion_token_type{})
+   template <class CompletionToken>
+   auto async_check_idle(CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -420,8 +410,8 @@ private:
          >(detail::check_idle_op<connection>{this}, token, check_idle_timer_);
    }
 
-   template <class CompletionToken = default_completion_token_type>
-   auto async_hello(CompletionToken token = CompletionToken{})
+   template <class CompletionToken>
+   auto async_hello(CompletionToken token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -429,13 +419,8 @@ private:
          >(detail::hello_op<connection>{this}, token, resv_);
    }
 
-   template <
-      class Adapter = detail::response_traits<void>::adapter_type,
-      class CompletionToken = default_completion_token_type>
-   auto
-   async_exec_read(
-      Adapter adapter = adapt(),
-      CompletionToken token = CompletionToken{})
+   template <class Adapter, class CompletionToken>
+   auto async_exec_read(Adapter adapter, CompletionToken token)
    {
       return boost::asio::async_compose
          < CompletionToken

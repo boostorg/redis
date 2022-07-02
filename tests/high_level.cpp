@@ -35,24 +35,31 @@ auto print_read = [](auto cmd, auto n)
 
 //----------------------------------------------------------------
 
-void test_resolve_error()
+void test_resolve()
 {
+   connection::config cfg;
+   cfg.resolve_timeout = std::chrono::seconds{100};
+
    net::io_context ioc;
-   connection db(ioc);
+   connection db{ioc, cfg};
    db.async_run("Atibaia", "6379", [](auto ec) {
-      expect_error(ec, net::error::netdb_errors::host_not_found, "test_resolve_error");
+      expect_error(ec, net::error::netdb_errors::host_not_found, "test_resolve");
    });
+
    ioc.run();
 }
 
 //----------------------------------------------------------------
 
-void test_connect_error()
+void test_connect()
 {
+   connection::config cfg;
+   cfg.connect_timeout = std::chrono::seconds{100};
+
    net::io_context ioc;
-   connection db(ioc);
+   connection db{ioc, cfg};
    db.async_run("127.0.0.1", "1", [](auto ec) {
-      expect_error(ec, net::error::basic_errors::connection_refused, "test_connect_error");
+      expect_error(ec, net::error::basic_errors::connection_refused, "test_connect");
    });
    ioc.run();
 }
@@ -60,7 +67,7 @@ void test_connect_error()
 //----------------------------------------------------------------
 
 // Test if quit causes async_run to exit.
-void test_quit()
+void test_quit1()
 {
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
@@ -68,11 +75,11 @@ void test_quit()
    request req;
    req.push("QUIT");
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
-      expect_no_error(ec, "test_quit");
+      expect_no_error(ec, "test_quit1");
    });
 
    db->async_run("127.0.0.1", "6379", [](auto ec){
-      expect_error(ec, net::error::misc_errors::eof, "test_quit");
+      expect_error(ec, net::error::misc_errors::eof, "test_quit1");
    });
 
    ioc.run();
@@ -99,7 +106,7 @@ push_consumer1(std::shared_ptr<connection> db)
 {
    {
       auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_no_error(ec, "push_consumer");
+      expect_no_error(ec, "push_consumer1");
    }
 
    {
@@ -339,9 +346,9 @@ void test_exec_while_processing()
 
 int main()
 {
-   test_resolve_error();
-   test_connect_error();
-   test_quit();
+   test_resolve();
+   test_connect();
+   test_quit1();
    test_quit2();
    test_push1();
    test_push2();
