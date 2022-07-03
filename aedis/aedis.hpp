@@ -17,6 +17,13 @@
 #include <aedis/resp3/request.hpp>
 #include <aedis/adapter/adapt.hpp>
 
+// \li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
+// TODO: Reconnect support.
+// TODO: Remove conflicts of the adapt function.
+// TODO: async_exec should receive a config object instead of each
+// parameter individually e.g. host and port. This will be import once
+// support for tls is implemented.
+
 /** \mainpage Documentation
     \tableofcontents
   
@@ -30,7 +37,6 @@
     \li Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
     \li First class support for STL containers and C++ built-in types.
     \li Serialization and deserialization of your own data types.
-    \li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
     \li Zero asymptotic allocations by means of memory reuse.
     \li Healthy checks, back pressure and low latency.
 
@@ -41,12 +47,13 @@
     \code
     int main()
     {
-       net::io_context ioc;
-
        request req;
-       req.push(command::ping, "Ping example");
-       req.push(command::quit);
+       req.push("PING");
+       req.push("QUIT");
+
        std::tuple<std::string, std::string> resp;
+
+       net::io_context ioc;
 
        connection db{ioc};
        db.async_exec("127.0.0.1", "6379", req, adapt(resp),
@@ -54,6 +61,7 @@
 
        ioc.run();
 
+       // Print
        std::cout << std::get<0>(resp) << std::endl;
        std::cout << std::get<1>(resp) << std::endl;
     }
@@ -69,28 +77,28 @@
     [pipelines](https://redis.io/topics/pipelining)). For example
 
     @code
-    // Request where we will push some commands.
     request req;
 
     // Command with variable length of arguments.
-    req.push(command::set, "key", "some value", value, "EX", "2");
+    req.push("SET", "key", "some value", value, "EX", "2");
 
     // Pushes a set.
-    std::list<std::string> list {"channel1", "channel2", "channel3"};
-    req.push_range(command::subscribe, list);
+    std::list<std::string> list
+       {"channel1", "channel2", "channel3"};
+    req.push_range("SUBSCRIBE", list);
 
     // Same as above but as an iterator range.
-    req.push_range2(command::subscribe, std::cbegin(list), std::cend(list));
+    req.push_range2("SUBSCRIBE", std::cbegin(list), std::cend(list));
 
     // Sends a map.
     std::map<std::string, mystruct> map
        { {"key1", "value1"}
        , {"key2", "value2"}
        , {"key3", "value3"}};
-    req.push_range(command::hset, "key", map);
+    req.push_range("HSET", "key", map);
     @endcode
 
-    Sending a request to Redis is then peformed with the 
+    Sending a request to Redis is then peformed with the following function
 
     @code
     co_await db->async_exec(req, adapt(resp));
@@ -125,7 +133,7 @@
 
     std::map<std::string, mystruct> map {...};
 
-    req.push_range(command::hset, "key", map);
+    req.push_range("HSET", "key", map);
     @endcode
 
     It is quite common to store json string in Redis for example.
@@ -245,11 +253,11 @@
     example, the response to the transaction below
 
     @code
-    db.send(command::multi);
-    db.send(command::get, "key1");
-    db.send(command::lrange, "key2", 0, -1);
-    db.send(command::hgetall, "key3");
-    db.send(command::exec);
+    db.send("MULTI");
+    db.send("GET", "key1");
+    db.send("LRANGE", "key2", 0, -1);
+    db.send("HGETALL", "key3");
+    db.send("EXEC");
     @endcode
 
     can be read in the following way
@@ -280,8 +288,8 @@
     strings, for example
 
     @code
-    sr.push(command::set, "key", "{"Server": "Redis"}"); // Unquoted for readability.
-    sr.push(command::get, "key")
+    sr.push("SET", "key", "{"Server": "Redis"}"); // Unquoted for readability.
+    sr.push("GET", "key")
     @endcode
 
     For performance and convenience reasons, we may want to avoid
@@ -367,55 +375,23 @@
 
     In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. \c smembers.
 
-    \subsection low-level-adapters Adapters
-
-    Users that are not satisfied with any of the options above can
-    write their own adapters very easily. For example, the adapter below
-    can be used to print incoming data to the screen.
-
-    @code
-    auto adapter = [](resp3::node<boost::string_view> const& nd, boost::system::error_code&)
-    {
-       std::cout << nd << std::endl;
-    };
-
-    co_await resp3::async_read(socket, dynamic_buffer(buffer), adapter);
-    @endcode
-
-    See more in the \ref examples section.
-
     \section examples Examples
 
-    To better fix what has been said above, users should have a look at some simple examples.
+    The examples listed below cover most use cases presented in the documentation above.
 
-    \b Low \b level \b API (sync)
-
-    @li intro_sync.cpp: Synchronous API usage example.
-    @li serialization_sync.cpp: Shows how serialize your own types.
-
-    \b Low \b level \b API (async-coroutine)
-
-    @li subscriber.cpp: Shows how channel subscription works at the low level.
-    @li transaction.cpp: Shows how to read the response to transactions.
-    @li custom_adapter.cpp: Shows how to write a response adapter that prints to the screen, see \ref low-level-adapters.
-
-    \b High \b level \b API (async only)
-
-    @li intro_high_level.cpp: High-level API usage example.
-    @li aggregates_high_level.cpp: Shows how receive RESP3 aggregate data types in a general way or in STL containers.
-    @li subscriber_high_level.cpp: Shows how channel [subscription](https://redis.io/topics/pubsub) works at a high-level.
-
-    \b Asynchronous \b Servers (high-level API)
-
-    @li echo_server.cpp: Asynchronous TCP server that echos user messages over Redis.
-    @li chat_room.cpp: Shows how to build a scalable chat room.
+    @li intro.cpp: Basic steps with Aedis.
+    @li containers.cpp: Shows how to send and receive stl containers.
+    @li serialization.cpp: Shows the \c request support to serialization of user types.
+    @li subscriber.cpp: Shows how channel subscription works.
+    @li echo_server.cpp: A simple TCP echo server that users coroutines.
+    @li chat_room.cpp: A simple chat room that uses coroutines.
 
     \section using-aedis Using Aedis
 
     To install and use Aedis you will need
   
     - Boost 1.78 or greater.
-    - Unix Shell and Make.
+    - Unix Shell and Make (for linux users).
     - C++14. Some examples require C++20 with coroutine support.
     - Redis server.
 
@@ -442,7 +418,7 @@
     ```
 
     If you can't use \c configure and \c make (e.g. Windows users)
-    you can already add the directory where you unpacked Aedis to the
+    add the directory where you unpacked Aedis to the
     include directories in your project, otherwise run
   
     ```
@@ -507,13 +483,11 @@
     Before we start it is worth mentioning some of the things it does
     not support
 
-    @li RESP3. Without RESP3 is impossible to support some important
-    Redis features like client side caching, among other things.
+    @li RESP3. Without RESP3 is impossible to support some important Redis features like client side caching, among other things.
     @li The Asio asynchronous model.
-    @li Serialization of user data types that avoids temporaries.
+    @li Reading response diretly in user data structures avoiding temporaries.
     @li Error handling with error-code and exception overloads.
     @li Healthy checks.
-    @li Fine control over memory allocation by means of allocators.
 
     The remaining points will be addressed individually.
 
@@ -558,10 +532,8 @@
     Some of the problems with this API are
 
     @li Heterogeneous treatment of commands, pipelines and transaction.
-    @li Having to manually finish the pipeline with \c .exec() is a major source of headache. This is not required by the protocol itself but results from the abstraction used.
-    @li Any Api that sends individual commands has a very restricted scope of usability and should be avoided in anything that needs minimum performance guarantees.
+    @li Any Api that sends individual commands has a very restricted scope of usability and should be avoided for performance reasons.
     @li The API imposes exceptions on users, no error-code overload is provided.
-    @li No control over dynamic allocations.
     @li No way to reuse the buffer for new calls to e.g. \c redis.get in order to avoid further dynamic memory allocations.
     @li Error handling of resolve and connection no clear.
 
@@ -586,12 +558,12 @@
     @code
     std::string request;
     auto sr = make_serializer(request);
-    sr.push(command::hello, 3);
-    sr.push(command::multi);
-    sr.push(command::ping, "Some message.");
-    sr.push(command::set, "low-level-key", "some content", "EX", "2");
-    sr.push(command::exec);
-    sr.push(command::ping, "Another message.");
+    sr.push("HELLO", 3);
+    sr.push("MULTI");
+    sr.push("PING");
+    sr.push("SET", "low-level-key", "some content", "EX", "2");
+    sr.push("EXEC");
+    sr.push("PING", "Another message.");
     net::write(socket, net::buffer(request));
     @endcode
 
@@ -645,23 +617,15 @@
     problem however with this async design is that it makes it
     impossible to write asynchronous programs correctly since it
     starts an async operation on every command sent instead of
-    enqueueing a message and triggering a write. It is also not clear
-    how are pipelines realised with the design (if at all).
-
-    In Aedis the send function looks like this
-
-    @code
-    template <class... Ts>
-    void client::send(Command cmd, Ts const&... args);
-    @endcode
-
-    and the response is delivered through a callback.
+    enqueueing a message and triggering a write when it can be sent.
+    It is also not clear how are pipelines realised with the design
+    (if at all).
 
     \section Acknowledgement
 
     Some people that were helpful in the development of Aedis
 
-    @li Richard Hodges ([madmongo1](https://github.com/madmongo1)): For answering pretty much every question I had about Asio and the design of asynchronous programs.
+    @li Richard Hodges ([madmongo1](https://github.com/madmongo1)): For answering my questions about Asio and the design of asynchronous programs in general.
     @li Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation (among other things).
 
     \section Reference

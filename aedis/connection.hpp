@@ -24,14 +24,15 @@
 
 namespace aedis {
 
+// https://redis.io/docs/reference/sentinel-clients
+
 /** \brief A high level Redis connection.
  *  \ingroup any
  *
- *  This class keeps a connection open to the Redis server where
+ *  This class keeps a healthy connection to the Redis instance where
  *  commands can be sent at any time. For more details, please see the
  *  documentation of each individual function.
  *
- *  https://redis.io/docs/reference/sentinel-clients
  */
 template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection {
@@ -39,7 +40,7 @@ public:
    /// Executor type.
    using executor_type = typename AsyncReadWriteStream::executor_type;
 
-   /// Type of the last layer
+   /// Type of the next layer
    using next_layer_type = AsyncReadWriteStream;
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
@@ -107,18 +108,14 @@ public:
     *  to Redis with a frequency equal to
     *  connection::config::ping_interval.
     *
-    *  \li Start reading from the socket and deliver events to the
+    *  \li Starts reading from the socket and delivering events to the
     *  request started with \c async_exec or \c async_read_push.
-    *
-    *  It is safe to call \c async_run again after it has returned.  In this
-    *  case, any outstanding commands will be sent after the
-    *  connection is restablished.
     *
     * For an example see echo_server.cpp.
     *
-    *  \param host The Redis address.
-    *  \param port The Redis port.
-    *  \param token The completion token.
+    *  \param host Redis address.
+    *  \param port Redis port.
+    *  \param token Completion token.
     *
     *  The completion token must have the following signature
     *
@@ -143,13 +140,12 @@ public:
 
    /** @brief Executes a request on the redis server.
     *
-    *  \param req The request object.
-    *  \param adapter The response adapter.
-    *  \param token The Asio completion token.
+    *  \param req Request object.
+    *  \param adapter Response adapter.
+    *  \param token Asio completion token.
     *
-    *  For an example see containers.cpp.
-    *
-    *  The completion token must have the following signature
+    *  For an example see containers.cpp. The completion token must
+    *  have the following signature
     *
     *  @code
     *  void f(boost::system::error_code, std::size_t);
@@ -178,15 +174,13 @@ public:
     *  single function. This function is useful for users that want to
     *  send a single request to the server.
     *
-    *  \param host The address of the Redis server.
-    *  \param port The port of the Redis server.
-    *  \param req The request object.
-    *  \param adapter The response adapter.
-    *  \param token The Asio completion token.
+    *  \param host Address of the Redis server.
+    *  \param port Port of the Redis server.
+    *  \param req Request object.
+    *  \param adapter Response adapter.
+    *  \param token Asio completion token.
     *
-    *  For an example see intro.cpp.
-    *
-    *  The completion token must have the following signature
+    *  For an example see intro.cpp. The completion token must have the following signature
     *
     *  @code
     *  void f(boost::system::error_code, std::size_t);
@@ -221,9 +215,8 @@ public:
     *  \param adapter The response adapter.
     *  \param token The Asio completion token.
     *
-    *  For an example see subscriber.cpp.
-    *
-    *  The completion token must have the following signature
+    *  For an example see subscriber.cpp. The completion token must
+    *  have the following signature
     *
     *  @code
     *  void f(boost::system::error_code, std::size_t);
@@ -235,8 +228,7 @@ public:
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = default_completion_token_type>
-   auto
-   async_read_push(
+   auto async_read_push(
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {

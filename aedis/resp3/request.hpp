@@ -38,34 +38,16 @@ namespace resp3 {
  *  co_await async_write(socket, buffer(r));
  *  @endcode
  *
- *  \tparam Storage The storage type e.g \c std::string.
- *
  *  \remarks  Non-string types will be converted to string by using \c
  *  to_bulk, which must be made available over ADL.
  */
 class request {
 public:
-   /** \brief Returns the number of commands contained in this request.
-    *  
-    *  \returns A container with the commands contained in the
-    *  request.
-    */
+   //// Returns the number of commands contained in this request.
    std::size_t commands() const noexcept { return commands_;};
 
    /// Returns the request payload.
    auto const& payload() const noexcept { return payload_;}
-
-   /// Enable retry for this request object.
-   void enable_retry() noexcept { retry_ = true; }
-
-   /** \brief Returns \c true is \c enable_retry has been called.
-    *
-    *  This flag is used by the \c connection object to determine
-    *  whether it should try to resend the request when a failure
-    *  occurs, for example because the Redis server crashed and a
-    *  failover operation is going on.
-    */
-   bool retry() const noexcept { return retry_;}
 
    /// Clears the request preserving allocated memory.
    void clear()
@@ -196,6 +178,10 @@ public:
    /** @brief Appends a new command to the end of the request.
     *  
     *  Equivalent to the overload taking a range (i.e. send_range2).
+    *
+    *  \param cmd Redis command.
+    *  \param key Redis key.
+    *  \param range Range to send e.g. and \c std::map.
     */
    template <class Key, class Range>
    void push_range(boost::string_view cmd, Key const& key, Range const& range)
@@ -208,6 +194,9 @@ public:
    /** @brief Appends a new command to the end of the request.
     *
     *  Equivalent to the overload taking a range (i.e. send_range2).
+    *
+    *  \param cmd Redis command.
+    *  \param range Range to send e.g. and \c std::map.
     */
    template <class Range>
    void push_range(boost::string_view cmd, Range const& range)
@@ -220,7 +209,6 @@ public:
 private:
    std::string payload_;
    std::size_t commands_ = 0;
-   bool retry_ = false;
 };
 
 } // resp3

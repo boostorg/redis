@@ -18,13 +18,13 @@ using connection = aedis::connection<>;
 
 int main()
 {
-   net::io_context ioc;
-
    request req;
-   req.push("PING", "Ping example");
+   req.push("PING");
    req.push("QUIT");
 
    std::tuple<std::string, std::string> resp;
+
+   net::io_context ioc;
 
    connection db{ioc};
    db.async_exec("127.0.0.1", "6379", req, adapt(resp),

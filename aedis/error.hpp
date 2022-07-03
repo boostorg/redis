@@ -16,17 +16,11 @@ namespace aedis {
  */
 enum class error
 {
-   /// Represents the timeout of the resolve operation.
+   /// Resolve timeout.
    resolve_timeout = 1,
 
-   /// Represents the timeout of the connect operation.
+   /// Connect timeout.
    connect_timeout,
-
-   /// Represents the timeout of the read operation.
-   read_timeout,
-
-   /// Represents the timeout of the write operation.
-   write_timeout,
 
    /// Idle timeout.
    idle_timeout,
@@ -43,7 +37,7 @@ enum class error
    /// The maximum depth of a nested response was exceeded.
    exceeeds_max_nested_depth,
 
-   /// Unexpects bool value.
+   /// Got non boolean value.
    unexpected_bool_value,
 
    /// Expected field value is empty.
@@ -82,6 +76,7 @@ enum class error
 
 /** \internal
  *  \brief Creates a error_code object from an error.
+ *  \param e Error code.
  *  \ingroup any
  */
 boost::system::error_code make_error_code(error e);

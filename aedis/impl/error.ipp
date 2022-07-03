@@ -21,8 +21,6 @@ struct error_category_impl : boost::system::error_category {
       switch(static_cast<error>(ev)) {
 	 case error::resolve_timeout: return "Resolve operation timeout.";
 	 case error::connect_timeout: return "Connect operation timeout.";
-	 case error::read_timeout: return "Read operation timeout.";
-	 case error::write_timeout: return "Write operation timeout.";
 	 case error::idle_timeout: return "Idle timeout.";
 	 case error::invalid_data_type: return "Invalid resp3 type.";
 	 case error::not_a_number: return "Can't convert string to number.";
