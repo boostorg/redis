@@ -40,7 +40,9 @@ struct error_category_impl : boost::system::error_category {
 	 case error::incompatible_size: return "Aggregate container has incompatible size.";
 	 case error::not_a_double: return "Not a double.";
 	 case error::null: return "Got RESP3 null.";
-	 default: BOOST_ASSERT(false);
+	 default:
+            BOOST_ASSERT(false);
+            return "Aedis error.";
       }
    }
 };
