@@ -622,8 +622,9 @@
 
     Some people that were helpful in the development of Aedis
 
-    @li Richard Hodges ([madmongo1](https://github.com/madmongo1)): For answering my questions about Asio and the design of asynchronous programs in general.
+    @li Richard Hodges ([madmongo1](https://github.com/madmongo1)): For helping me with Asio and the design of asynchronous programs in general.
     @li Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation (among other things).
+    @li Petr Dannhofer ([Eddie-cz](https://github.com/Eddie-cz)): For helping me understand how the `AUTH` and `HELLO` command can influence each other.
 
     \section Reference
   
