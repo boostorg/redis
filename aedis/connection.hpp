@@ -338,14 +338,10 @@ private:
       reqs_.erase(point, end);
    }
 
-   void add_request(resp3::request const& req)
+   void add_request_info(std::shared_ptr<req_info> const& info)
    {
-      reqs_.push_back(make_req_info());
-      reqs_.back()->req = &req;
-      reqs_.back()->cmds = req.commands();
-      reqs_.back()->stop = false;
-
-      if (socket_ != nullptr && cmds_ == 0 && write_buffer_.empty())
+      reqs_.push_back(info);
+      if (socket_ != nullptr && socket_->is_open() && cmds_ == 0 && write_buffer_.empty())
          writer_timer_.cancel();
    }
 
@@ -429,13 +425,6 @@ private:
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
          >(detail::exec_read_op<connection, Adapter>{this, adapter}, token, resv_);
-   }
-
-   std::shared_ptr<req_info> make_req_info()
-   {
-      auto p = std::make_shared<req_info>(resv_.get_executor());
-      p->timer.expires_at(std::chrono::steady_clock::time_point::max());
-      return p;
    }
 
    void coalesce_requests()

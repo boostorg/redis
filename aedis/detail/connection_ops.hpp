@@ -191,10 +191,12 @@ struct exec_read_op {
 
 template <class Conn, class Adapter>
 struct exec_op {
+   using req_info_type = typename Conn::req_info;
+
    Conn* conn;
    resp3::request const* req;
    Adapter adapter;
-   std::shared_ptr<typename Conn::req_info> info;
+   std::shared_ptr<req_info_type> info;
    std::size_t read_size = 0;
    boost::asio::coroutine coro;
 
@@ -206,9 +208,13 @@ struct exec_op {
    {
       reenter (coro)
       {
-         // TODO: Use associated allocator.
-         conn->add_request(*req);
-         info = conn->reqs_.back();
+         info = std::allocate_shared<req_info_type>(boost::asio::get_associated_allocator(self), conn->resv_.get_executor());
+         info->timer.expires_at(std::chrono::steady_clock::time_point::max());
+         info->req = req;
+         info->cmds = req->commands();
+         info->stop = false;
+
+         conn->add_request_info(info);
          yield info->timer.async_wait(std::move(self));
          BOOST_ASSERT(conn->socket_ != nullptr);
          BOOST_ASSERT(!!ec);
