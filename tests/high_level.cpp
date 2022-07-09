@@ -221,8 +221,7 @@ void test_no_push_reader3()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
 
-   request req;
-   // Wrong command.
+   request req; // Wrong command synthax.
    req.push("PING", "Message");
    req.push("SUBSCRIBE");
 
@@ -372,12 +371,12 @@ int main()
    test_connect();
    test_quit1();
    test_quit2();
-   //test_push1();
+   test_push1();
    test_push2();
    test_push3();
    test_no_push_reader1();
    test_no_push_reader2();
-   //test_no_push_reader3();
+   test_no_push_reader3();
    test_reconnect();
    test_exec_while_processing();
 

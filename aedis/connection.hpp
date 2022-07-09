@@ -252,7 +252,6 @@ public:
     */
    std::size_t cancel_requests()
    {
-      push_channel_.cancel();
       for (auto& e: reqs_) {
          e->stop = true;
          e->timer.cancel_one();
@@ -284,6 +283,9 @@ public:
       check_idle_timer_.cancel();
       writer_timer_.cancel();
       ping_timer_.cancel();
+
+      // TODO: How to avoid calling this here.
+      push_channel_.cancel();
 
       // Cancel own pings if there is any waiting.
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
