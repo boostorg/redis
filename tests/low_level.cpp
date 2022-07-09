@@ -488,8 +488,8 @@ void test_set(net::io_context& ioc)
 
 void test_simple_error(net::io_context& ioc)
 {
-   auto const in01 = expect<node_type>{"-Error\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, "simple_error.node"};
-   auto const in02 = expect<node_type>{"-\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, "simple_error.node.empty"};
+   auto const in01 = expect<node_type>{"-Error\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, "simple_error.node", aedis::make_error_code(aedis::error::simple_error)};
+   auto const in02 = expect<node_type>{"-\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, "simple_error.node.empty", aedis::make_error_code(aedis::error::simple_error)};
 
    auto ex = ioc.get_executor();
 
@@ -554,8 +554,8 @@ void test_double(net::io_context& ioc)
 
 void test_blob_error(net::io_context& ioc)
 {
-   auto const in01 = expect<node_type>{"!21\r\nSYNTAX invalid syntax\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, "blob_error"};
-   auto const in02 = expect<node_type>{"!0\r\n\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {}}, "blob_error.empty"};
+   auto const in01 = expect<node_type>{"!21\r\nSYNTAX invalid syntax\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, "blob_error", aedis::make_error_code(aedis::error::blob_error)};
+   auto const in02 = expect<node_type>{"!0\r\n\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {}}, "blob_error.empty", aedis::make_error_code(aedis::error::blob_error)};
 
    auto ex = ioc.get_executor();
 

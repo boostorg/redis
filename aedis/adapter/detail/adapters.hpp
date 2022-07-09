@@ -105,9 +105,10 @@ private:
 
 public:
    general_aggregate(Result* c = nullptr): result_(c) {}
-   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code&)
+   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code& ec)
    {
       result_->push_back({n.data_type, n.aggregate_size, n.depth, std::string{std::cbegin(n.value), std::cend(n.value)}});
+      set_on_resp3_error(n.data_type, ec);
    }
 };
 
@@ -119,12 +120,13 @@ private:
 public:
    general_simple(Node* t = nullptr) : result_(t) {}
 
-   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code&)
+   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code& ec)
    {
-     result_->data_type = n.data_type;
-     result_->aggregate_size = n.aggregate_size;
-     result_->depth = n.depth;
-     result_->value.assign(n.value.data(), n.value.size());
+      result_->data_type = n.data_type;
+      result_->aggregate_size = n.aggregate_size;
+      result_->depth = n.depth;
+      result_->value.assign(n.value.data(), n.value.size());
+      set_on_resp3_error(n.data_type, ec);
    }
 };
 
