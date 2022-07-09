@@ -19,10 +19,11 @@ using connection = aedis::connection<>;
 int main()
 {
    request req;
+   req.push("HELLO", 3);
    req.push("PING");
    req.push("QUIT");
 
-   std::tuple<std::string, std::string> resp;
+   std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
 
    net::io_context ioc;
 
@@ -32,7 +33,5 @@ int main()
 
    ioc.run();
 
-   // Print
-   std::cout << std::get<0>(resp) << std::endl;
    std::cout << std::get<1>(resp) << std::endl;
 }

@@ -74,6 +74,7 @@ void test_quit1()
    auto db = std::make_shared<connection>(ioc);
 
    request req;
+   req.push("HELLO", 3);
    req.push("QUIT");
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
       expect_no_error(ec, "test_quit1");
@@ -89,6 +90,7 @@ void test_quit1()
 void test_quit2()
 {
    request req;
+   req.push("HELLO", 3);
    req.push("QUIT");
 
    net::io_context ioc;
@@ -123,6 +125,7 @@ void test_push1()
    auto db = std::make_shared<connection>(ioc);
 
    request req;
+   req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
@@ -187,6 +190,7 @@ void test_no_push_reader1()
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
+   req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
@@ -203,8 +207,8 @@ void test_no_push_reader2()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
 
-   request req;
-   // Wrong command.
+   request req; // Wrong command syntax.
+   req.push("HELLO", 3);
    req.push("SUBSCRIBE");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
@@ -222,6 +226,7 @@ void test_no_push_reader3()
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req; // Wrong command synthax.
+   req.push("HELLO", 3);
    req.push("PING", "Message");
    req.push("SUBSCRIBE");
 
@@ -243,6 +248,7 @@ void test_idle()
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
+   req.push("HELLO", 3);
    req.push("CLIENT", "PAUSE", 5000);
 
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
@@ -262,6 +268,7 @@ auto handler =[](auto ec, auto...)
 void test_push2()
 {
    request req1;
+   req1.push("HELLO", 3);
    req1.push("PING", "Message1");
 
    request req2;
@@ -295,6 +302,7 @@ push_consumer3(std::shared_ptr<connection> db)
 void test_push3()
 {
    request req1;
+   req1.push("HELLO", 3);
    req1.push("PING", "Message1");
 
    request req2;
@@ -326,6 +334,7 @@ void test_push3()
 void test_exec_while_processing()
 {
    request req1;
+   req1.push("HELLO", 3);
    req1.push("PING", "Message1");
 
    request req2;

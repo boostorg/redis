@@ -31,6 +31,7 @@ int main()
 
    request req;
    req.push("AUTH", "mzimbres", "Jabuticaba");
+   req.push("HELLO", 3);
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);
    req.push("MULTI");
@@ -40,14 +41,15 @@ int main()
    req.push("QUIT");
 
    std::tuple<
-      std::string, // auth
-      std::string, // rpush
-      std::string, // hset
-      std::string, // multi
-      std::string, // lrange
-      std::string, // hgetall
+      aedis::ignore, // auth
+      aedis::ignore, // hello
+      aedis::ignore, // rpush
+      aedis::ignore, // hset
+      aedis::ignore, // multi
+      aedis::ignore, // lrange
+      aedis::ignore, // hgetall
       std::tuple<optional<std::vector<int>>, optional<std::map<std::string, int>>>, // exec
-      std::string // quit
+      aedis::ignore  // quit
    > resp;
 
    net::io_context ioc;
@@ -56,6 +58,6 @@ int main()
       [](auto ec, auto) { std::cout << ec.message() << std::endl; });
    ioc.run();
 
-   print(std::get<0>(std::get<6>(resp)).value());
-   print(std::get<1>(std::get<6>(resp)).value());
+   print(std::get<0>(std::get<7>(resp)).value());
+   print(std::get<1>(std::get<7>(resp)).value());
 }

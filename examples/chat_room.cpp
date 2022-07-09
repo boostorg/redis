@@ -120,6 +120,10 @@ listener(
     std::shared_ptr<connection> db,
     std::shared_ptr<sessions_type> sessions)
 {
+   request req;
+   req.push("HELLO", 3);
+   co_await db->async_exec(req);
+
    for (;;) {
       auto socket = co_await acc->async_accept();
       auto session = std::make_shared<user_session>(std::move(socket));

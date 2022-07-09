@@ -19,6 +19,9 @@
 #include <aedis/adapter/detail/response_traits.hpp>
 
 namespace aedis {
+
+using ignore = adapter::detail::ignore;
+
 namespace detail {
 
 struct ignore_adapter {

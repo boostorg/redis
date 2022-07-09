@@ -91,11 +91,12 @@ int main()
       };
 
    request req;
+   req.push("HELLO", 3);
    req.push_range("SADD", "sadd-key", users);
    req.push("SMEMBERS", "sadd-key");
    req.push("QUIT");
 
-   std::tuple<int, std::set<user>, std::string> resp;
+   std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
 
    db.async_exec("127.0.0.1", "6379", req, aedis::adapt(resp),
       [](auto ec, auto) { std::cout << ec.message() << std::endl; });
@@ -103,5 +104,5 @@ int main()
    ioc.run();
 
    // Print
-   print(std::get<1>(resp));
+   print(std::get<2>(resp));
 }

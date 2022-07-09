@@ -55,28 +55,6 @@ struct connect_with_timeout_op {
 };
 
 template <class Conn>
-struct hello_op {
-   Conn* conn;
-   boost::asio::coroutine coro;
-
-   template <class Self>
-   void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , std::size_t n = 0)
-   {
-      reenter (coro)
-      {
-         BOOST_ASSERT(conn->socket_ != nullptr);
-         conn->req_.clear();
-         conn->req_.push("HELLO", 3);
-         conn->ping_timer_.expires_after(std::chrono::seconds{2});
-         yield resp3::async_exec(*conn->socket_, conn->ping_timer_, conn->req_, adapter::adapt(), conn->make_dynamic_buffer(), std::move(self));
-         self.complete(ec);
-      }
-   }
-};
-
-template <class Conn>
 struct resolve_with_timeout_op {
    Conn* conn;
    boost::string_view host;
@@ -408,18 +386,6 @@ struct run_op {
 
          yield conn->async_connect_with_timeout(std::move(self));
          if (ec) {
-            self.complete(ec);
-            return;
-         }
-
-         // Clears the remainings of the laster op.
-         conn->read_buffer_.clear();
-         conn->cmds_ = 0;
-         conn->write_buffer_ = {};
-
-         yield conn->async_hello(std::move(self));
-         if (ec) {
-            conn->cancel_run();
             self.complete(ec);
             return;
          }

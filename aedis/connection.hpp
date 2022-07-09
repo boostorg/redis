@@ -320,7 +320,6 @@ private:
    template <class T, class U> friend struct detail::exec_op;
    template <class T, class U> friend struct detail::exec_read_op;
    template <class T, class U> friend struct detail::runexec_op;
-   template <class T> friend struct detail::hello_op;
    template <class T> friend struct detail::connect_with_timeout_op;
    template <class T> friend struct detail::resolve_with_timeout_op;
    template <class T> friend struct detail::check_idle_op;
@@ -421,15 +420,6 @@ private:
          < CompletionToken
          , void(boost::system::error_code)
          >(detail::check_idle_op<connection>{this}, token, check_idle_timer_);
-   }
-
-   template <class CompletionToken>
-   auto async_hello(CompletionToken token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::hello_op<connection>{this}, token, resv_);
    }
 
    template <class Adapter, class CompletionToken>

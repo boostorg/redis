@@ -22,6 +22,8 @@ namespace aedis {
 namespace adapter {
 namespace detail {
 
+struct ignore {};
+
 /* Traits class for response objects.
  *
  * Provides traits for all supported response types i.e. all STL
@@ -35,6 +37,13 @@ struct response_traits {
 
 template <class T>
 using adapter_t = typename response_traits<T>::adapter_type;
+
+template <>
+struct response_traits<ignore> {
+   using response_type = ignore;
+   using adapter_type = resp3::detail::ignore_response;
+   static auto adapt(response_type&) noexcept { return adapter_type{}; }
+};
 
 template <class T>
 struct response_traits<resp3::node<T>> {
@@ -81,6 +90,7 @@ struct assigner<0> {
   }
 };
 
+// TODO: I am not sure we need the mp_unique below.
 template <class Tuple>
 class static_aggregate_adapter {
 private:

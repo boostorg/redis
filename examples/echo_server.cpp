@@ -44,6 +44,10 @@ net::awaitable<void> listener()
    auto db = std::make_shared<connection>(ex);
    db->async_run("127.0.0.1", "6379", net::detached);
 
+   request req;
+   req.push("HELLO", 3);
+   co_await db->async_exec(req);
+
    tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});
    for (;;)
       net::co_spawn(ex, echo_loop(co_await acc.async_accept(), db), net::detached);

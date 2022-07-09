@@ -55,6 +55,7 @@ int main()
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    request req;
+   req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
    db->async_exec("127.0.0.1", "6379", req, adapt(), handler);
    net::co_spawn(ioc, reader(db), net::detached);
