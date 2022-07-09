@@ -256,7 +256,6 @@ public:
       for (auto& e: reqs_) {
          e->stop = true;
          e->timer.cancel_one();
-         add_to_pool(e);
       }
 
       auto const ret = reqs_.size();
@@ -285,6 +284,18 @@ public:
       check_idle_timer_.cancel();
       writer_timer_.cancel();
       ping_timer_.cancel();
+
+      // Cancel own pings if there is any waiting.
+      auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
+         return !ptr->req->is_internal();
+      });
+
+      std::for_each(point, std::end(reqs_), [](auto const& ptr) {
+         ptr->stop = true;
+         ptr->timer.cancel();
+      });
+
+      reqs_.erase(point, std::end(reqs_));
    }
 
 private:
@@ -315,11 +326,6 @@ private:
 
    void cancel_push_requests(typename reqs_type::iterator end)
    {
-      // We have to clear the payload right after the read op in
-      // order to to use it as a flag that informs there is no
-      // ongoing write.
-      write_buffer_.clear();
-
       auto point = std::stable_partition(std::begin(reqs_), end, [](auto const& ptr) {
          return ptr->req->commands() != 0;
       });
@@ -435,20 +441,9 @@ private:
 
    std::shared_ptr<req_info> make_req_info()
    {
-      if (pool_.empty()) {
-         auto p = std::make_shared<req_info>(resv_.get_executor());
-         p->timer.expires_at(std::chrono::steady_clock::time_point::max());
-         return p;
-      }
-
-      auto ret = pool_.back();
-      pool_.pop_back();
-      return ret;
-   }
-
-   void add_to_pool(std::shared_ptr<req_info> info)
-   {
-      pool_.push_back(info);
+      auto p = std::make_shared<req_info>(resv_.get_executor());
+      p->timer.expires_at(std::chrono::steady_clock::time_point::max());
+      return p;
    }
 
    void coalesce_requests()
@@ -481,7 +476,6 @@ private:
    std::string write_buffer_;
    std::size_t cmds_ = 0;
    reqs_type reqs_;
-   std::vector<std::shared_ptr<req_info>> pool_;
 
    // Last time we received data.
    time_point_type last_data_;

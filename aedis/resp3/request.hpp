@@ -206,9 +206,13 @@ public:
       push_range2(cmd, begin(range), end(range));
    }
 
+   void set_internal() noexcept { is_internal_ = true;}
+   bool is_internal() const noexcept { return is_internal_;}
+
 private:
    std::string payload_;
    std::size_t commands_ = 0;
+   bool is_internal_ = true;
 };
 
 } // resp3

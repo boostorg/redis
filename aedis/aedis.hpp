@@ -20,9 +20,6 @@
 // \li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
 // TODO: Reconnect support.
 // TODO: Remove conflicts of the adapt function.
-// TODO: async_exec should receive a config object instead of each
-// parameter individually e.g. host and port. This will be import once
-// support for tls is implemented.
 
 /** \mainpage Documentation
     \tableofcontents

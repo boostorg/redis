@@ -165,6 +165,7 @@ struct exec_read_op {
                BOOST_ASSERT(conn->socket_ != nullptr);
                yield boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
                if (ec) {
+                  conn->cancel_run();
                   self.complete(ec, 0);
                   return;
                }
@@ -175,6 +176,8 @@ struct exec_read_op {
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
                yield async_send_receive(conn->push_channel_, std::move(self));
                if (ec) {
+                  // Notice we don't call cancel_run() as that is the
+                  // responsability of the read_push_op.
                   self.complete(ec, 0);
                   return;
                }
@@ -189,6 +192,7 @@ struct exec_read_op {
             ++index;
 
             if (ec) {
+               conn->cancel_run();
                self.complete(ec, 0);
                return;
             }
@@ -224,19 +228,18 @@ struct exec_op {
    {
       reenter (coro)
       {
+         // TODO: Use associated allocator.
          conn->add_request(*req);
          info = conn->reqs_.back();
          yield info->timer.async_wait(std::move(self));
          BOOST_ASSERT(conn->socket_ != nullptr);
          BOOST_ASSERT(!!ec);
-         if (info->stop || !conn->socket_->is_open()) {
-            // The !conn->socket_->is_open() is necessary to deal with
-            // pings that are posted after the socket has been closed.
-            // TODO: Make sure this is removed from reqs_.
-            conn->add_to_pool(info);
+         if (info->stop) {
             self.complete(ec, 0);
             return;
          }
+
+         BOOST_ASSERT(conn->socket_->is_open());
           
          if (req->commands() == 0) {
             self.complete({}, 0);
@@ -245,9 +248,6 @@ struct exec_op {
 
          yield conn->async_exec_read(adapter, std::move(self));
          if (ec) {
-            // TODO: If this happens because of an error in a push
-            // operation should we return to the wait above?
-            conn->cancel_run();
             self.complete(ec, 0);
             return;
          }
@@ -255,7 +255,6 @@ struct exec_op {
          read_size = n;
 
          BOOST_ASSERT(!conn->reqs_.empty());
-         conn->add_to_pool(conn->reqs_.front());
          conn->reqs_.pop_front();
 
          if (conn->cmds_ == 0) {
@@ -267,7 +266,7 @@ struct exec_op {
             conn->reqs_.front()->timer.cancel_one();
          }
 
-         self.complete(ec, read_size);
+         self.complete({}, read_size);
       }
    }
 };
@@ -295,6 +294,7 @@ struct ping_op {
 
          conn->req_.clear();
          conn->req_.push("PING");
+         conn->req_.set_internal();
          yield conn->async_exec(conn->req_, aedis::adapt(), std::move(self));
          if (ec) {
             // Notice we don't report error but let the idle check
@@ -454,6 +454,10 @@ struct writer_op {
                return;
             }
 
+            // We have to clear the payload right after the read op in
+            // order to to use it as a flag that informs there is no
+            // ongoing write.
+            conn->write_buffer_.clear();
             conn->cancel_push_requests(end);
          }
 
