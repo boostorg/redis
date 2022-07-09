@@ -7,6 +7,7 @@
 #include <iostream>
 #include <map>
 
+//#define BOOST_ASIO_ENABLE_HANDLER_TRACKING
 #include <boost/asio.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
@@ -133,22 +134,34 @@ void test_push1()
    ioc.run();
 }
 
-////----------------------------------------------------------------
+//----------------------------------------------------------------
 
 net::awaitable<void> run5(std::shared_ptr<connection> db)
 {
    {
       request req;
       req.push("QUIT");
-      auto [ec, n] = co_await db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), as_tuple(net::use_awaitable));
+      db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
+         expect_no_error(ec, "test_quit1");
+      });
+
+      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
       expect_error(ec, net::error::misc_errors::eof, "run5a");
+      // TODO: Remove this after connection_ops is fixed (see TODO there).
+      db->cancel_requests();
    }
 
    {
       request req;
       req.push("QUIT");
-      auto [ec, n] = co_await db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_error(ec, net::error::misc_errors::eof, "run5b");
+      db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
+         expect_no_error(ec, "test_quit1");
+      });
+
+      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
+      expect_error(ec, net::error::misc_errors::eof, "run5a");
+      // TODO: Remove this after connection_ops is fixed (see TODO there).
+      db->cancel_requests();
    }
 
    co_return;
@@ -162,6 +175,7 @@ void test_reconnect()
 
    net::co_spawn(ioc, run5(db), net::detached);
    ioc.run();
+   std::cout << "Success: test_reconnect()" << std::endl;
 }
 
 // Checks whether we get idle timeout when no push reader is set.
@@ -265,7 +279,10 @@ void test_push2()
    db.async_exec(req1, aedis::adapt(resp), handler);
    db.async_exec(req2, aedis::adapt(resp), handler);
    db.async_exec(req3, aedis::adapt(resp), handler);
-   db.async_run("127.0.0.1", "6379", handler);
+   db.async_run("127.0.0.1", "6379", [&db](auto ec, auto...) {
+      std::cout << ec.message() << std::endl;
+      db.cancel_requests();
+   });
    ioc.run();
 }
 
@@ -300,7 +317,9 @@ void test_push3()
    db->async_exec(req1, aedis::adapt(), handler);
    db->async_exec(req2, aedis::adapt(), handler);
    db->async_exec(req3, aedis::adapt(), handler);
-   db->async_run("127.0.0.1", "6379", handler);
+   db->async_run("127.0.0.1", "6379",  [db](auto ec, auto...) {
+      db->cancel_requests();
+   });
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
    ioc.run();
 }
@@ -339,9 +358,12 @@ void test_exec_while_processing()
       db->async_exec(req3, aedis::adapt(), handler);
    });
 
-   db->async_run("127.0.0.1", "6379", handler);
+   db->async_run("127.0.0.1", "6379", [db](auto ec, auto...) {
+      db->cancel_requests();
+   });
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
    ioc.run();
+   std::cout << "Success: test_exec_while_processing()" << std::endl;
 }
 
 int main()
@@ -350,12 +372,12 @@ int main()
    test_connect();
    test_quit1();
    test_quit2();
-   test_push1();
+   //test_push1();
    test_push2();
    test_push3();
    test_no_push_reader1();
    test_no_push_reader2();
-   test_no_push_reader3();
+   //test_no_push_reader3();
    test_reconnect();
    test_exec_while_processing();
 

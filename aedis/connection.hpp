@@ -74,12 +74,13 @@ public:
    , ping_timer_{ex}
    , check_idle_timer_{ex}
    , writer_timer_{ex}
-   , read_channel_{ex}
+   , read_timer_{ex}
    , push_channel_{ex}
    , cfg_{cfg}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+      read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
    connection(boost::asio::io_context& ioc, config cfg = config{})
@@ -245,47 +246,54 @@ public:
          >(detail::read_push_op<connection, decltype(f)>{this, f}, token, resv_);
    }
 
-   /** @brief Closes the connection with the database.
+   /** @brief Cancel all pending sessions and push operations to return
     *
-    *  The prefered way to close a connection is to send a \c quit
-    *  command.
+    * \returns The number of requests that have been canceled.
     */
-   void close()
+   std::size_t cancel_requests()
    {
-      socket_->close();
-      cmds_ = 0;
-      payload_ = {};
-      read_channel_.cancel();
       push_channel_.cancel();
-      check_idle_timer_.expires_at(std::chrono::steady_clock::now());
-      writer_timer_.cancel();
-      ping_timer_.cancel();
       for (auto& e: reqs_) {
          e->stop = true;
          e->timer.cancel_one();
+         add_to_pool(e);
       }
 
+      auto const ret = reqs_.size();
       reqs_ = {};
+      return ret;
+   }
+
+   /** @brief Closes the connection with the database.
+    *
+    *  Calling this function will cause \c async_run to return. It is
+    *  safe to try a reconnect after that i.e. calling it again.
+    *  
+    *  Note however that the prefered way to close a connection is to
+    *  send a \c quit command if you are actively closing it.
+    *  Otherwise an unresponsive Redis server will cause the
+    *  idle-checks to fail, which will also lead to \c async_run
+    *  returning.
+    *
+    *  @remark This function won't cancel pending requests, see
+    *  \c cancel_requests.
+    */
+   void cancel_run()
+   {
+      socket_->close();
+      read_timer_.cancel();
+      check_idle_timer_.cancel();
+      writer_timer_.cancel();
+      ping_timer_.cancel();
    }
 
 private:
    struct req_info {
-      req_info(boost::asio::any_io_executor ex)
-      : timer{ex}
-      {}
-
+      req_info(boost::asio::any_io_executor ex) : timer{ex} {}
       boost::asio::steady_timer timer;
       resp3::request const* req = nullptr;
-      std::size_t n_cmds = 0;
+      std::size_t cmds = 0;
       bool stop = false;
-
-      bool expects_response() const noexcept { return n_cmds != 0;}
-
-      void pop() noexcept
-      {
-         BOOST_ASSERT(n_cmds != 0);
-         --n_cmds;
-      }
    };
 
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
@@ -305,12 +313,12 @@ private:
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::start_op;
 
-   void on_write(typename reqs_type::iterator end)
+   void cancel_push_requests(typename reqs_type::iterator end)
    {
       // We have to clear the payload right after the read op in
       // order to to use it as a flag that informs there is no
       // ongoing write.
-      payload_.clear();
+      write_buffer_.clear();
 
       auto point = std::stable_partition(std::begin(reqs_), end, [](auto const& ptr) {
          return ptr->req->commands() != 0;
@@ -322,15 +330,15 @@ private:
 
       reqs_.erase(point, end);
    }
+
    void add_request(resp3::request const& req)
    {
       reqs_.push_back(make_req_info());
-      reqs_.back()->timer.expires_at(std::chrono::steady_clock::time_point::max());
       reqs_.back()->req = &req;
-      reqs_.back()->n_cmds = req.commands();
+      reqs_.back()->cmds = req.commands();
       reqs_.back()->stop = false;
 
-      if (socket_ != nullptr && cmds_ == 0 && payload_.empty())
+      if (socket_ != nullptr && cmds_ == 0 && write_buffer_.empty())
          writer_timer_.cancel();
    }
 
@@ -427,15 +435,18 @@ private:
 
    std::shared_ptr<req_info> make_req_info()
    {
-      if (pool_.empty())
-         return std::make_shared<req_info>(resv_.get_executor());
+      if (pool_.empty()) {
+         auto p = std::make_shared<req_info>(resv_.get_executor());
+         p->timer.expires_at(std::chrono::steady_clock::time_point::max());
+         return p;
+      }
 
       auto ret = pool_.back();
       pool_.pop_back();
       return ret;
    }
 
-   void release_req_info(std::shared_ptr<req_info> info)
+   void add_to_pool(std::shared_ptr<req_info> info)
    {
       pool_.push_back(info);
    }
@@ -444,12 +455,12 @@ private:
    {
       // Coaleces all requests: Copies the request to the variables
       // that won't be touched while async_write is suspended.
-      BOOST_ASSERT(payload_.empty());
+      BOOST_ASSERT(write_buffer_.empty());
       BOOST_ASSERT(!reqs_.empty());
 
       auto const size = cfg_.coalesce_requests ? reqs_.size() : 1;
       for (auto i = 0UL; i < size; ++i) {
-         payload_ += reqs_.at(i)->req->payload();
+         write_buffer_ += reqs_.at(i)->req->payload();
          cmds_ += reqs_.at(i)->req->commands();
       }
    }
@@ -462,16 +473,12 @@ private:
    boost::asio::steady_timer ping_timer_;
    boost::asio::steady_timer check_idle_timer_;
    boost::asio::steady_timer writer_timer_;
-   channel_type read_channel_;
+   boost::asio::steady_timer read_timer_;
    channel_type push_channel_;
 
-   // Configuration parameters.
    config cfg_;
-
-   // Buffer used by the read operations.
    std::string read_buffer_;
-
-   std::string payload_;
+   std::string write_buffer_;
    std::size_t cmds_ = 0;
    reqs_type reqs_;
    std::vector<std::shared_ptr<req_info>> pool_;
