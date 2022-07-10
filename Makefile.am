@@ -95,10 +95,8 @@ EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/echo_server_direct.js
 EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/echo_server_over_redis.js
 EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/package.json
 EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/package-lock.json
-EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_direct/Cargo.lock
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_direct/Cargo.toml
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_direct/src/main.rs
-EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_over_redis/Cargo.lock
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_over_redis/Cargo.toml
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_over_redis/src/main.rs
 
