@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['operator_3c_3c_293',['operator&lt;&lt;',['../group__any.html#ga6f0dbc6e8b0985160252fd09b7fc3a05',1,'aedis::redis::operator&lt;&lt;()'],['../group__any.html#gabe641c301490af2c6b149cfabde5f5eb',1,'aedis::resp3::operator&lt;&lt;(std::ostream &amp;os, node&lt; String &gt; const &amp;o)'],['../group__any.html#ga7523b40e1fb77407423c0a9cc3e08416',1,'aedis::resp3::operator&lt;&lt;(std::ostream &amp;os, type t)'],['../group__any.html#gaef566c0da0bb6e1da8a236882448a1d6',1,'aedis::sentinel::operator&lt;&lt;()']]],
-  ['operator_3d_3d_294',['operator==',['../group__any.html#gaa8165b0c24fa10ed086b4ec8912cdd6b',1,'aedis::resp3']]]
+  ['payload_78',['payload',['../classaedis_1_1resp3_1_1request.html#a5ba25f658ea598a06e2612c537eca66f',1,'aedis::resp3::request']]],
+  ['push_79',['push',['../classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b',1,'aedis::resp3::request']]],
+  ['push_5frange_80',['push_range',['../classaedis_1_1resp3_1_1request.html#a811536f213c80d537db4c205e56fc199',1,'aedis::resp3::request::push_range(boost::string_view cmd, Key const &amp;key, Range const &amp;range)'],['../classaedis_1_1resp3_1_1request.html#a86ce6135fe19c7f83ffbe836efc1ce93',1,'aedis::resp3::request::push_range(boost::string_view cmd, Range const &amp;range)']]],
+  ['push_5frange2_81',['push_range2',['../classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b',1,'aedis::resp3::request::push_range2(boost::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)'],['../classaedis_1_1resp3_1_1request.html#acfd4b7d3128867b73e60710eca3ff486',1,'aedis::resp3::request::push_range2(boost::string_view cmd, ForwardIterator begin, ForwardIterator end)']]]
 ];

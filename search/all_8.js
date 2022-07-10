@@ -1,11 +1,10 @@
 var searchData=
 [
-  ['idle_5ftimeout_90',['idle_timeout',['../classaedis_1_1generic_1_1client.html#a692f69e6e6d55db4ee3c526d378e6c2f',1,'aedis::generic::client::config::idle_timeout()'],['../group__any.html#gga110bcc500f0ab112a466b6e955efa32eaa89ad1b8aaa085e108ffd59e1b60c232',1,'idle_timeout()aedis::generic']]],
-  ['incompatible_5fsize_91',['incompatible_size',['../group__any.html#gga0339088c80d8133b76ac4de633e9ddaea18a0cd8e67dab1a91bce2ee6ce1671c9',1,'aedis::adapter']]],
-  ['incr_92',['incr',['../group__any.html#gga9661fea349313723a8ec955975184c0ca3c59a91d773d3f91e94d1c157044083a',1,'aedis::redis']]],
-  ['incrby_93',['incrby',['../group__any.html#gga9661fea349313723a8ec955975184c0ca7441b7c445145f0b6fba8cf92996fc6e',1,'aedis::redis']]],
-  ['incrbyfloat_94',['incrbyfloat',['../group__any.html#gga9661fea349313723a8ec955975184c0ca1ea1ad411f8052fc0e5e5b7683029793',1,'aedis::redis']]],
-  ['info_95',['info',['../group__any.html#gga9661fea349313723a8ec955975184c0cacaf9b6b99962bf5c2264824231d7a40c',1,'info()aedis::redis'],['../group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29acaf9b6b99962bf5c2264824231d7a40c',1,'info()aedis::sentinel']]],
-  ['invalid_96',['invalid',['../group__any.html#gga9661fea349313723a8ec955975184c0cafedb2d84cafe20862cb4399751a8a7e3',1,'invalid()aedis::redis'],['../group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3',1,'invalid()aedis::resp3'],['../group__any.html#gga9a6f3d1a56c2d4bd486a92f8d8f90c29afedb2d84cafe20862cb4399751a8a7e3',1,'invalid()aedis::sentinel']]],
-  ['invalid_5ftype_97',['invalid_type',['../group__any.html#gga3e898ab2126407e62f33851b31bee17aa4be989dbdfc566fa8ce10b9bbf9aa086',1,'aedis::resp3']]]
+  ['nested_5faggregate_5funsupported_36',['nested_aggregate_unsupported',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa282e8f3cb4ec85eb2efac03801229e11',1,'aedis']]],
+  ['next_5flayer_5ftype_37',['next_layer_type',['../classaedis_1_1connection.html#a48a16cbb9609d1ca5ceb0de0c9bd4a2f',1,'aedis::connection']]],
+  ['node_38',['node',['../group__any.html#structaedis_1_1resp3_1_1node',1,'aedis::resp3']]],
+  ['not_5fa_5fdouble_39',['not_a_double',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baacdcfe09c3c1ac0445d9358d176eaa0e0',1,'aedis']]],
+  ['not_5fa_5fnumber_40',['not_a_number',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa397fbfb003cc70661a3a35ff6a4aecdd',1,'aedis']]],
+  ['null_41',['null',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa37a6259cc0c1dae299a7866489dff0bd',1,'null()aedis'],['../group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a37a6259cc0c1dae299a7866489dff0bd',1,'null()aedis::resp3']]],
+  ['number_42',['number',['../group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab1bc248a7ff2b2e95569f56de68615df',1,'aedis::resp3']]]
 ];

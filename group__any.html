@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.2</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.0</font> &#160; <br> High level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -81,80 +81,27 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1client.html">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A high level Redis client.  <a href="classaedis_1_1generic_1_1client.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html">aedis::connection&lt; AsyncReadWriteStream &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A high level Redis connection class.  <a href="classaedis_1_1connection.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:structaedis_1_1resp3_1_1node"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node&lt; String &gt;</a></td></tr>
 <tr class="memdesc:structaedis_1_1resp3_1_1node"><td class="mdescLeft">&#160;</td><td class="mdescRight">A node in the response tree.  <a href="group__any.html#structaedis_1_1resp3_1_1node">More...</a><br /></td></tr>
 <tr class="separator:structaedis_1_1resp3_1_1node"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1generic_1_1serializer.html">aedis::generic::serializer&lt; Storage &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates Redis requests from user data.  <a href="classaedis_1_1generic_1_1serializer.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates Redis requests from user data.  <a href="classaedis_1_1resp3_1_1request.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:ga9661fea349313723a8ec955975184c0c"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a> </td></tr>
-<tr class="memdesc:ga9661fea349313723a8ec955975184c0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Redis commands.  <a href="group__any.html#ga9661fea349313723a8ec955975184c0c">More...</a><br /></td></tr>
-<tr class="separator:ga9661fea349313723a8ec955975184c0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9a6f3d1a56c2d4bd486a92f8d8f90c29"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">aedis::sentinel::command</a> </td></tr>
-<tr class="memdesc:ga9a6f3d1a56c2d4bd486a92f8d8f90c29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sentinel commands.  <a href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">More...</a><br /></td></tr>
-<tr class="separator:ga9a6f3d1a56c2d4bd486a92f8d8f90c29"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0339088c80d8133b76ac4de633e9ddae"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">aedis::adapter::error</a> </td></tr>
-<tr class="memdesc:ga0339088c80d8133b76ac4de633e9ddae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adapter errors.  <a href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">More...</a><br /></td></tr>
-<tr class="separator:ga0339088c80d8133b76ac4de633e9ddae"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga110bcc500f0ab112a466b6e955efa32e"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga110bcc500f0ab112a466b6e955efa32e">aedis::generic::error</a> </td></tr>
-<tr class="memdesc:ga110bcc500f0ab112a466b6e955efa32e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generic errors.  <a href="group__any.html#ga110bcc500f0ab112a466b6e955efa32e">More...</a><br /></td></tr>
-<tr class="separator:ga110bcc500f0ab112a466b6e955efa32e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga3e898ab2126407e62f33851b31bee17a"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">aedis::resp3::error</a> </td></tr>
-<tr class="memdesc:ga3e898ab2126407e62f33851b31bee17a"><td class="mdescLeft">&#160;</td><td class="mdescRight">RESP3 errors.  <a href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">More...</a><br /></td></tr>
-<tr class="separator:ga3e898ab2126407e62f33851b31bee17a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1833aa5e140bbaa9d319ecb1a71bd8ba"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga1833aa5e140bbaa9d319ecb1a71bd8ba">aedis::error</a> </td></tr>
+<tr class="memdesc:ga1833aa5e140bbaa9d319ecb1a71bd8ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generic errors.  <a href="group__any.html#ga1833aa5e140bbaa9d319ecb1a71bd8ba">More...</a><br /></td></tr>
+<tr class="separator:ga1833aa5e140bbaa9d319ecb1a71bd8ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabdb6bdf6f96b4a7a91ed63d2324cef57"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a> </td></tr>
 <tr class="memdesc:gabdb6bdf6f96b4a7a91ed63d2324cef57"><td class="mdescLeft">&#160;</td><td class="mdescRight">RESP3 data types.  <a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">More...</a><br /></td></tr>
 <tr class="separator:gabdb6bdf6f96b4a7a91ed63d2324cef57"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:ga1e40a9e5ab61e7980b4be74bf0d4943d"><td class="memItemLeft" align="right" valign="top">auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a> () noexcept</td></tr>
-<tr class="memdesc:ga1e40a9e5ab61e7980b4be74bf0d4943d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a dummy response adapter.  <a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">More...</a><br /></td></tr>
-<tr class="separator:ga1e40a9e5ab61e7980b4be74bf0d4943d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gad80df0d37bdb529b41e5a09a572edacf"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
-<tr class="memitem:gad80df0d37bdb529b41e5a09a572edacf"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gad80df0d37bdb529b41e5a09a572edacf">aedis::adapter::adapt</a> (T &amp;t) noexcept</td></tr>
-<tr class="memdesc:gad80df0d37bdb529b41e5a09a572edacf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adapts user data to read operations.  <a href="group__any.html#gad80df0d37bdb529b41e5a09a572edacf">More...</a><br /></td></tr>
-<tr class="separator:gad80df0d37bdb529b41e5a09a572edacf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga4e14c4f077c580a6bbec018572583136"><td class="memTemplParams" colspan="2">template&lt;class Request &gt; </td></tr>
-<tr class="memitem:ga4e14c4f077c580a6bbec018572583136"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga4e14c4f077c580a6bbec018572583136">aedis::resp3::add_header</a> (Request &amp;to, <a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t, std::size_t size)</td></tr>
-<tr class="memdesc:ga4e14c4f077c580a6bbec018572583136"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a resp3 header to the request.  <a href="group__any.html#ga4e14c4f077c580a6bbec018572583136">More...</a><br /></td></tr>
-<tr class="separator:ga4e14c4f077c580a6bbec018572583136"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga93ab60cda0ee6da754c7dad7d0dd9cfd"><td class="memTemplParams" colspan="2">template&lt;class Request &gt; </td></tr>
-<tr class="memitem:ga93ab60cda0ee6da754c7dad7d0dd9cfd"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga93ab60cda0ee6da754c7dad7d0dd9cfd">aedis::resp3::add_separator</a> (Request &amp;to)</td></tr>
-<tr class="memdesc:ga93ab60cda0ee6da754c7dad7d0dd9cfd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a separator to the request.  <a href="group__any.html#ga93ab60cda0ee6da754c7dad7d0dd9cfd">More...</a><br /></td></tr>
-<tr class="separator:ga93ab60cda0ee6da754c7dad7d0dd9cfd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="memTemplParams" colspan="2">template&lt;class AsyncReadStream , class DynamicBuffer , class ResponseAdapter  = detail::ignore_response, class CompletionToken  = boost::asio::default_completion_token_t&lt;typename AsyncReadStream::executor_type&gt;&gt; </td></tr>
-<tr class="memitem:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">aedis::resp3::async_read</a> (AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=ResponseAdapter{}, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</td></tr>
-<tr class="memdesc:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a complete response to a Redis command asynchronously.  <a href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">More...</a><br /></td></tr>
-<tr class="separator:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8027e36a9d9120abfbf350046845b081"><td class="memItemLeft" align="right" valign="top"><a id="ga8027e36a9d9120abfbf350046845b081"></a>
-boost::system::error_code&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga8027e36a9d9120abfbf350046845b081">aedis::adapter::make_error_code</a> (<a class="el" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">error</a> e)</td></tr>
-<tr class="memdesc:ga8027e36a9d9120abfbf350046845b081"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a error_code object from an error. <br /></td></tr>
-<tr class="separator:ga8027e36a9d9120abfbf350046845b081"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae9b59ad5e7c62348b24823be75619dc0"><td class="memItemLeft" align="right" valign="top"><a id="gae9b59ad5e7c62348b24823be75619dc0"></a>
-boost::system::error_code&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gae9b59ad5e7c62348b24823be75619dc0">aedis::generic::make_error_code</a> (<a class="el" href="group__any.html#ga110bcc500f0ab112a466b6e955efa32e">error</a> e)</td></tr>
-<tr class="memdesc:gae9b59ad5e7c62348b24823be75619dc0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a error_code object from an error. <br /></td></tr>
-<tr class="separator:gae9b59ad5e7c62348b24823be75619dc0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gad4eae5b940fca4814383e6b8b4a9819c"><td class="memItemLeft" align="right" valign="top"><a id="gad4eae5b940fca4814383e6b8b4a9819c"></a>
-boost::system::error_code&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gad4eae5b940fca4814383e6b8b4a9819c">aedis::resp3::make_error_code</a> (<a class="el" href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">error</a> e)</td></tr>
-<tr class="memdesc:gad4eae5b940fca4814383e6b8b4a9819c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a error_code object from an error. <br /></td></tr>
-<tr class="separator:gad4eae5b940fca4814383e6b8b4a9819c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga4142e05fc5f5241f8c076882443e6fd1"><td class="memTemplParams" colspan="2">template&lt;class CharT , class Traits , class Allocator &gt; </td></tr>
-<tr class="memitem:ga4142e05fc5f5241f8c076882443e6fd1"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga4142e05fc5f5241f8c076882443e6fd1">aedis::generic::make_serializer</a> (std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;storage)</td></tr>
-<tr class="memdesc:ga4142e05fc5f5241f8c076882443e6fd1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a serializer.  <a href="group__any.html#ga4142e05fc5f5241f8c076882443e6fd1">More...</a><br /></td></tr>
-<tr class="separator:ga4142e05fc5f5241f8c076882443e6fd1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga6f0dbc6e8b0985160252fd09b7fc3a05"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga6f0dbc6e8b0985160252fd09b7fc3a05">aedis::redis::operator&lt;&lt;</a> (std::ostream &amp;os, <a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> c)</td></tr>
-<tr class="memdesc:ga6f0dbc6e8b0985160252fd09b7fc3a05"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the command string to the stream.  <a href="group__any.html#ga6f0dbc6e8b0985160252fd09b7fc3a05">More...</a><br /></td></tr>
-<tr class="separator:ga6f0dbc6e8b0985160252fd09b7fc3a05"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaef566c0da0bb6e1da8a236882448a1d6"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#gaef566c0da0bb6e1da8a236882448a1d6">aedis::sentinel::operator&lt;&lt;</a> (std::ostream &amp;os, <a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> c)</td></tr>
-<tr class="memdesc:gaef566c0da0bb6e1da8a236882448a1d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the command string to the stream.  <a href="group__any.html#gaef566c0da0bb6e1da8a236882448a1d6">More...</a><br /></td></tr>
-<tr class="separator:gaef566c0da0bb6e1da8a236882448a1d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabe641c301490af2c6b149cfabde5f5eb"><td class="memTemplParams" colspan="2">template&lt;class String &gt; </td></tr>
 <tr class="memitem:gabe641c301490af2c6b149cfabde5f5eb"><td class="memTemplItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gabe641c301490af2c6b149cfabde5f5eb">aedis::resp3::operator&lt;&lt;</a> (std::ostream &amp;os, <a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;o)</td></tr>
 <tr class="memdesc:gabe641c301490af2c6b149cfabde5f5eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the node string to the stream.  <a href="group__any.html#gabe641c301490af2c6b149cfabde5f5eb">More...</a><br /></td></tr>
@@ -167,24 +114,10 @@ template&lt;class String &gt; </td></tr>
 <tr class="memitem:gaa8165b0c24fa10ed086b4ec8912cdd6b"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gaa8165b0c24fa10ed086b4ec8912cdd6b">aedis::resp3::operator==</a> (<a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;a, <a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;b)</td></tr>
 <tr class="memdesc:gaa8165b0c24fa10ed086b4ec8912cdd6b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compares a node for equality. <br /></td></tr>
 <tr class="separator:gaa8165b0c24fa10ed086b4ec8912cdd6b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae85832036f8ac4d606df1c24fe27a28e"><td class="memTemplParams" colspan="2">template&lt;class SyncReadStream , class DynamicBuffer , class ResponseAdapter &gt; </td></tr>
-<tr class="memitem:gae85832036f8ac4d606df1c24fe27a28e"><td class="memTemplItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">aedis::resp3::read</a> (SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter, boost::system::error_code &amp;ec)</td></tr>
-<tr class="memdesc:gae85832036f8ac4d606df1c24fe27a28e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a complete response to a command sychronously.  <a href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">More...</a><br /></td></tr>
-<tr class="separator:gae85832036f8ac4d606df1c24fe27a28e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaccb72d30b2ce50572cf035d56cdbebc1"><td class="memTemplParams" colspan="2">template&lt;class SyncReadStream , class DynamicBuffer , class ResponseAdapter  = detail::ignore_response&gt; </td></tr>
-<tr class="memitem:gaccb72d30b2ce50572cf035d56cdbebc1"><td class="memTemplItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#gaccb72d30b2ce50572cf035d56cdbebc1">aedis::resp3::read</a> (SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter=ResponseAdapter{})</td></tr>
-<tr class="memdesc:gaccb72d30b2ce50572cf035d56cdbebc1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a complete response to a command sychronously.  <a href="group__any.html#gaccb72d30b2ce50572cf035d56cdbebc1">More...</a><br /></td></tr>
-<tr class="separator:gaccb72d30b2ce50572cf035d56cdbebc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4e21de126538a37995f90914afd51447"><td class="memTemplParams" colspan="2">template&lt;class Request &gt; </td></tr>
 <tr class="memitem:ga4e21de126538a37995f90914afd51447"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga4e21de126538a37995f90914afd51447">aedis::resp3::to_bulk</a> (Request &amp;to, boost::string_view data)</td></tr>
 <tr class="memdesc:ga4e21de126538a37995f90914afd51447"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a bulk to the request.  <a href="group__any.html#ga4e21de126538a37995f90914afd51447">More...</a><br /></td></tr>
 <tr class="separator:ga4e21de126538a37995f90914afd51447"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0bf1d33ed9519263e9760aa372879bc9"><td class="memItemLeft" align="right" valign="top">char const  *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">aedis::redis::to_string</a> (<a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a> c)</td></tr>
-<tr class="memdesc:ga0bf1d33ed9519263e9760aa372879bc9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the command to a string.  <a href="group__any.html#ga0bf1d33ed9519263e9760aa372879bc9">More...</a><br /></td></tr>
-<tr class="separator:ga0bf1d33ed9519263e9760aa372879bc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga61f4592d67beb56115b04cd4d5ab9c8f"><td class="memItemLeft" align="right" valign="top">char const  *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">aedis::sentinel::to_string</a> (<a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a> c)</td></tr>
-<tr class="memdesc:ga61f4592d67beb56115b04cd4d5ab9c8f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the command to a string.  <a href="group__any.html#ga61f4592d67beb56115b04cd4d5ab9c8f">More...</a><br /></td></tr>
-<tr class="separator:ga61f4592d67beb56115b04cd4d5ab9c8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1fd47bfcbb0461e09ec55ea767454ce5"><td class="memTemplParams" colspan="2">template&lt;class String &gt; </td></tr>
 <tr class="memitem:ga1fd47bfcbb0461e09ec55ea767454ce5"><td class="memTemplItemLeft" align="right" valign="top">std::string&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__any.html#ga1fd47bfcbb0461e09ec55ea767454ce5">aedis::resp3::to_string</a> (<a class="el" href="group__any.html#structaedis_1_1resp3_1_1node">node</a>&lt; String &gt; const &amp;in)</td></tr>
 <tr class="memdesc:ga1fd47bfcbb0461e09ec55ea767454ce5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the node to a string.  <a href="group__any.html#ga1fd47bfcbb0461e09ec55ea767454ce5">More...</a><br /></td></tr>
@@ -246,8 +179,8 @@ The actual data. For aggregate types this is usually empty. </td></tr>
 </div>
 </div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
-<a id="ga9661fea349313723a8ec955975184c0c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga9661fea349313723a8ec955975184c0c">&#9670;&nbsp;</a></span>command <span class="overload">[1/2]</span></h2>
+<a id="ga1833aa5e140bbaa9d319ecb1a71bd8ba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1833aa5e140bbaa9d319ecb1a71bd8ba">&#9670;&nbsp;</a></span>error</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -256,557 +189,7 @@ The actual data. For aggregate types this is usually empty. </td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">enum <a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Redis commands. </p>
-<p>The full list of of commands can be found at <a href="https://redis.io/commands">https://redis.io/commands</a>.</p>
-<dl class="section remark"><dt>Remarks</dt><dd>This list was created with the help of the <code>command</code> command. </dd></dl>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caa33915ba226b6dbd1edb3e09fac41ed9"></a>acl&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/acl">https://redis.io/commands/acl</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca9516dfb15f51c7ee19a4d46b8c0dbe1d"></a>append&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/append">https://redis.io/commands/append</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca5c7b5be7ca206aa32e06ab74904eeddb"></a>asking&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/asking">https://redis.io/commands/asking</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cafa53b91ccc1b78668d5af58e1ed3a485"></a>auth&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/auth">https://redis.io/commands/auth</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca53f9cfc5da2e4d760aaee8e0771d656f"></a>bgrewriteaof&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/bgrewriteaof">https://redis.io/commands/bgrewriteaof</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab83aca7148ca4a9a779c4da26e167275"></a>bgsave&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/bgsave">https://redis.io/commands/bgsave</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caba0bf02f22e282601fc419ef0691e42a"></a>bitcount&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/bitcount">https://redis.io/commands/bitcount</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab03d3092c338772b01ef99591c88d376"></a>bitfield&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/bitfield">https://redis.io/commands/bitfield</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca3d636da508dce75f3e746d00980398b8"></a>bitfield_ro&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/bitfield_ro">https://redis.io/commands/bitfield_ro</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca8d4897dd081f44d5743b385db106b55e"></a>bitop&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/bitop">https://redis.io/commands/bitop</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cabd70f54f4e18b55c026bbcf453646313"></a>bitpos&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/bitpos">https://redis.io/commands/bitpos</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cadae8aabd9996fbf271f9da63bbe5f59d"></a>blpop&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/blpop">https://redis.io/commands/blpop</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca52c28e6353dcd20ebda4b5fd3711e415"></a>brpop&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/brpop">https://redis.io/commands/brpop</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca39db6883a8086a4d01d5d1eb5da02cb6"></a>brpoplpush&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/brpoplpush">https://redis.io/commands/brpoplpush</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caae73e515ff7941d628af8e17d6dc4224"></a>bzpopmax&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/bzpopmax">https://redis.io/commands/bzpopmax</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca257930f8894ee93a46ae0e2d557ad022"></a>bzpopmin&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/bzpopmin">https://redis.io/commands/bzpopmin</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca62608e08adc29a8d6dbc9754e659f125"></a>client&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/client">https://redis.io/commands/client</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca06b2d4b91b5c9eaa8c20a1c270f95b3c"></a>cluster&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/cluster">https://redis.io/commands/cluster</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca1dccadfed7bcbb036c56a4afb97e906f"></a>command&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/command">https://redis.io/commands/command</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca2245023265ae4cf87d02c8b6ba991139"></a>config&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/config">https://redis.io/commands/config</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca0c856ed706d7fc4d408af8b429130a2d"></a>dbsize&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/dbsize">https://redis.io/commands/dbsize</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caad42f6697b035b7580e4fef93be20b4d"></a>debug&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/debug">https://redis.io/commands/debug</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca3b16bda0567ec072524564072cb5cc5d"></a>decr&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/decr">https://redis.io/commands/decr</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca333d0b29b168413475894dc222d02d85"></a>decrby&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/decrby">https://redis.io/commands/decrby</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cad2bcc286168bf8e040885c5cb7b6df13"></a>del&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/del">https://redis.io/commands/del</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca70f68bb2f748b85de6526bfe236ea1e9"></a>discard&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/discard">https://redis.io/commands/discard</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab9ef165b255673dde47bff07f4390fb1"></a>dump&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/dump">https://redis.io/commands/dump</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cacbb11ed87dc8a95d81400c7f33c7c171"></a>echo&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/echo">https://redis.io/commands/echo</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca2eed1fe0db36d674643b5f84d2adf46e"></a>eval&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/eval">https://redis.io/commands/eval</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cadad5b4967e1e0bc135936170d87e146b"></a>evalsha&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/evalsha">https://redis.io/commands/evalsha</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca52fb3679b07eb74d90784e612ca5cb30"></a>exec&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/exec">https://redis.io/commands/exec</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cae087923eb5dd1310f5f25ddd5ae5b580"></a>exists&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/exists">https://redis.io/commands/exists</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cacd91e7679d575a2c548bd2c889c23b9e"></a>expire&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/expire">https://redis.io/commands/expire</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caf675bbbfcbb138ef91ae98e8ec910366"></a>expireat&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/expireat">https://redis.io/commands/expireat</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca1c1088a257b3300ca0218220a242550a"></a>flushall&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/flushall">https://redis.io/commands/flushall</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caad9211986cfaebf9eb7d3d343dd2c0b6"></a>flushdb&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/flushdb">https://redis.io/commands/flushdb</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca3efda5ea59a8c21cf32f35ae6b83a5d4"></a>geoadd&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/geoadd">https://redis.io/commands/geoadd</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca67a5a5a79b5d2a367725ef56c1d5aa49"></a>geodist&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/geodist">https://redis.io/commands/geodist</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca5a87246efcf36f6b900787b78b7ce096"></a>geohash&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/geohash">https://redis.io/commands/geohash</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cac918bef3c3007a7a44cc1ba77e6231d7"></a>geopos&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/geopos">https://redis.io/commands/geopos</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cadb7f607daa85a6e57be5b61cd0d269b6"></a>georadius&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/georadius">https://redis.io/commands/georadius</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cadf455b31944bd9d3f85f10c752919d64"></a>georadius_ro&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/georadius_ro">https://redis.io/commands/georadius_ro</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca1c7261ddfa254f27ea20ece8e4f573fe"></a>georadiusbymember&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/georadiusbymember">https://redis.io/commands/georadiusbymember</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca7976297f207f4cbbc7b7bd6d4ecdaf04"></a>georadiusbymember_ro&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/georadiusbymember_ro">https://redis.io/commands/georadiusbymember_ro</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab5eda0a74558a342cf659187f06f746f"></a>get&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/get">https://redis.io/commands/get</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca68781627018b0dba9d3f3f70fe56796d"></a>getbit&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/getbit">https://redis.io/commands/getbit</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca694c28634276a627e2d8314a1d0ed3d4"></a>getrange&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/getrange">https://redis.io/commands/getrange</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca5b2f8d1cd1bde9c4ff3fea49f09cd5c1"></a>getset&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/getset">https://redis.io/commands/getset</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cabbd725f2fb8a6cbe36c39a1d45486a0c"></a>hdel&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hdel">https://redis.io/commands/hdel</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca5d41402abc4b2a76b9719d911017c592"></a>hello&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hello">https://redis.io/commands/hello</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca5309237df6038f46778ccfc7575f566f"></a>hexists&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hexists">https://redis.io/commands/hexists</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca7fcb5c6bbe96c34cd3837b2e561eb6a2"></a>hget&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hget">https://redis.io/commands/hget</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cae8148da2d4650556bec6cc5cf07e2f7d"></a>hgetall&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hgetall">https://redis.io/commands/hgetall</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca6120d99a338e47bec36bd498393aac45"></a>hincrby&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hincrby">https://redis.io/commands/hincrby</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca609b20ac52ba397f562353dca82a4222"></a>hincrbyfloat&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hincrbyfloat">https://redis.io/commands/hincrbyfloat</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cacbc187d3a285e9d3be8cd10201d44818"></a>hkeys&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hkeys">https://redis.io/commands/hkeys</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca465844e9e04f6e65a875736799fda82f"></a>hlen&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hlen">https://redis.io/commands/hlen</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca0a9de990ecca7d35c18f65aec3e88fc3"></a>hmget&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hmget">https://redis.io/commands/hmget</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cacb060a80cc30ea798294e8153ba0f9a0"></a>hmset&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hmset">https://redis.io/commands/hmset</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca7a0e0ee3f2ab062aabde6166dff2cedb"></a>hscan&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hscan">https://redis.io/commands/hscan</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caab0e77ecf8c2ce8e87cdd42548135361"></a>hset&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hset">https://redis.io/commands/hset</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca781101a7da3e35e5cd280b852c00c1fd"></a>hsetnx&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hsetnx">https://redis.io/commands/hsetnx</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca085e3a62faebf6d58e985373a8b07529"></a>hstrlen&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hstrlen">https://redis.io/commands/hstrlen</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cae421d686ef74813c29de181e1ba286d7"></a>hvals&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hvals">https://redis.io/commands/hvals</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca3c59a91d773d3f91e94d1c157044083a"></a>incr&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/incr">https://redis.io/commands/incr</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca7441b7c445145f0b6fba8cf92996fc6e"></a>incrby&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/incrby">https://redis.io/commands/incrby</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca1ea1ad411f8052fc0e5e5b7683029793"></a>incrbyfloat&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/incrbyfloat">https://redis.io/commands/incrbyfloat</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cacaf9b6b99962bf5c2264824231d7a40c"></a>info&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/info">https://redis.io/commands/info</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca14f802e1fba977727845e8872c1743a7"></a>keys&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/keys">https://redis.io/commands/keys</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca9fa4c4d075506db85427e52c9ad818bd"></a>lastsave&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lastsave">https://redis.io/commands/lastsave</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca7883a7305bcbd394f768e04b9e800f53"></a>latency&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/latency">https://redis.io/commands/latency</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca0a0b716ebb7afa13ee0fc64df96fec32"></a>lindex&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lindex">https://redis.io/commands/lindex</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca81354c7446af086b46c3581caccc3eda"></a>linsert&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/linsert">https://redis.io/commands/linsert</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caf38c221a6b01a00a085a9d9cde3ff35f"></a>llen&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/llen">https://redis.io/commands/llen</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca05a208028929fd77cfb5b08096a837df"></a>lolwut&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lolwut">https://redis.io/commands/lolwut</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca4f0fc2be4365cb83a13d5a43c76d8089"></a>lpop&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lpop">https://redis.io/commands/lpop</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cad48f7f2b8355717a5c441104f61fc5e0"></a>lpos&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lpos">https://redis.io/commands/lpos</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca09f55e5f95d3dae56cbdc8d51fe63be2"></a>lpush&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lpush">https://redis.io/commands/lpush</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca1c5394341ad24ce4878efeaeb8399a02"></a>lpushx&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lpushx">https://redis.io/commands/lpushx</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca20b36afdb6e49e5c7780e5bea170baaa"></a>lrange&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lrange">https://redis.io/commands/lrange</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cac62821f92f139e14b800b7a00799f2cf"></a>lrem&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lrem">https://redis.io/commands/lrem</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca08e19cf1b14354fa5cd428a5f7c3d56e"></a>lset&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/lset">https://redis.io/commands/lset</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cafb85fb78b0a17d6afd24d378ab0f0d70"></a>ltrim&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/ltrim">https://redis.io/commands/ltrim</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cacd69b4957f06cd818d7bf3d61980e291"></a>memory&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/memory">https://redis.io/commands/memory</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca6e3d8d4d91320c316d330da3a89b1b2d"></a>mget&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/mget">https://redis.io/commands/mget</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caf183fde1c1f409b21fc8463052ca49e5"></a>migrate&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/migrate">https://redis.io/commands/migrate</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca22884db148f0ffb0d830ba431102b0b5"></a>module&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/module">https://redis.io/commands/module</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca08b5411f848a2581a41672a759c87380"></a>monitor&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/monitor">https://redis.io/commands/monitor</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca3734a903022249b3010be1897042568e"></a>move&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/move">https://redis.io/commands/move</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca003be61e1e2a998fa586b1ef5cd1896f"></a>mset&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/mset">https://redis.io/commands/mset</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca253bdb5287142d7f31aa73cccdeff3c3"></a>msetnx&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/msetnx">https://redis.io/commands/msetnx</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caea8f243d9885cf8ce9876a580224fd3c"></a>multi&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/multi">https://redis.io/commands/multi</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caa8cfde6331bd59eb2ac96f8911c4b666"></a>object&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/object">https://redis.io/commands/object</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca5ca4b722707013b233e526659583df95"></a>persist&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/persist">https://redis.io/commands/persist</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca47557a591e63e20915d88344977dff01"></a>pexpire&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/pexpire">https://redis.io/commands/pexpire</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca0472d7202ae12f198ad78054dcef97be"></a>pexpireat&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/pexpireat">https://redis.io/commands/pexpireat</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca48081baf505a199be2a4dcb847d179ec"></a>pfadd&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/pfadd">https://redis.io/commands/pfadd</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab522b8d9f46ea1558a812881779a585f"></a>pfcount&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/pfcount">https://redis.io/commands/pfcount</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca21d24a6715890742894cec0ea3e778e6"></a>pfdebug&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/pfdebug">https://redis.io/commands/pfdebug</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca25ad770559ad4f0ea4f02ed239edf011"></a>pfmerge&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/pfmerge">https://redis.io/commands/pfmerge</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cac120019a96c8627d7a494edd8bdacf29"></a>pfselftest&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/pfselftest">https://redis.io/commands/pfselftest</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cadf911f0151f9ef021d410b4be5060972"></a>ping&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/ping">https://redis.io/commands/ping</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca42b90196b487c54069097a68fe98ab6f"></a>post&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/post">https://redis.io/commands/post</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caa0ba9979dc4e48c7c78b535a7d9b7dc7"></a>psetex&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/psetex">https://redis.io/commands/psetex</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cad544bb3f0950271bcaed7728a515ddaf"></a>psubscribe&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/psubscribe">https://redis.io/commands/psubscribe</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca5e8ce2358e65e8624ba20e3aab33d99e"></a>psync&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/psync">https://redis.io/commands/psync</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caa6f872bc8579a171fa1522d298851f21"></a>pttl&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/pttl">https://redis.io/commands/pttl</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca9b6d0bb3102b87fae57bc4a39149518e"></a>publish&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/publish">https://redis.io/commands/publish</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca040f8e6525bd0c62798afb41e6644f37"></a>pubsub&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/pubsub">https://redis.io/commands/pubsub</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca3b142efa33ad22af4aca82dcee60fec0"></a>punsubscribe&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/punsubscribe">https://redis.io/commands/punsubscribe</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cae9ec69acec15fe24a0a8728c795178c1"></a>randomkey&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/randomkey">https://redis.io/commands/randomkey</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca336ebbb2179beaa7340a4f1620f3af40"></a>readonly&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/readonly">https://redis.io/commands/readonly</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca2ea7fe2bd051ec076a226b7dab76aaa3"></a>readwrite&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/readwrite">https://redis.io/commands/readwrite</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cad7fba04fc8e17bcfc603b318a85b762c"></a>rename&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/rename">https://redis.io/commands/rename</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca8ac11c3c2dd78ee19bcb7c4dea1cd177"></a>renamenx&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/renamenx">https://redis.io/commands/renamenx</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca231c912a2c129ab519500935c2a5008e"></a>replconf&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/replconf">https://redis.io/commands/replconf</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca82979564efd472dd3b3dfd99f95c96a1"></a>replicaof&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/replicaof">https://redis.io/commands/replicaof</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cabb2ac0b8da1f64a3498af147ba43fc10"></a>restore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/restore">https://redis.io/commands/restore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca29a7e96467b69a9f5a93332e29e9b0de"></a>role&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/role">https://redis.io/commands/role</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab9c6607cecb6da579c09d61bf9334785"></a>rpop&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/rpop">https://redis.io/commands/rpop</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca027470c81cd245c5251895e60cf006c2"></a>rpoplpush&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/rpoplpush">https://redis.io/commands/rpoplpush</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca12b8fc8329e93622bfc17a8456903b33"></a>rpush&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/rpush">https://redis.io/commands/rpush</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cae8ab9f3d0f337aa53ae9b58b4c199666"></a>rpushx&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/rpushx">https://redis.io/commands/rpushx</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca90ec922e613070022761300109035585"></a>sadd&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sadd">https://redis.io/commands/sadd</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca43781db5c40ecc39fd718685594f0956"></a>save&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/save">https://redis.io/commands/save</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca53aefec08170b2ebed981a0a86d0dbe0"></a>scan&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/scan">https://redis.io/commands/scan</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cacadff14699c162998b32361dd4998e84"></a>scard&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/scard">https://redis.io/commands/scard</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca3205c0ded576131ea255ad2bd38b0fb2"></a>script&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/script">https://redis.io/commands/script</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caf2e66edc329458e330f7fd684263b322"></a>sdiff&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sdiff">https://redis.io/commands/sdiff</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab7db95e68de2a2c933c36429fb9c6c68"></a>sdiffstore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sdiffstore">https://redis.io/commands/sdiffstore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca99938282f04071859941e18f16efcf42"></a>select&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/select">https://redis.io/commands/select</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cacdaeeeba9b4a4c5ebf042c0215a7bb0e"></a>set&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/set">https://redis.io/commands/set</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cad99b2755657081c3b2892a88ce222923"></a>setbit&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/setbit">https://redis.io/commands/setbit</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca85c9325f34eb0655052de6d821cbf94c"></a>setex&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/setex">https://redis.io/commands/setex</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca4e33b2b65bda7f17fcbf8efdadb1606f"></a>setnx&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/setnx">https://redis.io/commands/setnx</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca42c6a033f0370fb10cf116b02c09a02e"></a>setrange&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/setrange">https://redis.io/commands/setrange</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca5924f03a95ee6f7277e5bdd1e81b8fdc"></a>shutdown&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/shutdown">https://redis.io/commands/shutdown</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cabe288047e63f0fe3a89ce70ba04c4efd"></a>sinter&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sinter">https://redis.io/commands/sinter</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cac862df7c0afa31db1727e170358a36a7"></a>sinterstore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sinterstore">https://redis.io/commands/sinterstore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cabdf147a5d70a753a05a0eaf9dc725b78"></a>sismember&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sismember">https://redis.io/commands/sismember</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca55b1a07dd0b8ae6ce90dbfa769f6ba6f"></a>slaveof&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/slaveof">https://redis.io/commands/slaveof</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca4b9d19d2e5fdd93d274a8036f7a48212"></a>slowlog&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/slowlog">https://redis.io/commands/slowlog</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caac346844583cf63bbf28c84c8392104b"></a>smembers&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/smembers">https://redis.io/commands/smembers</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca22dad76c0293b7e147642d9bc72f078e"></a>smove&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/smove">https://redis.io/commands/smove</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cacadc8c8db42409733582cb3e2298ef87"></a>sort&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sort">https://redis.io/commands/sort</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cabd72667b3d0d45a66c2d495e4d5993a8"></a>spop&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/spop">https://redis.io/commands/spop</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca5186065dd6e2a8949c3d79e6435fcc37"></a>srandmember&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/srandmember">https://redis.io/commands/srandmember</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca6dcaf449415765e1fc8503e76318736b"></a>srem&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/srem">https://redis.io/commands/srem</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca464d3fc986429b6da9bc1b6706fa2cc7"></a>sscan&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sscan">https://redis.io/commands/sscan</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca468a194c37bfd2a449310a16db652b48"></a>stralgo&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/stralgo">https://redis.io/commands/stralgo</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca73d3a702db472629f27b06ac8f056476"></a>strlen&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/strlen">https://redis.io/commands/strlen</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca4f893ee24950069dd823e083338a456d"></a>subscribe&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/subscribe">https://redis.io/commands/subscribe</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca07003ecef908c7f5253d28803fcf0f68"></a>substr&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/substr">https://redis.io/commands/substr</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caeb410368e36a1bce94ed9a1cbbbc085b"></a>sunion&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sunion">https://redis.io/commands/sunion</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca233a42fcde0dbc41ab7d35df63e534a4"></a>sunionstore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sunionstore">https://redis.io/commands/sunionstore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca802ee5d94a54f1b6801fee70c76eb72a"></a>swapdb&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/swapdb">https://redis.io/commands/swapdb</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca63ad9d34f3503826e5f649ae6b7ac92c"></a>sync&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/sync">https://redis.io/commands/sync</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca07cc694b9b3fc636710fa08b6922c42b"></a>time&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/time">https://redis.io/commands/time</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab96ba508e3690f5168e4b0e68b15b178"></a>touch&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/touch">https://redis.io/commands/touch</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cac431a4425bc56080c868435c8d910f83"></a>ttl&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/ttl">https://redis.io/commands/ttl</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca599dcce2998a6b40b1e38e8c6006cb0a"></a>type&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/type">https://redis.io/commands/type</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca695630cfc5eb92580fb3e76a0c790e63"></a>unlink&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/unlink">https://redis.io/commands/unlink</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cadbd73c2b545209688ed794c0d5413d5a"></a>quit&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/quit">https://redis.io/commands/quit</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caa013658e30387f7a60cdaf0acf26850d"></a>unsubscribe&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/unsubscribe">https://redis.io/commands/unsubscribe</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cade48f50b1ed50b3af650ce2f31a23606"></a>unwatch&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/unwatch">https://redis.io/commands/unwatch</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca49256b9819abacbb8e6e031a03abe81b"></a>wait&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/wait">https://redis.io/commands/wait</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cad2974c96dc96b3f30a6168bcc4b25b02"></a>watch&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/watch">https://redis.io/commands/watch</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca937cbee423e4790e165f0aba3d46ae49"></a>xack&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xack">https://redis.io/commands/xack</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cabd91447872deeb42ff0e5c90e74094d0"></a>xadd&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xadd">https://redis.io/commands/xadd</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caf0a7b2c12b5df0be65b1c0b82ed492a2"></a>xclaim&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xclaim">https://redis.io/commands/xclaim</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca38cebba60034d701a8b4e73f856c9ad8"></a>xdel&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xdel">https://redis.io/commands/xdel</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caa3af2d1fe72e1afdfa631c8ee7d239e6"></a>xgroup&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xgroup">https://redis.io/commands/xgroup</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cac42b8fa460911025bd2a9717e037e52c"></a>xinfo&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xinfo">https://redis.io/commands/xinfo</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca6b610e40f92e4ef028c10782f09e30ed"></a>xlen&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xlen">https://redis.io/commands/xlen</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca3287b13265a24a16005b0f940b246146"></a>xpending&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xpending">https://redis.io/commands/xpending</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca6a58980aad534c8e198c39e98e711d01"></a>xrange&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xrange">https://redis.io/commands/xrange</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca58a43af48c6b9a935fb8404010173a3b"></a>xread&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xread">https://redis.io/commands/xread</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca95268e95a31b517cb3fed1654bec363c"></a>xreadgroup&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xreadgroup">https://redis.io/commands/xreadgroup</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca0c9154e1026018c1cea29e1d99f14b6e"></a>xrevrange&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xrevrange">https://redis.io/commands/xrevrange</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cad5bd3d1424ab20e752ee2ddf8fbcb8a2"></a>xsetid&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xsetid">https://redis.io/commands/xsetid</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca9f4b7756f4544952d00677a5be25b70f"></a>xtrim&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/xtrim">https://redis.io/commands/xtrim</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab749e46e873e127d3f7459c03470e318"></a>zadd&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zadd">https://redis.io/commands/zadd</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca2d5ab0f04e5c4a4ea565e6c9772330c0"></a>zcard&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zcard">https://redis.io/commands/zcard</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caf40be7f8959450de854dd044002349a3"></a>zcount&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zcount">https://redis.io/commands/zcount</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca0ecebfd7dc00ae2bfd73b71e3e944984"></a>zincrby&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zincrby">https://redis.io/commands/zincrby</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca0156fb0199021d38dfb624016b48a921"></a>zinterstore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zinterstore">https://redis.io/commands/zinterstore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cac790a1a0190be257ed6572a3875c9c63"></a>zlexcount&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zlexcount">https://redis.io/commands/zlexcount</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca3da5de67b1e6c66878c9ce0965598e7a"></a>zpopmax&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zpopmax">https://redis.io/commands/zpopmax</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cadb94e402c45a88caa698a2b273e10474"></a>zpopmin&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zpopmin">https://redis.io/commands/zpopmin</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca4f367b3b7b473c0047155bc381ce3191"></a>zrange&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zrange">https://redis.io/commands/zrange</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caaf2f870f855dabc019b8d6eac557219b"></a>zrangebylex&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zrangebylex">https://redis.io/commands/zrangebylex</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca8c7ad268bccc4733076719cfacc4af0c"></a>zrangebyscore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zrangebyscore">https://redis.io/commands/zrangebyscore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca6b0a4731da798e78dff80770dc286407"></a>zrank&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zrank">https://redis.io/commands/zrank</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca1436e6320006fc9b5becc6d31c4c0cfe"></a>zrem&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zrem">https://redis.io/commands/zrem</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca852672fd05f7540e7a00100a6437a9ed"></a>zremrangebylex&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zremrangebylex">https://redis.io/commands/zremrangebylex</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cafd0afc07c057ffd51b7fa6c64927e1e8"></a>zremrangebyrank&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zremrangebyrank">https://redis.io/commands/zremrangebyrank</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cab3e0c1addc28208828504aba42a04a18"></a>zremrangebyscore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zremrangebyscore">https://redis.io/commands/zremrangebyscore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cabc5573d8bedbe4141ffcc02b1c399961"></a>zrevrange&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zrevrange">https://redis.io/commands/zrevrange</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca334c99501d3735f4dd09e66b93545236"></a>zrevrangebylex&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zrevrangebylex">https://redis.io/commands/zrevrangebylex</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca70027726f700dda2564962b47d428784"></a>zrevrangebyscore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zrevrangebyscore">https://redis.io/commands/zrevrangebyscore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca08297d6f4303a1e1c00e966d3065906e"></a>zrevrank&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zrevrank">https://redis.io/commands/zrevrank</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0caeb28f31eb981af856f5061b837aff18a"></a>zscan&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zscan">https://redis.io/commands/zscan</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca97fb619fcf02fb54ca4588223e77e93e"></a>zscore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zscore">https://redis.io/commands/zscore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0ca47eac7949818a87511120d27edf564b2"></a>zunionstore&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/zunionstore">https://redis.io/commands/zunionstore</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9661fea349313723a8ec955975184c0cafedb2d84cafe20862cb4399751a8a7e3"></a>invalid&#160;</td><td class="fielddoc"><p>Invalid command. </p>
-</td></tr>
-</table>
-
-<p class="definition">Definition at line <a class="el" href="redis_2command_8hpp_source.html#l00025">25</a> of file <a class="el" href="redis_2command_8hpp_source.html">command.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga9a6f3d1a56c2d4bd486a92f8d8f90c29"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">&#9670;&nbsp;</a></span>command <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">aedis::sentinel::command</a></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Sentinel commands. </p>
-<p>The full list of Sentinel commands can be found at <a href="https://redis.io/topics/sentinel">https://redis.io/topics/sentinel</a>.</p>
-<dl class="section remark"><dt>Remarks</dt><dd>This list was created with the help of the <code>command</code> command. </dd></dl>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29aa33915ba226b6dbd1edb3e09fac41ed9"></a>acl&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/acl">https://redis.io/commands/acl</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29afa53b91ccc1b78668d5af58e1ed3a485"></a>auth&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/auth">https://redis.io/commands/auth</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29a62608e08adc29a8d6dbc9754e659f125"></a>client&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/client">https://redis.io/commands/client</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29a1dccadfed7bcbb036c56a4afb97e906f"></a>command&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/command">https://redis.io/commands/command</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29a5d41402abc4b2a76b9719d911017c592"></a>hello&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/hello">https://redis.io/commands/hello</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29acaf9b6b99962bf5c2264824231d7a40c"></a>info&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/info">https://redis.io/commands/info</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29adf911f0151f9ef021d410b4be5060972"></a>ping&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/ping">https://redis.io/commands/ping</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29ad544bb3f0950271bcaed7728a515ddaf"></a>psubscribe&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/psubscribe">https://redis.io/commands/psubscribe</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29a9b6d0bb3102b87fae57bc4a39149518e"></a>publish&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/publish">https://redis.io/commands/publish</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29a3b142efa33ad22af4aca82dcee60fec0"></a>punsubscribe&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/punsubscribe">https://redis.io/commands/punsubscribe</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29a29a7e96467b69a9f5a93332e29e9b0de"></a>role&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/role">https://redis.io/commands/role</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29aecadec2924e86bf88d622ceb0855382d"></a>sentinel&#160;</td><td class="fielddoc"><p><a href="https://redis.io/topics/sentinel">https://redis.io/topics/sentinel</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29a5924f03a95ee6f7277e5bdd1e81b8fdc"></a>shutdown&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/shutdown">https://redis.io/commands/shutdown</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29a4f893ee24950069dd823e083338a456d"></a>subscribe&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/subscribe">https://redis.io/commands/subscribe</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29aa013658e30387f7a60cdaf0acf26850d"></a>unsubscribe&#160;</td><td class="fielddoc"><p><a href="https://redis.io/commands/unsubscribe">https://redis.io/commands/unsubscribe</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga9a6f3d1a56c2d4bd486a92f8d8f90c29afedb2d84cafe20862cb4399751a8a7e3"></a>invalid&#160;</td><td class="fielddoc"><p>Unknown/invalid command. </p>
-</td></tr>
-</table>
-
-<p class="definition">Definition at line <a class="el" href="sentinel_2command_8hpp_source.html#l00024">24</a> of file <a class="el" href="sentinel_2command_8hpp_source.html">command.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga0339088c80d8133b76ac4de633e9ddae"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga0339088c80d8133b76ac4de633e9ddae">&#9670;&nbsp;</a></span>error <span class="overload">[1/3]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="group__any.html#ga0339088c80d8133b76ac4de633e9ddae">aedis::adapter::error</a></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Adapter errors. </p>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea3059263deaffd09ba4c0577fa6434741"></a>expects_simple_type&#160;</td><td class="fielddoc"><p>Expects a simple RESP3 type but got an aggregate. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea6a88f24ae0edc528aef4e5effa5811a1"></a>expects_aggregate_type&#160;</td><td class="fielddoc"><p>Expects aggregate type. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea14280a589b7a5aae04aa336c6cd0c0f0"></a>expects_map_type&#160;</td><td class="fielddoc"><p>Expects a map but got other aggregate. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea7096c898a4d6be5f66ca9b496ab794d8"></a>expects_set_type&#160;</td><td class="fielddoc"><p>Expects a set aggregate but got something else. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea282e8f3cb4ec85eb2efac03801229e11"></a>nested_aggregate_unsupported&#160;</td><td class="fielddoc"><p>Nested response not supported. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaeaae00ce17a8a0eaf50aba51f876c2d8b2"></a>simple_error&#160;</td><td class="fielddoc"><p>Got RESP3 simple error. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaeab7f2a05d1d80e9f8a04926d67dd1aba5"></a>blob_error&#160;</td><td class="fielddoc"><p>Got RESP3 blob_error. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea18a0cd8e67dab1a91bce2ee6ce1671c9"></a>incompatible_size&#160;</td><td class="fielddoc"><p>Aggregate container has incompatible size. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaeacdcfe09c3c1ac0445d9358d176eaa0e0"></a>not_a_double&#160;</td><td class="fielddoc"><p>Not a double. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga0339088c80d8133b76ac4de633e9ddaea37a6259cc0c1dae299a7866489dff0bd"></a>null&#160;</td><td class="fielddoc"><p>Got RESP3 null type. </p>
-</td></tr>
-</table>
-
-<p class="definition">Definition at line <a class="el" href="adapter_2error_8hpp_source.html#l00018">18</a> of file <a class="el" href="adapter_2error_8hpp_source.html">error.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga110bcc500f0ab112a466b6e955efa32e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga110bcc500f0ab112a466b6e955efa32e">&#9670;&nbsp;</a></span>error <span class="overload">[2/3]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="group__any.html#ga110bcc500f0ab112a466b6e955efa32e">aedis::generic::error</a></td>
+          <td class="memname">enum <a class="el" href="group__any.html#ga1833aa5e140bbaa9d319ecb1a71bd8ba">aedis::error</a></td>
         </tr>
       </table>
   </td>
@@ -818,61 +201,47 @@ The actual data. For aggregate types this is usually empty. </td></tr>
 
 <p>Generic errors. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga110bcc500f0ab112a466b6e955efa32ea1aadcfc9d4ed9466a35fbbf2e8e9da00"></a>resolve_timeout&#160;</td><td class="fielddoc"><p>Represents the timeout of the resolve operation. </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa1aadcfc9d4ed9466a35fbbf2e8e9da00"></a>resolve_timeout&#160;</td><td class="fielddoc"><p>Resolve timeout. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga110bcc500f0ab112a466b6e955efa32ea68fe378b7acbea462cde519f2d27ed71"></a>connect_timeout&#160;</td><td class="fielddoc"><p>Represents the timeout of the connect operation. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa68fe378b7acbea462cde519f2d27ed71"></a>connect_timeout&#160;</td><td class="fielddoc"><p>Connect timeout. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga110bcc500f0ab112a466b6e955efa32ea2f9216a117052b29940a529b8c039ef6"></a>read_timeout&#160;</td><td class="fielddoc"><p>Represents the timeout of the read operation. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baaa89ad1b8aaa085e108ffd59e1b60c232"></a>idle_timeout&#160;</td><td class="fielddoc"><p>Idle timeout. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga110bcc500f0ab112a466b6e955efa32ea53d29758019eb599a0e63793eb2f7bce"></a>write_timeout&#160;</td><td class="fielddoc"><p>Represents the timeout of the write operation. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baae8c616c26029d0c1cce5d1be03f8095b"></a>invalid_data_type&#160;</td><td class="fielddoc"><p>Invalid RESP3 type. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga110bcc500f0ab112a466b6e955efa32eaa89ad1b8aaa085e108ffd59e1b60c232"></a>idle_timeout&#160;</td><td class="fielddoc"><p>Idle timeout. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa397fbfb003cc70661a3a35ff6a4aecdd"></a>not_a_number&#160;</td><td class="fielddoc"><p>Can't parse the string as a number. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga110bcc500f0ab112a466b6e955efa32ea61cdf5c4542bc4924f810745357e6084"></a>write_stop_requested&#160;</td><td class="fielddoc"><p>Write stop requested. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baaae5d9826dd70a97dd620905d979974e3"></a>unexpected_read_size&#160;</td><td class="fielddoc"><p>Received less bytes than expected. </p>
 </td></tr>
-</table>
-
-<p class="definition">Definition at line <a class="el" href="generic_2error_8hpp_source.html#l00018">18</a> of file <a class="el" href="generic_2error_8hpp_source.html">error.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga3e898ab2126407e62f33851b31bee17a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga3e898ab2126407e62f33851b31bee17a">&#9670;&nbsp;</a></span>error <span class="overload">[3/3]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="group__any.html#ga3e898ab2126407e62f33851b31bee17a">aedis::resp3::error</a></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>RESP3 errors. </p>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aa4be989dbdfc566fa8ce10b9bbf9aa086"></a>invalid_type&#160;</td><td class="fielddoc"><p>Invalid RESP3 type. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baaebbb4163ab76bebc60dfcd634f368dc2"></a>exceeeds_max_nested_depth&#160;</td><td class="fielddoc"><p>The maximum depth of a nested response was exceeded. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aa397fbfb003cc70661a3a35ff6a4aecdd"></a>not_a_number&#160;</td><td class="fielddoc"><p>Can't parse the string as a number. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa5fc45aedad26336422187e290f356194"></a>unexpected_bool_value&#160;</td><td class="fielddoc"><p>Got non boolean value. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aaae5d9826dd70a97dd620905d979974e3"></a>unexpected_read_size&#160;</td><td class="fielddoc"><p>Received less bytes than expected. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baad284b9152cacd1bb82681d0a154dac79"></a>empty_field&#160;</td><td class="fielddoc"><p>Expected field value is empty. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aaebbb4163ab76bebc60dfcd634f368dc2"></a>exceeeds_max_nested_depth&#160;</td><td class="fielddoc"><p>The maximum depth of a nested response was exceeded. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa3059263deaffd09ba4c0577fa6434741"></a>expects_simple_type&#160;</td><td class="fielddoc"><p>Expects a simple RESP3 type but got an aggregate. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aa5fc45aedad26336422187e290f356194"></a>unexpected_bool_value&#160;</td><td class="fielddoc"><p>Unexpects bool value. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa6a88f24ae0edc528aef4e5effa5811a1"></a>expects_aggregate_type&#160;</td><td class="fielddoc"><p>Expects aggregate type. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga3e898ab2126407e62f33851b31bee17aad284b9152cacd1bb82681d0a154dac79"></a>empty_field&#160;</td><td class="fielddoc"><p>Expected field value is empty. </p>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa14280a589b7a5aae04aa336c6cd0c0f0"></a>expects_map_type&#160;</td><td class="fielddoc"><p>Expects a map but got other aggregate. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa7096c898a4d6be5f66ca9b496ab794d8"></a>expects_set_type&#160;</td><td class="fielddoc"><p>Expects a set aggregate but got something else. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa282e8f3cb4ec85eb2efac03801229e11"></a>nested_aggregate_unsupported&#160;</td><td class="fielddoc"><p>Nested response not supported. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baaae00ce17a8a0eaf50aba51f876c2d8b2"></a>simple_error&#160;</td><td class="fielddoc"><p>Got RESP3 simple error. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baab7f2a05d1d80e9f8a04926d67dd1aba5"></a>blob_error&#160;</td><td class="fielddoc"><p>Got RESP3 blob_error. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa18a0cd8e67dab1a91bce2ee6ce1671c9"></a>incompatible_size&#160;</td><td class="fielddoc"><p>Aggregate container has incompatible size. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baacdcfe09c3c1ac0445d9358d176eaa0e0"></a>not_a_double&#160;</td><td class="fielddoc"><p>Not a double. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa37a6259cc0c1dae299a7866489dff0bd"></a>null&#160;</td><td class="fielddoc"><p>Got RESP3 null type. </p>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="resp3_2error_8hpp_source.html#l00018">18</a> of file <a class="el" href="resp3_2error_8hpp_source.html">error.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="error_8hpp_source.html#l00017">17</a> of file <a class="el" href="error_8hpp_source.html">error.hpp</a>.</p>
 
 </div>
 </div>
@@ -940,336 +309,8 @@ The actual data. For aggregate types this is usually empty. </td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="ga1e40a9e5ab61e7980b4be74bf0d4943d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga1e40a9e5ab61e7980b4be74bf0d4943d">&#9670;&nbsp;</a></span>adapt() <span class="overload">[1/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">auto aedis::adapter::adapt </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Creates a dummy response adapter. </p>
-<p>The adapter returned by this function ignores responses. It is useful to avoid wasting time with responses which are not needed.</p>
-<p>Example:</p>
-<div class="fragment"><div class="line"><span class="comment">// Pushes and writes some commands to the server.</span></div>
-<div class="line">sr.push(command::hello, 3);</div>
-<div class="line">sr.push(command::ping);</div>
-<div class="line">sr.push(command::quit);</div>
-<div class="line">net::write(socket, net::buffer(request));</div>
-<div class="line"> </div>
-<div class="line"><span class="comment">// Ignores all responses except for the response to ping.</span></div>
-<div class="line">std::string buffer;</div>
-<div class="line"><a class="code" href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">resp3::read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>());     <span class="comment">// hello</span></div>
-<div class="line"><a class="code" href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">resp3::read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp)); <span class="comment">// ping</span></div>
-<div class="line"><a class="code" href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">resp3::read</a>(socket, dynamic_buffer(buffer, <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>()));     <span class="comment">// quit</span></div>
-<div class="ttc" id="agroup__any_html_ga1e40a9e5ab61e7980b4be74bf0d4943d"><div class="ttname"><a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a dummy response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00041">adapt.hpp:41</a></div></div>
-<div class="ttc" id="agroup__any_html_gae85832036f8ac4d606df1c24fe27a28e"><div class="ttname"><a href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">aedis::resp3::read</a></div><div class="ttdeci">std::size_t read(SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter, boost::system::error_code &amp;ec)</div><div class="ttdoc">Reads a complete response to a command sychronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00058">read.hpp:58</a></div></div>
-</div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="adapt_8hpp_source.html#l00041">41</a> of file <a class="el" href="adapt_8hpp_source.html">adapt.hpp</a>.</p>
-
-</div>
-</div>
-<a id="gad80df0d37bdb529b41e5a09a572edacf"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gad80df0d37bdb529b41e5a09a572edacf">&#9670;&nbsp;</a></span>adapt() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">auto aedis::adapter::adapt </td>
-          <td>(</td>
-          <td class="paramtype">T &amp;&#160;</td>
-          <td class="paramname"><em>t</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Adapts user data to read operations. </p>
-<p>STL containers, <code>std::tuple</code> and built-in types are supported and can be used in conjunction with <code>boost::optional&lt;T&gt;</code>.</p>
-<p>Example usage:</p>
-<div class="fragment"><div class="line">std::unordered_map&lt;std::string, std::string&gt; cont;</div>
-<div class="line">co_await <a class="code" href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">async_read</a>(socket, buffer, <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(cont));</div>
-<div class="ttc" id="agroup__any_html_ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><div class="ttname"><a href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">aedis::resp3::async_read</a></div><div class="ttdeci">auto async_read(AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=ResponseAdapter{}, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</div><div class="ttdoc">Reads a complete response to a Redis command asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00174">read.hpp:174</a></div></div>
-</div><!-- fragment --><p>For a transaction</p>
-<div class="fragment"><div class="line">sr.push(command::multi);</div>
-<div class="line">sr.push(command::ping, ...);</div>
-<div class="line">sr.push(command::incr, ...);</div>
-<div class="line">sr.push_range(command::rpush, ...);</div>
-<div class="line">sr.push(command::lrange, ...);</div>
-<div class="line">sr.push(command::incr, ...);</div>
-<div class="line">sr.push(command::exec);</div>
-<div class="line"> </div>
-<div class="line">co_await async_write(socket, buffer(request));</div>
-<div class="line"> </div>
-<div class="line"><span class="comment">// Reads the response to a transaction</span></div>
-<div class="line">std::tuple&lt;std::string, int, int, std::vector&lt;std::string&gt;, <span class="keywordtype">int</span>&gt; execs;</div>
-<div class="line">co_await <a class="code" href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">resp3::async_read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(execs));</div>
-</div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="adapt_8hpp_source.html#l00076">76</a> of file <a class="el" href="adapt_8hpp_source.html">adapt.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga4e14c4f077c580a6bbec018572583136"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga4e14c4f077c580a6bbec018572583136">&#9670;&nbsp;</a></span>add_header()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class Request &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">void aedis::resp3::add_header </td>
-          <td>(</td>
-          <td class="paramtype">Request &amp;&#160;</td>
-          <td class="paramname"><em>to</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a>&#160;</td>
-          <td class="paramname"><em>t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::size_t&#160;</td>
-          <td class="paramname"><em>size</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Adds a resp3 header to the request. </p>
-<p>See <a class="el" href="mystruct_8hpp_source.html">mystruct.hpp</a> for an example. </p>
-
-<p class="definition">Definition at line <a class="el" href="compose_8hpp_source.html#l00106">106</a> of file <a class="el" href="compose_8hpp_source.html">compose.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga93ab60cda0ee6da754c7dad7d0dd9cfd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga93ab60cda0ee6da754c7dad7d0dd9cfd">&#9670;&nbsp;</a></span>add_separator()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class Request &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">void aedis::resp3::add_separator </td>
-          <td>(</td>
-          <td class="paramtype">Request &amp;&#160;</td>
-          <td class="paramname"><em>to</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Adds a separator to the request. </p>
-<p>See <a class="el" href="mystruct_8hpp_source.html">mystruct.hpp</a> for an example. </p>
-
-<p class="definition">Definition at line <a class="el" href="compose_8hpp_source.html#l00151">151</a> of file <a class="el" href="compose_8hpp_source.html">compose.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga8a0d6c76b5faeeaa5ee5e2e4770cd181"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">&#9670;&nbsp;</a></span>async_read()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class AsyncReadStream , class DynamicBuffer , class ResponseAdapter  = detail::ignore_response, class CompletionToken  = boost::asio::default_completion_token_t&lt;typename AsyncReadStream::executor_type&gt;&gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">auto aedis::resp3::async_read </td>
-          <td>(</td>
-          <td class="paramtype">AsyncReadStream &amp;&#160;</td>
-          <td class="paramname"><em>stream</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">DynamicBuffer&#160;</td>
-          <td class="paramname"><em>buffer</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">ResponseAdapter&#160;</td>
-          <td class="paramname"><em>adapter</em> = <code>ResponseAdapter{}</code>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">CompletionToken &amp;&amp;&#160;</td>
-          <td class="paramname"><em>token</em> = <code>boost::asio::default_completion_token_t&lt;typename&#160;AsyncReadStream::executor_type&gt;{}</code>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Reads a complete response to a Redis command asynchronously. </p>
-<p>This function reads a complete response to a command or a server push asynchronously. For example</p>
-<div class="fragment"><div class="line">std::string buffer;</div>
-<div class="line">std::set&lt;std::string&gt; resp;</div>
-<div class="line">co_await <a class="code" href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">resp3::async_read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp));</div>
-</div><!-- fragment --><p>For a complete example see <a class="el" href="transaction_8cpp_source.html">examples/transaction.cpp</a>. This function is implemented in terms of one or more calls to <code>asio::async_read_until</code> and <code>asio::async_read</code> functions, and is known as a <em>composed</em> <em>operation</em>. Furthermore, the implementation may read additional bytes from the stream that lie past the end of the message being read. These additional bytes are stored in the dynamic buffer, which must be preserved for subsequent reads.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">stream</td><td>The stream from which to read e.g. a tcp socket. </td></tr>
-    <tr><td class="paramname">buffer</td><td>Dynamic buffer (version 2). </td></tr>
-    <tr><td class="paramname">adapter</td><td>The response adapter, see more on <a class="el" href="index.html#low-level-responses">Responses</a>. </td></tr>
-    <tr><td class="paramname">token</td><td>The completion token.</td></tr>
-  </table>
-  </dd>
-</dl>
-<p>The completion handler will receive as a parameter the total number of bytes transferred from the stream and must have the following signature</p>
-<div class="fragment"><div class="line">void(boost::system::error_code, std::size_t);</div>
-</div><!-- fragment --><dl class="section remark"><dt>Remarks</dt><dd>This function calls buf.consume() in each chunk of data after it has been passed to the adapter. Users must not consume the bytes after it returns. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00174">174</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga4142e05fc5f5241f8c076882443e6fd1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga4142e05fc5f5241f8c076882443e6fd1">&#9670;&nbsp;</a></span>make_serializer()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class CharT , class Traits , class Allocator &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">auto aedis::generic::make_serializer </td>
-          <td>(</td>
-          <td class="paramtype">std::basic_string&lt; CharT, Traits, Allocator &gt; &amp;&#160;</td>
-          <td class="paramname"><em>storage</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Creates a serializer. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">storage</td><td>The string. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="serializer_8hpp_source.html#l00195">195</a> of file <a class="el" href="serializer_8hpp_source.html">serializer.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ga6f0dbc6e8b0985160252fd09b7fc3a05"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga6f0dbc6e8b0985160252fd09b7fc3a05">&#9670;&nbsp;</a></span>operator&lt;&lt;() <span class="overload">[1/4]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::ostream&amp; aedis::redis::operator&lt;&lt; </td>
-          <td>(</td>
-          <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>os</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a>&#160;</td>
-          <td class="paramname"><em>c</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Writes the command string to the stream. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">os</td><td>Output stream. </td></tr>
-    <tr><td class="paramname">c</td><td>Redis command </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="gaef566c0da0bb6e1da8a236882448a1d6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaef566c0da0bb6e1da8a236882448a1d6">&#9670;&nbsp;</a></span>operator&lt;&lt;() <span class="overload">[2/4]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::ostream&amp; aedis::sentinel::operator&lt;&lt; </td>
-          <td>(</td>
-          <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>os</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a>&#160;</td>
-          <td class="paramname"><em>c</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Writes the command string to the stream. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">os</td><td>Output stream. </td></tr>
-    <tr><td class="paramname">c</td><td>Sentinel command </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <a id="gabe641c301490af2c6b149cfabde5f5eb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gabe641c301490af2c6b149cfabde5f5eb">&#9670;&nbsp;</a></span>operator&lt;&lt;() <span class="overload">[3/4]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#gabe641c301490af2c6b149cfabde5f5eb">&#9670;&nbsp;</a></span>operator&lt;&lt;() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1304,7 +345,7 @@ template&lt;class String &gt; </div>
 </div>
 </div>
 <a id="ga7523b40e1fb77407423c0a9cc3e08416"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga7523b40e1fb77407423c0a9cc3e08416">&#9670;&nbsp;</a></span>operator&lt;&lt;() <span class="overload">[4/4]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ga7523b40e1fb77407423c0a9cc3e08416">&#9670;&nbsp;</a></span>operator&lt;&lt;() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1337,109 +378,6 @@ template&lt;class String &gt; </div>
   </table>
   </dd>
 </dl>
-
-</div>
-</div>
-<a id="gae85832036f8ac4d606df1c24fe27a28e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gae85832036f8ac4d606df1c24fe27a28e">&#9670;&nbsp;</a></span>read() <span class="overload">[1/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class SyncReadStream , class DynamicBuffer , class ResponseAdapter &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">std::size_t aedis::resp3::read </td>
-          <td>(</td>
-          <td class="paramtype">SyncReadStream &amp;&#160;</td>
-          <td class="paramname"><em>stream</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">DynamicBuffer&#160;</td>
-          <td class="paramname"><em>buf</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">ResponseAdapter&#160;</td>
-          <td class="paramname"><em>adapter</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">boost::system::error_code &amp;&#160;</td>
-          <td class="paramname"><em>ec</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Reads a complete response to a command sychronously. </p>
-<p>This function reads a complete response to a command or a server push synchronously. For example</p>
-<div class="fragment"><div class="line"><span class="keywordtype">int</span> resp;</div>
-<div class="line">std::string buffer;</div>
-<div class="line"><a class="code" href="group__any.html#gae85832036f8ac4d606df1c24fe27a28e">resp3::read</a>(socket, dynamic_buffer(buffer), <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">adapt</a>(resp));</div>
-</div><!-- fragment --><p>For a complete example see <a class="el" href="intro__sync_8cpp_source.html">examples/intro_sync.cpp</a>. This function is implemented in terms of one or more calls to <code>asio::read_until</code> and <code>asio::read</code> functions, and is known as a <em>composed</em> <em>operation</em>. Furthermore, the implementation may read additional bytes from the stream that lie past the end of the message being read. These additional bytes are stored in the dynamic buffer, which must be preserved for subsequent reads.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">stream</td><td>The stream from which to read e.g. a tcp socket. </td></tr>
-    <tr><td class="paramname">buf</td><td>Dynamic buffer (version 2). </td></tr>
-    <tr><td class="paramname">adapter</td><td>The response adapter, see more on <a class="el" href="index.html#low-level-responses">Responses</a>. </td></tr>
-    <tr><td class="paramname">ec</td><td>If an error occurs, it will be assigned to this paramter. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The number of bytes that have been consumed from the dynamic buffer.</dd></dl>
-<dl class="section remark"><dt>Remarks</dt><dd>This function calls buf.consume() in each chunk of data after it has been passed to the adapter. Users must not consume the bytes after it returns. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00058">58</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
-
-</div>
-</div>
-<a id="gaccb72d30b2ce50572cf035d56cdbebc1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaccb72d30b2ce50572cf035d56cdbebc1">&#9670;&nbsp;</a></span>read() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class SyncReadStream , class DynamicBuffer , class ResponseAdapter  = detail::ignore_response&gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">std::size_t aedis::resp3::read </td>
-          <td>(</td>
-          <td class="paramtype">SyncReadStream &amp;&#160;</td>
-          <td class="paramname"><em>stream</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">DynamicBuffer&#160;</td>
-          <td class="paramname"><em>buf</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">ResponseAdapter&#160;</td>
-          <td class="paramname"><em>adapter</em> = <code>ResponseAdapter{}</code>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Reads a complete response to a command sychronously. </p>
-<p>Same as the error_code overload but throws on error. </p>
-
-<p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00116">116</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
 
 </div>
 </div>
@@ -1485,60 +423,8 @@ template&lt;class Request &gt; </div>
 
 </div>
 </div>
-<a id="ga0bf1d33ed9519263e9760aa372879bc9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga0bf1d33ed9519263e9760aa372879bc9">&#9670;&nbsp;</a></span>to_string() <span class="overload">[1/4]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">char const* aedis::redis::to_string </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__any.html#ga9661fea349313723a8ec955975184c0c">command</a>&#160;</td>
-          <td class="paramname"><em>c</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Converts the command to a string. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>The command to convert. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="ga61f4592d67beb56115b04cd4d5ab9c8f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga61f4592d67beb56115b04cd4d5ab9c8f">&#9670;&nbsp;</a></span>to_string() <span class="overload">[2/4]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">char const* aedis::sentinel::to_string </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__any.html#ga9a6f3d1a56c2d4bd486a92f8d8f90c29">command</a>&#160;</td>
-          <td class="paramname"><em>c</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Converts the command to a string. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>The command to convert. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <a id="ga1fd47bfcbb0461e09ec55ea767454ce5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga1fd47bfcbb0461e09ec55ea767454ce5">&#9670;&nbsp;</a></span>to_string() <span class="overload">[3/4]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1fd47bfcbb0461e09ec55ea767454ce5">&#9670;&nbsp;</a></span>to_string() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1568,7 +454,7 @@ template&lt;class String &gt; </div>
 </div>
 </div>
 <a id="gae50b66df4a64aef687a28d38d6c15992"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gae50b66df4a64aef687a28d38d6c15992">&#9670;&nbsp;</a></span>to_string() <span class="overload">[4/4]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#gae50b66df4a64aef687a28d38d6c15992">&#9670;&nbsp;</a></span>to_string() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">

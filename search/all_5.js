@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['flushall_59',['flushall',['../group__any.html#gga9661fea349313723a8ec955975184c0ca1c1088a257b3300ca0218220a242550a',1,'aedis::redis']]],
-  ['flushdb_60',['flushdb',['../group__any.html#gga9661fea349313723a8ec955975184c0caad9211986cfaebf9eb7d3d343dd2c0b6',1,'aedis::redis']]]
+  ['get_5fexecutor_29',['get_executor',['../classaedis_1_1connection.html#af6a215c0d8a24d1e3466aed1a8801e91',1,'aedis::connection']]]
 ];

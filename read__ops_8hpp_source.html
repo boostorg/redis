@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.2</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.0</font> &#160; <br> High level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -154,7 +154,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;               buf_.grow(parser_.bulk_length() + 2 - buffer_size_);</div>
 <div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
 <div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;               yield</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;               <a class="code" href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">boost::asio::async_read</a>(</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;               boost::asio::async_read(</div>
 <div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;                  stream_,</div>
 <div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;                  buf_.data(buffer_size_, parser_.bulk_length() + 2 - buffer_size_),</div>
 <div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;                  boost::asio::transfer_all(),</div>
@@ -193,7 +193,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;} <span class="comment">// aedis</span></div>
 <div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160; </div>
 <div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_RESP3_READ_OPS_HPP</span></div>
-<div class="ttc" id="agroup__any_html_ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><div class="ttname"><a href="group__any.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">aedis::resp3::async_read</a></div><div class="ttdeci">auto async_read(AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=ResponseAdapter{}, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</div><div class="ttdoc">Reads a complete response to a Redis command asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00174">read.hpp:174</a></div></div>
 <div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">aedis::resp3::type::invalid</a></div><div class="ttdeci">@ invalid</div><div class="ttdoc">Invalid.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->

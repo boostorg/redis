@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['quit_156',['quit',['../group__any.html#gga9661fea349313723a8ec955975184c0cadbd73c2b545209688ed794c0d5413d5a',1,'aedis::redis']]]
+  ['value_62',['value',['../group__any.html#a923b33182800f271bad3155a36231da3',1,'aedis::resp3::node']]],
+  ['verbatim_5fstring_63',['verbatim_string',['../group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a94bddd7697a78d3184ec1342f9f89e97',1,'aedis::resp3']]]
 ];

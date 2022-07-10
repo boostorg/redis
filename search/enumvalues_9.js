@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['keys_414',['keys',['../group__any.html#gga9661fea349313723a8ec955975184c0ca14f802e1fba977727845e8872c1743a7',1,'aedis::redis']]]
+  ['resolve_5ftimeout_122',['resolve_timeout',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa1aadcfc9d4ed9466a35fbbf2e8e9da00',1,'aedis']]]
 ];

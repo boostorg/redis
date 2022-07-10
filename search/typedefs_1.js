@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['push_5fhandler_5ftype_321',['push_handler_type',['../classaedis_1_1generic_1_1client.html#a2d575c2ee7c49738ff4557bd5df09c36',1,'aedis::generic::client']]]
+  ['next_5flayer_5ftype_94',['next_layer_type',['../classaedis_1_1connection.html#a48a16cbb9609d1ca5ceb0de0c9bd4a2f',1,'aedis::connection']]]
 ];

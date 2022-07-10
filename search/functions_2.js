@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['get_5fexecutor_290',['get_executor',['../classaedis_1_1generic_1_1client.html#ae898c915f157fed45a17a554d67344af',1,'aedis::generic::client']]]
+  ['get_5fexecutor_75',['get_executor',['../classaedis_1_1connection.html#af6a215c0d8a24d1e3466aed1a8801e91',1,'aedis::connection']]]
 ];

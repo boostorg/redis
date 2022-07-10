@@ -1,17 +1,7 @@
 var searchData=
 [
-  ['lastsave_415',['lastsave',['../group__any.html#gga9661fea349313723a8ec955975184c0ca9fa4c4d075506db85427e52c9ad818bd',1,'aedis::redis']]],
-  ['latency_416',['latency',['../group__any.html#gga9661fea349313723a8ec955975184c0ca7883a7305bcbd394f768e04b9e800f53',1,'aedis::redis']]],
-  ['lindex_417',['lindex',['../group__any.html#gga9661fea349313723a8ec955975184c0ca0a0b716ebb7afa13ee0fc64df96fec32',1,'aedis::redis']]],
-  ['linsert_418',['linsert',['../group__any.html#gga9661fea349313723a8ec955975184c0ca81354c7446af086b46c3581caccc3eda',1,'aedis::redis']]],
-  ['llen_419',['llen',['../group__any.html#gga9661fea349313723a8ec955975184c0caf38c221a6b01a00a085a9d9cde3ff35f',1,'aedis::redis']]],
-  ['lolwut_420',['lolwut',['../group__any.html#gga9661fea349313723a8ec955975184c0ca05a208028929fd77cfb5b08096a837df',1,'aedis::redis']]],
-  ['lpop_421',['lpop',['../group__any.html#gga9661fea349313723a8ec955975184c0ca4f0fc2be4365cb83a13d5a43c76d8089',1,'aedis::redis']]],
-  ['lpos_422',['lpos',['../group__any.html#gga9661fea349313723a8ec955975184c0cad48f7f2b8355717a5c441104f61fc5e0',1,'aedis::redis']]],
-  ['lpush_423',['lpush',['../group__any.html#gga9661fea349313723a8ec955975184c0ca09f55e5f95d3dae56cbdc8d51fe63be2',1,'aedis::redis']]],
-  ['lpushx_424',['lpushx',['../group__any.html#gga9661fea349313723a8ec955975184c0ca1c5394341ad24ce4878efeaeb8399a02',1,'aedis::redis']]],
-  ['lrange_425',['lrange',['../group__any.html#gga9661fea349313723a8ec955975184c0ca20b36afdb6e49e5c7780e5bea170baaa',1,'aedis::redis']]],
-  ['lrem_426',['lrem',['../group__any.html#gga9661fea349313723a8ec955975184c0cac62821f92f139e14b800b7a00799f2cf',1,'aedis::redis']]],
-  ['lset_427',['lset',['../group__any.html#gga9661fea349313723a8ec955975184c0ca08e19cf1b14354fa5cd428a5f7c3d56e',1,'aedis::redis']]],
-  ['ltrim_428',['ltrim',['../group__any.html#gga9661fea349313723a8ec955975184c0cafb85fb78b0a17d6afd24d378ab0f0d70',1,'aedis::redis']]]
+  ['set_123',['set',['../group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e',1,'aedis::resp3']]],
+  ['simple_5ferror_124',['simple_error',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baaae00ce17a8a0eaf50aba51f876c2d8b2',1,'simple_error()aedis'],['../group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57aae00ce17a8a0eaf50aba51f876c2d8b2',1,'simple_error()aedis::resp3']]],
+  ['simple_5fstring_125',['simple_string',['../group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a42e59301bab38b6e2a173baf105990dd',1,'aedis::resp3']]],
+  ['streamed_5fstring_5fpart_126',['streamed_string_part',['../group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a00a875d8b7233f4cc56e479d4f49d459',1,'aedis::resp3']]]
 ];

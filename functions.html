@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.2</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.0</font> &#160; <br> High level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -70,142 +70,75 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 </div>
 
 <div class="contents">
-<div class="textblock">Here is a list of all documented class members with links to the class documentation for each member:</div>
-
-<h3><a id="index_a"></a>- a -</h3><ul>
+<div class="textblock">Here is a list of all documented class members with links to the class documentation for each member:</div><ul>
 <li>aggregate_size
 : <a class="el" href="group__any.html#a49cc8e665a20c071d7355c230f1268ac">aedis::resp3::node&lt; String &gt;</a>
 </li>
-<li>async_run()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#aa2c8ad6055ae9b8629e76f6a4748ee37">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
+<li>async_exec()
+: <a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff">aedis::connection&lt; AsyncReadWriteStream &gt;</a>
 </li>
-</ul>
-
-
-<h3><a id="index_c"></a>- c -</h3><ul>
-<li>client()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a421772a1171c4a66df7f0c6f8efe0113">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
+<li>async_read_push()
+: <a class="el" href="classaedis_1_1connection.html#a7bd5722850d33a8ba4f997cd30ee907d">aedis::connection&lt; AsyncReadWriteStream &gt;</a>
+</li>
+<li>async_run()
+: <a class="el" href="classaedis_1_1connection.html#a4d140e1f0377abcd25f13d752e38b3b5">aedis::connection&lt; AsyncReadWriteStream &gt;</a>
+</li>
+<li>cancel_requests()
+: <a class="el" href="classaedis_1_1connection.html#ae8bb7a84cde275f690ea892c228b78ae">aedis::connection&lt; AsyncReadWriteStream &gt;</a>
+</li>
+<li>cancel_run()
+: <a class="el" href="classaedis_1_1connection.html#a4648af326b50230346f2be826ef2154b">aedis::connection&lt; AsyncReadWriteStream &gt;</a>
+</li>
+<li>clear()
+: <a class="el" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">aedis::resp3::request</a>
+</li>
+<li>coalesce_requests
+: <a class="el" href="classaedis_1_1connection.html#a0a3d595109fa506322248ab904902256">aedis::connection&lt; AsyncReadWriteStream &gt;::config</a>
 </li>
 <li>connect_timeout
-: <a class="el" href="classaedis_1_1generic_1_1client.html#ac5b5a6df9347266c8b6a8dbac4cf16e9">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;::config</a>
+: <a class="el" href="classaedis_1_1connection.html#ac6fd3112b27aa0e4df91fdc20535ed6d">aedis::connection&lt; AsyncReadWriteStream &gt;::config</a>
 </li>
-</ul>
-
-
-<h3><a id="index_d"></a>- d -</h3><ul>
+<li>connection()
+: <a class="el" href="classaedis_1_1connection.html#a0081102168c9ef3f5f6d040266e27990">aedis::connection&lt; AsyncReadWriteStream &gt;</a>
+</li>
 <li>data_type
 : <a class="el" href="group__any.html#aae147962496e8ab3f52b2d8575307a5a">aedis::resp3::node&lt; String &gt;</a>
 </li>
 <li>depth
 : <a class="el" href="group__any.html#a829e2bf6551568a60406fad87e44804d">aedis::resp3::node&lt; String &gt;</a>
 </li>
-</ul>
-
-
-<h3><a id="index_e"></a>- e -</h3><ul>
 <li>executor_type
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a60775edf071e186ee2b163e56b2381ea">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
+: <a class="el" href="classaedis_1_1connection.html#abb0fd720745590669c556dcea25bc3f4">aedis::connection&lt; AsyncReadWriteStream &gt;</a>
 </li>
-</ul>
-
-
-<h3><a id="index_g"></a>- g -</h3><ul>
 <li>get_executor()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#ae898c915f157fed45a17a554d67344af">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
+: <a class="el" href="classaedis_1_1connection.html#af6a215c0d8a24d1e3466aed1a8801e91">aedis::connection&lt; AsyncReadWriteStream &gt;</a>
 </li>
-</ul>
-
-
-<h3><a id="index_i"></a>- i -</h3><ul>
-<li>idle_timeout
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a692f69e6e6d55db4ee3c526d378e6c2f">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;::config</a>
-</li>
-</ul>
-
-
-<h3><a id="index_m"></a>- m -</h3><ul>
 <li>max_read_size
-: <a class="el" href="classaedis_1_1generic_1_1client.html#af87d993aeef852d4ea6636f5094ffaf6">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;::config</a>
+: <a class="el" href="classaedis_1_1connection.html#a37e7ea486168410772caf84ac96a2c78">aedis::connection&lt; AsyncReadWriteStream &gt;::config</a>
 </li>
-</ul>
-
-
-<h3><a id="index_p"></a>- p -</h3><ul>
+<li>next_layer_type
+: <a class="el" href="classaedis_1_1connection.html#a48a16cbb9609d1ca5ceb0de0c9bd4a2f">aedis::connection&lt; AsyncReadWriteStream &gt;</a>
+</li>
+<li>payload()
+: <a class="el" href="classaedis_1_1resp3_1_1request.html#a5ba25f658ea598a06e2612c537eca66f">aedis::resp3::request</a>
+</li>
+<li>ping_interval
+: <a class="el" href="classaedis_1_1connection.html#ab993911f199fc44b4a16db7b5a6af220">aedis::connection&lt; AsyncReadWriteStream &gt;::config</a>
+</li>
 <li>push()
-: <a class="el" href="classaedis_1_1generic_1_1serializer.html#a898aefcbbd285fc32a970519e5f50f0f">aedis::generic::serializer&lt; Storage &gt;</a>
-</li>
-<li>push_handler_type
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a2d575c2ee7c49738ff4557bd5df09c36">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
+: <a class="el" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request</a>
 </li>
 <li>push_range()
-: <a class="el" href="classaedis_1_1generic_1_1serializer.html#a066adc8eb627bb7a890063cc5cde9a5a">aedis::generic::serializer&lt; Storage &gt;</a>
+: <a class="el" href="classaedis_1_1resp3_1_1request.html#a811536f213c80d537db4c205e56fc199">aedis::resp3::request</a>
 </li>
 <li>push_range2()
-: <a class="el" href="classaedis_1_1generic_1_1serializer.html#ada0b3687fc4762363394195047fa1cf7">aedis::generic::serializer&lt; Storage &gt;</a>
-</li>
-</ul>
-
-
-<h3><a id="index_r"></a>- r -</h3><ul>
-<li>read_handler_type
-: <a class="el" href="classaedis_1_1generic_1_1client.html#af4c259d8a1a9d757e090e01bb22491fd">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-<li>read_timeout
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a7e13e35018671419ea69e53388f3a555">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;::config</a>
+: <a class="el" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">aedis::resp3::request</a>
 </li>
 <li>resolve_timeout
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a6f9f78f49dde260124c0f337bfe0eacb">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;::config</a>
+: <a class="el" href="classaedis_1_1connection.html#a650fc6a2f21aaba6e3be507c97da3719">aedis::connection&lt; AsyncReadWriteStream &gt;::config</a>
 </li>
-<li>resp3_handler_type
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a6d290f5dfdc534e8e186b13542509f83">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-</ul>
-
-
-<h3><a id="index_s"></a>- s -</h3><ul>
-<li>send()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a866062190bd85521821e76c8f0002227">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-<li>send_range()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#ac37cacf2f7ea09b61eac5e56a11ea177">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-<li>send_range2()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a1f5f93fcefc0e52b8c129ee712295bdd">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-<li>serializer()
-: <a class="el" href="classaedis_1_1generic_1_1serializer.html#accb039a3b391aef27b6e2113fe6875c6">aedis::generic::serializer&lt; Storage &gt;</a>
-</li>
-<li>set_push_handler()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#aa867aaa8251c7618858c30e7cedd0dc7">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-<li>set_read_handler()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a8613db8c0089b1e8917752c96d0d6384">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-<li>set_receiver()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#ae0a4aa77d4cc63788b1bc197bb2dc08a">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-<li>set_resp3_handler()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a3b15ebe205dcf22801aacdb3321b78a1">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-<li>set_write_handler()
-: <a class="el" href="classaedis_1_1generic_1_1client.html#af82cf3fb1b7e8345e99580bc90999cc5">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-</ul>
-
-
-<h3><a id="index_v"></a>- v -</h3><ul>
 <li>value
 : <a class="el" href="group__any.html#a923b33182800f271bad3155a36231da3">aedis::resp3::node&lt; String &gt;</a>
-</li>
-</ul>
-
-
-<h3><a id="index_w"></a>- w -</h3><ul>
-<li>write_handler_type
-: <a class="el" href="classaedis_1_1generic_1_1client.html#ac113cdd60eec88dabd531057162ae3bc">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;</a>
-</li>
-<li>write_timeout
-: <a class="el" href="classaedis_1_1generic_1_1client.html#a923a4b437ae74fbe2adfc19cc50b6c46">aedis::generic::client&lt; AsyncReadWriteStream, Command &gt;::config</a>
 </li>
 </ul>
 </div><!-- contents -->

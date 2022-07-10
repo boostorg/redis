@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['client_279',['client',['../classaedis_1_1generic_1_1client.html',1,'aedis::generic']]],
-  ['config_280',['config',['../classaedis_1_1generic_1_1client.html#structaedis_1_1generic_1_1client_1_1config',1,'aedis::generic::client']]]
+  ['config_64',['config',['../classaedis_1_1connection.html#structaedis_1_1connection_1_1config',1,'aedis::connection']]],
+  ['connection_65',['connection',['../classaedis_1_1connection.html',1,'aedis']]]
 ];

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.1.2</font> &#160; <br> Low level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.0</font> &#160; <br> High level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -97,37 +97,43 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160; </div>
 <div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">namespace </span>net = boost::asio;</div>
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a>;</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a>;</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> aedis::adapter::adapt;</div>
 <div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">using</span> aedis::adapter::adapter_t;</div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a>;</div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a>;</div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160; </div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keywordtype">void</span> print_and_clear_aggregate(std::vector&lt;<a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node&lt;std::string&gt;</a>&gt;&amp; v)</div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;{</div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> m = aedis::resp3::element_multiplicity(v.front().data_type);</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;   <span class="keywordflow">for</span> (<span class="keyword">auto</span> i = 0lu; i &lt; m * v.front().aggregate_size; ++i)</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;      std::cout &lt;&lt; v[i + 1].value &lt;&lt; <span class="stringliteral">&quot; &quot;</span>;</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;   std::cout &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;   v.clear();</div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;}</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160; </div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="keywordtype">void</span> print_and_clear(std::set&lt;std::string&gt;&amp; cont)</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;{</div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;   <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; e: cont) std::cout &lt;&lt; e &lt;&lt; <span class="stringliteral">&quot; &quot;</span>;</div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;   std::cout &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;   cont.clear();</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;}</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="keywordtype">void</span> print_and_clear(std::map&lt;std::string, std::string&gt;&amp; cont)</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;{</div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;   <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; e: cont)</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;      std::cout &lt;&lt; e.first &lt;&lt; <span class="stringliteral">&quot;: &quot;</span> &lt;&lt; e.second &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   cont.clear();</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;}</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
-<div class="ttc" id="aclassaedis_1_1generic_1_1client_html"><div class="ttname"><a href="classaedis_1_1generic_1_1client.html">aedis::generic::client</a></div><div class="ttdoc">A high level Redis client.</div><div class="ttdef"><b>Definition:</b> <a href="client_8hpp_source.html#l00037">client.hpp:37</a></div></div>
-<div class="ttc" id="agroup__any_html_ga1e40a9e5ab61e7980b4be74bf0d4943d"><div class="ttname"><a href="group__any.html#ga1e40a9e5ab61e7980b4be74bf0d4943d">aedis::adapter::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates a dummy response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00041">adapt.hpp:41</a></div></div>
-<div class="ttc" id="agroup__any_html_ga9661fea349313723a8ec955975184c0c"><div class="ttname"><a href="group__any.html#ga9661fea349313723a8ec955975184c0c">aedis::redis::command</a></div><div class="ttdeci">command</div><div class="ttdoc">Redis commands.</div><div class="ttdef"><b>Definition:</b> <a href="redis_2command_8hpp_source.html#l00025">command.hpp:25</a></div></div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keywordtype">void</span> print_aggr(std::vector&lt;<a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node&lt;std::string&gt;</a>&gt;&amp; v)</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;{</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> m = aedis::resp3::element_multiplicity(v.front().data_type);</div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;   <span class="keywordflow">for</span> (<span class="keyword">auto</span> i = 0lu; i &lt; m * v.front().aggregate_size; ++i)</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;      std::cout &lt;&lt; v[i + 1].value &lt;&lt; <span class="stringliteral">&quot; &quot;</span>;</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;   std::cout &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;   v.clear();</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;}</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160; </div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="keywordtype">void</span> print(std::vector&lt;T&gt; <span class="keyword">const</span>&amp; cont)</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;{</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;   <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; e: cont) std::cout &lt;&lt; e &lt;&lt; <span class="stringliteral">&quot; &quot;</span>;</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;   std::cout &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;}</div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160; </div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="keywordtype">void</span> print(std::set&lt;T&gt; <span class="keyword">const</span>&amp; cont)</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;{</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;   <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; e: cont) std::cout &lt;&lt; e &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;}</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160; </div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt;</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="keywordtype">void</span> print(std::map&lt;T, U&gt; <span class="keyword">const</span>&amp; cont)</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;{</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; e: cont)</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;      std::cout &lt;&lt; e.first &lt;&lt; <span class="stringliteral">&quot;: &quot;</span> &lt;&lt; e.second &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;}</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="keywordtype">void</span> print(std::string <span class="keyword">const</span>&amp; e)</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;{</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;   std::cout &lt;&lt; e &lt;&lt; std::endl;</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;}</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
 <div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00028">node.hpp:28</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
