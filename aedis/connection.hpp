@@ -26,7 +26,7 @@ namespace aedis {
 
 // https://redis.io/docs/reference/sentinel-clients
 
-/** \brief A high level Redis connection.
+/** \brief A high level Redis connection class.
  *  \ingroup any
  *
  *  This class keeps a healthy connection to the Redis instance where
@@ -139,7 +139,7 @@ public:
          >(detail::run_op<connection>{this, host, port}, token, resv_);
    }
 
-   /** @brief Executes a request on the redis server.
+   /** @brief Executes a command on the redis server.
     *
     *  \param req Request object.
     *  \param adapter Response adapter.
@@ -169,11 +169,11 @@ public:
          >(detail::exec_op<connection, Adapter>{this, &req, adapter}, token, resv_);
    }
 
-   /** @brief Connects and executes a single request.
+   /** @brief Connects and executes a single command.
     *
     *  Combines \c async_run and the other \c async_exec overload in a
     *  single function. This function is useful for users that want to
-    *  send a single request to the server.
+    *  send a single request to the server and close it.
     *
     *  \param host Address of the Redis server.
     *  \param port Port of the Redis server.
@@ -246,7 +246,7 @@ public:
          >(detail::read_push_op<connection, decltype(f)>{this, f}, token, resv_);
    }
 
-   /** @brief Cancel all pending sessions and push operations to return
+   /** @brief Cancel all pending request.
     *
     * \returns The number of requests that have been canceled.
     */
@@ -265,16 +265,14 @@ public:
    /** @brief Closes the connection with the database.
     *
     *  Calling this function will cause \c async_run to return. It is
-    *  safe to try a reconnect after that i.e. calling it again.
+    *  safe to try a reconnect after that, when that happens, all
+    *  pending request will be automatically sent.
     *  
     *  Note however that the prefered way to close a connection is to
     *  send a \c quit command if you are actively closing it.
     *  Otherwise an unresponsive Redis server will cause the
-    *  idle-checks to fail, which will also lead to \c async_run
-    *  returning.
-    *
-    *  @remark This function won't cancel pending requests, see
-    *  \c cancel_requests.
+    *  idle-checks to kick in and lead to \c async_run
+    *  returning with idle_timeout.
     */
    void cancel_run()
    {
@@ -284,7 +282,6 @@ public:
       writer_timer_.cancel();
       ping_timer_.cancel();
 
-      // TODO: How to avoid calling this here.
       push_channel_.cancel();
 
       // Cancel own pings if there is any waiting.

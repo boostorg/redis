@@ -37,7 +37,7 @@
     \li Zero asymptotic allocations by means of memory reuse.
     \li Healthy checks, back pressure and low latency.
 
-    The Aedis API hides most of the low level asynchronous operations
+    Aedis API hides most of the low level asynchronous operations
     away from the user, for example, the code below pings a message to
     the server
 
@@ -45,21 +45,22 @@
     int main()
     {
        request req;
+       req.push("HELLO", 3);
        req.push("PING");
        req.push("QUIT");
 
-       std::tuple<std::string, std::string> resp;
+       std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
 
        net::io_context ioc;
 
        connection db{ioc};
+
        db.async_exec("127.0.0.1", "6379", req, adapt(resp),
           [](auto ec, auto) { std::cout << ec.message() << std::endl; });
 
        ioc.run();
 
-       // Print
-       std::cout << std::get<0>(resp) << std::endl;
+       // Print the ping message.
        std::cout << std::get<1>(resp) << std::endl;
     }
     \endcode
@@ -550,48 +551,7 @@
 
     In Aedis there is no difference between sending one command, a
     pipeline or a transaction because creating the request is decoupled
-    from the IO objects, for example
-
-    @code
-    std::string request;
-    auto sr = make_serializer(request);
-    sr.push("HELLO", 3);
-    sr.push("MULTI");
-    sr.push("PING");
-    sr.push("SET", "low-level-key", "some content", "EX", "2");
-    sr.push("EXEC");
-    sr.push("PING", "Another message.");
-    net::write(socket, net::buffer(request));
-    @endcode
-
-    The request created above will be sent to Redis in a single
-    pipeline and imposes no restriction on what it contains e.g. the
-    number of commands, transactions etc. The problems mentioned above
-    simply do not exist in Aedis. The way responses are read is
-    also more flexible
-
-    @code
-    std::string buffer;
-    auto dbuffer = net::dynamic_buffer(buffer);
-
-    std::tuple<std::string, boost::optional<std::string>> response;
-    resp3::read(socket, dbuffer); // hellp
-    resp3::read(socket, dbuffer); // multi
-    resp3::read(socket, dbuffer); // ping
-    resp3::read(socket, dbuffer); // set
-    resp3::read(socket, dbuffer, adapt(response));
-    resp3::read(socket, dbuffer); // quit
-    @endcode
-
-    @li The response objects are passed by the caller to the read
-    functions so that he has fine control over memory allocations and
-    object lifetime.
-    @li The user can either use error-code or exceptions.
-    @li Each response can be read individually in the response object
-    avoiding temporaries.
-    @li It is possible to ignore responses.
-
-    This was the blocking API, now let us compare the async interface
+    from the IO objects.
 
     > redis-plus-plus also supports async interface, however, async
     > support for Transaction and Subscriber is still on the way.
