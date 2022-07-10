@@ -4,7 +4,7 @@
 #include <uv.h>
 
 #define DEFAULT_PORT 55555
-#define DEFAULT_BACKLOG 128
+#define DEFAULT_BACKLOG 1024
 
 uv_loop_t *loop;
 struct sockaddr_in addr;

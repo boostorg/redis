@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "0.2", features = ["full"] }
+
+[build]
+target-dir = "/home/marcelo/local/rust/target"
