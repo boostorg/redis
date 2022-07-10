@@ -150,8 +150,6 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
 
       auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
       expect_error(ec, net::error::misc_errors::eof, "run5a");
-      // TODO: Remove this after connection_ops is fixed (see TODO there).
-      db->cancel_requests();
    }
 
    {
@@ -163,8 +161,6 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
 
       auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
       expect_error(ec, net::error::misc_errors::eof, "run5a");
-      // TODO: Remove this after connection_ops is fixed (see TODO there).
-      db->cancel_requests();
    }
 
    co_return;
