@@ -118,6 +118,7 @@ template <class Conn, class Adapter>
 struct exec_read_op {
    Conn* conn;
    Adapter adapter;
+   std::size_t cmds = 0;
    std::size_t read_size = 0;
    std::size_t index = 0;
    boost::asio::coroutine coro;
@@ -132,7 +133,7 @@ struct exec_read_op {
       {
          // Loop reading the responses to this request.
          BOOST_ASSERT(!conn->reqs_.empty());
-         while (conn->reqs_.front()->cmds != 0) {
+         while (cmds != 0) {
             BOOST_ASSERT(conn->cmds_ != 0);
 
             //-----------------------------------
@@ -177,8 +178,8 @@ struct exec_read_op {
 
             read_size += n;
 
-            BOOST_ASSERT(conn->reqs_.front()->cmds != 0);
-            --conn->reqs_.front()->cmds;
+            BOOST_ASSERT(cmds != 0);
+            --cmds;
 
             BOOST_ASSERT(conn->cmds_ != 0);
             --conn->cmds_;
@@ -230,7 +231,9 @@ struct exec_op {
             return;
          }
 
-         yield conn->async_exec_read(adapter, std::move(self));
+         BOOST_ASSERT(!conn->reqs_.empty());
+         BOOST_ASSERT(conn->reqs_.front() != nullptr);
+         yield conn->async_exec_read(adapter, conn->reqs_.front()->cmds, std::move(self));
          if (ec) {
             self.complete(ec, 0);
             return;
@@ -396,6 +399,10 @@ struct run_op {
             return;
          }
 
+         std::for_each(std::begin(conn->reqs_), std::end(conn->reqs_), [](auto const& ptr) {
+            return ptr->written = false;
+         });
+
          yield conn->async_start(std::move(self));
          self.complete(ec);
       }
@@ -405,7 +412,6 @@ struct run_op {
 template <class Conn>
 struct writer_op {
    Conn* conn;
-   typename Conn::reqs_type::iterator end;
    boost::asio::coroutine coro;
 
    template <class Self>
@@ -419,7 +425,6 @@ struct writer_op {
       {
          while (!conn->reqs_.empty() && conn->cmds_ == 0 && conn->write_buffer_.empty()) {
             conn->coalesce_requests();
-            end = conn->reqs_.end();
             yield boost::asio::async_write(*conn->socket_, boost::asio::buffer(conn->write_buffer_), std::move(self));
             if (ec) {
                self.complete(ec);
@@ -430,7 +435,7 @@ struct writer_op {
             // order to to use it as a flag that informs there is no
             // ongoing write.
             conn->write_buffer_.clear();
-            conn->cancel_push_requests(end);
+            conn->cancel_push_requests();
          }
 
          if (conn->socket_->is_open()) {

@@ -304,6 +304,7 @@ private:
       resp3::request const* req = nullptr;
       std::size_t cmds = 0;
       bool stop = false;
+      bool written = false;
    };
 
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
@@ -322,17 +323,17 @@ private:
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::start_op;
 
-   void cancel_push_requests(typename reqs_type::iterator end)
+   void cancel_push_requests()
    {
-      auto point = std::stable_partition(std::begin(reqs_), end, [](auto const& ptr) {
-         return ptr->req->commands() != 0;
+      auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
+         return !(ptr->written && ptr->req->commands() == 0);
       });
 
-      std::for_each(point, end, [](auto const& ptr) {
-            ptr->timer.cancel();
+      std::for_each(point, std::end(reqs_), [](auto const& ptr) {
+         ptr->timer.cancel();
       });
 
-      reqs_.erase(point, end);
+      reqs_.erase(point, std::end(reqs_));
    }
 
    void add_request_info(std::shared_ptr<req_info> const& info)
@@ -416,12 +417,12 @@ private:
    }
 
    template <class Adapter, class CompletionToken>
-   auto async_exec_read(Adapter adapter, CompletionToken token)
+   auto async_exec_read(Adapter adapter, std::size_t cmds, CompletionToken token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::exec_read_op<connection, Adapter>{this, adapter}, token, resv_);
+         >(detail::exec_read_op<connection, Adapter>{this, adapter, cmds}, token, resv_);
    }
 
    void coalesce_requests()
@@ -435,6 +436,7 @@ private:
       for (auto i = 0UL; i < size; ++i) {
          write_buffer_ += reqs_.at(i)->req->payload();
          cmds_ += reqs_.at(i)->req->commands();
+         reqs_.at(i)->written = true;
       }
    }
 
