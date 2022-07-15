@@ -11,7 +11,7 @@ import (
 )
 
 var ctx = context.Background()
-var rdb = redis.NewClient(&redis.Options{Addr: "localhost:6379", Password: "", DB: 0,})
+var rdb = redis.NewClient(&redis.Options{Addr: "db.occase.de:6379", Password: "", DB: 0,})
 
 func echo(conn net.Conn) {
 	r := bufio.NewReader(conn)
@@ -27,6 +27,7 @@ func echo(conn net.Conn) {
 
                err2 := rdb.Ping(ctx).Err()
                if err2 != nil {
+                  fmt.Println("ERROR", err2)
                   panic(err2)
                }
 

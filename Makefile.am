@@ -105,3 +105,7 @@ doc:
 	rm -rf ../aedis-gh-pages/*
 	doxygen doc/Doxyfile
 
+.PHONY: bench
+bench:
+	pdflatex --jobname=echo-f0 benchmarks/benchmarks.tex
+	pdflatex --jobname=echo-f1 benchmarks/benchmarks.tex

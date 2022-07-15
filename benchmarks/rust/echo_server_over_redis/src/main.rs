@@ -7,7 +7,7 @@ use std::sync::{Arc};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind("127.0.0.1:55555").await?;
-    let client = redis::Client::open("redis://127.0.0.1/").unwrap();
+    let client = redis::Client::open("redis://db.occase.de/").unwrap();
     let con = Arc::new(Mutex::new(client.get_async_connection().await?));
 
     loop {
