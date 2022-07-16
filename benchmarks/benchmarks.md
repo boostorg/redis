@@ -32,7 +32,7 @@ decrease.
 
 ### Remarks
 
-   * I was not expecting Asio to perform so much better than Tokio and libuv.
+   * I expected Libuv to have similar performance to Asio and Tokio.
    * I did expect nodejs to come a little behind given it is is
      javascript code. Otherwise I did expect it to have similar
      performance to libuv since it is the framework behind it.
