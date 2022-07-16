@@ -1,4 +1,4 @@
-# TCP echo server performance.
+# TCP echo server performance
 
 This document describe benchmarks the performance of TCP echo servers
 I implemented in different languages using different Redis clients.
@@ -30,7 +30,7 @@ localhost where latency is 0.07ms on average on my machine. On higher
 latency networks the difference among libraries is expected to
 decrease. 
 
-### Remarks:
+### Remarks
 
    * I was not expecting Asio to perform so much better than Tokio and libuv.
    * I did expect nodejs to come a little behind given it is is
