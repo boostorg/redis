@@ -1,9 +1,10 @@
 use tokio::net::TcpListener;
-use tokio::prelude::*;
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut listener = TcpListener::bind("127.0.0.1:55555").await?;
+    let listener = TcpListener::bind("127.0.0.1:55555").await?;
 
     loop {
         let (mut socket, _) = listener.accept().await?;
