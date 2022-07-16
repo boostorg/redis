@@ -25,7 +25,7 @@ be seen below
 
 ![](https://mzimbres.github.io/aedis/tcp-echo-direct.png)
 
-The tests were performed with a 1000 concurrent TCP connection on the
+The tests were performed with a 1000 concurrent TCP connections on the
 localhost where latency is 0.07ms on average on my machine. On higher
 latency networks the difference among libraries is expected to
 decrease. 
@@ -50,14 +50,14 @@ The code used in the benchmarks can be found at
 
 This is similar to the echo server described above but messages are
 echoed by Redis and not by the echo-server itself, which acts
-as a proxy between the client and the Redis server. The result
+as a proxy between the client and the Redis server. The results
 can be seen below
 
 ![](https://mzimbres.github.io/aedis/tcp-echo-over-redis.png)
 
 The tests were performed on a network where latency is 35ms on
 average, otherwise it is equal to the benchmarks above regarding the
-number of TCP connection. The result can be seen below
+number of TCP connections.
 
 ### Remarks
 
