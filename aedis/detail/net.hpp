@@ -18,6 +18,9 @@
 namespace aedis {
 namespace detail {
 
+template <class Executor>
+using conn_timer_t = boost::asio::basic_waitable_timer<std::chrono::steady_clock, boost::asio::wait_traits<std::chrono::steady_clock>, Executor>;
+
 #include <boost/asio/yield.hpp>
 
 template <
@@ -27,7 +30,7 @@ template <
    >
 struct connect_op {
    boost::asio::basic_socket<Protocol, Executor>* socket;
-   boost::asio::steady_timer* timer;
+   conn_timer_t<Executor>* timer;
    EndpointSequence* endpoints;
    boost::asio::coroutine coro;
 
@@ -77,9 +80,10 @@ struct connect_op {
    }
 };
 
+template <class Resolver, class Timer>
 struct resolve_op {
-   boost::asio::ip::tcp::resolver* resv;
-   boost::asio::steady_timer* timer;
+   Resolver* resv;
+   Timer* timer;
    boost::string_view host;
    boost::string_view port;
    boost::asio::coroutine coro;
@@ -160,7 +164,7 @@ template <
    >
 auto async_connect(
       boost::asio::basic_socket<Protocol, Executor>& socket,
-      boost::asio::steady_timer& timer,
+      conn_timer_t<Executor>& timer,
       EndpointSequence ep,
       CompletionToken&& token = boost::asio::default_completion_token_t<Executor>{})
 {
@@ -172,20 +176,24 @@ auto async_connect(
 }
 
 template <
+   class Resolver,
+   class Timer,
    class CompletionToken =
-      boost::asio::default_completion_token_t<boost::asio::ip::tcp::resolver::executor_type>
+      boost::asio::default_completion_token_t<typename Resolver::executor_type>
    >
 auto async_resolve(
-      boost::asio::ip::tcp::resolver& resv,
-      boost::asio::steady_timer& timer,
+      Resolver& resv,
+      Timer& timer,
       boost::string_view host,
       boost::string_view port,
       CompletionToken&& token = CompletionToken{})
 {
+   // TODO: Use static_assert to check Resolver::executor_type and
+   // Timer::executor_type are same.
    return boost::asio::async_compose
       < CompletionToken
       , void(boost::system::error_code, boost::asio::ip::tcp::resolver::results_type)
-      >(resolve_op{&resv, &timer, host, port}, token, resv, timer);
+      >(resolve_op<Resolver, Timer>{&resv, &timer, host, port}, token, resv, timer);
 }
 
 template <

@@ -19,12 +19,16 @@
 namespace net = boost::asio;
 namespace this_coro = net::this_coro;
 using net::ip::tcp;
-using net::awaitable;
-using net::co_spawn;
 using net::detached;
-using net::use_awaitable;
+using executor_type = net::io_context::executor_type;
+using socket_type = net::basic_stream_socket<net::ip::tcp, executor_type>;
+using tcp_socket = net::use_awaitable_t<executor_type>::as_default_on_t<socket_type>;
+using acceptor_type = net::basic_socket_acceptor<net::ip::tcp, executor_type>;
+using tcp_acceptor = net::use_awaitable_t<executor_type>::as_default_on_t<acceptor_type>;
+using awaitable_type = net::awaitable<void, executor_type>;
+constexpr net::use_awaitable_t<executor_type> use_awaitable;
 
-awaitable<void> echo(tcp::socket socket)
+awaitable_type echo(tcp_socket socket)
 {
   try {
      char data[1024];
@@ -37,20 +41,20 @@ awaitable<void> echo(tcp::socket socket)
   }
 }
 
-awaitable<void> listener()
+awaitable_type listener()
 {
-  auto executor = co_await this_coro::executor;
-  tcp::acceptor acceptor(executor, {tcp::v4(), 55555});
+  auto ex = co_await this_coro::executor;
+  tcp_acceptor acceptor(ex, {tcp::v4(), 55555});
   for (;;) {
-     tcp::socket socket = co_await acceptor.async_accept(use_awaitable);
-     co_spawn(executor, echo(std::move(socket)), detached);
+     tcp_socket socket = co_await acceptor.async_accept(use_awaitable);
+     co_spawn(ex, echo(std::move(socket)), detached);
   }
 }
 
 int main()
 {
   try {
-     net::io_context io_context(1);
+     net::io_context io_context{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE_IO};
      co_spawn(io_context, listener(), detached);
      io_context.run();
   } catch (std::exception const& e) {

@@ -16,11 +16,15 @@
 namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
+using executor_type = net::io_context::executor_type;
+using socket_type = net::basic_stream_socket<net::ip::tcp, executor_type>;
+using tcp_socket = net::use_awaitable_t<executor_type>::as_default_on_t<socket_type>;
+using acceptor_type = net::basic_socket_acceptor<net::ip::tcp, executor_type>;
+using tcp_acceptor = net::use_awaitable_t<executor_type>::as_default_on_t<acceptor_type>;
+using awaitable_type = net::awaitable<void, executor_type>;
 using connection = aedis::connection<tcp_socket>;
 
-net::awaitable<void> echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
+awaitable_type echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
 {
    try {
       request req;
@@ -41,7 +45,7 @@ net::awaitable<void> echo_loop(tcp_socket socket, std::shared_ptr<connection> db
    }
 }
 
-net::awaitable<void> listener()
+awaitable_type listener()
 {
    auto ex = co_await net::this_coro::executor;
    auto db = std::make_shared<connection>(ex);
@@ -59,7 +63,7 @@ net::awaitable<void> listener()
 int main()
 {
    try {
-      net::io_context ioc;
+      net::io_context ioc{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE_IO};
       co_spawn(ioc, listener(), net::detached);
       ioc.run();
    } catch (std::exception const& e) {

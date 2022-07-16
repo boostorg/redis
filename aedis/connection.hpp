@@ -69,7 +69,7 @@ public:
     *  \param ex The executor.
     *  \param cfg Configuration parameters.
     */
-   connection(boost::asio::any_io_executor ex, config cfg = config{})
+   connection(executor_type ex, config cfg = config{})
    : resv_{ex}
    , ping_timer_{ex}
    , check_idle_timer_{ex}
@@ -299,7 +299,7 @@ public:
 
 private:
    struct req_info {
-      req_info(boost::asio::any_io_executor ex) : timer{ex} {}
+      req_info(executor_type ex) : timer{ex} {}
       boost::asio::steady_timer timer;
       resp3::request const* req = nullptr;
       std::size_t cmds = 0;
@@ -440,15 +440,19 @@ private:
       }
    }
 
-   using channel_type = boost::asio::experimental::channel<void(boost::system::error_code, std::size_t)>;
+   using channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
+   using clock_type = std::chrono::steady_clock;
+   using clock_traits_type = boost::asio::wait_traits<clock_type>;
+   using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
+   using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
 
    // IO objects
-   boost::asio::ip::tcp::resolver resv_;
+   resolver_type resv_;
    std::shared_ptr<AsyncReadWriteStream> socket_;
-   boost::asio::steady_timer ping_timer_;
-   boost::asio::steady_timer check_idle_timer_;
-   boost::asio::steady_timer writer_timer_;
-   boost::asio::steady_timer read_timer_;
+   timer_type ping_timer_;
+   timer_type check_idle_timer_;
+   timer_type writer_timer_;
+   timer_type read_timer_;
    channel_type push_channel_;
 
    config cfg_;
