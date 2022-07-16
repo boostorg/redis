@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.0</font> &#160; <br> High level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.1</font> &#160; <br> High level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -84,65 +84,68 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * accompanying file LICENSE.txt)</span></div>
 <div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment"> */</span></div>
 <div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160; </div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#include &lt;string&gt;</span></div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div>
-<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="preprocessor">#include &lt;boost/asio.hpp&gt;</span></div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;aedis/aedis.hpp&gt;</span></div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">namespace </span>net = boost::asio;</div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="keyword">using</span> aedis::adapt;</div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a>;</div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="keyword">using</span> tcp_socket = net::use_awaitable_t&lt;&gt;::as_default_on_t&lt;net::ip::tcp::socket&gt;;</div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">using</span> tcp_acceptor = net::use_awaitable_t&lt;&gt;::as_default_on_t&lt;net::ip::tcp::acceptor&gt;;</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1connection.html">connection</a> = <a class="code" href="classaedis_1_1connection.html">aedis::connection&lt;tcp_socket&gt;</a>;</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;net::awaitable&lt;void&gt; echo_loop(tcp_socket socket, std::shared_ptr&lt;connection&gt; db)</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;{</div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;   <span class="keywordflow">try</span> {</div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;      <a class="code" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;      std::tuple&lt;std::string&gt; resp;</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;      std::string buffer;</div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160; </div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;      <span class="keywordflow">for</span> (;;) {</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;         <span class="keyword">auto</span> n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), <span class="stringliteral">&quot;\n&quot;</span>);</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;         req.<a class="code" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;PING&quot;</span>, buffer);</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;         co_await db-&gt;async_exec(req, adapt(resp));</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;         co_await net::async_write(socket, net::buffer(std::get&lt;0&gt;(resp)));</div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;         std::get&lt;0&gt;(resp).clear();</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;         req.<a class="code" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">clear</a>();</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;         buffer.erase(0, n);</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;      }</div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;      std::cout &lt;&lt; e.what() &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;   }</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;}</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;net::awaitable&lt;void&gt; listener()</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;{</div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;   <span class="keyword">auto</span> ex = co_await net::this_coro::executor;</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;   <span class="keyword">auto</span> db = std::make_shared&lt;connection&gt;(ex);</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   db-&gt;async_run(<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>, net::detached);</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   req.<a class="code" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;   co_await db-&gt;async_exec(req);</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;   tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   <span class="keywordflow">for</span> (;;)</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;      net::co_spawn(ex, echo_loop(co_await acc.async_accept(), db), net::detached);</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;}</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="keywordtype">int</span> main()</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;{</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;   <span class="keywordflow">try</span> {</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;      net::io_context ioc;</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;      co_spawn(ioc, listener(), net::detached);</div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;      ioc.run();</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;      std::cerr &lt;&lt; e.what() &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;   }</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;}</div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="comment">//#define BOOST_ASIO_HAS_IO_URING</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="comment">//#define BOOST_ASIO_DISABLE_EPOLL</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;string&gt;</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &lt;boost/asio.hpp&gt;</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &lt;aedis/aedis.hpp&gt;</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="keyword">namespace </span>net = boost::asio;</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">using</span> aedis::adapt;</div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a>;</div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> tcp_socket = net::use_awaitable_t&lt;&gt;::as_default_on_t&lt;net::ip::tcp::socket&gt;;</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> tcp_acceptor = net::use_awaitable_t&lt;&gt;::as_default_on_t&lt;net::ip::tcp::acceptor&gt;;</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1connection.html">connection</a> = <a class="code" href="classaedis_1_1connection.html">aedis::connection&lt;tcp_socket&gt;</a>;</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;net::awaitable&lt;void&gt; echo_loop(tcp_socket socket, std::shared_ptr&lt;connection&gt; db)</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;{</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;   <span class="keywordflow">try</span> {</div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;      <a class="code" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;      std::tuple&lt;std::string&gt; resp;</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;      std::string buffer;</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160; </div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;      <span class="keywordflow">for</span> (;;) {</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;         <span class="keyword">auto</span> n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), <span class="stringliteral">&quot;\n&quot;</span>);</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;         req.<a class="code" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;PING&quot;</span>, buffer);</div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;         co_await db-&gt;async_exec(req, adapt(resp));</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;         co_await net::async_write(socket, net::buffer(std::get&lt;0&gt;(resp)));</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;         std::get&lt;0&gt;(resp).clear();</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;         req.<a class="code" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">clear</a>();</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;         buffer.erase(0, n);</div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;      }</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;      std::cout &lt;&lt; e.what() &lt;&lt; std::endl;</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;   }</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;}</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;net::awaitable&lt;void&gt; listener()</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;{</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;   <span class="keyword">auto</span> ex = co_await net::this_coro::executor;</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;   <span class="keyword">auto</span> db = std::make_shared&lt;connection&gt;(ex);</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   db-&gt;async_run(<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>, net::detached);</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160; </div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;   req.<a class="code" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   co_await db-&gt;async_exec(req);</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160; </div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;   tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;   <span class="keywordflow">for</span> (;;)</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;      net::co_spawn(ex, echo_loop(co_await acc.async_accept(), db), net::detached);</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;}</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="keywordtype">int</span> main()</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;{</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;   <span class="keywordflow">try</span> {</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;      net::io_context ioc;</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;      co_spawn(ioc, listener(), net::detached);</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;      ioc.run();</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;      std::cerr &lt;&lt; e.what() &lt;&lt; std::endl;</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;   }</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;}</div>
 <div class="ttc" id="aclassaedis_1_1connection_html"><div class="ttname"><a href="classaedis_1_1connection.html">aedis::connection</a></div><div class="ttdoc">A high level Redis connection class.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00038">connection.hpp:38</a></div></div>
 <div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests from user data.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00044">request.hpp:44</a></div></div>
 <div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a92da0407e160354a4d81510f098cecd1"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">aedis::resp3::request::clear</a></div><div class="ttdeci">void clear()</div><div class="ttdoc">Clears the request preserving allocated memory.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00053">request.hpp:53</a></div></div>

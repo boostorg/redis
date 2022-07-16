@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.0</font> &#160; <br> High level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.1</font> &#160; <br> High level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -253,169 +253,171 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;      resp3::request <span class="keyword">const</span>* req = <span class="keyword">nullptr</span>;</div>
 <div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;      std::size_t cmds = 0;</div>
 <div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;      <span class="keywordtype">bool</span> stop = <span class="keyword">false</span>;</div>
-<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;   };</div>
-<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160; </div>
-<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;   <span class="keyword">using</span> time_point_type = std::chrono::time_point&lt;std::chrono::steady_clock&gt;;</div>
-<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;   <span class="keyword">using</span> reqs_type = std::deque&lt;std::shared_ptr&lt;req_info&gt;&gt;;</div>
-<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160; </div>
-<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::read_push_op;</div>
-<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::reader_op;</div>
-<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::writer_op;</div>
-<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::ping_op;</div>
-<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::run_op;</div>
-<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::exec_op;</div>
-<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::exec_read_op;</div>
-<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::runexec_op;</div>
-<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::connect_with_timeout_op;</div>
-<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::resolve_with_timeout_op;</div>
-<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::check_idle_op;</div>
-<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::start_op;</div>
-<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160; </div>
-<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;   <span class="keywordtype">void</span> cancel_push_requests(<span class="keyword">typename</span> reqs_type::iterator end)</div>
-<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;   {</div>
-<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;      <span class="keyword">auto</span> point = std::stable_partition(std::begin(reqs_), end, [](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; ptr) {</div>
-<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;         <span class="keywordflow">return</span> ptr-&gt;req-&gt;commands() != 0;</div>
-<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;      });</div>
-<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160; </div>
-<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;      std::for_each(point, end, [](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; ptr) {</div>
-<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;            ptr-&gt;timer.cancel();</div>
-<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;      });</div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160; </div>
-<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;      reqs_.erase(point, end);</div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;   }</div>
-<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160; </div>
-<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;   <span class="keywordtype">void</span> add_request_info(std::shared_ptr&lt;req_info&gt; <span class="keyword">const</span>&amp; info)</div>
-<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;   {</div>
-<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;      reqs_.push_back(info);</div>
-<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;      <span class="keywordflow">if</span> (socket_ != <span class="keyword">nullptr</span> &amp;&amp; socket_-&gt;is_open() &amp;&amp; cmds_ == 0 &amp;&amp; write_buffer_.empty())</div>
-<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;         writer_timer_.cancel();</div>
-<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;   }</div>
-<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160; </div>
-<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;   <span class="keyword">auto</span> make_dynamic_buffer()</div>
-<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;      { <span class="keywordflow">return</span> boost::asio::dynamic_buffer(read_buffer_, cfg_.<a class="code" href="classaedis_1_1connection.html#a37e7ea486168410772caf84ac96a2c78">max_read_size</a>); }</div>
-<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160; </div>
-<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
-<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;   <span class="keyword">auto</span></div>
-<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;   async_resolve_with_timeout(</div>
-<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;      boost::string_view host,</div>
-<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;      boost::string_view port,</div>
-<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;      CompletionToken&amp;&amp; token)</div>
-<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;   {</div>
-<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
-<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;         &lt; CompletionToken</div>
-<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;         , void(boost::system::error_code)</div>
-<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;         &gt;(detail::resolve_with_timeout_op&lt;connection&gt;{<span class="keyword">this</span>, host, port},</div>
-<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;            token, resv_);</div>
-<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;   }</div>
-<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160; </div>
-<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
-<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;   <span class="keyword">auto</span> async_connect_with_timeout(CompletionToken&amp;&amp; token)</div>
-<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;   {</div>
-<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
-<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160;         &lt; CompletionToken</div>
-<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;         , void(boost::system::error_code)</div>
-<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160;         &gt;(detail::connect_with_timeout_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_);</div>
-<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;   }</div>
-<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160; </div>
-<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160;   <span class="comment">// Loops on async_read_with_timeout described above.</span></div>
-<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
-<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;   <span class="keyword">auto</span> reader(CompletionToken&amp;&amp; token)</div>
-<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160;   {</div>
-<div class="line"><a name="l00375"></a><span class="lineno">  375</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
-<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160;         &lt; CompletionToken</div>
-<div class="line"><a name="l00377"></a><span class="lineno">  377</span>&#160;         , void(boost::system::error_code)</div>
-<div class="line"><a name="l00378"></a><span class="lineno">  378</span>&#160;         &gt;(detail::reader_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_.get_executor());</div>
-<div class="line"><a name="l00379"></a><span class="lineno">  379</span>&#160;   }</div>
-<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160; </div>
-<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
-<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;   <span class="keyword">auto</span> writer(CompletionToken&amp;&amp; token)</div>
-<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160;   {</div>
-<div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
-<div class="line"><a name="l00385"></a><span class="lineno">  385</span>&#160;         &lt; CompletionToken</div>
-<div class="line"><a name="l00386"></a><span class="lineno">  386</span>&#160;         , void(boost::system::error_code)</div>
-<div class="line"><a name="l00387"></a><span class="lineno">  387</span>&#160;         &gt;(detail::writer_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_.get_executor());</div>
-<div class="line"><a name="l00388"></a><span class="lineno">  388</span>&#160;   }</div>
-<div class="line"><a name="l00389"></a><span class="lineno">  389</span>&#160; </div>
-<div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
-<div class="line"><a name="l00391"></a><span class="lineno">  391</span>&#160;   <span class="keyword">auto</span></div>
-<div class="line"><a name="l00392"></a><span class="lineno">  392</span>&#160;   async_start(CompletionToken&amp;&amp; token)</div>
-<div class="line"><a name="l00393"></a><span class="lineno">  393</span>&#160;   {</div>
-<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
-<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160;         &lt; CompletionToken</div>
-<div class="line"><a name="l00396"></a><span class="lineno">  396</span>&#160;         , void(boost::system::error_code)</div>
-<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160;         &gt;(detail::start_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_);</div>
-<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160;   }</div>
-<div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160; </div>
-<div class="line"><a name="l00400"></a><span class="lineno">  400</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
-<div class="line"><a name="l00401"></a><span class="lineno">  401</span>&#160;   <span class="keyword">auto</span> async_ping(CompletionToken&amp;&amp; token)</div>
-<div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160;   {</div>
-<div class="line"><a name="l00403"></a><span class="lineno">  403</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
-<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;         &lt; CompletionToken</div>
-<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;         , void(boost::system::error_code)</div>
-<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160;         &gt;(detail::ping_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_);</div>
-<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160;   }</div>
-<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160; </div>
-<div class="line"><a name="l00409"></a><span class="lineno">  409</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
-<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160;   <span class="keyword">auto</span> async_check_idle(CompletionToken&amp;&amp; token)</div>
-<div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160;   {</div>
-<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
-<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160;         &lt; CompletionToken</div>
-<div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160;         , void(boost::system::error_code)</div>
-<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160;         &gt;(detail::check_idle_op&lt;connection&gt;{<span class="keyword">this</span>}, token, check_idle_timer_);</div>
-<div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;   }</div>
-<div class="line"><a name="l00417"></a><span class="lineno">  417</span>&#160; </div>
-<div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Adapter, <span class="keyword">class</span> CompletionToken&gt;</div>
-<div class="line"><a name="l00419"></a><span class="lineno">  419</span>&#160;   <span class="keyword">auto</span> async_exec_read(Adapter adapter, CompletionToken token)</div>
-<div class="line"><a name="l00420"></a><span class="lineno">  420</span>&#160;   {</div>
-<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
-<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160;         &lt; CompletionToken</div>
-<div class="line"><a name="l00423"></a><span class="lineno">  423</span>&#160;         , void(boost::system::error_code, std::size_t)</div>
-<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160;         &gt;(detail::exec_read_op&lt;connection, Adapter&gt;{<span class="keyword">this</span>, adapter}, token, resv_);</div>
-<div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160;   }</div>
-<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160; </div>
-<div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160;   <span class="keywordtype">void</span> coalesce_requests()</div>
-<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;   {</div>
-<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;      <span class="comment">// Coaleces all requests: Copies the request to the variables</span></div>
-<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;      <span class="comment">// that won&#39;t be touched while async_write is suspended.</span></div>
-<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;      BOOST_ASSERT(write_buffer_.empty());</div>
-<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160;      BOOST_ASSERT(!reqs_.empty());</div>
-<div class="line"><a name="l00433"></a><span class="lineno">  433</span>&#160; </div>
-<div class="line"><a name="l00434"></a><span class="lineno">  434</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> size = cfg_.<a class="code" href="classaedis_1_1connection.html#a0a3d595109fa506322248ab904902256">coalesce_requests</a> ? reqs_.size() : 1;</div>
-<div class="line"><a name="l00435"></a><span class="lineno">  435</span>&#160;      <span class="keywordflow">for</span> (<span class="keyword">auto</span> i = 0UL; i &lt; size; ++i) {</div>
-<div class="line"><a name="l00436"></a><span class="lineno">  436</span>&#160;         write_buffer_ += reqs_.at(i)-&gt;req-&gt;payload();</div>
-<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160;         cmds_ += reqs_.at(i)-&gt;req-&gt;commands();</div>
-<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160;      }</div>
-<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160;   }</div>
-<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160; </div>
-<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160;   <span class="keyword">using</span> channel_type = boost::asio::experimental::channel&lt;void(boost::system::error_code, std::size_t)&gt;;</div>
+<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;      <span class="keywordtype">bool</span> written = <span class="keyword">false</span>;</div>
+<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160;   };</div>
+<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160; </div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;   <span class="keyword">using</span> time_point_type = std::chrono::time_point&lt;std::chrono::steady_clock&gt;;</div>
+<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;   <span class="keyword">using</span> reqs_type = std::deque&lt;std::shared_ptr&lt;req_info&gt;&gt;;</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160; </div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::read_push_op;</div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::reader_op;</div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::writer_op;</div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::ping_op;</div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::run_op;</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::exec_op;</div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::exec_read_op;</div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> U&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::runexec_op;</div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::connect_with_timeout_op;</div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::resolve_with_timeout_op;</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::check_idle_op;</div>
+<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; <span class="keyword">friend</span> <span class="keyword">struct </span>detail::start_op;</div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160; </div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;   <span class="keywordtype">void</span> cancel_push_requests()</div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;   {</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;      <span class="keyword">auto</span> point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; ptr) {</div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;         <span class="keywordflow">return</span> !(ptr-&gt;written &amp;&amp; ptr-&gt;req-&gt;commands() == 0);</div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;      });</div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160; </div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;      std::for_each(point, std::end(reqs_), [](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; ptr) {</div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;         ptr-&gt;timer.cancel();</div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;      });</div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160; </div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;      reqs_.erase(point, std::end(reqs_));</div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;   }</div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160; </div>
+<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;   <span class="keywordtype">void</span> add_request_info(std::shared_ptr&lt;req_info&gt; <span class="keyword">const</span>&amp; info)</div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;   {</div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;      reqs_.push_back(info);</div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;      <span class="keywordflow">if</span> (socket_ != <span class="keyword">nullptr</span> &amp;&amp; socket_-&gt;is_open() &amp;&amp; cmds_ == 0 &amp;&amp; write_buffer_.empty())</div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;         writer_timer_.cancel();</div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;   }</div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160; </div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;   <span class="keyword">auto</span> make_dynamic_buffer()</div>
+<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;      { <span class="keywordflow">return</span> boost::asio::dynamic_buffer(read_buffer_, cfg_.<a class="code" href="classaedis_1_1connection.html#a37e7ea486168410772caf84ac96a2c78">max_read_size</a>); }</div>
+<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160; </div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;   <span class="keyword">auto</span></div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;   async_resolve_with_timeout(</div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;      boost::string_view host,</div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;      boost::string_view port,</div>
+<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;      CompletionToken&amp;&amp; token)</div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;   {</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;         &gt;(detail::resolve_with_timeout_op&lt;connection&gt;{<span class="keyword">this</span>, host, port},</div>
+<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;            token, resv_);</div>
+<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;   }</div>
+<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160; </div>
+<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
+<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;   <span class="keyword">auto</span> async_connect_with_timeout(CompletionToken&amp;&amp; token)</div>
+<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;   {</div>
+<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;         &gt;(detail::connect_with_timeout_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_);</div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;   }</div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160; </div>
+<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160;   <span class="comment">// Loops on async_read_with_timeout described above.</span></div>
+<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
+<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160;   <span class="keyword">auto</span> reader(CompletionToken&amp;&amp; token)</div>
+<div class="line"><a name="l00375"></a><span class="lineno">  375</span>&#160;   {</div>
+<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00377"></a><span class="lineno">  377</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00378"></a><span class="lineno">  378</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00379"></a><span class="lineno">  379</span>&#160;         &gt;(detail::reader_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_.get_executor());</div>
+<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;   }</div>
+<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160; </div>
+<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
+<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160;   <span class="keyword">auto</span> writer(CompletionToken&amp;&amp; token)</div>
+<div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160;   {</div>
+<div class="line"><a name="l00385"></a><span class="lineno">  385</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00386"></a><span class="lineno">  386</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00387"></a><span class="lineno">  387</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00388"></a><span class="lineno">  388</span>&#160;         &gt;(detail::writer_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_.get_executor());</div>
+<div class="line"><a name="l00389"></a><span class="lineno">  389</span>&#160;   }</div>
+<div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160; </div>
+<div class="line"><a name="l00391"></a><span class="lineno">  391</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
+<div class="line"><a name="l00392"></a><span class="lineno">  392</span>&#160;   <span class="keyword">auto</span></div>
+<div class="line"><a name="l00393"></a><span class="lineno">  393</span>&#160;   async_start(CompletionToken&amp;&amp; token)</div>
+<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160;   {</div>
+<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00396"></a><span class="lineno">  396</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160;         &gt;(detail::start_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_);</div>
+<div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160;   }</div>
+<div class="line"><a name="l00400"></a><span class="lineno">  400</span>&#160; </div>
+<div class="line"><a name="l00401"></a><span class="lineno">  401</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
+<div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160;   <span class="keyword">auto</span> async_ping(CompletionToken&amp;&amp; token)</div>
+<div class="line"><a name="l00403"></a><span class="lineno">  403</span>&#160;   {</div>
+<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160;         &gt;(detail::ping_op&lt;connection&gt;{<span class="keyword">this</span>}, token, resv_);</div>
+<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160;   }</div>
+<div class="line"><a name="l00409"></a><span class="lineno">  409</span>&#160; </div>
+<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> CompletionToken&gt;</div>
+<div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160;   <span class="keyword">auto</span> async_check_idle(CompletionToken&amp;&amp; token)</div>
+<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;   {</div>
+<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160;         , void(boost::system::error_code)</div>
+<div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;         &gt;(detail::check_idle_op&lt;connection&gt;{<span class="keyword">this</span>}, token, check_idle_timer_);</div>
+<div class="line"><a name="l00417"></a><span class="lineno">  417</span>&#160;   }</div>
+<div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160; </div>
+<div class="line"><a name="l00419"></a><span class="lineno">  419</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Adapter, <span class="keyword">class</span> CompletionToken&gt;</div>
+<div class="line"><a name="l00420"></a><span class="lineno">  420</span>&#160;   <span class="keyword">auto</span> async_exec_read(Adapter adapter, std::size_t cmds, CompletionToken token)</div>
+<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;   {</div>
+<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160;      <span class="keywordflow">return</span> boost::asio::async_compose</div>
+<div class="line"><a name="l00423"></a><span class="lineno">  423</span>&#160;         &lt; CompletionToken</div>
+<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160;         , void(boost::system::error_code, std::size_t)</div>
+<div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160;         &gt;(detail::exec_read_op&lt;connection, Adapter&gt;{<span class="keyword">this</span>, adapter, cmds}, token, resv_);</div>
+<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160;   }</div>
+<div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160; </div>
+<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;   <span class="keywordtype">void</span> coalesce_requests()</div>
+<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;   {</div>
+<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;      <span class="comment">// Coaleces all requests: Copies the request to the variables</span></div>
+<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;      <span class="comment">// that won&#39;t be touched while async_write is suspended.</span></div>
+<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160;      BOOST_ASSERT(write_buffer_.empty());</div>
+<div class="line"><a name="l00433"></a><span class="lineno">  433</span>&#160;      BOOST_ASSERT(!reqs_.empty());</div>
+<div class="line"><a name="l00434"></a><span class="lineno">  434</span>&#160; </div>
+<div class="line"><a name="l00435"></a><span class="lineno">  435</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> size = cfg_.<a class="code" href="classaedis_1_1connection.html#a0a3d595109fa506322248ab904902256">coalesce_requests</a> ? reqs_.size() : 1;</div>
+<div class="line"><a name="l00436"></a><span class="lineno">  436</span>&#160;      <span class="keywordflow">for</span> (<span class="keyword">auto</span> i = 0UL; i &lt; size; ++i) {</div>
+<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160;         write_buffer_ += reqs_.at(i)-&gt;req-&gt;payload();</div>
+<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160;         cmds_ += reqs_.at(i)-&gt;req-&gt;commands();</div>
+<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160;         reqs_.at(i)-&gt;written = <span class="keyword">true</span>;</div>
+<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160;      }</div>
+<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160;   }</div>
 <div class="line"><a name="l00442"></a><span class="lineno">  442</span>&#160; </div>
-<div class="line"><a name="l00443"></a><span class="lineno">  443</span>&#160;   <span class="comment">// IO objects</span></div>
-<div class="line"><a name="l00444"></a><span class="lineno">  444</span>&#160;   boost::asio::ip::tcp::resolver resv_;</div>
-<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;   std::shared_ptr&lt;AsyncReadWriteStream&gt; socket_;</div>
-<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160;   boost::asio::steady_timer ping_timer_;</div>
-<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;   boost::asio::steady_timer check_idle_timer_;</div>
-<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160;   boost::asio::steady_timer writer_timer_;</div>
-<div class="line"><a name="l00449"></a><span class="lineno">  449</span>&#160;   boost::asio::steady_timer read_timer_;</div>
-<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160;   channel_type push_channel_;</div>
-<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160; </div>
-<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160;   config cfg_;</div>
-<div class="line"><a name="l00453"></a><span class="lineno">  453</span>&#160;   std::string read_buffer_;</div>
-<div class="line"><a name="l00454"></a><span class="lineno">  454</span>&#160;   std::string write_buffer_;</div>
-<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160;   std::size_t cmds_ = 0;</div>
-<div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160;   reqs_type reqs_;</div>
-<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160; </div>
-<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160;   <span class="comment">// Last time we received data.</span></div>
-<div class="line"><a name="l00459"></a><span class="lineno">  459</span>&#160;   time_point_type last_data_;</div>
-<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160; </div>
-<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;   <span class="comment">// The result of async_resolve.</span></div>
-<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160;   boost::asio::ip::tcp::resolver::results_type endpoints_;</div>
-<div class="line"><a name="l00463"></a><span class="lineno">  463</span>&#160; </div>
-<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160;   resp3::request req_;</div>
-<div class="line"><a name="l00465"></a><span class="lineno">  465</span>&#160;};</div>
-<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160; </div>
-<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="line"><a name="l00443"></a><span class="lineno">  443</span>&#160;   <span class="keyword">using</span> channel_type = boost::asio::experimental::channel&lt;void(boost::system::error_code, std::size_t)&gt;;</div>
+<div class="line"><a name="l00444"></a><span class="lineno">  444</span>&#160; </div>
+<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;   <span class="comment">// IO objects</span></div>
+<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160;   boost::asio::ip::tcp::resolver resv_;</div>
+<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;   std::shared_ptr&lt;AsyncReadWriteStream&gt; socket_;</div>
+<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160;   boost::asio::steady_timer ping_timer_;</div>
+<div class="line"><a name="l00449"></a><span class="lineno">  449</span>&#160;   boost::asio::steady_timer check_idle_timer_;</div>
+<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160;   boost::asio::steady_timer writer_timer_;</div>
+<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160;   boost::asio::steady_timer read_timer_;</div>
+<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160;   channel_type push_channel_;</div>
+<div class="line"><a name="l00453"></a><span class="lineno">  453</span>&#160; </div>
+<div class="line"><a name="l00454"></a><span class="lineno">  454</span>&#160;   config cfg_;</div>
+<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160;   std::string read_buffer_;</div>
+<div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160;   std::string write_buffer_;</div>
+<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160;   std::size_t cmds_ = 0;</div>
+<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160;   reqs_type reqs_;</div>
+<div class="line"><a name="l00459"></a><span class="lineno">  459</span>&#160; </div>
+<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160;   <span class="comment">// Last time we received data.</span></div>
+<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;   time_point_type last_data_;</div>
+<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160; </div>
+<div class="line"><a name="l00463"></a><span class="lineno">  463</span>&#160;   <span class="comment">// The result of async_resolve.</span></div>
+<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160;   boost::asio::ip::tcp::resolver::results_type endpoints_;</div>
+<div class="line"><a name="l00465"></a><span class="lineno">  465</span>&#160; </div>
+<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;   resp3::request req_;</div>
+<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;};</div>
 <div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160; </div>
-<div class="line"><a name="l00469"></a><span class="lineno">  469</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_CONNECTION_HPP</span></div>
+<div class="line"><a name="l00469"></a><span class="lineno">  469</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160; </div>
+<div class="line"><a name="l00471"></a><span class="lineno">  471</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_CONNECTION_HPP</span></div>
 <div class="ttc" id="aclassaedis_1_1connection_html"><div class="ttname"><a href="classaedis_1_1connection.html">aedis::connection</a></div><div class="ttdoc">A high level Redis connection class.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00038">connection.hpp:38</a></div></div>
 <div class="ttc" id="aclassaedis_1_1connection_html_a0081102168c9ef3f5f6d040266e27990"><div class="ttname"><a href="classaedis_1_1connection.html#a0081102168c9ef3f5f6d040266e27990">aedis::connection::connection</a></div><div class="ttdeci">connection(boost::asio::any_io_executor ex, config cfg=config{})</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00072">connection.hpp:72</a></div></div>
 <div class="ttc" id="aclassaedis_1_1connection_html_a0a3d595109fa506322248ab904902256"><div class="ttname"><a href="classaedis_1_1connection.html#a0a3d595109fa506322248ab904902256">aedis::connection::config::coalesce_requests</a></div><div class="ttdeci">bool coalesce_requests</div><div class="ttdoc">Whether to coalesce requests or not.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00064">connection.hpp:64</a></div></div>

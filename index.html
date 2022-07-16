@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.0</font> &#160; <br> High level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.1</font> &#160; <br> High level Redis client library </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -130,7 +130,7 @@ Overview</h1>
 <div class="line">}</div>
 <div class="ttc" id="aclassaedis_1_1connection_html"><div class="ttname"><a href="classaedis_1_1connection.html">aedis::connection</a></div><div class="ttdoc">A high level Redis connection class.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00038">connection.hpp:38</a></div></div>
 <div class="ttc" id="aclassaedis_1_1connection_html_a74065e41d97eb1388f3d081b3195c4ff"><div class="ttname"><a href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff">aedis::connection::async_exec</a></div><div class="ttdeci">auto async_exec(resp3::request const &amp;req, Adapter adapter=adapt(), CompletionToken token=CompletionToken{})</div><div class="ttdoc">Executes a command on the redis server.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00161">connection.hpp:161</a></div></div>
-</div><!-- fragment --><p>For a detailed comparison of Redis clients and the design rationale behind Aedis jump to <a class="el" href="index.html#why-aedis">Why Aedis</a>.</p>
+</div><!-- fragment --><p>For a detailed comparison of Redis clients and the design rationale behind Aedis jump to <a class="el" href="index.html#why-aedis">Why Aedis</a>. For benchmarks see [](<a href="https://github.com/mzimbres/aedis/blob/master/benchmarks/benchmarks.md">https://github.com/mzimbres/aedis/blob/master/benchmarks/benchmarks.md</a>)</p>
 <h1><a class="anchor" id="requests"></a>
 Requests</h1>
 <p>Redis requests are composed of one of more Redis commands (in Redis documentation they are called <a href="https://redis.io/topics/pipelining">pipelines</a>). For example</p>
@@ -139,7 +139,7 @@ Requests</h1>
 <div class="line"><span class="comment">// Command with variable length of arguments.</span></div>
 <div class="line">req.push(<span class="stringliteral">&quot;SET&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;some value&quot;</span>, value, <span class="stringliteral">&quot;EX&quot;</span>, <span class="stringliteral">&quot;2&quot;</span>);</div>
 <div class="line"> </div>
-<div class="line"><span class="comment">// Pushes a set.</span></div>
+<div class="line"><span class="comment">// Pushes a list.</span></div>
 <div class="line">std::list&lt;std::string&gt; list</div>
 <div class="line">   {<span class="stringliteral">&quot;channel1&quot;</span>, <span class="stringliteral">&quot;channel2&quot;</span>, <span class="stringliteral">&quot;channel3&quot;</span>};</div>
 <div class="line">req.push_range(<span class="stringliteral">&quot;SUBSCRIBE&quot;</span>, list);</div>
@@ -225,42 +225,38 @@ Responses</h1>
 <td class="markdownTableBodyNone">Push   </td><td class="markdownTableBodyNone"><code>std::vector</code>, <code>std::map</code>, <code>std::unordered_map</code>   </td><td class="markdownTableBodyNone">Aggregate   </td></tr>
 </table>
 <p>Responses that contain nested aggregates or heterogeneous data types will be given special treatment later in <a class="el" href="index.html#gen-case">The general case</a>. As of this writing, not all RESP3 types are used by the Redis server, which means in practice users will be concerned with a reduced subset of the RESP3 specification. Now let us see some examples</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> dbuffer = dynamic_buffer(buffer);</div>
-<div class="line"> </div>
-<div class="line"><span class="comment">// To ignore the response.</span></div>
-<div class="line">co_await resp3::async_read(socket, dbuffer, adapt());</div>
+<div class="fragment"><div class="line"><span class="comment">// To ignore the response.</span></div>
+<div class="line">co_await db-&gt;async_exec(req, adapt());</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Read in a std::string e.g. get.</span></div>
 <div class="line">std::string str;</div>
-<div class="line">co_await resp3::async_read(socket, dbuffer, adapt(str));</div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Read in a long long e.g. rpush.</span></div>
-<div class="line"><span class="keywordtype">long</span> <span class="keywordtype">long</span> <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab1bc248a7ff2b2e95569f56de68615df">number</a>;</div>
-<div class="line">co_await resp3::async_read(socket, dbuffer, adapt(number));</div>
+<div class="line"><span class="keywordtype">long</span> <span class="keywordtype">long</span> resp;</div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Read in a std::set e.g. smembers.</span></div>
-<div class="line">std::set&lt;T, U&gt; <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a>;</div>
-<div class="line">co_await resp3::async_read(socket, dbuffer, adapt(set));</div>
+<div class="line">std::set&lt;T, U&gt; resp;</div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Read in a std::map e.g. hgetall.</span></div>
-<div class="line">std::map&lt;T, U&gt; <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e">set</a>;</div>
-<div class="line">co_await resp3::async_read(socket, dbuffer, adapt(map));</div>
+<div class="line">std::map&lt;T, U&gt; resp;</div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Read in a std::unordered_map e.g. hgetall.</span></div>
-<div class="line">std::unordered_map&lt;T, U&gt; umap;</div>
-<div class="line">co_await resp3::async_read(socket, dbuffer, adapt(umap));</div>
+<div class="line">std::unordered_map&lt;T, U&gt; resp;</div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Read in a std::vector e.g. lrange.</span></div>
-<div class="line">std::vector&lt;T&gt; vec;</div>
-<div class="line">co_await resp3::async_read(socket, dbuffer, adapt(vec));</div>
-<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57ab1bc248a7ff2b2e95569f56de68615df"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab1bc248a7ff2b2e95569f56de68615df">aedis::resp3::type::number</a></div><div class="ttdeci">@ number</div><div class="ttdoc">Simple.</div></div>
-<div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e">aedis::resp3::type::set</a></div><div class="ttdeci">@ set</div><div class="ttdoc">Aggregate.</div></div>
+<div class="line">std::vector&lt;T&gt; resp;</div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 </div><!-- fragment --><p>In other words, it is straightforward, just pass the result of <code>adapt</code> to the read function and make sure the response data type is compatible with the data structure you are calling <code>adapter(...)</code> with. All standard C++ containers are supported by Aedis.</p>
 <h2><a class="anchor" id="Optional"></a>
 Optional</h2>
 <p>It is not uncommon for apps to access keys that do not exist or that have already expired in the Redis server, to deal with these cases Aedis provides support for <code>boost::optional</code>. To use it, wrap your type around <code>boost::optional</code> like this</p>
-<div class="fragment"><div class="line">boost::optional&lt;std::unordered_map&lt;T, U&gt;&gt; umap;</div>
-<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(umap));</div>
+<div class="fragment"><div class="line">boost::optional&lt;std::unordered_map&lt;T, U&gt;&gt; resp;</div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 </div><!-- fragment --><p>Everything else stays the same, before accessing data, users will have to check or assert the optional contains a value.</p>
 <h2><a class="anchor" id="heterogeneous_aggregates"></a>
 Heterogeneous aggregates</h2>
@@ -280,17 +276,22 @@ Heterogeneous aggregates</h2>
 <div class="line">db.send(<span class="stringliteral">&quot;HGETALL&quot;</span>, <span class="stringliteral">&quot;key3&quot;</span>);</div>
 <div class="line">db.send(<span class="stringliteral">&quot;EXEC&quot;</span>);</div>
 </div><!-- fragment --><p>can be read in the following way</p>
-<div class="fragment"><div class="line">std::tuple&lt;</div>
-<div class="line">   boost::optional&lt;std::string&gt;, <span class="comment">// Response to get</span></div>
-<div class="line">   boost::optional&lt;std::vector&lt;std::string&gt;&gt;, <span class="comment">// Response to lrange</span></div>
-<div class="line">   boost::optional&lt;std::map&lt;std::string, std::string&gt;&gt; <span class="comment">// Response to hgetall</span></div>
-<div class="line">&gt; trans;</div>
+<div class="fragment"><div class="line"><span class="keyword">using</span> trans_type = </div>
+<div class="line">   std::tuple&lt;</div>
+<div class="line">      boost::optional&lt;std::string&gt;, <span class="comment">// get</span></div>
+<div class="line">      boost::optional&lt;std::vector&lt;std::string&gt;&gt;, <span class="comment">// lrange</span></div>
+<div class="line">      boost::optional&lt;std::map&lt;std::string, std::string&gt;&gt; <span class="comment">// hgetall</span></div>
+<div class="line">   &gt;;</div>
 <div class="line"> </div>
-<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// Ignore multi</span></div>
-<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// Ignore get</span></div>
-<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// Ignore lrange</span></div>
-<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer)); <span class="comment">// Ignore hgetall</span></div>
-<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(trans));</div>
+<div class="line">std::tuple&lt;</div>
+<div class="line">   aedis::ignore, <span class="comment">// multi</span></div>
+<div class="line">   aedis::ignore, <span class="comment">// get</span></div>
+<div class="line">   aedis::ignore, <span class="comment">// lrange</span></div>
+<div class="line">   aedis::ignore, <span class="comment">// hgetall</span></div>
+<div class="line">   trans_type, <span class="comment">// exec</span></div>
+<div class="line">&gt; resp;</div>
+<div class="line"> </div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 </div><!-- fragment --><p>Note that above we are not ignoring the response to the commands themselves but whether they have been successfully queued. Only after <code>exec</code> is received Redis will execute them in sequence and send all responses together in an array.</p>
 <h2><a class="anchor" id="Serialization"></a>
 Serialization</h2>
@@ -309,7 +310,7 @@ Serialization</h2>
 </div><!-- fragment --><p>After that, you can start receiving data efficiently in the desired types e.g. <code>mystruct</code>, <code>std::map&lt;std::string, mystruct&gt;</code> etc.</p>
 <h2><a class="anchor" id="gen-case"></a>
 The general case</h2>
-<p>As already mentioned, there are cases where responses to Redis commands won't fit in the model presented above, some examples are</p>
+<p>There are cases where responses to Redis commands won't fit in the model presented above, some examples are</p>
 <ul>
 <li>Commands (like <code>set</code>) whose response don't have a fixed RESP3 type. Expecting an <code>int</code> and receiving a blob-string will result in error. </li>
 <li>RESP3 aggregates that contain nested aggregates can't be read in STL containers. </li>
@@ -334,11 +335,11 @@ The general case</h2>
 </div><!-- fragment --><p>Any response to a Redis command can be received in a <code>std::vector&lt;node&lt;std::string&gt;&gt;</code>. The vector can be seen as a pre-order view of the response tree (<a href="https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR">https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR</a>). Using it is no different that using other types</p>
 <div class="fragment"><div class="line"><span class="comment">// Receives any RESP3 simple data type.</span></div>
 <div class="line">node&lt;std::string&gt; resp;</div>
-<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));</div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Receives any RESP3 simple or aggregate data type.</span></div>
 <div class="line">std::vector&lt;node&lt;std::string&gt;&gt; resp;</div>
-<div class="line">co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));</div>
+<div class="line">co_await db-&gt;async_exec(req, adapt(resp));</div>
 </div><!-- fragment --><p>For example, suppose we want to retrieve a hash data structure from Redis with <code>hgetall</code>, some of the options are</p>
 <ul>
 <li><code>std::vector&lt;node&lt;std::string&gt;</code>: Works always. </li>
