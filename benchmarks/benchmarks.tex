@@ -1,37 +1,3 @@
-% $ time ./echo_server_client 1000 5000
-% ======================================================
-% C++: Asio
-% 
-% Seq single: 2m3.934s
-% Over Redis: 5m2.083s
-% Direct:     31.427s
-% 
-% ======================================================
-% C++: libuv
-% 
-% real	0m43.568s
-% 
-% ======================================================
-% Rust: Tokio
-% 
-% Seq:        186.000s = 1.3 * Async.
-% Direct:      42.214s
-% Over Redis: 142.775s
-% 
-% ======================================================
-% Go
-% 
-% Direct: 78.238s
-% Over Redis: 54.238s
-% 
-% ======================================================
-% Nodejs
-% 
-% Seq:         360.000s = 2.6 * Async.
-% Direct:       72.973s
-% Over Redis: 141.881s
-
-
 \documentclass{article}
 \usepackage{pgfplots}
 \pgfrealjobname{echo}
@@ -41,7 +7,7 @@
 
 \beginpgfgraphicnamed{echo-f0}
 % time ./echo_server_client 1000 5000
-\begin{tikzpicture}
+\begin{tikzpicture}[scale=1.0]
   \begin{axis}[
     y dir=reverse,
     %xbar stacked,
@@ -49,7 +15,7 @@
     %hide x axis,
     bar shift=0pt,
     width=15cm, height=6cm, enlarge y limits=0.5,
-    title={TCP echo server performance},
+    title={TCP Echo Server Performance},
     xlabel={Seconds},
     symbolic y coords={Asio,Tokio,Libuv,Nodejs,Go},
     ytick=data,
@@ -72,7 +38,7 @@
 %debian2[0]$ time ./echo_server_client 1000 1000
 %Go  (1):   1.000s
 %C++ (1):   0.07s
-\begin{tikzpicture}
+\begin{tikzpicture}[scale=1.0]
   \begin{axis}[
     y dir=reverse,
     %xbar stacked,
@@ -80,21 +46,22 @@
     %hide x axis,
     bar shift=0pt,
     width=12cm, height=6cm, enlarge y limits=0.5,
-     xlabel={TCP echo server performance (over Redis)},
-    symbolic y coords={Asio,Rust/Tokio,Libuv,Nodejs,Go},
+     title={TCP Echo Server Performance (over Redis)},
+    xlabel={Seconds},
+    symbolic y coords={Aedis,Rust-rs,Libuv,Node-redis,Go-redis},
     ytick=data,
     %bar width=1cm,
     nodes near coords,
     nodes near coords align={horizontal},
     ]
     \addplot coordinates {
-       (12.6,Asio)
-       (28.8,Nodejs)
-       (352.4,Go)
+       (12.6,Aedis)
+       (28.8,Node-redis)
+       (352.4,Go-redis)
     };
     %\addplot coordinates {
     %   (30.0,Asio)
-    %   (90.6,Rust/Tokio)
+    %   (90.6,Rust-rs)
     %   (0.0,Libuv)
     %   (68.9,Nodejs)
     %   (0.0,Go)
