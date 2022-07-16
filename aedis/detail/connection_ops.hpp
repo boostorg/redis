@@ -22,7 +22,6 @@
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/read.hpp>
-#include <aedis/resp3/exec.hpp>
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/request.hpp>
 

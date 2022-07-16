@@ -70,7 +70,6 @@ nobase_include_HEADERS =\
   $(top_srcdir)/aedis/resp3/detail/parser.hpp\
   $(top_srcdir)/aedis/resp3/type.hpp\
   $(top_srcdir)/aedis/resp3/read.hpp\
-  $(top_srcdir)/aedis/resp3/exec.hpp\
   $(top_srcdir)/aedis/resp3/write.hpp\
   $(top_srcdir)/aedis/resp3/request.hpp\
   $(top_srcdir)/aedis/resp3/detail/impl/parser.ipp\
@@ -88,13 +87,15 @@ EXTRA_DIST += $(top_srcdir)/doc/DoxygenLayout.xml
 EXTRA_DIST += $(top_srcdir)/doc/aedis.css
 EXTRA_DIST += $(top_srcdir)/doc/htmlfooter.html
 EXTRA_DIST += $(top_srcdir)/doc/htmlheader.html
+EXTRA_DIST += $(top_srcdir)/benchmarks/benchmarks.md
+EXTRA_DIST += $(top_srcdir)/benchmarks/benchmarks.tex
 EXTRA_DIST += $(top_srcdir)/benchmarks/c/libuv/echo_server_direct.c
 EXTRA_DIST += $(top_srcdir)/benchmarks/c/libuv/README.md
 EXTRA_DIST += $(top_srcdir)/benchmarks/go/echo_server_direct.go
-EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/echo_server_direct.js
-EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/echo_server_over_redis.js
-EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/package.json
-EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/package-lock.json
+EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/echo_server_direct/echo_server_direct.js
+EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/echo_server_direct/package.json
+EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/echo_server_over_redis/echo_server_over_redis.js
+EXTRA_DIST += $(top_srcdir)/benchmarks/nodejs/echo_server_over_redis/package.json
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_direct/Cargo.toml
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_direct/src/main.rs
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_over_redis/Cargo.toml
@@ -102,7 +103,6 @@ EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_over_redis/src/main.rs
 
 .PHONY: doc
 doc:
-	rm -rf ../aedis-gh-pages/*
 	doxygen doc/Doxyfile
 
 .PHONY: bench

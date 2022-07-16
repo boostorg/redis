@@ -13,7 +13,6 @@
 #include <aedis/connection.hpp>
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/write.hpp>
-#include <aedis/resp3/exec.hpp>
 #include <aedis/resp3/request.hpp>
 #include <aedis/adapter/adapt.hpp>
 
@@ -66,7 +65,7 @@
     \endcode
 
     For a detailed comparison of Redis clients and the design
-    rationale behind Aedis jump to \ref why-aedis.
+    rationale behind Aedis jump to \ref why-aedis. For benchmarks see [](https://github.com/mzimbres/aedis/blob/master/benchmarks/benchmarks.md)
 
     \section requests Requests
 
@@ -80,7 +79,7 @@
     // Command with variable length of arguments.
     req.push("SET", "key", "some value", value, "EX", "2");
 
-    // Pushes a set.
+    // Pushes a list.
     std::list<std::string> list
        {"channel1", "channel2", "channel3"};
     req.push_range("SUBSCRIBE", list);
@@ -176,34 +175,32 @@
     subset of the RESP3 specification. Now let us see some examples
 
     @code
-    auto dbuffer = dynamic_buffer(buffer);
-
     // To ignore the response.
-    co_await resp3::async_read(socket, dbuffer, adapt());
+    co_await db->async_exec(req, adapt());
 
     // Read in a std::string e.g. get.
     std::string str;
-    co_await resp3::async_read(socket, dbuffer, adapt(str));
+    co_await db->async_exec(req, adapt(resp));
 
     // Read in a long long e.g. rpush.
-    long long number;
-    co_await resp3::async_read(socket, dbuffer, adapt(number));
+    long long resp;
+    co_await db->async_exec(req, adapt(resp));
 
     // Read in a std::set e.g. smembers.
-    std::set<T, U> set;
-    co_await resp3::async_read(socket, dbuffer, adapt(set));
+    std::set<T, U> resp;
+    co_await db->async_exec(req, adapt(resp));
 
     // Read in a std::map e.g. hgetall.
-    std::map<T, U> set;
-    co_await resp3::async_read(socket, dbuffer, adapt(map));
+    std::map<T, U> resp;
+    co_await db->async_exec(req, adapt(resp));
 
     // Read in a std::unordered_map e.g. hgetall.
-    std::unordered_map<T, U> umap;
-    co_await resp3::async_read(socket, dbuffer, adapt(umap));
+    std::unordered_map<T, U> resp;
+    co_await db->async_exec(req, adapt(resp));
 
     // Read in a std::vector e.g. lrange.
-    std::vector<T> vec;
-    co_await resp3::async_read(socket, dbuffer, adapt(vec));
+    std::vector<T> resp;
+    co_await db->async_exec(req, adapt(resp));
     @endcode
 
     In other words, it is straightforward, just pass the result of \c
@@ -219,8 +216,8 @@
     wrap your type around \c boost::optional like this
 
     @code
-    boost::optional<std::unordered_map<T, U>> umap;
-    co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(umap));
+    boost::optional<std::unordered_map<T, U>> resp;
+    co_await db->async_exec(req, adapt(resp));
     @endcode
 
     Everything else stays the same, before accessing data, users will
@@ -261,17 +258,22 @@
     can be read in the following way
 
     @code
-    std::tuple<
-       boost::optional<std::string>, // Response to get
-       boost::optional<std::vector<std::string>>, // Response to lrange
-       boost::optional<std::map<std::string, std::string>> // Response to hgetall
-    > trans;
+    using trans_type = 
+       std::tuple<
+          boost::optional<std::string>, // get
+          boost::optional<std::vector<std::string>>, // lrange
+          boost::optional<std::map<std::string, std::string>> // hgetall
+       >;
 
-    co_await resp3::async_read(socket, dynamic_buffer(buffer)); // Ignore multi
-    co_await resp3::async_read(socket, dynamic_buffer(buffer)); // Ignore get
-    co_await resp3::async_read(socket, dynamic_buffer(buffer)); // Ignore lrange
-    co_await resp3::async_read(socket, dynamic_buffer(buffer)); // Ignore hgetall
-    co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(trans));
+    std::tuple<
+       aedis::ignore, // multi
+       aedis::ignore, // get
+       aedis::ignore, // lrange
+       aedis::ignore, // hgetall
+       trans_type, // exec
+    > resp;
+
+    co_await db->async_exec(req, adapt(resp));
     @endcode
 
     Note that above we are not ignoring the response to the commands
@@ -317,7 +319,7 @@
 
     \subsection gen-case The general case
 
-    As already mentioned, there are cases where responses to Redis
+    There are cases where responses to Redis
     commands won't fit in the model presented above, some examples are
 
     @li Commands (like \c set) whose response don't have a fixed
@@ -356,11 +358,11 @@
     @code
     // Receives any RESP3 simple data type.
     node<std::string> resp;
-    co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
+    co_await db->async_exec(req, adapt(resp));
 
     // Receives any RESP3 simple or aggregate data type.
     std::vector<node<std::string>> resp;
-    co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(resp));
+    co_await db->async_exec(req, adapt(resp));
     @endcode
 
     For example, suppose we want to retrieve a hash data structure

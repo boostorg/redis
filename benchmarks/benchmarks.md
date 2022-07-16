@@ -1,20 +1,21 @@
 # TCP echo server performance.
 
-This document describe benchmakrs I made in implementations of TCP
-echo server I implemented in different languages.  The main
-motivations for choosing a TCP echo server as a benchmark program are
+This document describe benchmarks the performance of TCP echo servers
+I implemented in different languages using different Redis clients.
+The main motivations for choosing a TCP echo server as a benchmark
+program are
 
    * Simple to implement and does not require expertise level in most languages.
    * I/O bound: Echo servers have very low CPU consumption in general
-     and  therefore an excelent measure of the ability of a program to
-     server concurrent requests.
+     and  therefore are excelent as a measure of the ability of a
+     program to server concurrent requests.
    * It simulates very well a typical backend in regard to concurrency.
 
 I also imposed some constraints on the implementations
 
-   * It should not require me to write too much code.
+   * It should be simple enough and not require writing too much code.
    * Favor the use standard idioms and avoid optimizations that require expert level.
-   * Makes no use of complex things like connection and thread pool.
+   * Avoid the use of complex things like connection and thread pool.
 
 ## No Redis
 
@@ -24,9 +25,10 @@ be seen below
 
 ![](https://mzimbres.github.io/aedis/tcp-echo-direct.png)
 
-The tests were performed with 1000 TCP connection on the localhost
-where latency is 0.07ms on average. On higher latency networks the
-difference among libraries is expected to decrease. 
+The tests were performed with a 1000 concurrent TCP connection on the
+localhost where latency is 0.07ms on average on my machine. On higher
+latency networks the difference among libraries is expected to
+decrease. 
 
 ### Remarks:
 
@@ -34,7 +36,7 @@ difference among libraries is expected to decrease.
    * I did expect nodejs to come a little behind given it is is
      javascript code. Otherwise I did expect it to have similar
      performance to libuv since it is the framework behind it.
-   * The go performance was no surprise: decent and not some much far behind nodejs.
+   * Go performance did not surprise me: decent and not some much far behind nodejs.
 
 The code used in the benchmarks can be found at
 
@@ -46,38 +48,41 @@ The code used in the benchmarks can be found at
 
 ## Echo over Redis
 
-This is similar to the echo server described above but the message is
-echoed by Redis. The echo server works as a proxy between the
-client and the Redis server. The result can be seen below
+This is similar to the echo server described above but messages are
+echoed by Redis and not by the echo-server itself, which acts
+as a proxy between the client and the Redis server. The result
+can be seen below
 
 ![](https://mzimbres.github.io/aedis/tcp-echo-over-redis.png)
 
-The tests were also performed with 1000 TCP connections on a network
-latency is 35ms on average.
+The tests were performed on a network where latency is 35ms on
+average, otherwise it is equal to the benchmarks above regarding the
+number of TCP connection. The result can be seen below
 
 ### Remarks
 
 As the reader can see, the Libuv and the Rust test are not depicted
-above, reasons are
+in the graph, the reasons are
 
    * [redis-rs](https://github.com/redis-rs/redis-rs): This client
      comes so far behind that it can't even be represented together
-     with the other benchmarks without making them insignificant.  I
-     don't know for sure why it is so slow, I suppose however it has
+     with the other benchmarks without making them look insignificant.  I
+     don't know for sure why it is so slow, I suppose it has
      something to do with its lack of proper
      [pipelining](https://redis.io/docs/manual/pipelining/) support.
      In fact, the more TCP connections I lauch the worst its
      performance gets.
 
    * Libuv: I left it out because it would require too much work to
-     make it have a good performance. More specifically, I would have
-     to use hiredis and implement support for pipelines manually.
+     write it and make it have a good performance. More specifically,
+     I would have to use hiredis and implement support for pipelines
+     manually.
 
 The code used in the benchmarks can be found at
 
-   * [Aedis](https://github.com/mzimbres/aedis): [Code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/examples/echo_server.cpp)
-   * [node-redis](https://github.com/redis/node-redis): [Code](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_over_redis)
-   * [go-redis](https://github.com/go-redis/redis): [Go](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go)
+   * [Aedis](https://github.com/mzimbres/aedis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/examples/echo_server.cpp)
+   * [node-redis](https://github.com/redis/node-redis): [code](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_over_redis)
+   * [go-redis](https://github.com/go-redis/redis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go)
 
 ## Contributing
 
