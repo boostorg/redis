@@ -5,6 +5,6 @@
  */
 
 #include <aedis/impl/error.ipp>
-#include <aedis/impl/command.ipp>
+#include <aedis/resp3/impl/request.ipp>
 #include <aedis/resp3/impl/type.ipp>
 #include <aedis/resp3/detail/impl/parser.ipp>

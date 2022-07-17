@@ -4,9 +4,11 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <aedis/command.hpp>
+#include <aedis/resp3/request.hpp>
 
 namespace aedis {
+namespace resp3 {
+namespace detail {
 
 bool has_push_response(boost::string_view cmd)
 {
@@ -16,4 +18,6 @@ bool has_push_response(boost::string_view cmd)
    return false;
 }
 
+} // detail
+} // resp3
 } // aedis

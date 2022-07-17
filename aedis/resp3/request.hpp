@@ -7,8 +7,9 @@
 #ifndef AEDIS_RESP3_REQUEST_HPP
 #define AEDIS_RESP3_REQUEST_HPP
 
-#include <boost/hana.hpp>
 #include <aedis/resp3/compose.hpp>
+#include <boost/hana.hpp>
+#include <boost/utility/string_view.hpp>
 
 // NOTE: Consider detecting tuples in the type in the parameter pack
 // to calculate the header size correctly.
@@ -18,6 +19,11 @@
 
 namespace aedis {
 namespace resp3 {
+namespace detail {
+
+bool has_push_response(boost::string_view cmd);
+
+} // detail
 
 /** @brief Creates Redis requests from user data.
  *  \ingroup any
@@ -85,7 +91,7 @@ public:
       resp3::add_bulk(payload_, make_tuple(args...));
 
       auto const after = payload_.size();
-      if (!has_push_response(cmd))
+      if (!detail::has_push_response(cmd))
          ++commands_;
    }
 
@@ -131,7 +137,7 @@ public:
 	 resp3::add_bulk(payload_, *begin);
 
       auto const after = payload_.size();
-      if (!has_push_response(cmd))
+      if (!detail::has_push_response(cmd))
          ++commands_;
    }
 
@@ -171,7 +177,7 @@ public:
 	 resp3::add_bulk(payload_, *begin);
 
       auto const after = payload_.size();
-      if (!has_push_response(cmd))
+      if (!detail::has_push_response(cmd))
          ++commands_;
    }
 

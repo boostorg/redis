@@ -8,16 +8,11 @@
 #define AEDIS_HPP
 
 #include <aedis/error.hpp>
-#include <aedis/command.hpp>
 #include <aedis/adapt.hpp>
 #include <aedis/connection.hpp>
-#include <aedis/resp3/read.hpp>
-#include <aedis/resp3/write.hpp>
 #include <aedis/resp3/request.hpp>
-#include <aedis/adapter/adapt.hpp>
 
 // \li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
-// TODO: Reconnect support.
 // TODO: Remove conflicts of the adapt function.
 
 /** \mainpage Documentation
