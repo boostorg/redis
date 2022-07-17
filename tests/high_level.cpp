@@ -4,10 +4,9 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <map>
-
 //#define BOOST_ASIO_ENABLE_HANDLER_TRACKING
+
+#include <iostream>
 #include <boost/asio.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
@@ -17,25 +16,16 @@
 
 #include "check.hpp"
 
-//std::cout << "aaaa " << ec.message() << " " << cmd << " " << n << std::endl;
-
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
 
 using aedis::resp3::request;
 using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
-using tcp = net::ip::tcp;
-using boost::system::error_code;
-
-auto print_read = [](auto cmd, auto n)
-{
-   std::cout << cmd << ": " << n << std::endl;
-};
 
 //----------------------------------------------------------------
 
+// Tests whether resolve fails with the correct error.
 void test_resolve()
 {
    connection::config cfg;
@@ -68,14 +58,15 @@ void test_connect()
 //----------------------------------------------------------------
 
 // Test if quit causes async_run to exit.
-void test_quit1()
+void test_quit1(connection::config const& cfg)
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
+   auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
    req.push("HELLO", 3);
    req.push("QUIT");
+
    db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
       expect_no_error(ec, "test_quit1");
    });
@@ -87,14 +78,14 @@ void test_quit1()
    ioc.run();
 }
 
-void test_quit2()
+void test_quit2(connection::config const& cfg)
 {
    request req;
    req.push("HELLO", 3);
    req.push("QUIT");
 
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
+   auto db = std::make_shared<connection>(ioc, cfg);
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto n){
       expect_error(ec, net::error::misc_errors::eof, "test_quit2");
    });
@@ -102,27 +93,44 @@ void test_quit2()
    ioc.run();
 }
 
+void test_quit()
+{
+   connection::config cfg;
+
+   cfg.coalesce_requests = true;
+   test_quit1(cfg);
+
+   cfg.coalesce_requests = false;
+   test_quit1(cfg);
+
+   cfg.coalesce_requests = true;
+   test_quit2(cfg);
+
+   cfg.coalesce_requests = false;
+   test_quit2(cfg);
+}
+
 //----------------------------------------------------------------
 
 net::awaitable<void>
-push_consumer1(std::shared_ptr<connection> db)
+push_consumer1(std::shared_ptr<connection> db, bool& received, char const* msg)
 {
    {
       auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_no_error(ec, "push_consumer1");
+      expect_no_error(ec, msg);
+      received = true;
    }
 
    {
       auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, "push_consumer1");
+      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, msg);
    }
 }
 
-// Tests whether a push is indeed delivered.
-void test_push1()
+void test_push_is_received1(connection::config const& cfg)
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
+   auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
    req.push("HELLO", 3);
@@ -130,11 +138,18 @@ void test_push1()
    req.push("QUIT");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, net::error::misc_errors::eof, "test_push1");
+      expect_error(ec, net::error::misc_errors::eof, "test_push_is_received1");
    });
 
-   net::co_spawn(ioc.get_executor(), push_consumer1(db), net::detached);
+   bool received = false;
+   net::co_spawn(
+      ioc.get_executor(),
+      push_consumer1(db, received, "test_push_is_received1"),
+      net::detached);
+
    ioc.run();
+
+   expect_true(received);
 }
 
 //----------------------------------------------------------------
@@ -145,7 +160,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
       request req;
       req.push("QUIT");
       db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
-         expect_no_error(ec, "test_quit1");
+         expect_no_error(ec, "test_reconnect");
       });
 
       auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
@@ -156,7 +171,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
       request req;
       req.push("QUIT");
       db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
-         expect_no_error(ec, "test_quit1");
+         expect_no_error(ec, "test_reconnect");
       });
 
       auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
@@ -178,10 +193,8 @@ void test_reconnect()
 }
 
 // Checks whether we get idle timeout when no push reader is set.
-void test_no_push_reader1()
+void test_missing_push_reader1(connection::config const& cfg)
 {
-   connection::config cfg;
-
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
 
@@ -190,16 +203,14 @@ void test_no_push_reader1()
    req.push("SUBSCRIBE", "channel");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader1");
+      expect_error(ec, aedis::error::idle_timeout, "test_missing_push_reader1");
    });
 
    ioc.run();
 }
 
-void test_no_push_reader2()
+void test_missing_push_reader2(connection::config const& cfg)
 {
-   connection::config cfg;
-
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
 
@@ -208,16 +219,14 @@ void test_no_push_reader2()
    req.push("SUBSCRIBE");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader2");
+      expect_error(ec, aedis::error::idle_timeout, "test_missing_push_reader2");
    });
 
    ioc.run();
 }
 
-void test_no_push_reader3()
+void test_missing_push_reader3(connection::config const& cfg)
 {
-   connection::config cfg;
-
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
 
@@ -227,7 +236,7 @@ void test_no_push_reader3()
    req.push("SUBSCRIBE");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::idle_timeout, "test_no_push_reader3");
+      expect_error(ec, aedis::error::idle_timeout, "test_missing_push_reader3");
    });
 
    ioc.run();
@@ -258,10 +267,7 @@ void test_idle()
    ioc.run();
 }
 
-auto handler =[](auto ec, auto...)
-   { std::cout << ec.message() << std::endl; };
-
-void test_push2()
+void test_push_is_received2(connection::config const& cfg)
 {
    request req1;
    req1.push("HELLO", 3);
@@ -274,18 +280,29 @@ void test_push2()
    req3.push("PING", "Message2");
    req3.push("QUIT");
 
-   std::tuple<std::string, std::string> resp;
-
    net::io_context ioc;
-   connection db{ioc};
-   db.async_exec(req1, aedis::adapt(resp), handler);
-   db.async_exec(req2, aedis::adapt(resp), handler);
-   db.async_exec(req3, aedis::adapt(resp), handler);
-   db.async_run("127.0.0.1", "6379", [&db](auto ec, auto...) {
-      std::cout << ec.message() << std::endl;
-      db.cancel_requests();
+
+   auto db = std::make_shared<connection>(ioc, cfg);
+
+   auto handler =[](auto ec, auto...)
+      { expect_no_error(ec, "test_push_is_received2"); };
+
+   db->async_exec(req1, aedis::adapt(), handler);
+   db->async_exec(req2, aedis::adapt(), handler);
+   db->async_exec(req3, aedis::adapt(), handler);
+
+   db->async_run("127.0.0.1", "6379", [db](auto ec, auto...) {
+      expect_error(ec, net::error::misc_errors::eof, "test_push_is_received2");
    });
+
+   bool received = false;
+   net::co_spawn(
+      ioc.get_executor(),
+      push_consumer1(db, received, "test_push_is_received2"),
+      net::detached);
+
    ioc.run();
+   expect_true(received);
 }
 
 net::awaitable<void>
@@ -295,10 +312,13 @@ push_consumer3(std::shared_ptr<connection> db)
       co_await db->async_read_push(aedis::adapt(), net::use_awaitable);
 }
 
-void test_push3()
+// Test many subscribe requests.
+void test_push_many_subscribes(connection::config const& cfg)
 {
+   request req0;
+   req0.push("HELLO", 3);
+
    request req1;
-   req1.push("HELLO", 3);
    req1.push("PING", "Message1");
 
    request req2;
@@ -307,8 +327,14 @@ void test_push3()
    request req3;
    req3.push("QUIT");
 
+   auto handler =[](auto ec, auto...)
+   {
+      expect_no_error(ec, "test_push_many_subscribes");
+   };
+
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
+   auto db = std::make_shared<connection>(ioc, cfg);
+   db->async_exec(req0, aedis::adapt(), handler);
    db->async_exec(req1, aedis::adapt(), handler);
    db->async_exec(req2, aedis::adapt(), handler);
    db->async_exec(req2, aedis::adapt(), handler);
@@ -320,72 +346,43 @@ void test_push3()
    db->async_exec(req1, aedis::adapt(), handler);
    db->async_exec(req2, aedis::adapt(), handler);
    db->async_exec(req3, aedis::adapt(), handler);
+
    db->async_run("127.0.0.1", "6379",  [db](auto ec, auto...) {
-      db->cancel_requests();
+      expect_error(ec, net::error::misc_errors::eof, "test_quit1");
    });
+
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
    ioc.run();
 }
 
-void test_exec_while_processing()
+void test_push()
 {
-   request req1;
-   req1.push("HELLO", 3);
-   req1.push("PING", "Message1");
+   connection::config cfg;
 
-   request req2;
-   req2.push("SUBSCRIBE", "channel");
+   cfg.coalesce_requests = true;
+   test_push_is_received1(cfg);
+   test_push_is_received2(cfg);
+   test_push_many_subscribes(cfg);
+   test_missing_push_reader1(cfg);
+   test_missing_push_reader3(cfg);
 
-   request req3;
-   req3.push("QUIT");
-
-   net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
-
-   db->async_exec(req1, aedis::adapt(), [db, &req1](auto ec, auto) {
-      db->async_exec(req1, aedis::adapt(), handler);
-   });
-
-   db->async_exec(req1, aedis::adapt(), [db, &req2](auto ec, auto) {
-      db->async_exec(req2, aedis::adapt(), handler);
-   });
-
-   db->async_exec(req2, aedis::adapt(), [db, &req2](auto ec, auto) {
-      db->async_exec(req2, aedis::adapt(), handler);
-   });
-
-   db->async_exec(req1, aedis::adapt(), [db, &req1](auto ec, auto) {
-      db->async_exec(req1, aedis::adapt(), handler);
-   });
-
-   db->async_exec(req2, aedis::adapt(), [db, &req3](auto ec, auto) {
-      db->async_exec(req3, aedis::adapt(), handler);
-   });
-
-   db->async_run("127.0.0.1", "6379", [db](auto ec, auto...) {
-      db->cancel_requests();
-   });
-   net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);
-   ioc.run();
-   std::cout << "Success: test_exec_while_processing()" << std::endl;
+   cfg.coalesce_requests = false;
+   test_push_is_received1(cfg);
+   test_push_is_received2(cfg);
+   test_push_many_subscribes(cfg);
+   test_missing_push_reader2(cfg);
+   test_missing_push_reader3(cfg);
 }
 
 int main()
 {
    test_resolve();
    test_connect();
-   test_quit1();
-   test_quit2();
-   test_push1();
-   test_push2();
-   test_push3();
-   test_no_push_reader1();
-   test_no_push_reader2();
-   test_no_push_reader3();
+   test_quit();
+   test_push();
    test_reconnect();
-   test_exec_while_processing();
 
-   // Must come last as it send a client pause.
+   // Must come last as it sends a client pause.
    test_idle();
 }
 

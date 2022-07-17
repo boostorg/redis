@@ -7,6 +7,17 @@
 #include <iostream>
 #include <stdlib.h>
 
+void expect_true(bool a, std::string const& msg = "")
+{
+   if (a) {
+      if (!msg.empty())
+         std::cout << "Success: " << msg << std::endl;
+   } else {
+     std::cout << "Error: " << msg << std::endl;
+     exit(EXIT_FAILURE);
+   }
+}
+
 template <class T>
 void expect_eq(T const& a, T const& b, std::string const& msg = "")
 {
