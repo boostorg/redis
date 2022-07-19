@@ -90,17 +90,15 @@ struct assigner<0> {
   }
 };
 
-// TODO: I am not sure we need the mp_unique below.
 template <class Tuple>
 class static_aggregate_adapter {
 private:
    using adapters_array_type = 
       std::array<
-         boost::mp11::mp_unique<
-            boost::mp11::mp_rename<
-               boost::mp11::mp_transform<
-                  adapter_t, Tuple>,
-                  boost::variant2::variant>>,
+         boost::mp11::mp_rename<
+            boost::mp11::mp_transform<
+               adapter_t, Tuple>,
+               boost::variant2::variant>,
          std::tuple_size<Tuple>::value>;
 
    std::size_t i_ = 0;

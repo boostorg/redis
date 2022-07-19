@@ -24,8 +24,6 @@
 
 namespace aedis {
 
-// https://redis.io/docs/reference/sentinel-clients
-
 /** \brief A high level Redis connection class.
  *  \ingroup any
  *
@@ -298,9 +296,15 @@ public:
    }
 
 private:
+   using channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
+   using clock_type = std::chrono::steady_clock;
+   using clock_traits_type = boost::asio::wait_traits<clock_type>;
+   using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
+   using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
+
    struct req_info {
       req_info(executor_type ex) : timer{ex} {}
-      boost::asio::steady_timer timer;
+      timer_type timer;
       resp3::request const* req = nullptr;
       std::size_t cmds = 0;
       bool stop = false;
@@ -369,7 +373,6 @@ private:
          >(detail::connect_with_timeout_op<connection>{this}, token, resv_);
    }
 
-   // Loops on async_read_with_timeout described above.
    template <class CompletionToken>
    auto reader(CompletionToken&& token)
    {
@@ -439,12 +442,6 @@ private:
          reqs_.at(i)->written = true;
       }
    }
-
-   using channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
-   using clock_type = std::chrono::steady_clock;
-   using clock_traits_type = boost::asio::wait_traits<clock_type>;
-   using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
-   using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
 
    // IO objects
    resolver_type resv_;

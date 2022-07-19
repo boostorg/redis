@@ -1,14 +1,12 @@
 # TCP echo server performance
 
-This document describe benchmarks the performance of TCP echo servers
-I implemented in different languages using different Redis clients.
-The main motivations for choosing a TCP echo server as a benchmark
-program are
+This document benchmarks the performance of TCP echo servers I
+implemented in different languages using different Redis clients.  The
+main motivations for choosing an echo server are
 
    * Simple to implement and does not require expertise level in most languages.
    * I/O bound: Echo servers have very low CPU consumption in general
-     and  therefore are excelent as a measure of the ability of a
-     program to server concurrent requests.
+     and  therefore are excelent to  measure how a program handles concurrent requests.
    * It simulates very well a typical backend in regard to concurrency.
 
 I also imposed some constraints on the implementations
@@ -56,8 +54,8 @@ can be seen below
 ![](https://mzimbres.github.io/aedis/tcp-echo-over-redis.png)
 
 The tests were performed on a network where latency is 35ms on
-average, otherwise it is equal to the benchmarks above regarding the
-number of TCP connections.
+average, otherwise it uses the same number of TCP connections
+as the previous example.
 
 ### Remarks
 
@@ -66,8 +64,8 @@ in the graph, the reasons are
 
    * [redis-rs](https://github.com/redis-rs/redis-rs): This client
      comes so far behind that it can't even be represented together
-     with the other benchmarks without making them look insignificant.  I
-     don't know for sure why it is so slow, I suppose it has
+     with the other benchmarks without making them look insignificant.
+     I don't know for sure why it is so slow, I suppose it has
      something to do with its lack of proper
      [pipelining](https://redis.io/docs/manual/pipelining/) support.
      In fact, the more TCP connections I lauch the worst its
@@ -83,6 +81,10 @@ The code used in the benchmarks can be found at
    * [Aedis](https://github.com/mzimbres/aedis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/examples/echo_server.cpp)
    * [node-redis](https://github.com/redis/node-redis): [code](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_over_redis)
    * [go-redis](https://github.com/go-redis/redis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go)
+
+## Running the benchmarks
+
+Run one of the echo-server programs in one terminal and the [echo-server-client](https://github.com/mzimbres/aedis/blob/42880e788bec6020dd018194075a211ad9f339e8/benchmarks/cpp/asio/echo_server_client.cpp) in another.
 
 ## Contributing
 

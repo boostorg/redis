@@ -12,8 +12,17 @@
 #include <aedis/connection.hpp>
 #include <aedis/resp3/request.hpp>
 
-// \li Support for Redis [sentinel](https://redis.io/docs/manual/sentinel).
-// TODO: Remove conflicts of the adapt function.
+// TODO: Support for Redis sentinel:
+// 
+//    - https://redis.io/docs/manual/sentinel and .
+//    - https://redis.io/docs/reference/sentinel-clients
+//
+// TODO: Should we avoid conflicts of
+//
+//    - aedis::adapt and
+//    - aedis::resp3::adapt
+//
+// function.
 
 /** \mainpage Documentation
     \tableofcontents
