@@ -4,14 +4,16 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <queue>
-#include <vector>
 #include <string>
 #include <iostream>
 
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>
+
+#include "unistd.h"
+
+#if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 
 namespace net = boost::asio;
 using aedis::adapt;
@@ -21,139 +23,67 @@ using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::accep
 using connection = aedis::connection<tcp_socket>;
 using response_type = std::vector<aedis::resp3::node<std::string>>;
 
-class user_session:
-   public std::enable_shared_from_this<user_session> {
-public:
-   user_session(tcp_socket socket)
-   : socket_(std::move(socket))
-   , timer_(socket_.get_executor())
-      { timer_.expires_at(std::chrono::steady_clock::time_point::max()); }
+// Chat over redis pubsub. To test, run this program from different
+// terminals and type messages to stdin. You may also want to run
+//
+//    $ redis-cli
+//    > monitor
+//
+// To see the message traffic.
 
-   void start(std::shared_ptr<connection> db)
-   {
-      co_spawn(socket_.get_executor(),
-          [self = shared_from_this(), db]{ return self->reader(db); },
-          net::detached);
+net::awaitable<void> reader(std::shared_ptr<connection> db)
+{
+   try {
+      request req;
+      req.push("HELLO", 3);
+      req.push("SUBSCRIBE", "chat-channel");
+      co_await db->async_exec(req);
 
-      co_spawn(socket_.get_executor(),
-          [self = shared_from_this()]{ return self->writer(); },
-          net::detached);
+      for (response_type resp;;) {
+         co_await db->async_read_push(adapt(resp));
+         std::cout << "> " << resp.at(3).value;
+         resp.clear();
+      }
+   } catch (std::exception const&) {
    }
+}
 
-   void deliver(std::string const& msg)
-   {
-      write_msgs_.push_back(msg);
-      timer_.cancel_one();
-   }
-
-private:
-   net::awaitable<void> reader(std::shared_ptr<connection> db)
-   {
-      try {
-         std::string msg;
+net::awaitable<void>
+run(net::posix::stream_descriptor& in, std::shared_ptr<connection> db)
+{
+   try {
+      for (std::string msg;;) {
+         std::size_t n = co_await net::async_read_until(in, net::dynamic_buffer(msg, 1024), "\n", net::use_awaitable);
          request req;
-         auto dbuffer = net::dynamic_buffer(msg, 1024);
-         for (;;) {
-            auto const n = co_await net::async_read_until(socket_, dbuffer, "\n");
-            req.push("PUBLISH", "channel", msg);
-            co_await db->async_exec(req);
-            req.clear();
-            msg.erase(0, n);
-         }
-      } catch (std::exception&) {
-         stop();
+         req.push("PUBLISH", "chat-channel", msg);
+         co_await db->async_exec(req);
+         msg.erase(0, n);
       }
-   }
 
-   net::awaitable<void> writer()
-   {
-      try {
-         while (socket_.is_open()) {
-            if (write_msgs_.empty()) {
-               boost::system::error_code ec;
-               co_await timer_.async_wait(net::redirect_error(net::use_awaitable, ec));
-            } else {
-               co_await net::async_write(socket_, net::buffer(write_msgs_.front()));
-               write_msgs_.pop_front();
-            }
-         }
-      } catch (std::exception&) {
-        stop();
-      }
-   }
-
-   void stop()
-   {
-      socket_.close();
-      timer_.cancel();
-   }
-
-   tcp_socket socket_;
-   net::steady_timer timer_;
-   std::deque<std::string> write_msgs_;
-};
-
-using sessions_type = std::vector<std::shared_ptr<user_session>>;
-
-net::awaitable<void>
-reader(
-   std::shared_ptr<connection> db,
-   std::shared_ptr<sessions_type> sessions)
-{
-   request req;
-   req.push("SUBSCRIBE", "channel");
-   co_await db->async_exec(req);
-
-   for (response_type resp;;) {
-      co_await db->async_read_push(adapt(resp));
-
-      for (auto& session: *sessions)
-         session->deliver(resp.at(3).value);
-
-      resp.clear();
+   } catch (std::exception const& e) {
+      std::cerr << "Error: " << e.what() << std::endl;
    }
 }
-
-net::awaitable<void>
-listener(
-    std::shared_ptr<tcp_acceptor> acc,
-    std::shared_ptr<connection> db,
-    std::shared_ptr<sessions_type> sessions)
-{
-   request req;
-   req.push("HELLO", 3);
-   co_await db->async_exec(req);
-
-   for (;;) {
-      auto socket = co_await acc->async_accept();
-      auto session = std::make_shared<user_session>(std::move(socket));
-      sessions->push_back(session);
-      session->start(db);
-   }
-}
-
-auto handler =[](auto ec, auto...)
-   { std::cout << ec.message() << std::endl; };
 
 int main()
 {
    try {
       net::io_context ioc{1};
-
-      // Redis client and receiver.
+      net::posix::stream_descriptor in{ioc, ::dup(STDIN_FILENO)};
       auto db = std::make_shared<connection>(ioc);
-      db->async_run("127.0.0.1", "6379", handler);
+      co_spawn(ioc, run(in, db), net::detached);
+      co_spawn(ioc, reader(db), net::detached);
 
-      auto sessions = std::make_shared<sessions_type>();
-      net::co_spawn(ioc, reader(db, sessions), net::detached);
-
-      // TCP acceptor.
-      auto endpoint = net::ip::tcp::endpoint{net::ip::tcp::v4(), 55555};
-      auto acc = std::make_shared<tcp_acceptor>(ioc, endpoint);
-      co_spawn(ioc, listener(acc, db, sessions), net::detached);
+      db->async_run("127.0.0.1", "6379", [](auto ec) {
+         std::cout << ec.message() << std::endl;
+      });
 
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }
 }
+
+#else // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
+int main() {}
+#endif // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
