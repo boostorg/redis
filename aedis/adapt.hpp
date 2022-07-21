@@ -20,6 +20,17 @@
 
 namespace aedis {
 
+/** @brief A type that ignores responses.
+ *
+ *  For example
+ *
+ *  @code
+    std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+ *  @endcode
+ *
+ *  will cause only the second tuple type to be parsed, the others
+ *  will be ignored.
+ */
 using ignore = adapter::detail::ignore;
 
 namespace detail {
@@ -113,11 +124,21 @@ struct response_traits<std::tuple<Ts...>> {
 
 } // detail
 
+/** @brief Creates an adapter that ignores responses.
+ *
+ *  This function can be used to create adapters that ignores
+ *  responses. As a result it can improve performance.
+ */
 auto adapt() noexcept
 {
    return detail::response_traits<void>::adapt();
 }
 
+/** @brief Adapts a type to be used as a response.
+ *
+ *  The type T can be any STL container, any integer type and
+ *  \c std::string
+ */
 template<class T>
 auto adapt(T& t) noexcept
 {

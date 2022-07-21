@@ -17,10 +17,6 @@ using aedis::adapt;
 using aedis::resp3::request;
 using connection = aedis::connection<>;
 
-// $ redis-cli
-// > ACL SETUSER mzimbres on >Jabuticaba  ~* +@all
-// OK
-
 int main()
 {
    std::vector<int> vec
@@ -30,7 +26,6 @@ int main()
       {{"key1", 10}, {"key2", 20}, {"key3", 30}};
 
    request req;
-   req.push("AUTH", "mzimbres", "Jabuticaba");
    req.push("HELLO", 3);
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);

@@ -81,6 +81,7 @@ public:
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
+   /// Construct a connection from an io_context.
    connection(boost::asio::io_context& ioc, config cfg = config{})
    : connection(ioc.get_executor(), cfg)
    { }
