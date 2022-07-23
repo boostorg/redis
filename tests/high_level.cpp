@@ -4,7 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-//#define BOOST_ASIO_ENABLE_HANDLER_TRACKING
+// TODO: Avoid usage of co_await to improve tests is compilers that
+// don't support it.
 
 #include <iostream>
 #include <boost/asio.hpp>
@@ -110,88 +111,6 @@ void test_quit()
    test_quit2(cfg);
 }
 
-//----------------------------------------------------------------
-
-net::awaitable<void>
-push_consumer1(std::shared_ptr<connection> db, bool& received, char const* msg)
-{
-   {
-      auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_no_error(ec, msg);
-      received = true;
-   }
-
-   {
-      auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, msg);
-   }
-}
-
-void test_push_is_received1(connection::config const& cfg)
-{
-   net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
-
-   request req;
-   req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "channel");
-   req.push("QUIT");
-
-   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, net::error::misc_errors::eof, "test_push_is_received1");
-   });
-
-   bool received = false;
-   net::co_spawn(
-      ioc.get_executor(),
-      push_consumer1(db, received, "test_push_is_received1"),
-      net::detached);
-
-   ioc.run();
-
-   expect_true(received);
-}
-
-//----------------------------------------------------------------
-
-net::awaitable<void> run5(std::shared_ptr<connection> db)
-{
-   {
-      request req;
-      req.push("QUIT");
-      db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
-         expect_no_error(ec, "test_reconnect");
-      });
-
-      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
-      expect_error(ec, net::error::misc_errors::eof, "run5a");
-   }
-
-   {
-      request req;
-      req.push("QUIT");
-      db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
-         expect_no_error(ec, "test_reconnect");
-      });
-
-      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
-      expect_error(ec, net::error::misc_errors::eof, "run5a");
-   }
-
-   co_return;
-}
-
-// Test whether the client works after a reconnect.
-void test_reconnect()
-{
-   net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc.get_executor());
-
-   net::co_spawn(ioc, run5(db), net::detached);
-   ioc.run();
-   std::cout << "Success: test_reconnect()" << std::endl;
-}
-
 // Checks whether we get idle timeout when no push reader is set.
 void test_missing_push_reader1(connection::config const& cfg)
 {
@@ -267,6 +186,47 @@ void test_idle()
    ioc.run();
 }
 
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
+net::awaitable<void>
+push_consumer1(std::shared_ptr<connection> db, bool& received, char const* msg)
+{
+   {
+      auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
+      expect_no_error(ec, msg);
+      received = true;
+   }
+
+   {
+      auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
+      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, msg);
+   }
+}
+
+void test_push_is_received1(connection::config const& cfg)
+{
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc, cfg);
+
+   request req;
+   req.push("HELLO", 3);
+   req.push("SUBSCRIBE", "channel");
+   req.push("QUIT");
+
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
+      expect_error(ec, net::error::misc_errors::eof, "test_push_is_received1");
+   });
+
+   bool received = false;
+   net::co_spawn(
+      ioc.get_executor(),
+      push_consumer1(db, received, "test_push_is_received1"),
+      net::detached);
+
+   ioc.run();
+
+   expect_true(received);
+}
+
 void test_push_is_received2(connection::config const& cfg)
 {
    request req1;
@@ -303,6 +263,44 @@ void test_push_is_received2(connection::config const& cfg)
 
    ioc.run();
    expect_true(received);
+}
+
+net::awaitable<void> run5(std::shared_ptr<connection> db)
+{
+   {
+      request req;
+      req.push("QUIT");
+      db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
+         expect_no_error(ec, "test_reconnect");
+      });
+
+      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
+      expect_error(ec, net::error::misc_errors::eof, "run5a");
+   }
+
+   {
+      request req;
+      req.push("QUIT");
+      db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
+         expect_no_error(ec, "test_reconnect");
+      });
+
+      auto [ec] = co_await db->async_run("127.0.0.1", "6379", as_tuple(net::use_awaitable));
+      expect_error(ec, net::error::misc_errors::eof, "run5a");
+   }
+
+   co_return;
+}
+
+// Test whether the client works after a reconnect.
+void test_reconnect()
+{
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc.get_executor());
+
+   net::co_spawn(ioc, run5(db), net::detached);
+   ioc.run();
+   std::cout << "Success: test_reconnect()" << std::endl;
 }
 
 net::awaitable<void>
@@ -355,24 +353,31 @@ void test_push_many_subscribes(connection::config const& cfg)
    ioc.run();
 }
 
+#endif
+
 void test_push()
 {
    connection::config cfg;
 
    cfg.coalesce_requests = true;
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
    test_push_is_received1(cfg);
    test_push_is_received2(cfg);
    test_push_many_subscribes(cfg);
+#endif
    test_missing_push_reader1(cfg);
    test_missing_push_reader3(cfg);
 
    cfg.coalesce_requests = false;
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
    test_push_is_received1(cfg);
    test_push_is_received2(cfg);
    test_push_many_subscribes(cfg);
+#endif
    test_missing_push_reader2(cfg);
    test_missing_push_reader3(cfg);
 }
+
 
 int main()
 {
@@ -380,7 +385,9 @@ int main()
    test_connect();
    test_quit();
    test_push();
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
    test_reconnect();
+#endif
 
    // Must come last as it sends a client pause.
    test_idle();

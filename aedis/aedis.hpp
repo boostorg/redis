@@ -396,7 +396,7 @@
   
     - Boost 1.78 or greater.
     - Unix Shell and Make (for linux users).
-    - C++14. Some examples require C++20 with coroutine support.
+    - C++17. Some examples require C++20 with coroutine support.
     - Redis server.
 
     Some examples will also require interaction with
@@ -406,8 +406,8 @@
 
     Aedis has been tested with the following compilers
 
-    - Tested with gcc: 7.5.0, 8.4.0, 9.3.0, 10.3.0.
-    - Tested with clang: 11.0.0, 10.0.0, 9.0.1, 8.0.1, 7.0.1.
+    - Tested with gcc: 12, 11.
+    - Tested with clang: 14, 13, 11.
   
     \section Installation
 

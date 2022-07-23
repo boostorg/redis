@@ -36,7 +36,6 @@ int main()
    req.push("QUIT");
 
    std::tuple<
-      aedis::ignore, // auth
       aedis::ignore, // hello
       aedis::ignore, // rpush
       aedis::ignore, // hset
@@ -53,6 +52,6 @@ int main()
       [](auto ec, auto) { std::cout << ec.message() << std::endl; });
    ioc.run();
 
-   print(std::get<0>(std::get<7>(resp)).value());
-   print(std::get<1>(std::get<7>(resp)).value());
+   print(std::get<0>(std::get<6>(resp)).value());
+   print(std::get<1>(std::get<6>(resp)).value());
 }

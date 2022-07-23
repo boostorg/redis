@@ -4,9 +4,6 @@
  * accompanying file LICENSE.txt)
  */
 
-//#define BOOST_ASIO_HAS_IO_URING
-//#define BOOST_ASIO_DISABLE_EPOLL
-
 #include <string>
 #include <iostream>
 #include <boost/asio.hpp>

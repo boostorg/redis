@@ -6,7 +6,6 @@
 
 #include <string>
 #include <iostream>
-
 #include <boost/asio.hpp>
 #include <aedis/aedis.hpp>
 #include <aedis/src.hpp>

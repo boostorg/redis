@@ -1,9 +1,9 @@
 AC_PREREQ([2.69])
 AC_INIT([Aedis], [0.2.1], [mzimbres@gmail.com])
 AC_CONFIG_MACRO_DIR([m4])
-#AC_CONFIG_SRCDIR([src/aedis.cpp])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall foreign])
+AC_LANG(C++)
 
 # Checks for programs.
 AC_PROG_CXX
@@ -18,10 +18,36 @@ AC_CHECK_HEADER_STDBOOL
 AC_TYPE_UINT64_T
 AC_CHECK_TYPES([ptrdiff_t])
 
-AX_CXX_COMPILE_STDCXX(14, , mandatory)
+AX_CXX_COMPILE_STDCXX(17, , mandatory)
 AX_CXX_COMPILE_STDCXX(20, , optional)
-
 AM_CONDITIONAL(HAVE_CXX20,[test x$HAVE_CXX20 == x1])
+
+# This check has been stolen from Asio
+AC_MSG_CHECKING([whether coroutines are enabled])
+AC_COMPILE_IFELSE(
+  [AC_LANG_PROGRAM(
+    [[#if defined(__clang__)]]
+    [[# if (__cplusplus >= 201703) && (__cpp_coroutines >= 201703)]]
+    [[#  if __has_include(<experimental/coroutine>)]]
+    [[#   define AEDIS_HAS_CO_AWAIT 1]]
+    [[#  endif]]
+    [[# endif]]
+    [[#elif defined(__GNUC__)]]
+    [[# if (__cplusplus >= 201709) && (__cpp_impl_coroutine >= 201902)]]
+    [[#  if __has_include(<coroutine>)]]
+    [[#   define AEDIS_HAS_CO_AWAIT 1]]
+    [[#  endif]]
+    [[# endif]]
+    [[#endif]]
+    [[#ifndef AEDIS_HAS_CO_AWAIT]]
+    [[# error coroutines not available]]
+    [[#endif]])],
+  [AC_MSG_RESULT([yes])
+    HAVE_COROUTINES=yes;],
+  [AC_MSG_RESULT([no])
+    HAVE_COROUTINES=no;])
+
+AM_CONDITIONAL(HAVE_COROUTINES,test x$HAVE_COROUTINES = xyes)
 
 AC_CONFIG_FILES([Makefile doc/Doxyfile])
 AC_OUTPUT

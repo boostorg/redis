@@ -17,13 +17,11 @@ check_PROGRAMS += intro
 check_PROGRAMS += containers
 check_PROGRAMS += serialization
 check_PROGRAMS += test_low_level
-if HAVE_CXX20
 check_PROGRAMS += test_high_level
-endif
 
 EXTRA_PROGRAMS =
+if HAVE_COROUTINES
 EXTRA_PROGRAMS += subscriber
-if HAVE_CXX20
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += echo_server_direct
 EXTRA_PROGRAMS += chat_room
@@ -37,13 +35,13 @@ CLEANFILES += $(EXTRA_PROGRAMS)
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
 intro_sync_SOURCES = $(top_srcdir)/tests/intro_sync.cpp
-subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 intro_SOURCES = $(top_srcdir)/examples/intro.cpp
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
-if HAVE_CXX20
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
+if HAVE_COROUTINES
+subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
 echo_server_SOURCES = $(top_srcdir)/examples/echo_server.cpp
 echo_server_direct_SOURCES = $(top_srcdir)/benchmarks/cpp/asio/echo_server_direct.cpp
