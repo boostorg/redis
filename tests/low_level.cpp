@@ -16,7 +16,7 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/beast/_experimental/test/stream.hpp>
 
-#include <aedis/aedis.hpp>
+#include <aedis.hpp>
 #include <aedis/src.hpp>
 
 #include "check.hpp"

@@ -7,7 +7,7 @@
 #include <map>
 #include <vector>
 #include <iostream>
-#include <aedis/aedis.hpp>
+#include <aedis.hpp>
 #include <aedis/src.hpp>
 #include "print.hpp"
 

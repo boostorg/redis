@@ -12,21 +12,11 @@
 #include <aedis/connection.hpp>
 #include <aedis/resp3/request.hpp>
 
-// TODO: Support for Redis sentinel:
-// 
-//    - https://redis.io/docs/manual/sentinel and .
-//    - https://redis.io/docs/reference/sentinel-clients
-//
-// TODO: Should we avoid conflicts of
-//
-//    - aedis::adapt and
-//    - aedis::resp3::adapt
-//
-// function.
-
 /** \mainpage Documentation
     \tableofcontents
   
+    Useful links: \subpage any, [Benchmarks](benchmarks/benchmarks.md).
+
     \section Overview
   
     Aedis is a high-level [Redis](https://redis.io/) client library
@@ -390,32 +380,29 @@
     @li echo_server.cpp: A simple TCP echo server that users coroutines.
     @li chat_room.cpp: A simple chat room that uses coroutines.
 
-    \section using-aedis Using Aedis
+    \section using-aedis Installation
 
     To install and use Aedis you will need
   
     - Boost 1.78 or greater.
-    - Unix Shell and Make (for linux users).
-    - C++17. Some examples require C++20 with coroutine support.
-    - Redis server.
+    - C++17, some examples require C++20 with coroutine support.
+    - Redis server and optionally redis-cli and Redis Sentinel.
 
-    Some examples will also require interaction with
-  
-    - redis-cli: Used in one example.
-    - Redis Sentinel Server: used in some examples.
+    If you only want to test without installation
 
-    Aedis has been tested with the following compilers
-
-    - Tested with gcc: 12, 11.
-    - Tested with clang: 14, 13, 11.
-  
-    \section Installation
+    ```
+    # Download and unpack the latest release on github
+    $ wget https://github.com/mzimbres/aedis/releases/download/vversion/aedis-version.tar.gz
+    $ tar -xzvf aedis-version.tar.gz
+    $ cd aedis-version 
+    $ TODO
+    ```
 
     The first thing to do is to download and unpack Aedis
 
     ```
     # Download the latest release on github
-    $ wget https://github.com/mzimbres/aedis/releases
+    $ wget https://github.com/mzimbres/aedis/releases/download/version/aedis-version.tar.gz
   
     # Uncompress the tarball and cd into the dir
     $ tar -xzvf aedis-version.tar.gz
@@ -452,6 +439,13 @@
     $ make check
     ```
 
+    @subsection sup-comp Supported compilers
+
+    Aedis has been tested with the following compilers
+
+    - Tested with gcc: 12, 11.
+    - Tested with clang: 14, 13, 11.
+  
     \section Developers
   
     To generate the build system run
@@ -591,16 +585,21 @@
     @li Richard Hodges ([madmongo1](https://github.com/madmongo1)): For helping me with Asio and the design of asynchronous programs in general.
     @li Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation (among other things).
     @li Petr Dannhofer ([Eddie-cz](https://github.com/Eddie-cz)): For helping me understand how the `AUTH` and `HELLO` command can influence each other.
-
-    \section Reference
-  
-    See \subpage any.
-
  */
 
 /** \defgroup any Reference
  *
  *  This page contains the documentation of all user facing code.
  */
+
+//  Support sentinel support as described in 
+//
+//  - https://redis.io/docs/manual/sentinel.
+//  - https://redis.io/docs/reference/sentinel-clients.
+//
+//  Avoid conflicts between
+//
+//  - aedis::adapt 
+//  - aedis::resp3::adapt.
 
 #endif // AEDIS_HPP

@@ -2,6 +2,7 @@ AC_PREREQ([2.69])
 AC_INIT([Aedis], [0.2.1], [mzimbres@gmail.com])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR(include/aedis.hpp)
 AM_INIT_AUTOMAKE([-Wall foreign])
 AC_LANG(C++)
 
@@ -49,5 +50,5 @@ AC_COMPILE_IFELSE(
 
 AM_CONDITIONAL(HAVE_COROUTINES,test x$HAVE_COROUTINES = xyes)
 
-AC_CONFIG_FILES([Makefile doc/Doxyfile])
+AC_CONFIG_FILES([Makefile include/Makefile doc/Doxyfile])
 AC_OUTPUT

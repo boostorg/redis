@@ -12,7 +12,7 @@
 #include <string>
 #include <boost/json.hpp>
 #include <boost/json/src.hpp>
-#include <aedis/aedis.hpp>
+#include <aedis.hpp>
 #include <aedis/src.hpp>
 #include "print.hpp"
 

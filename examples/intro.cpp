@@ -7,7 +7,7 @@
 #include <tuple>
 #include <string>
 #include <boost/asio.hpp>
-#include <aedis/aedis.hpp>
+#include <aedis.hpp>
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;

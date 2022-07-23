@@ -12,7 +12,7 @@
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
 
-#include <aedis/aedis.hpp>
+#include <aedis.hpp>
 #include <aedis/src.hpp>
 
 #include "check.hpp"

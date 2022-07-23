@@ -1,1 +1,1 @@
-See https://mzimbres.github.io/aedis/
+See the official github-pages for documentation: https://mzimbres.github.io/aedis
