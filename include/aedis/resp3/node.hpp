@@ -62,6 +62,9 @@ std::string to_string(node<String> const& in)
 
 /** \brief Compares a node for equality.
  *  \ingroup any
+ *
+ *  @param a Left hand side node object.
+ *  @param b Right hand side node object.
  */
 template <class String>
 bool operator==(node<String> const& a, node<String> const& b)
@@ -75,10 +78,13 @@ bool operator==(node<String> const& a, node<String> const& b)
 /** \brief Writes the node string to the stream.
  *  \ingroup any
  *
- *  NOTE: Binary data is not converted to text.
+ *  @param os Output stream.
+ *  @param node Node object.
+ *
+ *  \remark Binary data is not converted to text.
  */
 template <class String>
-std::ostream& operator<<(std::ostream& os, node<String> const& o)
+std::ostream& operator<<(std::ostream& os, node<String> const& node)
 {
    os << to_string(o);
    return os;

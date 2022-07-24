@@ -25,14 +25,12 @@ bool has_push_response(boost::string_view cmd);
 
 } // detail
 
-/** @brief Creates Redis requests from user data.
+/** @brief Creates Redis requests.
  *  \ingroup any
  *  
  *  A request is composed of one or more Redis commands and is
  *  referred to in the redis documentation as a pipeline, see
- *  https://redis.io/topics/pipelining.
- *
- *  Example
+ *  https://redis.io/topics/pipelining. For example
  *
  *  @code
  *  request r;
@@ -52,7 +50,7 @@ public:
    //// Returns the number of commands contained in this request.
    std::size_t commands() const noexcept { return commands_;};
 
-   /// Returns the request payload.
+   // Returns the request payload.
    auto const& payload() const noexcept { return payload_;}
 
    /// Clears the request preserving allocated memory.

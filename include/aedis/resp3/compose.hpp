@@ -34,6 +34,9 @@ constexpr char separator[] = "\r\n";
  *  }
  *  @endcode
  *
+ *  @param to Storage on which data will be copied into.
+ *  @param data Data that will be serialized and stored in @c to.
+ *
  *  See more in \ref requests-serialization.
  */
 template <class Request>

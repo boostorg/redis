@@ -43,7 +43,7 @@ public:
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
 
-   /** @brief Configuration parameters.
+   /** @brief Connection configuration parameters.
     */
    struct config {
       /// Timeout of the resolve operation.
@@ -55,14 +55,14 @@ public:
       /// Time interval ping operations.
       std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
 
-      /// The maximum size allowed of read operations.
+      /// The maximum size allowed on read operations.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
 
-      /// Whether to coalesce requests or not.
+      /// Whether to coalesce requests (see [pipelines](https://redis.io/topics/pipelining)).
       bool coalesce_requests = true;
    };
 
-   /** \brief Constructor.
+   /** \brief Construct a connection from an executor.
     *
     *  \param ex The executor.
     *  \param cfg Configuration parameters.
@@ -81,7 +81,11 @@ public:
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
-   /// Construct a connection from an io_context.
+   /** \brief Construct a connection from an io_context.
+    *
+    *  \param ioc The executor.
+    *  \param cfg Configuration parameters.
+    */
    connection(boost::asio::io_context& ioc, config cfg = config{})
    : connection(ioc.get_executor(), cfg)
    { }
@@ -109,7 +113,7 @@ public:
     *  connection::config::ping_interval.
     *
     *  \li Starts reading from the socket and delivering events to the
-    *  request started with \c async_exec or \c async_read_push.
+    *  request started with \c async_exec and \c async_receive.
     *
     * For an example see echo_server.cpp.
     *
@@ -138,21 +142,21 @@ public:
          >(detail::run_op<connection>{this, host, port}, token, resv_);
    }
 
-   /** @brief Executes a command on the redis server.
+   /** @brief Executes a command on the redis server asynchronously.
     *
     *  \param req Request object.
     *  \param adapter Response adapter.
     *  \param token Asio completion token.
     *
-    *  For an example see containers.cpp. The completion token must
+    *  For an example see echo_server.cpp. The completion token must
     *  have the following signature
     *
     *  @code
     *  void f(boost::system::error_code, std::size_t);
     *  @endcode
     *
-    *  Where the second parameter is the size of the response that has
-    *  just been read.
+    *  Where the second parameter is the size of the response in
+    *  bytes.
     */
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
@@ -168,7 +172,7 @@ public:
          >(detail::exec_op<connection, Adapter>{this, &req, adapter}, token, resv_);
    }
 
-   /** @brief Connects and executes a single command.
+   /** @brief Connects and executes a request asynchronously.
     *
     *  Combines \c async_run and the other \c async_exec overload in a
     *  single function. This function is useful for users that want to
@@ -186,8 +190,7 @@ public:
     *  void f(boost::system::error_code, std::size_t);
     *  @endcode
     *
-    *  Where the second parameter is the size of the response that has
-    *  just been read.
+    *  Where the second parameter is the size of the response in bytes.
     */
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
@@ -206,7 +209,7 @@ public:
             {this, host, port, &req, adapter}, token, resv_);
    }
 
-   /** @brief Receives Redis unsolicited events like pushes.
+   /** @brief Receives unsolicited events asynchronously.
     *
     *  Users that expect unsolicited events should call this function
     *  in a loop. If an unsolicited events comes in and there is no
@@ -228,7 +231,7 @@ public:
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = default_completion_token_type>
-   auto async_read_push(
+   auto async_receive(
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
@@ -266,12 +269,17 @@ public:
     *  Calling this function will cause \c async_run to return. It is
     *  safe to try a reconnect after that, when that happens, all
     *  pending request will be automatically sent.
+    *
+    *  Calling this function will causes @c async_receive to return
+    *  with @c boost::asio::experimental::channel_errc::channel_cancelled.
     *  
-    *  Note however that the prefered way to close a connection is to
-    *  send a \c quit command if you are actively closing it.
-    *  Otherwise an unresponsive Redis server will cause the
-    *  idle-checks to kick in and lead to \c async_run
-    *  returning with idle_timeout.
+    *  \remarks
+    *
+    *  The prefered way to close a connection is to send a \c quit
+    *  command if you are actively closing it.  Otherwise an
+    *  unresponsive Redis server will cause the idle-checks to kick in
+    *  and lead to \c async_run returning with idle_timeout.
+    *
     */
    void cancel_run()
    {

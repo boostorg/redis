@@ -548,12 +548,16 @@ struct runexec_op {
             boost::asio::experimental::wait_for_one_error(),
             std::move(self));
 
-         if (ec2) {
-            self.complete(ec2, n);
-         } else {
-            // If there was no error in the async_exec we complete
-            // with the async_run error, if any.
-            self.complete(ec1, n);
+         switch (order[0]) {
+           case 0:
+           {
+              self.complete(ec1, n);
+           } break;
+           case 1:
+           {
+              self.complete(ec2, n);
+           } break;
+           default: BOOST_ASSERT(false);
          }
       }
    }

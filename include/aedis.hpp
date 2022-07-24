@@ -20,21 +20,20 @@
     \section Overview
   
     Aedis is a high-level [Redis](https://redis.io/) client library
-    built on top of [Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
-    that provides simple and efficient communication with a Redis
-    server. Some of its distinctive features are
+    built on top of
+    [Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html),
+    some of its distinctive features are
 
     \li Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
     \li First class support for STL containers and C++ built-in types.
     \li Serialization and deserialization of your own data types.
-    \li Zero asymptotic allocations by means of memory reuse.
     \li Healthy checks, back pressure and low latency.
 
-    Aedis API hides most of the low level asynchronous operations
-    away from the user, for example, the code below pings a message to
-    the server
+    Aedis API hides most of the low level asynchronous operations away
+    from the user, for example, the code below sends a ping command to
+    Redis (see intro.cpp)
 
-    \code
+    @code
     int main()
     {
        request req;
@@ -48,18 +47,59 @@
 
        connection db{ioc};
 
-       db.async_exec("127.0.0.1", "6379", req, adapt(resp),
-          [](auto ec, auto) { std::cout << ec.message() << std::endl; });
+       db.async_exec("127.0.0.1", "6379", req, adapt(resp), handler);
 
        ioc.run();
 
        // Print the ping message.
        std::cout << std::get<1>(resp) << std::endl;
     }
-    \endcode
+    @endcode
 
-    For a detailed comparison of Redis clients and the design
-    rationale behind Aedis jump to \ref why-aedis. For benchmarks see [](https://github.com/mzimbres/aedis/blob/master/benchmarks/benchmarks.md)
+    The connection class keeps a long lasting connection to the Redis
+    server over which users can execute commands, without any need of
+    queuing, for example, to execute more than one command
+
+    @code
+    int main()
+    {
+       ...
+       net::io_context ioc;
+       connection db{ioc};
+
+       db.async_exec(req1, adapt(resp1), handler1);
+       db.async_exec(req2, adapt(resp2), handler2);
+       db.async_exec(req3, adapt(resp3), handler3);
+
+       db.async_run("127.0.0.1", "6379", handler4);
+
+       ioc.run();
+       ...
+    }
+    @endcode
+
+    See echo_server.cpp for a more complex example.  The \c connection
+    class also supports server-side pushes on the same connection
+    where commands are executed, a typical subscriber will look like
+
+    @code
+    net::awaitable<void> reader(std::shared_ptr<connection> db)
+    {
+       try {
+          for (std::vector<node<std::string>> resp;;) {
+             co_await db->async_read_push(adapt(resp));
+
+             // Handle message
+
+             resp.clear();
+          }
+       } catch (std::exception const& e) {
+          std::cerr << "Reader: " << e.what() << std::endl;
+       }
+    }
+    @endcode
+
+    See subscriber.cpp for a complete example.
 
     \section requests Requests
 
@@ -81,7 +121,7 @@
     // Same as above but as an iterator range.
     req.push_range2("SUBSCRIBE", std::cbegin(list), std::cend(list));
 
-    // Sends a map.
+    // Pushes a map.
     std::map<std::string, mystruct> map
        { {"key1", "value1"}
        , {"key2", "value2"}
@@ -94,8 +134,6 @@
     @code
     co_await db->async_exec(req, adapt(resp));
     @endcode
-
-    The second argument \c adapt(resp) will be explained in \ref requests.
 
     \subsection requests-serialization Serialization
 
@@ -110,7 +148,6 @@
     
     void to_bulk(std::string& to, mystruct const& obj)
     {
-       // Convert to obj string and call to_bulk.
        std::string dummy = "Dummy serializaiton string.";
        aedis::resp3::to_bulk(to, dummy);
     }
@@ -127,7 +164,7 @@
     req.push_range("HSET", "key", map);
     @endcode
 
-    It is quite common to store json string in Redis for example.
+    Example serialization.cpp shows how store json string in Redis.
 
     \section low-level-responses Responses
 
@@ -148,7 +185,7 @@
     proper C++ data structure to receive it in. Fortunately, this is a
     simple task for most types. The table below summarises the options
 
-    RESP3 type     | C++                                                          | Type
+    RESP3 type     | Possible C++ type                                            | Type
     ---------------|--------------------------------------------------------------|------------------
     Simple-string  | \c std::string                                             | Simple
     Simple-error   | \c std::string                                             | Simple
@@ -162,45 +199,42 @@
     Set            | \c std::vector, \c std::set, \c std::unordered_set         | Aggregate
     Push           | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate
 
+    For example
+
+    @code
+    request req;
+    req.push("HELLO", 3);
+    req.push_range("RPUSH", "key1", vec);
+    req.push_range("HSET", "key2", map);
+    req.push("LRANGE", "key3", 0, -1);
+    req.push("HGETALL", "key4");
+    req.push("QUIT");
+
+    std::tuple<
+       aedis::ignore,  // hello
+       int,            // rpush
+       int,            // hset
+       std::vector<T>, // lrange
+       std::map<U, V>, // hgetall
+       std::string     // quit
+    > resp;
+
+    co_await db->async_exec(req, adapt(resp));
+    @endcode
+
+    The tag @c aedis::ignore can be used to ignore individual
+    elements in the responses. If the intention is to ignore the
+    response to all commands in the request use @c adapt()
+
+    @code
+    co_await db->async_exec(req, adapt());
+    @endcode
+
     Responses that contain nested aggregates or heterogeneous data
     types will be given special treatment later in \ref gen-case.  As
     of this writing, not all RESP3 types are used by the Redis server,
     which means in practice users will be concerned with a reduced
-    subset of the RESP3 specification. Now let us see some examples
-
-    @code
-    // To ignore the response.
-    co_await db->async_exec(req, adapt());
-
-    // Read in a std::string e.g. get.
-    std::string str;
-    co_await db->async_exec(req, adapt(resp));
-
-    // Read in a long long e.g. rpush.
-    long long resp;
-    co_await db->async_exec(req, adapt(resp));
-
-    // Read in a std::set e.g. smembers.
-    std::set<T, U> resp;
-    co_await db->async_exec(req, adapt(resp));
-
-    // Read in a std::map e.g. hgetall.
-    std::map<T, U> resp;
-    co_await db->async_exec(req, adapt(resp));
-
-    // Read in a std::unordered_map e.g. hgetall.
-    std::unordered_map<T, U> resp;
-    co_await db->async_exec(req, adapt(resp));
-
-    // Read in a std::vector e.g. lrange.
-    std::vector<T> resp;
-    co_await db->async_exec(req, adapt(resp));
-    @endcode
-
-    In other words, it is straightforward, just pass the result of \c
-    adapt to the read function and make sure the response data type is
-    compatible with the data structure you are calling @c adapter(...)
-    with. All standard C++ containers are supported by Aedis.
+    subset of the RESP3 specification.
 
     \subsection Optional
 
@@ -214,32 +248,14 @@
     co_await db->async_exec(req, adapt(resp));
     @endcode
 
-    Everything else stays the same, before accessing data, users will
-    have to check or assert the optional contains a value.
+    Everything else stays the same.
 
-    \subsection heterogeneous_aggregates Heterogeneous aggregates
+    \subsection transactions Transactions
 
-    There are cases where Redis returns aggregates that
-    contain heterogeneous data, for example, an array that contains
-    integers, strings nested sets etc. Aedis supports reading such
-    aggregates in a \c std::tuple efficiently as long as the they
-    don't contain 3-order nested aggregates e.g. an array that
-    contains an array of arrays. For example, to read the response to
-    a \c hello command we can use the following response type.
-
-    @code
-    using hello_type = std::tuple<
-       std::string, std::string,
-       std::string, std::string,
-       std::string, int,
-       std::string, int,
-       std::string, std::string,
-       std::string, std::string,
-       std::string, std::vector<std::string>>;
-    @endcode
-
-    Transactions are another example where this feature is useful, for
-    example, the response to the transaction below
+    To read the response to transactions we have to observe that Redis
+    queues the commands as they arrive and sends the responses back to
+    the user in a single array, in the response to the @c exec command.
+    For example, to read the response to the this request
 
     @code
     db.send("MULTI");
@@ -249,57 +265,42 @@
     db.send("EXEC");
     @endcode
 
-    can be read in the following way
+    use the following response type
 
     @code
-    using trans_type = 
+    using aedis::ignore;
+    using boost::optional;
+
+    using tresp_type = 
        std::tuple<
-          boost::optional<std::string>, // get
-          boost::optional<std::vector<std::string>>, // lrange
-          boost::optional<std::map<std::string, std::string>> // hgetall
+          optional<std::string>, // get
+          optional<std::vector<std::string>>, // lrange
+          optional<std::map<std::string, std::string>> // hgetall
        >;
 
     std::tuple<
-       aedis::ignore, // multi
-       aedis::ignore, // get
-       aedis::ignore, // lrange
-       aedis::ignore, // hgetall
-       trans_type, // exec
+       ignore,     // multi
+       ignore,     // get
+       ignore,     // lrange
+       ignore,     // hgetall
+       tresp_type, // exec
     > resp;
 
     co_await db->async_exec(req, adapt(resp));
     @endcode
 
     Note that above we are not ignoring the response to the commands
-    themselves but whether they have been successfully queued.  Only
-    after @c exec is received Redis will execute them in sequence and
-    send all responses together in an array.
+    themselves but whether they have been successfully queued. For a
+    complete example see containers.cpp.
 
-    \subsection Serialization
+    \subsection Deserialization
 
-    As mentioned in \ref requests-serialization, it is common for
-    users to serialized data before sending it to Redis e.g.  json
-    strings, for example
-
-    @code
-    sr.push("SET", "key", "{"Server": "Redis"}"); // Unquoted for readability.
-    sr.push("GET", "key")
-    @endcode
-
-    For performance and convenience reasons, we may want to avoid
-    receiving the response to the \c get command above as a string
-    just to convert it later to a e.g. deserialized json. To support
-    this, Aedis calls a user defined \c from_bulk function while
-    parsing the response. In simple terms, define your type
-
-    @code
-    struct mystruct {
-       // struct fields.
-    };
-    @endcode
-
-    and deserialize it from a string in a function \c from_bulk with
-    the following signature
+    As mentioned in \ref requests-serialization, it is common to
+    serialize data before sending it to Redis e.g.  to json strings.
+    For performance and convenience reasons, we may also want to
+    deserialize it directly in its final data structure. Aedis
+    supports this use case by calling a user provided \c from_bulk
+    function while parsing the response. For example
 
     @code
     void from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
@@ -347,7 +348,7 @@
     std::vector<node<std::string>>.  The vector can be seen as a
     pre-order view of the response tree
     (https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR).
-    Using it is no different that using other types
+    Using it is no different than using other types
 
     @code
     // Receives any RESP3 simple data type.
@@ -376,7 +377,7 @@
     @li intro.cpp: Basic steps with Aedis.
     @li containers.cpp: Shows how to send and receive stl containers.
     @li serialization.cpp: Shows the \c request support to serialization of user types.
-    @li subscriber.cpp: Shows how channel subscription works.
+    @li subscriber.cpp: Shows how to subscribe to a channel and how to reconnect when connection is lost.
     @li echo_server.cpp: A simple TCP echo server that users coroutines.
     @li chat_room.cpp: A simple chat room that uses coroutines.
 
@@ -385,59 +386,39 @@
     To install and use Aedis you will need
   
     - Boost 1.78 or greater.
-    - C++17, some examples require C++20 with coroutine support.
-    - Redis server and optionally redis-cli and Redis Sentinel.
+    - C++17. Some examples require C++20 with coroutine support.
+    - Redis server. Optionally also redis-cli and Redis Sentinel.
 
-    If you only want to test without installation
+    If you all you want is to test some examples without a full installation
 
     ```
-    # Download and unpack the latest release on github
+    # Find the latest release tag in https://github.com/mzimbres/aedis/releases
+    $ git clone --depth 1 --branch v0.2.1 https://github.com/mzimbres/aedis.git
+    $ cd aedis
+    $ g++ -std=c++17 -pthread examples/intro.cpp -I./include -I/opt/boost_1_79_0/include/
+    ```
+
+    For a proper installation
+
+    ```
+    # Download and unpack the latest release
     $ wget https://github.com/mzimbres/aedis/releases/download/vversion/aedis-version.tar.gz
     $ tar -xzvf aedis-version.tar.gz
-    $ cd aedis-version 
-    $ TODO
-    ```
 
-    The first thing to do is to download and unpack Aedis
-
-    ```
-    # Download the latest release on github
-    $ wget https://github.com/mzimbres/aedis/releases/download/version/aedis-version.tar.gz
-  
-    # Uncompress the tarball and cd into the dir
-    $ tar -xzvf aedis-version.tar.gz
-    ```
-
-    If you can't use \c configure and \c make (e.g. Windows users)
-    add the directory where you unpacked Aedis to the
-    include directories in your project, otherwise run
-  
-    ```
-    # See configure --help for all options.
+    # Configure build and install
     $ ./configure --prefix=/opt/aedis-version --with-boost=/opt/boost_1_78_0
-
-    # Install Aedis in the path specified in --prefix
+    $ make # optional
     $ sudo make install
-  
     ```
-  
-    and include the following header 
+
+    When writing you own applications include the following header 
   
     ```cpp
     #include <aedis/src.hpp>
 
     ```
 
-    in exactly one source file in your applications. At this point you
-    can start using Aedis. To build the examples and run the tests run
-  
-    ```
-    # Build aedis examples.
-    $ make examples
-  
-    # Test aedis in your machine.
-    $ make check
-    ```
+    in exactly one source file in your applications.
 
     @subsection sup-comp Supported compilers
 
@@ -446,20 +427,26 @@
     - Tested with gcc: 12, 11.
     - Tested with clang: 14, 13, 11.
   
-    \section Developers
+    \subsection Developers
   
-    To generate the build system run
+    To generate the build system clone the repository and run
   
     ```
+    # git clone https://github.com/mzimbres/aedis.git
     $ autoreconf -i
     ```
   
-    After that you will have a configure script 
-    that you can run as explained above, for example, to use a
-    compiler other that the system compiler run
+    After that you will have a configure script that you can run as
+    explained above, for example, to use a compiler other that the
+    system compiler run
   
     ```
-    $ CC=/opt/gcc-10.2.0/bin/gcc-10.2.0 CXX=/opt/gcc-10.2.0/bin/g++-10.2.0 CXXFLAGS="-g -Wall -Werror"  ./configure ...
+    $ CXX=clang++-14 CXXFLAGS="-g" ./configure --with-boost=...
+    ```
+
+    To generate release tarballs run
+
+    ```
     $ make distcheck
     ```
 
@@ -550,7 +537,7 @@
     > creates a new connection.
 
     In Aedis there is no difference between sending one command, a
-    pipeline or a transaction because creating the request is decoupled
+    pipeline or a transaction because requests are decoupled
     from the IO objects.
 
     > redis-plus-plus also supports async interface, however, async

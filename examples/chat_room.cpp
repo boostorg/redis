@@ -39,7 +39,7 @@ net::awaitable<void> reader(std::shared_ptr<connection> db)
       co_await db->async_exec(req);
 
       for (response_type resp;;) {
-         co_await db->async_read_push(adapt(resp));
+         co_await db->async_receive(adapt(resp));
          std::cout << "> " << resp.at(3).value;
          resp.clear();
       }

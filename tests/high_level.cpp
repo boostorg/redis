@@ -191,13 +191,13 @@ net::awaitable<void>
 push_consumer1(std::shared_ptr<connection> db, bool& received, char const* msg)
 {
    {
-      auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_receive(aedis::adapt(), as_tuple(net::use_awaitable));
       expect_no_error(ec, msg);
       received = true;
    }
 
    {
-      auto [ec, n] = co_await db->async_read_push(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, n] = co_await db->async_receive(aedis::adapt(), as_tuple(net::use_awaitable));
       expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, msg);
    }
 }
@@ -307,7 +307,7 @@ net::awaitable<void>
 push_consumer3(std::shared_ptr<connection> db)
 {
    for (;;)
-      co_await db->async_read_push(aedis::adapt(), net::use_awaitable);
+      co_await db->async_receive(aedis::adapt(), net::use_awaitable);
 }
 
 // Test many subscribe requests.
