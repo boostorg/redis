@@ -16,6 +16,7 @@ SUBDIRS = include
 check_PROGRAMS =
 check_PROGRAMS += intro_sync
 check_PROGRAMS += intro
+check_PROGRAMS += synchronous
 check_PROGRAMS += containers
 check_PROGRAMS += serialization
 check_PROGRAMS += test_low_level
@@ -39,6 +40,7 @@ all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 intro_sync_SOURCES = $(top_srcdir)/tests/intro_sync.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 intro_SOURCES = $(top_srcdir)/examples/intro.cpp
+synchronous_SOURCES = $(top_srcdir)/examples/synchronous.cpp
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp

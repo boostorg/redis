@@ -86,7 +86,7 @@ bool operator==(node<String> const& a, node<String> const& b)
 template <class String>
 std::ostream& operator<<(std::ostream& os, node<String> const& node)
 {
-   os << to_string(o);
+   os << to_string(node);
    return os;
 }
 
