@@ -159,6 +159,8 @@ struct exec_read_op {
                   self.complete(ec, 0);
                   return;
                }
+
+               continue;
             }
             //-----------------------------------
 
@@ -232,6 +234,7 @@ struct exec_op {
 
          BOOST_ASSERT(!conn->reqs_.empty());
          BOOST_ASSERT(conn->reqs_.front() != nullptr);
+         BOOST_ASSERT(conn->cmds_ != 0);
          yield conn->async_exec_read(adapter, conn->reqs_.front()->cmds, std::move(self));
          if (ec) {
             self.complete(ec, 0);
@@ -244,9 +247,9 @@ struct exec_op {
          conn->reqs_.pop_front();
 
          if (conn->cmds_ == 0) {
-            conn->read_timer_.cancel();
+            conn->read_timer_.cancel_one();
             if (!conn->reqs_.empty())
-               conn->writer_timer_.cancel();
+               conn->writer_timer_.cancel_one();
          } else {
             BOOST_ASSERT(!conn->reqs_.empty());
             conn->reqs_.front()->timer.cancel_one();
@@ -280,7 +283,7 @@ struct ping_op {
 
          conn->req_.clear();
          conn->req_.push("PING");
-         conn->req_.set_internal();
+         conn->req_.close_on_run_completion = true;
          yield conn->async_exec(conn->req_, aedis::adapt(), std::move(self));
          if (ec) {
             // Notice we don't report error but let the idle check
@@ -386,6 +389,7 @@ struct run_op {
       {
          yield conn->async_resolve_with_timeout(host, port, std::move(self));
          if (ec) {
+            conn->cancel_run();
             self.complete(ec);
             return;
          }
@@ -394,6 +398,7 @@ struct run_op {
 
          yield conn->async_connect_with_timeout(std::move(self));
          if (ec) {
+            conn->cancel_run();
             self.complete(ec);
             return;
          }
@@ -510,7 +515,7 @@ struct reader_op {
             BOOST_ASSERT(conn->cmds_ != 0);
             BOOST_ASSERT(!conn->reqs_.empty());
             BOOST_ASSERT(conn->reqs_.front()->cmds != 0);
-            conn->reqs_.front()->timer.cancel();
+            conn->reqs_.front()->timer.cancel_one();
             yield conn->read_timer_.async_wait(std::move(self));
             if (!conn->socket_->is_open()) {
                self.complete({});
@@ -540,6 +545,8 @@ struct runexec_op {
    {
       reenter (coro)
       {
+         req->close_on_run_completion = true;
+
          yield
          boost::asio::experimental::make_parallel_group(
             [this](auto token) { return conn->async_run(host, port, token);},

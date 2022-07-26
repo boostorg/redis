@@ -6,6 +6,8 @@
 
 // TODO: Avoid usage of co_await to improve tests is compilers that
 // don't support it.
+// TODO: Add reconnect test that kills the server and waits some
+// seconds.
 
 #include <iostream>
 #include <boost/asio.hpp>
@@ -88,7 +90,7 @@ void test_quit2(connection::config const& cfg)
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto n){
-      expect_error(ec, net::error::misc_errors::eof, "test_quit2");
+      expect_no_error(ec, "test_quit2");
    });
 
    ioc.run();
@@ -122,7 +124,7 @@ void test_missing_push_reader1(connection::config const& cfg)
    req.push("SUBSCRIBE", "channel");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::idle_timeout, "test_missing_push_reader1");
+      expect_no_error(ec, "test_missing_push_reader1");
    });
 
    ioc.run();
@@ -138,7 +140,7 @@ void test_missing_push_reader2(connection::config const& cfg)
    req.push("SUBSCRIBE");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::idle_timeout, "test_missing_push_reader2");
+      expect_no_error(ec, "test_missing_push_reader2");
    });
 
    ioc.run();
@@ -155,7 +157,7 @@ void test_missing_push_reader3(connection::config const& cfg)
    req.push("SUBSCRIBE");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, aedis::error::idle_timeout, "test_missing_push_reader3");
+      expect_no_error(ec, "test_missing_push_reader3");
    });
 
    ioc.run();
@@ -213,7 +215,7 @@ void test_push_is_received1(connection::config const& cfg)
    req.push("QUIT");
 
    db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
-      expect_error(ec, net::error::misc_errors::eof, "test_push_is_received1");
+      expect_no_error(ec, "test_push_is_received1");
    });
 
    bool received = false;

@@ -283,7 +283,9 @@ public:
     */
    void cancel_run()
    {
-      socket_->close();
+      if (socket_)
+         socket_->close();
+
       read_timer_.cancel();
       check_idle_timer_.cancel();
       writer_timer_.cancel();
@@ -293,7 +295,7 @@ public:
 
       // Cancel own pings if there is any waiting.
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-         return !ptr->req->is_internal();
+         return !ptr->req->close_on_run_completion;
       });
 
       std::for_each(point, std::end(reqs_), [](auto const& ptr) {
