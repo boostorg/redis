@@ -43,6 +43,8 @@ struct ignore_adapter {
       boost::system::error_code& ec)
    {
    }
+
+   auto supported_response_size() const noexcept { return std::size_t(-1);}
 };
 
 template <class Tuple>
@@ -58,8 +60,10 @@ private:
 public:
    static_adapter(Tuple& r = nullptr)
    {
-      adapter::detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, r);
+      adapter::detail::assigner<size - 1>::assign(adapters_, r);
    }
+
+   auto supported_response_size() const noexcept { return size;}
 
    void
    operator()(
@@ -81,6 +85,8 @@ private:
 
 public:
    vector_adapter(Vector& v) : adapter_{adapter::adapt(v)} { }
+
+   auto supported_response_size() const noexcept { return std::size_t(-1);}
 
    void
    operator()(

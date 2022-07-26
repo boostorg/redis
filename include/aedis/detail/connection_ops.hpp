@@ -213,7 +213,7 @@ struct exec_op {
          info = std::allocate_shared<req_info_type>(boost::asio::get_associated_allocator(self), conn->resv_.get_executor());
          info->timer.expires_at(std::chrono::steady_clock::time_point::max());
          info->req = req;
-         info->cmds = req->commands();
+         info->cmds = req->size();
          info->stop = false;
 
          conn->add_request_info(info);
@@ -227,7 +227,7 @@ struct exec_op {
 
          BOOST_ASSERT(conn->socket_->is_open());
           
-         if (req->commands() == 0) {
+         if (req->size() == 0) {
             self.complete({}, 0);
             return;
          }

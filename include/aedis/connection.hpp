@@ -14,6 +14,7 @@
 #include <memory>
 #include <type_traits>
 
+#include <boost/assert.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/experimental/channel.hpp>
@@ -166,6 +167,8 @@ public:
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
+      BOOST_ASSERT_MSG(req.size() <= adapter.supported_response_size(), "Request and adapter have incompatible sizes.");
+
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
@@ -341,7 +344,7 @@ private:
    void cancel_push_requests()
    {
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-         return !(ptr->written && ptr->req->commands() == 0);
+         return !(ptr->written && ptr->req->size() == 0);
       });
 
       std::for_each(point, std::end(reqs_), [](auto const& ptr) {
@@ -449,7 +452,7 @@ private:
       auto const size = cfg_.coalesce_requests ? reqs_.size() : 1;
       for (auto i = 0UL; i < size; ++i) {
          write_buffer_ += reqs_.at(i)->req->payload();
-         cmds_ += reqs_.at(i)->req->commands();
+         cmds_ += reqs_.at(i)->req->size();
          reqs_.at(i)->written = true;
       }
    }

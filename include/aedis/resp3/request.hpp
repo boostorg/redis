@@ -48,7 +48,7 @@ bool has_push_response(boost::string_view cmd);
 class request {
 public:
    //// Returns the number of commands contained in this request.
-   std::size_t commands() const noexcept { return commands_;};
+   std::size_t size() const noexcept { return commands_;};
 
    // Returns the request payload.
    auto const& payload() const noexcept { return payload_;}
