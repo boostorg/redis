@@ -14,9 +14,9 @@ AM_LDFLAGS += -pthread
 SUBDIRS = include
 
 check_PROGRAMS =
-check_PROGRAMS += intro_sync
+check_PROGRAMS += low_level_sync
 check_PROGRAMS += intro
-check_PROGRAMS += synchronous
+check_PROGRAMS += intro_sync
 check_PROGRAMS += containers
 check_PROGRAMS += serialization
 check_PROGRAMS += test_low_level
@@ -37,10 +37,10 @@ CLEANFILES += $(EXTRA_PROGRAMS)
 .PHONY: all
 all: $(check_PROGRAMS) $(EXTRA_PROGRAMS)
 
-intro_sync_SOURCES = $(top_srcdir)/tests/intro_sync.cpp
+low_level_sync_SOURCES = $(top_srcdir)/tests/low_level_sync.cpp
 test_low_level_SOURCES = $(top_srcdir)/tests/low_level.cpp
 intro_SOURCES = $(top_srcdir)/examples/intro.cpp
-synchronous_SOURCES = $(top_srcdir)/examples/synchronous.cpp
+intro_sync_SOURCES = $(top_srcdir)/examples/intro_sync.cpp
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
