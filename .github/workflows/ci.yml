@@ -31,10 +31,9 @@ jobs:
       with:
         boost_version: 1.79.0
         platform_version: 22.04
-        boost_install_dir: $GITHUB_WORKSPACE/boost_1_79_0
     - name: Configure
       run: |
         autoreconf -i
-        ./configure --with-boost=$GITHUB_WORKSPACE/boost_1_79_0
+        ./configure --with-boost=${{ steps.install-boost.outputs.BOOST_ROOT }}
     - name: Build
       run: make && make check

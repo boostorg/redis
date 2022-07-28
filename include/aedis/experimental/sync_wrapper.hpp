@@ -11,14 +11,58 @@
 #include <thread>
 #include <memory>
 
-// TODO: Include only asio needed headers.
-#include <boost/asio.hpp>
+#include <boost/asio/io_context.hpp>
 #include <aedis/connection.hpp>
 #include <aedis/resp3/request.hpp>
 
 namespace aedis {
 namespace experimental {
+namespace detail {
 
+#include <boost/asio/yield.hpp>
+template <class Connection>
+struct failover_op {
+   std::shared_ptr<Connection> db;
+   boost::string_view host;
+   boost::string_view port;
+   //typename Connection::timer_type timer{db->get_executor()};
+   boost::asio::coroutine coro;
+
+   template <class Self>
+   void operator()(Self& self, boost::system::error_code ec = {})
+   {
+      reenter (coro)
+      {
+         BOOST_ASSERT(db != nullptr);
+         yield db->async_run(host, port, std::move(self));
+         //timer.expires_at(std::chrono::seconds{1});
+         self.complete(ec);
+      }
+   }
+};
+#include <boost/asio/unyield.hpp>
+
+template <
+   class Connection,
+   class CompletionToken = boost::asio::default_completion_token_t<typename Connection::executor_type>
+   >
+auto async_failover(
+   std::shared_ptr<Connection> db,
+   boost::string_view host,
+   boost::string_view port,
+   CompletionToken&& token =
+      boost::asio::default_completion_token_t<typename Connection::executor_type>{})
+{
+   return boost::asio::async_compose
+      < CompletionToken
+      , void(boost::system::error_code)
+      >(detail::failover_op<Connection> {db, host, port}, token, db->get_executor());
+}
+
+} // detail
+
+/** @brief Blocking wrapper for the conenction class.
+ */
 template <class Connection>
 class sync_wrapper {
 private:
@@ -26,27 +70,40 @@ private:
    std::shared_ptr<Connection> db;
    std::thread thread;
 
-   void run(boost::string_view host, boost::string_view port)
-   {
-      auto handler = [](auto ec)
-         { std::clog << ec.message() << std::endl; };
-
-      db->async_run(host, port, handler);
-      ioc.run();
-   }
-
 public:
-   sync_wrapper(boost::string_view host, boost::string_view port)
+   struct config {
+      std::chrono::seconds reconnect_wait_time{2};
+   };
+
+   /// Constructor
+   sync_wrapper(config cfg = config{})
    : db{std::make_shared<Connection>(ioc)}
-   , thread{[this, host, port](){run(host, port);}}
    { }
 
+   // Destructor
    ~sync_wrapper()
    {
       ioc.stop();
       thread.join();
    }
 
+   void run(boost::string_view host, boost::string_view port)
+   {
+      thread = std::thread{[this, host, port]() {
+         detail::async_failover(db, host, port, boost::asio::detached);
+         ioc.run();
+      }};
+   }
+
+   /** @brief Executes a command.
+    *
+    *  This function will block until execution completes.
+    *
+    *  @param req The request.
+    *  @param adapter The response adapter.
+    *  @param ec Error code in case of error.
+    *  @returns The number of bytes of the response.
+    */
    template <class ResponseAdapter>
    std::size_t
    exec(resp3::request const& req, ResponseAdapter adapter, boost::system::error_code& ec)
@@ -73,6 +130,15 @@ public:
       return res;
    }
 
+   /** @brief Executes a command.
+    *
+    *  This function will block until execution completes.
+    *
+    *  @param req The request.
+    *  @param adapter The response adapter.
+    *  @throws std::system_error in case of error.
+    *  @returns The number of bytes of the response.
+    */
    template <class ResponseAdapter>
    std::size_t exec(resp3::request const& req, ResponseAdapter adapter)
    {

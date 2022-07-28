@@ -43,6 +43,11 @@ public:
    using next_layer_type = AsyncReadWriteStream;
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
+   using channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
+   using clock_type = std::chrono::steady_clock;
+   using clock_traits_type = boost::asio::wait_traits<clock_type>;
+   using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
+   using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
 
    /** @brief Connection configuration parameters.
     */
@@ -310,12 +315,6 @@ public:
    }
 
 private:
-   using channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
-   using clock_type = std::chrono::steady_clock;
-   using clock_traits_type = boost::asio::wait_traits<clock_type>;
-   using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
-   using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
-
    struct req_info {
       req_info(executor_type ex) : timer{ex} {}
       timer_type timer;

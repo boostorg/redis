@@ -21,7 +21,8 @@ using connection = aedis::connection<>;
 int main()
 {
    try {
-      sync_wrapper<connection> conn{"127.0.0.1", "6379"};
+      sync_wrapper<connection> conn;
+      conn.run("127.0.0.1", "6379");
 
       request req;
       req.push("HELLO", 3);
