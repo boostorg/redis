@@ -59,7 +59,7 @@ void to_bulk(std::string& to, user const& u)
 }
 
 // Deserializes
-void from_bulk(user& u, boost::string_view sv, boost::system::error_code& ec)
+void from_bulk(user& u, boost::string_view sv, boost::system::error_code&)
 {
    value jv = parse(sv);
    u = value_to<user>(jv);

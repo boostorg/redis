@@ -37,7 +37,7 @@ private:
    parser<ResponseAdapter> parser_;
    std::size_t consumed_;
    std::size_t buffer_size_;
-   boost::asio::coroutine coro_;
+   boost::asio::coroutine coro_{};
 
 public:
    parse_op(AsyncReadStream& stream, DynamicBuffer buf, ResponseAdapter adapter)

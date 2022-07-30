@@ -36,7 +36,7 @@ struct expect {
    std::string in;
    Result expected;
    std::string name;
-   boost::system::error_code ec;
+   boost::system::error_code ec{};
 };
 
 template <class Result>
@@ -74,7 +74,7 @@ public:
    void run()
    {
       auto self = this->shared_from_this();
-      auto f = [self](auto ec, auto n)
+      auto f = [self](auto ec, auto)
       {
          expect_error(ec, self->data_.ec);
          if (self->data_.ec)

@@ -82,13 +82,11 @@ public:
       using boost::hana::make_tuple;
       using resp3::type;
 
-      auto const before = payload_.size();
       auto constexpr pack_size = sizeof...(Ts);
       resp3::add_header(payload_, type::array, 1 + pack_size);
       resp3::add_bulk(payload_, cmd);
       resp3::add_bulk(payload_, make_tuple(args...));
 
-      auto const after = payload_.size();
       if (!detail::has_push_response(cmd))
          ++commands_;
    }
@@ -123,8 +121,6 @@ public:
       if (begin == end)
          return;
 
-      auto const before = payload_.size();
-
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
       resp3::add_header(payload_, type::array, 2 + size * distance);
@@ -134,7 +130,6 @@ public:
       for (; begin != end; ++begin)
 	 resp3::add_bulk(payload_, *begin);
 
-      auto const after = payload_.size();
       if (!detail::has_push_response(cmd))
          ++commands_;
    }
@@ -165,7 +160,6 @@ public:
       if (begin == end)
          return;
 
-      auto const before = payload_.size();
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
       resp3::add_header(payload_, type::array, 1 + size * distance);
@@ -174,7 +168,6 @@ public:
       for (; begin != end; ++begin)
 	 resp3::add_bulk(payload_, *begin);
 
-      auto const after = payload_.size();
       if (!detail::has_push_response(cmd))
          ++commands_;
    }

@@ -26,7 +26,7 @@ struct failover_op {
    boost::string_view host;
    boost::string_view port;
    //typename Connection::timer_type timer{db->get_executor()};
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()(Self& self, boost::system::error_code ec = {})
@@ -75,12 +75,14 @@ private:
    std::thread thread;
 
 public:
+   // Sync wrapper configuration parameters.
    struct config {
+      /// Time waited by trying a reconnection.
       std::chrono::seconds reconnect_wait_time{2};
    };
 
    /// Constructor
-   sync_wrapper(config cfg = config{})
+   sync_wrapper(config = config{})
    : db{std::make_shared<Connection>(ioc)}
    { }
 

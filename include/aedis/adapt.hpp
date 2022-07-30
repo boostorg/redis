@@ -38,9 +38,9 @@ namespace detail {
 struct ignore_adapter {
    void
    operator()(
-      std::size_t i,
-      resp3::node<boost::string_view> const& nd,
-      boost::system::error_code& ec)
+      std::size_t,
+      resp3::node<boost::string_view> const&,
+      boost::system::error_code&)
    {
    }
 
@@ -90,7 +90,7 @@ public:
 
    void
    operator()(
-      std::size_t i,
+      std::size_t,
       resp3::node<boost::string_view> const& nd,
       boost::system::error_code& ec)
    {

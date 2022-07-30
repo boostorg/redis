@@ -32,7 +32,7 @@ struct connect_op {
    boost::asio::basic_socket<Protocol, Executor>* socket;
    conn_timer_t<Executor>* timer;
    EndpointSequence* endpoints;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
@@ -86,7 +86,7 @@ struct resolve_op {
    Timer* timer;
    boost::string_view host;
    boost::string_view port;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
@@ -133,12 +133,12 @@ struct resolve_op {
 template <class Channel>
 struct send_receive_op {
    Channel* channel;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
                   , boost::system::error_code ec = {}
-                  , std::size_t n = 0)
+                  , std::size_t = 0)
    {
       reenter (coro)
       {

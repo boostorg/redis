@@ -70,7 +70,7 @@ void test_quit1(connection::config const& cfg)
    req.push("HELLO", 3);
    req.push("QUIT");
 
-   db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
+   db->async_exec(req, aedis::adapt(), [](auto ec, auto){
       expect_no_error(ec, "test_quit1");
    });
 
@@ -89,7 +89,7 @@ void test_quit2(connection::config const& cfg)
 
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
-   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto n){
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
       expect_no_error(ec, "test_quit2");
    });
 
@@ -123,7 +123,7 @@ void test_missing_push_reader1(connection::config const& cfg)
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
 
-   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
       expect_no_error(ec, "test_missing_push_reader1");
    });
 
@@ -139,7 +139,7 @@ void test_missing_push_reader2(connection::config const& cfg)
    req.push("HELLO", 3);
    req.push("SUBSCRIBE");
 
-   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
       expect_no_error(ec, "test_missing_push_reader2");
    });
 
@@ -156,7 +156,7 @@ void test_missing_push_reader3(connection::config const& cfg)
    req.push("PING", "Message");
    req.push("SUBSCRIBE");
 
-   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
       expect_no_error(ec, "test_missing_push_reader3");
    });
 
@@ -177,7 +177,7 @@ void test_idle()
    req.push("HELLO", 3);
    req.push("CLIENT", "PAUSE", 5000);
 
-   db->async_exec(req, aedis::adapt(), [](auto ec, auto r){
+   db->async_exec(req, aedis::adapt(), [](auto ec, auto){
       expect_no_error(ec, "test_idle");
    });
 
@@ -214,7 +214,7 @@ void test_push_is_received1(connection::config const& cfg)
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto r){
+   db->async_exec("127.0.0.1", "6379", req, aedis::adapt(), [](auto ec, auto){
       expect_no_error(ec, "test_push_is_received1");
    });
 
@@ -272,7 +272,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
    {
       request req;
       req.push("QUIT");
-      db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
+      db->async_exec(req, aedis::adapt(), [](auto ec, auto){
          expect_no_error(ec, "test_reconnect");
       });
 
@@ -283,7 +283,7 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
    {
       request req;
       req.push("QUIT");
-      db->async_exec(req, aedis::adapt(), [](auto ec, auto n){
+      db->async_exec(req, aedis::adapt(), [](auto ec, auto){
          expect_no_error(ec, "test_reconnect");
       });
 

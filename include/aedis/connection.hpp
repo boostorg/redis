@@ -253,7 +253,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::read_push_op<connection, decltype(f)>{this, f}, token, resv_);
+         >(detail::receive_op<connection, decltype(f)>{this, f}, token, resv_);
    }
 
    /** @brief Cancel all pending request.
@@ -327,7 +327,7 @@ private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
    using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
-   template <class T, class U> friend struct detail::read_push_op;
+   template <class T, class U> friend struct detail::receive_op;
    template <class T> friend struct detail::reader_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::ping_op;

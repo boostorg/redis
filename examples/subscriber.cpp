@@ -72,7 +72,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
 
    for (;;) {
       net::co_spawn(ex, reader(db), net::detached);
-      auto [ec, n] = co_await db->async_exec("127.0.0.1", "6379", req, adapt(), as_tuple(net::use_awaitable));
+      co_await db->async_exec("127.0.0.1", "6379", req, adapt(), as_tuple(net::use_awaitable));
 
       // Waits one second and tries again.
       timer.expires_after(std::chrono::seconds{1});

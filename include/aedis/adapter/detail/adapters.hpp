@@ -63,7 +63,7 @@ from_bulk(
 void from_bulk(
    bool& t,
    boost::string_view sv,
-   boost::system::error_code& ec)
+   boost::system::error_code&)
 {
    t = *sv.data() == 't';
 }

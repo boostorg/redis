@@ -36,12 +36,12 @@ namespace detail {
 template <class Conn>
 struct connect_with_timeout_op {
    Conn* conn;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
                   , boost::system::error_code ec = {}
-                  , boost::asio::ip::tcp::endpoint const& ep = {})
+                  , boost::asio::ip::tcp::endpoint const& = {})
    {
       reenter (coro)
       {
@@ -58,7 +58,7 @@ struct resolve_with_timeout_op {
    Conn* conn;
    boost::string_view host;
    boost::string_view port;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
@@ -76,11 +76,11 @@ struct resolve_with_timeout_op {
 };
 
 template <class Conn, class Adapter>
-struct read_push_op {
-   Conn* conn;
+struct receive_op {
+   Conn* conn = nullptr;
    Adapter adapter;
-   std::size_t read_size;
-   boost::asio::coroutine coro;
+   std::size_t read_size = 0;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void
@@ -120,7 +120,7 @@ struct exec_read_op {
    std::size_t cmds = 0;
    std::size_t read_size = 0;
    std::size_t index = 0;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void
@@ -150,12 +150,12 @@ struct exec_read_op {
             }
 
             // If the next request is a push we have to handle it to
-            // the read_push_op wait for it to be done and continue.
+            // the receive_op wait for it to be done and continue.
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
                yield async_send_receive(conn->push_channel_, std::move(self));
                if (ec) {
                   // Notice we don't call cancel_run() as that is the
-                  // responsability of the read_push_op.
+                  // responsability of the receive_op.
                   self.complete(ec, 0);
                   return;
                }
@@ -195,12 +195,12 @@ template <class Conn, class Adapter>
 struct exec_op {
    using req_info_type = typename Conn::req_info;
 
-   Conn* conn;
-   resp3::request const* req;
-   Adapter adapter;
-   std::shared_ptr<req_info_type> info;
+   Conn* conn = nullptr;
+   resp3::request const* req = nullptr;
+   Adapter adapter{};
+   std::shared_ptr<req_info_type> info = nullptr;
    std::size_t read_size = 0;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void
@@ -263,13 +263,13 @@ struct exec_op {
 template <class Conn>
 struct ping_op {
    Conn* conn;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void
    operator()( Self& self
              , boost::system::error_code ec = {}
-             , std::size_t read_size = 0)
+             , std::size_t = 0)
    {
       reenter (coro) for (;;)
       {
@@ -298,7 +298,7 @@ struct ping_op {
 template <class Conn>
 struct check_idle_op {
    Conn* conn;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()(Self& self, boost::system::error_code ec = {})
@@ -330,7 +330,7 @@ struct check_idle_op {
 template <class Conn>
 struct start_op {
    Conn* conn;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
@@ -380,7 +380,7 @@ struct run_op {
    Conn* conn;
    boost::string_view host;
    boost::string_view port;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()(Self& self, boost::system::error_code ec = {})
@@ -416,7 +416,7 @@ struct run_op {
 template <class Conn>
 struct writer_op {
    Conn* conn;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
@@ -464,7 +464,7 @@ struct writer_op {
 template <class Conn>
 struct reader_op {
    Conn* conn;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
@@ -532,9 +532,9 @@ struct runexec_op {
    Conn* conn;
    boost::string_view host;
    boost::string_view port;
-   resp3::request const* req;
+   resp3::request const* req = nullptr;
    Adapter adapter;
-   boost::asio::coroutine coro;
+   boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
