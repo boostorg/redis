@@ -78,28 +78,104 @@
     }
     @endcode
 
-    See echo_server.cpp for a more complex example.  The \c connection
-    class also supports server-side pushes on the same connection
-    where commands are executed, a typical subscriber will look like
+    See echo_server.cpp for a more complex example.  Server-side
+    pushes are supported on the same connection where commands are
+    executed, a typical subscriber will look like
 
     @code
     net::awaitable<void> reader(std::shared_ptr<connection> db)
     {
-       try {
-          for (std::vector<node<std::string>> resp;;) {
-             co_await db->async_read_push(adapt(resp));
+       ...
+       for (std::vector<node<std::string>> resp;;) {
+          co_await db->async_receive(adapt(resp));
 
-             // Handle message
+          // Handle message
 
-             resp.clear();
-          }
-       } catch (std::exception const& e) {
-          std::cerr << "Reader: " << e.what() << std::endl;
+          resp.clear();
        }
     }
     @endcode
 
     See subscriber.cpp for a complete example.
+
+    \subsection using-aedis Installation
+
+    To install and use Aedis you will need
+  
+    - Boost 1.78 or greater.
+    - C++17. Some examples require C++20 with coroutine support.
+    - Redis 6 or higher. Optionally also redis-cli and Redis Sentinel.
+
+    For a simple installation run
+
+    ```
+    # Clone the repository and checkout the lastest release tag.
+    $ git clone --branch v0.2.1 https://github.com/mzimbres/aedis.git
+    $ cd aedis
+
+    # Build an example
+    $ g++ -std=c++17 -pthread examples/intro.cpp -I./include -I/path/boost_1_79_0/include/
+    ```
+
+    For a proper full installation on the system run
+
+    ```
+    # Download and unpack the latest release
+    $ wget https://github.com/mzimbres/aedis/releases/download/v0.2.1/aedis-0.2.1.tar.gz
+    $ tar -xzvf aedis-0.2.1.tar.gz
+
+    # Configure, build and install
+    $ ./configure --prefix=/opt/aedis-0.2.1 --with-boost=/opt/boost_1_78_0
+    $ sudo make install
+    ```
+
+    To build examples and tests
+
+    ```
+    $ make
+    ```
+
+    @subsubsection using_aedis Using Aedis
+
+    When writing you own applications include the following header 
+  
+    ```cpp
+    #include <aedis/src.hpp>
+
+    ```
+
+    in no more than one source file in your applications.
+
+    @subsubsection sup-comp Supported compilers
+
+    Aedis has been tested with the following compilers
+
+    - Tested with gcc: 12, 11.
+    - Tested with clang: 14, 13, 11.
+  
+    \subsubsection Developers
+  
+    To generate the build system clone the repository and run
+  
+    ```
+    # git clone https://github.com/mzimbres/aedis.git
+    $ autoreconf -i
+    ```
+  
+    After that you will have a configure script that you can run as
+    explained above, for example, to use a compiler other that the
+    system compiler run
+  
+    ```
+    $ CXX=clang++-14 CXXFLAGS="-g" ./configure --with-boost=...
+    ```
+
+    To generate release tarballs run
+
+    ```
+    $ make distcheck
+    ```
+
 
     \section requests Requests
 
@@ -381,82 +457,13 @@
     @li echo_server.cpp: A simple TCP echo server that users coroutines.
     @li chat_room.cpp: A simple chat room that uses coroutines.
 
-    \section using-aedis Installation
-
-    To install and use Aedis you will need
-  
-    - Boost 1.78 or greater.
-    - C++17. Some examples require C++20 with coroutine support.
-    - Redis server. Optionally also redis-cli and Redis Sentinel.
-
-    If you all you want is to test some examples without a full installation
-
-    ```
-    # Find the latest release tag in https://github.com/mzimbres/aedis/releases
-    $ git clone --depth 1 --branch v0.2.1 https://github.com/mzimbres/aedis.git
-    $ cd aedis
-    $ g++ -std=c++17 -pthread examples/intro.cpp -I./include -I/opt/boost_1_79_0/include/
-    ```
-
-    For a proper installation
-
-    ```
-    # Download and unpack the latest release
-    $ wget https://github.com/mzimbres/aedis/releases/download/vversion/aedis-version.tar.gz
-    $ tar -xzvf aedis-version.tar.gz
-
-    # Configure build and install
-    $ ./configure --prefix=/opt/aedis-version --with-boost=/opt/boost_1_78_0
-    $ make # optional
-    $ sudo make install
-    ```
-
-    When writing you own applications include the following header 
-  
-    ```cpp
-    #include <aedis/src.hpp>
-
-    ```
-
-    in exactly one source file in your applications.
-
-    @subsection sup-comp Supported compilers
-
-    Aedis has been tested with the following compilers
-
-    - Tested with gcc: 12, 11.
-    - Tested with clang: 14, 13, 11.
-  
-    \subsection Developers
-  
-    To generate the build system clone the repository and run
-  
-    ```
-    # git clone https://github.com/mzimbres/aedis.git
-    $ autoreconf -i
-    ```
-  
-    After that you will have a configure script that you can run as
-    explained above, for example, to use a compiler other that the
-    system compiler run
-  
-    ```
-    $ CXX=clang++-14 CXXFLAGS="-g" ./configure --with-boost=...
-    ```
-
-    To generate release tarballs run
-
-    ```
-    $ make distcheck
-    ```
-
     \section why-aedis Why Aedis
 
     At the time of this writing there are seventeen Redis clients
     listed in the [official](https://redis.io/docs/clients/#cpp) list.
     With so many clients available it is not unlikely that users are
     asking themselves why yet another one.  In this section I will try
-    to compare Aedis to the most popular clients and why we need
+    to compare Aedis with the most popular clients and why we need
     Aedis. Notice however that this is ongoing work as comparing
     client objectively is difficult and time consuming.
 

@@ -62,6 +62,10 @@ auto async_failover(
 } // detail
 
 /** @brief Blocking wrapper for the conenction class.
+ *  @ingroup any
+ *  
+ *  This class offers a synchronous API on top of the connection
+ *  class.
  */
 template <class Connection>
 class sync_wrapper {
