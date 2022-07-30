@@ -49,6 +49,11 @@ public:
    using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
    using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
 
+   template <class T>
+   struct rebind {
+      using other = connection<T>;
+   };
+
    /** @brief Connection configuration parameters.
     */
    struct config {
@@ -260,7 +265,7 @@ public:
     *
     * \returns The number of requests that have been canceled.
     */
-   std::size_t cancel_requests()
+   std::size_t cancel_execs()
    {
       for (auto& e: reqs_) {
          e->stop = true;

@@ -8,9 +8,10 @@
 #include <iostream>
 #include <boost/asio.hpp>
 #include <aedis.hpp>
-#include <aedis/src.hpp>
-
 #include "unistd.h"
+
+// Include this in no more than one .cpp file.
+#include <aedis/src.hpp>
 
 #if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 

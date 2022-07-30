@@ -10,6 +10,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
 #include <aedis.hpp>
+
+// Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;

@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_EXPERIMENTAL_SYNC_WRAPPER_HPP
-#define AEDIS_EXPERIMENTAL_SYNC_WRAPPER_HPP
+#ifndef AEDIS_EXPERIMENTAL_SYNC_HPP
+#define AEDIS_EXPERIMENTAL_SYNC_HPP
 
 #include <mutex>
 #include <thread>
@@ -22,7 +22,7 @@ namespace detail {
 #include <boost/asio/yield.hpp>
 template <class Connection>
 struct failover_op {
-   std::shared_ptr<Connection> db;
+   Connection* db;
    boost::string_view host;
    boost::string_view port;
    //typename Connection::timer_type timer{db->get_executor()};
@@ -47,7 +47,7 @@ template <
    class CompletionToken = boost::asio::default_completion_token_t<typename Connection::executor_type>
    >
 auto async_failover(
-   std::shared_ptr<Connection> db,
+   Connection& db,
    boost::string_view host,
    boost::string_view port,
    CompletionToken&& token =
@@ -56,49 +56,62 @@ auto async_failover(
    return boost::asio::async_compose
       < CompletionToken
       , void(boost::system::error_code)
-      >(detail::failover_op<Connection> {db, host, port}, token, db->get_executor());
+      >(detail::failover_op<Connection> {&db, host, port}, token, db.get_executor());
 }
 
 } // detail
 
-/** @brief Blocking wrapper for the conenction class.
+// Sync wrapper configuration parameters.
+struct failover_config {
+   /// Redis server address.
+   boost::string_view host = "127.0.0.1";
+
+   /// Redis server port.
+   boost::string_view port = "6379";
+
+   /// Time waited before trying a reconnection.
+   std::chrono::seconds reconnect_wait_time{2};
+};
+
+/** @brief Synchronous wrapper over the conenction class.
  *  @ingroup any
  *  
  *  This class offers a synchronous API on top of the connection
  *  class.
+ *
+ *  @tparam Connection The connection class. Its executor will be
+ *  rebound to an internal executor.
  */
 template <class Connection>
-class sync_wrapper {
+class sync {
 private:
-   boost::asio::io_context ioc{1};
-   std::shared_ptr<Connection> db;
-   std::thread thread;
+   using executor_type = boost::asio::io_context::executor_type;
+   using stream_type = typename Connection::next_layer_type;
+   using stream_rebind_type = typename stream_type::rebind_executor<executor_type>;
+   using stream_rebound_type = typename stream_rebind_type::other;
+   using connection_rebind_type = typename Connection::rebind<stream_rebound_type>;
+   using connection_rebound_type = typename connection_rebind_type::other;
+   using connection_config_type = typename connection_rebound_type::config;
+   boost::asio::io_context ioc_{1};
+   connection_rebound_type db_;
+   std::thread thread_;
 
 public:
-   // Sync wrapper configuration parameters.
-   struct config {
-      /// Time waited by trying a reconnection.
-      std::chrono::seconds reconnect_wait_time{2};
-   };
-
    /// Constructor
-   sync_wrapper(config = config{})
-   : db{std::make_shared<Connection>(ioc)}
-   { }
-
-   // Destructor
-   ~sync_wrapper()
+   sync(failover_config cfg = failover_config{}, connection_config_type conn_cfg = connection_config_type{})
+   : db_{ioc_, conn_cfg}
    {
-      ioc.stop();
-      thread.join();
+      thread_ = std::thread{[this, cfg]() {
+         detail::async_failover(db_, cfg.host, cfg.port, boost::asio::detached);
+         ioc_.run();
+      }};
    }
 
-   void run(boost::string_view host, boost::string_view port)
+   // Destructor
+   ~sync()
    {
-      thread = std::thread{[this, host, port]() {
-         detail::async_failover(db, host, port, boost::asio::detached);
-         ioc.run();
-      }};
+      ioc_.stop();
+      thread_.join();
    }
 
    /** @brief Executes a command.
@@ -114,15 +127,15 @@ public:
    std::size_t
    exec(resp3::request const& req, ResponseAdapter adapter, boost::system::error_code& ec)
    {
-      std::mutex m;
+      std::mutex mutex;
       std::condition_variable cv;
       bool ready = false;
       std::size_t res = 0;
 
-      auto f = [this, &ec, &res, &m, &cv, &ready, &req, adapter]()
+      auto f = [this, &ec, &res, &mutex, &cv, &ready, &req, adapter]()
       {
-         std::lock_guard lk(m);
-         db->async_exec(req, adapter, [&cv, &ready, &res, &ec](auto const& ecp, std::size_t n) {
+         std::lock_guard lk(mutex);
+         db_.async_exec(req, adapter, [&cv, &ready, &res, &ec](auto const& ecp, std::size_t n) {
             ec = ecp;
             res = n;
             ready = true;
@@ -130,8 +143,8 @@ public:
          });
       };
 
-      boost::asio::dispatch(boost::asio::bind_executor(ioc, f));
-      std::unique_lock lk(m);
+      boost::asio::dispatch(boost::asio::bind_executor(ioc_, f));
+      std::unique_lock lk(mutex);
       cv.wait(lk, [&ready]{return ready;});
       return res;
    }

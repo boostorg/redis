@@ -8,6 +8,8 @@
 #include <iostream>
 #include <boost/asio.hpp>
 #include <aedis.hpp>
+
+// Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;

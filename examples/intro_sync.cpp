@@ -6,23 +6,22 @@
 
 #include <tuple>
 #include <string>
-#include <condition_variable>
-
 #include <boost/asio.hpp>
 #include <aedis.hpp>
-#include <aedis/experimental/sync_wrapper.hpp>
+#include <aedis/experimental/sync.hpp>
+
+// Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
 using aedis::adapt;
 using aedis::resp3::request;
-using aedis::experimental::sync_wrapper;
+using aedis::experimental::failover_config;
 using connection = aedis::connection<>;
 
 int main()
 {
    try {
-      sync_wrapper<connection> conn;
-      conn.run("127.0.0.1", "6379");
+      aedis::experimental::sync<connection> conn{failover_config{"127.0.0.1", "6379"}};
 
       request req;
       req.push("HELLO", 3);

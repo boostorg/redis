@@ -8,8 +8,10 @@
 #include <vector>
 #include <iostream>
 #include <aedis.hpp>
-#include <aedis/src.hpp>
 #include "print.hpp"
+
+// Include this in no more than one .cpp file.
+#include <aedis/src.hpp>
 
 namespace net = boost::asio;
 using boost::optional;

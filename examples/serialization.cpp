@@ -13,8 +13,10 @@
 #include <boost/json.hpp>
 #include <boost/json/src.hpp>
 #include <aedis.hpp>
-#include <aedis/src.hpp>
 #include "print.hpp"
+
+// Include this in no more than one .cpp file.
+#include <aedis/src.hpp>
 
 namespace net = boost::asio;
 using aedis::resp3::request;
