@@ -12,6 +12,15 @@
 
 namespace aedis {
 namespace experimental {
+namespace detail {
+
+struct sync {
+   std::mutex mutex;
+   std::condition_variable cv;
+   bool ready = false;
+};
+
+} // detail
 
 /** @brief Executes a command.
  *  @ingroup any
@@ -32,26 +41,24 @@ exec(
    ResponseAdapter adapter,
    boost::system::error_code& ec)
 {
-   std::mutex mutex;
-   std::condition_variable cv;
-   bool ready = false;
+   detail::sync sh;
    std::size_t res = 0;
 
-   auto f = [&conn, &ec, &res, &mutex, &cv, &ready, &req, adapter]()
+   auto f = [&conn, &ec, &res, &sh, &req, adapter]()
    {
-      conn.async_exec(req, adapter, [&cv, &mutex, &ready, &res, &ec](auto const& ecp, std::size_t n) {
-         std::unique_lock ul(mutex);
+      conn.async_exec(req, adapter, [&sh, &res, &ec](auto const& ecp, std::size_t n) {
+         std::unique_lock ul(sh.mutex);
          ec = ecp;
          res = n;
-         ready = true;
+         sh.ready = true;
          ul.unlock();
-         cv.notify_one();
+         sh.cv.notify_one();
       });
    };
 
    boost::asio::dispatch(boost::asio::bind_executor(conn.get_executor(), f));
-   std::unique_lock lk(mutex);
-   cv.wait(lk, [&ready]{return ready;});
+   std::unique_lock lk(sh.mutex);
+   sh.cv.wait(lk, [&sh]{return sh.ready;});
    return res;
 }
 
@@ -74,6 +81,46 @@ exec(Connection& conn, resp3::request const& req, ResponseAdapter adapter)
    auto const res = exec(conn, req, adapter, ec);
    if (ec)
       throw std::system_error(ec);
+   return res;
+}
+
+/** @brief Receives server pushes synchronusly.
+ *  @ingroup any
+ *
+ *  This function will block until execution completes.
+ *
+ *  @param conn The connection.
+ *  @param adapter The response adapter.
+ *  @param ec Error code in case of error.
+ *  @returns The number of bytes of the response.
+ */
+template <class Connection, class ResponseAdapter>
+std::size_t
+receive(
+   Connection& conn,
+   ResponseAdapter adapter,
+   boost::system::error_code& ec)
+{
+   std::mutex mutex;
+   std::condition_variable cv;
+   bool ready = false;
+   std::size_t res = 0;
+
+   auto f = [&conn, &ec, &res, &mutex, &cv, &ready, adapter]()
+   {
+      conn.async_receive(adapter, [&cv, &mutex, &ready, &res, &ec](auto const& ecp, std::size_t n) {
+         std::unique_lock ul(mutex);
+         ec = ecp;
+         res = n;
+         ready = true;
+         ul.unlock();
+         cv.notify_one();
+      });
+   };
+
+   boost::asio::dispatch(boost::asio::bind_executor(conn.get_executor(), f));
+   std::unique_lock lk(mutex);
+   cv.wait(lk, [&ready]{return ready;});
    return res;
 }
 

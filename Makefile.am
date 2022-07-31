@@ -25,6 +25,7 @@ check_PROGRAMS += test_high_level
 EXTRA_PROGRAMS =
 if HAVE_COROUTINES
 EXTRA_PROGRAMS += subscriber
+EXTRA_PROGRAMS += subscriber_sync
 EXTRA_PROGRAMS += echo_server
 EXTRA_PROGRAMS += echo_server_direct
 EXTRA_PROGRAMS += chat_room
@@ -44,6 +45,7 @@ intro_sync_SOURCES = $(top_srcdir)/examples/intro_sync.cpp
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
 test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
+subscriber_sync_SOURCES = $(top_srcdir)/examples/subscriber_sync.cpp
 if HAVE_COROUTINES
 subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp
 chat_room_SOURCES = $(top_srcdir)/examples/chat_room.cpp
