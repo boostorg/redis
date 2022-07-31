@@ -25,8 +25,8 @@
 
 namespace aedis {
 
-/** \brief A high level Redis connection class.
- *  \ingroup any
+/** @brief A high level Redis connection class.
+ *  @ingroup any
  *
  *  This class keeps a healthy connection to the Redis instance where
  *  commands can be sent at any time. For more details, please see the
@@ -215,6 +215,8 @@ public:
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
+      // TODO: Run req before any outstanding request to properly
+      // support HELLO and AUTH.
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)

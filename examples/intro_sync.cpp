@@ -13,25 +13,36 @@
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
+namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
-using aedis::experimental::failover_config;
+using aedis::experimental::exec;
 using connection = aedis::connection<>;
 
 int main()
 {
    try {
-      aedis::experimental::sync<connection> conn{failover_config{"127.0.0.1", "6379"}};
+      net::io_context ioc{1};
+      connection conn{ioc};
+
+      std::thread thread{[&]() { ioc.run(); }};
+
+      // Calls async_run in the correct executor.
+      net::dispatch(net::bind_executor(ioc, [&]() {
+         conn.async_run("127.0.0.1", "6379", net::detached);
+      }));
 
       request req;
       req.push("HELLO", 3);
       req.push("PING");
       req.push("QUIT");
+
+      // Executes commands synchronously.
       std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
-      conn.exec(req, adapt(resp));
+      exec(conn, req, adapt(resp));
+      thread.join();
 
       std::cout << "Response: " << std::get<1>(resp) << std::endl;
-
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }

@@ -8,7 +8,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/include/aedis/adapt.hpp\
   $(top_srcdir)/include/aedis/detail/connection_ops.hpp\
   $(top_srcdir)/include/aedis.hpp\
-  $(top_srcdir)/include/aedis/experimental/sync_wrapper.hpp\
+  $(top_srcdir)/include/aedis/experimental/sync.hpp\
   $(top_srcdir)/include/aedis/adapter/detail/adapters.hpp\
   $(top_srcdir)/include/aedis/adapter/adapt.hpp\
   $(top_srcdir)/include/aedis/adapter/detail/response_traits.hpp\

@@ -6,11 +6,11 @@
 
 * The `aedis` directory has been moved to `include` to look more
   similar to Boost libraries. Users should now replace `-I/aedis-path`
-  with `-I/aedis-path/include` to the compiler flags.
+  with `-I/aedis-path/include` in the compiler flags.
 
-* Adds experimental `sync_wrapper`. This class offers a thread-safe
-  and blocking API on top of the connection `class`. It is meant to
-  satisfy users that can't make their code asynchronous.
+* Adds `experimental::exec` functions to offer a thread safe and
+  synchronous way of executing requests. See `intro_sync.cpp` for and
+  example.
 
 * Fixes a bug in the `connection::async_exec(host, port)` overload
   that was causing crashes on reconnect.
