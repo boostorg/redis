@@ -50,8 +50,9 @@ int main()
 
    net::io_context ioc;
    connection db{ioc};
-   db.async_exec("127.0.0.1", "6379", req, aedis::adapt(resp),
-      [](auto ec, auto) { std::cout << ec.message() << std::endl; });
+   db.async_run(req, aedis::adapt(resp), [](auto ec, auto) {
+      std::cout << ec.message() << std::endl;
+   });
    ioc.run();
 
    print(std::get<0>(std::get<6>(resp)).value());

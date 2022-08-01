@@ -100,8 +100,9 @@ int main()
 
    std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
 
-   db.async_exec("127.0.0.1", "6379", req, aedis::adapt(resp),
-      [](auto ec, auto) { std::cout << ec.message() << std::endl; });
+   db.async_run(req, aedis::adapt(resp), [](auto ec, auto) {
+      std::cout << ec.message() << std::endl;
+   });
 
    ioc.run();
 

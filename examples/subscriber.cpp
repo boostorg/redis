@@ -73,8 +73,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
    net::steady_timer timer{ex};
 
    for (;;) {
-      net::co_spawn(ex, reader(db), net::detached);
-      co_await db->async_exec("127.0.0.1", "6379", req, adapt(), as_tuple(net::use_awaitable));
+      co_await db->async_run(req, adapt(), as_tuple(net::use_awaitable));
 
       // Waits one second and tries again.
       timer.expires_after(std::chrono::seconds{1});
@@ -87,6 +86,7 @@ int main()
    try {
       net::io_context ioc;
       auto db = std::make_shared<connection>(ioc);
+      net::co_spawn(ioc, reader(db), net::detached);
       net::co_spawn(ioc, reconnect(db), net::detached);
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

@@ -48,7 +48,7 @@ awaitable_type listener()
 {
    auto ex = co_await net::this_coro::executor;
    auto db = std::make_shared<connection>(ex);
-   db->async_run("127.0.0.1", "6379", net::detached);
+   db->async_run(net::detached);
 
    request req;
    req.push("HELLO", 3);

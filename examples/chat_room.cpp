@@ -74,7 +74,7 @@ int main()
       co_spawn(ioc, run(in, db), net::detached);
       co_spawn(ioc, reader(db), net::detached);
 
-      db->async_run("127.0.0.1", "6379", [](auto ec) {
+      db->async_run([](auto ec) {
          std::cout << ec.message() << std::endl;
       });
 

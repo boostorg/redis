@@ -49,14 +49,21 @@ public:
    using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
    using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
 
-   template <class T>
-   struct rebind {
-      using other = connection<T>;
-   };
-
    /** @brief Connection configuration parameters.
     */
    struct config {
+      /// The Redis server address.
+      boost::string_view host = "127.0.0.1";
+
+      /// The Redis server port.
+      boost::string_view port = "6379";
+
+      /// Username if authentication is required.
+      boost::string_view username;
+
+      /// Password if authentication is required.
+      boost::string_view password;
+
       /// Timeout of the resolve operation.
       std::chrono::milliseconds resolve_timeout = std::chrono::seconds{10};
 
@@ -141,16 +148,12 @@ public:
     *  \return This function returns only when there is an error.
     */
    template <class CompletionToken = default_completion_token_type>
-   auto
-   async_run(
-      boost::string_view host = "127.0.0.1",
-      boost::string_view port = "6379",
-      CompletionToken token = CompletionToken{})
+   auto async_run(CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<connection>{this, host, port}, token, resv_);
+         >(detail::run_op<connection>{this}, token, resv_);
    }
 
    /** @brief Executes a command on the redis server asynchronously.
@@ -208,20 +211,16 @@ public:
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = default_completion_token_type>
-   auto async_exec(
-      boost::string_view host,
-      boost::string_view port,
+   auto async_run(
       resp3::request const& req,
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
-      // TODO: Run req before any outstanding request to properly
-      // support HELLO and AUTH.
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
          >(detail::runexec_op<connection, Adapter>
-            {this, host, port, &req, adapter}, token, resv_);
+            {this, &req, adapter}, token, resv_);
    }
 
    /** @brief Receives unsolicited events asynchronously.
@@ -306,7 +305,7 @@ public:
       writer_timer_.cancel();
       ping_timer_.cancel();
 
-      push_channel_.cancel();
+      //push_channel_.cancel();
 
       // Cancel own pings if there is any waiting.
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
@@ -319,6 +318,13 @@ public:
       });
 
       reqs_.erase(point, std::end(reqs_));
+   }
+
+   /** @brief TODO
+    */
+   void cancel_receiver()
+   {
+      push_channel_.cancel();
    }
 
 private:
@@ -371,16 +377,12 @@ private:
       { return boost::asio::dynamic_buffer(read_buffer_, cfg_.max_read_size); }
 
    template <class CompletionToken>
-   auto
-   async_resolve_with_timeout(
-      boost::string_view host,
-      boost::string_view port,
-      CompletionToken&& token)
+   auto async_resolve_with_timeout(CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::resolve_with_timeout_op<connection>{this, host, port},
+         >(detail::resolve_with_timeout_op<connection>{this},
             token, resv_);
    }
 

@@ -32,9 +32,8 @@ int main()
       std::thread thread{[&]() {
          request req;
          req.push("HELLO", 3);
-         req.push("PING");
          req.push("SUBSCRIBE", "channel");
-         conn.async_exec("127.0.0.1", "6379", req, adapt(), net::detached);
+         conn.async_run(req, adapt(), net::detached);
          ioc.run();
       }};
 

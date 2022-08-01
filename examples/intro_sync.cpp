@@ -29,7 +29,7 @@ int main()
 
       // Calls async_run in the correct executor.
       net::dispatch(net::bind_executor(ioc, [&]() {
-         conn.async_run("127.0.0.1", "6379", net::detached);
+         conn.async_run(net::detached);
       }));
 
       request req;

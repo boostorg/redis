@@ -20,18 +20,18 @@ using connection = aedis::connection<>;
 
 int main()
 {
+   net::io_context ioc;
+   connection db{ioc};
+
    request req;
    req.push("HELLO", 3);
    req.push("PING");
    req.push("QUIT");
 
    std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
-
-   net::io_context ioc;
-
-   connection db{ioc};
-   db.async_exec("127.0.0.1", "6379", req, adapt(resp),
-      [](auto ec, auto) { std::cout << ec.message() << std::endl; });
+   db.async_run(req, adapt(resp), [](auto ec, auto) {
+      std::cout << ec.message() << std::endl;
+   });
 
    ioc.run();
 

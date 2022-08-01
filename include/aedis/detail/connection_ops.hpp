@@ -56,8 +56,6 @@ struct connect_with_timeout_op {
 template <class Conn>
 struct resolve_with_timeout_op {
    Conn* conn;
-   boost::string_view host;
-   boost::string_view port;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -68,7 +66,10 @@ struct resolve_with_timeout_op {
       reenter (coro)
       {
          conn->ping_timer_.expires_after(conn->cfg_.resolve_timeout);
-         yield aedis::detail::async_resolve(conn->resv_, conn->ping_timer_, host, port, std::move(self));
+         yield
+         aedis::detail::async_resolve(
+            conn->resv_, conn->ping_timer_,
+            conn->cfg_.host, conn->cfg_.port, std::move(self));
          conn->endpoints_ = res;
          self.complete(ec);
       }
@@ -378,8 +379,6 @@ struct start_op {
 template <class Conn>
 struct run_op {
    Conn* conn;
-   boost::string_view host;
-   boost::string_view port;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -387,7 +386,7 @@ struct run_op {
    {
       reenter (coro)
       {
-         yield conn->async_resolve_with_timeout(host, port, std::move(self));
+         yield conn->async_resolve_with_timeout(std::move(self));
          if (ec) {
             conn->cancel_run();
             self.complete(ec);
@@ -530,8 +529,6 @@ struct reader_op {
 template <class Conn, class Adapter>
 struct runexec_op {
    Conn* conn;
-   boost::string_view host;
-   boost::string_view port;
    resp3::request const* req = nullptr;
    Adapter adapter;
    boost::asio::coroutine coro{};
@@ -549,7 +546,7 @@ struct runexec_op {
 
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return conn->async_run(host, port, token);},
+            [this](auto token) { return conn->async_run(token);},
             [this](auto token) { return conn->async_exec(*req, adapter, token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one_error(),
