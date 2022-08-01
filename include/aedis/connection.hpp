@@ -53,16 +53,16 @@ public:
     */
    struct config {
       /// The Redis server address.
-      boost::string_view host = "127.0.0.1";
+      std::string host = "127.0.0.1";
 
       /// The Redis server port.
-      boost::string_view port = "6379";
+      std::string port = "6379";
 
       /// Username if authentication is required.
-      boost::string_view username;
+      std::string username;
 
       /// Password if authentication is required.
-      boost::string_view password;
+      std::string password;
 
       /// Timeout of the resolve operation.
       std::chrono::milliseconds resolve_timeout = std::chrono::seconds{10};

@@ -35,7 +35,6 @@ net::awaitable<void> reader(std::shared_ptr<connection> db)
 {
    try {
       request req;
-      req.push("HELLO", 3);
       req.push("SUBSCRIBE", "chat-channel");
       co_await db->async_exec(req);
 

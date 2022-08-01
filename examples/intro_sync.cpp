@@ -19,6 +19,7 @@ using aedis::resp3::request;
 using aedis::experimental::exec;
 using connection = aedis::connection<>;
 
+// TODO: What is causing the delay?
 int main()
 {
    try {
@@ -33,7 +34,6 @@ int main()
       }));
 
       request req;
-      req.push("HELLO", 3);
       req.push("PING");
       req.push("QUIT");
 

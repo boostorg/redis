@@ -24,16 +24,15 @@ int main()
    connection db{ioc};
 
    request req;
-   req.push("HELLO", 3);
    req.push("PING");
    req.push("QUIT");
 
-   std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+   std::tuple<std::string, aedis::ignore> resp;
    db.async_run(req, adapt(resp), [](auto ec, auto) {
       std::cout << ec.message() << std::endl;
    });
 
    ioc.run();
 
-   std::cout << std::get<1>(resp) << std::endl;
+   std::cout << std::get<0>(resp) << std::endl;
 }

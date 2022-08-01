@@ -78,7 +78,6 @@ void test_quit1(connection::config const& cfg)
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
-   req.push("HELLO", 3);
    req.push("QUIT");
 
    db->async_exec(req, aedis::adapt(), [](auto ec, auto){
@@ -96,7 +95,6 @@ void test_quit2(connection::config const& cfg)
 {
    std::cout << "test_quit2" << std::endl;
    request req;
-   req.push("HELLO", 3);
    req.push("QUIT");
 
    net::io_context ioc;
@@ -133,7 +131,6 @@ void test_missing_push_reader1(connection::config const& cfg)
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
-   req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
 
    db->async_run(req, aedis::adapt(), [](auto ec, auto){
@@ -150,7 +147,6 @@ void test_missing_push_reader2(connection::config const& cfg)
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req; // Wrong command syntax.
-   req.push("HELLO", 3);
    req.push("SUBSCRIBE");
 
    db->async_run(req, aedis::adapt(), [](auto ec, auto){
@@ -167,7 +163,6 @@ void test_missing_push_reader3(connection::config const& cfg)
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req; // Wrong command synthax.
-   req.push("HELLO", 3);
    req.push("PING", "Message");
    req.push("SUBSCRIBE");
 
@@ -190,7 +185,6 @@ void test_idle()
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
-   req.push("HELLO", 3);
    req.push("CLIENT", "PAUSE", 5000);
 
    db->async_exec(req, aedis::adapt(), [](auto ec, auto){
@@ -227,7 +221,6 @@ void test_push_is_received1(connection::config const& cfg)
    auto db = std::make_shared<connection>(ioc, cfg);
 
    request req;
-   req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
@@ -251,7 +244,6 @@ void test_push_is_received2(connection::config const& cfg)
 {
    std::cout << "test_push_is_received2" << std::endl;
    request req1;
-   req1.push("HELLO", 3);
    req1.push("PING", "Message1");
 
    request req2;

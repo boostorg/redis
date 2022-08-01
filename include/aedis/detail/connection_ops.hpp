@@ -24,6 +24,7 @@
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/request.hpp>
+#include <aedis/resp3/exec.hpp>
 
 #define HANDLER_LOCATION \
   BOOST_ASIO_HANDLER_LOCATION((__FILE__, __LINE__, __func__))
@@ -382,7 +383,10 @@ struct run_op {
    boost::asio::coroutine coro{};
 
    template <class Self>
-   void operator()(Self& self, boost::system::error_code ec = {})
+   void operator()(
+      Self& self,
+      boost::system::error_code ec = {},
+      std::size_t = 0)
    {
       reenter (coro)
       {
@@ -396,6 +400,31 @@ struct run_op {
          conn->socket_ = std::make_shared<typename Conn::next_layer_type>(conn->resv_.get_executor());
 
          yield conn->async_connect_with_timeout(std::move(self));
+         if (ec) {
+            conn->cancel_run();
+            self.complete(ec);
+            return;
+         }
+
+         conn->req_.clear();
+         if (!std::empty(conn->cfg_.username) && !std::empty(conn->cfg_.password))
+            conn->req_.push("AUTH", conn->cfg_.username, conn->cfg_.password);
+         conn->req_.push("HELLO", "3");
+
+         conn->ping_timer_.expires_after(conn->cfg_.ping_interval);
+
+         // TODO: This is going to consume on the first response i.e.
+         // AUTH, we also have to consume the HELLO.
+         yield
+         resp3::async_exec(
+            *conn->socket_,
+            conn->ping_timer_,
+            conn->req_,
+            adapter::adapt(),
+            conn->make_dynamic_buffer(),
+            std::move(self)
+         );
+
          if (ec) {
             conn->cancel_run();
             self.complete(ec);

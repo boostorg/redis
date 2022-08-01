@@ -28,7 +28,6 @@ int main()
       {{"key1", 10}, {"key2", 20}, {"key3", 30}};
 
    request req;
-   req.push("HELLO", 3);
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);
    req.push("MULTI");
@@ -38,7 +37,6 @@ int main()
    req.push("QUIT");
 
    std::tuple<
-      aedis::ignore, // hello
       aedis::ignore, // rpush
       aedis::ignore, // hset
       aedis::ignore, // multi
@@ -55,6 +53,6 @@ int main()
    });
    ioc.run();
 
-   print(std::get<0>(std::get<6>(resp)).value());
-   print(std::get<1>(std::get<6>(resp)).value());
+   print(std::get<0>(std::get<5>(resp)).value());
+   print(std::get<1>(std::get<5>(resp)).value());
 }

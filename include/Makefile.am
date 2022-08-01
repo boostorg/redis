@@ -18,6 +18,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/include/aedis/resp3/detail/parser.hpp\
   $(top_srcdir)/include/aedis/resp3/type.hpp\
   $(top_srcdir)/include/aedis/resp3/read.hpp\
+  $(top_srcdir)/include/aedis/resp3/exec.hpp\
   $(top_srcdir)/include/aedis/resp3/write.hpp\
   $(top_srcdir)/include/aedis/resp3/request.hpp\
   $(top_srcdir)/include/aedis/resp3/impl/request.ipp\

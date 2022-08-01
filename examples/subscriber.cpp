@@ -67,7 +67,6 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
    auto ex = co_await net::this_coro::executor;
 
    request req;
-   req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
 
    net::steady_timer timer{ex};
