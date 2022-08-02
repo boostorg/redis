@@ -20,11 +20,11 @@
 #include <aedis/error.hpp>
 #include <aedis/detail/net.hpp>
 #include <aedis/resp3/type.hpp>
+#include <aedis/resp3/detail/exec.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/request.hpp>
-#include <aedis/resp3/exec.hpp>
 
 #define HANDLER_LOCATION \
   BOOST_ASIO_HANDLER_LOCATION((__FILE__, __LINE__, __func__))
@@ -413,10 +413,8 @@ struct run_op {
 
          conn->ping_timer_.expires_after(conn->cfg_.ping_interval);
 
-         // TODO: This is going to consume on the first response i.e.
-         // AUTH, we also have to consume the HELLO.
          yield
-         resp3::async_exec(
+         async_exec(
             *conn->socket_,
             conn->ping_timer_,
             conn->req_,

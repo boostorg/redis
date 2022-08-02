@@ -36,6 +36,8 @@ struct exec_op {
    request const* req = nullptr;
    Adapter adapter;
    DynamicBuffer dbuf{};
+   std::size_t n_cmds = 0;
+   std::size_t size = 0;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -43,28 +45,37 @@ struct exec_op {
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
-      reenter (coro)
+      reenter (coro) for (;;)
       {
-         yield
-         boost::asio::async_write(
-            *socket,
-            boost::asio::buffer(req->payload()),
-            std::move(self));
+         if (req) {
+            yield
+            boost::asio::async_write(
+               *socket,
+               boost::asio::buffer(req->payload()),
+               std::move(self));
 
+            if (ec || n_cmds == 0) {
+               self.complete(ec, n);
+               return;
+            }
+
+            req = nullptr;
+         }
+
+         yield resp3::async_read(*socket, dbuf, adapter, std::move(self));
          if (ec) {
             self.complete(ec, 0);
             return;
          }
 
-         yield resp3::async_read(*socket, dbuf, adapter, std::move(self));
-         self.complete(ec, n);
+         size += n;
+         if (--n_cmds == 0) {
+            self.complete(ec, size);
+            return;
+         }
       }
    }
 };
-
-#include <boost/asio/unyield.hpp>
-
-} // detail
 
 template <
    class AsyncStream,
@@ -83,12 +94,8 @@ auto async_exec(
       < CompletionToken
       , void(boost::system::error_code, std::size_t)
       >(detail::exec_op<AsyncStream, Adapter, DynamicBuffer>
-         {&socket, &req, adapter, dbuf}, token, socket);
+         {&socket, &req, adapter, dbuf, req.size()}, token, socket);
 }
-
-namespace detail {
-
-#include <boost/asio/yield.hpp>
 
 template <
    class AsyncStream,
@@ -115,7 +122,7 @@ struct exec_with_timeout_op {
       {
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return resp3::async_exec(*socket, *req, adapter, dbuf, token);},
+            [this](auto token) { return detail::async_exec(*socket, *req, adapter, dbuf, token);},
             [this](auto token) { return timer->async_wait(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
@@ -148,8 +155,6 @@ struct exec_with_timeout_op {
 
 #include <boost/asio/unyield.hpp>
 
-} // detail
-
 template <
    class AsyncStream,
    class Timer,
@@ -172,6 +177,7 @@ auto async_exec(
          {&socket, &timer, &req, adapter, dbuf}, token, socket, timer);
 }
 
+} // detail
 } // resp3
 } // aedis
 
