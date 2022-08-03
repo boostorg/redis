@@ -80,6 +80,13 @@ public:
       bool coalesce_requests = true;
    };
 
+   enum class event {
+      resolve,
+      connect,
+      push,
+      invalid
+   };
+
    /** \brief Construct a connection from an executor.
     *
     *  \param ex The executor.
@@ -258,7 +265,7 @@ public:
 
       return boost::asio::async_compose
          < CompletionToken
-         , void(boost::system::error_code, std::size_t)
+         , void(boost::system::error_code, event, std::size_t)
          >(detail::receive_op<connection, decltype(f)>{this, f}, token, resv_);
    }
 
@@ -305,8 +312,6 @@ public:
       writer_timer_.cancel();
       ping_timer_.cancel();
 
-      //push_channel_.cancel();
-
       // Cancel own pings if there is any waiting.
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
          return !ptr->req->close_on_run_completion;
@@ -352,6 +357,7 @@ private:
    template <class T> friend struct detail::resolve_with_timeout_op;
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::start_op;
+   template <class T> friend struct detail::send_receive_op;
 
    void cancel_push_requests()
    {
@@ -479,6 +485,7 @@ private:
    std::string write_buffer_;
    std::size_t cmds_ = 0;
    reqs_type reqs_;
+   event last_event_ = event::invalid;
 
    // Last time we received data.
    time_point_type last_data_;

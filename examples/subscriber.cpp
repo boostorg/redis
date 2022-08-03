@@ -47,9 +47,11 @@ net::awaitable<void> reader(std::shared_ptr<connection> db)
 {
    try {
       for (std::vector<node<std::string>> resp;;) {
-         co_await db->async_receive(adapt(resp));
+         auto [ec, ev, n] = co_await db->async_receive(adapt(resp), as_tuple(net::use_awaitable));
 
          std::cout
+            << "Event: " << (int)ev << "\n"
+            << "Size: " << n << "\n"
             << "Event: "   << resp.at(1).value << "\n"
             << "Channel: " << resp.at(2).value << "\n"
             << "Message: " << resp.at(3).value << "\n"

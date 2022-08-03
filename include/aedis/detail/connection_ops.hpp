@@ -94,7 +94,7 @@ struct receive_op {
       {
          yield conn->push_channel_.async_receive(std::move(self));
          if (ec) {
-            self.complete(ec, 0);
+            self.complete(ec, Conn::event::invalid, 0);
             return;
          }
 
@@ -102,14 +102,14 @@ struct receive_op {
          yield resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
          if (ec) {
             conn->cancel_run();
-            self.complete(ec, 0);
+            self.complete(ec, Conn::event::invalid, 0);
             return;
          }
 
          read_size = n;
 
          yield conn->push_channel_.async_send({}, 0, std::move(self));
-         self.complete(ec, read_size);
+         self.complete(ec, Conn::event::push, read_size);
          return;
       }
    }
@@ -154,6 +154,8 @@ struct exec_read_op {
             // If the next request is a push we have to handle it to
             // the receive_op wait for it to be done and continue.
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
+               BOOST_ASSERT(conn->last_event_ == Conn::event::invalid);
+               conn->last_event_ = Conn::event::push;
                yield async_send_receive(conn->push_channel_, std::move(self));
                if (ec) {
                   // Notice we don't call cancel_run() as that is the
@@ -532,6 +534,7 @@ struct reader_op {
          if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push
              || conn->reqs_.empty()
              || (!conn->reqs_.empty() && conn->reqs_.front()->cmds == 0)) {
+            conn->last_event_ = Conn::event::push;
             yield async_send_receive(conn->push_channel_, std::move(self));
             if (ec) {
                self.complete(ec);
