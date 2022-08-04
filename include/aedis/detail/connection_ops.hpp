@@ -98,18 +98,20 @@ struct receive_op {
             return;
          }
 
-         BOOST_ASSERT(conn->socket_ != nullptr);
-         yield resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
-         if (ec) {
-            conn->cancel_run();
-            self.complete(ec, Conn::event::invalid, 0);
-            return;
+         if (conn->last_event_ == Conn::event::push) {
+            BOOST_ASSERT(conn->socket_ != nullptr);
+            yield resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
+            if (ec) {
+               conn->cancel_run();
+               self.complete(ec, Conn::event::invalid, 0);
+               return;
+            }
+
+            read_size = n;
          }
 
-         read_size = n;
-
          yield conn->push_channel_.async_send({}, 0, std::move(self));
-         self.complete(ec, Conn::event::push, read_size);
+         self.complete(ec, conn->last_event_, read_size);
          return;
       }
    }
@@ -154,7 +156,6 @@ struct exec_read_op {
             // If the next request is a push we have to handle it to
             // the receive_op wait for it to be done and continue.
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
-               BOOST_ASSERT(conn->last_event_ == Conn::event::invalid);
                conn->last_event_ = Conn::event::push;
                yield async_send_receive(conn->push_channel_, std::move(self));
                if (ec) {
@@ -399,6 +400,15 @@ struct run_op {
             return;
          }
 
+         if (conn->cfg_.enable_events) {
+            conn->last_event_ = Conn::event::resolve;
+            yield async_send_receive(conn->push_channel_, std::move(self));
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
+         }
+
          conn->socket_ = std::make_shared<typename Conn::next_layer_type>(conn->resv_.get_executor());
 
          yield conn->async_connect_with_timeout(std::move(self));
@@ -429,6 +439,15 @@ struct run_op {
             conn->cancel_run();
             self.complete(ec);
             return;
+         }
+
+         if (conn->cfg_.enable_events) {
+            conn->last_event_ = Conn::event::connect;
+            yield async_send_receive(conn->push_channel_, std::move(self));
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
          }
 
          std::for_each(std::begin(conn->reqs_), std::end(conn->reqs_), [](auto const& ptr) {

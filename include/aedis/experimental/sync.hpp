@@ -108,7 +108,7 @@ receive(
 
    auto f = [&conn, &ec, &res, &mutex, &cv, &ready, adapter]()
    {
-      conn.async_receive(adapter, [&cv, &mutex, &ready, &res, &ec](auto const& ecp, std::size_t n) {
+      conn.async_receive(adapter, [&cv, &mutex, &ready, &res, &ec](auto const& ecp, auto, std::size_t n) {
          std::unique_lock ul(mutex);
          ec = ecp;
          res = n;

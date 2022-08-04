@@ -78,6 +78,9 @@ public:
 
       /// Whether to coalesce requests (see [pipelines](https://redis.io/topics/pipelining)).
       bool coalesce_requests = true;
+
+      /// Enable events
+      bool enable_events = false;
    };
 
    enum class event {
@@ -332,6 +335,12 @@ public:
       push_channel_.cancel();
    }
 
+   /// Get the config object.
+   config& get_config() noexcept { return cfg_;}
+
+   /// Gets the config object.
+   config const& get_config() const noexcept { return cfg_;}
+
 private:
    struct req_info {
       req_info(executor_type ex) : timer{ex} {}
@@ -495,6 +504,27 @@ private:
 
    resp3::request req_;
 };
+
+/// Converts a connection event to a string.
+template <class T>
+char const* to_string(typename connection<T>::event e)
+{
+   using event_type = typename connection<T>::event;
+   switch (e) {
+      case event_type::resolve: return "resolve";
+      case event_type::connect: return "connect";
+      case event_type::push: return "push";
+      default: BOOST_ASSERT_MSG(false, "to_string: unhandled event.");
+   }
+}
+
+/// Writes a connection event to the stream.
+template <class T>
+std::ostream& operator<<(std::ostream& os, typename connection<T>::event e)
+{
+   os << to_string(e);
+   return os;
+}
 
 } // aedis
 

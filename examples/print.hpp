@@ -54,3 +54,11 @@ void print(std::string const& e)
    std::cout << e << std::endl;
 }
 
+void print_push(std::vector<aedis::resp3::node<std::string>>& resp)
+{
+   std::cout
+      << "Push type: "   << resp.at(1).value << "\n"
+      << "Channel: " << resp.at(2).value << "\n"
+      << "Message: " << resp.at(3).value << "\n"
+      << std::endl;
+}
