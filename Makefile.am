@@ -20,7 +20,7 @@ check_PROGRAMS += intro_sync
 check_PROGRAMS += containers
 check_PROGRAMS += serialization
 check_PROGRAMS += test_low_level
-check_PROGRAMS += test_high_level
+check_PROGRAMS += test_connection
 
 EXTRA_PROGRAMS =
 if HAVE_COROUTINES
@@ -44,7 +44,7 @@ intro_SOURCES = $(top_srcdir)/examples/intro.cpp
 intro_sync_SOURCES = $(top_srcdir)/examples/intro_sync.cpp
 containers_SOURCES = $(top_srcdir)/examples/containers.cpp
 serialization_SOURCES = $(top_srcdir)/examples/serialization.cpp
-test_high_level_SOURCES = $(top_srcdir)/tests/high_level.cpp
+test_connection_SOURCES = $(top_srcdir)/tests/connection.cpp
 subscriber_sync_SOURCES = $(top_srcdir)/examples/subscriber_sync.cpp
 if HAVE_COROUTINES
 subscriber_SOURCES = $(top_srcdir)/examples/subscriber.cpp

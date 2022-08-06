@@ -73,6 +73,9 @@ public:
       /// Time interval ping operations.
       std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
 
+      /// Time waited before trying a reconnection (see enable reconnect).
+      std::chrono::milliseconds reconnect_interval = std::chrono::seconds{1};
+
       /// The maximum size allowed on read operations.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
 
@@ -81,6 +84,9 @@ public:
 
       /// Enable events
       bool enable_events = false;
+
+      /// Enable automatic reconnection (see also reconnect_interval).
+      bool enable_reconnect = false;
    };
 
    /// Events communicated through \c async_receive_event.
@@ -152,8 +158,6 @@ public:
     *
     * For an example see echo_server.cpp.
     *
-    *  \param host Redis address.
-    *  \param port Redis port.
     *  \param token Completion token.
     *
     *  The completion token must have the following signature
@@ -211,8 +215,6 @@ public:
     *  single function. This function is useful for users that want to
     *  send a single request to the server and close it.
     *
-    *  \param host Address of the Redis server.
-    *  \param port Port of the Redis server.
     *  \param req Request object.
     *  \param adapter Response adapter.
     *  \param token Asio completion token.
@@ -253,7 +255,7 @@ public:
     *  have the following signature
     *
     *  @code
-    *  void f(boost::system::error_code, std::size_t);
+    *  void f(boost::system::error_code, event);
     *  @endcode
     *
     *  Where the second parameter is the size of the response that has
@@ -335,9 +337,8 @@ public:
       reqs_.erase(point, std::end(reqs_));
    }
 
-   /** @brief TODO
-    */
-   void cancel_receiver()
+   /// Cancels the event receiver.
+   void cancel_event_receiver()
    {
       push_channel_.cancel();
    }
@@ -366,6 +367,7 @@ private:
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::ping_op;
    template <class T> friend struct detail::run_op;
+   template <class T> friend struct detail::run_one_op;
    template <class T, class U> friend struct detail::exec_op;
    template <class T, class U> friend struct detail::exec_read_op;
    template <class T, class U> friend struct detail::runexec_op;
@@ -374,6 +376,15 @@ private:
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::start_op;
    template <class T> friend struct detail::send_receive_op;
+
+   template <class CompletionToken = default_completion_token_type>
+   auto async_run_one(CompletionToken token = CompletionToken{})
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::run_one_op<connection>{this}, token, resv_);
+   }
 
    void cancel_push_requests()
    {

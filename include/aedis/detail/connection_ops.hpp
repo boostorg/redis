@@ -381,7 +381,7 @@ struct start_op {
 };
 
 template <class Conn>
-struct run_op {
+struct run_one_op {
    Conn* conn;
    boost::asio::coroutine coro{};
 
@@ -468,6 +468,36 @@ struct run_op {
       }
    }
 };
+
+template <class Conn>
+struct run_op {
+   Conn* conn;
+   boost::asio::coroutine coro{};
+
+   template <class Self>
+   void operator()(
+      Self& self,
+      boost::system::error_code ec = {},
+      std::size_t = 0)
+   {
+      reenter (coro) for(;;)
+      {
+         yield conn->async_run_one(std::move(self));
+
+         if (!conn->cfg_.enable_reconnect) {
+            self.complete(ec);
+            return;
+         }
+
+         // Consider communicating the return of async_run_one as an
+         // event here.
+
+         conn->ping_timer_.expires_after(conn->cfg_.reconnect_interval);
+         yield conn->ping_timer_.async_wait(std::move(self)); 
+      }
+   }
+};
+
 
 template <class Conn>
 struct writer_op {

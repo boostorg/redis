@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([Aedis], [0.2.1], [mzimbres@gmail.com])
+AC_INIT([Aedis], [0.3.0], [mzimbres@gmail.com])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR(include/aedis.hpp)

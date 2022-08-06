@@ -41,7 +41,7 @@ using net::experimental::as_tuple;
  * > CLIENT kill TYPE pubsub
  */
 
-net::awaitable<void> reader(std::shared_ptr<connection> db)
+net::awaitable<void> receiver(std::shared_ptr<connection> db)
 {
    request req;
    req.push("SUBSCRIBE", "channel");
@@ -54,27 +54,17 @@ net::awaitable<void> reader(std::shared_ptr<connection> db)
       switch (ev) {
          case connection::event::push:
          print_push(resp);
+         resp.clear();
          break;
 
          case connection::event::hello:
+         // Subscribes to the channels again after stablishing a new
+         // connection.
          co_await db->async_exec(req);
          break;
 
          default:;
       }
-
-      resp.clear();
-   }
-}
-
-net::awaitable<void> reconnect(std::shared_ptr<connection> db)
-{
-   net::steady_timer timer{co_await net::this_coro::executor};
-   for (;;) {
-      co_await db->async_run(as_tuple(net::use_awaitable));
-      // Waits one second and tries again.
-      timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait(net::use_awaitable);
    }
 }
 
@@ -83,9 +73,12 @@ int main()
    try {
       net::io_context ioc;
       auto db = std::make_shared<connection>(ioc);
+
       db->get_config().enable_events = true;
-      net::co_spawn(ioc, reader(db), net::detached);
-      net::co_spawn(ioc, reconnect(db), net::detached);
+      db->get_config().enable_reconnect = true;
+
+      net::co_spawn(ioc, receiver(db), net::detached);
+      db->async_run(net::detached);
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });
       ioc.run();

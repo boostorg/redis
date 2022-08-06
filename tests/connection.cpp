@@ -226,7 +226,7 @@ void test_push_is_received1(connection::config const& cfg)
 
    db->async_run(req, aedis::adapt(), [db](auto ec, auto){
       expect_no_error(ec, "test_push_is_received1");
-      db->cancel_receiver();
+      db->cancel_event_receiver();
    });
 
    bool received = false;
@@ -266,7 +266,7 @@ void test_push_is_received2(connection::config const& cfg)
 
    db->async_run([db](auto ec, auto...) {
       expect_error(ec, net::error::misc_errors::eof, "test_push_is_received2");
-      db->cancel_receiver();
+      db->cancel_event_receiver();
    });
 
    bool received = false;
@@ -279,28 +279,30 @@ void test_push_is_received2(connection::config const& cfg)
    expect_true(received);
 }
 
-net::awaitable<void> run5(std::shared_ptr<connection> db)
+net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
 {
-   {
-      request req;
-      req.push("QUIT");
-      db->async_exec(req, aedis::adapt(), [](auto ec, auto){
-         expect_no_error(ec, "test_reconnect");
-      });
+   request req;
+   req.push("QUIT");
 
-      auto [ec] = co_await db->async_run(as_tuple(net::use_awaitable));
-      expect_error(ec, net::error::misc_errors::eof, "run5a");
-   }
+   for (auto i = 0;;) {
+      auto ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
+      expect_eq(ev, connection::event::resolve, "test_reconnect.");
 
-   {
-      request req;
-      req.push("QUIT");
-      db->async_exec(req, aedis::adapt(), [](auto ec, auto){
-         expect_no_error(ec, "test_reconnect");
-      });
+       ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
+      expect_eq(ev, connection::event::connect, "test_reconnect.");
 
-      auto [ec] = co_await db->async_run(as_tuple(net::use_awaitable));
-      expect_error(ec, net::error::misc_errors::eof, "run5a");
+      ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
+      expect_eq(ev, connection::event::hello, "test_reconnect.");
+
+      co_await db->async_exec(req, aedis::adapt(), net::use_awaitable);
+
+      // Test 5 reconnetions and returns.
+
+      ++i;
+      if (i == 5) {
+         db->get_config().enable_reconnect = false;
+         co_return;
+      }
    }
 
    co_return;
@@ -309,13 +311,21 @@ net::awaitable<void> run5(std::shared_ptr<connection> db)
 // Test whether the client works after a reconnect.
 void test_reconnect()
 {
-   std::cout << "test_reconnect" << std::endl;
+   std::cout << "Start: test_reconnect" << std::endl;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc.get_executor());
+   db->get_config().enable_events = true;
+   db->get_config().enable_reconnect = true;
+   db->get_config().reconnect_interval = std::chrono::milliseconds{100};
 
-   net::co_spawn(ioc, run5(db), net::detached);
+   net::co_spawn(ioc, test_reconnect_impl(db), net::detached);
+
+   db->async_run([](auto ec) {
+      expect_error(ec, net::error::misc_errors::eof, "test_reconnect.");
+   });
+
    ioc.run();
-   std::cout << "Success: test_reconnect()" << std::endl;
+   std::cout << "End: test_reconnect()" << std::endl;
 }
 
 net::awaitable<void>
@@ -363,7 +373,7 @@ void test_push_many_subscribes(connection::config const& cfg)
 
    db->async_run([db](auto ec, auto...) {
       expect_error(ec, net::error::misc_errors::eof, "test_push_many_subscribes");
-      db->cancel_receiver();
+      db->cancel_event_receiver();
    });
 
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);

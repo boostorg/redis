@@ -29,7 +29,9 @@ int main()
    try {
       net::io_context ioc{1};
       connection conn{ioc};
+
       conn.get_config().enable_events = true;
+      conn.get_config().enable_reconnect = true;
 
       std::thread thread{[&]() {
          conn.async_run(net::detached);
@@ -45,16 +47,17 @@ int main()
          switch (ev) {
             case connection::event::push:
             print_push(resp);
+            resp.clear();
             break;
 
             case connection::event::hello:
+            // Subscribes to the channels again after stablishing a
+            // new connection.
             exec(conn, req);
             break;
 
             default:;
          }
-
-         resp.clear();
       }
 
       thread.join();

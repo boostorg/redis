@@ -1,14 +1,13 @@
 # Changelog
 
-## master
+## v0.3.0
 
-* Adds `experimental::exec` and `experimental::receive_event`
+* Adds `experimental::exec` and `receive_event`
   functions to offer a thread safe and synchronous way of executing
   requests. See `intro_sync.cpp` and `subscriber_sync.cpp` for
   examples.
 
-* `connection::async_read_push` has been renamed to
-  `async_receive_event`.
+* `connection::async_read_push` was renamed to `async_receive_event`.
 
 * Uses `async_receive_event` to communicate internal events to the
   user, see subscriber.cpp and `connection::event`.
@@ -16,6 +15,11 @@
 * The `aedis` directory has been moved to `include` to look more
   similar to Boost libraries. Users should now replace `-I/aedis-path`
   with `-I/aedis-path/include` in the compiler flags.
+
+* AUTH and HELLO commands are sent automatically. This change was
+  necessary to implement reconnection.
+
+* Adds support for reconnection. See connection::enable reconnect.
 
 * Fixes a bug in the `connection::async_exec(host, port)` overload
   that was causing crashes reconnection.
