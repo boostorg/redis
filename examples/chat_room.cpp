@@ -9,6 +9,7 @@
 #include <boost/asio.hpp>
 #include <aedis.hpp>
 #include "unistd.h"
+#include "print.hpp"
 
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
@@ -16,7 +17,6 @@
 #if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 
 namespace net = boost::asio;
-using aedis::adapt;
 using aedis::resp3::request;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
@@ -33,17 +33,23 @@ using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 net::awaitable<void> reader(std::shared_ptr<connection> db)
 {
-   try {
-      request req;
-      req.push("SUBSCRIBE", "chat-channel");
-      co_await db->async_exec(req);
+   request req;
+   req.push("SUBSCRIBE", "chat-channel");
 
-      for (response_type resp;;) {
-         co_await db->async_receive(adapt(resp));
-         std::cout << "> " << resp.at(3).value;
-         resp.clear();
+   for (response_type resp;;) {
+      auto const ev = co_await db->async_receive_event(aedis::adapt(resp));
+      switch (ev) {
+         case connection::event::push:
+         print_push(resp);
+         break;
+
+         case connection::event::hello:
+         co_await db->async_exec(req);
+         break;
+
+         default:;
       }
-   } catch (std::exception const&) {
+      resp.clear();
    }
 }
 
@@ -70,6 +76,7 @@ int main()
       net::io_context ioc{1};
       net::posix::stream_descriptor in{ioc, ::dup(STDIN_FILENO)};
       auto db = std::make_shared<connection>(ioc);
+      db->get_config().enable_events = true;
       co_spawn(ioc, run(in, db), net::detached);
       co_spawn(ioc, reader(db), net::detached);
 
@@ -77,6 +84,8 @@ int main()
          std::cout << ec.message() << std::endl;
       });
 
+      net::signal_set signals(ioc, SIGINT, SIGTERM);
+      signals.async_wait([&](auto, auto){ ioc.stop(); });
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

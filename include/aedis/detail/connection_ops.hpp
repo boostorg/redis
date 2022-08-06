@@ -94,7 +94,7 @@ struct receive_op {
       {
          yield conn->push_channel_.async_receive(std::move(self));
          if (ec) {
-            self.complete(ec, Conn::event::invalid, 0);
+            self.complete(ec, Conn::event::invalid);
             return;
          }
 
@@ -103,7 +103,7 @@ struct receive_op {
             yield resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
             if (ec) {
                conn->cancel_run();
-               self.complete(ec, Conn::event::invalid, 0);
+               self.complete(ec, Conn::event::invalid);
                return;
             }
 
@@ -111,7 +111,7 @@ struct receive_op {
          }
 
          yield conn->push_channel_.async_send({}, 0, std::move(self));
-         self.complete(ec, conn->last_event_, read_size);
+         self.complete(ec, conn->last_event_);
          return;
       }
    }
@@ -418,6 +418,15 @@ struct run_op {
             return;
          }
 
+         if (conn->cfg_.enable_events) {
+            conn->last_event_ = Conn::event::connect;
+            yield async_send_receive(conn->push_channel_, std::move(self));
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
+         }
+
          conn->req_.clear();
          if (!std::empty(conn->cfg_.username) && !std::empty(conn->cfg_.password))
             conn->req_.push("AUTH", conn->cfg_.username, conn->cfg_.password);
@@ -442,7 +451,7 @@ struct run_op {
          }
 
          if (conn->cfg_.enable_events) {
-            conn->last_event_ = Conn::event::connect;
+            conn->last_event_ = Conn::event::hello;
             yield async_send_receive(conn->push_channel_, std::move(self));
             if (ec) {
                self.complete(ec);

@@ -19,30 +19,26 @@ using aedis::resp3::request;
 using aedis::experimental::exec;
 using connection = aedis::connection<>;
 
-// TODO: What is causing the delay?
 int main()
 {
    try {
       net::io_context ioc{1};
       connection conn{ioc};
 
-      std::thread thread{[&]() { ioc.run(); }};
-
-      // Calls async_run in the correct executor.
-      net::dispatch(net::bind_executor(ioc, [&]() {
+      std::thread thread{[&]() {
          conn.async_run(net::detached);
-      }));
+         ioc.run();
+      }};
 
       request req;
       req.push("PING");
       req.push("QUIT");
 
-      // Executes commands synchronously.
-      std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+      std::tuple<std::string, aedis::ignore> resp;
       exec(conn, req, adapt(resp));
       thread.join();
 
-      std::cout << "Response: " << std::get<1>(resp) << std::endl;
+      std::cout << "Response: " << std::get<0>(resp) << std::endl;
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }

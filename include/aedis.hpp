@@ -15,7 +15,7 @@
 /** \mainpage Documentation
     \tableofcontents
   
-    Useful links: \subpage any, [Benchmarks](benchmarks/benchmarks.md).
+    Useful links: \subpage any, [Changelog](CHANGELOG.md) and [Benchmarks](benchmarks/benchmarks.md).
 
     \section Overview
   

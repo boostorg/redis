@@ -7,6 +7,7 @@
 #ifndef AEDIS_EXPERIMENTAL_SYNC_HPP
 #define AEDIS_EXPERIMENTAL_SYNC_HPP
 
+#include <aedis/adapt.hpp>
 #include <aedis/connection.hpp>
 #include <aedis/resp3/request.hpp>
 
@@ -73,9 +74,14 @@ exec(
  *  @throws std::system_error in case of error.
  *  @returns The number of bytes of the response.
  */
-template <class Connection, class ResponseAdapter>
+template <
+   class Connection,
+   class ResponseAdapter = aedis::detail::response_traits<void>::adapter_type>
 std::size_t
-exec(Connection& conn, resp3::request const& req, ResponseAdapter adapter)
+exec(
+   Connection& conn,
+   resp3::request const& req,
+   ResponseAdapter adapter = aedis::adapt())
 {
    boost::system::error_code ec;
    auto const res = exec(conn, req, adapter, ec);
@@ -95,23 +101,23 @@ exec(Connection& conn, resp3::request const& req, ResponseAdapter adapter)
  *  @returns The number of bytes of the response.
  */
 template <class Connection, class ResponseAdapter>
-std::size_t
-receive(
+auto receive_event(
    Connection& conn,
    ResponseAdapter adapter,
    boost::system::error_code& ec)
 {
+   using event_type = typename Connection::event;
    std::mutex mutex;
    std::condition_variable cv;
    bool ready = false;
-   std::size_t res = 0;
+   event_type ev = event_type::invalid;
 
-   auto f = [&conn, &ec, &res, &mutex, &cv, &ready, adapter]()
+   auto f = [&conn, &ec, &ev, &mutex, &cv, &ready, adapter]()
    {
-      conn.async_receive(adapter, [&cv, &mutex, &ready, &res, &ec](auto const& ecp, auto, std::size_t n) {
+      conn.async_receive_event(adapter, [&cv, &mutex, &ready, &ev, &ec](auto const& ecp, event_type evp) {
          std::unique_lock ul(mutex);
          ec = ecp;
-         res = n;
+         ev = evp;
          ready = true;
          ul.unlock();
          cv.notify_one();
@@ -121,7 +127,7 @@ receive(
    boost::asio::dispatch(boost::asio::bind_executor(conn.get_executor(), f));
    std::unique_lock lk(mutex);
    cv.wait(lk, [&ready]{return ready;});
-   return res;
+   return ev;
 }
 
 } // experimental

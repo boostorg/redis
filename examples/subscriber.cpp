@@ -25,21 +25,16 @@ using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>
 using connection = aedis::connection<tcp_socket>;
 using net::experimental::as_tuple;
 
-/* In this example we send a subscription to a channel and start
- * reading server side messages indefinitely.
+/* This example will subscribe and read pushes indefinitely.
  *
- * After starting the example you can test it by sending messages with
- * redis-cli like this
+ * To test send messages with redis-cli
  *
  *    $ redis-cli -3
  *    127.0.0.1:6379> PUBLISH channel1 some-message
  *    (integer) 3
  *    127.0.0.1:6379>
  *
- * The messages will then appear on the terminal you are running the
- * example.
- *
- * To test reconnection try for example to close all clients currently
+ * To test reconnection try, for example, to close all clients currently
  * connected to the Redis instance
  *
  * $ redis-cli
@@ -52,7 +47,7 @@ net::awaitable<void> reader(std::shared_ptr<connection> db)
    req.push("SUBSCRIBE", "channel");
 
    for (std::vector<node_type> resp;;) {
-      auto [ec, ev, n] = co_await db->async_receive(aedis::adapt(resp), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(resp), as_tuple(net::use_awaitable));
 
       std::cout << "Event: " << aedis::to_string<tcp_socket>(ev) << std::endl;
 
@@ -60,9 +55,11 @@ net::awaitable<void> reader(std::shared_ptr<connection> db)
          case connection::event::push:
          print_push(resp);
          break;
-         case connection::event::connect:
+
+         case connection::event::hello:
          co_await db->async_exec(req);
          break;
+
          default:;
       }
 

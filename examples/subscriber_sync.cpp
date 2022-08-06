@@ -9,17 +9,18 @@
 #include <boost/asio.hpp>
 #include <aedis.hpp>
 #include <aedis/experimental/sync.hpp>
+#include "print.hpp"
 
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-using aedis::adapt;
 using aedis::resp3::request;
 using aedis::experimental::exec;
-using aedis::experimental::receive;
+using aedis::experimental::receive_event;
 using connection = aedis::connection<>;
-using node = aedis::resp3::node<std::string>;
+using aedis::resp3::node;
+using event = connection::event;
 
 // See subscriber.cpp for more info about how to run this example.
 
@@ -28,24 +29,30 @@ int main()
    try {
       net::io_context ioc{1};
       connection conn{ioc};
+      conn.get_config().enable_events = true;
 
       std::thread thread{[&]() {
-         request req;
-         req.push("HELLO", 3);
-         req.push("SUBSCRIBE", "channel");
-         conn.async_run(req, adapt(), net::detached);
+         conn.async_run(net::detached);
          ioc.run();
       }};
 
-      for (std::vector<node> resp;;) {
-         boost::system::error_code ec;
-         receive(conn, adapt(resp), ec);
+      request req;
+      req.push("SUBSCRIBE", "channel");
 
-         std::cout
-            << "Event: "   << resp.at(1).value << "\n"
-            << "Channel: " << resp.at(2).value << "\n"
-            << "Message: " << resp.at(3).value << "\n"
-            << std::endl;
+      for (std::vector<node<std::string>> resp;;) {
+         boost::system::error_code ec;
+         auto const ev = receive_event(conn, aedis::adapt(resp), ec);
+         switch (ev) {
+            case connection::event::push:
+            print_push(resp);
+            break;
+
+            case connection::event::hello:
+            exec(conn, req);
+            break;
+
+            default:;
+         }
 
          resp.clear();
       }

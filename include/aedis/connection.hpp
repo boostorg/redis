@@ -83,10 +83,17 @@ public:
       bool enable_events = false;
    };
 
+   /// Events communicated through \c async_receive_event.
    enum class event {
+      /// The address has been successfully resolved.
       resolve,
+      /// Connected to the Redis server.
       connect,
+      /// Success sending AUTH and HELLO.
+      hello,
+      /// A push event has been received.
       push,
+      /// Used internally.
       invalid
    };
 
@@ -141,7 +148,7 @@ public:
     *  connection::config::ping_interval.
     *
     *  \li Starts reading from the socket and delivering events to the
-    *  request started with \c async_exec and \c async_receive.
+    *  request started with \c async_exec and \c async_receive_event.
     *
     * For an example see echo_server.cpp.
     *
@@ -255,7 +262,7 @@ public:
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = default_completion_token_type>
-   auto async_receive(
+   auto async_receive_event(
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
@@ -268,7 +275,7 @@ public:
 
       return boost::asio::async_compose
          < CompletionToken
-         , void(boost::system::error_code, event, std::size_t)
+         , void(boost::system::error_code, event)
          >(detail::receive_op<connection, decltype(f)>{this, f}, token, resv_);
    }
 
@@ -294,7 +301,7 @@ public:
     *  safe to try a reconnect after that, when that happens, all
     *  pending request will be automatically sent.
     *
-    *  Calling this function will causes @c async_receive to return
+    *  Calling this function will causes @c async_receive_event to return
     *  with @c boost::asio::experimental::channel_errc::channel_cancelled.
     *  
     *  \remarks
@@ -513,7 +520,9 @@ char const* to_string(typename connection<T>::event e)
    switch (e) {
       case event_type::resolve: return "resolve";
       case event_type::connect: return "connect";
+      case event_type::hello: return "hello";
       case event_type::push: return "push";
+      case event_type::invalid: return "invalid";
       default: BOOST_ASSERT_MSG(false, "to_string: unhandled event.");
    }
 }
