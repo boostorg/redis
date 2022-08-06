@@ -58,8 +58,8 @@ net::awaitable<void> receiver(std::shared_ptr<connection> db)
          break;
 
          case connection::event::hello:
-         // Subscribes to the channels again after stablishing a new
-         // connection.
+         // Subscribes to the channels when a new connection is
+         // stablished.
          co_await db->async_exec(req);
          break;
 

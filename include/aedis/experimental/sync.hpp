@@ -130,6 +130,21 @@ auto receive_event(
    return ev;
 }
 
+/// TODO
+template <
+   class Connection,
+   class ResponseAdapter = aedis::detail::response_traits<void>::adapter_type>
+auto receive_event(
+   Connection& conn,
+   ResponseAdapter adapter = aedis::adapt())
+{
+   boost::system::error_code ec;
+   auto const res = receive_event(conn, adapter, ec);
+   if (ec)
+      throw std::system_error(ec);
+   return res;
+}
+
 } // experimental
 } // aedis
 

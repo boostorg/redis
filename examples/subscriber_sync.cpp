@@ -24,6 +24,30 @@ using event = connection::event;
 
 // See subscriber.cpp for more info about how to run this example.
 
+void subscriber(connection& conn)
+{
+   request req;
+   req.push("SUBSCRIBE", "channel");
+
+   for (std::vector<node<std::string>> resp;;) {
+      auto const ev = receive_event(conn, aedis::adapt(resp));
+      switch (ev) {
+         case connection::event::push:
+         print_push(resp);
+         resp.clear();
+         break;
+
+         case connection::event::hello:
+         // Subscribes to the channels when a new connection is
+         // stablished.
+         exec(conn, req);
+         break;
+
+         default:;
+      }
+   }
+}
+
 int main()
 {
    try {
@@ -38,28 +62,7 @@ int main()
          ioc.run();
       }};
 
-      request req;
-      req.push("SUBSCRIBE", "channel");
-
-      for (std::vector<node<std::string>> resp;;) {
-         boost::system::error_code ec;
-         auto const ev = receive_event(conn, aedis::adapt(resp), ec);
-         switch (ev) {
-            case connection::event::push:
-            print_push(resp);
-            resp.clear();
-            break;
-
-            case connection::event::hello:
-            // Subscribes to the channels again after stablishing a
-            // new connection.
-            exec(conn, req);
-            break;
-
-            default:;
-         }
-      }
-
+      subscriber(conn);
       thread.join();
 
    } catch (std::exception const& e) {
