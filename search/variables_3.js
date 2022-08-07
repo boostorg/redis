@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['max_5fread_5fsize_89',['max_read_size',['../classaedis_1_1connection.html#a37e7ea486168410772caf84ac96a2c78',1,'aedis::connection::config']]]
+  ['enable_5fevents_108',['enable_events',['../classaedis_1_1connection.html#a9cb4e6e583a2841732454d2d7654c196',1,'aedis::connection::config']]],
+  ['enable_5freconnect_109',['enable_reconnect',['../classaedis_1_1connection.html#aa61c1ba655fbc0c36736ac72201621fa',1,'aedis::connection::config']]]
 ];

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: aedis/resp3/request.hpp Source File</title>
+<title>Aedis: include/aedis/resp3/request.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.1</font> &#160; <br> High level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.3.0</font> &#160; <br> High level Redis client </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -70,7 +70,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_9d90dcbfa4d8f8d750ed748af15e8f01.html">aedis</a></li><li class="navelem"><a class="el" href="dir_0fa2c971baff23a9f38ce2ade2153076.html">resp3</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_d44c64559bbebec7f509842c48db8b23.html">include</a></li><li class="navelem"><a class="el" href="dir_fc21780ef7622f597daa202227f08e20.html">aedis</a></li><li class="navelem"><a class="el" href="dir_c182dba47daf15664f6962aa16cc85fb.html">resp3</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -87,58 +87,61 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#ifndef AEDIS_RESP3_REQUEST_HPP</span></div>
 <div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#define AEDIS_RESP3_REQUEST_HPP</span></div>
 <div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;boost/hana.hpp&gt;</span></div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;aedis/resp3/compose.hpp&gt;</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">// NOTE: Consider detecting tuples in the type in the parameter pack</span></div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// to calculate the header size correctly.</span></div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="comment">//</span></div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// NOTE: For some commands like hset it would be a good idea to assert</span></div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="comment">// the value type is a pair.</span></div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">namespace </span>aedis {</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">namespace </span>resp3 {</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
-<div class="line"><a name="l00044"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html">   44</a></span>&#160;<span class="keyword">class </span><a class="code" href="classaedis_1_1resp3_1_1request.html">request</a> {</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;   std::size_t commands() <span class="keyword">const</span> noexcept { <span class="keywordflow">return</span> commands_;};</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160; </div>
-<div class="line"><a name="l00050"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#a5ba25f658ea598a06e2612c537eca66f">   50</a></span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span>&amp; <a class="code" href="classaedis_1_1resp3_1_1request.html#a5ba25f658ea598a06e2612c537eca66f">payload</a>() const noexcept { <span class="keywordflow">return</span> payload_;}</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
-<div class="line"><a name="l00053"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">   53</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">clear</a>()</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;   {</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;      payload_.clear();</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;      commands_ = 0;</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;   }</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span>... Ts&gt;</div>
-<div class="line"><a name="l00075"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">   75</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(boost::string_view cmd, Ts <span class="keyword">const</span>&amp;... args)</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;   {</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;      <span class="keyword">using</span> boost::hana::for_each;</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;      <span class="keyword">using</span> boost::hana::make_tuple;</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;      <span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>;</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160; </div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> before = payload_.size();</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      <span class="keyword">auto</span> constexpr pack_size = <span class="keyword">sizeof</span>...(Ts);</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;      resp3::add_header(payload_, <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57af1f713c9e000f5d3f280adbd124df4f5">type::array</a>, 1 + pack_size);</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;      resp3::add_bulk(payload_, cmd);</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;      resp3::add_bulk(payload_, make_tuple(args...));</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160; </div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> after = payload_.size();</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;      <span class="keywordflow">if</span> (!has_push_response(cmd))</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;         ++commands_;</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;   }</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160; </div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Key, <span class="keyword">class</span> ForwardIterator&gt;</div>
-<div class="line"><a name="l00114"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">  114</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">push_range2</a>(boost::string_view cmd, Key <span class="keyword">const</span>&amp; key, ForwardIterator begin, ForwardIterator end)</div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;   {</div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;      <span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>;</div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160; </div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;         <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160; </div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> before = payload_.size();</div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &lt;aedis/resp3/compose.hpp&gt;</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;boost/hana.hpp&gt;</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &lt;boost/utility/string_view.hpp&gt;</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160; </div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// NOTE: Consider detecting tuples in the type in the parameter pack</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="comment">// to calculate the header size correctly.</span></div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="comment">// NOTE: For some commands like hset it would be a good idea to assert</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="comment">// the value type is a pair.</span></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">namespace </span>aedis {</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">namespace </span>resp3 {</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">namespace </span>detail {</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160; </div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keywordtype">bool</span> has_push_response(boost::string_view cmd);</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160; </div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;} <span class="comment">// detail</span></div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160; </div>
+<div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html">   48</a></span>&#160;<span class="keyword">class </span><a class="code" href="classaedis_1_1resp3_1_1request.html">request</a> {</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;   std::size_t size() <span class="keyword">const</span> noexcept { <span class="keywordflow">return</span> commands_;};</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;   <span class="comment">// Returns the request payload.</span></div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span>&amp; payload() <span class="keyword">const</span> noexcept { <span class="keywordflow">return</span> payload_;}</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
+<div class="line"><a name="l00057"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">   57</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">clear</a>()</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;   {</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;      payload_.clear();</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;      commands_ = 0;</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;   }</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160; </div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span>... Ts&gt;</div>
+<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">   79</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(boost::string_view cmd, Ts <span class="keyword">const</span>&amp;... args)</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;   {</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;      <span class="keyword">using</span> boost::hana::for_each;</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      <span class="keyword">using</span> boost::hana::make_tuple;</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;      <span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>;</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160; </div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;      <span class="keyword">auto</span> constexpr pack_size = <span class="keyword">sizeof</span>...(Ts);</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;      resp3::add_header(payload_, <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57af1f713c9e000f5d3f280adbd124df4f5">type::array</a>, 1 + pack_size);</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;      resp3::add_bulk(payload_, cmd);</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;      resp3::add_bulk(payload_, make_tuple(args...));</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160; </div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;      <span class="keywordflow">if</span> (!detail::has_push_response(cmd))</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;         ++commands_;</div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;   }</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160; </div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Key, <span class="keyword">class</span> ForwardIterator&gt;</div>
+<div class="line"><a name="l00116"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">  116</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">push_range2</a>(boost::string_view cmd, Key <span class="keyword">const</span>&amp; key, ForwardIterator begin, ForwardIterator end)</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;   {</div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;      <span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>;</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160; </div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;         <span class="keywordflow">return</span>;</div>
 <div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160; </div>
 <div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;      <span class="keyword">auto</span> constexpr size = resp3::bulk_counter&lt;value_type&gt;::size;</div>
 <div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
@@ -149,71 +152,65 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
 <div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;     resp3::add_bulk(payload_, *begin);</div>
 <div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160; </div>
-<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> after = payload_.size();</div>
-<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;      <span class="keywordflow">if</span> (!has_push_response(cmd))</div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;         ++commands_;</div>
-<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;   }</div>
-<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160; </div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> ForwardIterator&gt;</div>
-<div class="line"><a name="l00156"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#acfd4b7d3128867b73e60710eca3ff486">  156</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#acfd4b7d3128867b73e60710eca3ff486">push_range2</a>(boost::string_view cmd, ForwardIterator begin, ForwardIterator end)</div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;   {</div>
-<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
-<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;      <span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>;</div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160; </div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;         <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160; </div>
-<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> before = payload_.size();</div>
-<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;      <span class="keyword">auto</span> constexpr size = resp3::bulk_counter&lt;value_type&gt;::size;</div>
-<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
-<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;      resp3::add_header(payload_, <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57af1f713c9e000f5d3f280adbd124df4f5">type::array</a>, 1 + size * distance);</div>
-<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;      resp3::add_bulk(payload_, cmd);</div>
-<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160; </div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
-<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;     resp3::add_bulk(payload_, *begin);</div>
-<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160; </div>
-<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> after = payload_.size();</div>
-<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;      <span class="keywordflow">if</span> (!has_push_response(cmd))</div>
-<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;         ++commands_;</div>
-<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;   }</div>
-<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160; </div>
-<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Key, <span class="keyword">class</span> Range&gt;</div>
-<div class="line"><a name="l00187"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#a811536f213c80d537db4c205e56fc199">  187</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#a811536f213c80d537db4c205e56fc199">push_range</a>(boost::string_view cmd, Key <span class="keyword">const</span>&amp; key, Range <span class="keyword">const</span>&amp; range)</div>
-<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;   {</div>
-<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;      <span class="keyword">using</span> std::begin;</div>
-<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;      <span class="keyword">using</span> std::end;</div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;      <a class="code" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">push_range2</a>(cmd, key, begin(range), end(range));</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;   }</div>
-<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160; </div>
-<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Range&gt;</div>
-<div class="line"><a name="l00202"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#a86ce6135fe19c7f83ffbe836efc1ce93">  202</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#a86ce6135fe19c7f83ffbe836efc1ce93">push_range</a>(boost::string_view cmd, Range <span class="keyword">const</span>&amp; range)</div>
-<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;   {</div>
-<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;      <span class="keyword">using</span> std::begin;</div>
-<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;      <span class="keyword">using</span> std::end;</div>
-<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;      <a class="code" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">push_range2</a>(cmd, begin(range), end(range));</div>
-<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;   }</div>
-<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160; </div>
-<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;   <span class="keywordtype">void</span> set_internal() noexcept { is_internal_ = <span class="keyword">true</span>;}</div>
-<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;   <span class="keywordtype">bool</span> is_internal() const noexcept { <span class="keywordflow">return</span> is_internal_;}</div>
-<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160; </div>
-<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;   std::string payload_;</div>
-<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;   std::size_t commands_ = 0;</div>
-<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;   <span class="keywordtype">bool</span> is_internal_ = <span class="keyword">true</span>;</div>
-<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;};</div>
-<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160; </div>
-<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160;} <span class="comment">// resp3</span></div>
-<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;} <span class="comment">// aedis</span></div>
-<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160; </div>
-<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_RESP3_SERIALIZER_HPP</span></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests from user data.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00044">request.hpp:44</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a29c7c13a796f72f7599f8ba45bba498b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">aedis::resp3::request::push_range2</a></div><div class="ttdeci">void push_range2(boost::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00114">request.hpp:114</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a5ba25f658ea598a06e2612c537eca66f"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a5ba25f658ea598a06e2612c537eca66f">aedis::resp3::request::payload</a></div><div class="ttdeci">auto const  &amp; payload() const noexcept</div><div class="ttdoc">Returns the request payload.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00050">request.hpp:50</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a811536f213c80d537db4c205e56fc199"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a811536f213c80d537db4c205e56fc199">aedis::resp3::request::push_range</a></div><div class="ttdeci">void push_range(boost::string_view cmd, Key const &amp;key, Range const &amp;range)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00187">request.hpp:187</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a86ce6135fe19c7f83ffbe836efc1ce93"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a86ce6135fe19c7f83ffbe836efc1ce93">aedis::resp3::request::push_range</a></div><div class="ttdeci">void push_range(boost::string_view cmd, Range const &amp;range)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00202">request.hpp:202</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a92da0407e160354a4d81510f098cecd1"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">aedis::resp3::request::clear</a></div><div class="ttdeci">void clear()</div><div class="ttdoc">Clears the request preserving allocated memory.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00053">request.hpp:53</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_acfd4b7d3128867b73e60710eca3ff486"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#acfd4b7d3128867b73e60710eca3ff486">aedis::resp3::request::push_range2</a></div><div class="ttdeci">void push_range2(boost::string_view cmd, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00156">request.hpp:156</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_ae9cfe90ea55427d5345846f80b70be1b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request::push</a></div><div class="ttdeci">void push(boost::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00075">request.hpp:75</a></div></div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;      <span class="keywordflow">if</span> (!detail::has_push_response(cmd))</div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;         ++commands_;</div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;   }</div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160; </div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> ForwardIterator&gt;</div>
+<div class="line"><a name="l00155"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#acfd4b7d3128867b73e60710eca3ff486">  155</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#acfd4b7d3128867b73e60710eca3ff486">push_range2</a>(boost::string_view cmd, ForwardIterator begin, ForwardIterator end)</div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;   {</div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;      <span class="keyword">using</span> value_type = <span class="keyword">typename</span> std::iterator_traits&lt;ForwardIterator&gt;::value_type;</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;      <span class="keyword">using</span> <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>;</div>
+<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160; </div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;      <span class="keywordflow">if</span> (begin == end)</div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;         <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;      <span class="keyword">auto</span> constexpr size = resp3::bulk_counter&lt;value_type&gt;::size;</div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> distance = std::distance(begin, end);</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;      resp3::add_header(payload_, <a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57af1f713c9e000f5d3f280adbd124df4f5">type::array</a>, 1 + size * distance);</div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;      resp3::add_bulk(payload_, cmd);</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160; </div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;      <span class="keywordflow">for</span> (; begin != end; ++begin)</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;     resp3::add_bulk(payload_, *begin);</div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160; </div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;      <span class="keywordflow">if</span> (!detail::has_push_response(cmd))</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;         ++commands_;</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;   }</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160; </div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Key, <span class="keyword">class</span> Range&gt;</div>
+<div class="line"><a name="l00184"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#a811536f213c80d537db4c205e56fc199">  184</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#a811536f213c80d537db4c205e56fc199">push_range</a>(boost::string_view cmd, Key <span class="keyword">const</span>&amp; key, Range <span class="keyword">const</span>&amp; range)</div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;   {</div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;      <span class="keyword">using</span> std::begin;</div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;      <span class="keyword">using</span> std::end;</div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;      <a class="code" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">push_range2</a>(cmd, key, begin(range), end(range));</div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;   }</div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160; </div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Range&gt;</div>
+<div class="line"><a name="l00199"></a><span class="lineno"><a class="line" href="classaedis_1_1resp3_1_1request.html#a86ce6135fe19c7f83ffbe836efc1ce93">  199</a></span>&#160;   <span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#a86ce6135fe19c7f83ffbe836efc1ce93">push_range</a>(boost::string_view cmd, Range <span class="keyword">const</span>&amp; range)</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;   {</div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;      <span class="keyword">using</span> std::begin;</div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;      <span class="keyword">using</span> std::end;</div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;      <a class="code" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">push_range2</a>(cmd, begin(range), end(range));</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;   }</div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160; </div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;   <span class="keyword">mutable</span> <span class="keywordtype">bool</span> close_on_run_completion = <span class="keyword">false</span>;</div>
+<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160; </div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;   std::string payload_;</div>
+<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;   std::size_t commands_ = 0;</div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;};</div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160; </div>
+<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;} <span class="comment">// resp3</span></div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;} <span class="comment">// aedis</span></div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160; </div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_RESP3_SERIALIZER_HPP</span></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00048">request.hpp:48</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a29c7c13a796f72f7599f8ba45bba498b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">aedis::resp3::request::push_range2</a></div><div class="ttdeci">void push_range2(boost::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00116">request.hpp:116</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a811536f213c80d537db4c205e56fc199"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a811536f213c80d537db4c205e56fc199">aedis::resp3::request::push_range</a></div><div class="ttdeci">void push_range(boost::string_view cmd, Key const &amp;key, Range const &amp;range)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00184">request.hpp:184</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a86ce6135fe19c7f83ffbe836efc1ce93"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a86ce6135fe19c7f83ffbe836efc1ce93">aedis::resp3::request::push_range</a></div><div class="ttdeci">void push_range(boost::string_view cmd, Range const &amp;range)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00199">request.hpp:199</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a92da0407e160354a4d81510f098cecd1"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">aedis::resp3::request::clear</a></div><div class="ttdeci">void clear()</div><div class="ttdoc">Clears the request preserving allocated memory.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00057">request.hpp:57</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_acfd4b7d3128867b73e60710eca3ff486"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#acfd4b7d3128867b73e60710eca3ff486">aedis::resp3::request::push_range2</a></div><div class="ttdeci">void push_range2(boost::string_view cmd, ForwardIterator begin, ForwardIterator end)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00155">request.hpp:155</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_ae9cfe90ea55427d5345846f80b70be1b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request::push</a></div><div class="ttdeci">void push(boost::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00079">request.hpp:79</a></div></div>
 <div class="ttc" id="agroup__any_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 data types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
 <div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57af1f713c9e000f5d3f280adbd124df4f5"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57af1f713c9e000f5d3f280adbd124df4f5">aedis::resp3::type::array</a></div><div class="ttdeci">@ array</div><div class="ttdoc">Aggregate.</div></div>
 </div><!-- fragment --></div><!-- contents -->

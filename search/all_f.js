@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['value_62',['value',['../group__any.html#a923b33182800f271bad3155a36231da3',1,'aedis::resp3::node']]],
-  ['verbatim_5fstring_63',['verbatim_string',['../group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a94bddd7697a78d3184ec1342f9f89e97',1,'aedis::resp3']]]
+  ['unexpected_5fbool_5fvalue_75',['unexpected_bool_value',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa5fc45aedad26336422187e290f356194',1,'aedis']]],
+  ['unexpected_5fread_5fsize_76',['unexpected_read_size',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baaae5d9826dd70a97dd620905d979974e3',1,'aedis']]],
+  ['username_77',['username',['../classaedis_1_1connection.html#a4c2c5e3c10176852a484b267dd54b8b2',1,'aedis::connection::config']]]
 ];

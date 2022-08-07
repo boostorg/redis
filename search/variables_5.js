@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['resolve_5ftimeout_91',['resolve_timeout',['../classaedis_1_1connection.html#a650fc6a2f21aaba6e3be507c97da3719',1,'aedis::connection::config']]]
+  ['max_5fread_5fsize_111',['max_read_size',['../classaedis_1_1connection.html#a37e7ea486168410772caf84ac96a2c78',1,'aedis::connection::config']]]
 ];

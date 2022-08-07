@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.1</font> &#160; <br> High level Redis client library </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.3.0</font> &#160; <br> High level Redis client </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -82,10 +82,10 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 </div><!--header-->
 <div class="contents">
 
-<p>Creates Redis requests from user data.  
+<p>Creates Redis requests.  
  <a href="classaedis_1_1resp3_1_1request.html#details">More...</a></p>
 
-<p><code>#include &lt;<a class="el" href="request_8hpp_source.html">aedis/resp3/request.hpp</a>&gt;</code></p>
+<p><code>#include &lt;<a class="el" href="request_8hpp_source.html">include/aedis/resp3/request.hpp</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -93,10 +93,6 @@ Public Member Functions</h2></td></tr>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">clear</a> ()</td></tr>
 <tr class="memdesc:a92da0407e160354a4d81510f098cecd1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clears the request preserving allocated memory. <br /></td></tr>
 <tr class="separator:a92da0407e160354a4d81510f098cecd1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5ba25f658ea598a06e2612c537eca66f"><td class="memItemLeft" align="right" valign="top"><a id="a5ba25f658ea598a06e2612c537eca66f"></a>
-auto const  &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a5ba25f658ea598a06e2612c537eca66f">payload</a> () const noexcept</td></tr>
-<tr class="memdesc:a5ba25f658ea598a06e2612c537eca66f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the request payload. <br /></td></tr>
-<tr class="separator:a5ba25f658ea598a06e2612c537eca66f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae9cfe90ea55427d5345846f80b70be1b"><td class="memTemplParams" colspan="2">template&lt;class... Ts&gt; </td></tr>
 <tr class="memitem:ae9cfe90ea55427d5345846f80b70be1b"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a> (boost::string_view cmd, Ts const &amp;... args)</td></tr>
 <tr class="memdesc:ae9cfe90ea55427d5345846f80b70be1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">More...</a><br /></td></tr>
@@ -119,9 +115,8 @@ auto const  &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="e
 <tr class="separator:a29c7c13a796f72f7599f8ba45bba498b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Creates Redis requests from user data. </p>
-<p>A request is composed of one or more Redis commands and is referred to in the redis documentation as a pipeline, see <a href="https://redis.io/topics/pipelining">https://redis.io/topics/pipelining</a>.</p>
-<p>Example</p>
+<div class="textblock"><p>Creates Redis requests. </p>
+<p>A request is composed of one or more Redis commands and is referred to in the redis documentation as a pipeline, see <a href="https://redis.io/topics/pipelining">https://redis.io/topics/pipelining</a>. For example</p>
 <div class="fragment"><div class="line">request r;</div>
 <div class="line">r.push(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
 <div class="line">r.push(<span class="stringliteral">&quot;FLUSHALL&quot;</span>);</div>
@@ -131,7 +126,7 @@ auto const  &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="e
 <div class="line">co_await async_write(socket, buffer(r));</div>
 </div><!-- fragment --><dl class="section remark"><dt>Remarks</dt><dd>Non-string types will be converted to string by using <code>to_bulk</code>, which must be made available over ADL. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00044">44</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00048">48</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="ae9cfe90ea55427d5345846f80b70be1b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae9cfe90ea55427d5345846f80b70be1b">&#9670;&nbsp;</a></span>push()</h2>
@@ -182,7 +177,7 @@ template&lt;class... Ts&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00075">75</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00079">79</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -239,7 +234,7 @@ template&lt;class Key , class Range &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00187">187</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00184">184</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -289,7 +284,7 @@ template&lt;class Range &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00202">202</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00199">199</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -351,7 +346,7 @@ template&lt;class ForwardIterator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00156">156</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00155">155</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -424,12 +419,12 @@ template&lt;class Key , class ForwardIterator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00114">114</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00116">116</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>aedis/resp3/<a class="el" href="request_8hpp_source.html">request.hpp</a></li>
+<li>include/aedis/resp3/<a class="el" href="request_8hpp_source.html">request.hpp</a></li>
 </ul>
 </div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
