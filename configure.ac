@@ -19,10 +19,6 @@ AC_CHECK_HEADER_STDBOOL
 AC_TYPE_UINT64_T
 AC_CHECK_TYPES([ptrdiff_t])
 
-AX_CXX_COMPILE_STDCXX(17, , mandatory)
-AX_CXX_COMPILE_STDCXX(20, , optional)
-AM_CONDITIONAL(HAVE_CXX20,[test x$HAVE_CXX20 == x1])
-
 # This check has been stolen from Asio
 AC_MSG_CHECKING([whether coroutines are enabled])
 AC_COMPILE_IFELSE(

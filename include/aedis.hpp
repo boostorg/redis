@@ -168,11 +168,11 @@
 
     ```
     # Download and unpack the latest release
-    $ wget https://github.com/mzimbres/aedis/releases/download/v0.3.0/aedis-0.2.1.tar.gz
-    $ tar -xzvf aedis-0.2.1.tar.gz
+    $ wget https://github.com/mzimbres/aedis/releases/download/v0.3.0/aedis-0.3.0.tar.gz
+    $ tar -xzvf aedis-0.3.0.tar.gz
 
     # Configure, build and install
-    $ ./configure --prefix=/opt/aedis-0.2.1 --with-boost=/opt/boost_1_78_0
+    $ CXXFLAGS="-std=c++17" ./configure --prefix=/opt/aedis-0.3.0 --with-boost=/opt/boost_1_78_0
     $ sudo make install
     ```
 
