@@ -28,37 +28,36 @@
     \li First class support for STL containers and C++ built-in types.
     \li Serialization and deserialization of your own data types.
     \li Healthy checks, back pressure and low latency.
+    \li Hides most of the low level asynchronous operations away from the user.
 
-    Aedis API hides most of the low level asynchronous operations away
-    from the user, for example, the code below sends a ping command to
-    Redis (see intro.cpp)
+    Let us start with an overview of asynchronous code.
+
+    @subsection Async
+
+    The code below sends a ping command to Redis (see intro.cpp)
 
     @code
     int main()
     {
+       net::io_context ioc;
+       connection db{ioc};
+
        request req;
-       req.push("HELLO", 3);
        req.push("PING");
        req.push("QUIT");
 
-       std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
-
-       net::io_context ioc;
-
-       connection db{ioc};
-
-       db.async_exec("127.0.0.1", "6379", req, adapt(resp), handler);
+       std::tuple<std::string, aedis::ignore> resp;
+       db.async_run(req, adapt(resp), net::detached);
 
        ioc.run();
 
-       // Print the ping message.
-       std::cout << std::get<1>(resp) << std::endl;
+       std::cout << std::get<0>(resp) << std::endl;
     }
     @endcode
 
-    The connection class keeps a long lasting connection to the Redis
-    server over which users can execute commands, without any need of
-    queuing, for example, to execute more than one command
+    The connection class maintains a healthy connection with
+    Redis over which users can execute their commands, without any
+    need of queuing. For example, to execute more than one command
 
     @code
     int main()
@@ -71,32 +70,80 @@
        db.async_exec(req2, adapt(resp2), handler2);
        db.async_exec(req3, adapt(resp3), handler3);
 
-       db.async_run("127.0.0.1", "6379", handler4);
+       db.async_run(net::detached);
 
        ioc.run();
        ...
     }
     @endcode
 
-    See echo_server.cpp for a more complex example.  Server-side
-    pushes are supported on the same connection where commands are
-    executed, a typical subscriber will look like
+    The `async_exec` functions above can be called from different
+    places in the code without knowing about each other, see for
+    example echo_server.cpp.  Server-side pushes are supported on the
+    same connection where commands are executed, a typical subscriber
+    will look like
+    (see subscriber.cpp)
 
     @code
     net::awaitable<void> reader(std::shared_ptr<connection> db)
     {
-       ...
-       for (std::vector<node<std::string>> resp;;) {
-          co_await db->async_receive(adapt(resp));
+       request req;
+       req.push("SUBSCRIBE", "channel");
 
-          // Handle message
+       for (std::vector<node_type> resp;;) {
+          auto ev = co_await db->async_receive_event(aedis::adapt(resp));
 
-          resp.clear();
+          switch (ev) {
+             case connection::event::push:
+             // Use resp.
+             resp.clear();
+             break;
+
+             case connection::event::hello:
+             // Subscribes to channels when a new connection is
+             // stablished.
+             co_await db->async_exec(req);
+             break;
+
+             default:;
+          }
        }
     }
     @endcode
 
-    See subscriber.cpp for a complete example.
+    @subsection Sync
+
+    The `connection` class is async-only, many users however need to
+    interact with it synchronously, this is also supported by Aedis as long
+    as this interaction occurs across threads, for example (see
+    intro_sync.cpp)
+
+    @code
+    int main()
+    {
+       try {
+          net::io_context ioc{1};
+          connection conn{ioc};
+    
+          std::thread thread{[&]() {
+             conn.async_run(net::detached);
+             ioc.run();
+          }};
+    
+          request req;
+          req.push("PING");
+          req.push("QUIT");
+    
+          std::tuple<std::string, aedis::ignore> resp;
+          exec(conn, req, adapt(resp));
+          thread.join();
+    
+          std::cout << "Response: " << std::get<0>(resp) << std::endl;
+       } catch (std::exception const& e) {
+          std::cerr << e.what() << std::endl;
+       }
+    }
+    @endcode
 
     \subsection using-aedis Installation
 
@@ -110,7 +157,7 @@
 
     ```
     # Clone the repository and checkout the lastest release tag.
-    $ git clone --branch v0.2.1 https://github.com/mzimbres/aedis.git
+    $ git clone --branch v0.3.0 https://github.com/mzimbres/aedis.git
     $ cd aedis
 
     # Build an example
@@ -121,7 +168,7 @@
 
     ```
     # Download and unpack the latest release
-    $ wget https://github.com/mzimbres/aedis/releases/download/v0.2.1/aedis-0.2.1.tar.gz
+    $ wget https://github.com/mzimbres/aedis/releases/download/v0.3.0/aedis-0.2.1.tar.gz
     $ tar -xzvf aedis-0.2.1.tar.gz
 
     # Configure, build and install
@@ -451,10 +498,12 @@
     The examples listed below cover most use cases presented in the documentation above.
 
     @li intro.cpp: Basic steps with Aedis.
+    @li intro_sync.cpp: Synchronous version of intro.cpp.
     @li containers.cpp: Shows how to send and receive stl containers.
     @li serialization.cpp: Shows the \c request support to serialization of user types.
     @li subscriber.cpp: Shows how to subscribe to a channel and how to reconnect when connection is lost.
-    @li echo_server.cpp: A simple TCP echo server that users coroutines.
+    @li subscriber_sync.cpp: Synchronous version of subscriber.cpp.
+    @li echo_server.cpp: A simple TCP echo server that uses coroutines.
     @li chat_room.cpp: A simple chat room that uses coroutines.
 
     \section why-aedis Why Aedis
@@ -476,8 +525,8 @@
     not support
 
     @li RESP3. Without RESP3 is impossible to support some important Redis features like client side caching, among other things.
-    @li The Asio asynchronous model.
-    @li Reading response diretly in user data structures avoiding temporaries.
+    @li Coroutines.
+    @li Reading responses directly in user data structures avoiding temporaries.
     @li Error handling with error-code and exception overloads.
     @li Healthy checks.
 
@@ -523,11 +572,11 @@
 
     Some of the problems with this API are
 
-    @li Heterogeneous treatment of commands, pipelines and transaction.
+    @li Heterogeneous treatment of commands, pipelines and transaction. This makes auto-pipelining impossible.
     @li Any Api that sends individual commands has a very restricted scope of usability and should be avoided for performance reasons.
     @li The API imposes exceptions on users, no error-code overload is provided.
     @li No way to reuse the buffer for new calls to e.g. \c redis.get in order to avoid further dynamic memory allocations.
-    @li Error handling of resolve and connection no clear.
+    @li Error handling of resolve and connection not clear.
 
     According to the documentation, pipelines in redis-plus-plus have
     the following characteristics
@@ -538,7 +587,7 @@
     This is clearly a downside of the API as pipelines should be the
     default way of communicating and not an exception, paying such a
     high price for each pipeline imposes a severe cost in performance.
-    Transactions also suffer from the very same problem
+    Transactions also suffer from the very same problem.
 
     > NOTE: Creating a Transaction object is NOT cheap, since it
     > creates a new connection.

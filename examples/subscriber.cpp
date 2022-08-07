@@ -9,7 +9,6 @@
 #include <iostream>
 #include <tuple>
 #include <boost/asio.hpp>
-#include <boost/asio/experimental/as_tuple.hpp>
 #include <aedis.hpp>
 #include "print.hpp"
 
@@ -23,7 +22,6 @@ using aedis::resp3::request;
 using node_type = aedis::resp3::node<std::string>;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using connection = aedis::connection<tcp_socket>;
-using net::experimental::as_tuple;
 
 /* This example will subscribe and read pushes indefinitely.
  *
@@ -47,7 +45,7 @@ net::awaitable<void> receiver(std::shared_ptr<connection> db)
    req.push("SUBSCRIBE", "channel");
 
    for (std::vector<node_type> resp;;) {
-      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(resp), as_tuple(net::use_awaitable));
+      auto const ev = co_await db->async_receive_event(aedis::adapt(resp));
 
       std::cout << "Event: " << aedis::to_string<tcp_socket>(ev) << std::endl;
 
