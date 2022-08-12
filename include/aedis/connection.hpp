@@ -103,6 +103,19 @@ public:
       invalid
    };
 
+   /** @brief Async operations that can be cancelled.
+    *  
+    *  See the \c cancel member function for more information.
+    */
+   enum class operation {
+      /// Operations started with \c async_exec.
+      exec,
+      /// Operation started with \c async_run.
+      run,
+      /// Operation started with async_receive_event.
+      receive_event
+   };
+
    /** \brief Construct a connection from an executor.
     *
     *  \param ex The executor.
@@ -281,66 +294,64 @@ public:
          >(detail::receive_op<connection, decltype(f)>{this, f}, token, resv_);
    }
 
-   /** @brief Cancel all pending request.
+   /** @brief Cancel operations.
     *
-    * \returns The number of requests that have been canceled.
+    * @li operation::exec: Cancels all operations started with \c async_exec.
+    * @li operation::run: Cancels @c async_run. The prefered way to
+    *     close a connection is to set config::enable_reconnect to
+    *     false and send a \c quit command. Otherwise an unresponsive Redis server
+    *     will cause the idle-checks to kick in and lead to \c
+    *     async_run returning with idle_timeout. Calling \c
+    *     cancel(operation::run) directly should be seen as the last
+    *     option.
+    * @li operation::receive_event: Cancels @c async_receive_event.
+    *
+    * @param op: The operation to be cancelled.
+    * @returns The number of operations that have been canceled.
     */
-   std::size_t cancel_execs()
+   std::size_t cancel(operation op)
    {
-      for (auto& e: reqs_) {
-         e->stop = true;
-         e->timer.cancel_one();
+      switch (op) {
+         case operation::exec:
+         {
+            for (auto& e: reqs_) {
+               e->stop = true;
+               e->timer.cancel_one();
+            }
+
+            auto const ret = reqs_.size();
+            reqs_ = {};
+            return ret;
+         }
+         case operation::run:
+         {
+            if (socket_)
+               socket_->close();
+
+            read_timer_.cancel();
+            check_idle_timer_.cancel();
+            writer_timer_.cancel();
+            ping_timer_.cancel();
+
+            // Cancel own pings if there are any waiting.
+            auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
+               return !ptr->req->close_on_run_completion;
+            });
+
+            std::for_each(point, std::end(reqs_), [](auto const& ptr) {
+               ptr->stop = true;
+               ptr->timer.cancel();
+            });
+
+            reqs_.erase(point, std::end(reqs_));
+            return 1U;
+         }
+         case operation::receive_event:
+         {
+            push_channel_.cancel();
+            return 1U;
+         }
       }
-
-      auto const ret = reqs_.size();
-      reqs_ = {};
-      return ret;
-   }
-
-   /** @brief Closes the connection with the database.
-    *
-    *  Calling this function will cause \c async_run to return. It is
-    *  safe to try a reconnect after that, when that happens, all
-    *  pending request will be automatically sent.
-    *
-    *  Calling this function will causes @c async_receive_event to return
-    *  with @c boost::asio::experimental::channel_errc::channel_cancelled.
-    *  
-    *  \remarks
-    *
-    *  The prefered way to close a connection is to send a \c quit
-    *  command if you are actively closing it.  Otherwise an
-    *  unresponsive Redis server will cause the idle-checks to kick in
-    *  and lead to \c async_run returning with idle_timeout.
-    *
-    */
-   void cancel_run()
-   {
-      if (socket_)
-         socket_->close();
-
-      read_timer_.cancel();
-      check_idle_timer_.cancel();
-      writer_timer_.cancel();
-      ping_timer_.cancel();
-
-      // Cancel own pings if there is any waiting.
-      auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-         return !ptr->req->close_on_run_completion;
-      });
-
-      std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-         ptr->stop = true;
-         ptr->timer.cancel();
-      });
-
-      reqs_.erase(point, std::end(reqs_));
-   }
-
-   /// Cancels the event receiver.
-   void cancel_event_receiver()
-   {
-      push_channel_.cancel();
    }
 
    /// Get the config object.

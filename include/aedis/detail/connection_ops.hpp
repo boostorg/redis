@@ -102,7 +102,7 @@ struct receive_op {
             BOOST_ASSERT(conn->socket_ != nullptr);
             yield resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
             if (ec) {
-               conn->cancel_run();
+               conn->cancel(Conn::operation::run);
                self.complete(ec, Conn::event::invalid);
                return;
             }
@@ -147,7 +147,7 @@ struct exec_read_op {
                BOOST_ASSERT(conn->socket_ != nullptr);
                yield boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
                if (ec) {
-                  conn->cancel_run();
+                  conn->cancel(Conn::operation::run);
                   self.complete(ec, 0);
                   return;
                }
@@ -177,7 +177,7 @@ struct exec_read_op {
             ++index;
 
             if (ec) {
-               conn->cancel_run();
+               conn->cancel(Conn::operation::run);
                self.complete(ec, 0);
                return;
             }
@@ -322,7 +322,7 @@ struct check_idle_op {
 
          auto const now = std::chrono::steady_clock::now();
          if (conn->last_data_ +  (2 * conn->cfg_.ping_interval) < now) {
-            conn->cancel_run();
+            conn->cancel(Conn::operation::run);
             self.complete(error::idle_timeout);
             return;
          }
@@ -395,7 +395,7 @@ struct run_one_op {
       {
          yield conn->async_resolve_with_timeout(std::move(self));
          if (ec) {
-            conn->cancel_run();
+            conn->cancel(Conn::operation::run);
             self.complete(ec);
             return;
          }
@@ -413,7 +413,7 @@ struct run_one_op {
 
          yield conn->async_connect_with_timeout(std::move(self));
          if (ec) {
-            conn->cancel_run();
+            conn->cancel(Conn::operation::run);
             self.complete(ec);
             return;
          }
@@ -445,7 +445,7 @@ struct run_one_op {
          );
 
          if (ec) {
-            conn->cancel_run();
+            conn->cancel(Conn::operation::run);
             self.complete(ec);
             return;
          }
@@ -564,7 +564,7 @@ struct reader_op {
          BOOST_ASSERT(conn->socket_->is_open());
          yield boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
          if (ec) {
-            conn->cancel_run();
+            conn->cancel(Conn::operation::run);
             self.complete(ec);
             return;
          }

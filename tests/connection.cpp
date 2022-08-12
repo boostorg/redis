@@ -226,7 +226,7 @@ void test_push_is_received1(connection::config const& cfg)
 
    db->async_run(req, aedis::adapt(), [db](auto ec, auto){
       expect_no_error(ec, "test_push_is_received1");
-      db->cancel_event_receiver();
+      db->cancel(connection::operation::receive_event);
    });
 
    bool received = false;
@@ -266,7 +266,7 @@ void test_push_is_received2(connection::config const& cfg)
 
    db->async_run([db](auto ec, auto...) {
       expect_error(ec, net::error::misc_errors::eof, "test_push_is_received2");
-      db->cancel_event_receiver();
+      db->cancel(connection::operation::receive_event);
    });
 
    bool received = false;
@@ -373,7 +373,7 @@ void test_push_many_subscribes(connection::config const& cfg)
 
    db->async_run([db](auto ec, auto...) {
       expect_error(ec, net::error::misc_errors::eof, "test_push_many_subscribes");
-      db->cancel_event_receiver();
+      db->cancel(connection::operation::receive_event);
    });
 
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);

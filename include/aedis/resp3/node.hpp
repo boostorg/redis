@@ -39,10 +39,10 @@ struct node {
    String value;
 };
 
-/** \brief Converts the node to a string.
- *  \ingroup any
+/** @brief Converts the node to a string.
+ *  @relates node
  *
- *  \param in The node object.
+ *  @param in The node object.
  */
 template <class String>
 std::string to_string(node<String> const& in)
@@ -60,8 +60,8 @@ std::string to_string(node<String> const& in)
    return out;
 }
 
-/** \brief Compares a node for equality.
- *  \ingroup any
+/** @brief Compares a node for equality.
+ *  @relates node
  *
  *  @param a Left hand side node object.
  *  @param b Right hand side node object.
@@ -75,8 +75,8 @@ bool operator==(node<String> const& a, node<String> const& b)
        && a.value == b.value;
 };
 
-/** \brief Writes the node string to the stream.
- *  \ingroup any
+/** @brief Writes the node string to the stream.
+ *  @relates node
  *
  *  @param os Output stream.
  *  @param node Node object.

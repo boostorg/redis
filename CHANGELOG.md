@@ -1,5 +1,11 @@
 # Changelog
 
+## master
+
+  * Adds `connection::operation` enum to replace `cancel_*` member
+    functions with a single cancel function that gets what should be
+    cancelled as argument.
+
 ## v0.3.0
 
 * Adds `experimental::exec` and `receive_event` functions to offer a
