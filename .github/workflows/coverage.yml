@@ -1,4 +1,4 @@
-name: CI
+name: Coverage
 
 on:
   push:
@@ -40,7 +40,13 @@ jobs:
       run: make
     - name: Check
       run: make check VERBOSE=1
-    - name: Generate coverage report
-      run: |
-        lcov --base-directory . --directory tests/ --output-file aedis.info --capture
-        lcov --remove aedis.info '/usr/*' 'boost/*' --output-file aedis.info
+        #    - name: Generate coverage report
+        #      run: |
+        #        lcov --base-directory . --directory tests/ --output-file aedis.info --capture
+        #        lcov --remove aedis.info '/usr/*' "${{ steps.install-boost.outputs.BOOST_ROOT }}/include/boost/*" --output-file aedis.info
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        gcov: true
+        gcov_include: include
+
