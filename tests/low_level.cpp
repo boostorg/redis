@@ -15,6 +15,8 @@
 #include <boost/asio/detached.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/beast/_experimental/test/stream.hpp>
+#define BOOST_TEST_MODULE low level
+#include <boost/test/included/unit_test.hpp>
 
 #include <aedis.hpp>
 #include <aedis/src.hpp>
@@ -48,10 +50,10 @@ void test_sync(net::any_io_executor ex, expect<Result> e)
    Result result;
    boost::system::error_code ec;
    resp3::read(ts, net::dynamic_buffer(rbuffer), adapt(result), ec);
-   expect_error(ec, e.ec);
+   BOOST_CHECK_EQUAL(ec, e.ec);
    if (e.ec)
       return;
-   check_empty(rbuffer);
+   BOOST_TEST(rbuffer.empty());
    expect_eq(result, e.expected, e.name);
 }
 
@@ -97,8 +99,9 @@ void test_async(net::any_io_executor ex, expect<Result> e)
    std::make_shared<async_test<Result>>(ex, e)->run();
 }
 
-void test_number(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_number)
 {
+   net::io_context ioc;
    boost::optional<int> ok;
    ok = 11;
 
@@ -140,10 +143,12 @@ void test_number(net::io_context& ioc)
    test_async(ex, in09);
    test_async(ex, in10);
    test_async(ex, in11);
+   ioc.run();
 }
 
-void test_bool(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_bool)
 {
+   net::io_context ioc;
    boost::optional<bool> ok;
    ok = true;
 
@@ -182,10 +187,12 @@ void test_bool(net::io_context& ioc)
    test_async(ex, in09);
    test_async(ex, in10);
    test_async(ex, in11);
+   ioc.run();
 }
 
-void test_streamed_string(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_streamed_string)
 {
+   net::io_context ioc;
    std::string const wire = "$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n";
 
    std::vector<node_type> e1a
@@ -210,10 +217,12 @@ void test_streamed_string(net::io_context& ioc)
    test_async(ex, in01);
    test_async(ex, in02);
    test_async(ex, in03);
+   ioc.run();
 }
 
-void test_push(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_push)
 {
+   net::io_context ioc;
    std::string const wire = ">4\r\n+pubsub\r\n+message\r\n+some-channel\r\n+some message\r\n";
 
    std::vector<node_type> e1a
@@ -236,10 +245,12 @@ void test_push(net::io_context& ioc)
 
    test_async(ex, in01);
    test_async(ex, in02);
+   ioc.run();
 }
 
-void test_map(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_map)
 {
+   net::io_context ioc;
    using map_type = std::map<std::string, std::string>;
    using mmap_type = std::multimap<std::string, std::string>;
    using umap_type = std::unordered_map<std::string, std::string>;
@@ -347,6 +358,7 @@ void test_map(net::io_context& ioc)
    test_async(ex, in09);
    test_async(ex, in00);
    test_async(ex, in11);
+   ioc.run();
 }
 
 void test_attribute(net::io_context& ioc)
@@ -377,8 +389,9 @@ void test_attribute(net::io_context& ioc)
    test_async(ex, in02);
 }
 
-void test_array(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_array)
 {
+   net::io_context ioc;
    char const* wire = "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n";
 
    std::vector<node_type> e1a
@@ -424,10 +437,12 @@ void test_array(net::io_context& ioc)
    test_async(ex, in06);
    test_async(ex, in07);
    test_async(ex, in08);
+   ioc.run();
 }
 
-void test_set(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_set)
 {
+   net::io_context ioc;
    using set_type = std::set<std::string>;
    using mset_type = std::multiset<std::string>;
    using uset_type = std::unordered_set<std::string>;
@@ -484,10 +499,12 @@ void test_set(net::io_context& ioc)
    test_async(ex, in06);
    test_async(ex, in07);
    test_async(ex, in08);
+   ioc.run();
 }
 
-void test_simple_error(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_simple_error)
 {
+   net::io_context ioc;
    auto const in01 = expect<node_type>{"-Error\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, "simple_error.node", aedis::make_error_code(aedis::error::simple_error)};
    auto const in02 = expect<node_type>{"-\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, "simple_error.node.empty", aedis::make_error_code(aedis::error::simple_error)};
 
@@ -498,10 +515,12 @@ void test_simple_error(net::io_context& ioc)
 
    test_async(ex, in01);
    test_async(ex, in02);
+   ioc.run();
 }
 
-void test_blob_string(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_blob_string)
 {
+   net::io_context ioc;
    std::string str(100000, 'a');
    str[1000] = '\r';
    str[1001] = '\n';
@@ -529,10 +548,12 @@ void test_blob_string(net::io_context& ioc)
    test_async(ex, in02);
    test_async(ex, in03);
    test_async(ex, in04);
+   ioc.run();
 }
 
-void test_double(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_double)
 {
+   net::io_context ioc;
    // TODO: Add test for double.
    auto const in01 = expect<node_type>{",1.23\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"1.23"}}, "double.node"};
    auto const in02 = expect<node_type>{",inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}, "double.node (inf)"};
@@ -550,10 +571,12 @@ void test_double(net::io_context& ioc)
    test_async(ex, in02);
    test_async(ex, in03);
    test_async(ex, in04);
+   ioc.run();
 }
 
-void test_blob_error(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_blob_error)
 {
+   net::io_context ioc;
    auto const in01 = expect<node_type>{"!21\r\nSYNTAX invalid syntax\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, "blob_error", aedis::make_error_code(aedis::error::blob_error)};
    auto const in02 = expect<node_type>{"!0\r\n\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {}}, "blob_error.empty", aedis::make_error_code(aedis::error::blob_error)};
 
@@ -564,10 +587,12 @@ void test_blob_error(net::io_context& ioc)
 
    test_async(ex, in01);
    test_async(ex, in02);
+   ioc.run();
 }
 
-void test_verbatim_string(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_verbatim_string)
 {
+   net::io_context ioc;
    auto const in01 = expect<node_type>{"=15\r\ntxt:Some string\r\n", node_type{resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}}, "verbatim_string"};
    auto const in02 = expect<node_type>{"=0\r\n\r\n", node_type{resp3::type::verbatim_string, 1UL, 0UL, {}}, "verbatim_string.empty"};
 
@@ -578,10 +603,12 @@ void test_verbatim_string(net::io_context& ioc)
 
    test_async(ex, in01);
    test_async(ex, in02);
+   ioc.run();
 }
 
-void test_big_number(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_big_number)
 {
+   net::io_context ioc;
    auto const in01 = expect<node_type>{"(3492890328409238509324850943850943825024385\r\n", node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}, "big_number.node"};
    auto const in02 = expect<int>{"(\r\n", int{}, "big_number.error (empty field)", aedis::make_error_code(aedis::error::empty_field)};
 
@@ -592,10 +619,12 @@ void test_big_number(net::io_context& ioc)
 
    test_async(ex, in01);
    test_async(ex, in02);
+   ioc.run();
 }
 
-void test_simple_string(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_simple_string)
 {
+   net::io_context ioc;
    boost::optional<std::string> ok1, ok2;
    ok1 = "OK";
    ok2 = "";
@@ -616,10 +645,12 @@ void test_simple_string(net::io_context& ioc)
    test_async(ex, in01);
    test_async(ex, in02);
    test_async(ex, in03);
+   ioc.run();
 }
 
-void test_resp3(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_resp3)
 {
+   net::io_context ioc;
    auto const in01 = expect<int>{"s11\r\n", int{}, "number.error", aedis::make_error_code(aedis::error::invalid_data_type)};
    auto const in02 = expect<int>{":adf\r\n", int{11}, "number.int", aedis::make_error_code(aedis::error::not_a_number)};
    auto const in03 = expect<int>{":\r\n", int{}, "number.error (empty field)", aedis::make_error_code(aedis::error::empty_field)};
@@ -639,10 +670,12 @@ void test_resp3(net::io_context& ioc)
    test_async(ex, in03);
    test_async(ex, in04);
    test_async(ex, in05);
+   ioc.run();
 }
 
-void test_null(net::io_context& ioc)
+BOOST_AUTO_TEST_CASE(test_null)
 {
+   net::io_context ioc;
    using op_type_01 = boost::optional<bool>;
    using op_type_02 = boost::optional<int>;
    using op_type_03 = boost::optional<std::string>;
@@ -684,34 +717,6 @@ void test_null(net::io_context& ioc)
    test_async(ex, in07);
    test_async(ex, in08);
    test_async(ex, in09);
-}
-
-int main()
-{
-   net::io_context ioc {1};
-
-   // Simple types.
-   test_simple_string(ioc);
-   test_simple_error(ioc);
-   test_blob_string(ioc);
-   test_blob_error(ioc);
-   test_number(ioc);
-   test_double(ioc);
-   test_bool(ioc);
-   test_null(ioc);
-   test_big_number(ioc);
-   test_verbatim_string(ioc);
-
-   // Aggregates.
-   test_array(ioc);
-   test_set(ioc);
-   test_map(ioc);
-   test_push(ioc);
-   test_streamed_string(ioc);
-
-   // RESP3
-   test_resp3(ioc);
-
    ioc.run();
 }
 

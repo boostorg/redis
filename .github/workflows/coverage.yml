@@ -24,8 +24,6 @@ jobs:
       run: sudo apt-get install -y g++-11
     - name: Install Redis
       run: sudo apt-get install -y redis-server
-    - name: Install lcov.
-      run: sudo apt-get install -y lcov
     - name: Install boost
       uses: MarkusJx/install-boost@v2.3.0
       id: install-boost
@@ -48,5 +46,5 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         gcov: true
-        gcov_include: include
+        gcov_ignore: "${{ steps.install-boost.outputs.BOOST_ROOT }}/include/*" "/usr/*" "${GITHUB_WORKSPACE}/benchmarks" "${GITHUB_WORKSPACE}/examples" "${GITHUB_WORKSPACE}/tests"
 

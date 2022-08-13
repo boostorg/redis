@@ -534,7 +534,9 @@ private:
    resp3::request req_;
 };
 
-/// Converts a connection event to a string.
+/** @brief Converts a connection event to a string.
+ *  @relates connection
+ */
 template <class T>
 char const* to_string(typename connection<T>::event e)
 {
@@ -549,7 +551,9 @@ char const* to_string(typename connection<T>::event e)
    }
 }
 
-/// Writes a connection event to the stream.
+/** @brief Writes a connection event to the stream.
+ *  @relates connection
+ */
 template <class T>
 std::ostream& operator<<(std::ostream& os, typename connection<T>::event e)
 {

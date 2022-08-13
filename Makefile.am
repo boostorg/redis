@@ -84,6 +84,12 @@ EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_over_redis/src/main.rs
 doc:
 	doxygen doc/Doxyfile
 
+.PHONY: coverage
+coverage:
+	lcov --base-directory . --directory tests/ --output-file aedis.info --capture
+	lcov --remove aedis.info '/usr/*' '/opt/boost_1_79_0/include/boost/*' --output-file aedis.info
+	genhtml --output-directory html aedis.info
+
 .PHONY: bench
 bench:
 	pdflatex --jobname=echo-f0 benchmarks/benchmarks.tex

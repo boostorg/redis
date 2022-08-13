@@ -95,14 +95,8 @@
 
           switch (ev) {
              case connection::event::push:
-             // Use resp.
+             // Use resp and clear it.
              resp.clear();
-             break;
-
-             case connection::event::hello:
-             // Subscribes to channels when a new connection is
-             // stablished.
-             co_await db->async_exec(req);
              break;
 
              default:;
