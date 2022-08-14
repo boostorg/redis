@@ -352,6 +352,8 @@ public:
             return 1U;
          }
       }
+
+      return 0;
    }
 
    /// Get the config object.

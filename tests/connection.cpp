@@ -14,10 +14,11 @@
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
 
+#define BOOST_TEST_MODULE low level
+#include <boost/test/included/unit_test.hpp>
+
 #include <aedis.hpp>
 #include <aedis/src.hpp>
-
-#include "check.hpp"
 
 namespace net = boost::asio;
 
@@ -36,7 +37,7 @@ bool is_host_not_found(boost::system::error_code ec)
 //----------------------------------------------------------------
 
 // Tests whether resolve fails with the correct error.
-void test_resolve()
+BOOST_AUTO_TEST_CASE(test_resolve)
 {
    connection::config cfg;
    cfg.host = "Atibaia";
@@ -46,7 +47,7 @@ void test_resolve()
    net::io_context ioc;
    connection db{ioc, cfg};
    db.async_run([](auto ec) {
-      expect_true(is_host_not_found(ec), "test_resolve");
+      BOOST_TEST(is_host_not_found(ec));
    });
 
    ioc.run();
@@ -54,7 +55,7 @@ void test_resolve()
 
 //----------------------------------------------------------------
 
-void test_connect()
+BOOST_AUTO_TEST_CASE(test_connect)
 {
    connection::config cfg;
    cfg.host = "127.0.0.1";
@@ -64,7 +65,7 @@ void test_connect()
    net::io_context ioc;
    connection db{ioc, cfg};
    db.async_run([](auto ec) {
-      expect_error(ec, net::error::basic_errors::connection_refused, "test_connect");
+      BOOST_CHECK_EQUAL(ec, net::error::basic_errors::connection_refused);
    });
    ioc.run();
 }
@@ -81,11 +82,11 @@ void test_quit1(connection::config const& cfg)
    req.push("QUIT");
 
    db->async_exec(req, aedis::adapt(), [](auto ec, auto){
-      expect_no_error(ec, "test_quit1");
+      BOOST_TEST(!ec);
    });
 
    db->async_run([](auto ec){
-      expect_error(ec, net::error::misc_errors::eof, "test_quit1");
+      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
 
    ioc.run();
@@ -100,13 +101,13 @@ void test_quit2(connection::config const& cfg)
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
    db->async_run(req, aedis::adapt(), [](auto ec, auto){
-      expect_no_error(ec, "test_quit2");
+      BOOST_TEST(!ec);
    });
 
    ioc.run();
 }
 
-void test_quit()
+BOOST_AUTO_TEST_CASE(test_quit)
 {
    connection::config cfg;
 
@@ -134,7 +135,7 @@ void test_missing_push_reader1(connection::config const& cfg)
    req.push("SUBSCRIBE", "channel");
 
    db->async_run(req, aedis::adapt(), [](auto ec, auto){
-      expect_no_error(ec, "test_missing_push_reader1");
+      BOOST_TEST(!ec);
    });
 
    ioc.run();
@@ -150,7 +151,7 @@ void test_missing_push_reader2(connection::config const& cfg)
    req.push("SUBSCRIBE");
 
    db->async_run(req, aedis::adapt(), [](auto ec, auto){
-      expect_no_error(ec, "test_missing_push_reader2");
+      BOOST_TEST(!ec);
    });
 
    ioc.run();
@@ -167,50 +168,100 @@ void test_missing_push_reader3(connection::config const& cfg)
    req.push("SUBSCRIBE");
 
    db->async_run(req, aedis::adapt(), [](auto ec, auto){
-      expect_no_error(ec, "test_missing_push_reader3");
+      BOOST_TEST(!ec);
    });
 
    ioc.run();
 }
 
-void test_idle()
+BOOST_AUTO_TEST_CASE(test_idle)
 {
-   std::cout << "test_idle" << std::endl;
-   connection::config cfg;
-   cfg.resolve_timeout = std::chrono::seconds{1};
-   cfg.connect_timeout = std::chrono::seconds{1};
-   cfg.ping_interval = std::chrono::seconds{1};
+   std::chrono::milliseconds ms{5000};
 
-   net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
+   {
+      std::cout << "test_idle" << std::endl;
+      connection::config cfg;
+      cfg.resolve_timeout = std::chrono::seconds{1};
+      cfg.connect_timeout = std::chrono::seconds{1};
+      cfg.ping_interval = std::chrono::seconds{1};
 
-   request req;
-   req.push("CLIENT", "PAUSE", 5000);
+      net::io_context ioc;
+      auto db = std::make_shared<connection>(ioc, cfg);
 
-   db->async_exec(req, aedis::adapt(), [](auto ec, auto){
-      expect_no_error(ec, "test_idle");
-   });
+      request req;
+      req.push("CLIENT", "PAUSE", ms.count());
 
-   db->async_run([](auto ec){
-      expect_error(ec, aedis::error::idle_timeout, "test_idle");
-   });
+      db->async_exec(req, aedis::adapt(), [](auto ec, auto){
+         BOOST_TEST(!ec);
+      });
 
-   ioc.run();
+      db->async_run([](auto ec){
+         BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
+      });
+
+      ioc.run();
+   }
+
+   //----------------------------------------------------------------
+   // Since we have paused the server above, we have to wait until the
+   // server is responsive again, so as not to cause other tests to
+   // fail.
+
+   {
+      net::io_context ioc;
+      auto db = std::make_shared<connection>(ioc);
+      db->get_config().ping_interval = 2* ms;
+      db->get_config().resolve_timeout = 2 * ms;
+      db->get_config().connect_timeout = 2 * ms;
+      db->get_config().ping_interval = 2 * ms;
+
+      request req;
+      req.push("QUIT");
+
+      db->async_run(req, aedis::adapt(), [](auto ec, auto){
+         BOOST_TEST(!ec);
+      });
+
+      ioc.run();
+   }
 }
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 net::awaitable<void>
-push_consumer1(std::shared_ptr<connection> db, bool& received, char const* msg)
+push_consumer1(std::shared_ptr<connection> db, bool& received)
 {
    {
       auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_no_error(ec, msg);
+      auto const r = ev == connection::event::resolve;
+      BOOST_TEST(r);
+      BOOST_TEST(!ec);
+   }
+
+   {
+      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto const r = ev == connection::event::connect;
+      BOOST_TEST(r);
+      BOOST_TEST(!ec);
+   }
+
+   {
+      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto const r = ev == connection::event::hello;
+      BOOST_TEST(r);
+      BOOST_TEST(!ec);
+   }
+
+   {
+      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto const r = ev == connection::event::push;
+      BOOST_TEST(r);
+      BOOST_TEST(!ec);
       received = true;
    }
 
    {
       auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
-      expect_error(ec, boost::asio::experimental::channel_errc::channel_cancelled, msg);
+      BOOST_CHECK_EQUAL(ec, boost::asio::experimental::channel_errc::channel_cancelled);
    }
 }
 
@@ -219,25 +270,26 @@ void test_push_is_received1(connection::config const& cfg)
    std::cout << "test_push_is_received1" << std::endl;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
+   db->get_config().enable_events = true;
 
    request req;
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
    db->async_run(req, aedis::adapt(), [db](auto ec, auto){
-      expect_no_error(ec, "test_push_is_received1");
+      BOOST_TEST(!ec);
       db->cancel(connection::operation::receive_event);
    });
 
    bool received = false;
    net::co_spawn(
       ioc.get_executor(),
-      push_consumer1(db, received, "test_push_is_received1"),
+      push_consumer1(db, received),
       net::detached);
 
    ioc.run();
 
-   expect_true(received);
+   BOOST_TEST(received);
 }
 
 void test_push_is_received2(connection::config const& cfg)
@@ -256,27 +308,30 @@ void test_push_is_received2(connection::config const& cfg)
    net::io_context ioc;
 
    auto db = std::make_shared<connection>(ioc, cfg);
+   db->get_config().enable_events = true;
 
    auto handler =[](auto ec, auto...)
-      { expect_no_error(ec, "test_push_is_received2"); };
+   {
+      BOOST_TEST(!ec);
+   };
 
    db->async_exec(req1, aedis::adapt(), handler);
    db->async_exec(req2, aedis::adapt(), handler);
    db->async_exec(req3, aedis::adapt(), handler);
 
    db->async_run([db](auto ec, auto...) {
-      expect_error(ec, net::error::misc_errors::eof, "test_push_is_received2");
+      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::receive_event);
    });
 
    bool received = false;
    net::co_spawn(
       ioc.get_executor(),
-      push_consumer1(db, received, "test_push_is_received2"),
+      push_consumer1(db, received),
       net::detached);
 
    ioc.run();
-   expect_true(received);
+   BOOST_TEST(received);
 }
 
 net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
@@ -286,13 +341,16 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
 
    for (auto i = 0;;) {
       auto ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
-      expect_eq(ev, connection::event::resolve, "test_reconnect.");
-
-       ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
-      expect_eq(ev, connection::event::connect, "test_reconnect.");
+      auto const r1 = ev == connection::event::resolve;
+      BOOST_TEST(r1);
 
       ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
-      expect_eq(ev, connection::event::hello, "test_reconnect.");
+      auto const r2 = ev == connection::event::connect;
+      BOOST_TEST(r2);
+
+      ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
+      auto const r3 = ev == connection::event::hello;
+      BOOST_TEST(r3);
 
       co_await db->async_exec(req, aedis::adapt(), net::use_awaitable);
 
@@ -321,7 +379,7 @@ void test_reconnect()
    net::co_spawn(ioc, test_reconnect_impl(db), net::detached);
 
    db->async_run([](auto ec) {
-      expect_error(ec, net::error::misc_errors::eof, "test_reconnect.");
+      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
 
    ioc.run();
@@ -353,7 +411,7 @@ void test_push_many_subscribes(connection::config const& cfg)
 
    auto handler =[](auto ec, auto...)
    {
-      expect_no_error(ec, "test_push_many_subscribes");
+      BOOST_TEST(!ec);
    };
 
    net::io_context ioc;
@@ -372,7 +430,7 @@ void test_push_many_subscribes(connection::config const& cfg)
    db->async_exec(req3, aedis::adapt(), handler);
 
    db->async_run([db](auto ec, auto...) {
-      expect_error(ec, net::error::misc_errors::eof, "test_push_many_subscribes");
+      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::receive_event);
    });
 
@@ -382,7 +440,7 @@ void test_push_many_subscribes(connection::config const& cfg)
 
 #endif
 
-void test_push()
+BOOST_AUTO_TEST_CASE(test_push)
 {
    connection::config cfg;
 
@@ -403,20 +461,5 @@ void test_push()
 #endif
    test_missing_push_reader2(cfg);
    test_missing_push_reader3(cfg);
-}
-
-
-int main()
-{
-   test_resolve();
-   test_connect();
-   test_quit();
-   test_push();
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
-   test_reconnect();
-#endif
-
-   // Must come last as it sends a client pause.
-   test_idle();
 }
 

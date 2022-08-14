@@ -21,9 +21,6 @@
 #include <aedis.hpp>
 #include <aedis/src.hpp>
 
-#include "check.hpp"
-#include "config.h"
-
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
@@ -37,7 +34,7 @@ template <class Result>
 struct expect {
    std::string in;
    Result expected;
-   std::string name;
+   std::string name; // Currently unused.
    boost::system::error_code ec{};
 };
 
@@ -54,7 +51,8 @@ void test_sync(net::any_io_executor ex, expect<Result> e)
    if (e.ec)
       return;
    BOOST_TEST(rbuffer.empty());
-   expect_eq(result, e.expected, e.name);
+   auto const res = result == e.expected;
+   BOOST_TEST(res);
 }
 
 template <class Result>
@@ -78,11 +76,12 @@ public:
       auto self = this->shared_from_this();
       auto f = [self](auto ec, auto)
       {
-         expect_error(ec, self->data_.ec);
+         BOOST_CHECK_EQUAL(ec, self->data_.ec);
          if (self->data_.ec)
             return;
-         check_empty(self->rbuffer_);
-         expect_eq(self->result_, self->data_.expected, self->data_.name);
+         BOOST_TEST(self->rbuffer_.empty());
+         auto const res = self->result_ == self->data_.expected;
+         BOOST_TEST(res);
       };
 
       resp3::async_read(

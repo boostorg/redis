@@ -54,9 +54,7 @@ echo_server_direct_SOURCES = $(top_srcdir)/benchmarks/cpp/asio/echo_server_direc
 echo_server_client_SOURCES = $(top_srcdir)/benchmarks/cpp/asio/echo_server_client.cpp
 endif
 
-nobase_noinst_HEADERS =\
-  $(top_srcdir)/examples/print.hpp\
-  $(top_srcdir)/tests/check.hpp
+nobase_noinst_HEADERS = $(top_srcdir)/examples/print.hpp
 
 TESTS = $(check_PROGRAMS)
 
