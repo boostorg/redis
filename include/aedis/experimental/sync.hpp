@@ -101,10 +101,60 @@ exec(
  *  @returns The number of bytes of the response.
  */
 template <class Connection, class ResponseAdapter>
-auto receive_event(
+auto receive_push(
    Connection& conn,
    ResponseAdapter adapter,
    boost::system::error_code& ec)
+{
+   std::mutex mutex;
+   std::condition_variable cv;
+   bool ready = false;
+   std::size_t n = 0;
+
+   auto f = [&conn, &ec, &mutex, &cv, &n, &ready, adapter]()
+   {
+      conn.async_receive_push(adapter, [&cv, &mutex, &n, &ready, &ec](auto const& ecp, std::size_t evp) {
+         std::unique_lock ul(mutex);
+         ec = ecp;
+         n = evp;
+         ready = true;
+         ul.unlock();
+         cv.notify_one();
+      });
+   };
+
+   boost::asio::dispatch(boost::asio::bind_executor(conn.get_executor(), f));
+   std::unique_lock lk(mutex);
+   cv.wait(lk, [&ready]{return ready;});
+   return n;
+}
+
+/// TODO
+template <
+   class Connection,
+   class ResponseAdapter = aedis::detail::response_traits<void>::adapter_type>
+auto receive_push(
+   Connection& conn,
+   ResponseAdapter adapter = aedis::adapt())
+{
+   boost::system::error_code ec;
+   auto const res = receive_push(conn, adapter, ec);
+   if (ec)
+      throw std::system_error(ec);
+   return res;
+}
+
+/** @brief Receives events
+ *  @ingroup any
+ *
+ *  This function will block until execution completes.
+ *
+ *  @param conn The connection.
+ *  @param ec Error code in case of error.
+ *  @returns The event received.
+ */
+template <class Connection>
+auto receive_event(Connection& conn, boost::system::error_code& ec)
 {
    using event_type = typename Connection::event;
    std::mutex mutex;
@@ -112,9 +162,9 @@ auto receive_event(
    bool ready = false;
    event_type ev = event_type::invalid;
 
-   auto f = [&conn, &ec, &ev, &mutex, &cv, &ready, adapter]()
+   auto f = [&conn, &ec, &ev, &mutex, &cv, &ready]()
    {
-      conn.async_receive_event(adapter, [&cv, &mutex, &ready, &ev, &ec](auto const& ecp, event_type evp) {
+      conn.async_receive_event([&cv, &mutex, &ready, &ev, &ec](auto const& ecp, event_type evp) {
          std::unique_lock ul(mutex);
          ec = ecp;
          ev = evp;
@@ -131,15 +181,11 @@ auto receive_event(
 }
 
 /// TODO
-template <
-   class Connection,
-   class ResponseAdapter = aedis::detail::response_traits<void>::adapter_type>
-auto receive_event(
-   Connection& conn,
-   ResponseAdapter adapter = aedis::adapt())
+template <class Connection>
+auto receive_event(Connection& conn)
 {
    boost::system::error_code ec;
-   auto const res = receive_event(conn, adapter, ec);
+   auto const res = receive_event(conn, ec);
    if (ec)
       throw std::system_error(ec);
    return res;

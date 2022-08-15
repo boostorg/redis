@@ -78,7 +78,7 @@ struct resolve_with_timeout_op {
 };
 
 template <class Conn, class Adapter>
-struct receive_op {
+struct receive_push_op {
    Conn* conn = nullptr;
    Adapter adapter;
    std::size_t read_size = 0;
@@ -94,24 +94,22 @@ struct receive_op {
       {
          yield conn->push_channel_.async_receive(std::move(self));
          if (ec) {
-            self.complete(ec, Conn::event::invalid);
+            self.complete(ec, 0);
             return;
          }
 
-         if (conn->last_event_ == Conn::event::push) {
-            BOOST_ASSERT(conn->socket_ != nullptr);
-            yield resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
-            if (ec) {
-               conn->cancel(Conn::operation::run);
-               self.complete(ec, Conn::event::invalid);
-               return;
-            }
-
-            read_size = n;
+         BOOST_ASSERT(conn->socket_ != nullptr);
+         yield resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
+         if (ec) {
+            conn->cancel(Conn::operation::run);
+            self.complete(ec, 0);
+            return;
          }
 
+         read_size = n;
+
          yield conn->push_channel_.async_send({}, 0, std::move(self));
-         self.complete(ec, conn->last_event_);
+         self.complete(ec, read_size);
          return;
       }
    }
@@ -154,13 +152,12 @@ struct exec_read_op {
             }
 
             // If the next request is a push we have to handle it to
-            // the receive_op wait for it to be done and continue.
+            // the receive_push_op wait for it to be done and continue.
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
-               conn->last_event_ = Conn::event::push;
                yield async_send_receive(conn->push_channel_, std::move(self));
                if (ec) {
                   // Notice we don't call cancel_run() as that is the
-                  // responsability of the receive_op.
+                  // responsability of the receive_push_op.
                   self.complete(ec, 0);
                   return;
                }
@@ -401,8 +398,7 @@ struct run_one_op {
          }
 
          if (conn->cfg_.enable_events) {
-            conn->last_event_ = Conn::event::resolve;
-            yield async_send_receive(conn->push_channel_, std::move(self));
+            yield conn->event_channel_.async_send({}, Conn::event::resolve, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -419,8 +415,7 @@ struct run_one_op {
          }
 
          if (conn->cfg_.enable_events) {
-            conn->last_event_ = Conn::event::connect;
-            yield async_send_receive(conn->push_channel_, std::move(self));
+            yield conn->event_channel_.async_send({}, Conn::event::connect, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -451,8 +446,7 @@ struct run_one_op {
          }
 
          if (conn->cfg_.enable_events) {
-            conn->last_event_ = Conn::event::hello;
-            yield async_send_receive(conn->push_channel_, std::move(self));
+            yield conn->event_channel_.async_send({}, Conn::event::hello, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -592,7 +586,6 @@ struct reader_op {
          if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push
              || conn->reqs_.empty()
              || (!conn->reqs_.empty() && conn->reqs_.front()->cmds == 0)) {
-            conn->last_event_ = Conn::event::push;
             yield async_send_receive(conn->push_channel_, std::move(self));
             if (ec) {
                self.complete(ec);

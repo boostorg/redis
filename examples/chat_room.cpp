@@ -31,25 +31,31 @@ using response_type = std::vector<aedis::resp3::node<std::string>>;
 //
 // To see the message traffic.
 
-net::awaitable<void> subscriber(std::shared_ptr<connection> db)
+net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
+{
+   for (response_type resp;;) {
+      co_await db->async_receive_push(aedis::adapt(resp));
+      print_push(resp);
+      resp.clear();
+   }
+}
+
+net::awaitable<void> event_receiver(std::shared_ptr<connection> db)
 {
    request req;
    req.push("SUBSCRIBE", "chat-channel");
 
-   for (response_type resp;;) {
-      auto const ev = co_await db->async_receive_event(aedis::adapt(resp));
+   for (;;) {
+      auto const ev = co_await db->async_receive_event();
       switch (ev) {
-         case connection::event::push:
-         print_push(resp);
-         break;
-
          case connection::event::hello:
+         // Subscribes to the channels when a new connection is
+         // stablished.
          co_await db->async_exec(req);
          break;
 
          default:;
       }
-      resp.clear();
    }
 }
 
@@ -75,7 +81,8 @@ int main()
       db->get_config().enable_events = true;
 
       co_spawn(ioc, publisher(in, db), net::detached);
-      co_spawn(ioc, subscriber(db), net::detached);
+      co_spawn(ioc, push_receiver(db), net::detached);
+      co_spawn(ioc, event_receiver(db), net::detached);
       db->async_run([](auto ec) {
          std::cout << ec.message() << std::endl;
       });

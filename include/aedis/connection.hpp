@@ -43,7 +43,7 @@ public:
    using next_layer_type = AsyncReadWriteStream;
 
    using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
-   using channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
+   using push_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = boost::asio::wait_traits<clock_type>;
    using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
@@ -97,11 +97,13 @@ public:
       connect,
       /// Success sending AUTH and HELLO.
       hello,
-      /// A push event has been received.
-      push,
+      /// Successful writing on a socket.
+      write,
       /// Used internally.
       invalid
    };
+
+   using event_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, event)>;
 
    /** @brief Async operations that can be cancelled.
     *  
@@ -113,7 +115,9 @@ public:
       /// Operation started with \c async_run.
       run,
       /// Operation started with async_receive_event.
-      receive_event
+      receive_event,
+      /// Operation started with async_receive_push.
+      receive_push,
    };
 
    /** \brief Construct a connection from an executor.
@@ -128,6 +132,7 @@ public:
    , writer_timer_{ex}
    , read_timer_{ex}
    , push_channel_{ex}
+   , event_channel_{ex}
    , cfg_{cfg}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
@@ -268,16 +273,13 @@ public:
     *  have the following signature
     *
     *  @code
-    *  void f(boost::system::error_code, event);
+    *  void f(boost::system::error_code, std::size_t);
     *  @endcode
-    *
-    *  Where the second parameter is the size of the response that has
-    *  just been read.
     */
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = default_completion_token_type>
-   auto async_receive_event(
+   auto async_receive_push(
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
@@ -290,8 +292,26 @@ public:
 
       return boost::asio::async_compose
          < CompletionToken
-         , void(boost::system::error_code, event)
-         >(detail::receive_op<connection, decltype(f)>{this, f}, token, resv_);
+         , void(boost::system::error_code, std::size_t)
+         >(detail::receive_push_op<connection, decltype(f)>{this, f}, token, resv_);
+   }
+
+   /** @brief Receives internal events.
+    *
+    *  See enum \c events for a list of events.
+    *
+    *  \param token The Asio completion token.
+    *
+    *  The completion token must have the following signature
+    *
+    *  @code
+    *  void f(boost::system::error_code, event);
+    *  @endcode
+    */
+   template <class CompletionToken = default_completion_token_type>
+   auto async_receive_event(CompletionToken token = CompletionToken{})
+   {
+      return event_channel_.async_receive(token);
    }
 
    /** @brief Cancel operations.
@@ -348,6 +368,11 @@ public:
          }
          case operation::receive_event:
          {
+            event_channel_.cancel();
+            return 1U;
+         }
+         case operation::receive_push:
+         {
             push_channel_.cancel();
             return 1U;
          }
@@ -375,7 +400,7 @@ private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
    using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
-   template <class T, class U> friend struct detail::receive_op;
+   template <class T, class U> friend struct detail::receive_push_op;
    template <class T> friend struct detail::reader_op;
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::ping_op;
@@ -518,14 +543,14 @@ private:
    timer_type check_idle_timer_;
    timer_type writer_timer_;
    timer_type read_timer_;
-   channel_type push_channel_;
+   push_channel_type push_channel_;
+   event_channel_type event_channel_;
 
    config cfg_;
    std::string read_buffer_;
    std::string write_buffer_;
    std::size_t cmds_ = 0;
    reqs_type reqs_;
-   event last_event_ = event::invalid;
 
    // Last time we received data.
    time_point_type last_data_;

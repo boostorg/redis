@@ -39,22 +39,23 @@ using connection = aedis::connection<tcp_socket>;
  * > CLIENT kill TYPE pubsub
  */
 
-net::awaitable<void> receiver(std::shared_ptr<connection> db)
+net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
+{
+   for (std::vector<node_type> resp;;) {
+      co_await db->async_receive_push(aedis::adapt(resp));
+      print_push(resp);
+      resp.clear();
+   }
+}
+
+net::awaitable<void> event_receiver(std::shared_ptr<connection> db)
 {
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   for (std::vector<node_type> resp;;) {
-      auto const ev = co_await db->async_receive_event(aedis::adapt(resp));
-
-      std::cout << "Event: " << aedis::to_string<tcp_socket>(ev) << std::endl;
-
+   for (;;) {
+      auto const ev = co_await db->async_receive_event();
       switch (ev) {
-         case connection::event::push:
-         print_push(resp);
-         resp.clear();
-         break;
-
          case connection::event::hello:
          // Subscribes to the channels when a new connection is
          // stablished.
@@ -75,10 +76,13 @@ int main()
       db->get_config().enable_events = true;
       db->get_config().enable_reconnect = true;
 
-      net::co_spawn(ioc, receiver(db), net::detached);
+      net::co_spawn(ioc, push_receiver(db), net::detached);
+      net::co_spawn(ioc, event_receiver(db), net::detached);
       db->async_run(net::detached);
+
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });
+
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << "Error: " << e.what() << std::endl;

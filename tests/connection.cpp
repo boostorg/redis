@@ -227,43 +227,52 @@ BOOST_AUTO_TEST_CASE(test_idle)
 }
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
-net::awaitable<void>
-push_consumer1(std::shared_ptr<connection> db, bool& received)
+net::awaitable<void> push_consumer1(std::shared_ptr<connection> db, bool& push_received)
 {
    {
-      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await db->async_receive_push(aedis::adapt(), as_tuple(net::use_awaitable));
+      BOOST_TEST(!ec);
+   }
+
+   {
+      auto [ec, ev] = co_await db->async_receive_push(aedis::adapt(), as_tuple(net::use_awaitable));
+      BOOST_CHECK_EQUAL(ec, boost::asio::experimental::channel_errc::channel_cancelled);
+   }
+
+   push_received = true;
+}
+
+net::awaitable<void> event_consumer1(std::shared_ptr<connection> db, bool& event_received)
+{
+   {
+      auto [ec, ev] = co_await db->async_receive_event(as_tuple(net::use_awaitable));
       auto const r = ev == connection::event::resolve;
       BOOST_TEST(r);
       BOOST_TEST(!ec);
    }
 
    {
-      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await db->async_receive_event(as_tuple(net::use_awaitable));
       auto const r = ev == connection::event::connect;
       BOOST_TEST(r);
       BOOST_TEST(!ec);
    }
 
    {
-      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await db->async_receive_event(as_tuple(net::use_awaitable));
       auto const r = ev == connection::event::hello;
       BOOST_TEST(r);
       BOOST_TEST(!ec);
    }
 
    {
-      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
-      auto const r = ev == connection::event::push;
-      BOOST_TEST(r);
-      BOOST_TEST(!ec);
-      received = true;
-   }
-
-   {
-      auto [ec, ev] = co_await db->async_receive_event(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await db->async_receive_event(as_tuple(net::use_awaitable));
       BOOST_CHECK_EQUAL(ec, boost::asio::experimental::channel_errc::channel_cancelled);
    }
+
+   event_received = true;
 }
+
 
 void test_push_is_received1(connection::config const& cfg)
 {
@@ -279,22 +288,29 @@ void test_push_is_received1(connection::config const& cfg)
    db->async_run(req, aedis::adapt(), [db](auto ec, auto){
       BOOST_TEST(!ec);
       db->cancel(connection::operation::receive_event);
+      db->cancel(connection::operation::receive_push);
    });
 
-   bool received = false;
+   bool push_received = false;
    net::co_spawn(
       ioc.get_executor(),
-      push_consumer1(db, received),
+      push_consumer1(db, push_received),
+      net::detached);
+
+   bool event_received = false;
+   net::co_spawn(
+      ioc.get_executor(),
+      event_consumer1(db, event_received),
       net::detached);
 
    ioc.run();
 
-   BOOST_TEST(received);
+   BOOST_TEST(push_received);
+   BOOST_TEST(event_received);
 }
 
 void test_push_is_received2(connection::config const& cfg)
 {
-   std::cout << "test_push_is_received2" << std::endl;
    request req1;
    req1.push("PING", "Message1");
 
@@ -322,16 +338,25 @@ void test_push_is_received2(connection::config const& cfg)
    db->async_run([db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::receive_event);
+      db->cancel(connection::operation::receive_push);
    });
 
-   bool received = false;
+   bool push_received = false;
    net::co_spawn(
       ioc.get_executor(),
-      push_consumer1(db, received),
+      push_consumer1(db, push_received),
+      net::detached);
+
+   bool event_received = false;
+   net::co_spawn(
+      ioc.get_executor(),
+      event_consumer1(db, event_received),
       net::detached);
 
    ioc.run();
-   BOOST_TEST(received);
+
+   BOOST_TEST(push_received);
+   BOOST_TEST(event_received);
 }
 
 net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
@@ -340,15 +365,15 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
    req.push("QUIT");
 
    for (auto i = 0;;) {
-      auto ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
+      auto ev = co_await db->async_receive_event(net::use_awaitable);
       auto const r1 = ev == connection::event::resolve;
       BOOST_TEST(r1);
 
-      ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
+      ev = co_await db->async_receive_event(net::use_awaitable);
       auto const r2 = ev == connection::event::connect;
       BOOST_TEST(r2);
 
-      ev = co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
+      ev = co_await db->async_receive_event(net::use_awaitable);
       auto const r3 = ev == connection::event::hello;
       BOOST_TEST(r3);
 
@@ -390,7 +415,7 @@ net::awaitable<void>
 push_consumer3(std::shared_ptr<connection> db)
 {
    for (;;)
-      co_await db->async_receive_event(aedis::adapt(), net::use_awaitable);
+      co_await db->async_receive_push(aedis::adapt(), net::use_awaitable);
 }
 
 // Test many subscribe requests.
@@ -431,7 +456,7 @@ void test_push_many_subscribes(connection::config const& cfg)
 
    db->async_run([db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      db->cancel(connection::operation::receive_event);
+      db->cancel(connection::operation::receive_push);
    });
 
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);

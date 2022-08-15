@@ -2,6 +2,9 @@
 
 ## master
 
+  * Split \c connection::async_receive_event in two functions, one to
+    receive events and other for server side pushes.
+
   * Adds `connection::operation` enum to replace `cancel_*` member
     functions with a single cancel function that gets what should be
     cancelled as argument.
