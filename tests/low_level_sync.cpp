@@ -16,7 +16,7 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
 using aedis::resp3::request;
-using aedis::adapter::adapt;
+using aedis::adapter::adapt2;
 using net::ip::tcp;
 
 int main()
@@ -41,7 +41,7 @@ int main()
       // Reads the responses to all commands in the request.
       auto dbuffer = net::dynamic_buffer(buffer);
       resp3::read(socket, dbuffer);
-      resp3::read(socket, dbuffer, adapt(resp));
+      resp3::read(socket, dbuffer, adapt2(resp));
       resp3::read(socket, dbuffer);
 
       std::cout << "Ping: " << resp << std::endl;

@@ -18,6 +18,7 @@
 
 namespace net = boost::asio;
 using aedis::resp3::request;
+using aedis::adapt;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 using connection = aedis::connection<tcp_socket>;
@@ -34,7 +35,7 @@ using response_type = std::vector<aedis::resp3::node<std::string>>;
 net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
 {
    for (response_type resp;;) {
-      co_await db->async_receive_push(aedis::adapt(resp));
+      co_await db->async_receive_push(adapt(resp));
       print_push(resp);
       resp.clear();
    }

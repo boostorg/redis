@@ -25,7 +25,7 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
 using test_stream = boost::beast::test::stream;
-using aedis::adapter::adapt;
+using aedis::adapter::adapt2;
 using node_type = aedis::resp3::node<std::string>;
 
 //-------------------------------------------------------------------
@@ -46,7 +46,7 @@ void test_sync(net::any_io_executor ex, expect<Result> e)
    ts.append(e.in);
    Result result;
    boost::system::error_code ec;
-   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt(result), ec);
+   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(result), ec);
    BOOST_CHECK_EQUAL(ec, e.ec);
    if (e.ec)
       return;
@@ -87,7 +87,7 @@ public:
       resp3::async_read(
          ts_,
          net::dynamic_buffer(rbuffer_),
-         adapt(result_),
+         adapt2(result_),
          f);
    }
 };

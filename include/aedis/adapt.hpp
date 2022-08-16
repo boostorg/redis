@@ -84,7 +84,7 @@ private:
    adapter_type adapter_;
 
 public:
-   vector_adapter(Vector& v) : adapter_{adapter::adapt(v)} { }
+   vector_adapter(Vector& v) : adapter_{adapter::adapt2(v)} { }
 
    auto supported_response_size() const noexcept { return std::size_t(-1);}
 

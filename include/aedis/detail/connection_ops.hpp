@@ -286,7 +286,7 @@ struct ping_op {
          conn->req_.clear();
          conn->req_.push("PING");
          conn->req_.close_on_run_completion = true;
-         yield conn->async_exec(conn->req_, aedis::adapt(), std::move(self));
+         yield conn->async_exec(conn->req_, adapt(), std::move(self));
          if (ec) {
             // Notice we don't report error but let the idle check
             // timeout. It is enough to finish the op.
@@ -434,7 +434,7 @@ struct run_one_op {
             *conn->socket_,
             conn->ping_timer_,
             conn->req_,
-            adapter::adapt(),
+            adapter::adapt2(),
             conn->make_dynamic_buffer(),
             std::move(self)
          );
@@ -453,6 +453,8 @@ struct run_one_op {
             }
          }
 
+         conn->write_buffer_.clear();
+         conn->cmds_ = 0;
          std::for_each(std::begin(conn->reqs_), std::end(conn->reqs_), [](auto const& ptr) {
             return ptr->written = false;
          });

@@ -2,6 +2,13 @@
 
 ## master
 
+  * Removes collision between `aedis::adapter::adapt` and
+    `aedis::adapt`.
+
+  * Fixes a bug on reconnect from a state where the `connection`
+    object had unsent commands. This would cause `async_exec` to never
+    complete.
+
   * Split \c connection::async_receive_event in two functions, one to
     receive events and other for server side pushes.
 

@@ -11,8 +11,6 @@
 #include <aedis/experimental/sync.hpp>
 #include "print.hpp"
 
-// TODO: Not working.
-
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
@@ -23,6 +21,7 @@ using aedis::experimental::receive_event;
 using aedis::experimental::receive_push;
 using connection = aedis::connection<>;
 using aedis::resp3::node;
+using aedis::adapt;
 using event = connection::event;
 
 // See subscriber.cpp for more info about how to run this example.
@@ -30,7 +29,7 @@ using event = connection::event;
 void push_receiver(connection& conn)
 {
    for (std::vector<node<std::string>> resp;;) {
-      receive_push(conn, aedis::adapt(resp));
+      receive_push(conn, adapt(resp));
       print_push(resp);
       resp.clear();
    }

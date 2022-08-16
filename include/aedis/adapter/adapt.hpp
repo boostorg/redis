@@ -39,7 +39,7 @@ using adapter_t = typename detail::adapter_t<T>;
     @endcode
  */
 inline
-auto adapt() noexcept
+auto adapt2() noexcept
    { return detail::response_traits<void>::adapt(); }
 
 /** \internal
@@ -75,7 +75,7 @@ auto adapt() noexcept
  *  @endcode
  */
 template<class T>
-auto adapt(T& t) noexcept
+auto adapt2(T& t) noexcept
    { return detail::response_traits<T>::adapt(t); }
 
 } // adapter

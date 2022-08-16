@@ -48,7 +48,7 @@ int main()
 
    net::io_context ioc;
    connection db{ioc};
-   db.async_run(req, aedis::adapt(resp), [](auto ec, auto) {
+   db.async_run(req, adapt(resp), [](auto ec, auto) {
       std::cout << ec.message() << std::endl;
    });
    ioc.run();

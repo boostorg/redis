@@ -23,6 +23,7 @@
 namespace net = boost::asio;
 
 using aedis::resp3::request;
+using aedis::adapt;
 using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
@@ -81,7 +82,7 @@ void test_quit1(connection::config const& cfg)
    request req;
    req.push("QUIT");
 
-   db->async_exec(req, aedis::adapt(), [](auto ec, auto){
+   db->async_exec(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -100,7 +101,7 @@ void test_quit2(connection::config const& cfg)
 
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
-   db->async_run(req, aedis::adapt(), [](auto ec, auto){
+   db->async_run(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -134,7 +135,7 @@ void test_missing_push_reader1(connection::config const& cfg)
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   db->async_run(req, aedis::adapt(), [](auto ec, auto){
+   db->async_run(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -150,7 +151,7 @@ void test_missing_push_reader2(connection::config const& cfg)
    request req; // Wrong command syntax.
    req.push("SUBSCRIBE");
 
-   db->async_run(req, aedis::adapt(), [](auto ec, auto){
+   db->async_run(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -167,7 +168,7 @@ void test_missing_push_reader3(connection::config const& cfg)
    req.push("PING", "Message");
    req.push("SUBSCRIBE");
 
-   db->async_run(req, aedis::adapt(), [](auto ec, auto){
+   db->async_run(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -191,7 +192,7 @@ BOOST_AUTO_TEST_CASE(test_idle)
       request req;
       req.push("CLIENT", "PAUSE", ms.count());
 
-      db->async_exec(req, aedis::adapt(), [](auto ec, auto){
+      db->async_exec(req, adapt(), [](auto ec, auto){
          BOOST_TEST(!ec);
       });
 
@@ -218,7 +219,7 @@ BOOST_AUTO_TEST_CASE(test_idle)
       request req;
       req.push("QUIT");
 
-      db->async_run(req, aedis::adapt(), [](auto ec, auto){
+      db->async_run(req, adapt(), [](auto ec, auto){
          BOOST_TEST(!ec);
       });
 
@@ -230,12 +231,12 @@ BOOST_AUTO_TEST_CASE(test_idle)
 net::awaitable<void> push_consumer1(std::shared_ptr<connection> db, bool& push_received)
 {
    {
-      auto [ec, ev] = co_await db->async_receive_push(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await db->async_receive_push(adapt(), as_tuple(net::use_awaitable));
       BOOST_TEST(!ec);
    }
 
    {
-      auto [ec, ev] = co_await db->async_receive_push(aedis::adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await db->async_receive_push(adapt(), as_tuple(net::use_awaitable));
       BOOST_CHECK_EQUAL(ec, boost::asio::experimental::channel_errc::channel_cancelled);
    }
 
@@ -285,7 +286,7 @@ void test_push_is_received1(connection::config const& cfg)
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   db->async_run(req, aedis::adapt(), [db](auto ec, auto){
+   db->async_run(req, adapt(), [db](auto ec, auto){
       BOOST_TEST(!ec);
       db->cancel(connection::operation::receive_event);
       db->cancel(connection::operation::receive_push);
@@ -331,9 +332,9 @@ void test_push_is_received2(connection::config const& cfg)
       BOOST_TEST(!ec);
    };
 
-   db->async_exec(req1, aedis::adapt(), handler);
-   db->async_exec(req2, aedis::adapt(), handler);
-   db->async_exec(req3, aedis::adapt(), handler);
+   db->async_exec(req1, adapt(), handler);
+   db->async_exec(req2, adapt(), handler);
+   db->async_exec(req3, adapt(), handler);
 
    db->async_run([db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
@@ -377,7 +378,7 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
       auto const r3 = ev == connection::event::hello;
       BOOST_TEST(r3);
 
-      co_await db->async_exec(req, aedis::adapt(), net::use_awaitable);
+      co_await db->async_exec(req, adapt(), net::use_awaitable);
 
       // Test 5 reconnetions and returns.
 
@@ -415,7 +416,7 @@ net::awaitable<void>
 push_consumer3(std::shared_ptr<connection> db)
 {
    for (;;)
-      co_await db->async_receive_push(aedis::adapt(), net::use_awaitable);
+      co_await db->async_receive_push(adapt(), net::use_awaitable);
 }
 
 // Test many subscribe requests.
@@ -441,18 +442,18 @@ void test_push_many_subscribes(connection::config const& cfg)
 
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
-   db->async_exec(req0, aedis::adapt(), handler);
-   db->async_exec(req1, aedis::adapt(), handler);
-   db->async_exec(req2, aedis::adapt(), handler);
-   db->async_exec(req2, aedis::adapt(), handler);
-   db->async_exec(req1, aedis::adapt(), handler);
-   db->async_exec(req2, aedis::adapt(), handler);
-   db->async_exec(req1, aedis::adapt(), handler);
-   db->async_exec(req2, aedis::adapt(), handler);
-   db->async_exec(req2, aedis::adapt(), handler);
-   db->async_exec(req1, aedis::adapt(), handler);
-   db->async_exec(req2, aedis::adapt(), handler);
-   db->async_exec(req3, aedis::adapt(), handler);
+   db->async_exec(req0, adapt(), handler);
+   db->async_exec(req1, adapt(), handler);
+   db->async_exec(req2, adapt(), handler);
+   db->async_exec(req2, adapt(), handler);
+   db->async_exec(req1, adapt(), handler);
+   db->async_exec(req2, adapt(), handler);
+   db->async_exec(req1, adapt(), handler);
+   db->async_exec(req2, adapt(), handler);
+   db->async_exec(req2, adapt(), handler);
+   db->async_exec(req1, adapt(), handler);
+   db->async_exec(req2, adapt(), handler);
+   db->async_exec(req3, adapt(), handler);
 
    db->async_run([db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);

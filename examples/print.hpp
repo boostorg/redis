@@ -17,8 +17,6 @@
 
 namespace net = boost::asio;
 using aedis::resp3::node;
-using aedis::adapter::adapt;
-using aedis::adapter::adapter_t;
 
 void print_aggr(std::vector<aedis::resp3::node<std::string>>& v)
 {
