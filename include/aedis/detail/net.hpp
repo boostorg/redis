@@ -142,13 +142,15 @@ struct send_receive_op {
    {
       reenter (coro)
       {
-         yield channel->async_send(boost::system::error_code{}, 0, std::move(self));
+         yield
+         channel->async_send(boost::system::error_code{}, 0, std::move(self));
          if (ec) {
             self.complete(ec, 0);
             return;
          }
 
-         yield channel->async_receive(std::move(self));
+         yield
+         channel->async_receive(std::move(self));
          self.complete(ec, 0);
       }
    }

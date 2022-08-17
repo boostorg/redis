@@ -48,7 +48,8 @@ struct connect_with_timeout_op {
       {
          BOOST_ASSERT(conn->socket_ != nullptr);
          conn->ping_timer_.expires_after(conn->cfg_.connect_timeout);
-         yield aedis::detail::async_connect(*conn->socket_, conn->ping_timer_, conn->endpoints_, std::move(self));
+         yield
+         aedis::detail::async_connect(*conn->socket_, conn->ping_timer_, conn->endpoints_, std::move(self));
          self.complete(ec);
       }
    }
@@ -92,14 +93,16 @@ struct receive_push_op {
    {
       reenter (coro)
       {
-         yield conn->push_channel_.async_receive(std::move(self));
+         yield
+         conn->push_channel_.async_receive(std::move(self));
          if (ec) {
             self.complete(ec, 0);
             return;
          }
 
          BOOST_ASSERT(conn->socket_ != nullptr);
-         yield resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
+         yield
+         resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec, 0);
@@ -108,7 +111,8 @@ struct receive_push_op {
 
          read_size = n;
 
-         yield conn->push_channel_.async_send({}, 0, std::move(self));
+         yield
+         conn->push_channel_.async_send({}, 0, std::move(self));
          self.complete(ec, read_size);
          return;
       }
@@ -143,7 +147,8 @@ struct exec_read_op {
             // some data in the read bufer.
             if (conn->read_buffer_.empty()) {
                BOOST_ASSERT(conn->socket_ != nullptr);
-               yield boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
+               yield
+               boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
                if (ec) {
                   conn->cancel(Conn::operation::run);
                   self.complete(ec, 0);
@@ -154,7 +159,8 @@ struct exec_read_op {
             // If the next request is a push we have to handle it to
             // the receive_push_op wait for it to be done and continue.
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
-               yield async_send_receive(conn->push_channel_, std::move(self));
+               yield
+               async_send_receive(conn->push_channel_, std::move(self));
                if (ec) {
                   // Notice we don't call cancel_run() as that is the
                   // responsability of the receive_push_op.
@@ -219,7 +225,8 @@ struct exec_op {
          info->stop = false;
 
          conn->add_request_info(info);
-         yield info->timer.async_wait(std::move(self));
+         yield
+         info->timer.async_wait(std::move(self));
          BOOST_ASSERT(conn->socket_ != nullptr);
          BOOST_ASSERT(!!ec);
          if (info->stop) {
@@ -237,7 +244,8 @@ struct exec_op {
          BOOST_ASSERT(!conn->reqs_.empty());
          BOOST_ASSERT(conn->reqs_.front() != nullptr);
          BOOST_ASSERT(conn->cmds_ != 0);
-         yield conn->async_exec_read(adapter, conn->reqs_.front()->cmds, std::move(self));
+         yield
+         conn->async_exec_read(adapter, conn->reqs_.front()->cmds, std::move(self));
          if (ec) {
             self.complete(ec, 0);
             return;
@@ -276,7 +284,8 @@ struct ping_op {
       reenter (coro) for (;;)
       {
          conn->ping_timer_.expires_after(conn->cfg_.ping_interval);
-         yield conn->ping_timer_.async_wait(std::move(self));
+         yield
+         conn->ping_timer_.async_wait(std::move(self));
          BOOST_ASSERT(conn->socket_ != nullptr);
          if (ec || !conn->socket_->is_open()) {
             self.complete(ec);
@@ -286,7 +295,8 @@ struct ping_op {
          conn->req_.clear();
          conn->req_.push("PING");
          conn->req_.close_on_run_completion = true;
-         yield conn->async_exec(conn->req_, adapt(), std::move(self));
+         yield
+         conn->async_exec(conn->req_, adapt(), std::move(self));
          if (ec) {
             // Notice we don't report error but let the idle check
             // timeout. It is enough to finish the op.
@@ -308,7 +318,8 @@ struct check_idle_op {
       reenter (coro) for (;;)
       {
          conn->check_idle_timer_.expires_after(2 * conn->cfg_.ping_interval);
-         yield conn->check_idle_timer_.async_wait(std::move(self));
+         yield
+         conn->check_idle_timer_.async_wait(std::move(self));
          BOOST_ASSERT(conn->socket_ != nullptr);
          if (ec || !conn->socket_->is_open()) {
             // Notice this is not an error, it was requested from an
@@ -355,22 +366,10 @@ struct start_op {
             std::move(self));
 
          switch (order[0]) {
-           case 0:
-           {
-              self.complete(ec0);
-           } break;
-           case 1:
-           {
-              self.complete(ec1);
-           } break;
-           case 2:
-           {
-              self.complete(ec2);
-           } break;
-           case 3:
-           {
-              self.complete(ec3);
-           } break;
+           case 0: self.complete(ec0); break;
+           case 1: self.complete(ec1); break;
+           case 2: self.complete(ec2); break;
+           case 3: self.complete(ec3); break;
            default: BOOST_ASSERT(false);
          }
       }
@@ -390,7 +389,8 @@ struct run_one_op {
    {
       reenter (coro)
       {
-         yield conn->async_resolve_with_timeout(std::move(self));
+         yield
+         conn->async_resolve_with_timeout(std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
@@ -398,7 +398,8 @@ struct run_one_op {
          }
 
          if (conn->cfg_.enable_events) {
-            yield conn->event_channel_.async_send({}, Conn::event::resolve, std::move(self));
+            yield
+            conn->event_channel_.async_send({}, Conn::event::resolve, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -407,7 +408,8 @@ struct run_one_op {
 
          conn->socket_ = std::make_shared<typename Conn::next_layer_type>(conn->resv_.get_executor());
 
-         yield conn->async_connect_with_timeout(std::move(self));
+         yield
+         conn->async_connect_with_timeout(std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
@@ -415,7 +417,8 @@ struct run_one_op {
          }
 
          if (conn->cfg_.enable_events) {
-            yield conn->event_channel_.async_send({}, Conn::event::connect, std::move(self));
+            yield
+            conn->event_channel_.async_send({}, Conn::event::connect, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -446,7 +449,8 @@ struct run_one_op {
          }
 
          if (conn->cfg_.enable_events) {
-            yield conn->event_channel_.async_send({}, Conn::event::hello, std::move(self));
+            yield
+            conn->event_channel_.async_send({}, Conn::event::hello, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -459,7 +463,8 @@ struct run_one_op {
             return ptr->written = false;
          });
 
-         yield conn->async_start(std::move(self));
+         yield
+         conn->async_start(std::move(self));
          self.complete(ec);
       }
    }
@@ -478,7 +483,8 @@ struct run_op {
    {
       reenter (coro) for(;;)
       {
-         yield conn->async_run_one(std::move(self));
+         yield
+         conn->async_run_one(std::move(self));
 
          if (!conn->cfg_.enable_reconnect) {
             self.complete(ec);
@@ -489,7 +495,8 @@ struct run_op {
          // event here.
 
          conn->ping_timer_.expires_after(conn->cfg_.reconnect_interval);
-         yield conn->ping_timer_.async_wait(std::move(self)); 
+         yield
+         conn->ping_timer_.async_wait(std::move(self)); 
       }
    }
 };
@@ -511,7 +518,8 @@ struct writer_op {
       {
          while (!conn->reqs_.empty() && conn->cmds_ == 0 && conn->write_buffer_.empty()) {
             conn->coalesce_requests();
-            yield boost::asio::async_write(*conn->socket_, boost::asio::buffer(conn->write_buffer_), std::move(self));
+            yield
+            boost::asio::async_write(*conn->socket_, boost::asio::buffer(conn->write_buffer_), std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -525,7 +533,8 @@ struct writer_op {
          }
 
          if (conn->socket_->is_open()) {
-            yield conn->writer_timer_.async_wait(std::move(self));
+            yield
+            conn->writer_timer_.async_wait(std::move(self));
             // The timer may be canceled either to stop the write op
             // or to proceed to the next write, the difference between
             // the two is that for the former the socket will be
@@ -558,7 +567,8 @@ struct reader_op {
       reenter (coro) for (;;)
       {
          BOOST_ASSERT(conn->socket_->is_open());
-         yield boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
+         yield
+         boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
@@ -588,7 +598,8 @@ struct reader_op {
          if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push
              || conn->reqs_.empty()
              || (!conn->reqs_.empty() && conn->reqs_.front()->cmds == 0)) {
-            yield async_send_receive(conn->push_channel_, std::move(self));
+            yield
+            async_send_receive(conn->push_channel_, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -598,7 +609,8 @@ struct reader_op {
             BOOST_ASSERT(!conn->reqs_.empty());
             BOOST_ASSERT(conn->reqs_.front()->cmds != 0);
             conn->reqs_.front()->timer.cancel_one();
-            yield conn->read_timer_.async_wait(std::move(self));
+            yield
+            conn->read_timer_.async_wait(std::move(self));
             if (!conn->socket_->is_open()) {
                self.complete({});
                return;
@@ -636,14 +648,8 @@ struct runexec_op {
             std::move(self));
 
          switch (order[0]) {
-           case 0:
-           {
-              self.complete(ec1, n);
-           } break;
-           case 1:
-           {
-              self.complete(ec2, n);
-           } break;
+           case 0: self.complete(ec1, n); break;
+           case 1: self.complete(ec2, n); break;
            default: BOOST_ASSERT(false);
          }
       }

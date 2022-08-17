@@ -15,11 +15,10 @@
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
-
 namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
-using node_type = aedis::resp3::node<std::string>;
+using aedis::resp3::node;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using connection = aedis::connection<tcp_socket>;
 
@@ -28,7 +27,7 @@ using connection = aedis::connection<tcp_socket>;
  * To test send messages with redis-cli
  *
  *    $ redis-cli -3
- *    127.0.0.1:6379> PUBLISH channel1 some-message
+ *    127.0.0.1:6379> PUBLISH channel some-message
  *    (integer) 3
  *    127.0.0.1:6379>
  *
@@ -39,31 +38,26 @@ using connection = aedis::connection<tcp_socket>;
  * > CLIENT kill TYPE pubsub
  */
 
+// Receives pushes.
 net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
 {
-   for (std::vector<node_type> resp;;) {
-      co_await db->async_receive_push(aedis::adapt(resp));
+   for (std::vector<node<std::string>> resp;;) {
+      co_await db->async_receive_push(adapt(resp));
       print_push(resp);
       resp.clear();
    }
 }
 
+// Receives events.
 net::awaitable<void> event_receiver(std::shared_ptr<connection> db)
 {
    request req;
    req.push("SUBSCRIBE", "channel");
 
    for (;;) {
-      auto const ev = co_await db->async_receive_event();
-      switch (ev) {
-         case connection::event::hello:
-         // Subscribes to the channels when a new connection is
-         // stablished.
+      auto ev = co_await db->async_receive_event();
+      if (ev == connection::event::hello)
          co_await db->async_exec(req);
-         break;
-
-         default:;
-      }
    }
 }
 

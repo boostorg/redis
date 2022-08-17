@@ -41,13 +41,9 @@ void event_receiver(connection& conn)
    req.push("SUBSCRIBE", "channel");
 
    for (;;) {
-      switch (receive_event(conn)) {
-         case connection::event::hello:
+      auto ev = receive_event(conn);
+      if (ev == connection::event::hello)
          exec(conn, req);
-         break;
-
-         default:;
-      }
    }
 }
 

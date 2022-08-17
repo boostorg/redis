@@ -11,6 +11,5 @@ comment:
 
 ignore:
   - "benchmarks/*"
-  - "examples/*"
   - "/usr/*"
   - "**/boost/*"

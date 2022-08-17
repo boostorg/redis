@@ -152,6 +152,10 @@ public:
    /// Returns the executor.
    auto get_executor() {return resv_.get_executor();}
 
+   /** @name Asynchronous functions
+    **/
+
+   /// @{
    /** @brief Starts communication with the Redis server asynchronously.
     *
     *  This function performs the following steps
@@ -195,38 +199,6 @@ public:
          >(detail::run_op<connection>{this}, token, resv_);
    }
 
-   /** @brief Executes a command on the redis server asynchronously.
-    *
-    *  \param req Request object.
-    *  \param adapter Response adapter.
-    *  \param token Asio completion token.
-    *
-    *  For an example see echo_server.cpp. The completion token must
-    *  have the following signature
-    *
-    *  @code
-    *  void f(boost::system::error_code, std::size_t);
-    *  @endcode
-    *
-    *  Where the second parameter is the size of the response in
-    *  bytes.
-    */
-   template <
-      class Adapter = detail::response_traits<void>::adapter_type,
-      class CompletionToken = default_completion_token_type>
-   auto async_exec(
-      resp3::request const& req,
-      Adapter adapter = adapt(),
-      CompletionToken token = CompletionToken{})
-   {
-      BOOST_ASSERT_MSG(req.size() <= adapter.supported_response_size(), "Request and adapter have incompatible sizes.");
-
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(detail::exec_op<connection, Adapter>{this, &req, adapter}, token, resv_);
-   }
-
    /** @brief Connects and executes a request asynchronously.
     *
     *  Combines \c async_run and the other \c async_exec overload in a
@@ -258,6 +230,38 @@ public:
          , void(boost::system::error_code, std::size_t)
          >(detail::runexec_op<connection, Adapter>
             {this, &req, adapter}, token, resv_);
+   }
+
+   /** @brief Executes a command on the redis server asynchronously.
+    *
+    *  \param req Request object.
+    *  \param adapter Response adapter.
+    *  \param token Asio completion token.
+    *
+    *  For an example see echo_server.cpp. The completion token must
+    *  have the following signature
+    *
+    *  @code
+    *  void f(boost::system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the response in
+    *  bytes.
+    */
+   template <
+      class Adapter = detail::response_traits<void>::adapter_type,
+      class CompletionToken = default_completion_token_type>
+   auto async_exec(
+      resp3::request const& req,
+      Adapter adapter = adapt(),
+      CompletionToken token = CompletionToken{})
+   {
+      BOOST_ASSERT_MSG(req.size() <= adapter.supported_response_size(), "Request and adapter have incompatible sizes.");
+
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code, std::size_t)
+         >(detail::exec_op<connection, Adapter>{this, &req, adapter}, token, resv_);
    }
 
    /** @brief Receives unsolicited events asynchronously.
@@ -313,6 +317,7 @@ public:
    {
       return event_channel_.async_receive(token);
    }
+   /// @}
 
    /** @brief Cancel operations.
     *

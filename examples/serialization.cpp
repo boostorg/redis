@@ -87,16 +87,13 @@ int main()
    net::io_context ioc;
    connection db{ioc};
 
-   // Request that sends the containers.
    std::set<user> users
-      { {"Joao", "56", "Brazil"}
-      , {"Serge", "60", "France"}
-      };
+      {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
 
    request req;
    req.push("HELLO", 3);
-   req.push_range("SADD", "sadd-key", users);
-   req.push("SMEMBERS", "sadd-key");
+   req.push_range("SADD", "sadd-key", users); // Sends
+   req.push("SMEMBERS", "sadd-key"); // Retrieves
    req.push("QUIT");
 
    std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;

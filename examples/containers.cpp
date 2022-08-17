@@ -28,11 +28,12 @@ int main()
       {{"key1", 10}, {"key2", 20}, {"key3", 30}};
 
    request req;
-   req.push_range("RPUSH", "rpush-key", vec);
-   req.push_range("HSET", "hset-key", map);
+
+   req.push_range("RPUSH", "rpush-key", vec); // Sends
+   req.push_range("HSET", "hset-key", map); // Sends
    req.push("MULTI");
-   req.push("LRANGE", "rpush-key", 0, -1);
-   req.push("HGETALL", "hset-key");
+   req.push("LRANGE", "rpush-key", 0, -1); // Retrieves
+   req.push("HGETALL", "hset-key"); // Retrieves
    req.push("EXEC");
    req.push("QUIT");
 

@@ -25,22 +25,17 @@ using connection = aedis::connection<tcp_socket>;
 
 awaitable_type echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
 {
-   try {
-      request req;
-      std::tuple<std::string> resp;
-      std::string buffer;
+   request req;
+   std::tuple<std::string> resp;
 
-      for (;;) {
-         auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
-         req.push("PING", buffer);
-         co_await db->async_exec(req, adapt(resp));
-         co_await net::async_write(socket, net::buffer(std::get<0>(resp)));
-         std::get<0>(resp).clear();
-         req.clear();
-         buffer.erase(0, n);
-      }
-   } catch (std::exception const& e) {
-      std::cout << e.what() << std::endl;
+   for (std::string buffer;;) {
+      auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
+      req.push("PING", buffer);
+      co_await db->async_exec(req, adapt(resp));
+      co_await net::async_write(socket, net::buffer(std::get<0>(resp)));
+      std::get<0>(resp).clear();
+      req.clear();
+      buffer.erase(0, n);
    }
 }
 

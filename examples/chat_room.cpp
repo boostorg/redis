@@ -17,54 +17,49 @@
 #if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 
 namespace net = boost::asio;
-using aedis::resp3::request;
 using aedis::adapt;
+using aedis::resp3::request;
+using aedis::resp3::node;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
+using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::stream_descriptor>;
 using connection = aedis::connection<tcp_socket>;
-using response_type = std::vector<aedis::resp3::node<std::string>>;
 
 // Chat over redis pubsub. To test, run this program from different
-// terminals and type messages to stdin. You may also want to run
+// terminals and type messages to stdin. Use
 //
-//    $ redis-cli
-//    > monitor
+//    $ redis-cli monitor
 //
-// To see the message traffic.
+// to monitor the message traffic.
 
+// Receives messages from other users.
 net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
 {
-   for (response_type resp;;) {
+   for (std::vector<node<std::string>> resp;;) {
       co_await db->async_receive_push(adapt(resp));
       print_push(resp);
       resp.clear();
    }
 }
 
+// Subscribes to the channels when a new connection is stablished.
 net::awaitable<void> event_receiver(std::shared_ptr<connection> db)
 {
    request req;
    req.push("SUBSCRIBE", "chat-channel");
 
    for (;;) {
-      auto const ev = co_await db->async_receive_event();
-      switch (ev) {
-         case connection::event::hello:
-         // Subscribes to the channels when a new connection is
-         // stablished.
+      auto ev = co_await db->async_receive_event();
+      if (ev == connection::event::hello)
          co_await db->async_exec(req);
-         break;
-
-         default:;
-      }
    }
 }
 
-net::awaitable<void>
-publisher(net::posix::stream_descriptor& in, std::shared_ptr<connection> db)
+// Publishes messages to other users.
+net::awaitable<void> publisher(stream_descriptor& in, std::shared_ptr<connection> db)
 {
    for (std::string msg;;) {
-      std::size_t n = co_await net::async_read_until(in, net::dynamic_buffer(msg, 1024), "\n", net::use_awaitable);
+      auto n = co_await net::async_read_until(in, net::dynamic_buffer(msg, 1024), "\n");
       request req;
       req.push("PUBLISH", "chat-channel", msg);
       co_await db->async_exec(req);
@@ -76,17 +71,16 @@ int main()
 {
    try {
       net::io_context ioc{1};
-      net::posix::stream_descriptor in{ioc, ::dup(STDIN_FILENO)};
+      stream_descriptor in{ioc, ::dup(STDIN_FILENO)};
 
       auto db = std::make_shared<connection>(ioc);
       db->get_config().enable_events = true;
+      db->get_config().enable_reconnect = true;
 
       co_spawn(ioc, publisher(in, db), net::detached);
       co_spawn(ioc, push_receiver(db), net::detached);
       co_spawn(ioc, event_receiver(db), net::detached);
-      db->async_run([](auto ec) {
-         std::cout << ec.message() << std::endl;
-      });
+      db->async_run(net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

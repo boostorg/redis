@@ -23,10 +23,11 @@ struct sync {
 
 } // detail
 
-/** @brief Executes a command.
+/** @brief Executes a request.
  *  @ingroup any
  *
- *  This function will block until execution completes.
+ *  @remark This function will block until execution completes. It
+ *  assumes the connection is running on a different thread.
  *
  *  @param conn The connection.
  *  @param req The request.
@@ -66,7 +67,8 @@ exec(
 /** @brief Executes a command.
  *  @ingroup any
  *
- *  This function will block until execution completes.
+ *  @remark This function will block until execution completes. It
+ *  assumes the connection is running on a different thread.
  *
  *  @param conn The connection.
  *  @param req The request.
@@ -93,7 +95,8 @@ exec(
 /** @brief Receives server pushes synchronusly.
  *  @ingroup any
  *
- *  This function will block until execution completes.
+ *  @remark This function will block until execution completes. It
+ *  assumes the connection is running on a different thread.
  *
  *  @param conn The connection.
  *  @param adapter The response adapter.
@@ -129,7 +132,17 @@ auto receive_push(
    return n;
 }
 
-/// TODO
+/** @brief Receives server pushes synchronusly.
+ *  @ingroup any
+ *
+ *  @remark This function will block until execution completes. It
+ *  assumes the connection is running on a different thread.
+ *
+ *  @param conn The connection.
+ *  @param adapter The response adapter.
+ *  @throws std::system_error in case of error.
+ *  @returns The number of bytes of the response.
+ */
 template <
    class Connection,
    class ResponseAdapter = aedis::detail::response_traits<void>::adapter_type>
@@ -147,7 +160,8 @@ auto receive_push(
 /** @brief Receives events
  *  @ingroup any
  *
- *  This function will block until execution completes.
+ *  @remark This function will block until execution completes. It
+ *  assumes the connection is running on a different thread.
  *
  *  @param conn The connection.
  *  @param ec Error code in case of error.
@@ -180,7 +194,16 @@ auto receive_event(Connection& conn, boost::system::error_code& ec)
    return ev;
 }
 
-/// TODO
+/** @brief Receives events
+ *  @ingroup any
+ *
+ *  @remark This function will block until execution completes. It
+ *  assumes the connection is running on a different thread.
+ *
+ *  @param conn The connection.
+ *  @throws std::system_error in case of error.
+ *  @returns The event received.
+ */
 template <class Connection>
 auto receive_event(Connection& conn)
 {
