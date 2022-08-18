@@ -13,10 +13,12 @@
 #include <chrono>
 #include <memory>
 #include <type_traits>
+#include <condition_variable>
 
 #include <boost/assert.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/bind_executor.hpp>
 #include <boost/asio/experimental/channel.hpp>
 
 #include <aedis/adapt.hpp>
@@ -151,6 +153,79 @@ public:
 
    /// Returns the executor.
    auto get_executor() {return resv_.get_executor();}
+
+   /** @brief Cancel operations.
+    *
+    * @li operation::exec: Cancels all operations started with \c async_exec.
+    * @li operation::run: Cancels @c async_run. The prefered way to
+    *     close a connection is to set config::enable_reconnect to
+    *     false and send a \c quit command. Otherwise an unresponsive Redis server
+    *     will cause the idle-checks to kick in and lead to \c
+    *     async_run returning with idle_timeout. Calling \c
+    *     cancel(operation::run) directly should be seen as the last
+    *     option.
+    * @li operation::receive_event: Cancels @c async_receive_event.
+    *
+    * @param op: The operation to be cancelled.
+    * @returns The number of operations that have been canceled.
+    */
+   std::size_t cancel(operation op)
+   {
+      switch (op) {
+         case operation::exec:
+         {
+            for (auto& e: reqs_) {
+               e->stop = true;
+               e->timer.cancel_one();
+            }
+
+            auto const ret = reqs_.size();
+            reqs_ = {};
+            return ret;
+         }
+         case operation::run:
+         {
+            if (socket_)
+               socket_->close();
+
+            read_timer_.cancel();
+            check_idle_timer_.cancel();
+            writer_timer_.cancel();
+            ping_timer_.cancel();
+
+            // Cancel own pings if there are any waiting.
+            auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
+               return !ptr->req->close_on_run_completion;
+            });
+
+            std::for_each(point, std::end(reqs_), [](auto const& ptr) {
+               ptr->stop = true;
+               ptr->timer.cancel();
+            });
+
+            reqs_.erase(point, std::end(reqs_));
+            return 1U;
+         }
+         case operation::receive_event:
+         {
+            event_channel_.cancel();
+            return 1U;
+         }
+         case operation::receive_push:
+         {
+            push_channel_.cancel();
+            return 1U;
+         }
+      }
+
+      return 0;
+   }
+
+   /// Get the config object.
+   config& get_config() noexcept { return cfg_;}
+
+   /// Gets the config object.
+   config const& get_config() const noexcept { return cfg_;}
 
    /** @name Asynchronous functions
     **/
@@ -319,80 +394,174 @@ public:
    }
    /// @}
 
-   /** @brief Cancel operations.
+   /** @name Synchronous functions
+    **/
+
+   /// @{
+   /** @brief Executes a request.
     *
-    * @li operation::exec: Cancels all operations started with \c async_exec.
-    * @li operation::run: Cancels @c async_run. The prefered way to
-    *     close a connection is to set config::enable_reconnect to
-    *     false and send a \c quit command. Otherwise an unresponsive Redis server
-    *     will cause the idle-checks to kick in and lead to \c
-    *     async_run returning with idle_timeout. Calling \c
-    *     cancel(operation::run) directly should be seen as the last
-    *     option.
-    * @li operation::receive_event: Cancels @c async_receive_event.
+    *  @remark This function will block until execution completes. It
+    *  assumes the connection is running on a different thread.
     *
-    * @param op: The operation to be cancelled.
-    * @returns The number of operations that have been canceled.
+    *  @param req The request.
+    *  @param adapter The response adapter.
+    *  @param ec Error code in case of error.
+    *  @returns The number of bytes of the response.
     */
-   std::size_t cancel(operation op)
+   template <class ResponseAdapter>
+   std::size_t
+   exec(resp3::request const& req, ResponseAdapter adapter, boost::system::error_code& ec)
    {
-      switch (op) {
-         case operation::exec:
-         {
-            for (auto& e: reqs_) {
-               e->stop = true;
-               e->timer.cancel_one();
-            }
+      sync sh;
+      std::size_t res = 0;
 
-            auto const ret = reqs_.size();
-            reqs_ = {};
-            return ret;
-         }
-         case operation::run:
-         {
-            if (socket_)
-               socket_->close();
+      auto f = [this, &ec, &res, &sh, &req, adapter]()
+      {
+         async_exec(req, adapter, [&sh, &res, &ec](auto const& ecp, std::size_t n) {
+            std::unique_lock ul(sh.mutex);
+            ec = ecp;
+            res = n;
+            sh.ready = true;
+            ul.unlock();
+            sh.cv.notify_one();
+         });
+      };
 
-            read_timer_.cancel();
-            check_idle_timer_.cancel();
-            writer_timer_.cancel();
-            ping_timer_.cancel();
-
-            // Cancel own pings if there are any waiting.
-            auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-               return !ptr->req->close_on_run_completion;
-            });
-
-            std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-               ptr->stop = true;
-               ptr->timer.cancel();
-            });
-
-            reqs_.erase(point, std::end(reqs_));
-            return 1U;
-         }
-         case operation::receive_event:
-         {
-            event_channel_.cancel();
-            return 1U;
-         }
-         case operation::receive_push:
-         {
-            push_channel_.cancel();
-            return 1U;
-         }
-      }
-
-      return 0;
+      boost::asio::dispatch(boost::asio::bind_executor(get_executor(), f));
+      std::unique_lock lk(sh.mutex);
+      sh.cv.wait(lk, [&sh]{return sh.ready;});
+      return res;
    }
 
-   /// Get the config object.
-   config& get_config() noexcept { return cfg_;}
+   /** @brief Executes a command.
+    *
+    *  @remark This function will block until execution completes. It
+    *  assumes the connection is running on a different thread.
+    *
+    *  @param req The request.
+    *  @param adapter The response adapter.
+    *  @throws std::system_error in case of error.
+    *  @returns The number of bytes of the response.
+    */
+   template <class ResponseAdapter = detail::response_traits<void>::adapter_type>
+   std::size_t exec(resp3::request const& req, ResponseAdapter adapter = aedis::adapt())
+   {
+      boost::system::error_code ec;
+      auto const res = exec(req, adapter, ec);
+      if (ec)
+         throw std::system_error(ec);
+      return res;
+   }
 
-   /// Gets the config object.
-   config const& get_config() const noexcept { return cfg_;}
+   /** @brief Receives server pushes synchronusly.
+    *
+    *  @remark This function will block until execution completes. It
+    *  assumes the connection is running on a different thread.
+    *
+    *  @param adapter The response adapter.
+    *  @param ec Error code in case of error.
+    *  @returns The number of bytes of the response.
+    */
+   template <class ResponseAdapter>
+   auto receive_push(ResponseAdapter adapter, boost::system::error_code& ec)
+   {
+      sync sh;
+      std::size_t res = 0;
+
+      auto f = [this, &ec, &res, &sh, adapter]()
+      {
+         async_receive_push(adapter, [&ec, &res, &sh](auto const& e, std::size_t n) {
+            std::unique_lock ul(sh.mutex);
+            ec = e;
+            res = n;
+            sh.ready = true;
+            ul.unlock();
+            sh.cv.notify_one();
+         });
+      };
+
+      boost::asio::dispatch(boost::asio::bind_executor(get_executor(), f));
+      std::unique_lock lk(sh.mutex);
+      sh.cv.wait(lk, [&sh]{return sh.ready;});
+      return res;
+   }
+
+   /** @brief Receives server pushes synchronusly.
+    *
+    *  @remark This function will block until execution completes. It
+    *  assumes the connection is running on a different thread.
+    *
+    *  @param adapter The response adapter.
+    *  @throws std::system_error in case of error.
+    *  @returns The number of bytes of the response.
+    */
+   template <class ResponseAdapter = aedis::detail::response_traits<void>::adapter_type>
+   auto receive_push(ResponseAdapter adapter = aedis::adapt())
+   {
+      boost::system::error_code ec;
+      auto const res = receive_push(adapter, ec);
+      if (ec)
+         throw std::system_error(ec);
+      return res;
+   }
+
+   /** @brief Receives events
+    *
+    *  @remark This function will block until execution completes. It
+    *  assumes the connection is running on a different thread.
+    *
+    *  @param ec Error code in case of error.
+    *  @returns The event received.
+    */
+   auto receive_event(boost::system::error_code& ec)
+   {
+      sync sh;
+      auto res = event::invalid;
+
+      auto f = [this, &ec, &res, &sh]()
+      {
+         async_receive_event([&ec, &res, &sh](auto const& ecp, event ev) {
+            std::unique_lock ul(sh.mutex);
+            ec = ecp;
+            res = ev;
+            sh.ready = true;
+            ul.unlock();
+            sh.cv.notify_one();
+         });
+      };
+
+      boost::asio::dispatch(boost::asio::bind_executor(get_executor(), f));
+      std::unique_lock lk(sh.mutex);
+      sh.cv.wait(lk, [&sh]{return sh.ready;});
+      return res;
+   }
+
+   /** @brief Receives events
+    *
+    *  @remark This function will block until execution completes. It
+    *  assumes the connection is running on a different thread.
+    *
+    *  @throws std::system_error in case of error.
+    *  @returns The event received.
+    */
+   auto receive_event()
+   {
+      boost::system::error_code ec;
+      auto const res = receive_event(ec);
+      if (ec)
+         throw std::system_error(ec);
+      return res;
+   }
+
+   /// @}
 
 private:
+   struct sync {
+      std::mutex mutex;
+      std::condition_variable cv;
+      bool ready = false;
+   };
+
    struct req_info {
       req_info(executor_type ex) : timer{ex} {}
       timer_type timer;

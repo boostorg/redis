@@ -2,19 +2,22 @@
 
 ## master
 
-  * Removes collision between `aedis::adapter::adapt` and
-    `aedis::adapt`.
+* Makes all free functions from the `sync.hpp` member functions of the
+  `connection` class.
 
-  * Fixes a bug on reconnect from a state where the `connection`
-    object had unsent commands. This would cause `async_exec` to never
-    complete.
+* Removes collision between `aedis::adapter::adapt` and
+  `aedis::adapt`.
 
-  * Split \c connection::async_receive_event in two functions, one to
-    receive events and other for server side pushes.
+* Fixes a bug on reconnect from a state where the `connection` object
+  had unsent commands. This would cause `async_exec` to never
+  complete.
 
-  * Adds `connection::operation` enum to replace `cancel_*` member
-    functions with a single cancel function that gets what should be
-    cancelled as argument.
+* Split `connection::async_receive_event` in two functions, one to
+  receive events and other for server side pushes.
+
+* Adds `connection::operation` enum to replace `cancel_*` member
+  functions with a single cancel function that gets what should be
+  cancelled as argument.
 
 ## v0.3.0
 

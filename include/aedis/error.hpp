@@ -44,16 +44,16 @@ enum class error
    empty_field,
 
    /// Expects a simple RESP3 type but got an aggregate.
-   expects_simple_type,
+   expects_resp3_simple_type,
 
-   /// Expects aggregate type.
-   expects_aggregate_type,
+   /// Expects aggregate.
+   expects_resp3_aggregate,
 
    /// Expects a map but got other aggregate.
-   expects_map_type,
+   expects_resp3_map,
 
    /// Expects a set aggregate but got something else.
-   expects_set_type,
+   expects_resp3_set,
 
    /// Nested response not supported.
    nested_aggregate_unsupported,
@@ -70,7 +70,7 @@ enum class error
    /// Not a double
    not_a_double,
 
-   /// Got RESP3 null type.
+   /// Got RESP3 null.
    null
 };
 

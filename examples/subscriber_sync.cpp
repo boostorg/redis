@@ -8,7 +8,6 @@
 #include <string>
 #include <boost/asio.hpp>
 #include <aedis.hpp>
-#include <aedis/experimental/sync.hpp>
 #include "print.hpp"
 
 // Include this in no more than one .cpp file.
@@ -16,9 +15,6 @@
 
 namespace net = boost::asio;
 using aedis::resp3::request;
-using aedis::experimental::exec;
-using aedis::experimental::receive_event;
-using aedis::experimental::receive_push;
 using connection = aedis::connection<>;
 using aedis::resp3::node;
 using aedis::adapt;
@@ -29,7 +25,7 @@ using event = connection::event;
 void push_receiver(connection& conn)
 {
    for (std::vector<node<std::string>> resp;;) {
-      receive_push(conn, adapt(resp));
+      conn.receive_push(adapt(resp));
       print_push(resp);
       resp.clear();
    }
@@ -41,9 +37,9 @@ void event_receiver(connection& conn)
    req.push("SUBSCRIBE", "channel");
 
    for (;;) {
-      auto ev = receive_event(conn);
+      auto ev = conn.receive_event();
       if (ev == connection::event::hello)
-         exec(conn, req);
+         conn.exec(req);
    }
 }
 

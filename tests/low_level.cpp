@@ -110,12 +110,13 @@ BOOST_AUTO_TEST_CASE(test_number)
    auto const in03 = expect<int>{":11\r\n", int{11}, "number.int"};
    auto const in04 = expect<boost::optional<int>>{":11\r\n", ok, "number.optional.int"};
    auto const in05 = expect<std::tuple<int>>{"*1\r\n:11\r\n", std::tuple<int>{11}, "number.tuple.int"};
-   auto const in06 = expect<boost::optional<int>>{"%11\r\n", boost::optional<int>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_simple_type)};
-   auto const in07 = expect<std::set<std::string>>{":11\r\n", std::set<std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_set_type)};
-   auto const in08 = expect<std::unordered_set<std::string>>{":11\r\n", std::unordered_set<std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_set_type)};
-   auto const in09 = expect<std::map<std::string, std::string>>{":11\r\n", std::map<std::string, std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_map_type)};
-   auto const in10 = expect<std::unordered_map<std::string, std::string>>{":11\r\n", std::unordered_map<std::string, std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_map_type)};
-   auto const in11 = expect<std::list<std::string>>{":11\r\n", std::list<std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_aggregate_type)};
+   auto const in06 = expect<int>{"_\r\n", int{0}, "number.int", aedis::make_error_code(aedis::error::null)};
+   auto const in07 = expect<boost::optional<int>>{"%11\r\n", boost::optional<int>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_resp3_simple_type)};
+   auto const in08 = expect<std::set<std::string>>{":11\r\n", std::set<std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_resp3_set)};
+   auto const in09 = expect<std::unordered_set<std::string>>{":11\r\n", std::unordered_set<std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_resp3_set)};
+   auto const in10 = expect<std::map<std::string, std::string>>{":11\r\n", std::map<std::string, std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_resp3_map)};
+   auto const in11 = expect<std::unordered_map<std::string, std::string>>{":11\r\n", std::unordered_map<std::string, std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_resp3_map)};
+   auto const in12 = expect<std::list<std::string>>{":11\r\n", std::list<std::string>{}, "number.optional.int", aedis::make_error_code(aedis::error::expects_resp3_aggregate)};
 
    auto ex = ioc.get_executor();
 
@@ -130,6 +131,7 @@ BOOST_AUTO_TEST_CASE(test_number)
    test_sync(ex, in09);
    test_sync(ex, in10);
    test_sync(ex, in11);
+   test_sync(ex, in12);
 
    test_async(ex, in01);
    test_async(ex, in02);
@@ -142,6 +144,7 @@ BOOST_AUTO_TEST_CASE(test_number)
    test_async(ex, in09);
    test_async(ex, in10);
    test_async(ex, in11);
+   test_async(ex, in12);
    ioc.run();
 }
 
@@ -160,10 +163,10 @@ BOOST_AUTO_TEST_CASE(test_bool)
 
    // Error
    auto const in01 = expect<boost::optional<bool>>{"#11\r\n", boost::optional<bool>{}, "bool.error", aedis::make_error_code(aedis::error::unexpected_bool_value)};
-   auto const in03 = expect<std::set<int>>{"#t\r\n", std::set<int>{}, "bool.error", aedis::make_error_code(aedis::error::expects_set_type)};
-   auto const in04 = expect<std::unordered_set<int>>{"#t\r\n", std::unordered_set<int>{}, "bool.error", aedis::make_error_code(aedis::error::expects_set_type)};
-   auto const in05 = expect<std::map<int, int>>{"#t\r\n", std::map<int, int>{}, "bool.error", aedis::make_error_code(aedis::error::expects_map_type)};
-   auto const in06 = expect<std::unordered_map<int, int>>{"#t\r\n", std::unordered_map<int, int>{}, "bool.error", aedis::make_error_code(aedis::error::expects_map_type)};
+   auto const in03 = expect<std::set<int>>{"#t\r\n", std::set<int>{}, "bool.error", aedis::make_error_code(aedis::error::expects_resp3_set)};
+   auto const in04 = expect<std::unordered_set<int>>{"#t\r\n", std::unordered_set<int>{}, "bool.error", aedis::make_error_code(aedis::error::expects_resp3_set)};
+   auto const in05 = expect<std::map<int, int>>{"#t\r\n", std::map<int, int>{}, "bool.error", aedis::make_error_code(aedis::error::expects_resp3_map)};
+   auto const in06 = expect<std::unordered_map<int, int>>{"#t\r\n", std::unordered_map<int, int>{}, "bool.error", aedis::make_error_code(aedis::error::expects_resp3_map)};
 
    auto ex = ioc.get_executor();
 
@@ -259,6 +262,7 @@ BOOST_AUTO_TEST_CASE(test_map)
    using op_vec_type = boost::optional<std::vector<std::string>>;
    using tuple_type = std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string>;
 
+   std::string const wire2 = "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n";
    std::string const wire = "%4\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n$4\r\nkey3\r\n$6\r\nvalue3\r\n$4\r\nkey3\r\n$6\r\nvalue3\r\n";
 
    std::vector<node_type> expected_1a
@@ -329,8 +333,10 @@ BOOST_AUTO_TEST_CASE(test_map)
    auto const in07 = expect<op_map_type>{wire, expected_1d, "map.optional.map"};
    auto const in08 = expect<op_vec_type>{wire, expected_1e, "map.optional.vector"};
    auto const in09 = expect<std::tuple<op_map_type>>{"*1\r\n" + wire, std::tuple<op_map_type>{expected_1d}, "map.transaction.optional.map"};
-   auto const in10 = expect<int>{"%11\r\n", int{}, "map.invalid.int", aedis::make_error_code(aedis::error::expects_simple_type)};
+   auto const in10 = expect<int>{"%11\r\n", int{}, "map.invalid.int", aedis::make_error_code(aedis::error::expects_resp3_simple_type)};
    auto const in11 = expect<tuple_type>{wire, e1f, "map.tuple"};
+   auto const in12 = expect<map_type>{wire2, map_type{}, "map.error", aedis::make_error_code(aedis::error::expects_resp3_map)};
+   auto const in13 = expect<map_type>{"_\r\n", map_type{}, "map.null", aedis::make_error_code(aedis::error::null)};
 
    auto ex = ioc.get_executor();
 
@@ -345,6 +351,8 @@ BOOST_AUTO_TEST_CASE(test_map)
    test_sync(ex, in09);
    test_sync(ex, in00);
    test_sync(ex, in11);
+   test_sync(ex, in12);
+   test_sync(ex, in13);
 
    test_async(ex, in00);
    test_async(ex, in01);
@@ -357,6 +365,8 @@ BOOST_AUTO_TEST_CASE(test_map)
    test_async(ex, in09);
    test_async(ex, in00);
    test_async(ex, in11);
+   test_async(ex, in12);
+   test_async(ex, in13);
    ioc.run();
 }
 
@@ -416,6 +426,8 @@ BOOST_AUTO_TEST_CASE(test_array)
    auto const in06 = expect<std::array<int, 3>>{wire, e1f, "array.array"};
    auto const in07 = expect<std::list<int>>{wire, e1g, "array.list"};
    auto const in08 = expect<std::deque<int>>{wire, e1h, "array.deque"};
+   auto const in09 = expect<std::vector<int>>{"_\r\n", std::vector<int>{}, "array.vector", aedis::make_error_code(aedis::error::null)};
+   auto const in10 = expect<std::list<int>>{"_\r\n", std::list<int>{}, "array.list", aedis::make_error_code(aedis::error::null)};
 
    auto ex = ioc.get_executor();
 
@@ -427,6 +439,7 @@ BOOST_AUTO_TEST_CASE(test_array)
    test_sync(ex, in06);
    test_sync(ex, in07);
    test_sync(ex, in08);
+   test_sync(ex, in09);
 
    test_async(ex, in01);
    test_async(ex, in02);
@@ -436,6 +449,7 @@ BOOST_AUTO_TEST_CASE(test_array)
    test_async(ex, in06);
    test_async(ex, in07);
    test_async(ex, in08);
+   test_async(ex, in09);
    ioc.run();
 }
 
@@ -449,7 +463,9 @@ BOOST_AUTO_TEST_CASE(test_set)
    using vec_type = std::vector<std::string>;
    using op_vec_type = boost::optional<std::vector<std::string>>;
 
+   std::string const wire2 = "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n";
    std::string const wire = "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n";
+
    std::vector<node_type> const expected1a
    { {resp3::type::set,            6UL, 0UL, {}}
    , {resp3::type::simple_string,  1UL, 1UL, {"orange"}}
@@ -476,6 +492,7 @@ BOOST_AUTO_TEST_CASE(test_set)
    auto const in06 = expect<uset_type>{wire, e1c, "set.unordered_set"};
    auto const in07 = expect<muset_type>{wire, e1g, "set.unordered_multiset"};
    auto const in08 = expect<std::tuple<uset_type>>{"*1\r\n" + wire, std::tuple<uset_type>{e1c}, "set.tuple"};
+   auto const in09 = expect<set_type>{wire2, set_type{}, "set.error", aedis::make_error_code(aedis::error::expects_resp3_set)};
 
    auto ex = ioc.get_executor();
 
@@ -488,6 +505,7 @@ BOOST_AUTO_TEST_CASE(test_set)
    test_sync(ex, in06);
    test_sync(ex, in07);
    test_sync(ex, in08);
+   test_sync(ex, in09);
 
    test_async(ex, in00);
    test_async(ex, in01);
@@ -498,6 +516,7 @@ BOOST_AUTO_TEST_CASE(test_set)
    test_async(ex, in06);
    test_async(ex, in07);
    test_async(ex, in08);
+   test_async(ex, in09);
    ioc.run();
 }
 
@@ -553,11 +572,11 @@ BOOST_AUTO_TEST_CASE(test_blob_string)
 BOOST_AUTO_TEST_CASE(test_double)
 {
    net::io_context ioc;
-   // TODO: Add test for double.
    auto const in01 = expect<node_type>{",1.23\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"1.23"}}, "double.node"};
    auto const in02 = expect<node_type>{",inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}, "double.node (inf)"};
    auto const in03 = expect<node_type>{",-inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"-inf"}}, "double.node (-inf)"};
    auto const in04 = expect<double>{",1.23\r\n", double{1.23}, "double.double"};
+   auto const in05 = expect<double>{",er\r\n", double{0}, "double.double", aedis::make_error_code(aedis::error::not_a_double)};
 
    auto ex = ioc.get_executor();
 
@@ -565,11 +584,13 @@ BOOST_AUTO_TEST_CASE(test_double)
    test_sync(ex, in02);
    test_sync(ex, in03);
    test_sync(ex, in04);
+   test_sync(ex, in05);
 
    test_async(ex, in01);
    test_async(ex, in02);
    test_async(ex, in03);
    test_async(ex, in04);
+   test_async(ex, in05);
    ioc.run();
 }
 

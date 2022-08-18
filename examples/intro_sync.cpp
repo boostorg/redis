@@ -8,7 +8,6 @@
 #include <string>
 #include <boost/asio.hpp>
 #include <aedis.hpp>
-#include <aedis/experimental/sync.hpp>
 
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
@@ -16,7 +15,6 @@
 namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
-using aedis::experimental::exec;
 using connection = aedis::connection<>;
 
 int main()
@@ -35,7 +33,7 @@ int main()
       req.push("QUIT");
 
       std::tuple<std::string, aedis::ignore> resp;
-      exec(conn, req, adapt(resp));
+      conn.exec(req, adapt(resp));
       thread.join();
 
       std::cout << "Response: " << std::get<0>(resp) << std::endl;

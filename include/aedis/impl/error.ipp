@@ -28,10 +28,10 @@ struct error_category_impl : boost::system::error_category {
 	 case error::exceeeds_max_nested_depth: return "Exceeds the maximum number of nested responses.";
 	 case error::unexpected_bool_value: return "Unexpected bool value.";
 	 case error::empty_field: return "Expected field value is empty.";
-	 case error::expects_simple_type: return "Expects a simple RESP3 type.";
-	 case error::expects_aggregate_type: return "Expects aggregate type.";
-	 case error::expects_map_type: return "Expects map type.";
-	 case error::expects_set_type: return "Expects set type.";
+	 case error::expects_resp3_simple_type: return "Expects a resp3 simple type.";
+	 case error::expects_resp3_aggregate: return "Expects resp3 aggregate.";
+	 case error::expects_resp3_map: return "Expects resp3 map.";
+	 case error::expects_resp3_set: return "Expects resp3 set.";
 	 case error::nested_aggregate_unsupported: return "Nested aggregate unsupported.";
 	 case error::simple_error: return "Got RESP3 simple-error.";
 	 case error::blob_error: return "Got RESP3 blob-error.";

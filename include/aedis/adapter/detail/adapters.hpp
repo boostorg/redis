@@ -146,7 +146,7 @@ public:
          return;
 
       if (is_aggregate(n.data_type)) {
-         ec = error::expects_simple_type;
+         ec = error::expects_resp3_simple_type;
          return;
       }
 
@@ -175,14 +175,14 @@ public:
 
       if (is_aggregate(nd.data_type)) {
          if (nd.data_type != resp3::type::set)
-            ec = error::expects_set_type;
+            ec = error::expects_resp3_set;
          return;
       }
 
       BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
-	 ec = error::expects_set_type;
+	 ec = error::expects_resp3_set;
 	 return;
       }
 
@@ -214,14 +214,14 @@ public:
 
       if (is_aggregate(nd.data_type)) {
          if (element_multiplicity(nd.data_type) != 2)
-           ec = error::expects_map_type;
+           ec = error::expects_resp3_map;
          return;
       }
 
       BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
-	 ec = error::expects_map_type;
+	 ec = error::expects_resp3_map;
 	 return;
       }
 
@@ -294,7 +294,7 @@ public:
          }
       } else {
          if (i_ == -1) {
-            ec = error::expects_aggregate_type;
+            ec = error::expects_resp3_aggregate;
             return;
          }
 
@@ -324,7 +324,7 @@ struct list_impl {
       if (!is_aggregate(nd.data_type)) {
         BOOST_ASSERT(nd.aggregate_size == 1);
         if (nd.depth < 1) {
-           ec = error::expects_aggregate_type;
+           ec = error::expects_resp3_aggregate;
            return;
         }
 
