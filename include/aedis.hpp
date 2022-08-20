@@ -177,6 +177,12 @@
     $ make
     ```
 
+    There is also experimental support cmake, for example
+
+    @code
+    $ BOOST_ROOT=/opt/boost_1_79_0/ cmake -DCMAKE_CXX_FLAGS=-std=c++20 .
+    @endcode
+
     @subsubsection using_aedis Using Aedis
 
     When writing you own applications include the following header 
@@ -204,12 +210,15 @@
     $ autoreconf -i
     ```
   
-    After that you will have a configure script that you can run as
-    explained above, for example, to use a compiler other that the
-    system compiler run
+    After that we get a configure script that can be run as explained
+    above, for example, to build with a compiler other that the system
+    compiler with coverage support run
   
     ```
-    $ CXX=clang++-14 CXXFLAGS="-g" ./configure --with-boost=...
+    $ CXX=clang++-14 \
+      CXXFLAGS="-g -std=c++20 -Wall -Wextra --coverage -fkeep-inline-functions -fkeep-static-functions" \
+      LDFLAGS="--coverage" \
+      ./configure --with-boost=/opt/boost_1_79_0
     ```
 
     To generate release tarballs run
@@ -217,7 +226,6 @@
     ```
     $ make distcheck
     ```
-
 
     \section requests Requests
 

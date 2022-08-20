@@ -2,26 +2,28 @@
 
 ## master
 
+* Adds experimental cmake support for windows users.
+
 * Adds new class `sync` that wraps a `connection` and offers a
   thread-safe synchronous API.  All free functions from the `sync.hpp`
   are now member functions of the `sync` class.
 
 * Split `connection::async_receive_event` in two functions, one to
-  receive events and other for server side pushes.
+  receive events and another for server side pushes.
 
 * Removes collision between `aedis::adapter::adapt` and
   `aedis::adapt`.
 
 * Adds `connection::operation` enum to replace `cancel_*` member
-  functions with a single cancel function that gets what should be
-  cancelled as argument.
-
-* Bugfix: Documentation of `adapt()` functions were missing from
-  doxygen.
+  functions with a single cancel function that gets the operations
+  that should be cancelled as argument.
 
 * Bugfix: a bug on reconnect from a state where the `connection` object
   had unsent commands. It could cause `async_exec` to never
   complete under certain conditions.
+
+* Bugfix: Documentation of `adapt()` functions were missing from
+  doxygen.
 
 ## v0.3.0
 

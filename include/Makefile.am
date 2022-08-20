@@ -6,6 +6,7 @@ nobase_include_HEADERS =\
   $(top_srcdir)/include/aedis/detail/net.hpp\
   $(top_srcdir)/include/aedis/connection.hpp\
   $(top_srcdir)/include/aedis/adapt.hpp\
+  $(top_srcdir)/include/aedis/sync.hpp\
   $(top_srcdir)/include/aedis/detail/connection_ops.hpp\
   $(top_srcdir)/include/aedis.hpp\
   $(top_srcdir)/include/aedis/adapter/detail/adapters.hpp\

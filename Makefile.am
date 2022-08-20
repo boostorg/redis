@@ -77,6 +77,7 @@ EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_direct/Cargo.toml
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_direct/src/main.rs
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_over_redis/Cargo.toml
 EXTRA_DIST += $(top_srcdir)/benchmarks/rust/echo_server_over_redis/src/main.rs
+EXTRA_DIST += $(top_srcdir)/CMakeLists.txt
 
 .PHONY: doc
 doc:
@@ -92,3 +93,4 @@ coverage:
 bench:
 	pdflatex --jobname=echo-f0 benchmarks/benchmarks.tex
 	pdflatex --jobname=echo-f1 benchmarks/benchmarks.tex
+
