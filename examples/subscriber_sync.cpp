@@ -6,6 +6,7 @@
 
 #include <tuple>
 #include <string>
+#include <thread>
 #include <boost/asio.hpp>
 #include <aedis.hpp>
 #include "print.hpp"
