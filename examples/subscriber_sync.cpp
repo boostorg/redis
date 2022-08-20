@@ -14,23 +14,15 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-using aedis::resp3::request;
-using connection = aedis::connection<>;
-using aedis::resp3::node;
 using aedis::adapt;
+using aedis::resp3::node;
+using aedis::resp3::request;
+using connection = aedis::sync<aedis::connection<>>;
 using event = connection::event;
 
 // See subscriber.cpp for more info about how to run this example.
 
-void push_receiver(connection& conn)
-{
-   for (std::vector<node<std::string>> resp;;) {
-      conn.receive_push(adapt(resp));
-      print_push(resp);
-      resp.clear();
-   }
-}
-
+// Subscribe again everytime there is a disconnection.
 void event_receiver(connection& conn)
 {
    request req;
@@ -47,19 +39,26 @@ int main()
 {
    try {
       net::io_context ioc{1};
-      connection conn{ioc};
+      auto work = net::make_work_guard(ioc);
 
-      conn.get_config().enable_events = true;
-      conn.get_config().enable_reconnect = true;
+      connection::config cfg;
+      cfg.enable_events = true;
+      cfg.enable_reconnect = true;
+      connection conn{work.get_executor(), cfg};
 
-      std::thread push_thread{[&]() { push_receiver(conn); }};
-      std::thread event_thread{[&]() { event_receiver(conn); }};
+      std::thread t1{[&]() { ioc.run(); }};
+      std::thread t2{[&]() { boost::system::error_code ec; conn.run(ec); }};
+      std::thread t3{[&]() { event_receiver(conn); }};
 
-      conn.async_run(net::detached);
-      ioc.run();
+      for (std::vector<node<std::string>> resp;;) {
+         conn.receive_push(adapt(resp));
+         print_push(resp);
+         resp.clear();
+      }
 
-      event_thread.join();
-      push_thread.join();
+      t1.join();
+      t2.join();
+      t3.join();
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

@@ -12,27 +12,25 @@ namespace resp3 {
 
 char const* to_string(type t)
 {
-   static char const* table[] =
-   { "array"
-   , "push"
-   , "set"
-   , "map"
-   , "attribute"
-   , "simple_string"
-   , "simple_error"
-   , "number"
-   , "doublean"
-   , "boolean"
-   , "big_number"
-   , "null"
-   , "blob_error"
-   , "verbatim_string"
-   , "blob_string"
-   , "streamed_string_part"
-   , "invalid"
-   };
-
-   return table[static_cast<int>(t)];
+   switch (t) {
+      case type::array: return "array";
+      case type::push: return "push";
+      case type::set: return "set";
+      case type::map: return "map";
+      case type::attribute: return "attribute";
+      case type::simple_string: return "simple_string";
+      case type::simple_error: return "simple_error";
+      case type::number: return "number";
+      case type::doublean: return "doublean";
+      case type::boolean: return "boolean";
+      case type::big_number: return "big_number";
+      case type::null: return "null";
+      case type::blob_error: return "blob_error";
+      case type::verbatim_string: return "verbatim_string";
+      case type::blob_string: return "blob_string";
+      case type::streamed_string_part: return "streamed_string_part";
+      default: return "invalid";
+   }
 }
 
 std::ostream& operator<<(std::ostream& os, type t)

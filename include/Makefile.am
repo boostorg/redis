@@ -12,7 +12,6 @@ nobase_include_HEADERS =\
   $(top_srcdir)/include/aedis/adapter/adapt.hpp\
   $(top_srcdir)/include/aedis/adapter/detail/response_traits.hpp\
   $(top_srcdir)/include/aedis/resp3/node.hpp\
-  $(top_srcdir)/include/aedis/resp3/compose.hpp\
   $(top_srcdir)/include/aedis/resp3/detail/read_ops.hpp\
   $(top_srcdir)/include/aedis/resp3/detail/parser.hpp\
   $(top_srcdir)/include/aedis/resp3/detail/exec.hpp\

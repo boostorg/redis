@@ -56,26 +56,18 @@ struct connect_op {
             std::move(self));
 
          switch (order[0]) {
-            case 0:
-            {
-               if (ec1) {
-                  self.complete(ec1, ep);
-                  return;
-               }
-            } break;
-
+            case 0: self.complete(ec1, ep); break;
             case 1:
             {
-               if (!ec2) {
+               if (ec2)
+                  self.complete({}, ep);
+               else
                   self.complete(error::connect_timeout, ep);
-                  return;
-               }
+
             } break;
 
             default: BOOST_ASSERT(false);
          }
-
-         self.complete({}, ep);
       }
    }
 };

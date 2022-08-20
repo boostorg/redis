@@ -129,26 +129,18 @@ struct exec_with_timeout_op {
             std::move(self));
 
          switch (order[0]) {
-            case 0:
-            {
-               if (ec1) {
-                  self.complete(ec1, 0);
-                  return;
-               }
-            } break;
-
+            case 0: self.complete(ec1, n); break;
             case 1:
             {
-               if (!ec2) {
-                  self.complete(aedis::error::idle_timeout, 0);
-                  return;
-               }
+               if (ec2)
+                  self.complete({}, n);
+               else
+                  self.complete(aedis::error::exec_timeout, 0);
+
             } break;
 
             default: BOOST_ASSERT(false);
          }
-
-         self.complete({}, n);
       }
    }
 };

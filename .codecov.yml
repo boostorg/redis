@@ -6,7 +6,8 @@ codecov:
     wait_for_ci: yes
 
 ignore:
-  - "**/benchmarks/*"
-  - "**/examples/*"
+  - "benchmarks/cpp/asio/*"
+  - "examples/*"
+  - "tests/*"
   - "/usr/*"
   - "**/boost/*"

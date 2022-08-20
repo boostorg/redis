@@ -20,12 +20,13 @@
 
 namespace aedis {
 
-/** @brief A type that ignores responses.
+/** @brief Tag used tp ignore responses.
+ *  @ingroup any
  *
  *  For example
  *
  *  @code
-    std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+ *  std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
  *  @endcode
  *
  *  will cause only the second tuple type to be parsed, the others
@@ -131,9 +132,10 @@ struct response_traits<std::tuple<Ts...>> {
 } // detail
 
 /** @brief Creates an adapter that ignores responses.
+ *  @ingroup any
  *
  *  This function can be used to create adapters that ignores
- *  responses. As a result it can improve performance.
+ *  responses.
  */
 auto adapt() noexcept
 {
@@ -141,6 +143,7 @@ auto adapt() noexcept
 }
 
 /** @brief Adapts a type to be used as a response.
+ *  @ingroup any
  *
  *  The type T can be any STL container, any integer type and
  *  \c std::string

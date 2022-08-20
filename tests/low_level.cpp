@@ -7,6 +7,7 @@
 #include <map>
 #include <iostream>
 #include <optional>
+#include <sstream>
 
 #include <boost/system/errc.hpp>
 #include <boost/asio/awaitable.hpp>
@@ -740,3 +741,70 @@ BOOST_AUTO_TEST_CASE(test_null)
    ioc.run();
 }
 
+//-----------------------------------------------------------------------------------
+void check_error(char const* name, aedis::error ev)
+{
+   auto const ec = aedis::make_error_code(ev);
+   auto const& cat = ec.category();
+   BOOST_TEST(std::string(ec.category().name()) == name);
+   BOOST_TEST(!ec.message().empty());
+   BOOST_TEST(cat.equivalent(
+      static_cast<std::underlying_type<aedis::error>::type>(ev),
+          ec.category().default_error_condition(
+              static_cast<std::underlying_type<aedis::error>::type>(ev))));
+   BOOST_TEST(cat.equivalent(ec,
+      static_cast<std::underlying_type<aedis::error>::type>(ev)));
+}
+
+BOOST_AUTO_TEST_CASE(error)
+{
+   check_error("aedis", aedis::error::resolve_timeout);
+   check_error("aedis", aedis::error::resolve_timeout);
+   check_error("aedis", aedis::error::connect_timeout);
+   check_error("aedis", aedis::error::idle_timeout);
+   check_error("aedis", aedis::error::exec_timeout);
+   check_error("aedis", aedis::error::invalid_data_type);
+   check_error("aedis", aedis::error::not_a_number);
+   check_error("aedis", aedis::error::unexpected_read_size);
+   check_error("aedis", aedis::error::exceeeds_max_nested_depth);
+   check_error("aedis", aedis::error::unexpected_bool_value);
+   check_error("aedis", aedis::error::empty_field);
+   check_error("aedis", aedis::error::expects_resp3_simple_type);
+   check_error("aedis", aedis::error::expects_resp3_aggregate);
+   check_error("aedis", aedis::error::expects_resp3_map);
+   check_error("aedis", aedis::error::expects_resp3_set);
+   check_error("aedis", aedis::error::nested_aggregate_unsupported);
+   check_error("aedis", aedis::error::simple_error);
+   check_error("aedis", aedis::error::blob_error);
+   check_error("aedis", aedis::error::incompatible_size);
+   check_error("aedis", aedis::error::not_a_double);
+   check_error("aedis", aedis::error::null);
+}
+
+std::string get_type_as_str(aedis::resp3::type t)
+{
+   std::ostringstream ss;
+   ss << t;
+   return ss.str();
+}
+
+BOOST_AUTO_TEST_CASE(type)
+{
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::array).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::push).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::set).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::map).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::attribute).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::simple_string).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::simple_error).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::number).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::doublean).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::boolean).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::big_number).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::null).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::blob_error).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::verbatim_string).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::blob_string).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::streamed_string_part).empty());
+   BOOST_TEST(!get_type_as_str(aedis::resp3::type::invalid).empty());
+}

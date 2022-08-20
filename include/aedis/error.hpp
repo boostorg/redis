@@ -25,6 +25,9 @@ enum class error
    /// Idle timeout.
    idle_timeout,
 
+   /// Exec timeout.
+   exec_timeout,
+
    /// Invalid RESP3 type.
    invalid_data_type,
 
