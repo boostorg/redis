@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.3.0</font> &#160; <br> High level Redis client </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.0.0</font> &#160; <br> High level Redis client </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -95,81 +95,79 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="comment">// Include this in no more than one .cpp file.</span></div>
 <div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
 <div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160; </div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">namespace </span>net = boost::asio;</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> aedis::adapt;</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a>;</div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">node_type</a> = <a class="code" href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node&lt;std::string&gt;</a>;</div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">using</span> tcp_socket = net::use_awaitable_t&lt;&gt;::as_default_on_t&lt;net::ip::tcp::socket&gt;;</div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1connection.html">connection</a> = <a class="code" href="classaedis_1_1connection.html">aedis::connection&lt;tcp_socket&gt;</a>;</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160; </div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;<span class="comment">/* This example will subscribe and read pushes indefinitely.</span></div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="comment"> *</span></div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="comment"> * To test send messages with redis-cli</span></div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="comment"> *</span></div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="comment"> *    $ redis-cli -3</span></div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;<span class="comment"> *    127.0.0.1:6379&gt; PUBLISH channel1 some-message</span></div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="comment"> *    (integer) 3</span></div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="comment"> *    127.0.0.1:6379&gt;</span></div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="comment"> *</span></div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;<span class="comment"> * To test reconnection try, for example, to close all clients currently</span></div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;<span class="comment"> * connected to the Redis instance</span></div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="comment"> *</span></div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="comment"> * $ redis-cli</span></div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="comment"> * &gt; CLIENT kill TYPE pubsub</span></div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="comment"> */</span></div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160; </div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;net::awaitable&lt;void&gt; receiver(std::shared_ptr&lt;connection&gt; db)</div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">namespace </span>net = boost::asio;</div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> <a class="code" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">aedis::adapt</a>;</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a>;</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">using</span> <a class="code" href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a>;</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">using</span> tcp_socket = net::use_awaitable_t&lt;&gt;::as_default_on_t&lt;net::ip::tcp::socket&gt;;</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">using</span> <a class="code" href="classaedis_1_1connection.html">connection</a> = <a class="code" href="classaedis_1_1connection.html">aedis::connection&lt;tcp_socket&gt;</a>;</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160; </div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="comment">/* This example will subscribe and read pushes indefinitely.</span></div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;<span class="comment"> *</span></div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="comment"> * To test send messages with redis-cli</span></div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="comment"> *</span></div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="comment"> *    $ redis-cli -3</span></div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="comment"> *    127.0.0.1:6379&gt; PUBLISH channel some-message</span></div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;<span class="comment"> *    (integer) 3</span></div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="comment"> *    127.0.0.1:6379&gt;</span></div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="comment"> *</span></div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="comment"> * To test reconnection try, for example, to close all clients currently</span></div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;<span class="comment"> * connected to the Redis instance</span></div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;<span class="comment"> *</span></div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="comment"> * $ redis-cli</span></div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="comment"> * &gt; CLIENT kill TYPE pubsub</span></div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="comment"> */</span></div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="comment">// Receives pushes.</span></div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;net::awaitable&lt;void&gt; push_receiver(std::shared_ptr&lt;connection&gt; db)</div>
 <div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;{</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   req.<a class="code" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;SUBSCRIBE&quot;</span>, <span class="stringliteral">&quot;channel&quot;</span>);</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;   <span class="keywordflow">for</span> (std::vector&lt;node_type&gt; resp;;) {</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;      <span class="keyword">auto</span> <span class="keyword">const</span> ev = co_await db-&gt;async_receive_event(aedis::adapt(resp));</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160; </div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;      std::cout &lt;&lt; <span class="stringliteral">&quot;Event: &quot;</span> &lt;&lt; aedis::to_string&lt;tcp_socket&gt;(ev) &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;      <span class="keywordflow">switch</span> (ev) {</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;         <span class="keywordflow">case</span> <a class="code" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9a21a361d96e3e13f5f109748c2a9d2434">connection::event::push</a>:</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;         print_push(resp);</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;         resp.clear();</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;         <span class="keywordflow">break</span>;</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; </div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;         <span class="keywordflow">case</span> <a class="code" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9a5d41402abc4b2a76b9719d911017c592">connection::event::hello</a>:</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;         <span class="comment">// Subscribes to the channels when a new connection is</span></div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;         <span class="comment">// stablished.</span></div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;         co_await db-&gt;async_exec(req);</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;         <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;   <span class="keywordflow">for</span> (std::vector&lt;<a class="code" href="structaedis_1_1resp3_1_1node.html">node&lt;std::string&gt;</a>&gt; resp;;) {</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;      co_await db-&gt;async_receive_push(<a class="code" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">adapt</a>(resp));</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;      print_push(resp);</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;      resp.clear();</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   }</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;}</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="comment">// Receives events.</span></div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;net::awaitable&lt;void&gt; event_receiver(std::shared_ptr&lt;connection&gt; db)</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;{</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;   <a class="code" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;   req.<a class="code" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;SUBSCRIBE&quot;</span>, <span class="stringliteral">&quot;channel&quot;</span>);</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;   <span class="keywordflow">for</span> (;;) {</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;      <span class="keyword">auto</span> ev = co_await db-&gt;async_receive_event();</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;      <span class="keywordflow">if</span> (ev == <a class="code" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9a5d41402abc4b2a76b9719d911017c592">connection::event::hello</a>)</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;         co_await db-&gt;async_exec(req);</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;   }</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;}</div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160; </div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;         <span class="keywordflow">default</span>:;</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;      }</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;   }</div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;}</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160; </div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="keywordtype">int</span> main()</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;{</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;   <span class="keywordflow">try</span> {</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;      net::io_context ioc;</div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;      <span class="keyword">auto</span> db = std::make_shared&lt;connection&gt;(ioc);</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160; </div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;      db-&gt;get_config().enable_events = <span class="keyword">true</span>;</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;      db-&gt;get_config().enable_reconnect = <span class="keyword">true</span>;</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;      net::co_spawn(ioc, receiver(db), net::detached);</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;      db-&gt;async_run(net::detached);</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      net::signal_set signals(ioc, SIGINT, SIGTERM);</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;      signals.async_wait([&amp;](<span class="keyword">auto</span>, <span class="keyword">auto</span>){ ioc.stop(); });</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      ioc.run();</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;      std::cerr &lt;&lt; <span class="stringliteral">&quot;Error: &quot;</span> &lt;&lt; e.what() &lt;&lt; std::endl;</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;   }</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;}</div>
-<div class="ttc" id="aclassaedis_1_1connection_html"><div class="ttname"><a href="classaedis_1_1connection.html">aedis::connection</a></div><div class="ttdoc">A high level Redis connection class.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00037">connection.hpp:37</a></div></div>
-<div class="ttc" id="aclassaedis_1_1connection_html_a33c7f3484cebc96ef3050407daded0c9a21a361d96e3e13f5f109748c2a9d2434"><div class="ttname"><a href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9a21a361d96e3e13f5f109748c2a9d2434">aedis::connection::event::push</a></div><div class="ttdeci">@ push</div><div class="ttdoc">A push event has been received.</div></div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="keywordtype">int</span> main()</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;{</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;   <span class="keywordflow">try</span> {</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;      net::io_context ioc;</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;      <span class="keyword">auto</span> db = std::make_shared&lt;connection&gt;(ioc);</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160; </div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;      db-&gt;get_config().enable_events = <span class="keyword">true</span>;</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;      db-&gt;get_config().enable_reconnect = <span class="keyword">true</span>;</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;      net::co_spawn(ioc, push_receiver(db), net::detached);</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;      net::co_spawn(ioc, event_receiver(db), net::detached);</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;      db-&gt;async_run(net::detached);</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;      net::signal_set signals(ioc, SIGINT, SIGTERM);</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;      signals.async_wait([&amp;](<span class="keyword">auto</span>, <span class="keyword">auto</span>){ ioc.stop(); });</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      ioc.run();</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      std::cerr &lt;&lt; <span class="stringliteral">&quot;Error: &quot;</span> &lt;&lt; e.what() &lt;&lt; std::endl;</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;   }</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;}</div>
+<div class="ttc" id="aclassaedis_1_1connection_html"><div class="ttname"><a href="classaedis_1_1connection.html">aedis::connection</a></div><div class="ttdoc">A high level connection to Redis.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00045">connection.hpp:45</a></div></div>
 <div class="ttc" id="aclassaedis_1_1connection_html_a33c7f3484cebc96ef3050407daded0c9a5d41402abc4b2a76b9719d911017c592"><div class="ttname"><a href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9a5d41402abc4b2a76b9719d911017c592">aedis::connection::event::hello</a></div><div class="ttdeci">@ hello</div><div class="ttdoc">Success sending AUTH and HELLO.</div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00048">request.hpp:48</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_ae9cfe90ea55427d5345846f80b70be1b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request::push</a></div><div class="ttdeci">void push(boost::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00079">request.hpp:79</a></div></div>
-<div class="ttc" id="agroup__any_html_structaedis_1_1resp3_1_1node"><div class="ttname"><a href="group__any.html#structaedis_1_1resp3_1_1node">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00028">node.hpp:28</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00172">request.hpp:172</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_ae9cfe90ea55427d5345846f80b70be1b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request::push</a></div><div class="ttdeci">void push(boost::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00203">request.hpp:203</a></div></div>
+<div class="ttc" id="agroup__any_html_ga80578c88398587d09fecc7c38fbf42ad"><div class="ttname"><a href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">aedis::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates an adapter that ignores responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00140">adapt.hpp:140</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00028">node.hpp:28</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

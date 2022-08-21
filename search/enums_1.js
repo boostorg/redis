@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['type_123',['type',['../group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57',1,'aedis::resp3']]]
+  ['operation_134',['operation',['../classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33',1,'aedis::connection']]]
 ];

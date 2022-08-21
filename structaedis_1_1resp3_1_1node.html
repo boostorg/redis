@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.2.1</font> &#160; <br> High level Redis client </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.0.0</font> &#160; <br> High level Redis client </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -76,9 +76,10 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="header">
   <div class="summary">
 <a href="#pub-attribs">Public Attributes</a> &#124;
+<a href="#related">Related Functions</a> &#124;
 <a href="structaedis_1_1resp3_1_1node-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">aedis::resp3::node&lt; String &gt; Struct Template Reference</div>  </div>
+<div class="title">aedis::resp3::node&lt; String &gt; Struct Template Reference<div class="ingroups"><a class="el" href="group__any.html">Reference</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -94,7 +95,7 @@ std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memdesc:a49cc8e665a20c071d7355c230f1268ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">The number of elements of an aggregate. <br /></td></tr>
 <tr class="separator:a49cc8e665a20c071d7355c230f1268ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aae147962496e8ab3f52b2d8575307a5a"><td class="memItemLeft" align="right" valign="top"><a id="aae147962496e8ab3f52b2d8575307a5a"></a>
-resp3::type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structaedis_1_1resp3_1_1node.html#aae147962496e8ab3f52b2d8575307a5a">data_type</a></td></tr>
+<a class="el" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">resp3::type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structaedis_1_1resp3_1_1node.html#aae147962496e8ab3f52b2d8575307a5a">data_type</a></td></tr>
 <tr class="memdesc:aae147962496e8ab3f52b2d8575307a5a"><td class="mdescLeft">&#160;</td><td class="mdescRight">The RESP3 type of the data in this node. <br /></td></tr>
 <tr class="separator:aae147962496e8ab3f52b2d8575307a5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a829e2bf6551568a60406fad87e44804d"><td class="memItemLeft" align="right" valign="top"><a id="a829e2bf6551568a60406fad87e44804d"></a>
@@ -105,6 +106,23 @@ std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">value</a></td></tr>
 <tr class="memdesc:a923b33182800f271bad3155a36231da3"><td class="mdescLeft">&#160;</td><td class="mdescRight">The actual data. For aggregate types this is usually empty. <br /></td></tr>
 <tr class="separator:a923b33182800f271bad3155a36231da3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="related"></a>
+Related Functions</h2></td></tr>
+<tr><td class="ititle" colspan="2"><p>(Note that these are not member functions.) </p>
+</td></tr>
+<tr class="memitem:a4187c3af2932cda83c95510e6f0af3bc"><td class="memTemplParams" colspan="2">template&lt;class String &gt; </td></tr>
+<tr class="memitem:a4187c3af2932cda83c95510e6f0af3bc"><td class="memTemplItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="structaedis_1_1resp3_1_1node.html#a4187c3af2932cda83c95510e6f0af3bc">operator&lt;&lt;</a> (std::ostream &amp;os, <a class="el" href="structaedis_1_1resp3_1_1node.html">node</a>&lt; String &gt; const &amp;<a class="el" href="structaedis_1_1resp3_1_1node.html">node</a>)</td></tr>
+<tr class="memdesc:a4187c3af2932cda83c95510e6f0af3bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the node string to the stream.  <a href="structaedis_1_1resp3_1_1node.html#a4187c3af2932cda83c95510e6f0af3bc">More...</a><br /></td></tr>
+<tr class="separator:a4187c3af2932cda83c95510e6f0af3bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0c783bcf5f6f4643e128c5e393581991"><td class="memTemplParams" colspan="2">template&lt;class String &gt; </td></tr>
+<tr class="memitem:a0c783bcf5f6f4643e128c5e393581991"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="structaedis_1_1resp3_1_1node.html#a0c783bcf5f6f4643e128c5e393581991">operator==</a> (<a class="el" href="structaedis_1_1resp3_1_1node.html">node</a>&lt; String &gt; const &amp;a, <a class="el" href="structaedis_1_1resp3_1_1node.html">node</a>&lt; String &gt; const &amp;b)</td></tr>
+<tr class="memdesc:a0c783bcf5f6f4643e128c5e393581991"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compares a node for equality.  <a href="structaedis_1_1resp3_1_1node.html#a0c783bcf5f6f4643e128c5e393581991">More...</a><br /></td></tr>
+<tr class="separator:a0c783bcf5f6f4643e128c5e393581991"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7a5ba4afc65cffbcf1e82c927d0790d"><td class="memTemplParams" colspan="2">template&lt;class String &gt; </td></tr>
+<tr class="memitem:af7a5ba4afc65cffbcf1e82c927d0790d"><td class="memTemplItemLeft" align="right" valign="top">std::string&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="structaedis_1_1resp3_1_1node.html#af7a5ba4afc65cffbcf1e82c927d0790d">to_string</a> (<a class="el" href="structaedis_1_1resp3_1_1node.html">node</a>&lt; String &gt; const &amp;in)</td></tr>
+<tr class="memdesc:af7a5ba4afc65cffbcf1e82c927d0790d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the node to a string.  <a href="structaedis_1_1resp3_1_1node.html#af7a5ba4afc65cffbcf1e82c927d0790d">More...</a><br /></td></tr>
+<tr class="separator:af7a5ba4afc65cffbcf1e82c927d0790d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;class String&gt;<br />
@@ -115,84 +133,141 @@ struct aedis::resp3::node&lt; String &gt;</h3>
 <dl class="section remark"><dt>Remarks</dt><dd>Any Redis response can be received in an array of nodes, for example <code>std::vector&lt;node&lt;std::string&gt;&gt;</code>. </dd></dl>
 
 <p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00028">28</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
-</div><h2 class="groupheader">Member Data Documentation</h2>
-<a id="a49cc8e665a20c071d7355c230f1268ac"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a49cc8e665a20c071d7355c230f1268ac">&#9670;&nbsp;</a></span>aggregate_size</h2>
+</div><h2 class="groupheader">Friends And Related Function Documentation</h2>
+<a id="a4187c3af2932cda83c95510e6f0af3bc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4187c3af2932cda83c95510e6f0af3bc">&#9670;&nbsp;</a></span>operator&lt;&lt;()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;class String &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::size_t <a class="el" href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a>&lt; String &gt;::aggregate_size</td>
+          <td class="memname">std::ostream &amp; operator&lt;&lt; </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structaedis_1_1resp3_1_1node.html">node</a>&lt; String &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>node</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
-<p>The number of elements of an aggregate. </p>
+<p>Writes the node string to the stream. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">os</td><td>Output stream. </td></tr>
+    <tr><td class="paramname">node</td><td>Node object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section remark"><dt>Remarks</dt><dd>Binary data is not converted to text. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00033">33</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00087">87</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 
 </div>
 </div>
-<a id="aae147962496e8ab3f52b2d8575307a5a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aae147962496e8ab3f52b2d8575307a5a">&#9670;&nbsp;</a></span>data_type</h2>
+<a id="a0c783bcf5f6f4643e128c5e393581991"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0c783bcf5f6f4643e128c5e393581991">&#9670;&nbsp;</a></span>operator==()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;class String &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">resp3::type <a class="el" href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a>&lt; String &gt;::data_type</td>
+          <td class="memname">bool operator== </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structaedis_1_1resp3_1_1node.html">node</a>&lt; String &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>a</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structaedis_1_1resp3_1_1node.html">node</a>&lt; String &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>b</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
-<p>The RESP3 type of the data in this node. </p>
+<p>Compares a node for equality. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">a</td><td>Left hand side node object. </td></tr>
+    <tr><td class="paramname">b</td><td>Right hand side node object. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00030">30</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00070">70</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a829e2bf6551568a60406fad87e44804d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a829e2bf6551568a60406fad87e44804d">&#9670;&nbsp;</a></span>depth</h2>
+<a id="af7a5ba4afc65cffbcf1e82c927d0790d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af7a5ba4afc65cffbcf1e82c927d0790d">&#9670;&nbsp;</a></span>to_string()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;class String &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::size_t <a class="el" href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a>&lt; String &gt;::depth</td>
+          <td class="memname">std::string to_string </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structaedis_1_1resp3_1_1node.html">node</a>&lt; String &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>in</em></td><td>)</td>
+          <td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
-<p>The depth of this node in the response tree. </p>
+<p>Converts the node to a string. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">in</td><td>The node object. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00036">36</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a923b33182800f271bad3155a36231da3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a923b33182800f271bad3155a36231da3">&#9670;&nbsp;</a></span>value</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class String &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">String <a class="el" href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a>&lt; String &gt;::value</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>The actual data. For aggregate types this is usually empty. </p>
-
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00039">39</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00048">48</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 
 </div>
 </div>

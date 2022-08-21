@@ -103,7 +103,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> Request&gt;</div>
 <div class="line"><a name="l00043"></a><span class="lineno"><a class="line" href="group__any.html#ga4e21de126538a37995f90914afd51447">   43</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="group__any.html#ga4e21de126538a37995f90914afd51447">to_bulk</a>(Request&amp; to, boost::string_view data)</div>
 <div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;{</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> str = <a class="code" href="group__any.html#ga1fd47bfcbb0461e09ec55ea767454ce5">std::to_string</a>(data.size());</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> str = <a class="code" href="group__any.html#gae50b66df4a64aef687a28d38d6c15992">std::to_string</a>(data.size());</div>
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;   to += to_code(<a class="code" href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a25d949a9cf13c0b450d0e51e1d024b36">type::blob_string</a>);</div>
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;   to.append(std::cbegin(str), std::cend(str));</div>
@@ -115,7 +115,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;template &lt;class Request, class T, typename = typename std::enable_if&lt;std::is_integral&lt;T&gt;::value&gt;<a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">::type</a>&gt;</div>
 <div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="keywordtype">void</span> <a class="code" href="group__any.html#ga4e21de126538a37995f90914afd51447">to_bulk</a>(Request&amp; to, T n)</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;{</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> s = <a class="code" href="group__any.html#ga1fd47bfcbb0461e09ec55ea767454ce5">std::to_string</a>(n);</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> s = <a class="code" href="group__any.html#gae50b66df4a64aef687a28d38d6c15992">std::to_string</a>(n);</div>
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;   <a class="code" href="group__any.html#ga4e21de126538a37995f90914afd51447">to_bulk</a>(to, boost::string_view{s});</div>
 <div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;}</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
@@ -164,7 +164,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> Request&gt;</div>
 <div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;<span class="keywordtype">void</span> add_header(Request&amp; to, <a class="code" href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> t, std::size_t size)</div>
 <div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;{</div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> str = <a class="code" href="group__any.html#ga1fd47bfcbb0461e09ec55ea767454ce5">std::to_string</a>(size);</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;   <span class="keyword">auto</span> <span class="keyword">const</span> str = <a class="code" href="group__any.html#gae50b66df4a64aef687a28d38d6c15992">std::to_string</a>(size);</div>
 <div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160; </div>
 <div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;   to += to_code(t);</div>
 <div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;   to.append(std::cbegin(str), std::cend(str));</div>
@@ -211,9 +211,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;} <span class="comment">// aedis</span></div>
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160; </div>
 <div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_RESP3_COMPOSE_HPP</span></div>
-<div class="ttc" id="agroup__any_html_ga1fd47bfcbb0461e09ec55ea767454ce5"><div class="ttname"><a href="group__any.html#ga1fd47bfcbb0461e09ec55ea767454ce5">aedis::resp3::to_string</a></div><div class="ttdeci">std::string to_string(node&lt; String &gt; const &amp;in)</div><div class="ttdoc">Converts the node to a string.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00048">node.hpp:48</a></div></div>
 <div class="ttc" id="agroup__any_html_ga4e21de126538a37995f90914afd51447"><div class="ttname"><a href="group__any.html#ga4e21de126538a37995f90914afd51447">aedis::resp3::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, boost::string_view data)</div><div class="ttdoc">Adds a bulk to the request.</div><div class="ttdef"><b>Definition:</b> <a href="compose_8hpp_source.html#l00043">compose.hpp:43</a></div></div>
 <div class="ttc" id="agroup__any_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__any.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 data types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00022">type.hpp:23</a></div></div>
+<div class="ttc" id="agroup__any_html_gae50b66df4a64aef687a28d38d6c15992"><div class="ttname"><a href="group__any.html#gae50b66df4a64aef687a28d38d6c15992">aedis::resp3::to_string</a></div><div class="ttdeci">char const  * to_string(type t)</div><div class="ttdoc">Converts the data type to a string.</div></div>
 <div class="ttc" id="agroup__any_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a25d949a9cf13c0b450d0e51e1d024b36"><div class="ttname"><a href="group__any.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a25d949a9cf13c0b450d0e51e1d024b36">aedis::resp3::type::blob_string</a></div><div class="ttdeci">@ blob_string</div><div class="ttdoc">Simple.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->

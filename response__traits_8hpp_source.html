@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.3.0</font> &#160; <br> High level Redis client </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.0.0</font> &#160; <br> High level Redis client </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -102,7 +102,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">namespace </span>adapter {</div>
 <div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">namespace </span>detail {</div>
 <div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160; </div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keyword">struct </span>ignore {};</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keyword">struct </span><a class="code" href="group__any.html#ga0d619e51ab37f7854e7218a061900820">ignore</a> {};</div>
 <div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160; </div>
 <div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="comment">/* Traits class for response objects.</span></div>
 <div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="comment"> *</span></div>
@@ -112,44 +112,44 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> ResponseType&gt;</div>
 <div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="keyword">struct </span>response_traits {</div>
 <div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;   <span class="keyword">using</span> adapter_type = adapter::detail::wrapper&lt;ResponseType&gt;;</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> adapt(ResponseType&amp; r) noexcept { <span class="keywordflow">return</span> adapter_type{&amp;r}; }</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">adapt</a>(ResponseType&amp; r) noexcept { <span class="keywordflow">return</span> adapter_type{&amp;r}; }</div>
 <div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;};</div>
 <div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160; </div>
 <div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
 <div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="keyword">using</span> adapter_t = <span class="keyword">typename</span> response_traits&lt;T&gt;::adapter_type;</div>
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
 <div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="keyword">struct </span>response_traits&lt;ignore&gt; {</div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;   <span class="keyword">using</span> response_type = ignore;</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="keyword">struct </span>response_traits&lt;<a class="code" href="group__any.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>&gt; {</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;   <span class="keyword">using</span> response_type = <a class="code" href="group__any.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>;</div>
 <div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;   <span class="keyword">using</span> adapter_type = resp3::detail::ignore_response;</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> adapt(response_type&amp;) noexcept { <span class="keywordflow">return</span> adapter_type{}; }</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">adapt</a>(response_type&amp;) noexcept { <span class="keywordflow">return</span> adapter_type{}; }</div>
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;};</div>
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="keyword">struct </span>response_traits&lt;resp3::node&lt;T&gt;&gt; {</div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;   <span class="keyword">using</span> response_type = resp3::node&lt;T&gt;;</div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;   <span class="keyword">using</span> adapter_type = adapter::detail::general_simple&lt;response_type&gt;;</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> adapt(response_type&amp; v) noexcept { <span class="keywordflow">return</span> adapter_type{&amp;v}; }</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">adapt</a>(response_type&amp; v) noexcept { <span class="keywordflow">return</span> adapter_type{&amp;v}; }</div>
 <div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;};</div>
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
 <div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> String, <span class="keyword">class</span> Allocator&gt;</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="keyword">struct </span>response_traits&lt;std::vector&lt;resp3::node&lt;String&gt;, Allocator&gt;&gt; {</div>
 <div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;   <span class="keyword">using</span> response_type = std::vector&lt;resp3::node&lt;String&gt;, Allocator&gt;;</div>
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;   <span class="keyword">using</span> adapter_type = adapter::detail::general_aggregate&lt;response_type&gt;;</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> adapt(response_type&amp; v) noexcept { <span class="keywordflow">return</span> adapter_type{&amp;v}; }</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">adapt</a>(response_type&amp; v) noexcept { <span class="keywordflow">return</span> adapter_type{&amp;v}; }</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;};</div>
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
 <div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="keyword">template</span> &lt;&gt;</div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="keyword">struct </span>response_traits&lt;void&gt; {</div>
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;   <span class="keyword">using</span> response_type = void;</div>
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;   <span class="keyword">using</span> adapter_type = resp3::detail::ignore_response;</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> adapt() noexcept { <span class="keywordflow">return</span> adapter_type{}; }</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">adapt</a>() noexcept { <span class="keywordflow">return</span> adapter_type{}; }</div>
 <div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;};</div>
 <div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160; </div>
 <div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="comment">// Duplicated here to avoid circular include dependency.</span></div>
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;<span class="keyword">template</span>&lt;<span class="keyword">class</span> T&gt;</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;<span class="keyword">auto</span> internal_adapt(T&amp; t) noexcept</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;   { <span class="keywordflow">return</span> response_traits&lt;T&gt;::adapt(t); }</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;   { <span class="keywordflow">return</span> <a class="code" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">response_traits&lt;T&gt;::adapt</a>(t); }</div>
 <div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160; </div>
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> N&gt;</div>
 <div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="keyword">struct </span>assigner {</div>
@@ -231,7 +231,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;{</div>
 <div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;   <span class="keyword">using</span> response_type = std::tuple&lt;Ts...&gt;;</div>
 <div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;   <span class="keyword">using</span> adapter_type = static_aggregate_adapter&lt;response_type&gt;;</div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> adapt(response_type&amp; r) noexcept { <span class="keywordflow">return</span> adapter_type{&amp;r}; }</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">adapt</a>(response_type&amp; r) noexcept { <span class="keywordflow">return</span> adapter_type{&amp;r}; }</div>
 <div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;};</div>
 <div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160; </div>
 <div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;} <span class="comment">// detail</span></div>
@@ -239,6 +239,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;} <span class="comment">// aedis</span></div>
 <div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160; </div>
 <div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;<span class="preprocessor">#endif </span><span class="comment">// AEDIS_ADAPTER_RESPONSE_TRAITS_HPP</span></div>
+<div class="ttc" id="agroup__any_html_ga0d619e51ab37f7854e7218a061900820"><div class="ttname"><a href="group__any.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a></div><div class="ttdeci">adapter::detail::ignore ignore</div><div class="ttdoc">Tag used to ignore responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00035">adapt.hpp:35</a></div></div>
+<div class="ttc" id="agroup__any_html_ga80578c88398587d09fecc7c38fbf42ad"><div class="ttname"><a href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad">aedis::adapt</a></div><div class="ttdeci">auto adapt() noexcept</div><div class="ttdoc">Creates an adapter that ignores responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00140">adapt.hpp:140</a></div></div>
 <div class="ttc" id="agroup__any_html_gga1833aa5e140bbaa9d319ecb1a71bd8baa18a0cd8e67dab1a91bce2ee6ce1671c9"><div class="ttname"><a href="group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa18a0cd8e67dab1a91bce2ee6ce1671c9">aedis::error::incompatible_size</a></div><div class="ttdeci">@ incompatible_size</div><div class="ttdoc">Aggregate container has incompatible size.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->

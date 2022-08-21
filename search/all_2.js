@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['cancel_5fevent_5freceiver_10',['cancel_event_receiver',['../classaedis_1_1connection.html#a3b38205c415351f1c9ad6aecd92c3c51',1,'aedis::connection']]],
-  ['cancel_5fexecs_11',['cancel_execs',['../classaedis_1_1connection.html#a4b355c08b30302fa412a2652beecb7ea',1,'aedis::connection']]],
-  ['cancel_5frun_12',['cancel_run',['../classaedis_1_1connection.html#a4648af326b50230346f2be826ef2154b',1,'aedis::connection']]],
+  ['cancel_12',['cancel',['../classaedis_1_1connection.html#a4138bf6b0291a57213f919efb4cd53c4',1,'aedis::connection']]],
   ['changelog_13',['Changelog',['../md_CHANGELOG.html',1,'']]],
   ['clear_14',['clear',['../classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1',1,'aedis::resp3::request']]],
   ['coalesce_5frequests_15',['coalesce_requests',['../classaedis_1_1connection.html#a0a3d595109fa506322248ab904902256',1,'aedis::connection::config']]],

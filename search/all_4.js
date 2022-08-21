@@ -6,10 +6,11 @@ var searchData=
   ['error_27',['error',['../group__any.html#ga1833aa5e140bbaa9d319ecb1a71bd8ba',1,'aedis']]],
   ['event_28',['event',['../classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9',1,'aedis::connection']]],
   ['exceeeds_5fmax_5fnested_5fdepth_29',['exceeeds_max_nested_depth',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baaebbb4163ab76bebc60dfcd634f368dc2',1,'aedis']]],
-  ['exec_30',['exec',['../group__any.html#gae67e66eea857a5457d7a0e2c0bc832dd',1,'aedis::experimental::exec(Connection &amp;conn, resp3::request const &amp;req, ResponseAdapter adapter, boost::system::error_code &amp;ec)'],['../group__any.html#ga9ad4c13154f198cc6bdf4b33ec244827',1,'aedis::experimental::exec(Connection &amp;conn, resp3::request const &amp;req, ResponseAdapter adapter=aedis::adapt())']]],
-  ['executor_5ftype_31',['executor_type',['../classaedis_1_1connection.html#abb0fd720745590669c556dcea25bc3f4',1,'aedis::connection']]],
-  ['expects_5faggregate_5ftype_32',['expects_aggregate_type',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa6a88f24ae0edc528aef4e5effa5811a1',1,'aedis']]],
-  ['expects_5fmap_5ftype_33',['expects_map_type',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa14280a589b7a5aae04aa336c6cd0c0f0',1,'aedis']]],
-  ['expects_5fset_5ftype_34',['expects_set_type',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa7096c898a4d6be5f66ca9b496ab794d8',1,'aedis']]],
-  ['expects_5fsimple_5ftype_35',['expects_simple_type',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa3059263deaffd09ba4c0577fa6434741',1,'aedis']]]
+  ['exec_30',['exec',['../classaedis_1_1sync.html#a8cdf8cd487ff9ff7832e65badf02e45f',1,'aedis::sync::exec(resp3::request const &amp;req, ResponseAdapter adapter, boost::system::error_code &amp;ec)'],['../classaedis_1_1sync.html#a3dbd44de6181c2159fe12b5035c92e2f',1,'aedis::sync::exec(resp3::request const &amp;req, ResponseAdapter adapter=aedis::adapt())'],['../classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33a52fb3679b07eb74d90784e612ca5cb30',1,'aedis::connection::exec()']]],
+  ['exec_5ftimeout_31',['exec_timeout',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baad6d3a349f3028c34531329e0ed11a749',1,'aedis']]],
+  ['executor_5ftype_32',['executor_type',['../classaedis_1_1connection.html#abb0fd720745590669c556dcea25bc3f4',1,'aedis::connection']]],
+  ['expects_5fresp3_5faggregate_33',['expects_resp3_aggregate',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baaf6ef09d9c15fd5606043cc521b2cc2f9',1,'aedis']]],
+  ['expects_5fresp3_5fmap_34',['expects_resp3_map',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa72e3e2fe3ca6e95e4d69e7b18b3f03e6',1,'aedis']]],
+  ['expects_5fresp3_5fset_35',['expects_resp3_set',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa0ee50d3b384cbc519d91139f2607bcf5',1,'aedis']]],
+  ['expects_5fresp3_5fsimple_5ftype_36',['expects_resp3_simple_type',['../group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baafd50a36adbb1f799475be2bbe089b96a',1,'aedis']]]
 ];

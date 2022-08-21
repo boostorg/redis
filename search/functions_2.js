@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['exec_92',['exec',['../group__any.html#gae67e66eea857a5457d7a0e2c0bc832dd',1,'aedis::experimental::exec(Connection &amp;conn, resp3::request const &amp;req, ResponseAdapter adapter, boost::system::error_code &amp;ec)'],['../group__any.html#ga9ad4c13154f198cc6bdf4b33ec244827',1,'aedis::experimental::exec(Connection &amp;conn, resp3::request const &amp;req, ResponseAdapter adapter=aedis::adapt())']]]
+  ['exec_99',['exec',['../classaedis_1_1sync.html#a8cdf8cd487ff9ff7832e65badf02e45f',1,'aedis::sync::exec(resp3::request const &amp;req, ResponseAdapter adapter, boost::system::error_code &amp;ec)'],['../classaedis_1_1sync.html#a3dbd44de6181c2159fe12b5035c92e2f',1,'aedis::sync::exec(resp3::request const &amp;req, ResponseAdapter adapter=aedis::adapt())']]]
 ];

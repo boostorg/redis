@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['operator_3c_3c_53',['operator&lt;&lt;',['../group__any.html#ga865282fa02d083903d85bc12d2bc4576',1,'aedis::resp3::operator&lt;&lt;(std::ostream &amp;os, node&lt; String &gt; const &amp;node)'],['../group__any.html#ga7523b40e1fb77407423c0a9cc3e08416',1,'aedis::resp3::operator&lt;&lt;(std::ostream &amp;os, type t)']]],
-  ['operator_3d_3d_54',['operator==',['../group__any.html#gaa8165b0c24fa10ed086b4ec8912cdd6b',1,'aedis::resp3']]]
+  ['operation_55',['operation',['../classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33',1,'aedis::connection']]],
+  ['operator_3c_3c_56',['operator&lt;&lt;',['../classaedis_1_1connection.html#a6559cf2efab794e539cd954349688361',1,'aedis::connection::operator&lt;&lt;()'],['../structaedis_1_1resp3_1_1node.html#a4187c3af2932cda83c95510e6f0af3bc',1,'aedis::resp3::node::operator&lt;&lt;()'],['../group__any.html#ga7523b40e1fb77407423c0a9cc3e08416',1,'aedis::resp3::operator&lt;&lt;()']]],
+  ['operator_3d_3d_57',['operator==',['../structaedis_1_1resp3_1_1node.html#a0c783bcf5f6f4643e128c5e393581991',1,'aedis::resp3::node']]]
 ];

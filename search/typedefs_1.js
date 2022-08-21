@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['next_5flayer_5ftype_120',['next_layer_type',['../classaedis_1_1connection.html#a48a16cbb9609d1ca5ceb0de0c9bd4a2f',1,'aedis::connection']]]
+  ['ignore_130',['ignore',['../group__any.html#ga0d619e51ab37f7854e7218a061900820',1,'aedis']]]
 ];

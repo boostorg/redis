@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.3.0</font> &#160; <br> High level Redis client </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.0.0</font> &#160; <br> High level Redis client </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -74,12 +74,23 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="title">Changelog </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h1><a class="anchor" id="autotoc_md8"></a>
+<div class="textblock"><h1><a class="anchor" id="autotoc_md7"></a>
+v1.0.0</h1>
+<ul>
+<li>Adds experimental cmake support for windows users.</li>
+<li>Adds new class <code><a class="el" href="classaedis_1_1sync.html" title="A high level synchronous connection to Redis.">aedis::sync</a></code> that wraps an <code><a class="el" href="classaedis_1_1connection.html" title="A high level connection to Redis.">aedis::connection</a></code> in a thread-safe and synchronous API. All free functions from the <code><a class="el" href="sync_8hpp_source.html">sync.hpp</a></code> are now member functions of <code><a class="el" href="classaedis_1_1sync.html" title="A high level synchronous connection to Redis.">aedis::sync</a></code>.</li>
+<li>Split <code><a class="el" href="classaedis_1_1connection.html#a42dce52942ebc5077f8b020189c71eed" title="Receives internal events.">aedis::connection::async_receive_event</a></code> in two functions, one to receive events and another for server side pushes, see <code><a class="el" href="classaedis_1_1connection.html#a64109cde6ce5eb31aa36ff85cc43ce95" title="Receives server side pushes asynchronously.">aedis::connection::async_receive_push</a></code>.</li>
+<li>Removes collision between <code>aedis::adapter::adapt</code> and <code>aedis::adapt</code>.</li>
+<li>Adds <code><a class="el" href="classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33" title="Async operations exposed by this class.">connection::operation</a></code> enum to replace <code>cancel_*</code> member functions with a single cancel function that gets the operations that should be cancelled as argument.</li>
+<li>Bugfix: a bug on reconnect from a state where the <code>connection</code> object had unsent commands. It could cause <code>async_exec</code> to never complete under certain conditions.</li>
+<li>Bugfix: Documentation of <code><a class="el" href="group__any.html#ga80578c88398587d09fecc7c38fbf42ad" title="Creates an adapter that ignores responses.">adapt()</a></code> functions were missing from doxygen.</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md8"></a>
 v0.3.0</h1>
 <ul>
 <li>Adds <code>experimental::exec</code> and <code>receive_event</code> functions to offer a thread safe and synchronous way of executing requests across threads. See <code><a class="el" href="intro__sync_8cpp_source.html">intro_sync.cpp</a></code> and <code><a class="el" href="subscriber__sync_8cpp_source.html">subscriber_sync.cpp</a></code> for examples.</li>
 <li><code>connection::async_read_push</code> was renamed to <code>async_receive_event</code>.</li>
-<li><code><a class="el" href="classaedis_1_1connection.html#a4cdbdfe464fe8802774064a4a8e62943" title="Receives unsolicited events asynchronously.">connection::async_receive_event</a></code> is now being used to communicate internal events to the user, such as resolve, connect, push etc. For examples see <a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a> and <code><a class="el" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9" title="Events communicated through async_receive_event.">connection::event</a></code>.</li>
+<li><code><a class="el" href="classaedis_1_1connection.html#a42dce52942ebc5077f8b020189c71eed" title="Receives internal events.">connection::async_receive_event</a></code> is now being used to communicate internal events to the user, such as resolve, connect, push etc. For examples see <a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a> and <code><a class="el" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9" title="Events that are communicated by connection::async_receive_event.">connection::event</a></code>.</li>
 <li>The <code>aedis</code> directory has been moved to <code>include</code> to look more similar to Boost libraries. Users should now replace <code>-I/aedis-path</code> with <code>-I/aedis-path/include</code> in the compiler flags.</li>
 <li>The <code>AUTH</code> and <code>HELLO</code> commands are now sent automatically. This change was necessary to implement reconnection. The username and password used in <code>AUTH</code> should be provided by the user on <code>connection::config</code>.</li>
 <li>Adds support for reconnection. See <code>connection::enable_reconnect</code>.</li>

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.3.0</font> &#160; <br> High level Redis client </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.0.0</font> &#160; <br> High level Redis client </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -76,6 +76,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <div class="header">
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#related">Related Functions</a> &#124;
 <a href="classaedis_1_1resp3_1_1request-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">aedis::resp3::request Class Reference<div class="ingroups"><a class="el" href="group__any.html">Reference</a></div></div>  </div>
@@ -113,6 +114,15 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="memitem:a29c7c13a796f72f7599f8ba45bba498b"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">push_range2</a> (boost::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end)</td></tr>
 <tr class="memdesc:a29c7c13a796f72f7599f8ba45bba498b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">More...</a><br /></td></tr>
 <tr class="separator:a29c7c13a796f72f7599f8ba45bba498b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="related"></a>
+Related Functions</h2></td></tr>
+<tr><td class="ititle" colspan="2"><p>(Note that these are not member functions.) </p>
+</td></tr>
+<tr class="memitem:a30ed6048af1b522f52d7e0e53eac4332"><td class="memTemplParams" colspan="2">template&lt;class Request &gt; </td></tr>
+<tr class="memitem:a30ed6048af1b522f52d7e0e53eac4332"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">to_bulk</a> (Request &amp;to, boost::string_view data)</td></tr>
+<tr class="memdesc:a30ed6048af1b522f52d7e0e53eac4332"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a bulk to the request.  <a href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">More...</a><br /></td></tr>
+<tr class="separator:a30ed6048af1b522f52d7e0e53eac4332"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Creates Redis requests. </p>
@@ -126,7 +136,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <div class="line">co_await async_write(socket, buffer(r));</div>
 </div><!-- fragment --><dl class="section remark"><dt>Remarks</dt><dd>Non-string types will be converted to string by using <code>to_bulk</code>, which must be made available over ADL. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00048">48</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00172">172</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="ae9cfe90ea55427d5345846f80b70be1b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae9cfe90ea55427d5345846f80b70be1b">&#9670;&nbsp;</a></span>push()</h2>
@@ -177,7 +187,7 @@ template&lt;class... Ts&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00079">79</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00203">203</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -234,7 +244,7 @@ template&lt;class Key , class Range &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00184">184</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00308">308</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -284,7 +294,7 @@ template&lt;class Range &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00199">199</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00323">323</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -346,7 +356,7 @@ template&lt;class ForwardIterator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00155">155</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00279">279</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -419,7 +429,65 @@ template&lt;class Key , class ForwardIterator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00116">116</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00240">240</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Friends And Related Function Documentation</h2>
+<a id="a30ed6048af1b522f52d7e0e53eac4332"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a30ed6048af1b522f52d7e0e53eac4332">&#9670;&nbsp;</a></span>to_bulk()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Request &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void to_bulk </td>
+          <td>(</td>
+          <td class="paramtype">Request &amp;&#160;</td>
+          <td class="paramname"><em>to</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boost::string_view&#160;</td>
+          <td class="paramname"><em>data</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Adds a bulk to the request. </p>
+<p>This function is useful in serialization of your own data structures in a request. For example</p>
+<div class="fragment"><div class="line"><span class="keywordtype">void</span> <a class="code" href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">to_bulk</a>(std::string&amp; to, mystruct <span class="keyword">const</span>&amp; obj)</div>
+<div class="line">{</div>
+<div class="line">   <span class="keyword">auto</span> <span class="keyword">const</span> str = <span class="comment">// Convert obj to a string.</span></div>
+<div class="line">   resp3::to_bulk(to, str);</div>
+<div class="line">}</div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a30ed6048af1b522f52d7e0e53eac4332"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">aedis::resp3::request::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, boost::string_view data)</div><div class="ttdoc">Adds a bulk to the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00049">request.hpp:49</a></div></div>
+</div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">to</td><td>Storage on which data will be copied into. </td></tr>
+    <tr><td class="paramname">data</td><td>Data that will be serialized and stored in <code>to</code>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>See more in <a class="el" href="index.html#requests-serialization">Serialization</a>. </p>
+
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00049">49</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 0.3.0</font> &#160; <br> High level Redis client </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.0.0</font> &#160; <br> High level Redis client </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -78,13 +78,14 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#related">Related Functions</a> &#124;
 <a href="classaedis_1_1connection-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">aedis::connection&lt; AsyncReadWriteStream &gt; Class Template Reference<div class="ingroups"><a class="el" href="group__any.html">Reference</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>A high level Redis connection class.  
+<p>A high level connection to Redis.  
  <a href="classaedis_1_1connection.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="connection_8hpp_source.html">include/aedis/connection.hpp</a>&gt;</code></p>
@@ -98,7 +99,7 @@ Classes</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a33c7f3484cebc96ef3050407daded0c9"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9">event</a> </td></tr>
-<tr class="memdesc:a33c7f3484cebc96ef3050407daded0c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Events communicated through <code>async_receive_event</code>.  <a href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9">More...</a><br /></td></tr>
+<tr class="memdesc:a33c7f3484cebc96ef3050407daded0c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Events that are communicated by <code><a class="el" href="classaedis_1_1connection.html#a42dce52942ebc5077f8b020189c71eed" title="Receives internal events.">connection::async_receive_event</a></code>.  <a href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9">More...</a><br /></td></tr>
 <tr class="separator:a33c7f3484cebc96ef3050407daded0c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb0fd720745590669c556dcea25bc3f4"><td class="memItemLeft" align="right" valign="top"><a id="abb0fd720745590669c556dcea25bc3f4"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#abb0fd720745590669c556dcea25bc3f4">executor_type</a> = typename AsyncReadWriteStream::executor_type</td></tr>
@@ -108,41 +109,21 @@ using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cla
 using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a48a16cbb9609d1ca5ceb0de0c9bd4a2f">next_layer_type</a> = AsyncReadWriteStream</td></tr>
 <tr class="memdesc:a48a16cbb9609d1ca5ceb0de0c9bd4a2f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the next layer. <br /></td></tr>
 <tr class="separator:a48a16cbb9609d1ca5ceb0de0c9bd4a2f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5e440d8964404a35f8f89afcdb184f33"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33">operation</a> </td></tr>
+<tr class="memdesc:a5e440d8964404a35f8f89afcdb184f33"><td class="mdescLeft">&#160;</td><td class="mdescRight">Async operations exposed by this class.  <a href="classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33">More...</a><br /></td></tr>
+<tr class="separator:a5e440d8964404a35f8f89afcdb184f33"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a0fba3d1559879d9e8a0b293e81c33848"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a0fba3d1559879d9e8a0b293e81c33848">connection</a> (boost::asio::io_context &amp;ioc, <a class="el" href="classaedis_1_1connection.html#structaedis_1_1connection_1_1config">config</a> cfg=<a class="el" href="classaedis_1_1connection.html#structaedis_1_1connection_1_1config">config</a>{})</td></tr>
-<tr class="memdesc:a0fba3d1559879d9e8a0b293e81c33848"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a connection from an io_context.  <a href="classaedis_1_1connection.html#a0fba3d1559879d9e8a0b293e81c33848">More...</a><br /></td></tr>
+<tr class="memdesc:a0fba3d1559879d9e8a0b293e81c33848"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor.  <a href="classaedis_1_1connection.html#a0fba3d1559879d9e8a0b293e81c33848">More...</a><br /></td></tr>
 <tr class="separator:a0fba3d1559879d9e8a0b293e81c33848"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa01c0b1337c883d248bc2e4e3406dd1f"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#aa01c0b1337c883d248bc2e4e3406dd1f">connection</a> (<a class="el" href="classaedis_1_1connection.html#abb0fd720745590669c556dcea25bc3f4">executor_type</a> ex, <a class="el" href="classaedis_1_1connection.html#structaedis_1_1connection_1_1config">config</a> cfg=<a class="el" href="classaedis_1_1connection.html#structaedis_1_1connection_1_1config">config</a>{})</td></tr>
-<tr class="memdesc:aa01c0b1337c883d248bc2e4e3406dd1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a connection from an executor.  <a href="classaedis_1_1connection.html#aa01c0b1337c883d248bc2e4e3406dd1f">More...</a><br /></td></tr>
+<tr class="memdesc:aa01c0b1337c883d248bc2e4e3406dd1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Contructor.  <a href="classaedis_1_1connection.html#aa01c0b1337c883d248bc2e4e3406dd1f">More...</a><br /></td></tr>
 <tr class="separator:aa01c0b1337c883d248bc2e4e3406dd1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a74065e41d97eb1388f3d081b3195c4ff"><td class="memTemplParams" colspan="2">template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = default_completion_token_type&gt; </td></tr>
-<tr class="memitem:a74065e41d97eb1388f3d081b3195c4ff"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff">async_exec</a> (<a class="el" href="classaedis_1_1resp3_1_1request.html">resp3::request</a> const &amp;req, Adapter adapter=adapt(), CompletionToken token=CompletionToken{})</td></tr>
-<tr class="memdesc:a74065e41d97eb1388f3d081b3195c4ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes a command on the redis server asynchronously.  <a href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff">More...</a><br /></td></tr>
-<tr class="separator:a74065e41d97eb1388f3d081b3195c4ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4cdbdfe464fe8802774064a4a8e62943"><td class="memTemplParams" colspan="2">template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = default_completion_token_type&gt; </td></tr>
-<tr class="memitem:a4cdbdfe464fe8802774064a4a8e62943"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a4cdbdfe464fe8802774064a4a8e62943">async_receive_event</a> (Adapter adapter=adapt(), CompletionToken token=CompletionToken{})</td></tr>
-<tr class="memdesc:a4cdbdfe464fe8802774064a4a8e62943"><td class="mdescLeft">&#160;</td><td class="mdescRight">Receives unsolicited events asynchronously.  <a href="classaedis_1_1connection.html#a4cdbdfe464fe8802774064a4a8e62943">More...</a><br /></td></tr>
-<tr class="separator:a4cdbdfe464fe8802774064a4a8e62943"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7e1e03893cd5992d50577e353fbc304a"><td class="memTemplParams" colspan="2">template&lt;class CompletionToken  = default_completion_token_type&gt; </td></tr>
-<tr class="memitem:a7e1e03893cd5992d50577e353fbc304a"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a7e1e03893cd5992d50577e353fbc304a">async_run</a> (CompletionToken token=CompletionToken{})</td></tr>
-<tr class="memdesc:a7e1e03893cd5992d50577e353fbc304a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Starts communication with the Redis server asynchronously.  <a href="classaedis_1_1connection.html#a7e1e03893cd5992d50577e353fbc304a">More...</a><br /></td></tr>
-<tr class="separator:a7e1e03893cd5992d50577e353fbc304a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0f864c4fc3f4d05001915bf7e9f8c59e"><td class="memTemplParams" colspan="2">template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = default_completion_token_type&gt; </td></tr>
-<tr class="memitem:a0f864c4fc3f4d05001915bf7e9f8c59e"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a0f864c4fc3f4d05001915bf7e9f8c59e">async_run</a> (<a class="el" href="classaedis_1_1resp3_1_1request.html">resp3::request</a> const &amp;req, Adapter adapter=adapt(), CompletionToken token=CompletionToken{})</td></tr>
-<tr class="memdesc:a0f864c4fc3f4d05001915bf7e9f8c59e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Connects and executes a request asynchronously.  <a href="classaedis_1_1connection.html#a0f864c4fc3f4d05001915bf7e9f8c59e">More...</a><br /></td></tr>
-<tr class="separator:a0f864c4fc3f4d05001915bf7e9f8c59e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3b38205c415351f1c9ad6aecd92c3c51"><td class="memItemLeft" align="right" valign="top"><a id="a3b38205c415351f1c9ad6aecd92c3c51"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a3b38205c415351f1c9ad6aecd92c3c51">cancel_event_receiver</a> ()</td></tr>
-<tr class="memdesc:a3b38205c415351f1c9ad6aecd92c3c51"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cancels the event receiver. <br /></td></tr>
-<tr class="separator:a3b38205c415351f1c9ad6aecd92c3c51"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4b355c08b30302fa412a2652beecb7ea"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a4b355c08b30302fa412a2652beecb7ea">cancel_execs</a> ()</td></tr>
-<tr class="memdesc:a4b355c08b30302fa412a2652beecb7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cancel all pending request.  <a href="classaedis_1_1connection.html#a4b355c08b30302fa412a2652beecb7ea">More...</a><br /></td></tr>
-<tr class="separator:a4b355c08b30302fa412a2652beecb7ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4648af326b50230346f2be826ef2154b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a4648af326b50230346f2be826ef2154b">cancel_run</a> ()</td></tr>
-<tr class="memdesc:a4648af326b50230346f2be826ef2154b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Closes the connection with the database.  <a href="classaedis_1_1connection.html#a4648af326b50230346f2be826ef2154b">More...</a><br /></td></tr>
-<tr class="separator:a4648af326b50230346f2be826ef2154b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4138bf6b0291a57213f919efb4cd53c4"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a4138bf6b0291a57213f919efb4cd53c4">cancel</a> (<a class="el" href="classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33">operation</a> op)</td></tr>
+<tr class="memdesc:a4138bf6b0291a57213f919efb4cd53c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cancel operations.  <a href="classaedis_1_1connection.html#a4138bf6b0291a57213f919efb4cd53c4">More...</a><br /></td></tr>
+<tr class="separator:a4138bf6b0291a57213f919efb4cd53c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd8b240e368e9e4ed9b586a0e57ed0dd"><td class="memItemLeft" align="right" valign="top"><a id="acd8b240e368e9e4ed9b586a0e57ed0dd"></a>
 <a class="el" href="classaedis_1_1connection.html#structaedis_1_1connection_1_1config">config</a> const  &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#acd8b240e368e9e4ed9b586a0e57ed0dd">get_config</a> () const noexcept</td></tr>
 <tr class="memdesc:acd8b240e368e9e4ed9b586a0e57ed0dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the config object. <br /></td></tr>
@@ -155,15 +136,60 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#af6a215c0d8a24d1e3466aed1a8801e91">get_executor</a> ()</td></tr>
 <tr class="memdesc:af6a215c0d8a24d1e3466aed1a8801e91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the executor. <br /></td></tr>
 <tr class="separator:af6a215c0d8a24d1e3466aed1a8801e91"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr><td colspan="2"><div class="groupHeader">Asynchronous functions</div></td></tr>
+<tr><td colspan="2"><div class="groupText"><p>Each of these operations a individually cancellable. </p>
+</div></td></tr>
+<tr class="memitem:a7e1e03893cd5992d50577e353fbc304a"><td class="memTemplParams" colspan="2">template&lt;class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </td></tr>
+<tr class="memitem:a7e1e03893cd5992d50577e353fbc304a"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a7e1e03893cd5992d50577e353fbc304a">async_run</a> (CompletionToken token=CompletionToken{})</td></tr>
+<tr class="memdesc:a7e1e03893cd5992d50577e353fbc304a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Starts communication with the Redis server asynchronously.  <a href="classaedis_1_1connection.html#a7e1e03893cd5992d50577e353fbc304a">More...</a><br /></td></tr>
+<tr class="separator:a7e1e03893cd5992d50577e353fbc304a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0f864c4fc3f4d05001915bf7e9f8c59e"><td class="memTemplParams" colspan="2">template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </td></tr>
+<tr class="memitem:a0f864c4fc3f4d05001915bf7e9f8c59e"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a0f864c4fc3f4d05001915bf7e9f8c59e">async_run</a> (<a class="el" href="classaedis_1_1resp3_1_1request.html">resp3::request</a> const &amp;req, Adapter adapter=adapt(), CompletionToken token=CompletionToken{})</td></tr>
+<tr class="memdesc:a0f864c4fc3f4d05001915bf7e9f8c59e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Connects and executes a request asynchronously.  <a href="classaedis_1_1connection.html#a0f864c4fc3f4d05001915bf7e9f8c59e">More...</a><br /></td></tr>
+<tr class="separator:a0f864c4fc3f4d05001915bf7e9f8c59e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a74065e41d97eb1388f3d081b3195c4ff"><td class="memTemplParams" colspan="2">template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </td></tr>
+<tr class="memitem:a74065e41d97eb1388f3d081b3195c4ff"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff">async_exec</a> (<a class="el" href="classaedis_1_1resp3_1_1request.html">resp3::request</a> const &amp;req, Adapter adapter=adapt(), CompletionToken token=CompletionToken{})</td></tr>
+<tr class="memdesc:a74065e41d97eb1388f3d081b3195c4ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes a command on the redis server asynchronously.  <a href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff">More...</a><br /></td></tr>
+<tr class="separator:a74065e41d97eb1388f3d081b3195c4ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a64109cde6ce5eb31aa36ff85cc43ce95"><td class="memTemplParams" colspan="2">template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </td></tr>
+<tr class="memitem:a64109cde6ce5eb31aa36ff85cc43ce95"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a64109cde6ce5eb31aa36ff85cc43ce95">async_receive_push</a> (Adapter adapter=adapt(), CompletionToken token=CompletionToken{})</td></tr>
+<tr class="memdesc:a64109cde6ce5eb31aa36ff85cc43ce95"><td class="mdescLeft">&#160;</td><td class="mdescRight">Receives server side pushes asynchronously.  <a href="classaedis_1_1connection.html#a64109cde6ce5eb31aa36ff85cc43ce95">More...</a><br /></td></tr>
+<tr class="separator:a64109cde6ce5eb31aa36ff85cc43ce95"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a42dce52942ebc5077f8b020189c71eed"><td class="memTemplParams" colspan="2">template&lt;class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </td></tr>
+<tr class="memitem:a42dce52942ebc5077f8b020189c71eed"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a42dce52942ebc5077f8b020189c71eed">async_receive_event</a> (CompletionToken token=CompletionToken{})</td></tr>
+<tr class="memdesc:a42dce52942ebc5077f8b020189c71eed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Receives internal events.  <a href="classaedis_1_1connection.html#a42dce52942ebc5077f8b020189c71eed">More...</a><br /></td></tr>
+<tr class="separator:a42dce52942ebc5077f8b020189c71eed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="related"></a>
+Related Functions</h2></td></tr>
+<tr><td class="ititle" colspan="2"><p>(Note that these are not member functions.) </p>
+</td></tr>
+<tr class="memitem:a6559cf2efab794e539cd954349688361"><td class="memTemplParams" colspan="2"><a id="a6559cf2efab794e539cd954349688361"></a>
+template&lt;class T &gt; </td></tr>
+<tr class="memitem:a6559cf2efab794e539cd954349688361"><td class="memTemplItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a6559cf2efab794e539cd954349688361">operator&lt;&lt;</a> (std::ostream &amp;os, typename <a class="el" href="classaedis_1_1connection.html">connection</a>&lt; T &gt;::<a class="el" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9">event</a> e)</td></tr>
+<tr class="memdesc:a6559cf2efab794e539cd954349688361"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a connection event to the stream. <br /></td></tr>
+<tr class="separator:a6559cf2efab794e539cd954349688361"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6e0104b3fdee7c675f81cc160ac6e352"><td class="memTemplParams" colspan="2"><a id="a6e0104b3fdee7c675f81cc160ac6e352"></a>
+template&lt;class T &gt; </td></tr>
+<tr class="memitem:a6e0104b3fdee7c675f81cc160ac6e352"><td class="memTemplItemLeft" align="right" valign="top">char const *&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html#a6e0104b3fdee7c675f81cc160ac6e352">to_string</a> (typename <a class="el" href="classaedis_1_1connection.html">connection</a>&lt; T &gt;::<a class="el" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9">event</a> e)</td></tr>
+<tr class="memdesc:a6e0104b3fdee7c675f81cc160ac6e352"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a connection event to a string. <br /></td></tr>
+<tr class="separator:a6e0104b3fdee7c675f81cc160ac6e352"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;class AsyncReadWriteStream = boost::asio::ip::tcp::socket&gt;<br />
 class aedis::connection&lt; AsyncReadWriteStream &gt;</h3>
 
-<p>A high level Redis connection class. </p>
-<p>This class keeps a healthy connection to the Redis instance where commands can be sent at any time. For more details, please see the documentation of each individual function. </p>
+<p>A high level connection to Redis. </p>
+<p>This class keeps a healthy connection to the Redis instance where commands can be sent at any time. For more details, please see the documentation of each individual function.</p>
+<dl class="section remark"><dt>Remarks</dt><dd>This class exposes only asynchronous member functions, synchronous communications with the Redis server is provided by the sync class.</dd></dl>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">AsyncReadWriteStream</td><td>A stream that supports <code>async_read_some</code> and <code>async_write_some</code>. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00037">37</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00045">45</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 </div><hr/><h2 class="groupheader">Class Documentation</h2>
 <a name="structaedis_1_1connection_1_1config" id="structaedis_1_1connection_1_1config"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#structaedis_1_1connection_1_1config">&#9670;&nbsp;</a></span>aedis::connection::config</h2>
@@ -181,7 +207,7 @@ struct aedis::connection&lt; AsyncReadWriteStream &gt;::config</h3>
 
 <p>Connection configuration parameters. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00054">54</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00055">55</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 </div><table class="fieldtable">
 <tr><th colspan="3">Class Members</th></tr>
 <tr><td class="fieldtype">
@@ -201,25 +227,25 @@ Timeout of the connect operation. </td></tr>
 <td class="fieldname">
 enable_events</td>
 <td class="fielddoc">
-Enable events. </td></tr>
+Enable internal events, see <a class="el" href="classaedis_1_1connection.html#a42dce52942ebc5077f8b020189c71eed" title="Receives internal events.">connection::async_receive_event</a>. </td></tr>
 <tr><td class="fieldtype">
 <a id="aa61c1ba655fbc0c36736ac72201621fa"></a>bool</td>
 <td class="fieldname">
 enable_reconnect</td>
 <td class="fielddoc">
-Enable automatic reconnection (see also reconnect_interval). </td></tr>
+Enable automatic reconnection (see also <a class="el" href="classaedis_1_1connection.html#ace4475814df7b5a1bc8d2545701b9ab0" title="Time waited before trying a reconnection (see config::enable_reconnect).">config::reconnect_interval</a>). </td></tr>
 <tr><td class="fieldtype">
 <a id="aef41d7fa48572ce84dc91634983165b7"></a>string</td>
 <td class="fieldname">
 host</td>
 <td class="fielddoc">
-The Redis server address. </td></tr>
+Redis server address. </td></tr>
 <tr><td class="fieldtype">
 <a id="a37e7ea486168410772caf84ac96a2c78"></a>size_t</td>
 <td class="fieldname">
 max_read_size</td>
 <td class="fielddoc">
-The maximum size allowed on read operations. </td></tr>
+The maximum size of read operations. </td></tr>
 <tr><td class="fieldtype">
 <a id="a267e4713be96cdf4f5cc375bf480da99"></a>string</td>
 <td class="fieldname">
@@ -231,19 +257,19 @@ Password if authentication is required. </td></tr>
 <td class="fieldname">
 ping_interval</td>
 <td class="fielddoc">
-Time interval ping operations. </td></tr>
+Time interval of ping operations. </td></tr>
 <tr><td class="fieldtype">
 <a id="a574fa910fc1c139e5aaa5f2de9036c66"></a>string</td>
 <td class="fieldname">
 port</td>
 <td class="fielddoc">
-The Redis server port. </td></tr>
+Redis server port. </td></tr>
 <tr><td class="fieldtype">
 <a id="ace4475814df7b5a1bc8d2545701b9ab0"></a>milliseconds</td>
 <td class="fieldname">
 reconnect_interval</td>
 <td class="fielddoc">
-Time waited before trying a reconnection (see enable reconnect). </td></tr>
+Time waited before trying a reconnection (see <a class="el" href="classaedis_1_1connection.html#aa61c1ba655fbc0c36736ac72201621fa" title="Enable automatic reconnection (see also config::reconnect_interval).">config::enable_reconnect</a>). </td></tr>
 <tr><td class="fieldtype">
 <a id="a650fc6a2f21aaba6e3be507c97da3719"></a>milliseconds</td>
 <td class="fieldname">
@@ -283,21 +309,58 @@ template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div
 </table>
 </div><div class="memdoc">
 
-<p>Events communicated through <code>async_receive_event</code>. </p>
+<p>Events that are communicated by <code><a class="el" href="classaedis_1_1connection.html#a42dce52942ebc5077f8b020189c71eed" title="Receives internal events.">connection::async_receive_event</a></code>. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a33c7f3484cebc96ef3050407daded0c9a785e254f4f43227df02945c04559dbaf"></a>resolve&#160;</td><td class="fielddoc"><p>The address has been successfully resolved. </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a33c7f3484cebc96ef3050407daded0c9a785e254f4f43227df02945c04559dbaf"></a>resolve&#160;</td><td class="fielddoc"><p>Resolve operation was successful. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a33c7f3484cebc96ef3050407daded0c9ab640a0ce465fa2a4150c36b305c1c11b"></a>connect&#160;</td><td class="fielddoc"><p>Connected to the Redis server. </p>
+<tr><td class="fieldname"><a id="a33c7f3484cebc96ef3050407daded0c9ab640a0ce465fa2a4150c36b305c1c11b"></a>connect&#160;</td><td class="fielddoc"><p>Connect operation was successful. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a33c7f3484cebc96ef3050407daded0c9a5d41402abc4b2a76b9719d911017c592"></a>hello&#160;</td><td class="fielddoc"><p>Success sending AUTH and HELLO. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a33c7f3484cebc96ef3050407daded0c9a21a361d96e3e13f5f109748c2a9d2434"></a>push&#160;</td><td class="fielddoc"><p>A push event has been received. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a33c7f3484cebc96ef3050407daded0c9afedb2d84cafe20862cb4399751a8a7e3"></a>invalid&#160;</td><td class="fielddoc"><p>Used internally. </p>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00093">93</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00094">94</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a5e440d8964404a35f8f89afcdb184f33"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5e440d8964404a35f8f89afcdb184f33">&#9670;&nbsp;</a></span>operation</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33">aedis::connection::operation</a></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Async operations exposed by this class. </p>
+<p>The operations listed below can be cancelled with the <code>cancel</code> member function. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a5e440d8964404a35f8f89afcdb184f33a52fb3679b07eb74d90784e612ca5cb30"></a>exec&#160;</td><td class="fielddoc"><p><code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the redis server asynchronously.">connection::async_exec</a></code> operations. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a5e440d8964404a35f8f89afcdb184f33aa53108f7543b75adbb34afc035d4cdf6"></a>run&#160;</td><td class="fielddoc"><p><code><a class="el" href="classaedis_1_1connection.html#a7e1e03893cd5992d50577e353fbc304a" title="Starts communication with the Redis server asynchronously.">connection::async_run</a></code> operations. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a5e440d8964404a35f8f89afcdb184f33a3fb5af88718e9a325d95b5e35d4363b5"></a>receive_event&#160;</td><td class="fielddoc"><p><code><a class="el" href="classaedis_1_1connection.html#a42dce52942ebc5077f8b020189c71eed" title="Receives internal events.">connection::async_receive_event</a></code> operations. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a5e440d8964404a35f8f89afcdb184f33a88da1a0204e096ccf4da011d17a5408b"></a>receive_push&#160;</td><td class="fielddoc"><p><code><a class="el" href="classaedis_1_1connection.html#a64109cde6ce5eb31aa36ff85cc43ce95" title="Receives server side pushes asynchronously.">connection::async_receive_push</a></code> operations. </p>
+</td></tr>
+</table>
+
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00110">110</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -338,7 +401,7 @@ template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div
 </table>
 </div><div class="memdoc">
 
-<p>Construct a connection from an executor. </p>
+<p>Contructor. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">ex</td><td>The executor. </td></tr>
@@ -347,7 +410,7 @@ template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00111">111</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00126">126</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -387,7 +450,7 @@ template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div
 </table>
 </div><div class="memdoc">
 
-<p>Construct a connection from an io_context. </p>
+<p>Constructor. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">ioc</td><td>The executor. </td></tr>
@@ -396,7 +459,7 @@ template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00130">130</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00146">146</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -409,7 +472,7 @@ template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div
 <div class="memtemplate">
 template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div>
 <div class="memtemplate">
-template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = default_completion_token_type&gt; </div>
+template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -446,6 +509,7 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 </div><div class="memdoc">
 
 <p>Executes a command on the redis server asynchronously. </p>
+<p>There is no need to synchronize multiple calls to this function as it keeps an internal queue.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">req</td><td>Request object. </td></tr>
@@ -458,25 +522,69 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code, std::size_t);</div>
 </div><!-- fragment --><p>Where the second parameter is the size of the response in bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00199">199</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00335">335</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a4cdbdfe464fe8802774064a4a8e62943"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4cdbdfe464fe8802774064a4a8e62943">&#9670;&nbsp;</a></span>async_receive_event()</h2>
+<a id="a42dce52942ebc5077f8b020189c71eed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a42dce52942ebc5077f8b020189c71eed">&#9670;&nbsp;</a></span>async_receive_event()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div>
 <div class="memtemplate">
-template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = default_completion_token_type&gt; </div>
+template&lt;class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">auto <a class="el" href="classaedis_1_1connection.html">aedis::connection</a>&lt; AsyncReadWriteStream &gt;::async_receive_event </td>
+          <td>(</td>
+          <td class="paramtype">CompletionToken&#160;</td>
+          <td class="paramname"><em>token</em> = <code>CompletionToken{}</code></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Receives internal events. </p>
+<p>See enum <code>events</code> for the list of events.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">token</td><td>The Asio completion token.</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>The completion token must have the following signature</p>
+<div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code, <a class="code" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9">event</a>);</div>
+<div class="ttc" id="aclassaedis_1_1connection_html_a33c7f3484cebc96ef3050407daded0c9"><div class="ttname"><a href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9">aedis::connection::event</a></div><div class="ttdeci">event</div><div class="ttdoc">Events that are communicated by connection::async_receive_event.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00094">connection.hpp:94</a></div></div>
+</div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00400">400</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a64109cde6ce5eb31aa36ff85cc43ce95"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a64109cde6ce5eb31aa36ff85cc43ce95">&#9670;&nbsp;</a></span>async_receive_push()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div>
+<div class="memtemplate">
+template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">auto <a class="el" href="classaedis_1_1connection.html">aedis::connection</a>&lt; AsyncReadWriteStream &gt;::async_receive_push </td>
           <td>(</td>
           <td class="paramtype">Adapter&#160;</td>
           <td class="paramname"><em>adapter</em> = <code>adapt()</code>, </td>
@@ -500,8 +608,8 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 </table>
 </div><div class="memdoc">
 
-<p>Receives unsolicited events asynchronously. </p>
-<p>Users that expect unsolicited events should call this function in a loop. If an unsolicited events comes in and there is no reader, the connection will hang and eventually timeout.</p>
+<p>Receives server side pushes asynchronously. </p>
+<p>Users that expect server pushes have to call this function in a loop. If an unsolicited event comes in and there is no reader, the connection will hang and eventually timeout.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">adapter</td><td>The response adapter. </td></tr>
@@ -510,11 +618,10 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
   </dd>
 </dl>
 <p>For an example see <a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a>. The completion token must have the following signature</p>
-<div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code, <a class="code" href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9">event</a>);</div>
-<div class="ttc" id="aclassaedis_1_1connection_html_a33c7f3484cebc96ef3050407daded0c9"><div class="ttname"><a href="classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9">aedis::connection::event</a></div><div class="ttdeci">event</div><div class="ttdoc">Events communicated through async_receive_event.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00093">connection.hpp:93</a></div></div>
-</div><!-- fragment --><p>Where the second parameter is the size of the response that has just been read. </p>
+<div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code, std::size_t);</div>
+</div><!-- fragment --><p>Where the second parameter is the size of the push in bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00267">267</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00370">370</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -526,7 +633,7 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 <div class="memtemplate">
 template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div>
 <div class="memtemplate">
-template&lt;class CompletionToken  = default_completion_token_type&gt; </div>
+template&lt;class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -549,20 +656,21 @@ template&lt;class CompletionToken  = default_completion_token_type&gt; </div>
 <p>Starts communication with the Redis server asynchronously. </p>
 <p>This function performs the following steps</p>
 <ul>
-<li>Resolves the Redis host as of <code>async_resolve</code> with the timeout passed in <a class="el" href="classaedis_1_1connection.html#a650fc6a2f21aaba6e3be507c97da3719" title="Timeout of the resolve operation.">connection::config::resolve_timeout</a>.</li>
+<li>Resolves the Redis host as of <code>async_resolve</code> with the timeout passed in <code><a class="el" href="classaedis_1_1connection.html#a650fc6a2f21aaba6e3be507c97da3719" title="Timeout of the resolve operation.">config::resolve_timeout</a></code>.</li>
 </ul>
 <ul>
-<li>Connects to one of the endpoints returned by the resolve operation with the timeout passed in <a class="el" href="classaedis_1_1connection.html#ac6fd3112b27aa0e4df91fdc20535ed6d" title="Timeout of the connect operation.">connection::config::connect_timeout</a>.</li>
+<li>Connects to one of the endpoints returned by the resolve operation with the timeout passed in <code><a class="el" href="classaedis_1_1connection.html#ac6fd3112b27aa0e4df91fdc20535ed6d" title="Timeout of the connect operation.">config::connect_timeout</a></code>.</li>
 </ul>
 <ul>
-<li>Starts the idle check operation with the timeout of twice the value of <a class="el" href="classaedis_1_1connection.html#ab993911f199fc44b4a16db7b5a6af220" title="Time interval ping operations.">connection::config::ping_interval</a>. If no data is received during that time interval <code>async_run</code> completes with <a class="el" href="group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baaa89ad1b8aaa085e108ffd59e1b60c232" title="Idle timeout.">error::idle_timeout</a>.</li>
+<li>Starts healthy checks with a timeout twice the value of <code><a class="el" href="classaedis_1_1connection.html#ab993911f199fc44b4a16db7b5a6af220" title="Time interval of ping operations.">config::ping_interval</a></code>. If no data is received during that time interval <code><a class="el" href="classaedis_1_1connection.html#a7e1e03893cd5992d50577e353fbc304a" title="Starts communication with the Redis server asynchronously.">connection::async_run</a></code> completes with <code><a class="el" href="group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baaa89ad1b8aaa085e108ffd59e1b60c232" title="Idle timeout.">error::idle_timeout</a></code>.</li>
 </ul>
 <ul>
-<li>Starts the healthy check operation that sends command::ping to Redis with a frequency equal to <a class="el" href="classaedis_1_1connection.html#ab993911f199fc44b4a16db7b5a6af220" title="Time interval ping operations.">connection::config::ping_interval</a>.</li>
+<li>Starts the healthy check operation that sends <code>PING</code>s to Redis with a frequency equal to <code><a class="el" href="classaedis_1_1connection.html#ab993911f199fc44b4a16db7b5a6af220" title="Time interval of ping operations.">config::ping_interval</a></code>.</li>
 </ul>
 <ul>
-<li>Starts reading from the socket and delivering events to the request started with <code>async_exec</code> and <code>async_receive_event</code>.</li>
+<li>Starts reading from the socket and executes all requests that have been started prior to this function call.</li>
 </ul>
+<dl class="section remark"><dt>Remarks</dt><dd>When a timeout occur and <a class="el" href="classaedis_1_1connection.html#aa61c1ba655fbc0c36736ac72201621fa" title="Enable automatic reconnection (see also config::reconnect_interval).">config::enable_reconnect</a> is set, this function will automatically try a reconnection without returning control to the user.</dd></dl>
 <p>For an example see <a class="el" href="echo__server_8cpp_source.html">echo_server.cpp</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -572,9 +680,8 @@ template&lt;class CompletionToken  = default_completion_token_type&gt; </div>
 </dl>
 <p>The completion token must have the following signature</p>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code);</div>
-</div><!-- fragment --><dl class="section return"><dt>Returns</dt><dd>This function returns only when there is an error. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00172">172</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+</div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00271">271</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -586,7 +693,7 @@ template&lt;class CompletionToken  = default_completion_token_type&gt; </div>
 <div class="memtemplate">
 template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div>
 <div class="memtemplate">
-template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = default_completion_token_type&gt; </div>
+template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, class CompletionToken  = boost::asio::default_completion_token_t&lt;executor_type&gt;&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -623,7 +730,7 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 </div><div class="memdoc">
 
 <p>Connects and executes a request asynchronously. </p>
-<p>Combines <code>async_run</code> and the other <code>async_exec</code> overload in a single function. This function is useful for users that want to send a single request to the server and close it.</p>
+<p>Combines the other <code>async_run</code> overload with <code>async_exec</code> in a single function. This function is useful for users that want to send a single request to the server and close it.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">req</td><td>Request object. </td></tr>
@@ -636,12 +743,12 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code, std::size_t);</div>
 </div><!-- fragment --><p>Where the second parameter is the size of the response in bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00233">233</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00301">301</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a4b355c08b30302fa412a2652beecb7ea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4b355c08b30302fa412a2652beecb7ea">&#9670;&nbsp;</a></span>cancel_execs()</h2>
+<a id="a4138bf6b0291a57213f919efb4cd53c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4138bf6b0291a57213f919efb4cd53c4">&#9670;&nbsp;</a></span>cancel()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -652,9 +759,10 @@ template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::size_t <a class="el" href="classaedis_1_1connection.html">aedis::connection</a>&lt; AsyncReadWriteStream &gt;::cancel_execs </td>
+          <td class="memname">std::size_t <a class="el" href="classaedis_1_1connection.html">aedis::connection</a>&lt; AsyncReadWriteStream &gt;::cancel </td>
           <td>(</td>
-          <td class="paramname"></td><td>)</td>
+          <td class="paramtype"><a class="el" href="classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33">operation</a>&#160;</td>
+          <td class="paramname"><em>op</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -665,45 +773,25 @@ template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div
 </table>
 </div><div class="memdoc">
 
-<p>Cancel all pending request. </p>
-<dl class="section return"><dt>Returns</dt><dd>The number of requests that have been canceled. </dd></dl>
+<p>Cancel operations. </p>
+<ul>
+<li><code><a class="el" href="classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33a52fb3679b07eb74d90784e612ca5cb30" title="connection::async_exec operations.">operation::exec</a></code>: Cancels operations started with <code>async_exec</code>.</li>
+</ul>
+<ul>
+<li><a class="el" href="classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33aa53108f7543b75adbb34afc035d4cdf6" title="connection::async_run operations.">operation::run</a>: Cancels <code>async_run</code>. Notice that the preferred way to close a connection is to ensure <code><a class="el" href="classaedis_1_1connection.html#aa61c1ba655fbc0c36736ac72201621fa" title="Enable automatic reconnection (see also config::reconnect_interval).">config::enable_reconnect</a></code> is set to <code>false</code> and send <code>QUIT</code> to the server. An unresponsive Redis server will also cause the idle-checks to kick in and lead to <code><a class="el" href="classaedis_1_1connection.html#a7e1e03893cd5992d50577e353fbc304a" title="Starts communication with the Redis server asynchronously.">connection::async_run</a></code> completing with <code><a class="el" href="group__any.html#gga1833aa5e140bbaa9d319ecb1a71bd8baaa89ad1b8aaa085e108ffd59e1b60c232" title="Idle timeout.">error::idle_timeout</a></code>. Calling <code>cancel(operation::run)</code> directly should be seen as the last option.</li>
+</ul>
+<ul>
+<li><a class="el" href="classaedis_1_1connection.html#a5e440d8964404a35f8f89afcdb184f33a3fb5af88718e9a325d95b5e35d4363b5" title="connection::async_receive_event operations.">operation::receive_event</a>: Cancels <code><a class="el" href="classaedis_1_1connection.html#a42dce52942ebc5077f8b020189c71eed" title="Receives internal events.">connection::async_receive_event</a></code>.</li>
+</ul>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">op</td><td>The operation to be cancelled. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The number of operations that have been canceled. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00288">288</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a4648af326b50230346f2be826ef2154b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4648af326b50230346f2be826ef2154b">&#9670;&nbsp;</a></span>cancel_run()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class AsyncReadWriteStream  = boost::asio::ip::tcp::socket&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">void <a class="el" href="classaedis_1_1connection.html">aedis::connection</a>&lt; AsyncReadWriteStream &gt;::cancel_run </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Closes the connection with the database. </p>
-<p>Calling this function will cause <code>async_run</code> to return. It is safe to try a reconnect after that, when that happens, all pending request will be automatically sent.</p>
-<p>Calling this function will causes <code>async_receive_event</code> to return with <code>boost::asio::experimental::channel_errc::channel_cancelled</code>.</p>
-<dl class="section remark"><dt>Remarks</dt><dd></dd></dl>
-<p>The prefered way to close a connection is to send a <code>quit</code> command if you are actively closing it. Otherwise an unresponsive Redis server will cause the idle-checks to kick in and lead to <code>async_run</code> returning with idle_timeout. </p>
-
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00317">317</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00171">171</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
