@@ -31,103 +31,19 @@
     \li Healthy checks, back pressure and low latency.
     \li Hides most of the low level asynchronous operations away from the user.
 
-    Let us have a look a some code snippets
+    It is worth having a look into some examples to apreciate the
+    simplicity Aedis brings
 
-    @subsection Async
+    @li intro.cpp: Basic steps with Aedis.
+    @li intro_sync.cpp: Synchronous version of intro.cpp.
+    @li containers.cpp: Shows how to send and receive stl containers.
+    @li serialization.cpp: Shows how to serialize your own types.
+    @li subscriber.cpp: Shows how to use pubsub.
+    @li subscriber_sync.cpp: Synchronous version of subscriber.cpp.
+    @li echo_server.cpp: A simple TCP echo server that uses coroutines.
+    @li chat_room.cpp: A simple chat room that uses coroutines.
 
-    The code below sends a ping command to Redis and quits (see intro.cpp)
-
-    @code
-    int main()
-    {
-       net::io_context ioc;
-       connection db{ioc};
-
-       request req;
-       req.push("PING");
-       req.push("QUIT");
-
-       std::tuple<std::string, aedis::ignore> resp;
-       db.async_run(req, adapt(resp), net::detached);
-
-       ioc.run();
-
-       std::cout << std::get<0>(resp) << std::endl;
-    }
-    @endcode
-
-    The connection class maintains a healthy connection with Redis
-    over which users can execute their commands, without any need of
-    queuing. For example, to execute more than one request
-
-    @code
-    int main()
-    {
-       ...
-       net::io_context ioc;
-       connection db{ioc};
-
-       db.async_exec(req1, adapt(resp1), handler1);
-       db.async_exec(req2, adapt(resp2), handler2);
-       db.async_exec(req3, adapt(resp3), handler3);
-
-       db.async_run(net::detached);
-
-       ioc.run();
-       ...
-    }
-    @endcode
-
-    The `connection::async_exec` functions above can be called from different
-    places in the code without knowing about each other, see for
-    example echo_server.cpp.  Server-side pushes are supported on the
-    same connection where commands are executed, a typical subscriber
-    will look like
-    (see subscriber.cpp)
-
-    @code
-    net::awaitable<void> reader(std::shared_ptr<connection> db)
-    {
-       for (std::vector<node_type> resp;;) {
-          co_await db->async_receive_event(adapt(resp));
-          // Use resp and clear it.
-          resp.clear();
-       }
-    }
-    @endcode
-
-    @subsection Sync
-
-    The `connection` class offers only an asynchronous API.
-    Synchronous communications with redis is provided by the `aedis::sync`
-    wrapper class. (see intro_sync.cpp)
-
-    @code
-    int main()
-    {
-       net::io_context ioc{1};
-       auto work = net::make_work_guard(ioc);
-       std::thread t1{[&]() { ioc.run(); }};
- 
-       sync<connection> conn{work.get_executor()};
-       std::thread t2{[&]() { boost::system::error_code ec; conn.run(ec); }};
- 
-       request req;
-       req.push("PING");
-       req.push("QUIT");
- 
-       std::tuple<std::string, aedis::ignore> resp;
-       conn.exec(req, adapt(resp));
-       std::cout << "Response: " << std::get<0>(resp) << std::endl;
- 
-       work.reset();
- 
-       t1.join();
-       t2.join();
-    }
-    @endcode
-
-    \subsection using-aedis Installation
+    \section using-aedis Installation
 
     To install and use Aedis you will need
   
@@ -168,7 +84,7 @@
     $ make
     ```
 
-    @subsubsection using_aedis Using Aedis
+    @subsection using_aedis Using Aedis
 
     When writing you own applications include the following header 
   
@@ -179,14 +95,14 @@
 
     in no more than one source file in your applications.
 
-    @subsubsection sup-comp Supported compilers
+    @subsection sup-comp Supported compilers
 
     Aedis has been tested with the following compilers
 
     - Tested with gcc: 12, 11.
     - Tested with clang: 14, 13, 11.
   
-    \subsubsection Developers
+    @subsection Developers
   
     To generate the build system clone the repository and run
   
@@ -200,7 +116,7 @@
     compiler with coverage support run
   
     ```
-    $ CXX=clang++-14 \
+    $ CXX=gcc++-11 \
       CXXFLAGS="-g -std=c++20 -Wall -Wextra --coverage -fkeep-inline-functions -fkeep-static-functions" \
       LDFLAGS="--coverage" \
       ./configure --with-boost=/opt/boost_1_79_0
@@ -480,19 +396,6 @@
     @li \c std::map<U, V>: Efficient if you are storing serialized data. Avoids temporaries and requires \c from_bulk for \c U and \c V.
 
     In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. `SMEMBERS`.
-
-    \section examples Examples
-
-    The examples listed below cover most use cases presented in the documentation above.
-
-    @li intro.cpp: Basic steps with Aedis.
-    @li intro_sync.cpp: Synchronous version of intro.cpp.
-    @li containers.cpp: Shows how to send and receive stl containers.
-    @li serialization.cpp: Shows how to serialize your own types.
-    @li subscriber.cpp: Shows how to use pubsub.
-    @li subscriber_sync.cpp: Synchronous version of subscriber.cpp.
-    @li echo_server.cpp: A simple TCP echo server that uses coroutines.
-    @li chat_room.cpp: A simple chat room that uses coroutines.
 
     \section why-aedis Why Aedis
 
