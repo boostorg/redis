@@ -85,9 +85,3 @@ The code used in the benchmarks can be found at
 ## Running the benchmarks
 
 Run one of the echo-server programs in one terminal and the [echo-server-client](https://github.com/mzimbres/aedis/blob/42880e788bec6020dd018194075a211ad9f339e8/benchmarks/cpp/asio/echo_server_client.cpp) in another.
-
-## Contributing
-
-If your spot any performance improvement in any of the example or
-would like to include other clients, please open a PR and I will
-gladly merge it.

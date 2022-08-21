@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(
     Aedis
-    VERSION 0.3.0
+    VERSION 1.0.0
     DESCRIPTION "An async redis client designed for performance and scalability"
     HOMEPAGE_URL "https://mzimbres.github.io/aedis"
     LANGUAGES CXX

@@ -22,8 +22,8 @@
   
     Aedis is a high-level [Redis](https://redis.io/) client library
     built on top of
-    [Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html),
-    some of its distinctive features are
+    [Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html).
+    Some of its distinctive features are
 
     \li Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
     \li First class support for STL containers and C++ built-in types.
@@ -31,11 +31,11 @@
     \li Healthy checks, back pressure and low latency.
     \li Hides most of the low level asynchronous operations away from the user.
 
-    Let us start with an overview of asynchronous code.
+    Let us have a look a some code snippets
 
     @subsection Async
 
-    The code below sends a ping command to Redis (see intro.cpp)
+    The code below sends a ping command to Redis and quits (see intro.cpp)
 
     @code
     int main()
@@ -56,9 +56,9 @@
     }
     @endcode
 
-    The connection class maintains a healthy connection with
-    Redis over which users can execute their commands, without any
-    need of queuing. For example, to execute more than one command
+    The connection class maintains a healthy connection with Redis
+    over which users can execute their commands, without any need of
+    queuing. For example, to execute more than one request
 
     @code
     int main()
@@ -78,7 +78,7 @@
     }
     @endcode
 
-    The `async_exec` functions above can be called from different
+    The `connection::async_exec` functions above can be called from different
     places in the code without knowing about each other, see for
     example echo_server.cpp.  Server-side pushes are supported on the
     same connection where commands are executed, a typical subscriber
@@ -88,55 +88,42 @@
     @code
     net::awaitable<void> reader(std::shared_ptr<connection> db)
     {
-       request req;
-       req.push("SUBSCRIBE", "channel");
-
        for (std::vector<node_type> resp;;) {
-          auto ev = co_await db->async_receive_event(aedis::adapt(resp));
-
-          switch (ev) {
-             case connection::event::push:
-             // Use resp and clear it.
-             resp.clear();
-             break;
-
-             default:;
-          }
+          co_await db->async_receive_event(adapt(resp));
+          // Use resp and clear it.
+          resp.clear();
        }
     }
     @endcode
 
     @subsection Sync
 
-    The `connection` class is async-only, many users however need to
-    interact with it synchronously, this is also supported by Aedis as long
-    as this interaction occurs across threads, for example (see
-    intro_sync.cpp)
+    The `connection` class offers only an asynchronous API.
+    Synchronous communications with redis is provided by the `aedis::sync`
+    wrapper class. (see intro_sync.cpp)
 
     @code
     int main()
     {
-       try {
-          net::io_context ioc{1};
-          connection conn{ioc};
-    
-          std::thread thread{[&]() {
-             conn.async_run(net::detached);
-             ioc.run();
-          }};
-    
-          request req;
-          req.push("PING");
-          req.push("QUIT");
-    
-          std::tuple<std::string, aedis::ignore> resp;
-          exec(conn, req, adapt(resp));
-          thread.join();
-    
-          std::cout << "Response: " << std::get<0>(resp) << std::endl;
-       } catch (std::exception const& e) {
-          std::cerr << e.what() << std::endl;
-       }
+       net::io_context ioc{1};
+       auto work = net::make_work_guard(ioc);
+       std::thread t1{[&]() { ioc.run(); }};
+ 
+       sync<connection> conn{work.get_executor()};
+       std::thread t2{[&]() { boost::system::error_code ec; conn.run(ec); }};
+ 
+       request req;
+       req.push("PING");
+       req.push("QUIT");
+ 
+       std::tuple<std::string, aedis::ignore> resp;
+       conn.exec(req, adapt(resp));
+       std::cout << "Response: " << std::get<0>(resp) << std::endl;
+ 
+       work.reset();
+ 
+       t1.join();
+       t2.join();
     }
     @endcode
 
@@ -151,23 +138,27 @@
     For a simple installation run
 
     ```
-    # Clone the repository and checkout the lastest release tag.
-    $ git clone --branch v0.3.0 https://github.com/mzimbres/aedis.git
+    $ git clone --branch v1.0.0 https://github.com/mzimbres/aedis.git
     $ cd aedis
 
-    # Build an example
+    # Option 1: Direct compilation.
     $ g++ -std=c++17 -pthread examples/intro.cpp -I./include -I/path/boost_1_79_0/include/
+
+    # Option 2: Use cmake.
+    $ BOOST_ROOT=/opt/boost_1_79_0/ cmake -DCMAKE_CXX_FLAGS=-std=c++20 .
     ```
+
+    @note CMake support is still experimental.
 
     For a proper full installation on the system run
 
     ```
     # Download and unpack the latest release
-    $ wget https://github.com/mzimbres/aedis/releases/download/v0.3.0/aedis-0.3.0.tar.gz
-    $ tar -xzvf aedis-0.3.0.tar.gz
+    $ wget https://github.com/mzimbres/aedis/releases/download/v1.0.0/aedis-1.0.0.tar.gz
+    $ tar -xzvf aedis-1.0.0.tar.gz
 
     # Configure, build and install
-    $ CXXFLAGS="-std=c++17" ./configure --prefix=/opt/aedis-0.3.0 --with-boost=/opt/boost_1_78_0
+    $ CXXFLAGS="-std=c++17" ./configure --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0
     $ sudo make install
     ```
 
@@ -176,12 +167,6 @@
     ```
     $ make
     ```
-
-    There is also experimental support cmake, for example
-
-    @code
-    $ BOOST_ROOT=/opt/boost_1_79_0/ cmake -DCMAKE_CXX_FLAGS=-std=c++20 .
-    @endcode
 
     @subsubsection using_aedis Using Aedis
 
@@ -380,7 +365,7 @@
 
     To read the response to transactions we have to observe that Redis
     queues the commands as they arrive and sends the responses back to
-    the user in a single array, in the response to the @c exec command.
+    the user as an array, in the response to the @c exec command.
     For example, to read the response to the this request
 
     @code
@@ -397,7 +382,7 @@
     using aedis::ignore;
     using boost::optional;
 
-    using tresp_type = 
+    using exec_resp_type = 
        std::tuple<
           optional<std::string>, // get
           optional<std::vector<std::string>>, // lrange
@@ -409,7 +394,7 @@
        ignore,     // get
        ignore,     // lrange
        ignore,     // hgetall
-       tresp_type, // exec
+       exec_resp_type, // exec
     > resp;
 
     co_await db->async_exec(req, adapt(resp));
@@ -443,7 +428,7 @@
     There are cases where responses to Redis
     commands won't fit in the model presented above, some examples are
 
-    @li Commands (like \c set) whose response don't have a fixed
+    @li Commands (like \c set) whose responses don't have a fixed
     RESP3 type. Expecting an \c int and receiving a blob-string
     will result in error.
     @li RESP3 aggregates that contain nested aggregates can't be read in STL containers.
@@ -487,14 +472,14 @@
     @endcode
 
     For example, suppose we want to retrieve a hash data structure
-    from Redis with \c hgetall, some of the options are
+    from Redis with `HGETALL`, some of the options are
 
     @li \c std::vector<node<std::string>: Works always.
     @li \c std::vector<std::string>: Efficient and flat, all elements as string.
     @li \c std::map<std::string, std::string>: Efficient if you need the data as a \c std::map
     @li \c std::map<U, V>: Efficient if you are storing serialized data. Avoids temporaries and requires \c from_bulk for \c U and \c V.
 
-    In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. \c smembers.
+    In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. `SMEMBERS`.
 
     \section examples Examples
 
@@ -503,8 +488,8 @@
     @li intro.cpp: Basic steps with Aedis.
     @li intro_sync.cpp: Synchronous version of intro.cpp.
     @li containers.cpp: Shows how to send and receive stl containers.
-    @li serialization.cpp: Shows the \c request support to serialization of user types.
-    @li subscriber.cpp: Shows how to subscribe to a channel and how to reconnect when connection is lost.
+    @li serialization.cpp: Shows how to serialize your own types.
+    @li subscriber.cpp: Shows how to use pubsub.
     @li subscriber_sync.cpp: Synchronous version of subscriber.cpp.
     @li echo_server.cpp: A simple TCP echo server that uses coroutines.
     @li chat_room.cpp: A simple chat room that uses coroutines.

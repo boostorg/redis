@@ -1,15 +1,16 @@
 # Changelog
 
-## master
+## v1.0.0
 
 * Adds experimental cmake support for windows users.
 
-* Adds new class `sync` that wraps a `connection` and offers a
-  thread-safe synchronous API.  All free functions from the `sync.hpp`
-  are now member functions of the `sync` class.
+* Adds new class `aedis::sync` that wraps an `aedis::connection` in
+  a thread-safe and synchronous API.  All free functions from the
+  `sync.hpp` are now member functions of `aedis::sync`.
 
-* Split `connection::async_receive_event` in two functions, one to
-  receive events and another for server side pushes.
+* Split `aedis::connection::async_receive_event` in two functions, one
+  to receive events and another for server side pushes, see
+  `aedis::connection::async_receive_push`.
 
 * Removes collision between `aedis::adapter::adapt` and
   `aedis::adapt`.

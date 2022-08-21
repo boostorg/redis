@@ -20,7 +20,7 @@
 
 namespace aedis {
 
-/** @brief Tag used tp ignore responses.
+/** @brief Tag used to ignore responses.
  *  @ingroup any
  *
  *  For example

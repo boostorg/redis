@@ -14,3 +14,7 @@ Distributed under the [Boost Software License, Version 1.0](http://www.boost.org
 
 * See the official github-pages for documentation: https://mzimbres.github.io/aedis
 
+### Installation
+
+See https://mzimbres.github.io/aedis/#using-aedis
+

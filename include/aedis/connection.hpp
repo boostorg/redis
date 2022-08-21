@@ -26,12 +26,19 @@
 
 namespace aedis {
 
-/** @brief A high level Redis asynchronous connection to Redis.
+/** @brief A high level connection to Redis.
  *  @ingroup any
  *
  *  This class keeps a healthy connection to the Redis instance where
  *  commands can be sent at any time. For more details, please see the
  *  documentation of each individual function.
+ *
+ *  @remarks This class exposes only asynchronous member functions,
+ *  synchronous communications with the Redis server is provided by
+ *  the sync class.
+ *
+ *  @tparam AsyncReadWriteStream A stream that supports
+ *  `async_read_some` and `async_write_some`.
  *
  */
 template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
@@ -43,20 +50,13 @@ public:
    /// Type of the next layer
    using next_layer_type = AsyncReadWriteStream;
 
-   using default_completion_token_type = boost::asio::default_completion_token_t<executor_type>;
-   using push_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
-   using clock_type = std::chrono::steady_clock;
-   using clock_traits_type = boost::asio::wait_traits<clock_type>;
-   using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
-   using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
-
    /** @brief Connection configuration parameters.
     */
    struct config {
-      /// The Redis server address.
+      /// Redis server address.
       std::string host = "127.0.0.1";
 
-      /// The Redis server port.
+      /// Redis server port.
       std::string port = "6379";
 
       /// Username if authentication is required.
@@ -71,30 +71,30 @@ public:
       /// Timeout of the connect operation.
       std::chrono::milliseconds connect_timeout = std::chrono::seconds{10};
 
-      /// Time interval ping operations.
+      /// Time interval of ping operations.
       std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
 
-      /// Time waited before trying a reconnection (see enable reconnect).
+      /// Time waited before trying a reconnection (see config::enable_reconnect).
       std::chrono::milliseconds reconnect_interval = std::chrono::seconds{1};
 
-      /// The maximum size allowed on read operations.
+      /// The maximum size of read operations.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
 
       /// Whether to coalesce requests (see [pipelines](https://redis.io/topics/pipelining)).
       bool coalesce_requests = true;
 
-      /// Enable events
+      /// Enable internal events, see connection::async_receive_event.
       bool enable_events = false;
 
-      /// Enable automatic reconnection (see also reconnect_interval).
+      /// Enable automatic reconnection (see also config::reconnect_interval).
       bool enable_reconnect = false;
    };
 
-   /// Events communicated through \c async_receive_event.
+   /// Events that are communicated by `connection::async_receive_event`.
    enum class event {
-      /// The address has been successfully resolved.
+      /// Resolve operation was successful.
       resolve,
-      /// Connected to the Redis server.
+      /// Connect operation was successful.
       connect,
       /// Success sending AUTH and HELLO.
       hello,
@@ -102,24 +102,23 @@ public:
       invalid
    };
 
-   using event_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, event)>;
-
-   /** @brief Async operations that can be cancelled.
+   /** @brief Async operations exposed by this class.
     *  
-    *  See the \c cancel member function for more information.
+    *  The operations listed below can be cancelled with the `cancel`
+    *  member function.
     */
    enum class operation {
-      /// Operations started with \c async_exec.
+      /// `connection::async_exec` operations.
       exec,
-      /// Operation started with \c async_run.
+      /// `connection::async_run` operations.
       run,
-      /// Operation started with async_receive_event.
+      /// `connection::async_receive_event` operations.
       receive_event,
-      /// Operation started with async_receive_push.
+      /// `connection::async_receive_push` operations.
       receive_push,
    };
 
-   /** \brief Construct a connection from an executor.
+   /** \brief Contructor
     *
     *  \param ex The executor.
     *  \param cfg Configuration parameters.
@@ -139,7 +138,7 @@ public:
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
-   /** \brief Construct a connection from an io_context.
+   /** \brief Constructor
     *
     *  \param ioc The executor.
     *  \param cfg Configuration parameters.
@@ -153,15 +152,18 @@ public:
 
    /** @brief Cancel operations.
     *
-    * @li operation::exec: Cancels all operations started with \c async_exec.
-    * @li operation::run: Cancels @c async_run. The prefered way to
-    *     close a connection is to set config::enable_reconnect to
-    *     false and send a \c quit command. Otherwise an unresponsive Redis server
-    *     will cause the idle-checks to kick in and lead to \c
-    *     async_run returning with idle_timeout. Calling \c
-    *     cancel(operation::run) directly should be seen as the last
-    *     option.
-    * @li operation::receive_event: Cancels @c async_receive_event.
+    * @li `operation::exec`: Cancels operations started with `async_exec`.
+    *
+    * @li operation::run: Cancels `async_run`. Notice that the
+    *     preferred way to close a connection is to ensure
+    *     `config::enable_reconnect` is set to `false` and send `QUIT`
+    *     to the server. An unresponsive Redis server will also cause
+    *     the idle-checks to kick in and lead to
+    *     `connection::async_run` completing with
+    *     `error::idle_timeout`. Calling `cancel(operation::run)`
+    *     directly should be seen as the last option.
+    *
+    * @li operation::receive_event: Cancels `connection::async_receive_event`.
     *
     * @param op: The operation to be cancelled.
     * @returns The number of operations that have been canceled.
@@ -190,11 +192,11 @@ public:
             writer_timer_.cancel();
             ping_timer_.cancel();
 
-            // Cancel own pings if there are any waiting.
             auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
                return !ptr->req->close_on_run_completion;
             });
 
+            // Cancel own pings if there are any waiting.
             std::for_each(point, std::end(reqs_), [](auto const& ptr) {
                ptr->stop = true;
                ptr->timer.cancel();
@@ -225,6 +227,8 @@ public:
    config const& get_config() const noexcept { return cfg_;}
 
    /** @name Asynchronous functions
+    *  
+    *  Each of these operations a individually cancellable.
     **/
 
    /// @{
@@ -232,25 +236,28 @@ public:
     *
     *  This function performs the following steps
     *
-    *  \li Resolves the Redis host as of \c async_resolve with the
-    *  timeout passed in connection::config::resolve_timeout.
+    *  @li Resolves the Redis host as of `async_resolve` with the
+    *  timeout passed in `config::resolve_timeout`.
     *
-    *  \li Connects to one of the endpoints returned by the resolve
-    *  operation with the timeout passed in connection::config::connect_timeout.
+    *  @li Connects to one of the endpoints returned by the resolve
+    *  operation with the timeout passed in `config::connect_timeout`.
     *
-    *  \li Starts the idle check operation with the timeout of twice
-    *  the value of connection::config::ping_interval. If no data is
-    *  received during that time interval \c async_run completes with
-    *  error::idle_timeout.
+    *  @li Starts healthy checks with a timeout twice
+    *  the value of `config::ping_interval`. If no data is
+    *  received during that time interval `connection::async_run` completes with
+    *  `error::idle_timeout`.
     *
-    *  \li Starts the healthy check operation that sends command::ping
-    *  to Redis with a frequency equal to
-    *  connection::config::ping_interval.
+    *  @li Starts the healthy check operation that sends `PING`s to
+    *  Redis with a frequency equal to `config::ping_interval`.
     *
-    *  \li Starts reading from the socket and delivering events to the
-    *  request started with \c async_exec and \c async_receive_event.
+    *  @li Starts reading from the socket and executes all requests
+    *  that have been started prior to this function call.
     *
-    * For an example see echo_server.cpp.
+    *  @remark When a timeout occur and config::enable_reconnect is
+    *  set, this function will automatically try a reconnection
+    *  without returning control to the user.
+    *  
+    *  For an example see echo_server.cpp.
     *
     *  \param token Completion token.
     *
@@ -259,10 +266,8 @@ public:
     *  @code
     *  void f(boost::system::error_code);
     *  @endcode
-    *
-    *  \return This function returns only when there is an error.
     */
-   template <class CompletionToken = default_completion_token_type>
+   template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto async_run(CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
@@ -273,7 +278,7 @@ public:
 
    /** @brief Connects and executes a request asynchronously.
     *
-    *  Combines \c async_run and the other \c async_exec overload in a
+    *  Combines the other `async_run` overload with `async_exec` in a
     *  single function. This function is useful for users that want to
     *  send a single request to the server and close it.
     *
@@ -281,7 +286,8 @@ public:
     *  \param adapter Response adapter.
     *  \param token Asio completion token.
     *
-    *  For an example see intro.cpp. The completion token must have the following signature
+    *  For an example see intro.cpp. The completion token must have
+    *  the following signature
     *
     *  @code
     *  void f(boost::system::error_code, std::size_t);
@@ -291,7 +297,7 @@ public:
     */
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
-      class CompletionToken = default_completion_token_type>
+      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto async_run(
       resp3::request const& req,
       Adapter adapter = adapt(),
@@ -305,6 +311,9 @@ public:
    }
 
    /** @brief Executes a command on the redis server asynchronously.
+    *
+    *  There is no need to synchronize multiple calls to this
+    *  function as it keeps an internal queue.
     *
     *  \param req Request object.
     *  \param adapter Response adapter.
@@ -322,7 +331,7 @@ public:
     */
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
-      class CompletionToken = default_completion_token_type>
+      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto async_exec(
       resp3::request const& req,
       Adapter adapter = adapt(),
@@ -336,11 +345,11 @@ public:
          >(detail::exec_op<connection, Adapter>{this, &req, adapter}, token, resv_);
    }
 
-   /** @brief Receives unsolicited events asynchronously.
+   /** @brief Receives server side pushes asynchronously.
     *
-    *  Users that expect unsolicited events should call this function
-    *  in a loop. If an unsolicited events comes in and there is no
-    *  reader, the connection will hang and eventually timeout.
+    *  Users that expect server pushes have to call this function in a
+    *  loop. If an unsolicited event comes in and there is no reader,
+    *  the connection will hang and eventually timeout.
     *
     *  \param adapter The response adapter.
     *  \param token The Asio completion token.
@@ -351,10 +360,13 @@ public:
     *  @code
     *  void f(boost::system::error_code, std::size_t);
     *  @endcode
+    *
+    *  Where the second parameter is the size of the push in
+    *  bytes.
     */
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
-      class CompletionToken = default_completion_token_type>
+      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto async_receive_push(
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
@@ -374,7 +386,7 @@ public:
 
    /** @brief Receives internal events.
     *
-    *  See enum \c events for a list of events.
+    *  See enum \c events for the list of events.
     *
     *  \param token The Asio completion token.
     *
@@ -384,7 +396,7 @@ public:
     *  void f(boost::system::error_code, event);
     *  @endcode
     */
-   template <class CompletionToken = default_completion_token_type>
+   template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto async_receive_event(CompletionToken token = CompletionToken{})
    {
       return event_channel_.async_receive(token);
@@ -392,6 +404,14 @@ public:
    /// @}
 
 private:
+   using clock_type = std::chrono::steady_clock;
+   using clock_traits_type = boost::asio::wait_traits<clock_type>;
+   using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
+   using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
+   using push_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
+   using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
+   using event_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, event)>;
+
    struct req_info {
       req_info(executor_type ex) : timer{ex} {}
       timer_type timer;
@@ -401,7 +421,6 @@ private:
       bool written = false;
    };
 
-   using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
    using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
    template <class T, class U> friend struct detail::receive_push_op;
@@ -419,7 +438,7 @@ private:
    template <class T> friend struct detail::start_op;
    template <class T> friend struct detail::send_receive_op;
 
-   template <class CompletionToken = default_completion_token_type>
+   template <class CompletionToken>
    auto async_run_one(CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose

@@ -36,7 +36,7 @@ public:
 
    /** @brief Executes a request synchronously.
     *
-    *  The functions calls `connections::async_receive_exec` and waits
+    *  The functions calls `connection::async_exec` and waits
     *  for its completion.
     *
     *  @param req The request.
@@ -71,7 +71,7 @@ public:
 
    /** @brief Executes a command synchronously
     *
-    *  The functions calls `connections::async_exec` and waits for its
+    *  The functions calls `connection::async_exec` and waits for its
     *  completion.
     *
     *  @param req The request.
@@ -91,7 +91,7 @@ public:
 
    /** @brief Receives server pushes synchronusly.
     *
-    *  The functions calls `connections::async_receive_push` and
+    *  The functions calls `connection::async_receive_push` and
     *  waits for its completion.
     *
     *  @param adapter The response adapter.
@@ -124,7 +124,7 @@ public:
 
    /** @brief Receives server pushes synchronusly.
     *
-    *  The functions calls `connections::async_receive_push` and
+    *  The functions calls `connection::async_receive_push` and
     *  waits for its completion.
     *
     *  @param adapter The response adapter.
@@ -143,7 +143,7 @@ public:
 
    /** @brief Receives events synchronously.
     *
-    *  The functions calls `connections::async_receive_event` and
+    *  The functions calls `connection::async_receive_event` and
     *  waits for its completion.
     *
     *  @param ec Error code in case of error.
@@ -174,7 +174,7 @@ public:
 
    /** @brief Receives events synchronously
     *
-    *  The functions calls `connections::async_receive_event` and
+    *  The functions calls `connection::async_receive_event` and
     *  waits for its completion.
     *
     *  @throws std::system_error in case of error.
@@ -191,7 +191,7 @@ public:
 
    /** @brief Calls \c async_run from the underlying connection.
     *
-    *  The functions calls `connections::async_run` and waits for its
+    *  The functions calls `connection::async_run` and waits for its
     *  completion.
     *
     *  @param ec Error code.
@@ -217,7 +217,7 @@ public:
 
    /** @brief Calls \c async_run from the underlying connection.
     *
-    *  The functions calls `connections::async_run` and waits for its
+    *  The functions calls `connection::async_run` and waits for its
     *  completion.
     *
     *  @throws std::system_error.
