@@ -59,7 +59,7 @@ enum class error
    expects_resp3_set,
 
    /// Nested response not supported.
-   nested_aggregate_unsupported,
+   nested_aggregate_not_supported,
 
    /// Got RESP3 simple error.
    simple_error,

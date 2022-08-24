@@ -105,6 +105,11 @@ struct receive_push_op {
          resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
+
+            // Needed to cancel the channel, otherwise the read
+            // operation will be blocked forever see
+            // test_push_adapter.
+            conn->cancel(Conn::operation::receive_push);
             self.complete(ec, 0);
             return;
          }
@@ -493,6 +498,7 @@ struct run_op {
 
          // Consider communicating the return of async_run_one as an
          // event here.
+         // TODO: Add event trying_again and sent it here.
 
          conn->ping_timer_.expires_after(conn->cfg_.reconnect_interval);
          yield

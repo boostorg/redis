@@ -284,7 +284,7 @@ public:
 
       if (is_aggregate(nd.data_type)) {
 	 if (i_ != -1) {
-            ec = error::nested_aggregate_unsupported;
+            ec = error::nested_aggregate_not_supported;
             return;
          }
 

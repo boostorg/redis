@@ -73,6 +73,7 @@ public:
       boost::system::error_code& ec)
    {
       using boost::variant2::visit;
+      // TODO: Output an error instead of an assert.
       BOOST_ASSERT(i < adapters_.size());
       visit([&](auto& arg){arg(nd, ec);}, adapters_.at(i));
    }

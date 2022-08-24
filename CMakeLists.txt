@@ -38,6 +38,7 @@ add_executable(subscriber examples/subscriber.cpp)
 add_executable(subscriber_sync examples/subscriber_sync.cpp)
 add_executable(test_low_level tests/low_level.cpp)
 add_executable(test_connection tests/connection.cpp)
+add_executable(test_connection_push tests/connection_push.cpp)
 add_executable(low_level_sync tests/low_level_sync.cpp)
 
 # Tests
@@ -48,7 +49,7 @@ add_test(intro intro)
 add_test(intro_sync intro_sync)
 add_test(serialization serialization)
 add_test(test_low_level test_low_level)
-add_test(test_connection test_connection)
+add_test(test_connection_push test_connection_push)
 add_test(low_level_sync low_level_sync)
 
 # Install

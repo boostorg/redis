@@ -33,7 +33,7 @@ struct error_category_impl : boost::system::error_category {
 	 case error::expects_resp3_aggregate: return "Expects resp3 aggregate.";
 	 case error::expects_resp3_map: return "Expects resp3 map.";
 	 case error::expects_resp3_set: return "Expects resp3 set.";
-	 case error::nested_aggregate_unsupported: return "Nested aggregate unsupported.";
+	 case error::nested_aggregate_not_supported: return "Nested aggregate not_supported.";
 	 case error::simple_error: return "Got RESP3 simple-error.";
 	 case error::blob_error: return "Got RESP3 blob-error.";
 	 case error::incompatible_size: return "Aggregate container has incompatible size.";

@@ -371,6 +371,7 @@ public:
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
+      // TODO: Use adapter::response_traits  here instead of aedis::response_traits
       auto f =
          [adapter]
          (resp3::node<boost::string_view> const& node, boost::system::error_code& ec) mutable

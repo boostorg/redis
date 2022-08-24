@@ -80,9 +80,7 @@ char to_code(type t)
       case type::attribute:            return '|';
       case type::map:                  return '%';
 
-      default:
-      BOOST_ASSERT(false);
-      return ' ';
+      default: BOOST_ASSERT(false); return ' ';
    }
 }
 
