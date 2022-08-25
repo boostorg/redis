@@ -34,7 +34,7 @@ decrease.
    * I did expect nodejs to come a little behind given it is is
      javascript code. Otherwise I did expect it to have similar
      performance to libuv since it is the framework behind it.
-   * Go performance did not surprise me: decent and not some much far behind nodejs.
+   * Go did surprise me: faster than nodejs and liuv!
 
 The code used in the benchmarks can be found at
 

@@ -1,29 +1,31 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"net"
 	"os"
+	"runtime"
 )
 
 func echo(conn net.Conn) {
-	r := bufio.NewReader(conn)
+	buf := make([]byte, 1024)
 	for {
-		line, err := r.ReadBytes(byte('\n'))
-		switch err {
-		case nil:
-			break
-		case io.EOF:
-		default:
-			fmt.Println("ERROR", err)
-		}
-		conn.Write(line)
+		n, err := conn.Read(buf)
+                if err != nil {
+                        break;
+                }
+
+                conn.Write(buf[:n])
+                if err != nil {
+                        fmt.Println("ERROR", err)
+                        os.Exit(1)
+                }
 	}
 }
 
 func main() {
+	runtime.GOMAXPROCS(1)
+
 	l, err := net.Listen("tcp", "0.0.0.0:55555")
 	if err != nil {
 		fmt.Println("ERROR", err)

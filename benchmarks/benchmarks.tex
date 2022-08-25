@@ -17,7 +17,7 @@
     width=15cm, height=6cm, enlarge y limits=0.5,
     title={TCP Echo Server Performance},
     xlabel={Seconds},
-    symbolic y coords={Asio,Tokio,Libuv,Nodejs,Go},
+    symbolic y coords={Asio,Tokio,Go,Libuv,Nodejs},
     ytick=data,
     %bar width=1cm,
     nodes near coords,
@@ -26,18 +26,16 @@
     \addplot coordinates {
        (31.1,Asio)
        (30.7,Tokio)
+       (35.6,Go)
        (43.6,Libuv)
        (74.2,Nodejs)
-       (81.0,Go)
     };
   \end{axis}
 \end{tikzpicture}
 \endpgfgraphicnamed
 
 \beginpgfgraphicnamed{echo-f1}
-%debian2[0]$ time ./echo_server_client 1000 1000
-%Go  (1):   1.000s
-%C++ (1):   0.07s
+%$ time ./echo_server_client 1000 1000
 \begin{tikzpicture}[scale=1.0]
   \begin{axis}[
     y dir=reverse,
