@@ -97,7 +97,6 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
 
 void test_quit2(connection::config const& cfg)
 {
-   std::cout << "test_quit2" << std::endl;
    request req;
    req.push("QUIT");
 
@@ -120,3 +119,45 @@ BOOST_AUTO_TEST_CASE(test_quit)
    test_quit2(cfg);
 }
 
+BOOST_AUTO_TEST_CASE(test_wrong_data_type)
+{
+   request req;
+   req.push("QUIT");
+
+   // Wrong data type.
+   std::tuple<int> resp;
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc);
+   db->async_run(req, adapt(resp), [](auto ec, auto){
+      BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
+   });
+
+   ioc.run();
+}
+
+BOOST_AUTO_TEST_CASE(test_reconnect_timeout)
+{
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc);
+   db->get_config().enable_reconnect = true;
+
+   request req1;
+   req1.push("CLIENT", "PAUSE", 7000);
+
+   request req2;
+   req2.push("QUIT");
+
+   db->async_exec(req1, adapt(), [db, &req2](auto ec, auto){
+      BOOST_TEST(!ec);
+      db->async_exec(req2, adapt(), [db](auto ec, auto){
+         db->get_config().enable_reconnect = false;
+         BOOST_TEST(!ec);
+      });
+   });
+
+   db->async_run([](auto ec){
+      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
+   });
+
+   ioc.run();
+}
