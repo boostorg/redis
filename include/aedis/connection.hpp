@@ -215,9 +215,8 @@ public:
             push_channel_.cancel();
             return 1U;
          }
+         default: BOOST_ASSERT(false); return 0;
       }
-
-      return 0;
    }
 
    /// Get the config object.

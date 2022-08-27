@@ -70,10 +70,6 @@ read(
 	 if (ec)
 	    return 0;
 
-	 if (n < 3) {
-            ec = error::unexpected_read_size;
-            return 0;
-         }
       } else {
 	 auto const s = buf.size();
 	 auto const l = p.bulk_length();
@@ -83,11 +79,6 @@ read(
 	    n = boost::asio::read(stream, buf.data(s, to_read), ec);
 	    if (ec)
 	       return 0;
-
-            if (n < to_read) {
-               ec = error::unexpected_read_size;
-               return 0;
-            }
 	 }
       }
 

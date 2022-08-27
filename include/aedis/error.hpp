@@ -34,9 +34,6 @@ enum class error
    /// Can't parse the string as a number.
    not_a_number,
 
-   /// Received less bytes than expected.
-   unexpected_read_size,
-
    /// The maximum depth of a nested response was exceeded.
    exceeeds_max_nested_depth,
 

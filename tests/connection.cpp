@@ -40,6 +40,7 @@ bool is_host_not_found(boost::system::error_code ec)
 // Tests whether resolve fails with the correct error.
 BOOST_AUTO_TEST_CASE(test_resolve)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    connection::config cfg;
    cfg.host = "Atibaia";
    cfg.port = "6379";
@@ -58,6 +59,7 @@ BOOST_AUTO_TEST_CASE(test_resolve)
 
 BOOST_AUTO_TEST_CASE(test_resolve_with_timeout)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
 
    connection db{ioc};
@@ -77,6 +79,7 @@ BOOST_AUTO_TEST_CASE(test_resolve_with_timeout)
 
 BOOST_AUTO_TEST_CASE(test_connect)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    connection::config cfg;
    cfg.host = "127.0.0.1";
    cfg.port = "1";
@@ -94,6 +97,7 @@ BOOST_AUTO_TEST_CASE(test_connect)
 
 BOOST_AUTO_TEST_CASE(test_connect_timeout)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    connection db{ioc};
    db.get_config().host = "example.com";
@@ -104,60 +108,6 @@ BOOST_AUTO_TEST_CASE(test_connect_timeout)
       BOOST_CHECK_EQUAL(ec, aedis::error::connect_timeout);
    });
    ioc.run();
-}
-
-//----------------------------------------------------------------
-
-// Test if quit causes async_run to exit.
-void test_quit1(connection::config const& cfg)
-{
-   net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
-
-   request req;
-   req.push("QUIT");
-
-   db->async_exec(req, adapt(), [](auto ec, auto){
-      BOOST_TEST(!ec);
-   });
-
-   db->async_run([](auto ec){
-      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-   });
-
-   ioc.run();
-}
-
-void test_quit2(connection::config const& cfg)
-{
-   std::cout << "test_quit2" << std::endl;
-   request req;
-   req.push("QUIT");
-
-   net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
-   db->async_run(req, adapt(), [](auto ec, auto){
-      BOOST_TEST(!ec);
-   });
-
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_quit)
-{
-   connection::config cfg;
-
-   cfg.coalesce_requests = true;
-   test_quit1(cfg);
-
-   cfg.coalesce_requests = false;
-   test_quit1(cfg);
-
-   cfg.coalesce_requests = true;
-   test_quit2(cfg);
-
-   cfg.coalesce_requests = false;
-   test_quit2(cfg);
 }
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
@@ -177,6 +127,7 @@ net::awaitable<void> send_after(std::shared_ptr<connection> db, std::chrono::mil
 
 BOOST_AUTO_TEST_CASE(test_idle)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    std::chrono::milliseconds ms{5000};
 
    {
@@ -257,6 +208,7 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
 // Test whether the client works after a reconnect.
 BOOST_AUTO_TEST_CASE(test_reconnect)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc.get_executor());
    db->get_config().enable_events = true;
@@ -274,6 +226,7 @@ BOOST_AUTO_TEST_CASE(test_reconnect)
 
 BOOST_AUTO_TEST_CASE(test_auth_fail)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc.get_executor());
 

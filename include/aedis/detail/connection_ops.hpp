@@ -431,8 +431,10 @@ struct run_one_op {
          }
 
          conn->req_.clear();
-         if (!std::empty(conn->cfg_.username) && !std::empty(conn->cfg_.password))
+         if (!std::empty(conn->cfg_.username) && !std::empty(conn->cfg_.password)) {
             conn->req_.push("AUTH", conn->cfg_.username, conn->cfg_.password);
+         }
+
          conn->req_.push("HELLO", "3");
 
          conn->ping_timer_.expires_after(conn->cfg_.ping_interval);
@@ -618,7 +620,7 @@ struct reader_op {
             yield
             conn->read_timer_.async_wait(std::move(self));
             if (!conn->socket_->is_open()) {
-               self.complete({});
+               self.complete(ec);
                return;
             }
          }

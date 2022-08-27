@@ -28,6 +28,7 @@ namespace resp3 = aedis::resp3;
 using test_stream = boost::beast::test::stream;
 using aedis::adapter::adapt2;
 using node_type = aedis::resp3::node<std::string>;
+using vec_node_type = std::vector<node_type>;
 
 //-------------------------------------------------------------------
 
@@ -145,6 +146,7 @@ std::vector<node_type> streamed_string_e2 { {resp3::type::streamed_string_part, 
    test(ex, make_expected(":3\r\n",        node_type{resp3::type::number, 1UL, 0UL, {"3"}}, "number.node (positive)")); \
    test(ex, make_expected("_\r\n",         int{0}, "number.int.error.null", aedis::error::resp3_null)); \
    test(ex, make_expected(streamed_string_wire, std::string{"Hello word"}, "streamed_string.string")); \
+   test(ex, make_expected(streamed_string_wire, int{}, "streamed_string.string", aedis::error::not_a_number)); \
    test(ex, make_expected(streamed_string_wire, streamed_string_e1, "streamed_string.node")); \
 
 BOOST_AUTO_TEST_CASE(test_push)
@@ -334,6 +336,7 @@ BOOST_AUTO_TEST_CASE(test_array)
    net::io_context ioc;
    char const* wire = "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n";
    char const* wire_nested = "*1\r\n*1\r\n$2\r\nab\r\n";
+   char const* wire_nested2 = "*1\r\n*1\r\n*1\r\n*1\r\n*1\r\n*1\r\na\r\n";
 
    std::vector<node_type> e1a
       { {resp3::type::array,       3UL, 0UL, {}}
@@ -365,6 +368,7 @@ BOOST_AUTO_TEST_CASE(test_array)
    auto const in13 = expect<array_type2>{wire_nested, array_type2{}, "array.nested", aedis::error::nested_aggregate_not_supported};
    auto const in14 = expect<array_type2>{wire, array_type2{}, "array.null", aedis::error::incompatible_size};
    auto const in15 = expect<array_type2>{":3\r\n", array_type2{}, "array.array", aedis::error::expects_resp3_aggregate};
+   auto const in16 = expect<vec_node_type>{wire_nested2, vec_node_type{}, "array.depth.exceeds", aedis::error::exceeeds_max_nested_depth};
 
    auto ex = ioc.get_executor();
 
@@ -383,6 +387,7 @@ BOOST_AUTO_TEST_CASE(test_array)
    test_sync(ex, in13);
    test_sync(ex, in14);
    test_sync(ex, in15);
+   test_sync(ex, in16);
 
    test_async(ex, in01);
    test_async(ex, in02);
@@ -399,6 +404,7 @@ BOOST_AUTO_TEST_CASE(test_array)
    test_async(ex, in13);
    test_async(ex, in14);
    test_async(ex, in15);
+   test_async(ex, in16);
 
    ioc.run();
 }
@@ -654,6 +660,7 @@ BOOST_AUTO_TEST_CASE(test_resp3)
    test_async(ex, in06);
    test_async(ex, in07);
    test_async(ex, in08);
+
    ioc.run();
 }
 
@@ -745,7 +752,6 @@ BOOST_AUTO_TEST_CASE(error)
    check_error("aedis", aedis::error::exec_timeout);
    check_error("aedis", aedis::error::invalid_data_type);
    check_error("aedis", aedis::error::not_a_number);
-   check_error("aedis", aedis::error::unexpected_read_size);
    check_error("aedis", aedis::error::exceeeds_max_nested_depth);
    check_error("aedis", aedis::error::unexpected_bool_value);
    check_error("aedis", aedis::error::empty_field);
@@ -814,3 +820,4 @@ BOOST_AUTO_TEST_CASE(type_convert)
    CHECK_CASE(streamed_string_part);
 #undef CHECK_CASE
 }
+

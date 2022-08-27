@@ -7,6 +7,15 @@
 
 * Replaces autotools with CMake.
 
+* Fixes a bug in `aedis::adapt()` that would cause RESP3 errors to be
+  ignored. One consequence of that behaviour is that
+  `connection::async_run` would not exit with failure in servers that
+  required authentication.
+
+* Fixes a bug in `connection::async_run` that would cause it to
+  complete with success when an error in the `connection::async_exec`
+  occurred.
+
 ## v1.0.0
 
 * Adds experimental cmake support for windows users.
@@ -31,7 +40,7 @@
   complete under certain conditions.
 
 * Bugfix: Documentation of `adapt()` functions were missing from
-  doxygen.
+  Doxygen.
 
 ## v0.3.0
 
@@ -85,7 +94,7 @@
 ## v0.2.0
 
 * Major rewrite of the high-level API. There is no more need to use the low-level API anymore.
-* No more callbacks: Sending requests follows the ASIO asynchrnous model.
+* No more callbacks: Sending requests follows the ASIO asynchronous model.
 * Support for reconnection: Pending requests are not canceled when a connection is lost and are re-sent when a new one is established.
 * The library is not sending HELLO-3 on user behalf anymore. This is important to support AUTH properly.
 

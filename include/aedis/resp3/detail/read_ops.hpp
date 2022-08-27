@@ -23,7 +23,14 @@ namespace detail {
 #include <boost/asio/yield.hpp>
 
 struct ignore_response {
-   void operator()(node<boost::string_view>, boost::system::error_code&) { }
+   void operator()(node<boost::string_view> nd, boost::system::error_code& ec)
+   {
+      switch (nd.data_type) {
+         case resp3::type::simple_error: ec = error::resp3_simple_error; return;
+         case resp3::type::blob_error: ec = error::resp3_blob_error; return;
+         default: return;
+      }
+   }
 };
 
 template <
@@ -61,6 +68,7 @@ public:
                self.complete(ec, 0);
                return;
             }
+
          } else {
 	    // On a bulk read we can't read until delimiter since the
 	    // payload may contain the delimiter itself so we have to

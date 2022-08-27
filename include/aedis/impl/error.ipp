@@ -25,7 +25,6 @@ struct error_category_impl : boost::system::error_category {
 	 case error::exec_timeout: return "Exec timeout.";
 	 case error::invalid_data_type: return "Invalid resp3 type.";
 	 case error::not_a_number: return "Can't convert string to number.";
-	 case error::unexpected_read_size: return "Unexpected read size.";
 	 case error::exceeeds_max_nested_depth: return "Exceeds the maximum number of nested responses.";
 	 case error::unexpected_bool_value: return "Unexpected bool value.";
 	 case error::empty_field: return "Expected field value is empty.";
@@ -39,9 +38,7 @@ struct error_category_impl : boost::system::error_category {
 	 case error::incompatible_size: return "Aggregate container has incompatible size.";
 	 case error::not_a_double: return "Not a double.";
 	 case error::resp3_null: return "Got RESP3 null.";
-	 default:
-            BOOST_ASSERT(false);
-            return "Aedis error.";
+	 default: BOOST_ASSERT(false); return "Aedis error.";
       }
    }
 };
