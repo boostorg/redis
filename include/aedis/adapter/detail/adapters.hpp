@@ -91,9 +91,9 @@ from_bulk(
 void set_on_resp3_error(resp3::type t, boost::system::error_code& ec)
 {
    switch (t) {
-      case resp3::type::simple_error: ec = error::simple_error; return;
-      case resp3::type::blob_error: ec = error::blob_error; return;
-      case resp3::type::null: ec = error::null; return;
+      case resp3::type::simple_error: ec = error::resp3_simple_error; return;
+      case resp3::type::blob_error: ec = error::resp3_blob_error; return;
+      case resp3::type::null: ec = error::resp3_null; return;
       default: return;
    }
 }

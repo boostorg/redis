@@ -1,5 +1,12 @@
 # Changelog
 
+## master
+
+* Fixes a bug in `connection::async_receive_push` that prevented
+  passing any response adapter other that `adapt(std::vector<node>)`.
+
+* Replaces autotools with CMake.
+
 ## v1.0.0
 
 * Adds experimental cmake support for windows users.

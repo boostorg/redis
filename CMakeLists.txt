@@ -109,3 +109,12 @@ add_custom_target(
 
 include(CPack)
 
+# TODO
+#=======================================================================
+
+#.PHONY: bench
+#bench:
+#	pdflatex --jobname=echo-f0 benchmarks/benchmarks.tex
+#	pdflatex --jobname=echo-f1 benchmarks/benchmarks.tex
+# pdftoppm {input.pdf} {output.file} -png
+

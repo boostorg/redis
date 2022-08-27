@@ -371,12 +371,11 @@ public:
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
-      // TODO: Use adapter::response_traits  here instead of aedis::response_traits
       auto f =
          [adapter]
          (resp3::node<boost::string_view> const& node, boost::system::error_code& ec) mutable
       {
-         adapter(std::size_t(-1), node, ec);
+         adapter(0, node, ec);
       };
 
       return boost::asio::async_compose

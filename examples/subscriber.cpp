@@ -8,7 +8,9 @@
 #include <vector>
 #include <iostream>
 #include <tuple>
+
 #include <boost/asio.hpp>
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <aedis.hpp>
 #include "print.hpp"
 
@@ -82,3 +84,7 @@ int main()
       std::cerr << "Error: " << e.what() << std::endl;
    }
 }
+
+#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
+int main() {std::cout << "Requires coroutine support." << std::endl; return 1;}
+#endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

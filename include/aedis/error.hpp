@@ -62,10 +62,10 @@ enum class error
    nested_aggregate_not_supported,
 
    /// Got RESP3 simple error.
-   simple_error,
+   resp3_simple_error,
 
    /// Got RESP3 blob_error.
-   blob_error,
+   resp3_blob_error,
 
    /// Aggregate container has incompatible size.
    incompatible_size,
@@ -74,7 +74,7 @@ enum class error
    not_a_double,
 
    /// Got RESP3 null.
-   null
+   resp3_null
 };
 
 /** \internal

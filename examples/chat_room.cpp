@@ -6,15 +6,15 @@
 
 #include <string>
 #include <iostream>
-#include <boost/asio.hpp>
-#include <aedis.hpp>
 #include "unistd.h"
+
+#include <boost/asio.hpp>
+#if defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
+#include <aedis.hpp>
 #include "print.hpp"
 
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
-
-#if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 
 namespace net = boost::asio;
 using aedis::adapt;
@@ -91,6 +91,6 @@ int main()
    }
 }
 
-#else // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
-int main() {}
-#endif // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
+#else // defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
+int main() {std::cout << "Requires coroutine support." << std::endl; return 1;}
+#endif // defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)

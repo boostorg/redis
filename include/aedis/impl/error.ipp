@@ -34,11 +34,11 @@ struct error_category_impl : boost::system::error_category {
 	 case error::expects_resp3_map: return "Expects resp3 map.";
 	 case error::expects_resp3_set: return "Expects resp3 set.";
 	 case error::nested_aggregate_not_supported: return "Nested aggregate not_supported.";
-	 case error::simple_error: return "Got RESP3 simple-error.";
-	 case error::blob_error: return "Got RESP3 blob-error.";
+	 case error::resp3_simple_error: return "Got RESP3 simple-error.";
+	 case error::resp3_blob_error: return "Got RESP3 blob-error.";
 	 case error::incompatible_size: return "Aggregate container has incompatible size.";
 	 case error::not_a_double: return "Not a double.";
-	 case error::null: return "Got RESP3 null.";
+	 case error::resp3_null: return "Got RESP3 null.";
 	 default:
             BOOST_ASSERT(false);
             return "Aedis error.";

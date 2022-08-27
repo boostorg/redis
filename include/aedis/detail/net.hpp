@@ -56,15 +56,13 @@ struct connect_op {
             std::move(self));
 
          switch (order[0]) {
-            case 0: self.complete(ec1, ep); break;
+            case 0: self.complete(ec1, ep); return;
             case 1:
             {
-               if (ec2)
-                  self.complete({}, ep);
-               else
-                  self.complete(error::connect_timeout, ep);
-
-            } break;
+               BOOST_ASSERT_MSG(!ec2, "connect_op: Incompatible state.");
+               self.complete(error::connect_timeout, ep);
+               return;
+            }
 
             default: BOOST_ASSERT(false);
          }
@@ -98,26 +96,17 @@ struct resolve_op {
             std::move(self));
 
          switch (order[0]) {
-            case 0:
-            {
-               if (ec1) {
-                  self.complete(ec1, {});
-                  return;
-               }
-            } break;
+            case 0: self.complete(ec1, res); return;
 
             case 1:
             {
-               if (!ec2) {
-                  self.complete(error::resolve_timeout, {});
-                  return;
-               }
-            } break;
+               BOOST_ASSERT_MSG(!ec2, "resolve_op: Incompatible state.");
+               self.complete(error::resolve_timeout, {});
+               return;
+            }
 
             default: BOOST_ASSERT(false);
          }
-
-         self.complete({}, res);
       }
    }
 };

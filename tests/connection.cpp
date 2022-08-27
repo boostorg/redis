@@ -56,6 +56,25 @@ BOOST_AUTO_TEST_CASE(test_resolve)
 
 //----------------------------------------------------------------
 
+BOOST_AUTO_TEST_CASE(test_resolve_with_timeout)
+{
+   net::io_context ioc;
+
+   connection db{ioc};
+   db.get_config().host = "Atibaia";
+   db.get_config().port = "6379";
+   // Low-enough to cause a timeout always.
+   db.get_config().resolve_timeout = std::chrono::milliseconds{1};
+
+   db.async_run([](auto const& ec) {
+      BOOST_CHECK_EQUAL(ec, aedis::error::resolve_timeout);
+   });
+
+   ioc.run();
+}
+
+//----------------------------------------------------------------
+
 BOOST_AUTO_TEST_CASE(test_connect)
 {
    connection::config cfg;
@@ -67,6 +86,22 @@ BOOST_AUTO_TEST_CASE(test_connect)
    connection db{ioc, cfg};
    db.async_run([](auto ec) {
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::connection_refused);
+   });
+   ioc.run();
+}
+
+//----------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(test_connect_timeout)
+{
+   net::io_context ioc;
+   connection db{ioc};
+   db.get_config().host = "example.com";
+   db.get_config().port = "1";
+   db.get_config().connect_timeout = std::chrono::milliseconds{1};
+
+   db.async_run([](auto ec) {
+      BOOST_CHECK_EQUAL(ec, aedis::error::connect_timeout);
    });
    ioc.run();
 }
@@ -125,6 +160,21 @@ BOOST_AUTO_TEST_CASE(test_quit)
    test_quit2(cfg);
 }
 
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
+
+net::awaitable<void> send_after(std::shared_ptr<connection> db, std::chrono::milliseconds ms)
+{
+   net::steady_timer st{co_await net::this_coro::executor};
+   st.expires_after(ms);
+   co_await st.async_wait(net::use_awaitable);
+
+   request req;
+   req.push("CLIENT", "PAUSE", ms.count());
+
+   auto [ec, n] = co_await db->async_exec(req, adapt(), as_tuple(net::use_awaitable));
+   BOOST_TEST(!ec);
+}
+
 BOOST_AUTO_TEST_CASE(test_idle)
 {
    std::chrono::milliseconds ms{5000};
@@ -139,12 +189,7 @@ BOOST_AUTO_TEST_CASE(test_idle)
       net::io_context ioc;
       auto db = std::make_shared<connection>(ioc, cfg);
 
-      request req;
-      req.push("CLIENT", "PAUSE", ms.count());
-
-      db->async_exec(req, adapt(), [](auto ec, auto){
-         BOOST_TEST(!ec);
-      });
+      net::co_spawn(ioc.get_executor(), send_after(db, ms), net::detached);
 
       db->async_run([](auto ec){
          BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
@@ -161,7 +206,7 @@ BOOST_AUTO_TEST_CASE(test_idle)
    {
       net::io_context ioc;
       auto db = std::make_shared<connection>(ioc);
-      db->get_config().ping_interval = 2* ms;
+      db->get_config().ping_interval = 2 * ms;
       db->get_config().resolve_timeout = 2 * ms;
       db->get_config().connect_timeout = 2 * ms;
       db->get_config().ping_interval = 2 * ms;
@@ -177,7 +222,6 @@ BOOST_AUTO_TEST_CASE(test_idle)
    }
 }
 
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
 net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
 {
    request req;
@@ -211,9 +255,8 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
 }
 
 // Test whether the client works after a reconnect.
-void test_reconnect()
+BOOST_AUTO_TEST_CASE(test_reconnect)
 {
-   std::cout << "Start: test_reconnect" << std::endl;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc.get_executor());
    db->get_config().enable_events = true;
@@ -227,7 +270,23 @@ void test_reconnect()
    });
 
    ioc.run();
-   std::cout << "End: test_reconnect()" << std::endl;
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_fail)
+{
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc.get_executor());
+
+   // Should cause an error in the authentication as our redis server
+   // has no authentication configured.
+   db->get_config().username = "caboclo-do-mato";
+   db->get_config().password = "jabuticaba";
+
+   db->async_run([](auto ec) {
+      BOOST_CHECK_EQUAL(ec, aedis::error::resp3_simple_error);
+   });
+
+   ioc.run();
 }
 
 #endif

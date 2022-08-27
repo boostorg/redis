@@ -45,89 +45,47 @@
 
     \section using-aedis Installation
 
-    To install and use Aedis you will need
-  
-    - Boost 1.78 or greater.
-    - C++17. Some examples require C++20 with coroutine support.
-    - Redis 6 or higher. Optionally also redis-cli and Redis Sentinel.
-
-    For a simple installation run
+    Download Aedis from github by either checking out the latest
+    release tag or downloading the tarball
 
     ```
     $ git clone --branch v1.0.0 https://github.com/mzimbres/aedis.git
-    $ cd aedis
-
-    # Option 1: Direct compilation.
-    $ g++ -std=c++17 -pthread examples/intro.cpp -I./include -I/path/boost_1_79_0/include/
-
-    # Option 2: Use cmake.
-    $ BOOST_ROOT=/opt/boost_1_79_0/ cmake -DCMAKE_CXX_FLAGS=-std=c++20 .
-    ```
-
-    @note CMake support is still experimental.
-
-    For a proper full installation on the system run
-
-    ```
-    # Download and unpack the latest release
+    
+    # or
     $ wget https://github.com/mzimbres/aedis/releases/download/v1.0.0/aedis-1.0.0.tar.gz
-    $ tar -xzvf aedis-1.0.0.tar.gz
-
-    # Configure, build and install
-    $ CXXFLAGS="-std=c++17" ./configure --prefix=/opt/aedis-1.0.0 --with-boost=/opt/boost_1_78_0
-    $ sudo make install
     ```
 
-    To build examples and tests
-
-    ```
-    $ make
-    ```
-
-    @subsection using_aedis Using Aedis
-
-    When writing you own applications include the following header 
+    Aedis is a header only library, so you can starting using it. For
+    that include the following header 
   
     ```cpp
     #include <aedis/src.hpp>
 
     ```
 
-    in no more than one source file in your applications.
+    in no more than one source file in your applications, see
+    intro.cpp for example.  To build the examples, run the tests etc.
+    cmake is also supported
 
-    @subsection sup-comp Supported compilers
+    ```
+    $ BOOST_ROOT=/opt/boost_1_79_0/ cmake -DCMAKE_CXX_FLAGS=-std=c++20 .
+    $ make
+    $ make test
+    ```
 
-    Aedis has been tested with the following compilers
+    Notice you have to specify the compiler flags manually.
 
-    - Tested with gcc: 12, 11.
-    - Tested with clang: 14, 13, 11.
+    These are the requirements for using Aedis
   
-    @subsection Developers
-  
-    To generate the build system clone the repository and run
-  
-    ```
-    # git clone https://github.com/mzimbres/aedis.git
-    $ autoreconf -i
-    ```
-  
-    After that we get a configure script that can be run as explained
-    above, for example, to build with a compiler other that the system
-    compiler with coverage support run
-  
-    ```
-    $ CXX=gcc++-11 \
-      CXXFLAGS="-g -std=c++20 -Wall -Wextra --coverage -fkeep-inline-functions -fkeep-static-functions" \
-      LDFLAGS="--coverage" \
-      ./configure --with-boost=/opt/boost_1_79_0
-    ```
+    - Boost 1.78 or greater.
+    - C++17. Some examples require C++20 with coroutine support.
+    - Redis 6 or higher. Optionally also redis-cli and Redis Sentinel.
 
-    To generate release tarballs run
+    The following compilers are supported
 
-    ```
-    $ make distcheck
-    ```
-
+    - Tested with gcc: 10, 11, 12.
+    - Tested with clang: 11, 13, 14.
+  
     \section requests Requests
 
     Redis requests are composed of one of more Redis commands (in

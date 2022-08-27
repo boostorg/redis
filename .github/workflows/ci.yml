@@ -21,13 +21,12 @@ jobs:
           - { toolset: clang, compiler: clang++-13, install: clang-13, os: ubuntu-22.04, cxxstd: 'c++20' }
     runs-on: ${{ matrix.os }}
     env:
-      CXX: ${{ matrix.compiler }}
-      CXXFLAGS: -std=${{matrix.cxxstd}} -Wall -Wextra
+      CXXFLAGS: -g -O0 -std=${{matrix.cxxstd}} -Wall -Wextra
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-    - name: Install Autotools
-      run: sudo apt install automake
+    - name: Install CMake
+      run: sudo apt-get -y install cmake
     - name: Install compiler
       run: sudo apt-get install -y ${{ matrix.install }}
     - name: Install Redis
@@ -38,11 +37,10 @@ jobs:
       with:
         boost_version: 1.79.0
         platform_version: 22.04
-    - name: Configure
+    - name: Run CMake
       run: |
-        autoreconf -i
-        ./configure --with-boost=${{ steps.install-boost.outputs.BOOST_ROOT }}
+        BOOST_ROOT=${{steps.install-boost.outputs.BOOST_ROOT}} cmake -DCMAKE_CXX_COMPILER="${{matrix.compiler}}" -DCMAKE_CXX_FLAGS="${{env.CXXFLAGS}}"
     - name: Build
       run: make
     - name: Check
-      run: make check VERBOSE=1
+      run: make test VERBOSE=1

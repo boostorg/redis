@@ -6,7 +6,9 @@
 
 #include <string>
 #include <iostream>
+
 #include <boost/asio.hpp>
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <aedis.hpp>
 
 // Include this in no more than one .cpp file.
@@ -60,3 +62,7 @@ int main()
       std::cerr << e.what() << std::endl;
    }
 }
+
+#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
+int main() {std::cout << "Requires coroutine support." << std::endl; return 1;}
+#endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
