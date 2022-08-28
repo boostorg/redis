@@ -57,8 +57,11 @@ net::awaitable<void> event_receiver(std::shared_ptr<connection> db)
    req.push("SUBSCRIBE", "channel");
 
    for (;;) {
-      auto ev = co_await db->async_receive_event();
-      if (ev == connection::event::hello)
+      boost::system::error_code ec;
+      auto const ev = co_await db->async_receive_event(net::redirect_error(net::use_awaitable, ec));
+      std::cout << (int)ev << ": " << ec.message() << std::endl;
+
+      if (!ec && ev == connection::event::hello)
          co_await db->async_exec(req);
    }
 }

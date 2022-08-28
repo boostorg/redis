@@ -7,14 +7,18 @@
 
 * Replaces autotools with CMake.
 
-* Fixes a bug in `aedis::adapt()` that would cause RESP3 errors to be
-  ignored. One consequence of that behaviour is that
-  `connection::async_run` would not exit with failure in servers that
-  required authentication.
+* Changes the behaviour of `aedis::adapt()` that caused RESP3 errors
+  to be ignored. One consequence of it is that `connection::async_run`
+  would not exit with failure in servers that required authentication.
 
-* Fixes a bug in `connection::async_run` that would cause it to
-  complete with success when an error in the `connection::async_exec`
-  occurred.
+* Changes the behaviour of `connection::async_run` that would cause it
+  to complete with success when an error in the
+  `connection::async_exec` occurred.
+
+* Changes the behaviour of `connection::async_receive_event`. Now it
+  communicates events both on success and on error. User are advised
+  to review their use of this function, i.e. errors communicated by
+  this function have logging purpose and don't need error handing.
 
 ## v1.0.0
 

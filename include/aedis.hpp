@@ -31,19 +31,19 @@
     \li Healthy checks, back pressure and low latency.
     \li Hides most of the low level asynchronous operations away from the user.
 
-    It is worth having a look into some examples to apreciate the
-    simplicity Aedis brings
+    Before jumping to the next section users are advised to skim over
+    the examples for an overview on how Aedis works.
 
-    @li intro.cpp: Basic steps with Aedis.
+    @li intro.cpp: This is the Aedis hello-world program. It sends one command to Redis and quits the connection.
     @li intro_sync.cpp: Synchronous version of intro.cpp.
-    @li containers.cpp: Shows how to send and receive stl containers.
-    @li serialization.cpp: Shows how to serialize your own types.
+    @li containers.cpp: Shows how to send and receive stl containers. In addition to that it also shows how to deal with transactions.
+    @li serialization.cpp: Shows how to serialize types using Boost.Json.
     @li subscriber.cpp: Shows how to use pubsub.
     @li subscriber_sync.cpp: Synchronous version of subscriber.cpp.
     @li echo_server.cpp: A simple TCP echo server that uses coroutines.
     @li chat_room.cpp: A simple chat room that uses coroutines.
 
-    \section using-aedis Installation
+    \subsection using-aedis Installation
 
     Download Aedis from github by either checking out the latest
     release tag or downloading the tarball
@@ -86,7 +86,11 @@
     - Tested with gcc: 10, 11, 12.
     - Tested with clang: 11, 13, 14.
   
-    \section requests Requests
+    \section Tutorial
+
+    TODO: General instructions about how to call `async_run`.
+
+    \subsection requests Requests
 
     Redis requests are composed of one of more Redis commands (in
     Redis documentation they are called
@@ -120,7 +124,7 @@
     co_await db->async_exec(req, adapt(resp));
     @endcode
 
-    \subsection requests-serialization Serialization
+    \subsubsection requests-serialization Serialization
 
     The \c push and \c push_range functions above work with integers
     e.g. \c int and \c std::string out of the box. To send your own
@@ -151,7 +155,7 @@
 
     Example serialization.cpp shows how store json string in Redis.
 
-    \section low-level-responses Responses
+    \subsection low-level-responses Responses
 
     To read responses effectively, users must know their RESP3 type,
     this can be found in the Redis documentation for each command
@@ -221,7 +225,7 @@
     which means in practice users will be concerned with a reduced
     subset of the RESP3 specification.
 
-    \subsection Optional
+    \subsubsection Optional
 
     It is not uncommon for apps to access keys that do not exist or
     that have already expired in the Redis server, to deal with these
@@ -235,7 +239,7 @@
 
     Everything else stays the same.
 
-    \subsection transactions Transactions
+    \subsubsection transactions Transactions
 
     To read the response to transactions we have to observe that Redis
     queues the commands as they arrive and sends the responses back to
@@ -278,7 +282,7 @@
     themselves but whether they have been successfully queued. For a
     complete example see containers.cpp.
 
-    \subsection Deserialization
+    \subsubsection Deserialization
 
     As mentioned in \ref requests-serialization, it is common to
     serialize data before sending it to Redis e.g.  to json strings.
@@ -297,7 +301,7 @@
     After that, you can start receiving data efficiently in the desired
     types e.g. \c mystruct, \c std::map<std::string, mystruct> etc.
 
-    \subsection gen-case The general case
+    \subsubsection gen-case The general case
 
     There are cases where responses to Redis
     commands won't fit in the model presented above, some examples are

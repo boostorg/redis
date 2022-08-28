@@ -171,8 +171,6 @@ auto async_resolve(
       boost::string_view port,
       CompletionToken&& token = CompletionToken{})
 {
-   // TODO: Use static_assert to check Resolver::executor_type and
-   // Timer::executor_type are same.
    return boost::asio::async_compose
       < CompletionToken
       , void(boost::system::error_code, boost::asio::ip::tcp::resolver::results_type)

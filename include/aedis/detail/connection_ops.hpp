@@ -384,6 +384,7 @@ struct start_op {
 template <class Conn>
 struct run_one_op {
    Conn* conn;
+   boost::system::error_code last_ec{};
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -396,47 +397,47 @@ struct run_one_op {
       {
          yield
          conn->async_resolve_with_timeout(std::move(self));
-         if (ec) {
-            conn->cancel(Conn::operation::run);
-            self.complete(ec);
-            return;
-         }
-
+         last_ec = ec;
          if (conn->cfg_.enable_events) {
             yield
-            conn->event_channel_.async_send({}, Conn::event::resolve, std::move(self));
+            conn->event_channel_.async_send(ec, Conn::event::resolve, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
             }
+         }
+
+         if (last_ec) {
+            conn->cancel(Conn::operation::run);
+            self.complete(last_ec);
+            return;
          }
 
          conn->socket_ = std::make_shared<typename Conn::next_layer_type>(conn->resv_.get_executor());
 
          yield
          conn->async_connect_with_timeout(std::move(self));
-         if (ec) {
-            conn->cancel(Conn::operation::run);
-            self.complete(ec);
-            return;
-         }
-
+         last_ec = ec;
          if (conn->cfg_.enable_events) {
             yield
-            conn->event_channel_.async_send({}, Conn::event::connect, std::move(self));
+            conn->event_channel_.async_send(ec, Conn::event::connect, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
             }
          }
 
+         if (last_ec) {
+            conn->cancel(Conn::operation::run);
+            self.complete(last_ec);
+            return;
+         }
+
          conn->req_.clear();
          if (!std::empty(conn->cfg_.username) && !std::empty(conn->cfg_.password)) {
             conn->req_.push("AUTH", conn->cfg_.username, conn->cfg_.password);
          }
-
          conn->req_.push("HELLO", "3");
-
          conn->ping_timer_.expires_after(conn->cfg_.ping_interval);
 
          yield
@@ -449,19 +450,20 @@ struct run_one_op {
             std::move(self)
          );
 
-         if (ec) {
-            conn->cancel(Conn::operation::run);
-            self.complete(ec);
-            return;
-         }
-
+         last_ec = ec;
          if (conn->cfg_.enable_events) {
             yield
-            conn->event_channel_.async_send({}, Conn::event::hello, std::move(self));
+            conn->event_channel_.async_send(ec, Conn::event::hello, std::move(self));
             if (ec) {
                self.complete(ec);
                return;
             }
+         }
+
+         if (last_ec) {
+            conn->cancel(Conn::operation::run);
+            self.complete(last_ec);
+            return;
          }
 
          conn->write_buffer_.clear();
@@ -470,8 +472,7 @@ struct run_one_op {
             return ptr->written = false;
          });
 
-         yield
-         conn->async_start(std::move(self));
+         yield conn->async_start(std::move(self));
          self.complete(ec);
       }
    }
@@ -497,10 +498,6 @@ struct run_op {
             self.complete(ec);
             return;
          }
-
-         // Consider communicating the return of async_run_one as an
-         // event here.
-         // TODO: Add event trying_again and sent it here.
 
          conn->ping_timer_.expires_after(conn->cfg_.reconnect_interval);
          yield

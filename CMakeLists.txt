@@ -17,7 +17,28 @@ project(
 )
 
 add_library(aedis INTERFACE)
-target_include_directories(aedis INTERFACE include)
+target_include_directories(aedis INTERFACE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(aedis
+  INTERFACE
+    Boost::asio
+    Boost::assert
+    Boost::config
+    Boost::core
+    Boost::mp11
+    Boost::optional
+    Boost::system
+    Boost::utility
+    Boost::winapi
+)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/AedisConfigVersion.cmake"
+    COMPATIBILITY AnyNewerVersion
+)
 
 find_package(Boost 1.79 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
@@ -58,12 +79,25 @@ add_test(low_level_sync low_level_sync)
 # Install
 #=======================================================================
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/boost
-   DESTINATION include
-   FILES_MATCHING
-      PATTERN "*.hpp"
-      PATTERN "*.ipp"
+install(TARGETS aedis
+    EXPORT aedis
+    PUBLIC_HEADER DESTINATION include COMPONENT Development
 )
+
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+   "${PROJECT_SOURCE_DIR}/cmake/AedisConfig.cmake.in"
+   "${PROJECT_BINARY_DIR}/AedisConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/aedis
+)
+
+install(EXPORT aedis DESTINATION lib/cmake/aedis)
+install(FILES "${PROJECT_BINARY_DIR}/AedisConfigVersion.cmake"
+    "${PROJECT_BINARY_DIR}/AedisConfig.cmake"
+     DESTINATION lib/cmake/aedis)
+
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 
 # Doxygen
 #=======================================================================
