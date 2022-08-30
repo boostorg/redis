@@ -139,7 +139,6 @@ BOOST_AUTO_TEST_CASE(test_reconnect_timeout)
 {
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
-   db->get_config().enable_reconnect = true;
 
    request req1;
    req1.push("CLIENT", "PAUSE", 7000);
@@ -147,16 +146,11 @@ BOOST_AUTO_TEST_CASE(test_reconnect_timeout)
    request req2;
    req2.push("QUIT");
 
-   db->async_exec(req1, adapt(), [db, &req2](auto ec, auto){
+   db->async_run(req1, adapt(), [db, &req2](auto ec, auto){
       BOOST_TEST(!ec);
-      db->async_exec(req2, adapt(), [db](auto ec, auto){
-         db->get_config().enable_reconnect = false;
-         BOOST_TEST(!ec);
+      db->async_run(req2, adapt(), [db](auto ec, auto){
+         BOOST_TEST(!!ec);
       });
-   });
-
-   db->async_run([](auto ec){
-      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
 
    ioc.run();

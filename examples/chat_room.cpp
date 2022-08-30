@@ -24,6 +24,7 @@ using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::stream_descriptor>;
 using connection = aedis::connection<tcp_socket>;
+using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 
 // Chat over redis pubsub. To test, run this program from different
 // terminals and type messages to stdin. Use
@@ -43,17 +44,21 @@ net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
 }
 
 // Subscribes to the channels when a new connection is stablished.
-net::awaitable<void> event_receiver(std::shared_ptr<connection> db)
+net::awaitable<void> reconnect(std::shared_ptr<connection> db)
 {
    request req;
    req.push("SUBSCRIBE", "chat-channel");
 
+   stimer timer{co_await net::this_coro::executor};
    for (;;) {
-      auto ev = co_await db->async_receive_event();
-      if (ev == connection::event::hello)
-         co_await db->async_exec(req);
+      boost::system::error_code ec;
+      co_await db->async_run(req, adapt(), net::redirect_error(net::use_awaitable, ec));
+      std::cout << ec.message() << std::endl;
+      timer.expires_after(std::chrono::seconds{1});
+      co_await timer.async_wait();
    }
 }
+
 
 // Publishes messages to other users.
 net::awaitable<void> publisher(stream_descriptor& in, std::shared_ptr<connection> db)
@@ -67,20 +72,16 @@ net::awaitable<void> publisher(stream_descriptor& in, std::shared_ptr<connection
    }
 }
 
-int main()
+auto main() -> int
 {
    try {
       net::io_context ioc{1};
       stream_descriptor in{ioc, ::dup(STDIN_FILENO)};
 
       auto db = std::make_shared<connection>(ioc);
-      db->get_config().enable_events = true;
-      db->get_config().enable_reconnect = true;
-
       co_spawn(ioc, publisher(in, db), net::detached);
       co_spawn(ioc, push_receiver(db), net::detached);
-      co_spawn(ioc, event_receiver(db), net::detached);
-      db->async_run(net::detached);
+      co_spawn(ioc, reconnect(db), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });
@@ -92,5 +93,5 @@ int main()
 }
 
 #else // defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
-int main() {std::cout << "Requires coroutine support." << std::endl; return 1;}
+auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 1;}
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)

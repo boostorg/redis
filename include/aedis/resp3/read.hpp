@@ -15,8 +15,7 @@
 #include <boost/asio/compose.hpp>
 #include <boost/asio/async_result.hpp>
 
-namespace aedis {
-namespace resp3 {
+namespace aedis::resp3 {
 
 /** \internal
  *  \brief Reads a complete response to a command sychronously.
@@ -54,12 +53,12 @@ template <
   class DynamicBuffer,
   class ResponseAdapter
   >
-std::size_t
+auto
 read(
    SyncReadStream& stream,
    DynamicBuffer buf,
    ResponseAdapter adapter,
-   boost::system::error_code& ec)
+   boost::system::error_code& ec) -> std::size_t
 {
    detail::parser<ResponseAdapter> p {adapter};
    std::size_t n = 0;
@@ -104,7 +103,7 @@ template<
    class SyncReadStream,
    class DynamicBuffer,
    class ResponseAdapter = detail::ignore_response>
-std::size_t
+auto
 read(
    SyncReadStream& stream,
    DynamicBuffer buf,
@@ -179,7 +178,6 @@ auto async_read(
         stream);
 }
 
-} // resp3
-} // aedis
+} // aedis::resp3
 
 #endif // AEDIS_RESP3_READ_HPP

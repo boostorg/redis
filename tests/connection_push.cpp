@@ -91,37 +91,6 @@ net::awaitable<void> push_consumer1(std::shared_ptr<connection> db, bool& push_r
    push_received = true;
 }
 
-net::awaitable<void> event_consumer1(std::shared_ptr<connection> db, bool& event_received)
-{
-   {
-      auto [ec, ev] = co_await db->async_receive_event(as_tuple(net::use_awaitable));
-      auto const r = ev == connection::event::resolve;
-      BOOST_TEST(r);
-      BOOST_TEST(!ec);
-   }
-
-   {
-      auto [ec, ev] = co_await db->async_receive_event(as_tuple(net::use_awaitable));
-      auto const r = ev == connection::event::connect;
-      BOOST_TEST(r);
-      BOOST_TEST(!ec);
-   }
-
-   {
-      auto [ec, ev] = co_await db->async_receive_event(as_tuple(net::use_awaitable));
-      auto const r = ev == connection::event::hello;
-      BOOST_TEST(r);
-      BOOST_TEST(!ec);
-   }
-
-   {
-      auto [ec, ev] = co_await db->async_receive_event(as_tuple(net::use_awaitable));
-      BOOST_CHECK_EQUAL(ec, boost::asio::experimental::channel_errc::channel_cancelled);
-   }
-
-   event_received = true;
-}
-
 BOOST_AUTO_TEST_CASE(test_push_adapter)
 {
    net::io_context ioc;
@@ -157,7 +126,6 @@ void test_push_is_received1(connection::config const& cfg)
 {
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
-   db->get_config().enable_events = true;
 
    request req;
    req.push("SUBSCRIBE", "channel");
@@ -165,7 +133,6 @@ void test_push_is_received1(connection::config const& cfg)
 
    db->async_run(req, adapt(), [db](auto ec, auto){
       BOOST_TEST(!ec);
-      db->cancel(connection::operation::receive_event);
       db->cancel(connection::operation::receive_push);
    });
 
@@ -175,16 +142,9 @@ void test_push_is_received1(connection::config const& cfg)
       push_consumer1(db, push_received),
       net::detached);
 
-   bool event_received = false;
-   net::co_spawn(
-      ioc.get_executor(),
-      event_consumer1(db, event_received),
-      net::detached);
-
    ioc.run();
 
    BOOST_TEST(push_received);
-   BOOST_TEST(event_received);
 }
 
 void test_push_is_received2(connection::config const& cfg)
@@ -202,7 +162,6 @@ void test_push_is_received2(connection::config const& cfg)
    net::io_context ioc;
 
    auto db = std::make_shared<connection>(ioc, cfg);
-   db->get_config().enable_events = true;
 
    auto handler =[](auto ec, auto...)
    {
@@ -215,7 +174,6 @@ void test_push_is_received2(connection::config const& cfg)
 
    db->async_run([db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      db->cancel(connection::operation::receive_event);
       db->cancel(connection::operation::receive_push);
    });
 
@@ -225,16 +183,9 @@ void test_push_is_received2(connection::config const& cfg)
       push_consumer1(db, push_received),
       net::detached);
 
-   bool event_received = false;
-   net::co_spawn(
-      ioc.get_executor(),
-      event_consumer1(db, event_received),
-      net::detached);
-
    ioc.run();
 
    BOOST_TEST(push_received);
-   BOOST_TEST(event_received);
 }
 
 net::awaitable<void> push_consumer3(std::shared_ptr<connection> db)

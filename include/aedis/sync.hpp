@@ -23,7 +23,6 @@ namespace aedis {
 template <class Connection>
 class sync {
 public:
-   using event = typename Connection::event;
    using config = typename Connection::config;
 
    /** @brief Constructor
@@ -32,7 +31,7 @@ public:
     *  @param cfg Config options.
     */
    template <class Executor>
-   sync(Executor ex, config cfg = config{}) : conn_{ex, cfg} { }
+   explicit sync(Executor ex, config cfg = config{}) : conn_{ex, cfg} { }
 
    /** @brief Executes a request synchronously.
     *
@@ -45,7 +44,7 @@ public:
     *  @returns The number of bytes of the response.
     */
    template <class ResponseAdapter>
-   std::size_t
+   auto
    exec(resp3::request const& req, ResponseAdapter adapter, boost::system::error_code& ec)
    {
       sync_helper sh;
@@ -80,7 +79,7 @@ public:
     *  @returns The number of bytes of the response.
     */
    template <class ResponseAdapter = detail::response_traits<void>::adapter_type>
-   std::size_t exec(resp3::request const& req, ResponseAdapter adapter = aedis::adapt())
+   auto exec(resp3::request const& req, ResponseAdapter adapter = aedis::adapt())
    {
       boost::system::error_code ec;
       auto const res = exec(req, adapter, ec);
@@ -141,54 +140,6 @@ public:
       return res;
    }
 
-   /** @brief Receives events synchronously.
-    *
-    *  The functions calls `connection::async_receive_event` and
-    *  waits for its completion.
-    *
-    *  @param ec Error code in case of error.
-    *  @returns The event received.
-    */
-   auto receive_event(boost::system::error_code& ec)
-   {
-      sync_helper sh;
-      auto res = event::invalid;
-
-      auto f = [this, &ec, &res, &sh]()
-      {
-         conn_.async_receive_event([&ec, &res, &sh](auto const& ecp, event ev) {
-            std::unique_lock ul(sh.mutex);
-            ec = ecp;
-            res = ev;
-            sh.ready = true;
-            ul.unlock();
-            sh.cv.notify_one();
-         });
-      };
-
-      boost::asio::dispatch(boost::asio::bind_executor(conn_.get_executor(), f));
-      std::unique_lock lk(sh.mutex);
-      sh.cv.wait(lk, [&sh]{return sh.ready;});
-      return res;
-   }
-
-   /** @brief Receives events synchronously
-    *
-    *  The functions calls `connection::async_receive_event` and
-    *  waits for its completion.
-    *
-    *  @throws std::system_error in case of error.
-    *  @returns The event received.
-    */
-   auto receive_event()
-   {
-      boost::system::error_code ec;
-      auto const res = receive_event(ec);
-      if (ec)
-         throw std::system_error(ec);
-      return res;
-   }
-
    /** @brief Calls \c async_run from the underlying connection.
     *
     *  The functions calls `connection::async_run` and waits for its
@@ -228,6 +179,42 @@ public:
       run(ec);
       if (ec)
          throw std::system_error(ec);
+   }
+
+   /// TODO
+   template <class ResponseAdapter>
+   auto run(resp3::request const& req, ResponseAdapter adapter, boost::system::error_code& ec)
+   {
+      sync_helper sh;
+      std::size_t res = 0;
+
+      auto f = [this, &ec, &res, &sh, &req, adapter]()
+      {
+         conn_.async_run(req, adapter, [&sh, &res, &ec](auto const& ecp, std::size_t n) {
+            std::unique_lock ul(sh.mutex);
+            ec = ecp;
+            res = n;
+            sh.ready = true;
+            ul.unlock();
+            sh.cv.notify_one();
+         });
+      };
+
+      boost::asio::dispatch(boost::asio::bind_executor(conn_.get_executor(), f));
+      std::unique_lock lk(sh.mutex);
+      sh.cv.wait(lk, [&sh]{return sh.ready;});
+      return res;
+   }
+
+   /// TODO
+   template <class ResponseAdapter = detail::response_traits<void>::adapter_type>
+   auto run(resp3::request const& req, ResponseAdapter adapter = aedis::adapt())
+   {
+      boost::system::error_code ec;
+      auto const res = run(req, adapter, ec);
+      if (ec)
+         throw std::system_error(ec);
+      return res;
    }
 
 private:

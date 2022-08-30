@@ -16,9 +16,7 @@
 
 #include <aedis/resp3/detail/parser.hpp>
 
-namespace aedis {
-namespace resp3 {
-namespace detail {
+namespace aedis::resp3::detail {
 
 #include <boost/asio/yield.hpp>
 
@@ -116,8 +114,6 @@ public:
 
 #include <boost/asio/unyield.hpp>
 
-} // detail
-} // resp3
-} // aedis
+} // aedis::resp3::detail
 
 #endif // AEDIS_RESP3_READ_OPS_HPP

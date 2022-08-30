@@ -54,11 +54,22 @@
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "PROJECT_BINARY_DIR": "${sourceDir}/build/dev"
       }
+    },
+    {
+      "name": "clang-tidy",
+      "generator": "Unix Makefiles",
+      "hidden": false,
+      "inherits": ["dev"],
+      "binaryDir": "${sourceDir}/build/clang-tidy",
+      "cacheVariables": {
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--header-filter=${sourceDir}/include/*"
+      }
     }
   ],
   "buildPresets": [
      { "name": "coverage", "configurePreset": "coverage" },
-     { "name": "dev", "configurePreset": "dev" }
+     { "name": "dev", "configurePreset": "dev" },
+     { "name": "clang-tidy", "configurePreset": "clang-tidy" }
   ],
   "testPresets": [
      {

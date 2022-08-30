@@ -52,7 +52,7 @@ awaitable_type listener()
       net::co_spawn(ex, echo_loop(co_await acc.async_accept(), db), net::detached);
 }
 
-int main()
+auto main() -> int
 {
    try {
       net::io_context ioc{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE_IO};
@@ -64,5 +64,5 @@ int main()
 }
 
 #else // defined(BOOST_ASIO_HAS_CO_AWAIT)
-int main() {std::cout << "Requires coroutine support." << std::endl; return 1;}
+auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 1;}
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

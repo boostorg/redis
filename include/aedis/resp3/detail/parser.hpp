@@ -7,6 +7,7 @@
 #ifndef AEDIS_RESP3_PARSER_HPP
 #define AEDIS_RESP3_PARSER_HPP
 
+#include <array>
 #include <limits>
 #include <system_error>
 
@@ -16,11 +17,9 @@
 #include <aedis/error.hpp>
 #include <aedis/resp3/node.hpp>
 
-namespace aedis {
-namespace resp3 {
-namespace detail {
+namespace aedis::resp3::detail {
 
-std::size_t parse_uint(char const* data, std::size_t size, boost::system::error_code& ec);
+auto parse_uint(char const* data, std::size_t size, boost::system::error_code& ec) -> std::size_t;
 
 template <class ResponseAdapter>
 class parser {
@@ -38,7 +37,7 @@ private:
    // The parser supports up to 5 levels of nested structures. The
    // first element in the sizes stack is a sentinel and must be
    // different from 1.
-   std::size_t sizes_[max_embedded_depth + 1] = {1};
+   std::array<std::size_t, max_embedded_depth + 1> sizes_ = {{1}};
 
    // Contains the length expected in the next bulk read.
    std::size_t bulk_length_ = (std::numeric_limits<std::size_t>::max)();
@@ -48,15 +47,15 @@ private:
    type bulk_ = type::invalid;
 
 public:
-   parser(ResponseAdapter adapter)
+   explicit parser(ResponseAdapter adapter)
    : adapter_{adapter}
    {
       sizes_[0] = 2; // The sentinel must be more than 1.
    }
 
    // Returns the number of bytes that have been consumed.
-   std::size_t
-   consume(char const* data, std::size_t n, boost::system::error_code& ec)
+   auto
+   consume(char const* data, std::size_t n, boost::system::error_code& ec) -> std::size_t
    {
       if (bulk_ != type::invalid) {
          n = bulk_length_ + 2;
@@ -219,8 +218,6 @@ public:
    auto bulk_length() const noexcept { return bulk_length_; }
 };
 
-} // detail
-} // resp3
-} // aedis
+} // detail::resp3::aedis
 
 #endif // AEDIS_RESP3_PARSER_HPP

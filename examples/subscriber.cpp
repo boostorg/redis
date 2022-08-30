@@ -22,6 +22,7 @@ using aedis::adapt;
 using aedis::resp3::request;
 using aedis::resp3::node;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using connection = aedis::connection<tcp_socket>;
 
 /* This example will subscribe and read pushes indefinitely.
@@ -50,19 +51,18 @@ net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
    }
 }
 
-// Receives events.
-net::awaitable<void> event_receiver(std::shared_ptr<connection> db)
+net::awaitable<void> reconnect(std::shared_ptr<connection> db)
 {
    request req;
    req.push("SUBSCRIBE", "channel");
 
+   stimer timer{co_await net::this_coro::executor};
    for (;;) {
       boost::system::error_code ec;
-      auto const ev = co_await db->async_receive_event(net::redirect_error(net::use_awaitable, ec));
-      std::cout << (int)ev << ": " << ec.message() << std::endl;
-
-      if (!ec && ev == connection::event::hello)
-         co_await db->async_exec(req);
+      co_await db->async_run(req, adapt(), net::redirect_error(net::use_awaitable, ec));
+      std::cout << ec.message() << std::endl;
+      timer.expires_after(std::chrono::seconds{1});
+      co_await timer.async_wait();
    }
 }
 
@@ -72,12 +72,8 @@ int main()
       net::io_context ioc;
       auto db = std::make_shared<connection>(ioc);
 
-      db->get_config().enable_events = true;
-      db->get_config().enable_reconnect = true;
-
       net::co_spawn(ioc, push_receiver(db), net::detached);
-      net::co_spawn(ioc, event_receiver(db), net::detached);
-      db->async_run(net::detached);
+      net::co_spawn(ioc, reconnect(db), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

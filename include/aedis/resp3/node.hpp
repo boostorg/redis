@@ -45,7 +45,7 @@ struct node {
  *  @param in The node object.
  */
 template <class String>
-std::string to_string(node<String> const& in)
+auto to_string(node<String> const& in)
 {
    std::string out;
    out += std::to_string(in.depth);
@@ -84,7 +84,7 @@ bool operator==(node<String> const& a, node<String> const& b)
  *  \remark Binary data is not converted to text.
  */
 template <class String>
-std::ostream& operator<<(std::ostream& os, node<String> const& node)
+auto operator<<(std::ostream& os, node<String> const& node) -> std::ostream&
 {
    os << to_string(node);
    return os;

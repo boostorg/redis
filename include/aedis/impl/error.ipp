@@ -11,12 +11,14 @@ namespace detail {
 
 struct error_category_impl : boost::system::error_category {
 
-   char const* name() const noexcept override
+   virtual ~error_category_impl() {}
+
+   auto name() const noexcept -> char const* override
    {
       return "aedis";
    }
 
-   std::string message(int ev) const override
+   auto message(int ev) const -> std::string override
    {
       switch(static_cast<error>(ev)) {
 	 case error::resolve_timeout: return "Resolve operation timeout.";
@@ -43,7 +45,7 @@ struct error_category_impl : boost::system::error_category {
    }
 };
 
-boost::system::error_category const& category()
+auto category() -> boost::system::error_category const&
 {
   static error_category_impl instance;
   return instance;
@@ -51,7 +53,7 @@ boost::system::error_category const& category()
 
 } // detail
 
-boost::system::error_code make_error_code(error e)
+auto make_error_code(error e) -> boost::system::error_code
 {
     return boost::system::error_code{static_cast<int>(e), detail::category()};
 }

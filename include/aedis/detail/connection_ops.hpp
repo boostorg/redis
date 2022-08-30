@@ -382,9 +382,8 @@ struct start_op {
 };
 
 template <class Conn>
-struct run_one_op {
+struct run_op {
    Conn* conn;
-   boost::system::error_code last_ec{};
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -397,19 +396,9 @@ struct run_one_op {
       {
          yield
          conn->async_resolve_with_timeout(std::move(self));
-         last_ec = ec;
-         if (conn->cfg_.enable_events) {
-            yield
-            conn->event_channel_.async_send(ec, Conn::event::resolve, std::move(self));
-            if (ec) {
-               self.complete(ec);
-               return;
-            }
-         }
-
-         if (last_ec) {
+         if (ec) {
             conn->cancel(Conn::operation::run);
-            self.complete(last_ec);
+            self.complete(ec);
             return;
          }
 
@@ -417,19 +406,9 @@ struct run_one_op {
 
          yield
          conn->async_connect_with_timeout(std::move(self));
-         last_ec = ec;
-         if (conn->cfg_.enable_events) {
-            yield
-            conn->event_channel_.async_send(ec, Conn::event::connect, std::move(self));
-            if (ec) {
-               self.complete(ec);
-               return;
-            }
-         }
-
-         if (last_ec) {
+         if (ec) {
             conn->cancel(Conn::operation::run);
-            self.complete(last_ec);
+            self.complete(ec);
             return;
          }
 
@@ -449,20 +428,9 @@ struct run_one_op {
             conn->make_dynamic_buffer(),
             std::move(self)
          );
-
-         last_ec = ec;
-         if (conn->cfg_.enable_events) {
-            yield
-            conn->event_channel_.async_send(ec, Conn::event::hello, std::move(self));
-            if (ec) {
-               self.complete(ec);
-               return;
-            }
-         }
-
-         if (last_ec) {
+         if (ec) {
             conn->cancel(Conn::operation::run);
-            self.complete(last_ec);
+            self.complete(ec);
             return;
          }
 
@@ -477,35 +445,6 @@ struct run_one_op {
       }
    }
 };
-
-template <class Conn>
-struct run_op {
-   Conn* conn;
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void operator()(
-      Self& self,
-      boost::system::error_code ec = {},
-      std::size_t = 0)
-   {
-      reenter (coro) for(;;)
-      {
-         yield
-         conn->async_run_one(std::move(self));
-
-         if (!conn->cfg_.enable_reconnect) {
-            self.complete(ec);
-            return;
-         }
-
-         conn->ping_timer_.expires_after(conn->cfg_.reconnect_interval);
-         yield
-         conn->ping_timer_.async_wait(std::move(self)); 
-      }
-   }
-};
-
 
 template <class Conn>
 struct writer_op {

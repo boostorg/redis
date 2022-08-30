@@ -27,8 +27,9 @@ int main()
    std::map<std::string, int> map
       {{"key1", 10}, {"key2", 20}, {"key3", 30}};
 
+   // Sends and retrieves containers in the same request for
+   // simplification.
    request req;
-
    req.push_range("RPUSH", "rpush-key", vec); // Sends
    req.push_range("HSET", "hset-key", map); // Sends
    req.push("MULTI");

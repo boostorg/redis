@@ -178,30 +178,14 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
    request req;
    req.push("QUIT");
 
-   for (auto i = 0;;) {
-      auto ev = co_await db->async_receive_event(net::use_awaitable);
-      auto const r1 = ev == connection::event::resolve;
-      BOOST_TEST(r1);
-
-      ev = co_await db->async_receive_event(net::use_awaitable);
-      auto const r2 = ev == connection::event::connect;
-      BOOST_TEST(r2);
-
-      ev = co_await db->async_receive_event(net::use_awaitable);
-      auto const r3 = ev == connection::event::hello;
-      BOOST_TEST(r3);
-
-      co_await db->async_exec(req, adapt(), net::use_awaitable);
-
-      // Test 5 reconnetions and returns.
-
-      ++i;
-      if (i == 5) {
-         db->get_config().enable_reconnect = false;
-         co_return;
-      }
+   int i = 0;
+   for (; i < 5; ++i) {
+      boost::system::error_code ec;
+      co_await db->async_run(req, adapt(), net::redirect_error(net::use_awaitable, ec));
+      BOOST_TEST(!ec);
    }
 
+   BOOST_CHECK_EQUAL(i, 5);
    co_return;
 }
 
@@ -210,17 +194,8 @@ BOOST_AUTO_TEST_CASE(test_reconnect)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc.get_executor());
-   db->get_config().enable_events = true;
-   db->get_config().enable_reconnect = true;
-   db->get_config().reconnect_interval = std::chrono::milliseconds{100};
-
+   auto db = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, test_reconnect_impl(db), net::detached);
-
-   db->async_run([](auto ec) {
-      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-   });
-
    ioc.run();
 }
 

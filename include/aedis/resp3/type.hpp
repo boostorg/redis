@@ -11,8 +11,7 @@
 #include <vector>
 #include <string>
 
-namespace aedis {
-namespace resp3 {
+namespace aedis::resp3 {
 
 /** \brief RESP3 data types.
     \ingroup any
@@ -60,30 +59,29 @@ enum class type
  *  \ingroup any
  *  \param t RESP3 type.
  */
-char const* to_string(type t);
+auto to_string(type t) -> char const*;
 
 /** \brief Writes the type to the output stream.
  *  \ingroup any
  *  \param os Output stream.
  *  \param t RESP3 type.
  */
-std::ostream& operator<<(std::ostream& os, type t);
+auto operator<<(std::ostream& os, type t) -> std::ostream&;
 
 /* Checks whether the data type is an aggregate.
  */
-bool is_aggregate(type t);
+auto is_aggregate(type t) -> bool;
 
 // For map and attribute data types this function returns 2.  All
 // other types have value 1.
-std::size_t element_multiplicity(type t);
+auto element_multiplicity(type t) -> std::size_t;
 
 // Returns the wire code of a given type.
-char to_code(type t);
+auto to_code(type t) -> char;
 
 // Converts a wire-format RESP3 type (char) to a resp3 type.
-type to_type(char c);
+auto to_type(char c) -> type;
 
-} // resp3
-} // aedis
+} // aedis::resp3
 
 #endif // AEDIS_RESP3_TYPE_HPP

@@ -24,7 +24,7 @@
 namespace aedis {
 namespace resp3 {
 
-constexpr char separator[] = "\r\n";
+constexpr char const* separator = "\r\n";
 
 /** @brief Adds a bulk to the request.
  *  @relates request
@@ -66,7 +66,7 @@ void to_bulk(Request& to, T n)
 
 namespace detail {
 
-bool has_push_response(boost::string_view cmd);
+auto has_push_response(boost::string_view cmd) -> bool;
 
 template <class T>
 struct add_bulk_impl {
@@ -172,7 +172,7 @@ void add_separator(Request& to)
 class request {
 public:
    //// Returns the number of commands contained in this request.
-   std::size_t size() const noexcept { return commands_;};
+   auto size() const noexcept -> std::size_t { return commands_;};
 
    // Returns the request payload.
    auto const& payload() const noexcept { return payload_;}

@@ -31,8 +31,8 @@
     \li Healthy checks, back pressure and low latency.
     \li Hides most of the low level asynchronous operations away from the user.
 
-    Before jumping to the next section users are advised to skim over
-    the examples for an overview on how Aedis works.
+    Inpacient users are advised to skim over the examples before
+    proceeding to the next sections.
 
     @li intro.cpp: This is the Aedis hello-world program. It sends one command to Redis and quits the connection.
     @li intro_sync.cpp: Synchronous version of intro.cpp.
@@ -43,54 +43,37 @@
     @li echo_server.cpp: A simple TCP echo server that uses coroutines.
     @li chat_room.cpp: A simple chat room that uses coroutines.
 
-    \subsection using-aedis Installation
+    @section Tutorial
 
-    Download Aedis from github by either checking out the latest
-    release tag or downloading the tarball
+    The basic way of using Aedis in an app is to call
 
-    ```
-    $ git clone --branch v1.0.0 https://github.com/mzimbres/aedis.git
-    
-    # or
-    $ wget https://github.com/mzimbres/aedis/releases/download/v1.0.0/aedis-1.0.0.tar.gz
-    ```
+    @li `connection::async_run`: Stablishes a connection the Redis
+    server and perform it healthy checks.
+    @li `connection::async_exec`: Send commands and receive responses.
+    @li `connection::async_receive_push`: Receives server side pushes
+    (optional).
+    @li `connection::async_receive_event`: Receives internal events
+    like and address has been resolved, connection has been stablished
+    etc. (optional).
 
-    Aedis is a header only library, so you can starting using it. For
-    that include the following header 
-  
-    ```cpp
-    #include <aedis/src.hpp>
+    The calls to `connection::async_run` look like this most of the time
 
-    ```
+    @code
+    int main()
+    {
+       net::io_context ioc;
+       auto conn = std::make_shared<connection>(ioc);
+       conn->get_config().enable_reconnect = true;
 
-    in no more than one source file in your applications, see
-    intro.cpp for example.  To build the examples, run the tests etc.
-    cmake is also supported
+       // Use the connection is other operations.
+       net::co_spawn(ioc, some_operation(conn), net::detached);
 
-    ```
-    $ BOOST_ROOT=/opt/boost_1_79_0/ cmake -DCMAKE_CXX_FLAGS=-std=c++20 .
-    $ make
-    $ make test
-    ```
+       conn->async_run(net::detached);
+       ioc.run();
+    }
+    @endcode
 
-    Notice you have to specify the compiler flags manually.
-
-    These are the requirements for using Aedis
-  
-    - Boost 1.78 or greater.
-    - C++17. Some examples require C++20 with coroutine support.
-    - Redis 6 or higher. Optionally also redis-cli and Redis Sentinel.
-
-    The following compilers are supported
-
-    - Tested with gcc: 10, 11, 12.
-    - Tested with clang: 11, 13, 14.
-  
-    \section Tutorial
-
-    TODO: General instructions about how to call `async_run`.
-
-    \subsection requests Requests
+    @subsection requests Requests
 
     Redis requests are composed of one of more Redis commands (in
     Redis documentation they are called
@@ -358,6 +341,47 @@
     @li \c std::map<U, V>: Efficient if you are storing serialized data. Avoids temporaries and requires \c from_bulk for \c U and \c V.
 
     In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. `SMEMBERS`.
+
+    \section using-aedis Installation
+
+    Download the latest Aedis release from github 
+
+    ```
+    $ wget https://github.com/mzimbres/aedis/releases/download/v1.0.0/aedis-1.0.0.tar.gz
+    ```
+
+    and unpack in your prefered location. Aedis is a header only
+    library, so you can starting using it. For that include the
+    following header 
+  
+    ```cpp
+    #include <aedis/src.hpp>
+
+    ```
+
+    in no more than one source file in your applications (see
+    intro.cpp for example). To build the examples, run the tests etc.
+    cmake is also supported
+
+    ```
+    $ BOOST_ROOT=/opt/boost_1_79_0/ cmake -DCMAKE_CXX_FLAGS=-std=c++20 .
+    $ make
+    $ make test
+    ```
+
+    Notice you have to specify the compiler flags manually.
+
+    These are the requirements for using Aedis
+  
+    - Boost 1.78 or greater.
+    - C++17. Some examples require C++20 with coroutine support.
+    - Redis 6 or higher. Optionally also redis-cli and Redis Sentinel.
+
+    The following compilers are supported
+
+    - Tested with gcc: 10, 11, 12.
+    - Tested with clang: 11, 13, 14.
+  
 
     \section why-aedis Why Aedis
 

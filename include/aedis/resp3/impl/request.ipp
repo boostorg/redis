@@ -6,11 +6,9 @@
 
 #include <aedis/resp3/request.hpp>
 
-namespace aedis {
-namespace resp3 {
-namespace detail {
+namespace aedis::resp3::detail {
 
-bool has_push_response(boost::string_view cmd)
+auto has_push_response(boost::string_view cmd) -> bool
 {
    if (cmd == "SUBSCRIBE") return true;
    if (cmd == "PSUBSCRIBE") return true;
@@ -18,6 +16,4 @@ bool has_push_response(boost::string_view cmd)
    return false;
 }
 
-} // detail
-} // resp3
-} // aedis
+} // aedis::resp3::detail

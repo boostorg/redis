@@ -2,6 +2,11 @@
 
 ## master
 
+* Removes reconnect functionanlity from the `connection` class. It is
+  possible in simple reconnection strategies but bloats it in more
+  complex scenaria, for example, with sentinel and authentication.
+  This is trivial to implement separated from the class.
+
 * Fixes a bug in `connection::async_receive_push` that prevented
   passing any response adapter other that `adapt(std::vector<node>)`.
 

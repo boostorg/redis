@@ -9,14 +9,13 @@
 
 #include <boost/asio/write.hpp>
 
-namespace aedis {
-namespace resp3 {
+namespace aedis::resp3 {
 
 template<
    class SyncWriteStream,
    class Request
    >
-std::size_t write(SyncWriteStream& stream, Request const& req)
+auto write(SyncWriteStream& stream, Request const& req)
 {
    return boost::asio::write(stream, boost::asio::buffer(req.payload()));
 }
@@ -25,7 +24,7 @@ template<
     class SyncWriteStream,
     class Request
     >
-std::size_t write(
+auto write(
     SyncWriteStream& stream,
     Request const& req,
     boost::system::error_code& ec)
@@ -47,7 +46,6 @@ auto async_write(
    return boost::asio::async_write(stream, boost::asio::buffer(req.payload()), token);
 }
 
-} // resp3
-} // aedis
+} // aedis::resp3
 
 #endif // AEDIS_RESP3_WRITE_HPP

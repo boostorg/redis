@@ -74,32 +74,11 @@ public:
       /// Time interval of ping operations.
       std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
 
-      /// Time waited before trying a reconnection (see config::enable_reconnect).
-      std::chrono::milliseconds reconnect_interval = std::chrono::seconds{1};
-
       /// The maximum size of read operations.
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
 
       /// Whether to coalesce requests (see [pipelines](https://redis.io/topics/pipelining)).
       bool coalesce_requests = true;
-
-      /// Enable internal events, see connection::async_receive_event.
-      bool enable_events = false;
-
-      /// Enable automatic reconnection (see also config::reconnect_interval).
-      bool enable_reconnect = false;
-   };
-
-   /// Events that are communicated by `connection::async_receive_event`.
-   enum class event {
-      /// Resolve operation was successful.
-      resolve,
-      /// Connect operation was successful.
-      connect,
-      /// Success sending AUTH and HELLO.
-      hello,
-      /// Used internally.
-      invalid
    };
 
    /** @brief Async operations exposed by this class.
@@ -112,8 +91,6 @@ public:
       exec,
       /// `connection::async_run` operations.
       run,
-      /// `connection::async_receive_event` operations.
-      receive_event,
       /// `connection::async_receive_push` operations.
       receive_push,
    };
@@ -130,7 +107,6 @@ public:
    , writer_timer_{ex}
    , read_timer_{ex}
    , push_channel_{ex}
-   , event_channel_{ex}
    , cfg_{cfg}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
@@ -155,15 +131,12 @@ public:
     * @li `operation::exec`: Cancels operations started with `async_exec`.
     *
     * @li operation::run: Cancels `async_run`. Notice that the
-    *     preferred way to close a connection is to ensure
-    *     `config::enable_reconnect` is set to `false` and send `QUIT`
+    *     preferred way to close a connection is send `QUIT`
     *     to the server. An unresponsive Redis server will also cause
     *     the idle-checks to kick in and lead to
     *     `connection::async_run` completing with
     *     `error::idle_timeout`. Calling `cancel(operation::run)`
     *     directly should be seen as the last option.
-    *
-    * @li operation::receive_event: Cancels `connection::async_receive_event`.
     *
     * @param op: The operation to be cancelled.
     * @returns The number of operations that have been canceled.
@@ -184,6 +157,7 @@ public:
          }
          case operation::run:
          {
+            resv_.cancel();
             if (socket_)
                socket_->close();
 
@@ -203,11 +177,6 @@ public:
             });
 
             reqs_.erase(point, std::end(reqs_));
-            return 1U;
-         }
-         case operation::receive_event:
-         {
-            event_channel_.cancel();
             return 1U;
          }
          case operation::receive_push:
@@ -252,10 +221,6 @@ public:
     *  @li Starts reading from the socket and executes all requests
     *  that have been started prior to this function call.
     *
-    *  @remark When a timeout occur and config::enable_reconnect is
-    *  set, this function will automatically try a reconnection
-    *  without returning control to the user.
-    *  
     *  For an example see echo_server.cpp.
     *
     *  \param token Completion token.
@@ -347,7 +312,7 @@ public:
    /** @brief Receives server side pushes asynchronously.
     *
     *  Users that expect server pushes have to call this function in a
-    *  loop. If an unsolicited event comes in and there is no reader,
+    *  loop. If a push arrives and there is no reader,
     *  the connection will hang and eventually timeout.
     *
     *  \param adapter The response adapter.
@@ -383,23 +348,6 @@ public:
          >(detail::receive_push_op<connection, decltype(f)>{this, f}, token, resv_);
    }
 
-   /** @brief Receives internal events.
-    *
-    *  See enum \c events for the list of events.
-    *
-    *  \param token The Asio completion token.
-    *
-    *  The completion token must have the following signature
-    *
-    *  @code
-    *  void f(boost::system::error_code, event);
-    *  @endcode
-    */
-   template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_receive_event(CompletionToken token = CompletionToken{})
-   {
-      return event_channel_.async_receive(token);
-   }
    /// @}
 
 private:
@@ -409,7 +357,6 @@ private:
    using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
    using push_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
-   using event_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, event)>;
 
    struct req_info {
       req_info(executor_type ex) : timer{ex} {}
@@ -427,7 +374,6 @@ private:
    template <class T> friend struct detail::writer_op;
    template <class T> friend struct detail::ping_op;
    template <class T> friend struct detail::run_op;
-   template <class T> friend struct detail::run_one_op;
    template <class T, class U> friend struct detail::exec_op;
    template <class T, class U> friend struct detail::exec_read_op;
    template <class T, class U> friend struct detail::runexec_op;
@@ -443,7 +389,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_one_op<connection>{this}, token, resv_);
+         >(detail::run_op<connection>{this}, token, resv_);
    }
 
    void cancel_push_requests()
@@ -566,7 +512,6 @@ private:
    timer_type writer_timer_;
    timer_type read_timer_;
    push_channel_type push_channel_;
-   event_channel_type event_channel_;
 
    config cfg_;
    std::string read_buffer_;
@@ -582,33 +527,6 @@ private:
 
    resp3::request req_;
 };
-
-/** @brief Converts a connection event to a string.
- *  @relates connection
- */
-template <class T>
-char const* to_string(typename connection<T>::event e)
-{
-   using event_type = typename connection<T>::event;
-   switch (e) {
-      case event_type::resolve: return "resolve";
-      case event_type::connect: return "connect";
-      case event_type::hello: return "hello";
-      case event_type::push: return "push";
-      case event_type::invalid: return "invalid";
-      default: BOOST_ASSERT_MSG(false, "to_string: unhandled event.");
-   }
-}
-
-/** @brief Writes a connection event to the stream.
- *  @relates connection
- */
-template <class T>
-std::ostream& operator<<(std::ostream& os, typename connection<T>::event e)
-{
-   os << to_string(e);
-   return os;
-}
 
 } // aedis
 

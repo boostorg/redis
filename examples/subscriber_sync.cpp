@@ -19,20 +19,20 @@ using aedis::adapt;
 using aedis::resp3::node;
 using aedis::resp3::request;
 using connection = aedis::sync<aedis::connection<>>;
-using event = connection::event;
 
 // See subscriber.cpp for more info about how to run this example.
 
 // Subscribe again everytime there is a disconnection.
-void event_receiver(connection& conn)
+void reconnect(connection& conn)
 {
    request req;
    req.push("SUBSCRIBE", "channel");
 
    for (;;) {
-      auto ev = conn.receive_event();
-      if (ev == connection::event::hello)
-         conn.exec(req);
+      boost::system::error_code ec;
+      conn.run(req, adapt(), ec);
+      std::cout << ec.message() << std::endl;
+      std::this_thread::sleep_for(std::chrono::seconds{1});
    }
 }
 
@@ -42,14 +42,10 @@ int main()
       net::io_context ioc{1};
       auto work = net::make_work_guard(ioc);
 
-      connection::config cfg;
-      cfg.enable_events = true;
-      cfg.enable_reconnect = true;
-      connection conn{work.get_executor(), cfg};
+      connection conn{work.get_executor()};
 
       std::thread t1{[&]() { ioc.run(); }};
-      std::thread t2{[&]() { boost::system::error_code ec; conn.run(ec); }};
-      std::thread t3{[&]() { event_receiver(conn); }};
+      std::thread t2{[&]() { reconnect(conn); }};
 
       for (std::vector<node<std::string>> resp;;) {
          conn.receive_push(adapt(resp));
@@ -59,7 +55,6 @@ int main()
 
       t1.join();
       t2.join();
-      t3.join();
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

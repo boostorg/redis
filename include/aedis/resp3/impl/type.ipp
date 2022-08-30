@@ -10,7 +10,7 @@
 namespace aedis {
 namespace resp3 {
 
-char const* to_string(type t)
+auto to_string(type t) -> char const*
 {
    switch (t) {
       case type::array: return "array";
@@ -33,13 +33,13 @@ char const* to_string(type t)
    }
 }
 
-std::ostream& operator<<(std::ostream& os, type t)
+auto operator<<(std::ostream& os, type t) -> std::ostream&
 {
    os << to_string(t);
    return os;
 }
 
-bool is_aggregate(type t)
+auto is_aggregate(type t) -> bool
 {
    switch (t) {
       case type::array:
@@ -51,7 +51,7 @@ bool is_aggregate(type t)
    }
 }
 
-std::size_t element_multiplicity(type t)
+auto element_multiplicity(type t) -> std::size_t
 {
    switch (t) {
       case type::map:
@@ -60,7 +60,7 @@ std::size_t element_multiplicity(type t)
    }
 }
 
-char to_code(type t)
+auto to_code(type t) -> char
 {
    switch (t) {
       case type::blob_error:           return '!';
@@ -84,7 +84,7 @@ char to_code(type t)
    }
 }
 
-type to_type(char c)
+auto to_type(char c) -> type
 {
    switch (c) {
       case '!': return type::blob_error;
