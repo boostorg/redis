@@ -79,7 +79,7 @@ enum class error
  *  \param e Error code.
  *  \ingroup any
  */
-boost::system::error_code make_error_code(error e);
+auto make_error_code(error e) -> boost::system::error_code;
 
 } // aedis
 

@@ -81,7 +81,7 @@ read(
 	 }
       }
 
-      auto const* data = (char const*) buf.data(0, n).data();
+      auto const* data = static_cast<char const*>(buf.data(0, n).data());
       n = p.consume(data, n, ec);
       if (ec)
          return 0;

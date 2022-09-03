@@ -15,8 +15,7 @@
 #include <boost/assert.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 
-namespace aedis {
-namespace detail {
+namespace aedis::detail {
 
 template <class Executor>
 using conn_timer_t = boost::asio::basic_waitable_timer<std::chrono::steady_clock, boost::asio::wait_traits<std::chrono::steady_clock>, Executor>;
@@ -189,7 +188,6 @@ auto async_send_receive(Channel& channel, CompletionToken&& token = CompletionTo
       , void(boost::system::error_code, std::size_t)
       >(send_receive_op<Channel>{&channel}, token, channel);
 }
-} // detail
-} // aedis
+} // aedis::detail
 
 #endif // AEDIS_NET_HPP

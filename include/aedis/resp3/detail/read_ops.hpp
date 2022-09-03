@@ -40,16 +40,15 @@ private:
    AsyncReadStream& stream_;
    DynamicBuffer buf_;
    parser<ResponseAdapter> parser_;
-   std::size_t consumed_;
-   std::size_t buffer_size_;
+   std::size_t consumed_ = 0;
+   std::size_t buffer_size_ = 0;
    boost::asio::coroutine coro_{};
 
 public:
    parse_op(AsyncReadStream& stream, DynamicBuffer buf, ResponseAdapter adapter)
    : stream_ {stream}
-   , buf_ {buf}
-   , parser_ {adapter}
-   , consumed_{0}
+   , buf_ {std::move(buf)}
+   , parser_ {std::move(adapter)}
    { }
 
    template <class Self>
@@ -96,7 +95,7 @@ public:
             BOOST_ASSERT(buf_.size() >= n);
          }
 
-         n = parser_.consume((char const*)buf_.data(0, n).data(), n, ec);
+         n = parser_.consume(static_cast<char const*>(buf_.data(0, n).data()), n, ec);
          if (ec) {
             self.complete(ec, 0);
             return;

@@ -24,6 +24,7 @@ namespace net = boost::asio;
 
 using aedis::resp3::request;
 using aedis::adapt;
+using aedis::endpoint;
 using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
@@ -37,7 +38,8 @@ void test_missing_push_reader1(connection::config const& cfg)
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   db->async_run(req, adapt(), [](auto ec, auto){
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -52,7 +54,8 @@ void test_missing_push_reader2(connection::config const& cfg)
    request req; // Wrong command syntax.
    req.push("SUBSCRIBE");
 
-   db->async_run(req, adapt(), [](auto ec, auto){
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -68,7 +71,8 @@ void test_missing_push_reader3(connection::config const& cfg)
    req.push("PING", "Message");
    req.push("SUBSCRIBE");
 
-   db->async_run(req, adapt(), [](auto ec, auto){
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -111,7 +115,8 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
       BOOST_CHECK_EQUAL(ec, aedis::error::incompatible_size);
    });
 
-   db->async_run(req, adapt(), [db](auto, auto){
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, req, adapt(), [db](auto, auto){
       // TODO: use async_run and async_exec.
       //BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
@@ -131,7 +136,8 @@ void test_push_is_received1(connection::config const& cfg)
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   db->async_run(req, adapt(), [db](auto ec, auto){
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, req, adapt(), [db](auto ec, auto){
       BOOST_TEST(!ec);
       db->cancel(connection::operation::receive_push);
    });
@@ -172,7 +178,8 @@ void test_push_is_received2(connection::config const& cfg)
    db->async_exec(req2, adapt(), handler);
    db->async_exec(req3, adapt(), handler);
 
-   db->async_run([db](auto ec, auto...) {
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, [db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::receive_push);
    });
@@ -229,7 +236,8 @@ void test_push_many_subscribes(connection::config const& cfg)
    db->async_exec(req2, adapt(), handler);
    db->async_exec(req3, adapt(), handler);
 
-   db->async_run([db](auto ec, auto...) {
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, [db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::receive_push);
    });

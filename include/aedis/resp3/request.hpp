@@ -21,8 +21,7 @@
 // NOTE: For some commands like hset it would be a good idea to assert
 // the value type is a pair.
 
-namespace aedis {
-namespace resp3 {
+namespace aedis::resp3 {
 
 constexpr char const* separator = "\r\n";
 
@@ -175,7 +174,7 @@ public:
    auto size() const noexcept -> std::size_t { return commands_;};
 
    // Returns the request payload.
-   auto const& payload() const noexcept { return payload_;}
+   auto payload() const noexcept -> auto const& { return payload_;}
 
    /// Clears the request preserving allocated memory.
    void clear()
@@ -334,7 +333,6 @@ private:
    std::size_t commands_ = 0;
 };
 
-} // resp3
-} // aedis
+} // aedis::resp3
 
 #endif // AEDIS_RESP3_SERIALIZER_HPP

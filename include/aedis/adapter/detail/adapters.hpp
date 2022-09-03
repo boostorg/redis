@@ -30,18 +30,16 @@
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/node.hpp>
 
-namespace aedis {
-namespace adapter {
-namespace detail {
+namespace aedis::adapter::detail {
 
-double
-parse_double(
+inline
+auto parse_double(
    char const* data,
    std::size_t size,
-   boost::system::error_code& ec)
+   boost::system::error_code& ec) -> double
 {
    static constexpr boost::spirit::x3::real_parser<double> p{};
-   double ret;
+   double ret = 0;
    if (!parse(data, data + size, p, ret))
       ec = error::not_a_double;
 
@@ -60,6 +58,7 @@ from_bulk(
    i = resp3::detail::parse_uint(sv.data(), sv.size(), ec);
 }
 
+inline
 void from_bulk(
    bool& t,
    boost::string_view sv,
@@ -68,6 +67,7 @@ void from_bulk(
    t = *sv.data() == 't';
 }
 
+inline
 void from_bulk(
    double& d,
    boost::string_view sv,
@@ -88,6 +88,7 @@ from_bulk(
 
 //================================================
 
+inline
 void set_on_resp3_error(resp3::type t, boost::system::error_code& ec)
 {
    switch (t) {
@@ -118,7 +119,7 @@ private:
    Node* result_;
 
 public:
-   general_simple(Node* t = nullptr) : result_(t) {}
+   explicit general_simple(Node* t = nullptr) : result_(t) {}
 
    void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code& ec)
    {
@@ -384,7 +385,7 @@ private:
    typename impl_map<Result>::type impl_;
 
 public:
-   wrapper(Result* t = nullptr) : result_(t)
+   explicit wrapper(Result* t = nullptr) : result_(t)
       { impl_.on_value_available(*result_); }
 
    void
@@ -401,10 +402,10 @@ template <class T>
 class wrapper<boost::optional<T>> {
 private:
    boost::optional<T>* result_;
-   typename impl_map<T>::type impl_;
+   typename impl_map<T>::type impl_{};
 
 public:
-   wrapper(boost::optional<T>* o = nullptr) : result_(o), impl_{} {}
+   explicit wrapper(boost::optional<T>* o = nullptr) : result_(o) {}
 
    void
    operator()(
@@ -423,8 +424,6 @@ public:
    }
 };
 
-} // detail
-} // adapter
-} // aedis
+} // aedis::adapter:.detail
 
 #endif // AEDIS_ADAPTER_ADAPTERS_HPP

@@ -9,8 +9,7 @@
 
 #include <aedis/adapter/detail/response_traits.hpp>
 
-namespace aedis {
-namespace adapter {
+namespace aedis::adapter {
 
 template <class T>
 using adapter_t = typename detail::adapter_t<T>;
@@ -78,7 +77,6 @@ template<class T>
 auto adapt2(T& t) noexcept
    { return detail::response_traits<T>::adapt(t); }
 
-} // adapter
-} // aedis
+} // aedis::adapter
 
 #endif // AEDIS_ADAPTER_ADAPT_HPP

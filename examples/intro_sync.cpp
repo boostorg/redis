@@ -16,6 +16,7 @@
 namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
+using aedis::endpoint;
 using connection = aedis::sync<aedis::connection<>>;
 
 int main()
@@ -26,7 +27,11 @@ int main()
       std::thread t1{[&]() { ioc.run(); }};
 
       connection conn{work.get_executor()};
-      std::thread t2{[&]() { boost::system::error_code ec; conn.run(ec); }};
+      std::thread t2{[&]() {
+         boost::system::error_code ec;
+         endpoint ep{"127.0.0.1", "6379"};
+         conn.run(ep, ec);
+      }};
 
       request req;
       req.push("PING");

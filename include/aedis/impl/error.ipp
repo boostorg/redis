@@ -11,7 +11,7 @@ namespace detail {
 
 struct error_category_impl : boost::system::error_category {
 
-   virtual ~error_category_impl() {}
+   virtual ~error_category_impl() = default;
 
    auto name() const noexcept -> char const* override
    {

@@ -78,15 +78,8 @@
        "output": {"outputOnFailure": true},
        "execution": {"noTestsAction": "error", "stopOnFailure": true}
      },
-     {
-       "name": "coverage",
-       "configurePreset": "coverage",
-       "inherits": ["test"]
-     },
-     {
-       "name": "dev",
-       "configurePreset": "dev",
-       "inherits": ["test"]
-     }
+     { "name": "coverage",   "configurePreset": "coverage",   "inherits": ["test"] },
+     { "name": "dev",        "configurePreset": "dev",        "inherits": ["test"] },
+     { "name": "clang-tidy", "configurePreset": "clang-tidy", "inherits": ["test"] }
   ]
 }

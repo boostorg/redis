@@ -17,6 +17,7 @@ namespace net = boost::asio;
 using boost::optional;
 using aedis::adapt;
 using aedis::resp3::request;
+using aedis::endpoint;
 using connection = aedis::connection<>;
 
 int main()
@@ -50,7 +51,8 @@ int main()
 
    net::io_context ioc;
    connection db{ioc};
-   db.async_run(req, adapt(resp), [](auto ec, auto) {
+   endpoint ep{"127.0.0.1", "6379"};
+   db.async_run(ep, req, adapt(resp), [](auto ec, auto) {
       std::cout << ec.message() << std::endl;
    });
    ioc.run();

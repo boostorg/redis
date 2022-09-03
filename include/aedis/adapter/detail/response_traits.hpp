@@ -18,9 +18,7 @@
 #include <aedis/resp3/read.hpp>
 #include <aedis/adapter/detail/adapters.hpp>
 
-namespace aedis {
-namespace adapter {
-namespace detail {
+namespace aedis::adapter::detail {
 
 struct ignore {};
 
@@ -106,7 +104,7 @@ private:
    adapters_array_type adapters_;
 
 public:
-   static_aggregate_adapter(Tuple* r = nullptr)
+   explicit static_aggregate_adapter(Tuple* r = nullptr)
    {
       detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, *r);
    }
@@ -154,8 +152,6 @@ struct response_traits<std::tuple<Ts...>>
    static auto adapt(response_type& r) noexcept { return adapter_type{&r}; }
 };
 
-} // detail
-} // adapter
-} // aedis
+} // aedis::adapter::detail
 
 #endif // AEDIS_ADAPTER_RESPONSE_TRAITS_HPP

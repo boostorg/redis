@@ -98,7 +98,7 @@ public:
             case type::verbatim_string:
             case type::blob_string:
             {
-               if (*(data + 1) == '?') {
+               if (data[1] == '?') {
                   // NOTE: This can only be triggered with blob_string.
 		  // Trick: A streamed string is read as an aggregate
 		  // of infinite lenght. When the streaming is done
@@ -120,7 +120,7 @@ public:
                    return 0;
                }
 
-               if (*(data + 1) != 'f' && *(data + 1) != 't') {
+               if (data[1] != 'f' && data[1] != 't') {
                    ec = error::unexpected_bool_value;
                    return 0;
                }
@@ -149,7 +149,7 @@ public:
             case type::simple_error:
             case type::simple_string:
             {
-               adapter_({t, 1, depth_, {data + 1, n - 3}}, ec);
+               adapter_({t, 1, depth_, {&data[1], n - 3}}, ec);
 	       if (ec)
 		  return 0;
 
@@ -207,7 +207,7 @@ public:
    }
 
    // Returns true when the parser is done with the current message.
-   auto done() const noexcept
+   [[nodiscard]] auto done() const noexcept
       { return depth_ == 0 && bulk_ == type::invalid; }
 
    // The bulk type expected in the next read. If none is expected returns
@@ -215,7 +215,7 @@ public:
    auto bulk() const noexcept { return bulk_; }
 
    // The length expected in the the next bulk.
-   auto bulk_length() const noexcept { return bulk_length_; }
+   [[nodiscard]] auto bulk_length() const noexcept { return bulk_length_; }
 };
 
 } // detail::resp3::aedis

@@ -20,6 +20,7 @@ namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::resp3::node;
+using aedis::endpoint;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::stream_descriptor>;
@@ -50,9 +51,10 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
    req.push("SUBSCRIBE", "chat-channel");
 
    stimer timer{co_await net::this_coro::executor};
+   endpoint ep{"127.0.0.1", "6379"};
    for (;;) {
       boost::system::error_code ec;
-      co_await db->async_run(req, adapt(), net::redirect_error(net::use_awaitable, ec));
+      co_await db->async_run(ep, req, adapt(), net::redirect_error(net::use_awaitable, ec));
       std::cout << ec.message() << std::endl;
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();

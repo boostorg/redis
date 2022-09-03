@@ -7,8 +7,7 @@
 #include <boost/assert.hpp>
 #include <aedis/resp3/type.hpp>
 
-namespace aedis {
-namespace resp3 {
+namespace aedis::resp3 {
 
 auto to_string(type t) -> char const*
 {
@@ -107,5 +106,4 @@ auto to_type(char c) -> type
    }
 }
 
-} // resp3
-} // aedis
+} // aedis::resp3

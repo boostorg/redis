@@ -2,6 +2,11 @@
 
 ## master
 
+* Adds example on how to resolve addresses over sentinels, see
+  subscriber_sentinel.cpp.
+
+* Adds `endpoint` class.
+
 * Removes reconnect functionanlity from the `connection` class. It is
   possible in simple reconnection strategies but bloats it in more
   complex scenaria, for example, with sentinel and authentication.

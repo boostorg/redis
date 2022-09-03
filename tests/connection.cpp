@@ -25,6 +25,7 @@ namespace net = boost::asio;
 using aedis::resp3::request;
 using aedis::adapt;
 using connection = aedis::connection<>;
+using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 
@@ -41,14 +42,14 @@ bool is_host_not_found(boost::system::error_code ec)
 BOOST_AUTO_TEST_CASE(test_resolve)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-   connection::config cfg;
-   cfg.host = "Atibaia";
-   cfg.port = "6379";
-   cfg.resolve_timeout = std::chrono::seconds{100};
+   endpoint ep;
+   ep.host = "Atibaia";
+   ep.port = "6379";
 
    net::io_context ioc;
-   connection db{ioc, cfg};
-   db.async_run([](auto ec) {
+   connection db{ioc};
+   db.get_config().resolve_timeout = std::chrono::seconds{100};
+   db.async_run(ep, [](auto ec) {
       BOOST_TEST(is_host_not_found(ec));
    });
 
@@ -63,12 +64,14 @@ BOOST_AUTO_TEST_CASE(test_resolve_with_timeout)
    net::io_context ioc;
 
    connection db{ioc};
-   db.get_config().host = "Atibaia";
-   db.get_config().port = "6379";
+   endpoint ep;
+   ep.host = "Atibaia";
+   ep.port = "6379";
+
    // Low-enough to cause a timeout always.
    db.get_config().resolve_timeout = std::chrono::milliseconds{1};
 
-   db.async_run([](auto const& ec) {
+   db.async_run(ep, [](auto const& ec) {
       BOOST_CHECK_EQUAL(ec, aedis::error::resolve_timeout);
    });
 
@@ -80,14 +83,15 @@ BOOST_AUTO_TEST_CASE(test_resolve_with_timeout)
 BOOST_AUTO_TEST_CASE(test_connect)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-   connection::config cfg;
-   cfg.host = "127.0.0.1";
-   cfg.port = "1";
-   cfg.connect_timeout = std::chrono::seconds{100};
+
+   endpoint ep;
+   ep.host = "127.0.0.1";
+   ep.port = "1";
 
    net::io_context ioc;
-   connection db{ioc, cfg};
-   db.async_run([](auto ec) {
+   connection db{ioc};
+   db.get_config().connect_timeout = std::chrono::seconds{100};
+   db.async_run(ep, [](auto ec) {
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::connection_refused);
    });
    ioc.run();
@@ -99,12 +103,15 @@ BOOST_AUTO_TEST_CASE(test_connect_timeout)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
+
+   endpoint ep;
+   ep.host = "example.com";
+   ep.port = "1";
+
    connection db{ioc};
-   db.get_config().host = "example.com";
-   db.get_config().port = "1";
    db.get_config().connect_timeout = std::chrono::milliseconds{1};
 
-   db.async_run([](auto ec) {
+   db.async_run(ep, [](auto ec) {
       BOOST_CHECK_EQUAL(ec, aedis::error::connect_timeout);
    });
    ioc.run();
@@ -142,7 +149,8 @@ BOOST_AUTO_TEST_CASE(test_idle)
 
       net::co_spawn(ioc.get_executor(), send_after(db, ms), net::detached);
 
-      db->async_run([](auto ec){
+      endpoint ep{"127.0.0.1", "6379"};
+      db->async_run(ep, [](auto ec){
          BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
       });
 
@@ -165,7 +173,8 @@ BOOST_AUTO_TEST_CASE(test_idle)
       request req;
       req.push("QUIT");
 
-      db->async_run(req, adapt(), [](auto ec, auto){
+      endpoint ep{"127.0.0.1", "6379"};
+      db->async_run(ep, req, adapt(), [](auto ec, auto){
          BOOST_TEST(!ec);
       });
 
@@ -179,9 +188,10 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
    req.push("QUIT");
 
    int i = 0;
+   endpoint ep{"127.0.0.1", "6379"};
    for (; i < 5; ++i) {
       boost::system::error_code ec;
-      co_await db->async_run(req, adapt(), net::redirect_error(net::use_awaitable, ec));
+      co_await db->async_run(ep, req, adapt(), net::redirect_error(net::use_awaitable, ec));
       BOOST_TEST(!ec);
    }
 
@@ -207,10 +217,13 @@ BOOST_AUTO_TEST_CASE(test_auth_fail)
 
    // Should cause an error in the authentication as our redis server
    // has no authentication configured.
-   db->get_config().username = "caboclo-do-mato";
-   db->get_config().password = "jabuticaba";
+   endpoint ep;
+   ep.host = "127.0.0.1";
+   ep.port = "6379";
+   ep.username = "caboclo-do-mato";
+   ep.password = "jabuticaba";
 
-   db->async_run([](auto ec) {
+   db->async_run(ep, [](auto ec) {
       BOOST_CHECK_EQUAL(ec, aedis::error::resp3_simple_error);
    });
 

@@ -20,9 +20,7 @@
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/request.hpp>
 
-namespace aedis {
-namespace resp3 {
-namespace detail {
+namespace aedis::resp3::detail {
 
 #include <boost/asio/yield.hpp>
 
@@ -167,8 +165,6 @@ auto async_exec(
          {&socket, &timer, &req, adapter, dbuf}, token, socket, timer);
 }
 
-} // detail
-} // resp3
-} // aedis
+} // aedis::resp3::detail
 
 #endif // AEDIS_RESP3_EXEC_HPP

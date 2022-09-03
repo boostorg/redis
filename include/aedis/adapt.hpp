@@ -45,7 +45,7 @@ struct ignore_adapter {
    {
    }
 
-   auto supported_response_size() const noexcept { return std::size_t(-1);}
+   [[nodiscard]] auto supported_response_size() const noexcept { return static_cast<std::size_t>(-1);}
 };
 
 template <class Tuple>
@@ -59,12 +59,12 @@ private:
    adapters_array_type adapters_;
 
 public:
-   static_adapter(Tuple& r = nullptr)
+   explicit static_adapter(Tuple& r = nullptr)
    {
       adapter::detail::assigner<size - 1>::assign(adapters_, r);
    }
 
-   auto supported_response_size() const noexcept { return size;}
+   [[nodiscard]] auto supported_response_size() const noexcept { return size;}
 
    void
    operator()(
@@ -87,9 +87,9 @@ private:
    adapter_type adapter_;
 
 public:
-   vector_adapter(Vector& v) : adapter_{adapter::adapt2(v)} { }
+   explicit vector_adapter(Vector& v) : adapter_{adapter::adapt2(v)} { }
 
-   auto supported_response_size() const noexcept { return std::size_t(-1);}
+   auto supported_response_size() const noexcept { return static_cast<std::size_t>(-1);}
 
    void
    operator()(
@@ -139,7 +139,7 @@ struct response_traits<std::tuple<Ts...>> {
  *  This function can be used to create adapters that ignores
  *  responses.
  */
-auto adapt() noexcept
+inline auto adapt() noexcept
 {
    return detail::response_traits<void>::adapt();
 }

@@ -31,14 +31,14 @@
     \li Healthy checks, back pressure and low latency.
     \li Hides most of the low level asynchronous operations away from the user.
 
-    Inpacient users are advised to skim over the examples before
-    proceeding to the next sections.
+    If you are unfamiliar with Redis, the best place to start is https://redis.io. Inpacient users can skim over the examples before proceeding to the next sections
 
     @li intro.cpp: This is the Aedis hello-world program. It sends one command to Redis and quits the connection.
     @li intro_sync.cpp: Synchronous version of intro.cpp.
     @li containers.cpp: Shows how to send and receive stl containers. In addition to that it also shows how to deal with transactions.
     @li serialization.cpp: Shows how to serialize types using Boost.Json.
     @li subscriber.cpp: Shows how to use pubsub.
+    @li subscriber_sentinel.cpp: Subscriber that resolves the master address with sentinels.
     @li subscriber_sync.cpp: Synchronous version of subscriber.cpp.
     @li echo_server.cpp: A simple TCP echo server that uses coroutines.
     @li chat_room.cpp: A simple chat room that uses coroutines.
@@ -52,9 +52,8 @@
     @li `connection::async_exec`: Send commands and receive responses.
     @li `connection::async_receive_push`: Receives server side pushes
     (optional).
-    @li `connection::async_receive_event`: Receives internal events
-    like and address has been resolved, connection has been stablished
-    etc. (optional).
+
+    @subsection Async
 
     The calls to `connection::async_run` look like this most of the time
 
@@ -72,6 +71,8 @@
        ioc.run();
     }
     @endcode
+
+    @subsection Sync
 
     @subsection requests Requests
 

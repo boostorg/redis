@@ -12,8 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace aedis {
-namespace resp3 {
+namespace aedis::resp3 {
 
 /** \brief A node in the response tree.
  *  \ingroup any
@@ -67,7 +66,7 @@ auto to_string(node<String> const& in)
  *  @param b Right hand side node object.
  */
 template <class String>
-bool operator==(node<String> const& a, node<String> const& b)
+auto operator==(node<String> const& a, node<String> const& b)
 {
    return a.aggregate_size == b.aggregate_size
        && a.depth == b.depth
@@ -90,7 +89,6 @@ auto operator<<(std::ostream& os, node<String> const& node) -> std::ostream&
    return os;
 }
 
-} // adapter
-} // aedis
+} // aedis::resp3
 
 #endif // AEDIS_RESP3_NODE_HPP

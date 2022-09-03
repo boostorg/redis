@@ -10,9 +10,7 @@
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/type.hpp>
 
-namespace aedis {
-namespace resp3 {
-namespace detail {
+namespace aedis::resp3::detail {
 
 auto parse_uint(char const* data, std::size_t size, boost::system::error_code& ec) -> std::size_t
 {
@@ -24,6 +22,4 @@ auto parse_uint(char const* data, std::size_t size, boost::system::error_code& e
    return ret;
 }
 
-} // detail
-} // resp3
-} // aedis
+} // aedis::resp3::detail

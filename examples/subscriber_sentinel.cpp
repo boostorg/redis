@@ -26,23 +26,11 @@ using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using connection = aedis::connection<tcp_socket>;
 
-/* This example will subscribe and read pushes indefinitely.
- *
- * To test send messages with redis-cli
- *
- *    $ redis-cli -3
- *    127.0.0.1:6379> PUBLISH channel some-message
- *    (integer) 3
- *    127.0.0.1:6379>
- *
- * To test reconnection try, for example, to close all clients currently
- * connected to the Redis instance
- *
- * $ redis-cli
- * > CLIENT kill TYPE pubsub
- */
+// Connects to a Redis instance over sentinel and performs failover in
+// case of disconnection, see
+// https://redis.io/docs/reference/sentinel-clients.  This example
+// assumes a sentinel and a redis server running on localhost.
 
-// Receives pushes.
 net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
 {
    for (std::vector<node<std::string>> resp;;) {
@@ -52,17 +40,59 @@ net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
    }
 }
 
+net::awaitable<endpoint> resolve()
+{
+   // A list of sentinel addresses from which only one is responsive
+   // to simulate sentinels that are down.
+   std::vector<endpoint> const endpoints
+   { {"foo", "26379"}
+   , {"bar", "26379"}
+   , {"127.0.0.1", "26379"}
+   };
+
+   request req1;
+   req1.push("SENTINEL", "get-master-addr-by-name", "mymaster");
+   req1.push("QUIT");
+
+   auto ex = co_await net::this_coro::executor;
+   connection conn{ex};
+
+   std::tuple<boost::optional<std::array<std::string, 2>>, aedis::ignore> addr;
+   for (auto ep : endpoints) {
+      boost::system::error_code ec;
+      co_await conn.async_run(ep, req1, adapt(addr), net::redirect_error(net::use_awaitable, ec));
+      std::cout << ec.message() << std::endl;
+      if (std::get<0>(addr))
+         break;
+   }
+
+   endpoint ep;
+   if (std::get<0>(addr)) {
+      ep.host = std::get<0>(addr).value().at(0);
+      ep.port = std::get<0>(addr).value().at(1);
+   }
+
+   co_return ep;
+}
+
 net::awaitable<void> reconnect(std::shared_ptr<connection> db)
 {
-   request req;
-   req.push("SUBSCRIBE", "channel");
+   request req2;
+   req2.push("SUBSCRIBE", "channel");
 
-   stimer timer{co_await net::this_coro::executor};
-   endpoint ep{"127.0.0.1", "6379"};
+   auto ex = co_await net::this_coro::executor;
+   stimer timer{ex};
    for (;;) {
+      auto ep = co_await net::co_spawn(ex, resolve(), net::use_awaitable);
+      if (!aedis::is_valid(ep)) {
+         std::clog << "Can't resolve master name" << std::endl;
+         co_return;
+      }
+
       boost::system::error_code ec;
-      co_await db->async_run(ep, req, adapt(), net::redirect_error(net::use_awaitable, ec));
+      co_await db->async_run(ep, req2, adapt(), net::redirect_error(net::use_awaitable, ec));
       std::cout << ec.message() << std::endl;
+      std::cout << "Starting the failover." << std::endl;
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();
    }
@@ -73,13 +103,10 @@ int main()
    try {
       net::io_context ioc;
       auto db = std::make_shared<connection>(ioc);
-
       net::co_spawn(ioc, push_receiver(db), net::detached);
       net::co_spawn(ioc, reconnect(db), net::detached);
-
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });
-
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << "Error: " << e.what() << std::endl;

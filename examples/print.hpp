@@ -20,6 +20,9 @@ using aedis::resp3::node;
 
 void print_aggr(std::vector<aedis::resp3::node<std::string>>& v)
 {
+   if (std::empty(v))
+      return;
+
    auto const m = aedis::resp3::element_multiplicity(v.front().data_type);
    for (auto i = 0lu; i < m * v.front().aggregate_size; ++i)
       std::cout << v[i + 1].value << " ";

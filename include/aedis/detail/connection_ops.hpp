@@ -29,8 +29,7 @@
 #define HANDLER_LOCATION \
   BOOST_ASIO_HANDLER_LOCATION((__FILE__, __LINE__, __func__))
 
-namespace aedis {
-namespace detail {
+namespace aedis::detail {
 
 #include <boost/asio/yield.hpp>
 
@@ -57,13 +56,14 @@ struct connect_with_timeout_op {
 
 template <class Conn>
 struct resolve_with_timeout_op {
-   Conn* conn;
+   Conn* conn = nullptr;
+   endpoint* ep = nullptr;
    boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
                   , boost::system::error_code ec = {}
-                  , boost::asio::ip::tcp::resolver::results_type res = {})
+                  , boost::asio::ip::tcp::resolver::results_type const& res = {})
    {
       reenter (coro)
       {
@@ -71,7 +71,7 @@ struct resolve_with_timeout_op {
          yield
          aedis::detail::async_resolve(
             conn->resv_, conn->ping_timer_,
-            conn->cfg_.host, conn->cfg_.port, std::move(self));
+            ep->host, ep->port, std::move(self));
          conn->endpoints_ = res;
          self.complete(ec);
       }
@@ -232,9 +232,10 @@ struct exec_op {
          conn->add_request_info(info);
          yield
          info->timer.async_wait(std::move(self));
-         BOOST_ASSERT(conn->socket_ != nullptr);
          BOOST_ASSERT(!!ec);
-         if (info->stop) {
+
+         // socket_ = null can happen for example when resolve fails.
+         if (!conn->socket_ || info->stop) {
             self.complete(ec, 0);
             return;
          }
@@ -383,7 +384,8 @@ struct start_op {
 
 template <class Conn>
 struct run_op {
-   Conn* conn;
+   Conn* conn = nullptr;
+   endpoint* ep = nullptr;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -395,7 +397,7 @@ struct run_op {
       reenter (coro)
       {
          yield
-         conn->async_resolve_with_timeout(std::move(self));
+         conn->async_resolve_with_timeout(*ep, std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
@@ -413,8 +415,11 @@ struct run_op {
          }
 
          conn->req_.clear();
-         if (!std::empty(conn->cfg_.username) && !std::empty(conn->cfg_.password)) {
-            conn->req_.push("AUTH", conn->cfg_.username, conn->cfg_.password);
+         // TODO: Fix request::push so that we don't have to do this
+         // fix here.
+         if (!std::empty(ep->username) && !std::empty(ep->password)) {
+            // TODO: Pass auth in the hello command.
+            conn->req_.push("AUTH", ep->username, ep->password);
          }
          conn->req_.push("HELLO", "3");
          conn->ping_timer_.expires_after(conn->cfg_.ping_interval);
@@ -567,7 +572,8 @@ struct reader_op {
 
 template <class Conn, class Adapter>
 struct runexec_op {
-   Conn* conn;
+   Conn* conn = nullptr;
+   endpoint* ep = nullptr;
    resp3::request const* req = nullptr;
    Adapter adapter;
    boost::asio::coroutine coro{};
@@ -585,7 +591,7 @@ struct runexec_op {
 
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return conn->async_run(token);},
+            [this](auto token) { return conn->async_run(*ep, token);},
             [this](auto token) { return conn->async_exec(*req, adapter, token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one_error(),
@@ -602,7 +608,6 @@ struct runexec_op {
 
 #include <boost/asio/unyield.hpp>
 
-} // detail
-} // aedis
+} // aedis:.detail
 
 #endif // AEDIS_CONNECTION_OPS_HPP

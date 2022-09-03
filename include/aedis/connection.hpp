@@ -21,6 +21,7 @@
 #include <boost/asio/experimental/channel.hpp>
 
 #include <aedis/adapt.hpp>
+#include <aedis/endpoint.hpp>
 #include <aedis/resp3/request.hpp>
 #include <aedis/detail/connection_ops.hpp>
 
@@ -53,18 +54,6 @@ public:
    /** @brief Connection configuration parameters.
     */
    struct config {
-      /// Redis server address.
-      std::string host = "127.0.0.1";
-
-      /// Redis server port.
-      std::string port = "6379";
-
-      /// Username if authentication is required.
-      std::string username;
-
-      /// Password if authentication is required.
-      std::string password;
-
       /// Timeout of the resolve operation.
       std::chrono::milliseconds resolve_timeout = std::chrono::seconds{10};
 
@@ -100,14 +89,14 @@ public:
     *  \param ex The executor.
     *  \param cfg Configuration parameters.
     */
-   connection(executor_type ex, config cfg = config{})
+   explicit connection(executor_type ex, config cfg = config{})
    : resv_{ex}
    , ping_timer_{ex}
    , check_idle_timer_{ex}
    , writer_timer_{ex}
    , read_timer_{ex}
    , push_channel_{ex}
-   , cfg_{cfg}
+   , cfg_{std::move(cfg)}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
@@ -119,8 +108,8 @@ public:
     *  \param ioc The executor.
     *  \param cfg Configuration parameters.
     */
-   connection(boost::asio::io_context& ioc, config cfg = config{})
-   : connection(ioc.get_executor(), cfg)
+   explicit connection(boost::asio::io_context& ioc, config cfg = config{})
+   : connection(ioc.get_executor(), std::move(cfg))
    { }
 
    /// Returns the executor.
@@ -141,7 +130,7 @@ public:
     * @param op: The operation to be cancelled.
     * @returns The number of operations that have been canceled.
     */
-   std::size_t cancel(operation op)
+   auto cancel(operation op) -> std::size_t
    {
       switch (op) {
          case operation::exec:
@@ -189,10 +178,10 @@ public:
    }
 
    /// Get the config object.
-   config& get_config() noexcept { return cfg_;}
+   auto get_config() noexcept -> config& { return cfg_;}
 
    /// Gets the config object.
-   config const& get_config() const noexcept { return cfg_;}
+   auto get_config() const noexcept -> config const& { return cfg_;}
 
    /** @name Asynchronous functions
     *  
@@ -223,7 +212,9 @@ public:
     *
     *  For an example see echo_server.cpp.
     *
-    *  \param token Completion token.
+    *  @param ep Redis endpoint. The password will be erased after the
+    *  connection has been stablished.
+    *  @param token Completion token.
     *
     *  The completion token must have the following signature
     *
@@ -232,12 +223,12 @@ public:
     *  @endcode
     */
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_run(CompletionToken token = CompletionToken{})
+   auto async_run(endpoint& ep, CompletionToken token = CompletionToken{})
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<connection>{this}, token, resv_);
+         >(detail::run_op<connection>{this, &ep}, token, resv_);
    }
 
    /** @brief Connects and executes a request asynchronously.
@@ -246,9 +237,11 @@ public:
     *  single function. This function is useful for users that want to
     *  send a single request to the server and close it.
     *
-    *  \param req Request object.
-    *  \param adapter Response adapter.
-    *  \param token Asio completion token.
+    *  @param ep Redis endpoint. The password will be erased after the
+    *  connection has been stablished.
+    *  @param req Request object.
+    *  @param adapter Response adapter.
+    *  @param token Asio completion token.
     *
     *  For an example see intro.cpp. The completion token must have
     *  the following signature
@@ -263,6 +256,7 @@ public:
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto async_run(
+      endpoint& ep,
       resp3::request const& req,
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
@@ -271,7 +265,7 @@ public:
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
          >(detail::runexec_op<connection, Adapter>
-            {this, &req, adapter}, token, resv_);
+            {this, &ep, &req, adapter}, token, resv_);
    }
 
    /** @brief Executes a command on the redis server asynchronously.
@@ -359,7 +353,7 @@ private:
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
    struct req_info {
-      req_info(executor_type ex) : timer{ex} {}
+      explicit req_info(executor_type ex) : timer{ex} {}
       timer_type timer;
       resp3::request const* req = nullptr;
       std::size_t cmds = 0;
@@ -382,15 +376,6 @@ private:
    template <class T> friend struct detail::check_idle_op;
    template <class T> friend struct detail::start_op;
    template <class T> friend struct detail::send_receive_op;
-
-   template <class CompletionToken>
-   auto async_run_one(CompletionToken token = CompletionToken{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::run_op<connection>{this}, token, resv_);
-   }
 
    void cancel_push_requests()
    {
@@ -416,12 +401,12 @@ private:
       { return boost::asio::dynamic_buffer(read_buffer_, cfg_.max_read_size); }
 
    template <class CompletionToken>
-   auto async_resolve_with_timeout(CompletionToken&& token)
+   auto async_resolve_with_timeout(endpoint& ep, CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::resolve_with_timeout_op<connection>{this},
+         >(detail::resolve_with_timeout_op<connection>{this, &ep},
             token, resv_);
    }
 

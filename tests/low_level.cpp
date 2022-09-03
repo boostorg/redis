@@ -22,6 +22,8 @@
 #include <aedis.hpp>
 #include <aedis/src.hpp>
 
+// TODO: Test with empty strings.
+
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 

@@ -19,6 +19,7 @@ namespace net = boost::asio;
 
 using aedis::resp3::request;
 using aedis::adapt;
+using aedis::endpoint;
 using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
@@ -55,7 +56,8 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   db->async_run([db](auto ec){
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, [db](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::exec);
    });
@@ -87,7 +89,8 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   db->async_run([db](auto ec){
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, [db](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
       db->cancel(connection::operation::exec);
    });
@@ -102,7 +105,8 @@ void test_quit2(connection::config const& cfg)
 
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc, cfg);
-   db->async_run(req, adapt(), [](auto ec, auto){ BOOST_TEST(!ec); });
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, req, adapt(), [](auto ec, auto){ BOOST_TEST(!ec); });
 
    ioc.run();
 }
@@ -128,7 +132,8 @@ BOOST_AUTO_TEST_CASE(test_wrong_data_type)
    std::tuple<int> resp;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
-   db->async_run(req, adapt(resp), [](auto ec, auto){
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, req, adapt(resp), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
    });
 
@@ -146,9 +151,10 @@ BOOST_AUTO_TEST_CASE(test_reconnect_timeout)
    request req2;
    req2.push("QUIT");
 
-   db->async_run(req1, adapt(), [db, &req2](auto ec, auto){
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, req1, adapt(), [db, &req2, &ep](auto ec, auto){
       BOOST_TEST(!ec);
-      db->async_run(req2, adapt(), [db](auto ec, auto){
+      db->async_run(ep, req2, adapt(), [db](auto ec, auto){
          BOOST_TEST(!!ec);
       });
    });

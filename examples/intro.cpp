@@ -16,23 +16,29 @@ namespace net = boost::asio;
 
 using aedis::adapt;
 using aedis::resp3::request;
+using aedis::endpoint;
 using connection = aedis::connection<>;
 
-int main()
+auto main() -> int
 {
-   net::io_context ioc;
-   connection db{ioc};
+   try {
+      net::io_context ioc;
+      connection db{ioc};
 
-   request req;
-   req.push("PING");
-   req.push("QUIT");
+      request req;
+      req.push("PING");
+      req.push("QUIT");
 
-   std::tuple<std::string, aedis::ignore> resp;
-   db.async_run(req, adapt(resp), [](auto ec, auto) {
-      std::cout << ec.message() << std::endl;
-   });
+      std::tuple<std::string, aedis::ignore> resp;
+      endpoint ep{"127.0.0.1", "6379"};
+      db.async_run(ep, req, adapt(resp), [](auto ec, auto) {
+         std::cout << ec.message() << std::endl;
+      });
 
-   ioc.run();
+      ioc.run();
 
-   std::cout << std::get<0>(resp) << std::endl;
+      std::cout << std::get<0>(resp) << std::endl;
+   } catch (...) {
+      std::cerr << "Error" << std::endl;
+   }
 }

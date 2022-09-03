@@ -18,6 +18,7 @@ namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::node;
 using aedis::resp3::request;
+using aedis::endpoint;
 using connection = aedis::sync<aedis::connection<>>;
 
 // See subscriber.cpp for more info about how to run this example.
@@ -28,9 +29,10 @@ void reconnect(connection& conn)
    request req;
    req.push("SUBSCRIBE", "channel");
 
+   endpoint ep{"127.0.0.1", "6379"};
    for (;;) {
       boost::system::error_code ec;
-      conn.run(req, adapt(), ec);
+      conn.run(ep, req, adapt(), ec);
       std::cout << ec.message() << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds{1});
    }

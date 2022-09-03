@@ -147,12 +147,12 @@ public:
     *
     *  @param ec Error code.
     */
-   void run(boost::system::error_code& ec)
+   void run(endpoint& ep, boost::system::error_code& ec)
    {
       sync_helper sh;
-      auto f = [this, &ec, &sh]()
+      auto f = [this, &ep, &ec, &sh]()
       {
-         conn_.async_run([&ec, &sh](auto const& e) {
+         conn_.async_run(ep, [&ec, &sh](auto const& e) {
             std::unique_lock ul(sh.mutex);
             ec = e;
             sh.ready = true;
@@ -173,24 +173,24 @@ public:
     *
     *  @throws std::system_error.
     */
-   void run()
+   void run(endpoint& ep)
    {
       boost::system::error_code ec;
-      run(ec);
+      run(std::move(ep), ec);
       if (ec)
          throw std::system_error(ec);
    }
 
    /// TODO
    template <class ResponseAdapter>
-   auto run(resp3::request const& req, ResponseAdapter adapter, boost::system::error_code& ec)
+   auto run(endpoint& ep, resp3::request const& req, ResponseAdapter adapter, boost::system::error_code& ec)
    {
       sync_helper sh;
       std::size_t res = 0;
 
-      auto f = [this, &ec, &res, &sh, &req, adapter]()
+      auto f = [this, ep, &ec, &res, &sh, &req, adapter]() mutable
       {
-         conn_.async_run(req, adapter, [&sh, &res, &ec](auto const& ecp, std::size_t n) {
+         conn_.async_run(ep, req, adapter, [&sh, &res, &ec](auto const& ecp, std::size_t n) {
             std::unique_lock ul(sh.mutex);
             ec = ecp;
             res = n;
@@ -208,10 +208,10 @@ public:
 
    /// TODO
    template <class ResponseAdapter = detail::response_traits<void>::adapter_type>
-   auto run(resp3::request const& req, ResponseAdapter adapter = aedis::adapt())
+   auto run(endpoint& ep, resp3::request const& req, ResponseAdapter adapter = aedis::adapt())
    {
       boost::system::error_code ec;
-      auto const res = run(req, adapter, ec);
+      auto const res = run(ep, req, adapter, ec);
       if (ec)
          throw std::system_error(ec);
       return res;

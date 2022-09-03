@@ -17,6 +17,7 @@
 namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
+using aedis::endpoint;
 using executor_type = net::io_context::executor_type;
 using socket_type = net::basic_stream_socket<net::ip::tcp, executor_type>;
 using tcp_socket = net::use_awaitable_t<executor_type>::as_default_on_t<socket_type>;
@@ -45,7 +46,8 @@ awaitable_type listener()
 {
    auto ex = co_await net::this_coro::executor;
    auto db = std::make_shared<connection>(ex);
-   db->async_run(net::detached);
+   endpoint ep{"127.0.0.1", "6379"};
+   db->async_run(ep, net::detached);
 
    tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});
    for (;;)
