@@ -45,10 +45,9 @@ struct connect_with_timeout_op {
    {
       reenter (coro)
       {
-         BOOST_ASSERT(conn->socket_ != nullptr);
-         conn->ping_timer_.expires_after(conn->cfg_.connect_timeout);
+         conn->ping_timer_.expires_after(conn->get_config().connect_timeout);
          yield
-         aedis::detail::async_connect(*conn->socket_, conn->ping_timer_, conn->endpoints_, std::move(self));
+         aedis::detail::async_connect(conn->lowest_layer(), conn->ping_timer_, conn->endpoints_, std::move(self));
          self.complete(ec);
       }
    }
@@ -67,7 +66,7 @@ struct resolve_with_timeout_op {
    {
       reenter (coro)
       {
-         conn->ping_timer_.expires_after(conn->cfg_.resolve_timeout);
+         conn->ping_timer_.expires_after(conn->get_config().resolve_timeout);
          yield
          aedis::detail::async_resolve(
             conn->resv_, conn->ping_timer_,
@@ -100,9 +99,8 @@ struct receive_push_op {
             return;
          }
 
-         BOOST_ASSERT(conn->socket_ != nullptr);
          yield
-         resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(), adapter, std::move(self));
+         resp3::async_read(conn->stream(), conn->make_dynamic_buffer(), adapter, std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
 
@@ -151,9 +149,8 @@ struct exec_read_op {
             // to hand it to the push consumer. To do that we need
             // some data in the read bufer.
             if (conn->read_buffer_.empty()) {
-               BOOST_ASSERT(conn->socket_ != nullptr);
                yield
-               boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
+               boost::asio::async_read_until(conn->stream(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
                if (ec) {
                   conn->cancel(Conn::operation::run);
                   self.complete(ec, 0);
@@ -178,7 +175,7 @@ struct exec_read_op {
             //-----------------------------------
 
             yield
-            resp3::async_read(*conn->socket_, conn->make_dynamic_buffer(),
+            resp3::async_read(conn->stream(), conn->make_dynamic_buffer(),
                [i = index, adpt = adapter] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, nd, ec); },
                std::move(self));
 
@@ -234,13 +231,13 @@ struct exec_op {
          info->timer.async_wait(std::move(self));
          BOOST_ASSERT(!!ec);
 
-         // socket_ = null can happen for example when resolve fails.
-         if (!conn->socket_ || info->stop) {
+         // null can happen for example when resolve fails.
+         if (conn->is_null() || info->stop) {
             self.complete(ec, 0);
             return;
          }
 
-         BOOST_ASSERT(conn->socket_->is_open());
+         BOOST_ASSERT(conn->is_open());
           
          if (req->size() == 0) {
             self.complete({}, 0);
@@ -289,11 +286,10 @@ struct ping_op {
    {
       reenter (coro) for (;;)
       {
-         conn->ping_timer_.expires_after(conn->cfg_.ping_interval);
+         conn->ping_timer_.expires_after(conn->get_config().ping_interval);
          yield
          conn->ping_timer_.async_wait(std::move(self));
-         BOOST_ASSERT(conn->socket_ != nullptr);
-         if (ec || !conn->socket_->is_open()) {
+         if (ec || !conn->is_open()) {
             self.complete(ec);
             return;
          }
@@ -323,11 +319,10 @@ struct check_idle_op {
    {
       reenter (coro) for (;;)
       {
-         conn->check_idle_timer_.expires_after(2 * conn->cfg_.ping_interval);
+         conn->check_idle_timer_.expires_after(2 * conn->get_config().ping_interval);
          yield
          conn->check_idle_timer_.async_wait(std::move(self));
-         BOOST_ASSERT(conn->socket_ != nullptr);
-         if (ec || !conn->socket_->is_open()) {
+         if (ec || !conn->is_open()) {
             // Notice this is not an error, it was requested from an
             // external op.
             self.complete({});
@@ -335,7 +330,7 @@ struct check_idle_op {
          }
 
          auto const now = std::chrono::steady_clock::now();
-         if (conn->last_data_ +  (2 * conn->cfg_.ping_interval) < now) {
+         if (conn->last_data_ +  (2 * conn->get_config().ping_interval) < now) {
             conn->cancel(Conn::operation::run);
             self.complete(error::idle_timeout);
             return;
@@ -404,7 +399,7 @@ struct run_op {
             return;
          }
 
-         conn->socket_ = std::make_shared<typename Conn::next_layer_type>(conn->resv_.get_executor());
+         conn->create_stream();
 
          yield
          conn->async_connect_with_timeout(std::move(self));
@@ -422,11 +417,11 @@ struct run_op {
             conn->req_.push("AUTH", ep->username, ep->password);
          }
          conn->req_.push("HELLO", "3");
-         conn->ping_timer_.expires_after(conn->cfg_.ping_interval);
+         conn->ping_timer_.expires_after(conn->get_config().ping_interval);
 
          yield
          async_exec(
-            *conn->socket_,
+            conn->stream(),
             conn->ping_timer_,
             conn->req_,
             adapter::adapt2(),
@@ -468,7 +463,7 @@ struct writer_op {
          while (!conn->reqs_.empty() && conn->cmds_ == 0 && conn->write_buffer_.empty()) {
             conn->coalesce_requests();
             yield
-            boost::asio::async_write(*conn->socket_, boost::asio::buffer(conn->write_buffer_), std::move(self));
+            boost::asio::async_write(conn->stream(), boost::asio::buffer(conn->write_buffer_), std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -481,7 +476,7 @@ struct writer_op {
             conn->cancel_push_requests();
          }
 
-         if (conn->socket_->is_open()) {
+         if (conn->is_open()) {
             yield
             conn->writer_timer_.async_wait(std::move(self));
             // The timer may be canceled either to stop the write op
@@ -490,7 +485,7 @@ struct writer_op {
             // closed first. We check for that below.
          }
 
-         if (!conn->socket_->is_open()) {
+         if (!conn->is_open()) {
             // Notice this is not an error of the op, stoping was
             // requested from the outside, so we complete with
             // success.
@@ -515,9 +510,8 @@ struct reader_op {
 
       reenter (coro) for (;;)
       {
-         BOOST_ASSERT(conn->socket_->is_open());
          yield
-         boost::asio::async_read_until(*conn->socket_, conn->make_dynamic_buffer(), "\r\n", std::move(self));
+         boost::asio::async_read_until(conn->stream(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
@@ -560,12 +554,11 @@ struct reader_op {
             conn->reqs_.front()->timer.cancel_one();
             yield
             conn->read_timer_.async_wait(std::move(self));
-            if (!conn->socket_->is_open()) {
+            if (!conn->is_open()) {
                self.complete(ec);
                return;
             }
          }
-
       }
    }
 };

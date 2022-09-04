@@ -23,13 +23,12 @@ using conn_timer_t = boost::asio::basic_waitable_timer<std::chrono::steady_clock
 #include <boost/asio/yield.hpp>
 
 template <
-   class Protocol,
-   class Executor,
+   class Stream,
    class EndpointSequence
    >
 struct connect_op {
-   boost::asio::basic_socket<Protocol, Executor>* socket;
-   conn_timer_t<Executor>* timer;
+   Stream* socket;
+   conn_timer_t<typename Stream::executor_type>* timer;
    EndpointSequence* endpoints;
    boost::asio::coroutine coro{};
 
@@ -37,7 +36,7 @@ struct connect_op {
    void operator()( Self& self
                   , std::array<std::size_t, 2> order = {}
                   , boost::system::error_code ec1 = {}
-                  , typename Protocol::endpoint const& ep = {}
+                  , typename Stream::protocol_type::endpoint const& ep = {}
                   , boost::system::error_code ec2 = {})
    {
       reenter (coro)
@@ -46,7 +45,7 @@ struct connect_op {
          boost::asio::experimental::make_parallel_group(
             [this](auto token)
             {
-               auto f = [](boost::system::error_code const&, typename Protocol::endpoint const&) { return true; };
+               auto f = [](boost::system::error_code const&, auto const&) { return true; };
                return boost::asio::async_connect(*socket, *endpoints, f, token);
             },
             [this](auto token) { return timer->async_wait(token);}
@@ -139,21 +138,20 @@ struct send_receive_op {
 #include <boost/asio/unyield.hpp>
 
 template <
-   class Protocol,
-   class Executor,
+   class Stream,
    class EndpointSequence,
-   class CompletionToken = boost::asio::default_completion_token_t<Executor>
+   class CompletionToken
    >
 auto async_connect(
-      boost::asio::basic_socket<Protocol, Executor>& socket,
-      conn_timer_t<Executor>& timer,
+      Stream& socket,
+      conn_timer_t<typename Stream::executor_type>& timer,
       EndpointSequence ep,
-      CompletionToken&& token = boost::asio::default_completion_token_t<Executor>{})
+      CompletionToken&& token)
 {
    return boost::asio::async_compose
       < CompletionToken
-      , void(boost::system::error_code, typename Protocol::endpoint const&)
-      >(connect_op<Protocol, Executor, EndpointSequence>
+      , void(boost::system::error_code, typename Stream::protocol_type::endpoint const&)
+      >(connect_op<Stream, EndpointSequence>
             {&socket, &timer, &ep}, token, socket, timer);
 }
 

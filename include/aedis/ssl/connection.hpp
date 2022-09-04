@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_CONNECTION_HPP
-#define AEDIS_CONNECTION_HPP
+#ifndef AEDIS_SSL_CONNECTION_HPP
+#define AEDIS_SSL_CONNECTION_HPP
 
 #include <chrono>
 #include <memory>
@@ -13,19 +13,19 @@
 #include <boost/asio/io_context.hpp>
 #include <aedis/connection_base.hpp>
 
-namespace aedis {
+namespace aedis::ssl {
 
 template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection :
    public connection_base<
-      typename AsyncReadWriteStream::executor_type,
+      typename boost::asio::ssl::stream<AsyncReadWriteStream>::executor_type,
       connection<AsyncReadWriteStream>> {
 public:
-   /// Executor type.
-   using executor_type = typename AsyncReadWriteStream::executor_type;
-
    /// Type of the next layer
-   using next_layer_type = AsyncReadWriteStream;
+   using next_layer_type = boost::asio::ssl::stream<AsyncReadWriteStream>;
+
+   /// Executor type.
+   using executor_type = typename next_layer_type::executor_type;
 
    using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;
 
@@ -86,12 +86,12 @@ public:
    void close_if_valid()
    {
       if (stream_)
-         stream_->close();
+         stream_->next_layer().close();
    }
 
    auto is_open() const noexcept
    {
-      return stream_ != nullptr && stream_->is_open();
+      return stream_ != nullptr && stream_->next_layer().is_open();
    }
 
    auto is_null() const noexcept
@@ -101,15 +101,16 @@ public:
 
    void create_stream()
    {
-      stream_ = std::make_shared<next_layer_type>(ex_);
+      stream_ = std::make_shared<next_layer_type>(ex_, ctx_);
    }
 
 private:
    config cfg_;
    executor_type ex_;
-   std::shared_ptr<AsyncReadWriteStream> stream_;
+   boost::asio::ssl::context ctx_{boost::asio::ssl::context::sslv23};
+   std::shared_ptr<boost::asio::ssl::stream<AsyncReadWriteStream>> stream_;
 };
 
-} // aedis
+} // aedis::ssl
 
-#endif // AEDIS_CONNECTION_HPP
+#endif // AEDIS_SSL_CONNECTION_HPP
