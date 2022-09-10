@@ -47,7 +47,7 @@ struct connect_with_timeout_op {
       {
          conn->ping_timer_.expires_after(conn->get_config().connect_timeout);
          yield
-         aedis::detail::async_connect(conn->lowest_layer(), conn->ping_timer_, conn->endpoints_, std::move(self));
+         conn->derived().async_connect(conn->ping_timer_, conn->endpoints_, std::move(self));
          self.complete(ec);
       }
    }
@@ -100,7 +100,7 @@ struct receive_push_op {
          }
 
          yield
-         resp3::async_read(conn->stream(), conn->make_dynamic_buffer(), adapter, std::move(self));
+         resp3::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
 
@@ -150,7 +150,7 @@ struct exec_read_op {
             // some data in the read bufer.
             if (conn->read_buffer_.empty()) {
                yield
-               boost::asio::async_read_until(conn->stream(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
+               boost::asio::async_read_until(conn->next_layer(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
                if (ec) {
                   conn->cancel(Conn::operation::run);
                   self.complete(ec, 0);
@@ -175,7 +175,7 @@ struct exec_read_op {
             //-----------------------------------
 
             yield
-            resp3::async_read(conn->stream(), conn->make_dynamic_buffer(),
+            resp3::async_read(conn->next_layer(), conn->make_dynamic_buffer(),
                [i = index, adpt = adapter] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, nd, ec); },
                std::move(self));
 
@@ -232,7 +232,7 @@ struct exec_op {
          BOOST_ASSERT(!!ec);
 
          // null can happen for example when resolve fails.
-         if (conn->is_null() || info->stop) {
+         if (!conn->is_open() || info->stop) {
             self.complete(ec, 0);
             return;
          }
@@ -399,8 +399,6 @@ struct run_op {
             return;
          }
 
-         conn->create_stream();
-
          yield
          conn->async_connect_with_timeout(std::move(self));
          if (ec) {
@@ -410,18 +408,17 @@ struct run_op {
          }
 
          conn->req_.clear();
-         // TODO: Fix request::push so that we don't have to do this
-         // fix here.
-         if (!std::empty(ep->username) && !std::empty(ep->password)) {
-            // TODO: Pass auth in the hello command.
-            conn->req_.push("AUTH", ep->username, ep->password);
+         if (requires_auth(*ep)) {
+            conn->req_.push("HELLO", "3", "AUTH", ep->username, ep->password);
+         } else {
+            conn->req_.push("HELLO", "3");
          }
-         conn->req_.push("HELLO", "3");
+
          conn->ping_timer_.expires_after(conn->get_config().ping_interval);
 
          yield
          async_exec(
-            conn->stream(),
+            conn->next_layer(),
             conn->ping_timer_,
             conn->req_,
             adapter::adapt2(),
@@ -463,7 +460,7 @@ struct writer_op {
          while (!conn->reqs_.empty() && conn->cmds_ == 0 && conn->write_buffer_.empty()) {
             conn->coalesce_requests();
             yield
-            boost::asio::async_write(conn->stream(), boost::asio::buffer(conn->write_buffer_), std::move(self));
+            boost::asio::async_write(conn->next_layer(), boost::asio::buffer(conn->write_buffer_), std::move(self));
             if (ec) {
                self.complete(ec);
                return;
@@ -511,7 +508,7 @@ struct reader_op {
       reenter (coro) for (;;)
       {
          yield
-         boost::asio::async_read_until(conn->stream(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
+         boost::asio::async_read_until(conn->next_layer(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
@@ -591,8 +588,15 @@ struct runexec_op {
             std::move(self));
 
          switch (order[0]) {
-           case 0: self.complete(ec1, n); break;
-           case 1: self.complete(ec2, n); break;
+           case 0: self.complete(ec1, n); return;
+           case 1: {
+              if (ec2)
+                 self.complete(ec2, n);
+              else
+                 self.complete(ec1, n);
+
+              return;
+           }
            default: BOOST_ASSERT(false);
          }
       }
@@ -601,6 +605,6 @@ struct runexec_op {
 
 #include <boost/asio/unyield.hpp>
 
-} // aedis:.detail
+} // aedis::detail
 
 #endif // AEDIS_CONNECTION_OPS_HPP

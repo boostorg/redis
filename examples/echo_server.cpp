@@ -42,6 +42,7 @@ awaitable_type echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
    }
 }
 
+// TODO: Print the async_run error.
 awaitable_type listener()
 {
    auto ex = co_await net::this_coro::executor;
@@ -54,6 +55,7 @@ awaitable_type listener()
       net::co_spawn(ex, echo_loop(co_await acc.async_accept(), db), net::detached);
 }
 
+// TODO: Perform signal handling.
 auto main() -> int
 {
    try {

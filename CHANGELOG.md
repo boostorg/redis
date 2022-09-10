@@ -2,20 +2,30 @@
 
 ## master
 
+* Moves from `boost::optional` to `std::optional`. This is part of
+  moving to C++17.
+
+* Changes the behaviour of the second `connection::async_run` overload
+  so that it also always return an error when the connection is lost.
+
+* Adds TLS support, see intro_tls.cpp for an example on how to use it.
+
 * Adds example on how to resolve addresses over sentinels, see
   subscriber_sentinel.cpp.
 
 * Adds `endpoint` class.
 
 * Removes reconnect functionanlity from the `connection` class. It is
-  possible in simple reconnection strategies but bloats it in more
-  complex scenaria, for example, with sentinel and authentication.
-  This is trivial to implement separated from the class.
+  possible in simple reconnection strategies but bloats the
+  `connection` class in more complex scenarios, for example, with
+  sentinel, authentication and TLS. This is trivial to implement
+  separated from the class. As a result the enum `event` and
+  `async_receive_event` have been removed from the class too.
 
 * Fixes a bug in `connection::async_receive_push` that prevented
   passing any response adapter other that `adapt(std::vector<node>)`.
 
-* Replaces autotools with CMake.
+* Ports the buildsystem from autotools to CMake.
 
 * Changes the behaviour of `aedis::adapt()` that caused RESP3 errors
   to be ignored. One consequence of it is that `connection::async_run`
@@ -24,11 +34,6 @@
 * Changes the behaviour of `connection::async_run` that would cause it
   to complete with success when an error in the
   `connection::async_exec` occurred.
-
-* Changes the behaviour of `connection::async_receive_event`. Now it
-  communicates events both on success and on error. User are advised
-  to review their use of this function, i.e. errors communicated by
-  this function have logging purpose and don't need error handing.
 
 ## v1.0.0
 

@@ -166,7 +166,7 @@
     Blob-error     | \c std::string, \c std::vector                             | Simple
     Number         | `long long`, `int`, `std::size_t`, \c std::string          | Simple
     Double         | `double`, \c std::string                                   | Simple
-    Null           | `boost::optional<T>`                                       | Simple
+    Null           | `std::optional<T>`                                         | Simple
     Array          | \c std::vector, \c std::list, \c std::array, \c std::deque | Aggregate
     Map            | \c std::vector, \c std::map, \c std::unordered_map         | Aggregate
     Set            | \c std::vector, \c std::set, \c std::unordered_set         | Aggregate
@@ -213,11 +213,11 @@
 
     It is not uncommon for apps to access keys that do not exist or
     that have already expired in the Redis server, to deal with these
-    cases Aedis provides support for \c boost::optional. To use it,
-    wrap your type around \c boost::optional like this
+    cases Aedis provides support for \c std::optional. To use it,
+    wrap your type around \c std::optional like this
 
     @code
-    boost::optional<std::unordered_map<T, U>> resp;
+    std::optional<std::unordered_map<T, U>> resp;
     co_await db->async_exec(req, adapt(resp));
     @endcode
 
@@ -242,13 +242,12 @@
 
     @code
     using aedis::ignore;
-    using boost::optional;
 
     using exec_resp_type = 
        std::tuple<
-          optional<std::string>, // get
-          optional<std::vector<std::string>>, // lrange
-          optional<std::map<std::string, std::string>> // hgetall
+          std::optional<std::string>, // get
+          std::optional<std::vector<std::string>>, // lrange
+          std::optional<std::map<std::string, std::string>> // hgetall
        >;
 
     std::tuple<
@@ -365,7 +364,7 @@
     cmake is also supported
 
     ```
-    $ BOOST_ROOT=/opt/boost_1_79_0/ cmake -DCMAKE_CXX_FLAGS=-std=c++20 .
+    $ BOOST_ROOT=/opt/boost_1_79_0/ cmake
     $ make
     $ make test
     ```

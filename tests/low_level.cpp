@@ -109,8 +109,8 @@ void test_async(net::any_io_executor ex, expect<Result> e)
    std::make_shared<async_test<Result>>(ex, e)->run();
 }
 
-boost::optional<int> op_int_ok = 11;
-boost::optional<bool> op_bool_ok = true;
+std::optional<int> op_int_ok = 11;
+std::optional<bool> op_bool_ok = true;
 
 std::string const streamed_string_wire = "$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n";
 std::vector<node_type> streamed_string_e1
@@ -124,7 +124,7 @@ std::vector<node_type> streamed_string_e2 { {resp3::type::streamed_string_part, 
 
 
 #define NUMBER_TEST_CONDITIONS(test) \
-   test(ex, make_expected("#11\r\n",       boost::optional<bool>{}, "bool.error", aedis::error::unexpected_bool_value)); \
+   test(ex, make_expected("#11\r\n",       std::optional<bool>{}, "bool.error", aedis::error::unexpected_bool_value)); \
    test(ex, make_expected("#f\r\n",        bool{false},             "bool.bool (true)")); \
    test(ex, make_expected("#f\r\n",        node_type{resp3::type::boolean, 1UL, 0UL, {"f"}}, "bool.node (false)")); \
    test(ex, make_expected("#t\r\n",        bool{true}, "bool.bool (true)")); \
@@ -135,7 +135,7 @@ std::vector<node_type> streamed_string_e2 { {resp3::type::streamed_string_part, 
    test(ex, make_expected("#t\r\n",        std::unordered_map<int, int>{}, "bool.error", aedis::error::expects_resp3_map)); \
    test(ex, make_expected("#t\r\n",        std::unordered_set<int>{}, "bool.error", aedis::error::expects_resp3_set)); \
    test(ex, make_expected("$?\r\n;0\r\n",  streamed_string_e2, "streamed_string.node.empty")); \
-   test(ex, make_expected("%11\r\n",       boost::optional<int>{}, "number.optional.int.error", aedis::error::expects_resp3_simple_type));; \
+   test(ex, make_expected("%11\r\n",       std::optional<int>{}, "number.optional.int.error", aedis::error::expects_resp3_simple_type));; \
    test(ex, make_expected("*1\r\n:11\r\n", std::tuple<int>{11}, "number.tuple.int")); \
    test(ex, make_expected(":-3\r\n",       node_type{resp3::type::number, 1UL, 0UL, {"-3"}}, "number.node (negative)")); \
    test(ex, make_expected(":11\r\n",       int{11}, "number.int")); \
@@ -187,8 +187,8 @@ BOOST_AUTO_TEST_CASE(test_map)
    using umap_type = std::unordered_map<std::string, std::string>;
    using mumap_type = std::unordered_multimap<std::string, std::string>;
    using vec_type = std::vector<std::string>;
-   using op_map_type = boost::optional<std::map<std::string, std::string>>;
-   using op_vec_type = boost::optional<std::vector<std::string>>;
+   using op_map_type = std::optional<std::map<std::string, std::string>>;
+   using op_vec_type = std::optional<std::vector<std::string>>;
    using tuple_type = std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string>;
 
    std::string const wire2 = "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n";
@@ -419,7 +419,7 @@ BOOST_AUTO_TEST_CASE(test_set)
    using uset_type = std::unordered_set<std::string>;
    using muset_type = std::unordered_multiset<std::string>;
    using vec_type = std::vector<std::string>;
-   using op_vec_type = boost::optional<std::vector<std::string>>;
+   using op_vec_type = std::optional<std::vector<std::string>>;
 
    std::string const wire2 = "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n";
    std::string const wire = "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n";
@@ -603,14 +603,14 @@ BOOST_AUTO_TEST_CASE(test_big_number)
 BOOST_AUTO_TEST_CASE(test_simple_string)
 {
    net::io_context ioc;
-   boost::optional<std::string> ok1, ok2;
+   std::optional<std::string> ok1, ok2;
    ok1 = "OK";
    ok2 = "";
 
    auto in00 = expect<std::string>{"+OK\r\n", std::string{"OK"}, "simple_string.string"};
    auto in01 = expect<std::string>{"+\r\n", std::string{""}, "simple_string.string.empty"};
-   auto in02 = expect<boost::optional<std::string>>{"+OK\r\n", boost::optional<std::string>{"OK"}, "simple_string.optional"};
-   auto in03 = expect<boost::optional<std::string>>{"+\r\n", boost::optional<std::string>{""}, "simple_string.optional.empty"};
+   auto in02 = expect<std::optional<std::string>>{"+OK\r\n", std::optional<std::string>{"OK"}, "simple_string.optional"};
+   auto in03 = expect<std::optional<std::string>>{"+\r\n", std::optional<std::string>{""}, "simple_string.optional.empty"};
 
    auto ex = ioc.get_executor();
 
@@ -640,7 +640,7 @@ BOOST_AUTO_TEST_CASE(test_resp3)
    auto const in04 = expect<std::string>{wire_ssp, std::string{}, "streamed_string_part.error", aedis::error::not_a_number};
    auto const in05 = expect<std::string>{"$l\r\nhh\r\n", std::string{}, "blob_string.error", aedis::error::not_a_number};
    auto const in06 = expect<int>{":\r\n", int{}, "number.error (empty field)", aedis::error::empty_field};
-   auto const in07 = expect<boost::optional<bool>>{"#\r\n", boost::optional<bool>{}, "bool.error", aedis::error::empty_field};
+   auto const in07 = expect<std::optional<bool>>{"#\r\n", std::optional<bool>{}, "bool.error", aedis::error::empty_field};
    auto const in08 = expect<std::string>{",\r\n", std::string{}, "double.error (empty field)", aedis::error::empty_field};
 
    auto ex = ioc.get_executor();
@@ -669,15 +669,15 @@ BOOST_AUTO_TEST_CASE(test_resp3)
 BOOST_AUTO_TEST_CASE(test_null)
 {
    net::io_context ioc;
-   using op_type_01 = boost::optional<bool>;
-   using op_type_02 = boost::optional<int>;
-   using op_type_03 = boost::optional<std::string>;
-   using op_type_04 = boost::optional<std::vector<std::string>>;
-   using op_type_05 = boost::optional<std::list<std::string>>;
-   using op_type_06 = boost::optional<std::map<std::string, std::string>>;
-   using op_type_07 = boost::optional<std::unordered_map<std::string, std::string>>;
-   using op_type_08 = boost::optional<std::set<std::string>>;
-   using op_type_09 = boost::optional<std::unordered_set<std::string>>;
+   using op_type_01 = std::optional<bool>;
+   using op_type_02 = std::optional<int>;
+   using op_type_03 = std::optional<std::string>;
+   using op_type_04 = std::optional<std::vector<std::string>>;
+   using op_type_05 = std::optional<std::list<std::string>>;
+   using op_type_06 = std::optional<std::map<std::string, std::string>>;
+   using op_type_07 = std::optional<std::unordered_map<std::string, std::string>>;
+   using op_type_08 = std::optional<std::set<std::string>>;
+   using op_type_09 = std::optional<std::unordered_set<std::string>>;
 
    auto const in01 = expect<op_type_01>{"_\r\n", op_type_01{}, "null.optional.bool"};
    auto const in02 = expect<op_type_02>{"_\r\n", op_type_02{}, "null.optional.int"};

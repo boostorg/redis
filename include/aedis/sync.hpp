@@ -181,7 +181,7 @@ public:
          throw std::system_error(ec);
    }
 
-   /// TODO
+   /// Calls `connection_base::async_run` and blocks until its competion.
    template <class ResponseAdapter>
    auto run(endpoint& ep, resp3::request const& req, ResponseAdapter adapter, boost::system::error_code& ec)
    {
@@ -206,7 +206,7 @@ public:
       return res;
    }
 
-   /// TODO
+   /// Calls `connection_base::async_run` and blocks until its competion.
    template <class ResponseAdapter = detail::response_traits<void>::adapter_type>
    auto run(endpoint& ep, resp3::request const& req, ResponseAdapter adapter = aedis::adapt())
    {

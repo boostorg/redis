@@ -46,7 +46,7 @@ auto adapt2() noexcept
  *  \ingroup any
  *
  *  STL containers, \c std::tuple and built-in types are supported and
- *  can be used in conjunction with \c boost::optional<T>.
+ *  can be used in conjunction with \c std::optional<T>.
  *
  *  Example usage:
  *

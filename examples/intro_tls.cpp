@@ -19,16 +19,25 @@ namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::endpoint;
-using connection = aedis::ssl::connection<net::ip::tcp::socket>;
+using connection = aedis::ssl::connection<boost::asio::ssl::stream<net::ip::tcp::socket>>;
+
+bool verify_certificate(bool, net::ssl::verify_context&)
+{
+   std::cout << "set_verify_callback" << std::endl;
+   return true;
+}
 
 auto main() -> int
 {
    try {
       net::io_context ioc;
-      net::ssl::context ctx(net::ssl::context::sslv23);
+
+      net::ssl::context ctx{net::ssl::context::sslv23};
       ctx.load_verify_file("ca.pem");
 
-      connection db{ioc};
+      connection db{ioc, ctx};
+      db.next_layer().set_verify_mode(net::ssl::verify_peer);
+      db.next_layer().set_verify_callback(verify_certificate);
 
       request req;
       req.push("PING");

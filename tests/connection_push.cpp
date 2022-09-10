@@ -40,7 +40,7 @@ void test_missing_push_reader1(connection::config const& cfg)
 
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, req, adapt(), [](auto ec, auto){
-      BOOST_TEST(!ec);
+      BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
    ioc.run();
@@ -56,7 +56,7 @@ void test_missing_push_reader2(connection::config const& cfg)
 
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, req, adapt(), [](auto ec, auto){
-      BOOST_TEST(!ec);
+      BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
    ioc.run();
@@ -73,7 +73,7 @@ void test_missing_push_reader3(connection::config const& cfg)
 
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, req, adapt(), [](auto ec, auto){
-      BOOST_TEST(!ec);
+      BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
    ioc.run();
@@ -117,7 +117,6 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
 
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, req, adapt(), [db](auto, auto){
-      // TODO: use async_run and async_exec.
       //BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
 
@@ -138,7 +137,7 @@ void test_push_is_received1(connection::config const& cfg)
 
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, req, adapt(), [db](auto ec, auto){
-      BOOST_TEST(!ec);
+      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::receive_push);
    });
 

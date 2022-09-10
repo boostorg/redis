@@ -114,7 +114,7 @@ public:
          case operation::run:
          {
             resv_.cancel();
-            derived().close_if_valid();
+            derived().close();
 
             read_timer_.cancel();
             check_idle_timer_.cancel();

@@ -8,6 +8,7 @@
 #define AEDIS_ADAPTER_ADAPTERS_HPP
 
 #include <set>
+#include <optional>
 #include <unordered_set>
 #include <forward_list>
 #include <system_error>
@@ -19,7 +20,6 @@
 #include <array>
 
 #include <boost/assert.hpp>
-#include <boost/optional.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/utility/string_view.hpp>
@@ -399,13 +399,13 @@ public:
 };
 
 template <class T>
-class wrapper<boost::optional<T>> {
+class wrapper<std::optional<T>> {
 private:
-   boost::optional<T>* result_;
+   std::optional<T>* result_;
    typename impl_map<T>::type impl_{};
 
 public:
-   explicit wrapper(boost::optional<T>* o = nullptr) : result_(o) {}
+   explicit wrapper(std::optional<T>* o = nullptr) : result_(o) {}
 
    void
    operator()(

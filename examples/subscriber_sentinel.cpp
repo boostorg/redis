@@ -57,10 +57,11 @@ net::awaitable<endpoint> resolve()
    auto ex = co_await net::this_coro::executor;
    connection conn{ex};
 
-   std::tuple<boost::optional<std::array<std::string, 2>>, aedis::ignore> addr;
+   std::tuple<std::optional<std::array<std::string, 2>>, aedis::ignore> addr;
    for (auto ep : endpoints) {
       boost::system::error_code ec;
       co_await conn.async_run(ep, req1, adapt(addr), net::redirect_error(net::use_awaitable, ec));
+      conn.reset_stream();
       std::cout << ec.message() << std::endl;
       if (std::get<0>(addr))
          break;

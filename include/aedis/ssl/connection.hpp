@@ -15,11 +15,17 @@
 
 namespace aedis::ssl {
 
-template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
-class connection :
+template <class>
+class connection;
+
+/** @brief Connection to the Redis server over SSL sockets.
+ *  @ingroup any
+ */
+template <class AsyncReadWriteStream>
+class connection<boost::asio::ssl::stream<AsyncReadWriteStream>> :
    public connection_base<
       typename boost::asio::ssl::stream<AsyncReadWriteStream>::executor_type,
-      connection<AsyncReadWriteStream>> {
+      connection<boost::asio::ssl::stream<AsyncReadWriteStream>>> {
 public:
    /// Type of the next layer
    using next_layer_type = boost::asio::ssl::stream<AsyncReadWriteStream>;
@@ -27,7 +33,7 @@ public:
    /// Executor type.
    using executor_type = typename next_layer_type::executor_type;
 
-   using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;
+   using base_type = connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
 
    /** @brief Connection configuration parameters.
     */
@@ -49,14 +55,15 @@ public:
    };
 
    /// Constructor
-   explicit connection(executor_type ex, config cfg = {})
+   explicit connection(executor_type ex, boost::asio::ssl::context& ctx, config cfg = {})
    : base_type{ex}
    , cfg_{cfg}
-   , ex_{ex}
-   {}
+   , stream_{ex, ctx}
+   {
+   }
 
-   explicit connection(boost::asio::io_context& ioc, config cfg = config{})
-   : connection(ioc.get_executor(), std::move(cfg))
+   explicit connection(boost::asio::io_context& ioc, boost::asio::ssl::context& ctx, config cfg = config{})
+   : connection(ioc.get_executor(), ctx, std::move(cfg))
    { }
 
    /// Get the config object.
@@ -65,50 +72,36 @@ public:
    /// Gets the config object.
    auto get_config() const noexcept -> config const& { return cfg_;}
 
-   auto& lowest_layer() noexcept
+   /// Reset the underlying stream.
+   void reset_stream(boost::asio::ssl::context& ctx)
    {
-      BOOST_ASSERT(!!stream_);
-      return stream_->lowest_layer();
+      stream_ = next_layer_type{ex_, ctx};
    }
 
-   auto& stream() noexcept
-   {
-      BOOST_ASSERT(!!stream_);
-      return *stream_;
-   }
+   auto& next_layer() noexcept { return stream_; }
+   auto const& next_layer() const noexcept { return stream_; }
 
-   auto const& stream() const noexcept
-   {
-      BOOST_ASSERT(!!stream_);
-      return *stream_;
-   }
+   // TODO: Make this private.
+   void close() { stream_.next_layer().close(); }
+   auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
+   auto is_open() const noexcept { return stream_.next_layer().is_open(); }
 
-   void close_if_valid()
+   template <
+      class EndpointSequence,
+      class CompletionToken
+      >
+   auto async_connect(
+         detail::conn_timer_t<executor_type>& timer,
+         EndpointSequence ep,
+         CompletionToken&& token)
    {
-      if (stream_)
-         stream_->next_layer().close();
-   }
-
-   auto is_open() const noexcept
-   {
-      return stream_ != nullptr && stream_->next_layer().is_open();
-   }
-
-   auto is_null() const noexcept
-   {
-      return stream_ == nullptr;
-   }
-
-   void create_stream()
-   {
-      stream_ = std::make_shared<next_layer_type>(ex_, ctx_);
+      return detail::async_connect(lowest_layer(), timer, ep, std::move(token));
    }
 
 private:
    config cfg_;
    executor_type ex_;
-   boost::asio::ssl::context ctx_{boost::asio::ssl::context::sslv23};
-   std::shared_ptr<boost::asio::ssl::stream<AsyncReadWriteStream>> stream_;
+   next_layer_type stream_;
 };
 
 } // aedis::ssl

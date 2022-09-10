@@ -34,6 +34,8 @@ target_link_libraries(aedis
     Boost::winapi
 )
 
+target_compile_features(aedis INTERFACE cxx_std_17)
+
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
     "${PROJECT_BINARY_DIR}/AedisConfigVersion.cmake"
@@ -42,6 +44,8 @@ write_basic_package_version_file(
 
 find_package(Boost 1.79 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
+
+find_package(OpenSSL REQUIRED)
 
 enable_testing()
 include_directories(include)
@@ -54,16 +58,29 @@ add_executable(containers examples/containers.cpp)
 add_executable(echo_server examples/echo_server.cpp)
 add_executable(intro examples/intro.cpp)
 add_executable(intro_sync examples/intro_sync.cpp)
-#add_executable(intro_tls examples/intro_tls.cpp)
+add_executable(intro_tls examples/intro_tls.cpp)
 add_executable(serialization examples/serialization.cpp)
 add_executable(subscriber examples/subscriber.cpp)
 add_executable(subscriber_sync examples/subscriber_sync.cpp)
 add_executable(subscriber_sentinel examples/subscriber_sentinel.cpp)
 add_executable(test_low_level tests/low_level.cpp)
-add_executable(test_connection tests/connection.cpp)
+add_executable(low_level_sync tests/low_level_sync.cpp)
+add_executable(test_connection_other tests/connection_other.cpp)
+add_executable(test_connection_connect tests/connection_connect.cpp)
+add_executable(test_connection_hello tests/connection_hello.cpp)
 add_executable(test_connection_push tests/connection_push.cpp)
 add_executable(test_connection_quit tests/connection_quit.cpp)
-add_executable(low_level_sync tests/low_level_sync.cpp)
+add_executable(test_connection_reconnect tests/connection_reconnect.cpp)
+
+target_compile_features(chat_room PUBLIC cxx_std_20)
+target_compile_features(echo_server PUBLIC cxx_std_20)
+target_compile_features(subscriber PUBLIC cxx_std_20)
+target_compile_features(subscriber_sentinel PUBLIC cxx_std_20)
+target_compile_features(test_connection_other PUBLIC cxx_std_20)
+target_compile_features(test_connection_push PUBLIC cxx_std_20)
+target_compile_features(test_connection_quit PUBLIC cxx_std_20)
+
+target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL)
 
 # Tests
 #=======================================================================
@@ -71,12 +88,16 @@ add_executable(low_level_sync tests/low_level_sync.cpp)
 add_test(containers containers)
 add_test(intro intro)
 add_test(intro_sync intro_sync)
+add_test(intro_tls intro_sync)
 add_test(serialization serialization)
+add_test(low_level_sync low_level_sync)
 add_test(test_low_level test_low_level)
-add_test(test_connection test_connection)
+add_test(test_connection_other test_connection_other)
+add_test(test_connection_connect test_connection_connect)
+add_test(test_connection_hello test_connection_hello)
 add_test(test_connection_push test_connection_push)
 add_test(test_connection_quit test_connection_quit)
-add_test(low_level_sync low_level_sync)
+add_test(test_connection_reconnect test_connection_reconnect)
 
 # Install
 #=======================================================================

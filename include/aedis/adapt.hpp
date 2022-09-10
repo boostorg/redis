@@ -73,8 +73,7 @@ public:
       boost::system::error_code& ec)
    {
       using boost::variant2::visit;
-      // TODO: I am usure whether this should be an error or an
-      // assertion.
+      // I am usure whether this should be an error or an assertion.
       BOOST_ASSERT(i < adapters_.size());
       visit([&](auto& arg){arg(nd, ec);}, adapters_.at(i));
    }

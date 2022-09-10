@@ -30,19 +30,9 @@ struct endpoint {
    std::string password{};
 };
 
-/// TODO
-inline
-auto is_valid(endpoint const& ep) noexcept
-{
-   return !std::empty(ep.host) && !std::empty(ep.port);
-}
-
-/// TODO move to .ipp
-auto operator<<(std::ostream& os, endpoint const& ep) -> std::ostream&
-{
-   os << ep.host << ":" << ep.port << " (" << ep.username << "," << ep.password << ")";
-   return os;
-}
+auto is_valid(endpoint const& ep) noexcept -> bool;
+auto requires_auth(endpoint const& ep) noexcept -> bool;
+auto operator<<(std::ostream& os, endpoint const& ep) -> std::ostream&;
 
 } // aedis
 

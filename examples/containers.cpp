@@ -14,7 +14,6 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-using boost::optional;
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::endpoint;
@@ -45,7 +44,7 @@ int main()
       aedis::ignore, // multi
       aedis::ignore, // lrange
       aedis::ignore, // hgetall
-      std::tuple<optional<std::vector<int>>, optional<std::map<std::string, int>>>, // exec
+      std::tuple<std::optional<std::vector<int>>, std::optional<std::map<std::string, int>>>, // exec
       aedis::ignore  // quit
    > resp;
 

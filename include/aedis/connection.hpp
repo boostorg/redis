@@ -15,6 +15,9 @@
 
 namespace aedis {
 
+/** @brief Connection to the Redis server over plain sockets.
+ *  @ingroup any
+ */
 template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection :
    public connection_base<
@@ -52,7 +55,7 @@ public:
    explicit connection(executor_type ex, config cfg = {})
    : base_type{ex}
    , cfg_{cfg}
-   , ex_{ex}
+   , stream_{ex}
    {}
 
    explicit connection(boost::asio::io_context& ioc, config cfg = config{})
@@ -65,49 +68,48 @@ public:
    /// Gets the config object.
    auto get_config() const noexcept -> config const& { return cfg_;}
 
-   auto& lowest_layer() noexcept
+   /// Reset the underlying stream.
+   void reset_stream()
    {
-      BOOST_ASSERT(!!stream_);
-      return stream_->lowest_layer();
-   }
-
-   auto& stream() noexcept
-   {
-      BOOST_ASSERT(!!stream_);
-      return *stream_;
-   }
-
-   auto const& stream() const noexcept
-   {
-      BOOST_ASSERT(!!stream_);
-      return *stream_;
-   }
-
-   void close_if_valid()
-   {
-      if (stream_)
-         stream_->close();
-   }
-
-   auto is_open() const noexcept
-   {
-      return stream_ != nullptr && stream_->is_open();
-   }
-
-   auto is_null() const noexcept
-   {
-      return stream_ == nullptr;
-   }
-
-   void create_stream()
-   {
-      stream_ = std::make_shared<next_layer_type>(ex_);
+      if (stream_.is_open()) {
+         boost::system::error_code ignore;
+         stream_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignore);
+         stream_.close(ignore);
+      }
    }
 
 private:
+   template <class, class> friend class connection_base;
+   template <class, class> friend struct detail::exec_read_op;
+   template <class, class> friend struct detail::exec_op;
+   template <class, class> friend struct detail::receive_push_op;
+   template <class> friend struct detail::ping_op;
+   template <class> friend struct detail::check_idle_op;
+   template <class> friend struct detail::reader_op;
+   template <class> friend struct detail::writer_op;
+   template <class> friend struct detail::connect_with_timeout_op;
+   template <class> friend struct detail::run_op;
+
+   template <
+      class EndpointSequence,
+      class CompletionToken
+      >
+   auto async_connect(
+         detail::conn_timer_t<executor_type>& timer,
+         EndpointSequence ep,
+         CompletionToken&& token)
+   {
+      return detail::async_connect(next_layer(), timer, ep, std::move(token));
+   }
+
+   void close() { stream_.close(); }
+   auto is_open() const noexcept { return stream_.is_open(); }
+   auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
+   auto& next_layer() noexcept { return stream_; }
+   auto const& next_layer() const noexcept { return stream_; }
+
    config cfg_;
-   executor_type ex_;
-   std::shared_ptr<AsyncReadWriteStream> stream_;
+   AsyncReadWriteStream stream_;
 };
 
 } // aedis
