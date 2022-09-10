@@ -42,25 +42,29 @@ awaitable_type echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
    }
 }
 
-// TODO: Print the async_run error.
-awaitable_type listener()
+awaitable_type listener(std::shared_ptr<connection> db)
 {
    auto ex = co_await net::this_coro::executor;
-   auto db = std::make_shared<connection>(ex);
-   endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, net::detached);
-
    tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});
    for (;;)
       net::co_spawn(ex, echo_loop(co_await acc.async_accept(), db), net::detached);
 }
 
-// TODO: Perform signal handling.
 auto main() -> int
 {
    try {
       net::io_context ioc{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE_IO};
-      co_spawn(ioc, listener(), net::detached);
+      auto db = std::make_shared<connection>(ioc);
+      endpoint ep{"127.0.0.1", "6379"};
+      db->async_run(ep, [&](auto const& ec) {
+         std::clog << ec.message() << std::endl;
+         ioc.stop();
+      });
+
+      net::signal_set signals(ioc, SIGINT, SIGTERM);
+      signals.async_wait([&](auto, auto){ ioc.stop(); });
+
+      co_spawn(ioc, listener(db), net::detached);
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

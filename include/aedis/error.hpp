@@ -71,7 +71,13 @@ enum class error
    not_a_double,
 
    /// Got RESP3 null.
-   resp3_null
+   resp3_null,
+
+   /// Unexpected server role.
+   unexpected_server_role,
+
+   /// SSL handshake timeout.
+   ssl_handshake_timeout,
 };
 
 /** \internal

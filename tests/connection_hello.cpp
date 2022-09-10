@@ -77,3 +77,24 @@ BOOST_AUTO_TEST_CASE(test_auth_fail)
 
    ioc.run();
 }
+
+BOOST_AUTO_TEST_CASE(test_wrong_role)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc.get_executor());
+
+   // Should cause an error in the authentication as our redis server
+   // has no authentication configured.
+   endpoint ep;
+   ep.host = "127.0.0.1";
+   ep.port = "6379";
+   ep.role = "errado";
+
+   db->async_run(ep, [](auto ec) {
+      BOOST_CHECK_EQUAL(ec, aedis::error::unexpected_server_role);
+   });
+
+   ioc.run();
+}

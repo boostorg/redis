@@ -62,7 +62,6 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
    }
 }
 
-
 // Publishes messages to other users.
 net::awaitable<void> publisher(stream_descriptor& in, std::shared_ptr<connection> db)
 {

@@ -32,6 +32,8 @@ public:
 
    using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;
 
+   using this_type = connection<next_layer_type>;
+
    /** @brief Connection configuration parameters.
     */
    struct config {
@@ -90,16 +92,13 @@ private:
    template <class> friend struct detail::connect_with_timeout_op;
    template <class> friend struct detail::run_op;
 
-   template <
-      class EndpointSequence,
-      class CompletionToken
-      >
-   auto async_connect(
-         detail::conn_timer_t<executor_type>& timer,
-         EndpointSequence ep,
-         CompletionToken&& token)
+   template <class CompletionToken>
+   auto async_connect(CompletionToken&& token)
    {
-      return detail::async_connect(next_layer(), timer, ep, std::move(token));
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::connect_with_timeout_op<this_type>{this}, token, stream_);
    }
 
    void close() { stream_.close(); }

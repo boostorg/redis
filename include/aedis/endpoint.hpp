@@ -20,8 +20,8 @@ struct endpoint {
    /// Redis server port.
    std::string port;
 
-   /// Role master or replica.
-   std::string role{"master"};
+   /// Expected role if any.
+   std::string role{};
 
    /// Username if authentication is required.
    std::string username{};

@@ -13,7 +13,15 @@
 * Adds example on how to resolve addresses over sentinels, see
   subscriber_sentinel.cpp.
 
-* Adds `endpoint` class.
+* Adds `endpoint` where in addition to host and port, users can also
+  optionally provide username and password that are needed to connect
+  to the Redis server and the expected server role (see
+  `error::unexpected_server_role`).
+
+* `connection::async_run` checks whether the server role received in
+  the hello command is equal to the expected server role specified in
+  the the `aedis::endpoint`. To skip this check let the role variable
+  empty.
 
 * Removes reconnect functionanlity from the `connection` class. It is
   possible in simple reconnection strategies but bloats the
@@ -25,8 +33,6 @@
 * Fixes a bug in `connection::async_receive_push` that prevented
   passing any response adapter other that `adapt(std::vector<node>)`.
 
-* Ports the buildsystem from autotools to CMake.
-
 * Changes the behaviour of `aedis::adapt()` that caused RESP3 errors
   to be ignored. One consequence of it is that `connection::async_run`
   would not exit with failure in servers that required authentication.
@@ -34,6 +40,8 @@
 * Changes the behaviour of `connection::async_run` that would cause it
   to complete with success when an error in the
   `connection::async_exec` occurred.
+
+* Moves the buildsystem from autotools to CMake.
 
 ## v1.0.0
 

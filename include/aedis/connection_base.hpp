@@ -304,7 +304,7 @@ public:
 
    /// @}
 
-private:
+protected:
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = boost::asio::wait_traits<clock_type>;
    using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
@@ -333,7 +333,6 @@ private:
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::exec_read_op;
    template <class, class> friend struct detail::runexec_op;
-   template <class> friend struct detail::connect_with_timeout_op;
    template <class> friend struct detail::resolve_with_timeout_op;
    template <class> friend struct detail::check_idle_op;
    template <class> friend struct detail::start_op;
@@ -370,15 +369,6 @@ private:
          , void(boost::system::error_code)
          >(detail::resolve_with_timeout_op<Derived>{&derived(), &ep},
             token, resv_);
-   }
-
-   template <class CompletionToken>
-   auto async_connect_with_timeout(CompletionToken&& token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::connect_with_timeout_op<Derived>{&derived()}, token, resv_);
    }
 
    template <class CompletionToken>
@@ -451,6 +441,36 @@ private:
       }
    }
 
+   void prepare_hello(endpoint const& ep)
+   {
+      req_.clear();
+      if (requires_auth(ep)) {
+         req_.push("HELLO", "3", "AUTH", ep.username, ep.password);
+      } else {
+         req_.push("HELLO", "3");
+      }
+   }
+
+   bool expect_role(std::string const& expected)
+   {
+      if (std::empty(expected))
+         return true;
+
+      resp3::node<std::string> role_node;
+      role_node.data_type = resp3::type::blob_string;
+      role_node.aggregate_size = 1;
+      role_node.depth = 1;
+      role_node.value = "role";
+
+      auto iter = std::find(std::cbegin(response_), std::cend(response_), role_node);
+      if (iter == std::end(response_))
+         return false;
+
+      ++iter;
+      BOOST_ASSERT(iter != std::cend(response_));
+      return iter->value == expected;
+   }
+
    // IO objects
    resolver_type resv_;
    timer_type ping_timer_;
@@ -471,6 +491,7 @@ private:
    boost::asio::ip::tcp::resolver::results_type endpoints_;
 
    resp3::request req_;
+   std::vector<resp3::node<std::string>> response_;
 };
 
 } // aedis

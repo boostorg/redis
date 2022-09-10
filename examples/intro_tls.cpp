@@ -45,14 +45,15 @@ auto main() -> int
 
       std::tuple<std::string, aedis::ignore> resp;
       endpoint ep{"127.0.0.1", "6379"};
-      db.async_run(ep, req, adapt(resp), [](auto ec, auto) {
+      db.async_run(ep, req, adapt(resp), [&](auto ec, auto) {
          std::cout << ec.message() << std::endl;
+         db.close();
       });
 
       ioc.run();
 
-      std::cout << std::get<0>(resp) << std::endl;
-   } catch (...) {
-      std::cerr << "Error" << std::endl;
+      std::cout << "----> " << std::get<0>(resp) << std::endl;
+   } catch (std::exception const& e) {
+      std::cerr << "Error: " << e.what() << std::endl;
    }
 }

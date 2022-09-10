@@ -35,7 +35,7 @@ namespace aedis::detail {
 
 template <class Conn>
 struct connect_with_timeout_op {
-   Conn* conn;
+   Conn* conn = nullptr;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -47,7 +47,8 @@ struct connect_with_timeout_op {
       {
          conn->ping_timer_.expires_after(conn->get_config().connect_timeout);
          yield
-         conn->derived().async_connect(conn->ping_timer_, conn->endpoints_, std::move(self));
+         detail::async_connect(
+            conn->next_layer(), conn->ping_timer_, conn->endpoints_, std::move(self));
          self.complete(ec);
       }
    }
@@ -400,34 +401,35 @@ struct run_op {
          }
 
          yield
-         conn->async_connect_with_timeout(std::move(self));
+         conn->derived().async_connect(std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
             return;
          }
 
-         conn->req_.clear();
-         if (requires_auth(*ep)) {
-            conn->req_.push("HELLO", "3", "AUTH", ep->username, ep->password);
-         } else {
-            conn->req_.push("HELLO", "3");
-         }
-
+         conn->prepare_hello(*ep);
          conn->ping_timer_.expires_after(conn->get_config().ping_interval);
 
          yield
-         async_exec(
+         resp3::detail::async_exec(
             conn->next_layer(),
             conn->ping_timer_,
             conn->req_,
-            adapter::adapt2(),
+            adapter::adapt2(conn->response_),
             conn->make_dynamic_buffer(),
             std::move(self)
          );
+
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
+            return;
+         }
+
+         if (!conn->expect_role(ep->role)) {
+            conn->cancel(Conn::operation::run);
+            self.complete(error::unexpected_server_role);
             return;
          }
 
