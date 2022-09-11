@@ -71,6 +71,7 @@ add_executable(test_connection_hello tests/connection_hello.cpp)
 add_executable(test_connection_push tests/connection_push.cpp)
 add_executable(test_connection_quit tests/connection_quit.cpp)
 add_executable(test_connection_reconnect tests/connection_reconnect.cpp)
+add_executable(test_connection_tls tests/connection_tls.cpp)
 
 target_compile_features(chat_room PUBLIC cxx_std_20)
 target_compile_features(echo_server PUBLIC cxx_std_20)
@@ -98,6 +99,7 @@ add_test(test_connection_hello test_connection_hello)
 add_test(test_connection_push test_connection_push)
 add_test(test_connection_quit test_connection_quit)
 add_test(test_connection_reconnect test_connection_reconnect)
+add_test(test_connection_tls test_connection_tls)
 
 # Install
 #=======================================================================

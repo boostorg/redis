@@ -43,6 +43,9 @@ public:
       /// Timeout of the connect operation.
       std::chrono::milliseconds connect_timeout = std::chrono::seconds{10};
 
+      /// Timeout of the resp3 handshake operation.
+      std::chrono::milliseconds resp3_handshake_timeout = std::chrono::seconds{2};
+
       /// Time interval of ping operations.
       std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
 

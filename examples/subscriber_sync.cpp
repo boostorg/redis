@@ -33,6 +33,7 @@ void reconnect(connection& conn)
    for (;;) {
       boost::system::error_code ec;
       conn.run(ep, req, adapt(), ec);
+      // TODO: Call conn.reset.
       std::cout << ec.message() << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds{1});
    }

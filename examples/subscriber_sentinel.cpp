@@ -31,7 +31,7 @@ using connection = aedis::connection<tcp_socket>;
 // https://redis.io/docs/reference/sentinel-clients.  This example
 // assumes a sentinel and a redis server running on localhost.
 
-net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
+net::awaitable<void> receive_pushes(std::shared_ptr<connection> db)
 {
    for (std::vector<node<std::string>> resp;;) {
       co_await db->async_receive_push(adapt(resp));
@@ -104,7 +104,7 @@ int main()
    try {
       net::io_context ioc;
       auto db = std::make_shared<connection>(ioc);
-      net::co_spawn(ioc, push_receiver(db), net::detached);
+      net::co_spawn(ioc, receive_pushes(db), net::detached);
       net::co_spawn(ioc, reconnect(db), net::detached);
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

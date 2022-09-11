@@ -13,6 +13,8 @@
 * Adds example on how to resolve addresses over sentinels, see
   subscriber_sentinel.cpp.
 
+* Adds a `connection::config::resp3_handshake_timeout`.
+
 * Adds `endpoint` where in addition to host and port, users can also
   optionally provide username and password that are needed to connect
   to the Redis server and the expected server role (see

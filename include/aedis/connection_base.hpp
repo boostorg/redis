@@ -27,7 +27,7 @@
 
 namespace aedis {
 
-/** @brief A high level connection to Redis.
+/** @brief Base class for high level Redis asynchronous connections.
  *  @ingroup any
  *
  *  This class keeps a healthy connection to the Redis instance where
@@ -61,10 +61,9 @@ public:
       receive_push,
    };
 
-   /** \brief Contructor
+   /** @brief Contructor
     *
-    *  \param ex The executor.
-    *  \param cfg Configuration parameters.
+    *  @param ex The executor.
     */
    explicit connection_base(executor_type ex)
    : resv_{ex}
@@ -84,18 +83,18 @@ public:
 
    /** @brief Cancel operations.
     *
-    * @li `operation::exec`: Cancels operations started with `async_exec`.
+    *  @li `operation::exec`: Cancels operations started with `async_exec`.
     *
-    * @li operation::run: Cancels `async_run`. Notice that the
-    *     preferred way to close a connection is send `QUIT`
-    *     to the server. An unresponsive Redis server will also cause
-    *     the idle-checks to kick in and lead to
-    *     `connection::async_run` completing with
-    *     `error::idle_timeout`. Calling `cancel(operation::run)`
-    *     directly should be seen as the last option.
+    *  @li operation::run: Cancels `async_run`. Notice that the
+    *      preferred way to close a connection is to send a `QUIT`
+    *      command to the server. An unresponsive Redis server will
+    *      also cause the idle-checks to timeout and lead to
+    *      `connection::async_run` completing with
+    *      `error::idle_timeout`. Calling `cancel(operation::run)`
+    *      directly should be seen as the last option.
     *
-    * @param op: The operation to be cancelled.
-    * @returns The number of operations that have been canceled.
+    *  @param op: The operation to be cancelled.
+    *  @returns The number of operations that have been canceled.
     */
    auto cancel(operation op) -> std::size_t
    {
@@ -145,7 +144,8 @@ public:
 
    /** @name Asynchronous functions
     *  
-    *  Each of these operations a individually cancellable.
+    *  Each of these operations are cancellable via the cancel member
+    *  function.
     **/
 
    /// @{
@@ -154,14 +154,29 @@ public:
     *  This function performs the following steps
     *
     *  @li Resolves the Redis host as of `async_resolve` with the
-    *  timeout passed in `config::resolve_timeout`.
+    *  timeout passed in the base class `config::resolve_timeout`.
     *
     *  @li Connects to one of the endpoints returned by the resolve
-    *  operation with the timeout passed in `config::connect_timeout`.
+    *  operation with the timeout passed in the base class
+    *  `config::connect_timeout`.
     *
-    *  @li Starts healthy checks with a timeout twice
-    *  the value of `config::ping_interval`. If no data is
-    *  received during that time interval `connection::async_run` completes with
+    *  @li Performs a RESP3 handshake by sending a `HELLO` command
+    *  with protocol version 3 and optionally credentials necessary
+    *  for authentication, the last are read from the `endpoint`
+    *  object. TODO: specify a timeout.
+    *
+    *  @li Erase any password that are contained in
+    *  `endpoint::password`.
+    *
+    *  @li Check whether the server role corresponds to the one
+    *  specifed in the `endpoint`. If `endpoint::role` is left empty,
+    *  no check is performed. If the role role is different than the
+    *  expect `async_run` will complete with
+    *  `error::unexpected_server_role`.
+    *
+    *  @li Starts healthy checks with a timeout twice the value of
+    *  `config::ping_interval`. If no data is received during that
+    *  time interval `connection::async_run` completes with
     *  `error::idle_timeout`.
     *
     *  @li Starts the healthy check operation that sends `PING`s to
@@ -170,10 +185,7 @@ public:
     *  @li Starts reading from the socket and executes all requests
     *  that have been started prior to this function call.
     *
-    *  For an example see echo_server.cpp.
-    *
-    *  @param ep Redis endpoint. The password will be erased after the
-    *  connection has been stablished.
+    *  @param ep Redis endpoint.
     *  @param token Completion token.
     *
     *  The completion token must have the following signature
@@ -197,14 +209,12 @@ public:
     *  single function. This function is useful for users that want to
     *  send a single request to the server and close it.
     *
-    *  @param ep Redis endpoint. The password will be erased after the
-    *  connection has been stablished.
+    *  @param ep Redis endpoint.
     *  @param req Request object.
     *  @param adapter Response adapter.
     *  @param token Asio completion token.
     *
-    *  For an example see intro.cpp. The completion token must have
-    *  the following signature
+    *  The completion token must have the following signature
     *
     *  @code
     *  void f(boost::system::error_code, std::size_t);
@@ -230,12 +240,11 @@ public:
 
    /** @brief Executes a command on the redis server asynchronously.
     *
-    *  There is no need to synchronize multiple calls to this
-    *  function as it keeps an internal queue.
+    *  The implementation will queue multiple calls to this function.
     *
-    *  \param req Request object.
-    *  \param adapter Response adapter.
-    *  \param token Asio completion token.
+    *  @param req Request object.
+    *  @param adapter Response adapter.
+    *  @param token Asio completion token.
     *
     *  For an example see echo_server.cpp. The completion token must
     *  have the following signature
@@ -266,11 +275,11 @@ public:
    /** @brief Receives server side pushes asynchronously.
     *
     *  Users that expect server pushes have to call this function in a
-    *  loop. If a push arrives and there is no reader,
-    *  the connection will hang and eventually timeout.
+    *  loop. If a push arrives and there is no reader, the connection
+    *  will hang and eventually timeout.
     *
-    *  \param adapter The response adapter.
-    *  \param token The Asio completion token.
+    *  @param adapter The response adapter.
+    *  @param token The Asio completion token.
     *
     *  For an example see subscriber.cpp. The completion token must
     *  have the following signature

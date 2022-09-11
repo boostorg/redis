@@ -409,7 +409,7 @@ struct run_op {
          }
 
          conn->prepare_hello(*ep);
-         conn->ping_timer_.expires_after(conn->get_config().ping_interval);
+         conn->ping_timer_.expires_after(conn->get_config().resp3_handshake_timeout);
 
          yield
          resp3::detail::async_exec(
@@ -426,6 +426,8 @@ struct run_op {
             self.complete(ec);
             return;
          }
+
+         // TODO: Erase the password.
 
          if (!conn->expect_role(ep->role)) {
             conn->cancel(Conn::operation::run);

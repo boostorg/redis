@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(test_idle)
 
       endpoint ep{"127.0.0.1", "6379"};
       db->async_run(ep, req, adapt(), [](auto ec, auto){
-         BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
+         BOOST_CHECK_EQUAL(ec, aedis::error::exec_timeout);
       });
 
       ioc.run();

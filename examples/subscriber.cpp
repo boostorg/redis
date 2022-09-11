@@ -52,6 +52,9 @@ net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
    }
 }
 
+// See
+// - https://redis.io/docs/manual/sentinel.
+// - https://redis.io/docs/reference/sentinel-clients.
 net::awaitable<void> reconnect(std::shared_ptr<connection> db)
 {
    request req;

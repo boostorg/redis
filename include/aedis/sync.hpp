@@ -23,6 +23,7 @@ namespace aedis {
 template <class Connection>
 class sync {
 public:
+   // TODO: Add cancel and reset functions.
    using config = typename Connection::config;
 
    /** @brief Constructor
@@ -33,10 +34,10 @@ public:
    template <class Executor>
    explicit sync(Executor ex, config cfg = config{}) : conn_{ex, cfg} { }
 
-   /** @brief Executes a request synchronously.
+   /** @brief Calls `async_exec` from the underlying connection object.
     *
-    *  The functions calls `connection::async_exec` and waits
-    *  for its completion.
+    *  Calls `async_exec` from the underlying connection object and
+    *  waits for its completion.
     *
     *  @param req The request.
     *  @param adapter The response adapter.
@@ -68,10 +69,10 @@ public:
       return res;
    }
 
-   /** @brief Executes a command synchronously
+   /** @brief Calls `async_exec` from the underlying connection object.
     *
-    *  The functions calls `connection::async_exec` and waits for its
-    *  completion.
+    *  Calls `async_exec` from the underlying connection object and
+    *  waits for its completion.
     *
     *  @param req The request.
     *  @param adapter The response adapter.
@@ -88,10 +89,10 @@ public:
       return res;
    }
 
-   /** @brief Receives server pushes synchronusly.
+   /** @brief Calls `async_receive_push` from the underlying connection object.
     *
-    *  The functions calls `connection::async_receive_push` and
-    *  waits for its completion.
+    *  Calls `async_receive_push` from the underlying connection
+    *  object and waits for its completion.
     *
     *  @param adapter The response adapter.
     *  @param ec Error code in case of error.
@@ -121,10 +122,10 @@ public:
       return res;
    }
 
-   /** @brief Receives server pushes synchronusly.
+   /** @brief Calls `async_receive_push` from the underlying connection object.
     *
-    *  The functions calls `connection::async_receive_push` and
-    *  waits for its completion.
+    *  Calls `async_receive_push` from the underlying connection
+    *  object and waits for its completion.
     *
     *  @param adapter The response adapter.
     *  @throws std::system_error in case of error.
@@ -142,9 +143,10 @@ public:
 
    /** @brief Calls \c async_run from the underlying connection.
     *
-    *  The functions calls `connection::async_run` and waits for its
-    *  completion.
+    *  Calls `async_run` from the underlying connection objects and
+    *  waits for its completion.
     *
+    *  @param ep The Redis server endpoint.
     *  @param ec Error code.
     */
    void run(endpoint& ep, boost::system::error_code& ec)
@@ -168,9 +170,10 @@ public:
 
    /** @brief Calls \c async_run from the underlying connection.
     *
-    *  The functions calls `connection::async_run` and waits for its
-    *  completion.
+    *  Calls `async_run` from the underlying connection objects and
+    *  waits for its completion.
     *
+    *  @param ep The Redis server endpoint.
     *  @throws std::system_error.
     */
    void run(endpoint& ep)
@@ -181,7 +184,16 @@ public:
          throw std::system_error(ec);
    }
 
-   /// Calls `connection_base::async_run` and blocks until its competion.
+   /** @brief Calls \c async_run from the underlying connection.
+    *
+    *  Calls `async_run` from the underlying connection objects and
+    *  waits for its completion.
+    *
+    *  @param ep The Redis server endpoint.
+    *  @param req The request. 
+    *  @param adapter The response adapter. 
+    *  @param ec Error code in case of error.
+    */
    template <class ResponseAdapter>
    auto run(endpoint& ep, resp3::request const& req, ResponseAdapter adapter, boost::system::error_code& ec)
    {
@@ -206,7 +218,16 @@ public:
       return res;
    }
 
-   /// Calls `connection_base::async_run` and blocks until its competion.
+   /** @brief Calls \c async_run from the underlying connection.
+    *
+    *  Calls `async_run` from the underlying connection objects and
+    *  waits for its completion.
+    *
+    *  @param ep The Redis server endpoint.
+    *  @param req The request. 
+    *  @param adapter The response adapter. 
+    *  @throws std::system_error.
+    */
    template <class ResponseAdapter = detail::response_traits<void>::adapter_type>
    auto run(endpoint& ep, resp3::request const& req, ResponseAdapter adapter = aedis::adapt())
    {
