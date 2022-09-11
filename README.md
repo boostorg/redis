@@ -1,30 +1,8 @@
 
 # Documentation
 
-##### Table of Contents
+[TOC]
 
-* [Overview](#overview)
-* [Tutorial](#tutorial)
-  * [Async](#async)
-    * [Reconnection](#reconnection)
-  * [Sync](#sync)
-  * [Request](#requests)
-    * [Serialization](#serialization)
-  * [Responses](#responses)
-    * [Null](#responses)
-    * [Transactions](#transactions)
-    * [Deserialization](#deserialization)
-    * [General responses](#general-resps)
-* [Installation](#installation)
-* [Why Aedis](#why-aedis)
-  * [Benchmarks](benchmarks/benchmarks.md)
-  * [Redis-plus-plus](#why-aedis)
-* [Build status](#build-status)
-* [Changelog](CHANGELOG.md)
-* [Reference](#any)
-* [Acknowledgement](#acknowledgement)
-
-<a name="overview"/>
 ## Overview
 
 Aedis is a high-level [Redis](https://redis.io/) client library
@@ -33,18 +11,15 @@ built on top of
 Some of its distinctive features are
 
 * Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-* First class support for STL containers and C++ built-in types.
-* Serialization and deserialization of your own data types.
-* Healthy checks, back pressure and low latency.
+* Support for STL containers and serialization of your own data types.
 * Support for TLS and Redis sentinel.
+* Healthy checks, back pressure and low latency.
 
 If you are unfamiliar with Redis, the best place to start is https://redis.io, in short 
 
-* In-memory data structure server with support for strings, hashes, lists, sets, sorted sets, streams, and more.
+* Redis is an In-memory data structure server with support for strings, hashes, lists, sets, sorted sets, streams, and more.
 * Keeps the dataset in memory for fast access, but can also persist all writes to permanent storage to survive reboots and system failures.
 * Replication with automatic failover for both standalone and clustered deployments.
-* More than 56k github stars.
-* Five times voted as the most loved database on stackoverflow.
 
 Inpacient users can skim over the examples before proceeding to the next sections
 
@@ -58,14 +33,12 @@ Inpacient users can skim over the examples before proceeding to the next section
 * echo_server.cpp: A simple TCP echo server that uses coroutines.
 * chat_room.cpp: A simple chat room that uses coroutines.
 
-<a name="tutorial"/>
 ## Tutorial
 
 The support for synchronous communication with Redis is based on
 the asynchronous interface, therefore we will start with the later
 here.
 
-<a name="async"/>
 ### Async
 
 The basic Aedis functionality resolves around calling these three
@@ -105,10 +78,11 @@ auto main() -> int
 }
 ```
 
-`async_run` completes only when the connection is lost and does
-not affect any other operation that is happening on the stream,
-like `async_exec` or `async_receive_push`. An example implementation of
-`receive_pushes(conn)` could looks like this
+`async_run` completes only when the connection is lost. When that
+happens other operations like `async_exec` or `async_receive_push`
+won't be affected and will be processed once a new connection is
+stablished, by calling `async_run` again.  The code snippet below is
+an example implementation of `receive_pushes(conn)`
 
 ```cpp
 net::awaitable<void> receive_pushes(connection& db)
@@ -121,7 +95,7 @@ net::awaitable<void> receive_pushes(connection& db)
 }
 ```
 
-`send_commands` on the other hand could be
+`send_commands` on the other hand could look like
 
 ```cpp
 net::awaitable<void> send_commands(connection& db)
@@ -133,7 +107,6 @@ net::awaitable<void> send_commands(connection& db)
 }
 ```
 
-<a name="reconnection"/>
 #### Reconnection
 
 In the majority of cases users will want to reconnect after a
@@ -160,12 +133,10 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
 More complex scenarios like performing a failover with sentinels
 can be seen in the example subscriber_sentinel.cpp.
 
-<a name="sync"/>
 ### Sync
 
 Synchronous communication is supported in Aedis by the wrapper class `aedis::sync`.
 
-<a name="requests"/>
 ### Requests
 
 Redis requests are composed of one of more Redis commands (in
@@ -200,7 +171,6 @@ Sending a request to Redis is then peformed with the following function
 co_await db->async_exec(req, adapt(resp));
 ```
 
-<a name="serialization"/>
 #### Serialization
 
 The `push` and `push_range` functions above work with integers
@@ -232,7 +202,6 @@ req.push_range("HSET", "key", map);
 
 Example serialization.cpp shows how store json string in Redis.
 
-<a name="responses"/>
 ### Responses
 
 To read responses effectively, users must know their RESP3 type,
@@ -303,7 +272,6 @@ of this writing, not all RESP3 types are used by the Redis server,
 which means in practice users will be concerned with a reduced
 subset of the RESP3 specification.
 
-<a name="null"/>
 #### Null
 
 It is not uncommon for apps to access keys that do not exist or
@@ -318,7 +286,6 @@ co_await db->async_exec(req, adapt(resp));
 
 Everything else stays the same.
 
-<a name="transactions"/>
 #### Transactions
 
 To read the response to transactions we have to observe that Redis
@@ -361,7 +328,6 @@ Note that above we are not ignoring the response to the commands
 themselves but whether they have been successfully queued. For a
 complete example see containers.cpp.
 
-<a name="deserialization"/>
 #### Deserialization
 
 As mentioned in \ref requests-serialization, it is common to
@@ -381,7 +347,6 @@ void from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::er
 After that, you can start receiving data efficiently in the desired
 types e.g. `mystruct`, `std::map<std::string, mystruct>` etc.
 
-<a name="general-resps"/>
 #### The general case
 
 There are cases where responses to Redis
@@ -439,7 +404,6 @@ from Redis with `HGETALL`, some of the options are
 
 In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. `SMEMBERS`.
 
-<a name="installation"/>
 ## Installation
 
 Download the latest Aedis release from github 
@@ -480,7 +444,6 @@ The following compilers are supported
 - Tested with clang: 11, 13, 14.
 
 
-<a name="why-aedis"/>
 ## Why Aedis
 
 At the time of this writing there are seventeen Redis clients
@@ -507,7 +470,6 @@ not support
 
 The remaining points will be addressed individually.
 
-<a name="redis-plus-plus"/>
 ### redis-plus-plus
 
 Let us first have a look at what sending a command a pipeline and a
@@ -597,14 +559,16 @@ enqueueing a message and triggering a write when it can be sent.
 It is also not clear how are pipelines realised with the design
 (if at all).
 
-<a name="build-status"/>
 ## Build status
 
 Branch          | GH Actions | codecov.io |
 :-------------: | ---------- | ---------- |
 [`master`](https://github.com/mzimbres/aedis/tree/master) | [![CI](https://github.com/mzimbres/aedis/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/mzimbres/aedis/actions/workflows/ci.yml) | [![codecov](https://codecov.io/gh/mzimbres/aedis/branch/master/graph/badge.svg)](https://codecov.io/gh/mzimbres/aedis/branch/master)
 
-<a name="acknowledgement"/>
+## Reference
+
+See [Reference](#any)
+
 ## Acknowledgement
 
 Some people that were helpful in the development of Aedis

@@ -43,4 +43,4 @@ jobs:
     - name: Build
       run: make
     - name: Check
-      run: make test VERBOSE=1
+      run: ctest --output-on-failure

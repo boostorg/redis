@@ -52,7 +52,7 @@ auto main() -> int
 
       ioc.run();
 
-      std::cout << "----> " << std::get<0>(resp) << std::endl;
+      std::cout << "Response: " << std::get<0>(resp) << std::endl;
    } catch (std::exception const& e) {
       std::cerr << "Error: " << e.what() << std::endl;
    }
