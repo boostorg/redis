@@ -76,13 +76,14 @@ BOOST_AUTO_TEST_CASE(test_idle)
       db->get_config().resolve_timeout = 2 * ms;
       db->get_config().connect_timeout = 2 * ms;
       db->get_config().ping_interval = 2 * ms;
+      db->get_config().resp3_handshake_timeout = 2 * ms;
 
       request req;
       req.push("QUIT");
 
       endpoint ep{"127.0.0.1", "6379"};
       db->async_run(ep, req, adapt(), [](auto ec, auto){
-         BOOST_CHECK_EQUAL(ec, aedis::error::exec_timeout);
+         BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       });
 
       ioc.run();

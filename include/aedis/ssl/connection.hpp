@@ -12,111 +12,16 @@
 
 #include <boost/asio/io_context.hpp>
 #include <aedis/connection_base.hpp>
+#include <aedis/ssl/detail/connection_ops.hpp>
 
 namespace aedis::ssl {
-
-namespace detail
-{
-
-#include <boost/asio/yield.hpp>
-
-template <class Stream>
-struct handshake_op {
-   Stream* stream;
-   aedis::detail::conn_timer_t<typename Stream::executor_type>* timer;
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void operator()( Self& self
-                  , std::array<std::size_t, 2> order = {}
-                  , boost::system::error_code ec1 = {}
-                  , boost::system::error_code ec2 = {})
-   {
-      reenter (coro)
-      {
-         yield
-         boost::asio::experimental::make_parallel_group(
-            [this](auto token)
-            {
-               return stream->async_handshake(boost::asio::ssl::stream_base::client, token);
-            },
-            [this](auto token) { return timer->async_wait(token);}
-         ).async_wait(
-            boost::asio::experimental::wait_for_one(),
-            std::move(self));
-
-         switch (order[0]) {
-            case 0: self.complete(ec1); return;
-            case 1:
-            {
-               BOOST_ASSERT_MSG(!ec2, "handshake_op: Incompatible state.");
-               self.complete(error::ssl_handshake_timeout);
-               return;
-            }
-
-            default: BOOST_ASSERT(false);
-         }
-      }
-   }
-};
-
-template <
-   class Stream,
-   class CompletionToken
-   >
-auto async_handshake(
-      Stream& stream,
-      aedis::detail::conn_timer_t<typename Stream::executor_type>& timer,
-      CompletionToken&& token)
-{
-   return boost::asio::async_compose
-      < CompletionToken
-      , void(boost::system::error_code)
-      >(handshake_op<Stream>{&stream, &timer}, token, stream, timer);
-}
-
-template <class Conn>
-struct ssl_connect_with_timeout_op {
-   Conn* conn = nullptr;
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , boost::asio::ip::tcp::endpoint const& = {})
-   {
-      reenter (coro)
-      {
-         conn->ping_timer_.expires_after(conn->get_config().connect_timeout);
-
-         yield
-         aedis::detail::async_connect(
-            conn->lowest_layer(), conn->ping_timer_, conn->endpoints_, std::move(self));
-
-         if (ec) {
-            self.complete(ec);
-            return;
-         }
-
-         conn->ping_timer_.expires_after(conn->get_config().handshake_timeout);
-
-         yield
-         async_handshake(conn->next_layer(), conn->ping_timer_, std::move(self));
-         self.complete(ec);
-      }
-   }
-};
-
-#include <boost/asio/unyield.hpp>
-
-} // detail
- 
-template <class>
-class connection;
 
 /** @brief Connection to the Redis server over SSL sockets.
  *  @ingroup any
  */
+template <class>
+class connection;
+
 template <class AsyncReadWriteStream>
 class connection<boost::asio::ssl::stream<AsyncReadWriteStream>> :
    public connection_base<

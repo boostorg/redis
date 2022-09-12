@@ -26,9 +26,6 @@
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/request.hpp>
 
-#define HANDLER_LOCATION \
-  BOOST_ASIO_HANDLER_LOCATION((__FILE__, __LINE__, __func__))
-
 namespace aedis::detail {
 
 #include <boost/asio/yield.hpp>
@@ -57,7 +54,6 @@ struct connect_with_timeout_op {
 template <class Conn>
 struct resolve_with_timeout_op {
    Conn* conn = nullptr;
-   endpoint* ep = nullptr;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -71,7 +67,7 @@ struct resolve_with_timeout_op {
          yield
          aedis::detail::async_resolve(
             conn->resv_, conn->ping_timer_,
-            ep->host, ep->port, std::move(self));
+            conn->ep_.host, conn->ep_.port, std::move(self));
          conn->endpoints_ = res;
          self.complete(ec);
       }
@@ -381,7 +377,6 @@ struct start_op {
 template <class Conn>
 struct run_op {
    Conn* conn = nullptr;
-   endpoint* ep = nullptr;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -393,7 +388,7 @@ struct run_op {
       reenter (coro)
       {
          yield
-         conn->async_resolve_with_timeout(*ep, std::move(self));
+         conn->async_resolve_with_timeout(std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
@@ -408,7 +403,7 @@ struct run_op {
             return;
          }
 
-         conn->prepare_hello(*ep);
+         conn->prepare_hello(conn->ep_);
          conn->ping_timer_.expires_after(conn->get_config().resp3_handshake_timeout);
 
          yield
@@ -427,9 +422,9 @@ struct run_op {
             return;
          }
 
-         // TODO: Erase the password.
+         conn->ep_.password.clear();
 
-         if (!conn->expect_role(ep->role)) {
+         if (!conn->expect_role(conn->ep_.role)) {
             conn->cancel(Conn::operation::run);
             self.complete(error::unexpected_server_role);
             return;
@@ -567,7 +562,7 @@ struct reader_op {
 template <class Conn, class Adapter>
 struct runexec_op {
    Conn* conn = nullptr;
-   endpoint* ep = nullptr;
+   endpoint ep;
    resp3::request const* req = nullptr;
    Adapter adapter;
    boost::asio::coroutine coro{};
@@ -585,7 +580,7 @@ struct runexec_op {
 
          yield
          boost::asio::experimental::make_parallel_group(
-            [this](auto token) { return conn->async_run(*ep, token);},
+            [this, ep2 = ep](auto token) { return conn->async_run(ep2, token);},
             [this](auto token) { return conn->async_exec(*req, adapter, token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one_error(),

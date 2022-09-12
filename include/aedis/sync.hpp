@@ -23,16 +23,30 @@ namespace aedis {
 template <class Connection>
 class sync {
 public:
-   // TODO: Add cancel and reset functions.
+   /// Config options from the underlying connection.
    using config = typename Connection::config;
+
+   /// Operation options from the underlying connection.
+   using operation = typename Connection::operation;
+
+   /// The executor type of the underlysing connection.
+   using executor_type = typename Connection::executor_type;
 
    /** @brief Constructor
     *  
     *  @param ex Executor
     *  @param cfg Config options.
     */
-   template <class Executor>
-   explicit sync(Executor ex, config cfg = config{}) : conn_{ex, cfg} { }
+   explicit sync(executor_type ex, config cfg = config{}) : conn_{ex, cfg} { }
+
+   /** @brief Constructor
+    *  
+    *  @param ex The io_context.
+    *  @param cfg Config options.
+    */
+   explicit sync(boost::asio::io_context& ioc, config cfg = config{})
+   : sync(ioc, std::move(cfg))
+   { }
 
    /** @brief Calls `async_exec` from the underlying connection object.
     *
@@ -236,6 +250,55 @@ public:
       if (ec)
          throw std::system_error(ec);
       return res;
+   }
+
+   /** @brief Calls `cancel` in the underlying connection object.
+    *
+    *  @param op The operation to cancel.
+    *  @returns The number of operations canceled.
+    */
+   template <class ResponseAdapter>
+   auto cancel(operation op)
+   {
+      sync_helper sh;
+      std::size_t res = 0;
+
+      auto f = [this, op, &res, &sh]()
+      {
+         std::unique_lock ul(sh.mutex);
+         res = conn_.cancel(op);
+         sh.ready = true;
+         ul.unlock();
+         sh.cv.notify_one();
+      };
+
+      boost::asio::dispatch(boost::asio::bind_executor(conn_.get_executor(), f));
+      std::unique_lock lk(sh.mutex);
+      sh.cv.wait(lk, [&sh]{return sh.ready;});
+      return res;
+   }
+
+   /** @brief Calls `reset` in the underlying connection object.
+    *
+    *  @param op The operation to cancel.
+    *  @returns The number of operations canceled.
+    */
+   void reset_stream()
+   {
+      sync_helper sh;
+
+      auto f = [this, &sh]()
+      {
+         std::unique_lock ul(sh.mutex);
+         conn_.reset_stream();
+         sh.ready = true;
+         ul.unlock();
+         sh.cv.notify_one();
+      };
+
+      boost::asio::dispatch(boost::asio::bind_executor(conn_.get_executor(), f));
+      std::unique_lock lk(sh.mutex);
+      sh.cv.wait(lk, [&sh]{return sh.ready;});
    }
 
 private:

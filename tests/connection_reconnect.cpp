@@ -34,7 +34,7 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
       boost::system::error_code ec;
       co_await db->async_run(ep, req, adapt(), net::redirect_error(net::use_awaitable, ec));
       db->reset_stream();
-      BOOST_TEST(!ec);
+      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    }
 
    BOOST_CHECK_EQUAL(i, 5);

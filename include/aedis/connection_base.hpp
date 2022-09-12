@@ -163,7 +163,8 @@ public:
     *  @li Performs a RESP3 handshake by sending a `HELLO` command
     *  with protocol version 3 and optionally credentials necessary
     *  for authentication, the last are read from the `endpoint`
-    *  object. TODO: specify a timeout.
+    *  object. The timeout used is that specified in
+    *  `config::resp3_handshake_timeout`.
     *
     *  @li Erase any password that are contained in
     *  `endpoint::password`.
@@ -195,12 +196,13 @@ public:
     *  @endcode
     */
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_run(endpoint& ep, CompletionToken token = CompletionToken{})
+   auto async_run(endpoint ep, CompletionToken token = CompletionToken{})
    {
+      ep_ = ep;
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<Derived>{&derived(), &ep}, token, resv_);
+         >(detail::run_op<Derived>{&derived()}, token, resv_);
    }
 
    /** @brief Connects and executes a request asynchronously.
@@ -226,7 +228,7 @@ public:
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto async_run(
-      endpoint& ep,
+      endpoint ep,
       resp3::request const& req,
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
@@ -235,7 +237,7 @@ public:
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
          >(detail::runexec_op<Derived, Adapter>
-            {&derived(), &ep, &req, adapter}, token, resv_);
+            {&derived(), ep, &req, adapter}, token, resv_);
    }
 
    /** @brief Executes a command on the redis server asynchronously.
@@ -371,12 +373,12 @@ protected:
       { return boost::asio::dynamic_buffer(read_buffer_, derived().get_config().max_read_size); }
 
    template <class CompletionToken>
-   auto async_resolve_with_timeout(endpoint& ep, CompletionToken&& token)
+   auto async_resolve_with_timeout(CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::resolve_with_timeout_op<Derived>{&derived(), &ep},
+         >(detail::resolve_with_timeout_op<Derived>{&derived()},
             token, resv_);
    }
 
@@ -501,6 +503,7 @@ protected:
 
    resp3::request req_;
    std::vector<resp3::node<std::string>> response_;
+   endpoint ep_;
 };
 
 } // aedis
