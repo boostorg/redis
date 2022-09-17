@@ -4,11 +4,6 @@
  * accompanying file LICENSE.txt)
  */
 
-// TODO: Avoid usage of co_await to improve tests is compilers that
-// don't support it.
-// TODO: Add reconnect test that kills the server and waits some
-// seconds.
-
 #include <iostream>
 #include <boost/asio.hpp>
 #include <boost/system/errc.hpp>
@@ -110,7 +105,6 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
       ec = aedis::error::incompatible_size;
    };
 
-   // TODO: We should be able to use adapt here.
    db->async_receive_push(f, [](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, aedis::error::incompatible_size);
    });

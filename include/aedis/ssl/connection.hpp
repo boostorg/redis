@@ -16,12 +16,23 @@
 
 namespace aedis::ssl {
 
-/** @brief Connection to the Redis server over SSL sockets.
- *  @ingroup any
- */
 template <class>
 class connection;
 
+/** @brief A SSL connection to the Redis server.
+ *  @ingroup any
+ *
+ *  This class keeps a healthy connection to the Redis instance where
+ *  commands can be sent at any time. For more details, please see the
+ *  documentation of each individual function.
+ *
+ *  @remarks This class exposes only asynchronous member functions,
+ *  synchronous communications with the Redis server is provided by
+ *  the `aedis::sync` class.
+ *
+ *  @tparam Derived class.
+ *
+ */
 template <class AsyncReadWriteStream>
 class connection<boost::asio::ssl::stream<AsyncReadWriteStream>> :
    public connection_base<
@@ -70,6 +81,7 @@ public:
    {
    }
 
+   /// Constructor
    explicit connection(boost::asio::io_context& ioc, boost::asio::ssl::context& ctx, config cfg = config{})
    : connection(ioc.get_executor(), ctx, std::move(cfg))
    { }
@@ -86,13 +98,25 @@ public:
       stream_ = next_layer_type{ex_, ctx};
    }
 
+   // Returns a reference to the next layer.
    auto& next_layer() noexcept { return stream_; }
+
+   // Returns a const reference to the next layer.
    auto const& next_layer() const noexcept { return stream_; }
 
-   // TODO: Make this private.
-   void close() { stream_.next_layer().close(); }
+private:
+   template <class, class> friend class aedis::connection_base;
+   template <class, class> friend struct aedis::detail::exec_op;
+   template <class> friend struct detail::ssl_connect_with_timeout_op;
+   template <class> friend struct aedis::detail::run_op;
+   template <class> friend struct aedis::detail::writer_op;
+   template <class> friend struct aedis::detail::ping_op;
+   template <class> friend struct aedis::detail::check_idle_op;
+   template <class> friend struct aedis::detail::reader_op;
+
    auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
    auto is_open() const noexcept { return stream_.next_layer().is_open(); }
+   void close() { stream_.next_layer().close(); }
 
    template <class CompletionToken>
    auto async_connect(CompletionToken&& token)
@@ -102,9 +126,6 @@ public:
          , void(boost::system::error_code)
          >(detail::ssl_connect_with_timeout_op<this_type>{this}, token, stream_);
    }
-
-private:
-   template <class> friend struct detail::ssl_connect_with_timeout_op;
 
    config cfg_;
    executor_type ex_;

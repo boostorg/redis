@@ -15,11 +15,10 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::endpoint;
-using connection = aedis::ssl::connection<boost::asio::ssl::stream<net::ip::tcp::socket>>;
+using connection = aedis::ssl::connection<net::ssl::stream<net::ip::tcp::socket>>;
 
 bool verify_certificate(bool, net::ssl::verify_context&)
 {
@@ -33,21 +32,18 @@ auto main() -> int
       net::io_context ioc;
 
       net::ssl::context ctx{net::ssl::context::sslv23};
-      ctx.load_verify_file("ca.pem");
 
-      connection db{ioc, ctx};
-      db.next_layer().set_verify_mode(net::ssl::verify_peer);
-      db.next_layer().set_verify_callback(verify_certificate);
+      connection conn{ioc, ctx};
+      conn.next_layer().set_verify_mode(net::ssl::verify_peer);
+      conn.next_layer().set_verify_callback(verify_certificate);
 
       request req;
       req.push("PING");
       req.push("QUIT");
 
       std::tuple<std::string, aedis::ignore> resp;
-      endpoint ep{"127.0.0.1", "6379"};
-      db.async_run(ep, req, adapt(resp), [&](auto ec, auto) {
+      conn.async_run({"127.0.0.1", "6379"}, req, adapt(resp), [&](auto ec, auto) {
          std::cout << ec.message() << std::endl;
-         db.close();
       });
 
       ioc.run();

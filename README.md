@@ -11,17 +11,13 @@ built on top of
 Some of its distinctive features are
 
 * Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-* Support for STL containers and serialization of your own data types.
-* Support for TLS and Redis sentinel.
+* Support for STL containers, TLS and Redis sentinel.
+* Serialization and deserialization of your own data types.
 * Healthy checks, back pressure and low latency.
 
-If you are unfamiliar with Redis, the best place to start is https://redis.io, in short 
-
-* Redis is an In-memory data structure server with support for strings, hashes, lists, sets, sorted sets, streams, and more.
-* Keeps the dataset in memory for fast access, but can also persist all writes to permanent storage to survive reboots and system failures.
-* Replication with automatic failover for both standalone and clustered deployments.
-
-Inpacient users can skim over the examples before proceeding to the next sections
+If you are unfamiliar with Redis, the best place to start is
+https://redis.io.  Inpacient users can skim over the examples before
+proceeding to the next sections
 
 * intro.cpp: This is the Aedis hello-world program. It sends one command to Redis and quits the connection.
 * intro_sync.cpp: Synchronous version of intro.cpp.
@@ -35,54 +31,92 @@ Inpacient users can skim over the examples before proceeding to the next section
 
 ## Tutorial
 
-The support for synchronous communication with Redis is based on
-the asynchronous interface, therefore we will start with the later
-here.
+We will start with asynchronous interface as that is the basis for
+the synchronous API.
 
 ### Async
 
 The basic Aedis functionality resolves around calling these three
-functions
+functions from the `aedis::connection` class
 
 * `connection::async_run`: Stablishes a connection the Redis
 server and performs healthy checks.
-* `connection::async_exec`: Send commands and receive responses.
+* `connection::async_exec`: Send commands and receives their responses.
 * `connection::async_receive_push`: Receives server side pushes.
 
-For example, in the simplest cases when no reconnection is required,
-calling `connection::async_run` can be as simple as
+In the simplest cases stablising a connection is as simple as
 
 ```cpp
-auto main() -> int
+using connection = aedis::connection<net::ip::tcp::socket>;
+
+int main()
 {
-   using connection = aedis::connection<net::ip::tcp::socket>;
+   net::io_context ioc;
+   connection conn{ioc};
 
-   try {
-      net::io_context ioc;
-      connection conn{ioc};
-      endpoint ep{"127.0.0.1", "6379"};
+   conn.async_run({"127.0.0.1", "6379"}, [](auto const& ec) {
+      std::clog << "Connection lost: " << ec.message() << std::endl;
+   });
 
-      conn.async_run([](auto const& ec) {
-         std::clog << ec.message() << std::endl;
-      });
+   ...
 
-      // Spawn other operations that use the conn object.
-      net::co_spawn(ioc, receive_pushes(conn), net::detached);
-      net::co_spawn(ioc, send_commands(conn), net::detached);
-      ...
-
-      ioc.run();
-   } catch (...) {
-      std::cerr << "Error" << std::endl;
-   }
+   ioc.run();
 }
 ```
 
-`async_run` completes only when the connection is lost. When that
-happens other operations like `async_exec` or `async_receive_push`
-won't be affected and will be processed once a new connection is
-stablished, by calling `async_run` again.  The code snippet below is
-an example implementation of `receive_pushes(conn)`
+For a complete example see intro.cpp.  `async_run` completes only when
+the connection is lost. When that happens the operations `async_exec`
+or `async_receive_push` won't be affected and will be processed once a
+new connection is stablished or are canceled with
+`connection::cancel`. The feature makes it possible to implement
+reconnection, for example
+
+* subscriber.cpp: Reconnects to the same server instance when the
+  connection is lost, for example, because of a server crash or
+  restart.
+* subscriber_sentinel.cpp: Implements failover Redis sentinels.
+
+#### Executing commands
+
+Executing commands in Aedis is also straitforward, for example, the
+coroutine below will  send a Ping command and print the echoed message
+to the screen
+
+```cpp
+net::awaitable<void> ping(std::shared_ptr<connection> conn)
+{
+   // Request
+   request req;
+   req.push("PING", "some message");
+
+   // Response
+   std::tuple<std::string> resp;
+
+   // Execution
+   co_await conn->async_exec(req, adapt(resp));
+   std::cout << "Response: " << std::get<0>(resp) << std::endl;
+}
+```
+
+The general proceedure to execute commands is as follows
+
+* Use `aedis::request` to create requests where you can add as many
+  commands as you like.
+* Use a `std::tuple` to receive the response. Each element of the
+  tuple will receive the response to its respective command, in the
+  order they have been sent.
+* Execute the command.
+
+If, by change, the client is disconnected at the moment
+`connection::async_exec` is called, the operation will wait until a
+new connection is stablished.
+
+For further details see the [Requests](#requests) and
+[Responses](#responses).
+
+#### Receiving pushes
+
+The code snippet below show how to receive pushes
 
 ```cpp
 net::awaitable<void> receive_pushes(connection& db)
@@ -95,47 +129,11 @@ net::awaitable<void> receive_pushes(connection& db)
 }
 ```
 
-`send_commands` on the other hand could look like
-
-```cpp
-net::awaitable<void> send_commands(connection& db)
-{
-   request req;
-   std::tuple<std::string> resp;
-   req.push("PING", "some message");
-   co_await db->async_exec(req, adapt(resp));
-}
-```
-
-#### Reconnection
-
-In the majority of cases users will want to reconnect after a
-connection is lost, since the `run`, `exec` and `receive_push`
-operations are independent from one another, reconnection can be
-implemented as a simple loop arount `async_run`
-
-```cpp
-net::awaitable<void> reconnect(std::shared_ptr<connection> db)
-{
-   net::steady_timer timer{co_await net::this_coro::executor};
-   endpoint ep{"127.0.0.1", "6379"};
-   for (;;) {
-      boost::system::error_code ec;
-      co_await db->async_run(ep, req, adapt(), net::redirect_error(net::use_awaitable, ec));
-      std::cout << ec.message() << std::endl;
-      db->reset_stream();
-      timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait(net::use_awaitable);
-   }
-}
-```
-
-More complex scenarios like performing a failover with sentinels
-can be seen in the example subscriber_sentinel.cpp.
-
 ### Sync
 
 Synchronous communication is supported in Aedis by the wrapper class `aedis::sync`.
+
+<a name="requests"></a>
 
 ### Requests
 
@@ -201,6 +199,8 @@ req.push_range("HSET", "key", map);
 ```
 
 Example serialization.cpp shows how store json string in Redis.
+
+<a name="responses"></a>
 
 ### Responses
 

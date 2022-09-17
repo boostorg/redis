@@ -15,8 +15,19 @@
 
 namespace aedis {
 
-/** @brief Connection to the Redis server over plain sockets.
+/** @brief A connection to the Redis server.
  *  @ingroup any
+ *
+ *  This class keeps a healthy connection to the Redis instance where
+ *  commands can be sent at any time. For more details, please see the
+ *  documentation of each individual function.
+ *
+ *  @remarks This class exposes only asynchronous member functions,
+ *  synchronous communications with the Redis server is provided by
+ *  the `aedis::sync` class.
+ *
+ *  @tparam Derived class.
+ *
  */
 template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection :

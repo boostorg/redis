@@ -30,13 +30,7 @@ namespace aedis {
 /** @brief Base class for high level Redis asynchronous connections.
  *  @ingroup any
  *
- *  This class keeps a healthy connection to the Redis instance where
- *  commands can be sent at any time. For more details, please see the
- *  documentation of each individual function.
- *
- *  @remarks This class exposes only asynchronous member functions,
- *  synchronous communications with the Redis server is provided by
- *  the sync class.
+ *  This class is not meant to be used directly by users.
  *
  *  @tparam Derived class.
  *
@@ -84,14 +78,15 @@ public:
    /** @brief Cancel operations.
     *
     *  @li `operation::exec`: Cancels operations started with `async_exec`.
-    *
-    *  @li operation::run: Cancels `async_run`. Notice that the
-    *      preferred way to close a connection is to send a `QUIT`
-    *      command to the server. An unresponsive Redis server will
-    *      also cause the idle-checks to timeout and lead to
-    *      `connection::async_run` completing with
-    *      `error::idle_timeout`. Calling `cancel(operation::run)`
-    *      directly should be seen as the last option.
+    *  @li operation::run: Cancels the `async_run` operation. Notice
+    *  that the preferred way to close a connection is to send a
+    *  [QUIT](https://redis.io/commands/quit/) command to the server.
+    *  An unresponsive Redis server will also cause the idle-checks to
+    *  timeout and lead to `connection::async_run` completing with
+    *  `error::idle_timeout`.  Calling `cancel(operation::run)`
+    *  directly should be seen as the last option.
+    *  @li operation::receive_push: Cancels any ongoing callto
+    *  `async_receive_push`.
     *
     *  @param op: The operation to be cancelled.
     *  @returns The number of operations that have been canceled.
@@ -154,17 +149,17 @@ public:
     *  This function performs the following steps
     *
     *  @li Resolves the Redis host as of `async_resolve` with the
-    *  timeout passed in the base class `config::resolve_timeout`.
+    *  timeout passed in the base class `connection::config::resolve_timeout`.
     *
     *  @li Connects to one of the endpoints returned by the resolve
     *  operation with the timeout passed in the base class
-    *  `config::connect_timeout`.
+    *  `connection::config::connect_timeout`.
     *
-    *  @li Performs a RESP3 handshake by sending a `HELLO` command
-    *  with protocol version 3 and optionally credentials necessary
-    *  for authentication, the last are read from the `endpoint`
-    *  object. The timeout used is that specified in
-    *  `config::resp3_handshake_timeout`.
+    *  @li Performs a RESP3 handshake by sending a
+    *  [HELLO](https://redis.io/commands/hello/) command with protocol
+    *  version 3 and the credentials contained in the
+    *  `aedis::endpoint` object.  The timeout used is the one specified
+    *  in `connection::config::resp3_handshake_timeout`.
     *
     *  @li Erase any password that are contained in
     *  `endpoint::password`.
@@ -172,16 +167,17 @@ public:
     *  @li Check whether the server role corresponds to the one
     *  specifed in the `endpoint`. If `endpoint::role` is left empty,
     *  no check is performed. If the role role is different than the
-    *  expect `async_run` will complete with
+    *  expected `async_run` will complete with
     *  `error::unexpected_server_role`.
     *
     *  @li Starts healthy checks with a timeout twice the value of
-    *  `config::ping_interval`. If no data is received during that
+    *  `connection::config::ping_interval`. If no data is received during that
     *  time interval `connection::async_run` completes with
     *  `error::idle_timeout`.
     *
-    *  @li Starts the healthy check operation that sends `PING`s to
-    *  Redis with a frequency equal to `config::ping_interval`.
+    *  @li Starts the healthy check operation that sends the
+    *  [PING](https://redis.io/commands/ping/) to Redis with a
+    *  frequency equal to `connection::config::ping_interval`.
     *
     *  @li Starts reading from the socket and executes all requests
     *  that have been started prior to this function call.
