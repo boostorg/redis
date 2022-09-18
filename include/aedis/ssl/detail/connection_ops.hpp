@@ -12,11 +12,10 @@
 #include <boost/assert.hpp>
 #include <boost/system.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
+#include <boost/asio/yield.hpp>
 
 namespace aedis::ssl::detail
 {
-
-#include <boost/asio/yield.hpp>
 
 template <class Stream>
 struct handshake_op {
@@ -105,8 +104,7 @@ struct ssl_connect_with_timeout_op {
    }
 };
 
-#include <boost/asio/unyield.hpp>
-
 } // aedis::ssl::detail
  
+#include <boost/asio/unyield.hpp>
 #endif // AEDIS_SSL_CONNECTION_OPS_HPP

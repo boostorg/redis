@@ -45,9 +45,6 @@ public:
    /// Executor type.
    using executor_type = typename next_layer_type::executor_type;
 
-   using base_type = connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
-   using this_type = connection<next_layer_type>;
-
    /** @brief Connection configuration parameters.
     */
    struct config {
@@ -86,10 +83,10 @@ public:
    : connection(ioc.get_executor(), ctx, std::move(cfg))
    { }
 
-   /// Get the config object.
+   /// Returns a reference to the configuration parameters.
    auto get_config() noexcept -> config& { return cfg_;}
 
-   /// Gets the config object.
+   /// Returns a const reference to the configuration parameters.
    auto get_config() const noexcept -> config const& { return cfg_;}
 
    /// Reset the underlying stream.
@@ -98,13 +95,16 @@ public:
       stream_ = next_layer_type{ex_, ctx};
    }
 
-   // Returns a reference to the next layer.
+   /// Returns a reference to the next layer.
    auto& next_layer() noexcept { return stream_; }
 
-   // Returns a const reference to the next layer.
+   /// Returns a const reference to the next layer.
    auto const& next_layer() const noexcept { return stream_; }
 
 private:
+   using base_type = connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
+   using this_type = connection<next_layer_type>;
+
    template <class, class> friend class aedis::connection_base;
    template <class, class> friend struct aedis::detail::exec_op;
    template <class> friend struct detail::ssl_connect_with_timeout_op;

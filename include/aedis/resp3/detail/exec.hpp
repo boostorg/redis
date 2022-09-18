@@ -20,9 +20,9 @@
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/request.hpp>
 
-namespace aedis::resp3::detail {
-
 #include <boost/asio/yield.hpp>
+
+namespace aedis::resp3::detail {
 
 template <
    class AsyncStream,
@@ -141,8 +141,6 @@ struct exec_with_timeout_op {
    }
 };
 
-#include <boost/asio/unyield.hpp>
-
 template <
    class AsyncStream,
    class Timer,
@@ -167,4 +165,5 @@ auto async_exec(
 
 } // aedis::resp3::detail
 
+#include <boost/asio/unyield.hpp>
 #endif // AEDIS_RESP3_EXEC_HPP

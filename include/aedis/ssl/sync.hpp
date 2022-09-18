@@ -13,14 +13,16 @@
 
 namespace aedis::ssl {
 
-/** @brief A high level synchronous connection to Redis.
- *  @ingroup any
- *
- *  The functionality in this class is implemented in the base class.
- */
 template <class>
 class sync;
 
+/** @brief An SSL synchronous connection to Redis.
+ *  @ingroup any
+ *
+ *  This class provides a wrapper to the `Connection` types passed as
+ *  template parameter that provides synchronous communication to
+ *  Redis.
+ */
 template <class AsyncReadWriteStream>
 class sync<connection<boost::asio::ssl::stream<AsyncReadWriteStream>>> :
    public sync_base<
@@ -44,6 +46,7 @@ public:
    /** @brief Constructor
     *  
     *  @param ex Executor
+    *  @param ctx The context for ssl operations.
     *  @param cfg Config options.
     */
    explicit sync(executor_type ex, boost::asio::ssl::context& ctx, config cfg = config{})
@@ -52,7 +55,8 @@ public:
 
    /** @brief Constructor
     *  
-    *  @param ex The io_context.
+    *  @param ioc The io_context.
+    *  @param ctx The context for ssl operations.
     *  @param cfg Config options.
     */
    explicit sync(boost::asio::io_context& ioc, boost::asio::ssl::context& ctx, config cfg = config{})

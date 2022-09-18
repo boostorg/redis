@@ -13,12 +13,11 @@
 #include <boost/asio/coroutine.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/utility/string_view.hpp>
-
 #include <aedis/resp3/detail/parser.hpp>
 
-namespace aedis::resp3::detail {
-
 #include <boost/asio/yield.hpp>
+
+namespace aedis::resp3::detail {
 
 struct ignore_response {
    void operator()(node<boost::string_view> nd, boost::system::error_code& ec)
@@ -111,8 +110,7 @@ public:
    }
 };
 
-#include <boost/asio/unyield.hpp>
-
 } // aedis::resp3::detail
 
+#include <boost/asio/unyield.hpp>
 #endif // AEDIS_RESP3_READ_OPS_HPP

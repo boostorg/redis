@@ -14,7 +14,9 @@ namespace aedis {
 /** @brief High level synchronous connection to Redis.
  *  @ingroup any
  *
- *  The functionality in this class is implemented in the base class.
+ *  This class provides a wrapper to the `Connection` types passed as
+ *  template parameter that provides synchronous communication to
+ *  Redis.
  */
 template <class Connection>
 class sync:
@@ -22,7 +24,7 @@ class sync:
       typename Connection::executor_type,
       sync<Connection>> {
 public:
-   // Next layer type.
+   /// Next layer type.
    using next_layer_type = Connection;
 
    /// Config options from the underlying connection.
@@ -31,10 +33,10 @@ public:
    /// Operation options from the underlying connection.
    using operation = typename next_layer_type::operation;
 
-   /// The executor type of the underlysing connection.
+   /// The executor type of the underlying connection.
    using executor_type = typename next_layer_type::executor_type;
 
-   // Return the executor used in the underlying connection.
+   /// Returns the executor used in the underlying connection.
    auto get_executor() noexcept { return conn_.get_executor();}
 
    /** @brief Constructor
@@ -46,7 +48,7 @@ public:
 
    /** @brief Constructor
     *  
-    *  @param ex The io_context.
+    *  @param ioc The io_context.
     *  @param cfg Config options.
     */
    explicit sync(boost::asio::io_context& ioc, config cfg = config{})
@@ -57,7 +59,7 @@ public:
    auto& next_layer() noexcept { return conn_; }
 
    /// Returns a const reference to the next layer.
-   auto const& next_layer() const noexcept { return conn_; }
+   auto next_layer() const noexcept -> auto const& { return conn_; }
 
 private:
    template <class, class> friend class sync_base;

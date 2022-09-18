@@ -30,9 +30,11 @@ namespace aedis {
 /** @brief Base class for high level Redis asynchronous connections.
  *  @ingroup any
  *
- *  This class is not meant to be used directly by users.
+ *  This class is not meant to be instantiated directly but as base
+ *  class in the CRTP.
  *
- *  @tparam Derived class.
+ *  @tparam Executor The executor type.
+ *  @tparam Derived The derived class type.
  *
  */
 template <class Executor, class Derived>
@@ -41,21 +43,21 @@ public:
    /// Executor type.
    using executor_type = Executor;
 
-   /** @brief Async operations exposed by this class.
+   /** @brief List of async operations exposed by this class.
     *  
     *  The operations listed below can be cancelled with the `cancel`
     *  member function.
     */
    enum class operation {
-      /// `connection::async_exec` operations.
+      /// Refers to `connection::async_exec` operations.
       exec,
-      /// `connection::async_run` operations.
+      /// Refers to `connection::async_run` operations.
       run,
-      /// `connection::async_receive_push` operations.
+      /// Refers to `connection::async_receive_push` operations.
       receive_push,
    };
 
-   /** @brief Contructor
+   /** @brief Constructor
     *
     *  @param ex The executor.
     */
@@ -137,13 +139,6 @@ public:
       }
    }
 
-   /** @name Asynchronous functions
-    *  
-    *  Each of these operations are cancellable via the cancel member
-    *  function.
-    **/
-
-   /// @{
    /** @brief Starts communication with the Redis server asynchronously.
     *
     *  This function performs the following steps
@@ -161,10 +156,10 @@ public:
     *  `aedis::endpoint` object.  The timeout used is the one specified
     *  in `connection::config::resp3_handshake_timeout`.
     *
-    *  @li Erase any password that are contained in
+    *  @li Erases any password that may be contained in
     *  `endpoint::password`.
     *
-    *  @li Check whether the server role corresponds to the one
+    *  @li Checks whether the server role corresponds to the one
     *  specifed in the `endpoint`. If `endpoint::role` is left empty,
     *  no check is performed. If the role role is different than the
     *  expected `async_run` will complete with
@@ -236,9 +231,14 @@ public:
             {&derived(), ep, &req, adapter}, token, resv_);
    }
 
-   /** @brief Executes a command on the redis server asynchronously.
+   /** @brief Executes a command on the Redis server asynchronously.
     *
-    *  The implementation will queue multiple calls to this function.
+    *  This function will send a request to the Redis server and
+    *  complete when the response arrives. If the request contains
+    *  only commands that don't expect a response, the completion
+    *  occurs after it has been written to the underlying stream.
+    *  Multiple concurrent calls to this function will be
+    *  automatically queued by the implementation.
     *
     *  @param req Request object.
     *  @param adapter Response adapter.
@@ -272,7 +272,7 @@ public:
 
    /** @brief Receives server side pushes asynchronously.
     *
-    *  Users that expect server pushes have to call this function in a
+    *  Users that expect server pushes should call this function in a
     *  loop. If a push arrives and there is no reader, the connection
     *  will hang and eventually timeout.
     *
@@ -308,8 +308,6 @@ public:
          , void(boost::system::error_code, std::size_t)
          >(detail::receive_push_op<Derived, decltype(f)>{&derived(), f}, token, resv_);
    }
-
-   /// @}
 
 protected:
    using clock_type = std::chrono::steady_clock;

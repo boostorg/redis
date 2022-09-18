@@ -15,12 +15,12 @@
 #include <boost/assert.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 
+#include <boost/asio/yield.hpp>
+
 namespace aedis::detail {
 
 template <class Executor>
 using conn_timer_t = boost::asio::basic_waitable_timer<std::chrono::steady_clock, boost::asio::wait_traits<std::chrono::steady_clock>, Executor>;
-
-#include <boost/asio/yield.hpp>
 
 template <
    class Stream,
@@ -135,8 +135,6 @@ struct send_receive_op {
    }
 };
 
-#include <boost/asio/unyield.hpp>
-
 template <
    class Stream,
    class EndpointSequence,
@@ -188,4 +186,5 @@ auto async_send_receive(Channel& channel, CompletionToken&& token = CompletionTo
 }
 } // aedis::detail
 
+#include <boost/asio/unyield.hpp>
 #endif // AEDIS_NET_HPP

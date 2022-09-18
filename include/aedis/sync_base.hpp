@@ -12,12 +12,14 @@
 
 namespace aedis {
 
-/** @brief A high level synchronous connection to Redis.
+/** @brief A Synchronous connection to Redis.
  *  @ingroup any
  *
- *  This class keeps a healthy and thread safe connection to the Redis
- *  instance where commands can be sent at any time. For more details,
- *  please see the documentation of each individual function.
+ *  This class is not meant to be instantiated directly but as base
+ *  class in the CRTP.
+ *
+ *  @tparam Executor The executor type.
+ *  @tparam Derived The derived class type.
  *
  */
 template <class Executor, class Derived>
@@ -26,10 +28,7 @@ public:
    /// The executor type.
    using executor_type = Executor;
 
-   /** @brief Calls `async_exec` from the underlying connection object.
-    *
-    *  Calls `async_exec` from the underlying connection object and
-    *  waits for its completion.
+   /** @brief Calls `connection::async_exec` from the underlying connection object and waits for its completion.
     *
     *  @param req The request.
     *  @param adapter The response adapter.
@@ -61,10 +60,7 @@ public:
       return res;
    }
 
-   /** @brief Calls `async_exec` from the underlying connection object.
-    *
-    *  Calls `async_exec` from the underlying connection object and
-    *  waits for its completion.
+   /** @brief Calls `connection::async_exec` from the underlying connection object and waits for its completion.
     *
     *  @param req The request.
     *  @param adapter The response adapter.
@@ -81,10 +77,7 @@ public:
       return res;
    }
 
-   /** @brief Calls `async_receive_push` from the underlying connection object.
-    *
-    *  Calls `async_receive_push` from the underlying connection
-    *  object and waits for its completion.
+   /** @brief Calls `connection::async_receive_push` from the underlying connection object and waits for its completion.
     *
     *  @param adapter The response adapter.
     *  @param ec Error code in case of error.
@@ -114,10 +107,7 @@ public:
       return res;
    }
 
-   /** @brief Calls `async_receive_push` from the underlying connection object.
-    *
-    *  Calls `async_receive_push` from the underlying connection
-    *  object and waits for its completion.
+   /** @brief Calls `connection::async_receive_push` from the underlying connection object and waits for its completion.
     *
     *  @param adapter The response adapter.
     *  @throws std::system_error in case of error.
@@ -133,10 +123,7 @@ public:
       return res;
    }
 
-   /** @brief Calls \c async_run from the underlying connection.
-    *
-    *  Calls `async_run` from the underlying connection objects and
-    *  waits for its completion.
+   /** @brief Calls `connection::async_run` from the underlying connection and waits for its completion.
     *
     *  @param ep The Redis server endpoint.
     *  @param ec Error code.
@@ -160,10 +147,7 @@ public:
       sh.cv.wait(lk, [&sh]{return sh.ready;});
    }
 
-   /** @brief Calls \c async_run from the underlying connection.
-    *
-    *  Calls `async_run` from the underlying connection objects and
-    *  waits for its completion.
+   /** @brief Calls `connection::async_run` from the underlying connection and waits for its completion.
     *
     *  @param ep The Redis server endpoint.
     *  @throws std::system_error.
@@ -176,10 +160,7 @@ public:
          throw std::system_error(ec);
    }
 
-   /** @brief Calls \c async_run from the underlying connection.
-    *
-    *  Calls `async_run` from the underlying connection objects and
-    *  waits for its completion.
+   /** @brief Calls `connection::async_run` from the underlying connection and waits for its completion.
     *
     *  @param ep The Redis server endpoint.
     *  @param req The request. 
@@ -210,10 +191,7 @@ public:
       return res;
    }
 
-   /** @brief Calls \c async_run from the underlying connection.
-    *
-    *  Calls `async_run` from the underlying connection objects and
-    *  waits for its completion.
+   /** @brief Calls `connection::async_run` from the underlying connection and waits for its completion.
     *
     *  @param ep The Redis server endpoint.
     *  @param req The request. 
@@ -230,7 +208,7 @@ public:
       return res;
    }
 
-   /** @brief Calls `cancel` in the underlying connection object.
+   /** @brief Calls `connection::cancel` in the underlying connection object.
     *
     *  @param op The operation to cancel.
     *  @returns The number of operations canceled.
@@ -256,11 +234,7 @@ public:
       return res;
    }
 
-   /** @brief Calls `reset` in the underlying connection object.
-    *
-    *  @param op The operation to cancel.
-    *  @returns The number of operations canceled.
-    */
+   /// @brief Calls `connection::reset` in the underlying connection object.
    void reset_stream()
    {
       sync_helper sh;

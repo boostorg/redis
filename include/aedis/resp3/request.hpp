@@ -42,7 +42,7 @@ constexpr char const* separator = "\r\n";
  *  @param to Storage on which data will be copied into.
  *  @param data Data that will be serialized and stored in @c to.
  *
- *  See more in \ref requests-serialization.
+ *  See more in @ref serialization.
  */
 template <class Request>
 void to_bulk(Request& to, boost::string_view data)

@@ -41,10 +41,6 @@ public:
    /// Type of the next layer
    using next_layer_type = AsyncReadWriteStream;
 
-   using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;
-
-   using this_type = connection<next_layer_type>;
-
    /** @brief Connection configuration parameters.
     */
    struct config {
@@ -78,13 +74,13 @@ public:
    : connection(ioc.get_executor(), std::move(cfg))
    { }
 
-   /// Get the config object.
+   /// Returns a reference to the configuration parameters.
    auto get_config() noexcept -> config& { return cfg_;}
 
-   /// Gets the config object.
+   /// Returns a const reference to the configuration parameters.
    auto get_config() const noexcept -> config const& { return cfg_;}
 
-   /// Reset the underlying stream.
+   /// Resets the underlying stream.
    void reset_stream()
    {
       if (stream_.is_open()) {
@@ -94,7 +90,16 @@ public:
       }
    }
 
+   /// Returns a reference to the next layer.
+   auto& next_layer() noexcept { return stream_; }
+
+   /// Returns a const reference to the next layer.
+   auto const& next_layer() const noexcept { return stream_; }
+
 private:
+   using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;
+   using this_type = connection<next_layer_type>;
+
    template <class, class> friend class connection_base;
    template <class, class> friend struct detail::exec_read_op;
    template <class, class> friend struct detail::exec_op;
@@ -118,8 +123,6 @@ private:
    void close() { stream_.close(); }
    auto is_open() const noexcept { return stream_.is_open(); }
    auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
-   auto& next_layer() noexcept { return stream_; }
-   auto const& next_layer() const noexcept { return stream_; }
 
    config cfg_;
    AsyncReadWriteStream stream_;

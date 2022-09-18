@@ -26,9 +26,9 @@
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/request.hpp>
 
-namespace aedis::detail {
-
 #include <boost/asio/yield.hpp>
+
+namespace aedis::detail {
 
 template <class Conn>
 struct connect_with_timeout_op {
@@ -602,8 +602,7 @@ struct runexec_op {
    }
 };
 
-#include <boost/asio/unyield.hpp>
-
 } // aedis::detail
 
+#include <boost/asio/unyield.hpp>
 #endif // AEDIS_CONNECTION_OPS_HPP
