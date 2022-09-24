@@ -217,6 +217,13 @@ struct exec_op {
    {
       reenter (coro)
       {
+         if (req->close_on_connection_lost() && !conn->is_open()) {
+            // The user doesn't want to wait for the connection to be
+            // stablished.
+            self.complete(error::not_connected, 0);
+            return;
+         }
+
          info = std::allocate_shared<req_info_type>(boost::asio::get_associated_allocator(self), conn->resv_.get_executor());
          info->timer.expires_at(std::chrono::steady_clock::time_point::max());
          info->req = req;
@@ -293,7 +300,6 @@ struct ping_op {
 
          conn->req_.clear();
          conn->req_.push("PING");
-         conn->req_.close_on_run_completion = true;
          yield
          conn->async_exec(conn->req_, adapt(), std::move(self));
          if (ec) {
@@ -576,8 +582,6 @@ struct runexec_op {
    {
       reenter (coro)
       {
-         req->close_on_run_completion = true;
-
          yield
          boost::asio::experimental::make_parallel_group(
             [this, ep2 = ep](auto token) { return conn->async_run(ep2, token);},

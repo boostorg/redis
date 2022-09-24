@@ -78,6 +78,9 @@ enum class error
 
    /// SSL handshake timeout.
    ssl_handshake_timeout,
+
+   /// There is no stablished connection.
+   not_connected,
 };
 
 /** \internal

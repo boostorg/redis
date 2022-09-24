@@ -170,6 +170,18 @@ void add_separator(Request& to)
  */
 class request {
 public:
+   /** @brief Constructor
+    *  
+    *  @param close_on_connection_lost If true, the requests started
+    *  with `connection::async_exe` will fail either if the connection
+    *  is lost while the request is pending or if `async_exec` is
+    *  called when there is no connection with Redis. The default
+    *  behaviour is not to close requests.
+    */
+   explicit request(bool close_on_connection_lost = false)
+   : close_on_connection_lost_{close_on_connection_lost}
+   {}
+
    //// Returns the number of commands contained in this request.
    auto size() const noexcept -> std::size_t { return commands_;};
 
@@ -326,11 +338,12 @@ public:
       push_range2(cmd, begin(range), end(range));
    }
 
-   mutable bool close_on_run_completion = false;
+   auto close_on_connection_lost() const noexcept {return close_on_connection_lost_; }
 
 private:
    std::string payload_;
    std::size_t commands_ = 0;
+   bool close_on_connection_lost_ = false;
 };
 
 } // aedis::resp3

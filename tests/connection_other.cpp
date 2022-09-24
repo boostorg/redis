@@ -94,6 +94,7 @@ BOOST_AUTO_TEST_CASE(test_idle)
 
 BOOST_AUTO_TEST_CASE(test_wrong_data_type)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    request req;
    req.push("QUIT");
 
@@ -104,6 +105,21 @@ BOOST_AUTO_TEST_CASE(test_wrong_data_type)
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, req, adapt(resp), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
+   });
+
+   ioc.run();
+}
+
+BOOST_AUTO_TEST_CASE(test_not_connected)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   request req{true};
+   req.push("PING");
+
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc);
+   db->async_exec(req, adapt(), [](auto ec, auto){
+      BOOST_CHECK_EQUAL(ec, aedis::error::not_connected);
    });
 
    ioc.run();

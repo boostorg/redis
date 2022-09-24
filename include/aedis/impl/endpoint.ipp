@@ -4,6 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <aedis/endpoint.hpp>
+
 #include <string>
 
 namespace aedis {

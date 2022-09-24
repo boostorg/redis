@@ -68,7 +68,7 @@ in the graph, the reasons are
      I don't know for sure why it is so slow, I suppose it has
      something to do with its lack of proper
      [pipelining](https://redis.io/docs/manual/pipelining/) support.
-     In fact, the more TCP connections I lauch the worst its
+     In fact, the more TCP connections I lauch the worse its
      performance gets.
 
    * Libuv: I left it out because it would require too much work to
