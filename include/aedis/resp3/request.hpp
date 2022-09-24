@@ -149,7 +149,7 @@ void add_separator(Request& to)
 } // detail
 
 /** @brief Creates Redis requests.
- *  \ingroup any
+ *  @ingroup any
  *  
  *  A request is composed of one or more Redis commands and is
  *  referred to in the redis documentation as a pipeline, see
@@ -165,8 +165,11 @@ void add_separator(Request& to)
  *  co_await async_write(socket, buffer(r));
  *  @endcode
  *
- *  \remarks  Non-string types will be converted to string by using \c
+ *  @remarks
+ *
+ *  @li Non-string types will be converted to string by using \c
  *  to_bulk, which must be made available over ADL.
+ *  @li Uses std::string as internal storage.
  */
 class request {
 public:
@@ -336,6 +339,12 @@ public:
       using std::begin;
       using std::end;
       push_range2(cmd, begin(range), end(range));
+   }
+
+   /// Calls std::string::reserve on the internal storage.
+   void reserve(std::size_t new_cap = 0)
+   {
+      payload_.reserve(new_cap);
    }
 
    auto close_on_connection_lost() const noexcept {return close_on_connection_lost_; }
