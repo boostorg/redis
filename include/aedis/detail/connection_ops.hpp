@@ -234,6 +234,10 @@ struct exec_op {
          yield
          info->timer.async_wait(std::move(self));
          BOOST_ASSERT(!!ec);
+         if (ec != boost::asio::error::operation_aborted) {
+            self.complete(ec, 0);
+            return;
+         }
 
          // null can happen for example when resolve fails.
          if (!conn->is_open() || info->stop) {
@@ -294,6 +298,7 @@ struct ping_op {
          yield
          conn->ping_timer_.async_wait(std::move(self));
          if (ec || !conn->is_open()) {
+            conn->cancel(Conn::operation::run);
             self.complete(ec);
             return;
          }
@@ -303,8 +308,7 @@ struct ping_op {
          yield
          conn->async_exec(conn->req_, adapt(), std::move(self));
          if (ec) {
-            // Notice we don't report error but let the idle check
-            // timeout. It is enough to finish the op.
+            conn->cancel(Conn::operation::run);
             self.complete({});
             return;
          }
@@ -325,7 +329,12 @@ struct check_idle_op {
          conn->check_idle_timer_.expires_after(2 * conn->get_config().ping_interval);
          yield
          conn->check_idle_timer_.async_wait(std::move(self));
-         if (ec || !conn->is_open()) {
+         if (ec) {
+            conn->cancel(Conn::operation::run);
+            self.complete({});
+            return;
+         }
+         if (!conn->is_open()) {
             // Notice this is not an error, it was requested from an
             // external op.
             self.complete({});
@@ -366,7 +375,7 @@ struct start_op {
             [this](auto token) { return conn->async_check_idle(token);},
             [this](auto token) { return conn->async_ping(token);}
          ).async_wait(
-            boost::asio::experimental::wait_for_one_error(),
+            boost::asio::experimental::wait_for_one(),
             std::move(self));
 
          switch (order[0]) {
@@ -481,6 +490,11 @@ struct writer_op {
          if (conn->is_open()) {
             yield
             conn->writer_timer_.async_wait(std::move(self));
+            if (ec != boost::asio::error::operation_aborted) {
+               conn->cancel(Conn::operation::run);
+               self.complete(ec);
+               return;
+            }
             // The timer may be canceled either to stop the write op
             // or to proceed to the next write, the difference between
             // the two is that for the former the socket will be
@@ -546,6 +560,7 @@ struct reader_op {
             yield
             async_send_receive(conn->push_channel_, std::move(self));
             if (ec) {
+               conn->cancel(Conn::operation::run);
                self.complete(ec);
                return;
             }
@@ -556,7 +571,9 @@ struct reader_op {
             conn->reqs_.front()->timer.cancel_one();
             yield
             conn->read_timer_.async_wait(std::move(self));
-            if (!conn->is_open()) {
+            if (ec != boost::asio::error::operation_aborted ||
+                !conn->is_open()) {
+               conn->cancel(Conn::operation::run);
                self.complete(ec);
                return;
             }

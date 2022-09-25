@@ -130,8 +130,11 @@ struct exec_with_timeout_op {
             case 0: self.complete(ec1, n); break;
             case 1:
             {
-               BOOST_ASSERT_MSG(!ec2, "exec_with_timeout_op: Unexpected completion order.");
-               self.complete(aedis::error::exec_timeout, 0);
+               if (ec2) {
+                  self.complete(ec2, 0);
+               } else {
+                  self.complete(aedis::error::exec_timeout, 0);
+               }
 
             } break;
 

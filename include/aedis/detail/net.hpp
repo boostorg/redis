@@ -57,8 +57,11 @@ struct connect_op {
             case 0: self.complete(ec1, ep); return;
             case 1:
             {
-               BOOST_ASSERT_MSG(!ec2, "connect_op: Incompatible state.");
-               self.complete(error::connect_timeout, ep);
+               if (ec2) {
+                  self.complete(ec2, {});
+               } else {
+                  self.complete(error::connect_timeout, ep);
+               }
                return;
             }
 
@@ -98,8 +101,11 @@ struct resolve_op {
 
             case 1:
             {
-               BOOST_ASSERT_MSG(!ec2, "resolve_op: Incompatible state.");
-               self.complete(error::resolve_timeout, {});
+               if (ec2) {
+                  self.complete(ec2, {});
+               } else {
+                  self.complete(error::resolve_timeout, {});
+               }
                return;
             }
 
