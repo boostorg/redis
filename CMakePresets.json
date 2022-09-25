@@ -61,7 +61,8 @@
       "inherits": ["dev"],
       "binaryDir": "${sourceDir}/build/clang-tidy",
       "cacheVariables": {
-        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--header-filter=${sourceDir}/include/*"
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--header-filter=${sourceDir}/include/*",
+        "CMAKE_CXX_STANDARD": "20"
       }
     }
   ],

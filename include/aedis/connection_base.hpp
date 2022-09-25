@@ -192,7 +192,7 @@ public:
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto async_run(endpoint ep, CompletionToken token = CompletionToken{})
    {
-      ep_ = ep;
+      ep_ = std::move(ep);
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
@@ -320,7 +320,7 @@ protected:
    using push_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
    using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
-   Derived& derived() { return static_cast<Derived&>(*this); }
+   auto derived() -> Derived& { return static_cast<Derived&>(*this); }
 
    struct req_info {
       explicit req_info(executor_type ex) : timer{ex} {}
@@ -459,7 +459,7 @@ protected:
       }
    }
 
-   bool expect_role(std::string const& expected)
+   auto expect_role(std::string const& expected) -> bool
    {
       if (std::empty(expected))
          return true;

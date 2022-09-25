@@ -91,10 +91,10 @@ public:
    }
 
    /// Returns a reference to the next layer.
-   auto& next_layer() noexcept { return stream_; }
+   auto next_layer() noexcept -> auto& { return stream_; }
 
    /// Returns a const reference to the next layer.
-   auto const& next_layer() const noexcept { return stream_; }
+   auto next_layer() const noexcept -> auto const& { return stream_; }
 
 private:
    using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;

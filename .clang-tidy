@@ -20,8 +20,8 @@ Checks: "*,\
   -misc-non-private-member-variables-in-classes,\
   -bugprone-use-after-move,\
   -hicpp-invalid-access-moved,\
-  -misc-no-recursion"
-  -cppcoreguidelines-non-private-member-variables-in-classes
+  -misc-no-recursion,\
+  -cppcoreguidelines-non-private-member-variables-in-classes"
 WarningsAsErrors: ''
 CheckOptions:
   - key: 'bugprone-argument-comment.StrictMode'
