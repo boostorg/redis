@@ -1,7 +1,7 @@
 # At the moment the official build system is still autotools and this
 # file is meant to support Aedis on windows.
 
-# BOOST_ROOT=/opt/boost_1_79_0/ cmake -DCMAKE_CXX_FLAGS="-g -O0
+# BOOST_ROOT=/opt/boost_1_80_0/ cmake -DCMAKE_CXX_FLAGS="-g -O0
 # -std=c++20 -Wall -Wextra --coverage -fkeep-inline-functions
 # -fkeep-static-functions" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
 # ~/my/aedis
@@ -42,7 +42,7 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 
-find_package(Boost 1.79 REQUIRED)
+find_package(Boost 1.80 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(OpenSSL REQUIRED)
@@ -59,10 +59,8 @@ add_executable(echo_server examples/echo_server.cpp)
 add_executable(intro examples/intro.cpp)
 add_executable(intro_tls examples/intro_tls.cpp)
 add_executable(intro_sync examples/intro_sync.cpp)
-add_executable(intro_sync_tls examples/intro_sync_tls.cpp)
 add_executable(serialization examples/serialization.cpp)
 add_executable(subscriber examples/subscriber.cpp)
-add_executable(subscriber_sync examples/subscriber_sync.cpp)
 add_executable(subscriber_sentinel examples/subscriber_sentinel.cpp)
 add_executable(test_low_level tests/low_level.cpp)
 add_executable(low_level_sync tests/low_level_sync.cpp)
@@ -82,7 +80,6 @@ target_compile_features(test_connection_push PUBLIC cxx_std_20)
 target_compile_features(test_connection_quit PUBLIC cxx_std_20)
 
 target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL)
-target_link_libraries(intro_sync_tls OpenSSL::Crypto OpenSSL::SSL)
 target_link_libraries(test_connection_tls OpenSSL::Crypto OpenSSL::SSL)
 
 # Tests

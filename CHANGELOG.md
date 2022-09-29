@@ -2,6 +2,8 @@
 
 ## master
 
+* Removes `aedis::sync` class, see intro_sync.cpp for an alternative.
+
 * Moves from `boost::optional` to `std::optional`. This is part of
   moving to C++17.
 

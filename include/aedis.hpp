@@ -10,7 +10,6 @@
 #include <aedis/error.hpp>
 #include <aedis/adapt.hpp>
 #include <aedis/connection.hpp>
-#include <aedis/sync.hpp>
 #include <aedis/resp3/request.hpp>
 
 /** @defgroup any Reference

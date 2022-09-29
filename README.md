@@ -626,4 +626,5 @@ Some people that were helpful in the development of Aedis
 * Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation (among other things).
 * Petr Dannhofer ([Eddie-cz](https://github.com/Eddie-cz)): For helping me understand how the `AUTH` and `HELLO` command can influence each other.
 * Mohammad Nejati ([ashtum](https://github.com/ashtum)): For pointing scenarios where calls to `async_exec` should fail when the connection is lost.
+* Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, the synchronous interface and help with Asio.
 
