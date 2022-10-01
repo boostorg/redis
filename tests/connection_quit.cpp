@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
    });
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, [db](auto ec){
+   db->async_run(ep, {}, [db](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::exec);
    });
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
    });
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, [db](auto ec){
+   db->async_run(ep, {}, [db](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
       db->cancel(connection::operation::exec);
    });
@@ -96,7 +96,7 @@ void test_quit2(bool coalesce)
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(), [](auto ec, auto) {
+   db->async_run(ep, req, adapt(), {}, [](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
 

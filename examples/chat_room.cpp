@@ -54,7 +54,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
    endpoint ep{"127.0.0.1", "6379"};
    for (;;) {
       boost::system::error_code ec;
-      co_await db->async_run(ep, req, adapt(), net::redirect_error(net::use_awaitable, ec));
+      co_await db->async_run(ep, req, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
       db->reset_stream();
       std::cout << ec.message() << std::endl;
       timer.expires_after(std::chrono::seconds{1});

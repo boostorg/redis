@@ -30,7 +30,7 @@ auto main() -> int
       req.push("QUIT");
 
       std::tuple<std::string, aedis::ignore> resp;
-      db.async_run({"127.0.0.1", "6379"}, req, adapt(resp), [](auto ec, auto) {
+      db.async_run({"127.0.0.1", "6379"}, req, adapt(resp), {}, [](auto ec, auto) {
          std::cout << ec.message() << std::endl;
       });
 

@@ -142,98 +142,6 @@ public:
       }
    }
 
-   /** @brief Starts communication with the Redis server asynchronously.
-    *
-    *  This function performs the following steps
-    *
-    *  @li Resolves the Redis host as of `async_resolve` with the
-    *  timeout passed in the base class `connection::config::resolve_timeout`.
-    *
-    *  @li Connects to one of the endpoints returned by the resolve
-    *  operation with the timeout passed in the base class
-    *  `connection::config::connect_timeout`.
-    *
-    *  @li Performs a RESP3 handshake by sending a
-    *  [HELLO](https://redis.io/commands/hello/) command with protocol
-    *  version 3 and the credentials contained in the
-    *  `aedis::endpoint` object.  The timeout used is the one specified
-    *  in `connection::config::resp3_handshake_timeout`.
-    *
-    *  @li Erases any password that may be contained in
-    *  `endpoint::password`.
-    *
-    *  @li Checks whether the server role corresponds to the one
-    *  specifed in the `endpoint`. If `endpoint::role` is left empty,
-    *  no check is performed. If the role role is different than the
-    *  expected `async_run` will complete with
-    *  `error::unexpected_server_role`.
-    *
-    *  @li Starts healthy checks with a timeout twice the value of
-    *  `connection::config::ping_interval`. If no data is received during that
-    *  time interval `connection::async_run` completes with
-    *  `error::idle_timeout`.
-    *
-    *  @li Starts the healthy check operation that sends the
-    *  [PING](https://redis.io/commands/ping/) to Redis with a
-    *  frequency equal to `connection::config::ping_interval`.
-    *
-    *  @li Starts reading from the socket and executes all requests
-    *  that have been started prior to this function call.
-    *
-    *  @param ep Redis endpoint.
-    *  @param token Completion token.
-    *
-    *  The completion token must have the following signature
-    *
-    *  @code
-    *  void f(boost::system::error_code);
-    *  @endcode
-    */
-   template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_run(endpoint ep, CompletionToken token = CompletionToken{})
-   {
-      ep_ = std::move(ep);
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::run_op<Derived>{&derived()}, token, resv_);
-   }
-
-   /** @brief Connects and executes a request asynchronously.
-    *
-    *  Combines the other `async_run` overload with `async_exec` in a
-    *  single function. This function is useful for users that want to
-    *  send a single request to the server and close it.
-    *
-    *  @param ep Redis endpoint.
-    *  @param req Request object.
-    *  @param adapter Response adapter.
-    *  @param token Asio completion token.
-    *
-    *  The completion token must have the following signature
-    *
-    *  @code
-    *  void f(boost::system::error_code, std::size_t);
-    *  @endcode
-    *
-    *  Where the second parameter is the size of the response in bytes.
-    */
-   template <
-      class Adapter = detail::response_traits<void>::adapter_type,
-      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_run(
-      endpoint ep,
-      resp3::request const& req,
-      Adapter adapter = adapt(),
-      CompletionToken token = CompletionToken{})
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(detail::runexec_op<Derived, Adapter>
-            {&derived(), ep, &req, adapter}, token, resv_);
-   }
-
    /** @brief Executes a command on the Redis server asynchronously.
     *
     *  This function will send a request to the Redis server and
@@ -307,6 +215,33 @@ public:
    }
 
 protected:
+   template <class Timeouts, class CompletionToken>
+   auto
+   async_run(endpoint ep, Timeouts ts, CompletionToken token)
+   {
+      ep_ = std::move(ep);
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::run_op<Derived, Timeouts>{&derived(), ts}, token, resv_);
+   }
+
+   template <class Adapter, class Timeouts, class CompletionToken>
+   auto async_run(
+      endpoint ep,
+      resp3::request const& req,
+      Adapter adapter,
+      Timeouts ts,
+      CompletionToken token)
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code, std::size_t)
+         >(detail::runexec_op<Derived, Adapter, Timeouts>
+            {&derived(), ep, &req, adapter, ts}, token, resv_);
+   }
+
+private:
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = boost::asio::wait_traits<clock_type>;
    using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
@@ -331,13 +266,13 @@ protected:
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
    template <class> friend struct detail::ping_op;
-   template <class> friend struct detail::run_op;
+   template <class, class> friend struct detail::run_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::exec_read_op;
-   template <class, class> friend struct detail::runexec_op;
+   template <class, class, class> friend struct detail::runexec_op;
    template <class> friend struct detail::resolve_with_timeout_op;
    template <class> friend struct detail::check_idle_op;
-   template <class> friend struct detail::start_op;
+   template <class, class> friend struct detail::start_op;
    template <class> friend struct detail::send_receive_op;
 
    void cancel_push_requests()
@@ -364,12 +299,15 @@ protected:
       { return boost::asio::dynamic_buffer(read_buffer_, max_read_size); }
 
    template <class CompletionToken>
-   auto async_resolve_with_timeout(CompletionToken&& token)
+   auto
+   async_resolve_with_timeout(
+      std::chrono::steady_clock::duration d,
+      CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::resolve_with_timeout_op<Derived>{&derived()},
+         >(detail::resolve_with_timeout_op<Derived>{&derived(), d},
             token, resv_);
    }
 
@@ -391,32 +329,39 @@ protected:
          >(detail::writer_op<Derived>{&derived()}, token, resv_.get_executor());
    }
 
+   template <
+      class Timeouts,
+      class CompletionToken>
+   auto async_start(Timeouts ts, CompletionToken&& token)
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(detail::start_op<Derived, Timeouts>{&derived(), ts}, token, resv_);
+   }
+
    template <class CompletionToken>
    auto
-   async_start(CompletionToken&& token)
+   async_ping(
+      std::chrono::steady_clock::duration d,
+      CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::start_op<Derived>{&derived()}, token, resv_);
+         >(detail::ping_op<Derived>{&derived(), d}, token, resv_);
    }
 
    template <class CompletionToken>
-   auto async_ping(CompletionToken&& token)
+   auto
+   async_check_idle(
+      std::chrono::steady_clock::duration d,
+      CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::ping_op<Derived>{&derived()}, token, resv_);
-   }
-
-   template <class CompletionToken>
-   auto async_check_idle(CompletionToken&& token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::check_idle_op<Derived>{&derived()}, token, check_idle_timer_);
+         >(detail::check_idle_op<Derived>{&derived(), d}, token, check_idle_timer_);
    }
 
    template <class Adapter, class CompletionToken>
@@ -483,7 +428,13 @@ protected:
 
    // IO objects
    resolver_type resv_;
+protected:
    timer_type ping_timer_;
+   endpoint ep_;
+   // The result of async_resolve.
+   boost::asio::ip::tcp::resolver::results_type endpoints_;
+
+private:
    timer_type check_idle_timer_;
    timer_type writer_timer_;
    timer_type read_timer_;
@@ -497,12 +448,8 @@ protected:
    // Last time we received data.
    time_point_type last_data_;
 
-   // The result of async_resolve.
-   boost::asio::ip::tcp::resolver::results_type endpoints_;
-
    resp3::request req_;
    std::vector<resp3::node<std::string>> response_;
-   endpoint ep_;
 };
 
 } // aedis

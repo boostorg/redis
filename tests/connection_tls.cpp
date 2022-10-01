@@ -36,7 +36,7 @@ boost::system::error_code hello_fail(endpoint ep)
    conn->next_layer().set_verify_mode(net::ssl::verify_peer);
    conn->next_layer().set_verify_callback(verify_certificate);
    boost::system::error_code ret;
-   conn->async_run(ep, [&](auto ec) {
+   conn->async_run(ep, {}, [&](auto ec) {
       ret = ec;
    });
 

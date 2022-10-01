@@ -75,6 +75,7 @@ auto async_handshake(
 template <class Conn>
 struct ssl_connect_with_timeout_op {
    Conn* conn = nullptr;
+   typename Conn::timeouts ts;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -84,7 +85,7 @@ struct ssl_connect_with_timeout_op {
    {
       reenter (coro)
       {
-         conn->ping_timer_.expires_after(conn->get_config().connect_timeout);
+         conn->ping_timer_.expires_after(ts.connect_timeout);
 
          yield
          aedis::detail::async_connect(
@@ -95,7 +96,7 @@ struct ssl_connect_with_timeout_op {
             return;
          }
 
-         conn->ping_timer_.expires_after(conn->get_config().handshake_timeout);
+         conn->ping_timer_.expires_after(ts.handshake_timeout);
 
          yield
          async_handshake(conn->next_layer(), conn->ping_timer_, std::move(self));

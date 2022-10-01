@@ -47,46 +47,39 @@ public:
 
    /** @brief Connection configuration parameters.
     */
-   struct config {
+   struct timeouts {
       /// Timeout of the resolve operation.
-      std::chrono::milliseconds resolve_timeout = std::chrono::seconds{10};
+      std::chrono::steady_clock::duration resolve_timeout = std::chrono::seconds{10};
 
       /// Timeout of the connect operation.
-      std::chrono::milliseconds connect_timeout = std::chrono::seconds{10};
+      std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10};
 
       /// Timeout of the ssl handshake operation.
-      std::chrono::milliseconds handshake_timeout = std::chrono::seconds{10};
+      std::chrono::steady_clock::duration handshake_timeout = std::chrono::seconds{10};
 
       /// Timeout of the resp3 handshake operation.
-      std::chrono::milliseconds resp3_handshake_timeout = std::chrono::seconds{2};
+      std::chrono::steady_clock::duration resp3_handshake_timeout = std::chrono::seconds{2};
 
       /// Time interval of ping operations.
-      std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
+      std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{1};
    };
 
    /// Constructor
-   explicit connection(executor_type ex, boost::asio::ssl::context& ctx, config cfg = {})
+   explicit connection(executor_type ex, boost::asio::ssl::context& ctx)
    : base_type{ex}
-   , cfg_{cfg}
    , stream_{ex, ctx}
    {
    }
 
    /// Constructor
-   explicit connection(boost::asio::io_context& ioc, boost::asio::ssl::context& ctx, config cfg = config{})
-   : connection(ioc.get_executor(), ctx, std::move(cfg))
+   explicit connection(boost::asio::io_context& ioc, boost::asio::ssl::context& ctx)
+   : connection(ioc.get_executor(), ctx)
    { }
-
-   /// Returns a reference to the configuration parameters.
-   auto get_config() noexcept -> config& { return cfg_;}
-
-   /// Returns a const reference to the configuration parameters.
-   auto get_config() const noexcept -> config const& { return cfg_;}
 
    /// Reset the underlying stream.
    void reset_stream(boost::asio::ssl::context& ctx)
    {
-      stream_ = next_layer_type{ex_, ctx};
+      stream_ = next_layer_type{stream_.get_executor(), ctx};
    }
 
    /// Returns a reference to the next layer.
@@ -94,6 +87,37 @@ public:
 
    /// Returns a const reference to the next layer.
    auto const& next_layer() const noexcept { return stream_; }
+
+   /** @brief Connects and executes a request asynchronously.
+    *
+    *  See aedis::connection::async_run for detailed information.
+    */
+   template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
+   auto
+   async_run(
+      endpoint ep,
+      timeouts ts = timeouts{},
+      CompletionToken token = CompletionToken{})
+   {
+      return base_type::async_run(ep, ts, std::move(token));
+   }
+
+   /** @brief Connects and executes a request asynchronously.
+    *
+    *  See aedis::connection::async_run for detailed information.
+    */
+   template <
+      class Adapter = aedis::detail::response_traits<void>::adapter_type,
+      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
+   auto async_run(
+      endpoint ep,
+      resp3::request const& req,
+      Adapter adapter,
+      timeouts ts,
+      CompletionToken token = CompletionToken{})
+   {
+      return base_type::async_run(ep, req, adapter, ts, std::move(token));
+   }
 
 private:
    using base_type = connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
@@ -113,16 +137,14 @@ private:
    void close() { stream_.next_layer().close(); }
 
    template <class CompletionToken>
-   auto async_connect(CompletionToken&& token)
+   auto async_connect(timeouts ts, CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::ssl_connect_with_timeout_op<this_type>{this}, token, stream_);
+         >(detail::ssl_connect_with_timeout_op<this_type>{this, ts}, token, stream_);
    }
 
-   config cfg_;
-   executor_type ex_;
    next_layer_type stream_;
 };
 

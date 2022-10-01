@@ -60,7 +60,7 @@ net::awaitable<endpoint> resolve()
    std::tuple<std::optional<std::array<std::string, 2>>, aedis::ignore> addr;
    for (auto ep : endpoints) {
       boost::system::error_code ec;
-      co_await conn.async_run(ep, req1, adapt(addr), net::redirect_error(net::use_awaitable, ec));
+      co_await conn.async_run(ep, req1, adapt(addr), {}, net::redirect_error(net::use_awaitable, ec));
       conn.reset_stream();
       std::cout << ec.message() << std::endl;
       if (std::get<0>(addr))
@@ -91,7 +91,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
       }
 
       boost::system::error_code ec;
-      co_await db->async_run(ep, req2, adapt(), net::redirect_error(net::use_awaitable, ec));
+      co_await db->async_run(ep, req2, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
       std::cout << ec.message() << std::endl;
       std::cout << "Starting the failover." << std::endl;
       timer.expires_after(std::chrono::seconds{1});

@@ -32,7 +32,7 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
    endpoint ep{"127.0.0.1", "6379"};
    for (; i < 5; ++i) {
       boost::system::error_code ec;
-      co_await db->async_run(ep, req, adapt(), net::redirect_error(net::use_awaitable, ec));
+      co_await db->async_run(ep, req, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
       db->reset_stream();
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    }
@@ -65,10 +65,10 @@ BOOST_AUTO_TEST_CASE(test_reconnect_timeout)
    req2.push("QUIT");
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req1, adapt(), [db, &req2, &ep](auto ec, auto){
+   db->async_run(ep, req1, adapt(), {}, [db, &req2, &ep](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
       db->reset_stream();
-      db->async_run(ep, req2, adapt(), [db](auto ec, auto){
+      db->async_run(ep, req2, adapt(), {}, [db](auto ec, auto){
          BOOST_CHECK_EQUAL(ec, aedis::error::exec_timeout);
       });
    });

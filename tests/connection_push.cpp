@@ -34,7 +34,7 @@ void test_missing_push_reader1(bool coalesce)
    req.push("SUBSCRIBE", "channel");
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(), [](auto ec, auto){
+   db->async_run(ep, req, adapt(), {}, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -50,7 +50,7 @@ void test_missing_push_reader2(bool coalesce)
    req.push("SUBSCRIBE");
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(), [](auto ec, auto){
+   db->async_run(ep, req, adapt(), {}, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -67,7 +67,7 @@ void test_missing_push_reader3(bool coalesce)
    req.push("SUBSCRIBE");
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(), [](auto ec, auto){
+   db->async_run(ep, req, adapt(), {}, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    });
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(), [db](auto, auto){
+   db->async_run(ep, req, adapt(), {}, [db](auto, auto){
       //BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
 
@@ -142,7 +142,7 @@ void test_push_is_received1(bool coalesce)
    req.push("QUIT");
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(), [db](auto ec, auto){
+   db->async_run(ep, req, adapt(), {}, [db](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::receive_push);
    });
@@ -184,7 +184,7 @@ void test_push_is_received2(bool coalesce)
    db->async_exec(req3, adapt(), handler);
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, [db](auto ec, auto...) {
+   db->async_run(ep, {}, [db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::receive_push);
    });
@@ -242,7 +242,7 @@ void test_push_many_subscribes(bool coalesce)
    db->async_exec(req3, adapt(), handler);
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, [db](auto ec, auto...) {
+   db->async_run(ep, {}, [db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       db->cancel(connection::operation::receive_push);
    });

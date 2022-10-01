@@ -48,18 +48,18 @@ BOOST_AUTO_TEST_CASE(test_idle)
 
    {
       std::cout << "test_idle" << std::endl;
-      connection::config cfg;
+      connection::timeouts cfg;
       cfg.resolve_timeout = std::chrono::seconds{1};
       cfg.connect_timeout = std::chrono::seconds{1};
       cfg.ping_interval = std::chrono::seconds{1};
 
       net::io_context ioc;
-      auto db = std::make_shared<connection>(ioc, cfg);
+      auto db = std::make_shared<connection>(ioc);
 
       net::co_spawn(ioc.get_executor(), send_after(db, ms), net::detached);
 
       endpoint ep{"127.0.0.1", "6379"};
-      db->async_run(ep, [](auto ec){
+      db->async_run(ep, cfg, [](auto ec){
          BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
       });
 
@@ -74,17 +74,18 @@ BOOST_AUTO_TEST_CASE(test_idle)
    {
       net::io_context ioc;
       auto db = std::make_shared<connection>(ioc);
-      db->get_config().ping_interval = 2 * ms;
-      db->get_config().resolve_timeout = 2 * ms;
-      db->get_config().connect_timeout = 2 * ms;
-      db->get_config().ping_interval = 2 * ms;
-      db->get_config().resp3_handshake_timeout = 2 * ms;
+      connection::timeouts cfg;
+      cfg.ping_interval = 2 * ms;
+      cfg.resolve_timeout = 2 * ms;
+      cfg.connect_timeout = 2 * ms;
+      cfg.ping_interval = 2 * ms;
+      cfg.resp3_handshake_timeout = 2 * ms;
 
       request req;
       req.push("QUIT");
 
       endpoint ep{"127.0.0.1", "6379"};
-      db->async_run(ep, req, adapt(), [](auto ec, auto){
+      db->async_run(ep, req, adapt(), cfg, [](auto ec, auto){
          BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       });
 
@@ -99,7 +100,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
       timer.expires_after(std::chrono::milliseconds{10});
       endpoint ep{"127.0.0.1", "6379"};
       co_await (
-         db->async_run(ep, net::use_awaitable) ||
+         db->async_run(ep, {}, net::use_awaitable) ||
          timer.async_wait(net::use_awaitable)
       );
       std::cout << i << ": Retrying" << std::endl;
@@ -128,7 +129,7 @@ BOOST_AUTO_TEST_CASE(test_wrong_data_type)
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(resp), [](auto ec, auto){
+   db->async_run(ep, req, adapt(resp), {}, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
    });
 

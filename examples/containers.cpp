@@ -50,7 +50,7 @@ auto main() -> int
       net::io_context ioc;
       connection db{ioc};
       endpoint ep{"127.0.0.1", "6379"};
-      db.async_run(ep, req, adapt(resp), [](auto ec, auto) {
+      db.async_run(ep, req, adapt(resp), {}, [](auto ec, auto) {
          std::cout << ec.message() << std::endl;
       });
       ioc.run();

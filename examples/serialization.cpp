@@ -100,7 +100,7 @@ int main()
    std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
 
    endpoint ep{"127.0.0.1", "6379"};
-   db.async_run(ep, req, adapt(resp), [](auto ec, auto) {
+   db.async_run(ep, req, adapt(resp), {}, [](auto ec, auto) {
       std::cout << ec.message() << std::endl;
    });
 

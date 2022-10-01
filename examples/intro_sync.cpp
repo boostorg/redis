@@ -38,7 +38,7 @@ int main()
 
       connection conn{ioc};
       std::thread t{[&]() {
-         conn.async_run({"127.0.0.1", "6379"}, logger);
+         conn.async_run({"127.0.0.1", "6379"}, {}, logger);
          ioc.run();
       }};
 

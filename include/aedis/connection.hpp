@@ -43,36 +43,29 @@ public:
 
    /** @brief Connection configuration parameters.
     */
-   struct config {
+   struct timeouts {
       /// Timeout of the resolve operation.
-      std::chrono::milliseconds resolve_timeout = std::chrono::seconds{10};
+      std::chrono::steady_clock::duration resolve_timeout = std::chrono::seconds{10};
 
       /// Timeout of the connect operation.
-      std::chrono::milliseconds connect_timeout = std::chrono::seconds{10};
+      std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10};
 
       /// Timeout of the resp3 handshake operation.
-      std::chrono::milliseconds resp3_handshake_timeout = std::chrono::seconds{2};
+      std::chrono::steady_clock::duration resp3_handshake_timeout = std::chrono::seconds{2};
 
       /// Time interval of ping operations.
-      std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
+      std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{1};
    };
 
    /// Constructor
-   explicit connection(executor_type ex, config cfg = {})
+   explicit connection(executor_type ex)
    : base_type{ex}
-   , cfg_{cfg}
    , stream_{ex}
    {}
 
-   explicit connection(boost::asio::io_context& ioc, config cfg = config{})
-   : connection(ioc.get_executor(), std::move(cfg))
+   explicit connection(boost::asio::io_context& ioc)
+   : connection(ioc.get_executor())
    { }
-
-   /// Returns a reference to the configuration parameters.
-   auto get_config() noexcept -> config& { return cfg_;}
-
-   /// Returns a const reference to the configuration parameters.
-   auto get_config() const noexcept -> config const& { return cfg_;}
 
    /// Resets the underlying stream.
    void reset_stream()
@@ -90,6 +83,97 @@ public:
    /// Returns a const reference to the next layer.
    auto next_layer() const noexcept -> auto const& { return stream_; }
 
+   /** @brief Starts communication with the Redis server asynchronously.
+    *
+    *  This function performs the following steps
+    *
+    *  @li Resolves the Redis host as of `async_resolve` with the
+    *  timeout passed in the base class `connection::timeouts::resolve_timeout`.
+    *
+    *  @li Connects to one of the endpoints returned by the resolve
+    *  operation with the timeout passed in the base class
+    *  `connection::timeouts::connect_timeout`.
+    *
+    *  @li Performs a RESP3 handshake by sending a
+    *  [HELLO](https://redis.io/commands/hello/) command with protocol
+    *  version 3 and the credentials contained in the
+    *  `aedis::endpoint` object.  The timeout used is the one specified
+    *  in `connection::timeouts::resp3_handshake_timeout`.
+    *
+    *  @li Erases any password that may be contained in
+    *  `endpoint::password`.
+    *
+    *  @li Checks whether the server role corresponds to the one
+    *  specifed in the `endpoint`. If `endpoint::role` is left empty,
+    *  no check is performed. If the role role is different than the
+    *  expected `async_run` will complete with
+    *  `error::unexpected_server_role`.
+    *
+    *  @li Starts healthy checks with a timeout twice the value of
+    *  `connection::timeouts::ping_interval`. If no data is received during that
+    *  time interval `connection::async_run` completes with
+    *  `error::idle_timeout`.
+    *
+    *  @li Starts the healthy check operation that sends the
+    *  [PING](https://redis.io/commands/ping/) to Redis with a
+    *  frequency equal to `connection::timeouts::ping_interval`.
+    *
+    *  @li Starts reading from the socket and executes all requests
+    *  that have been started prior to this function call.
+    *
+    *  @param ep Redis endpoint.
+    *  @param ts Timeouts used by the operations.
+    *  @param token Completion token.
+    *
+    *  The completion token must have the following signature
+    *
+    *  @code
+    *  void f(boost::system::error_code);
+    *  @endcode
+    */
+   template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
+   auto
+   async_run(
+      endpoint ep,
+      timeouts ts = timeouts{},
+      CompletionToken token = CompletionToken{})
+   {
+      return base_type::async_run(ep, ts, std::move(token));
+   }
+
+   /** @brief Connects and executes a request asynchronously.
+    *
+    *  Combines the other `async_run` overload with `async_exec` in a
+    *  single function. This function is useful for users that want to
+    *  send a single request to the server and close it.
+    *
+    *  @param ep Redis endpoint.
+    *  @param req Request object.
+    *  @param adapter Response adapter.
+    *  @param ts Timeouts used by the operation.
+    *  @param token Asio completion token.
+    *
+    *  The completion token must have the following signature
+    *
+    *  @code
+    *  void f(boost::system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the response in bytes.
+    */
+   template <
+      class Adapter = detail::response_traits<void>::adapter_type,
+      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
+   auto async_run(
+      endpoint ep,
+      resp3::request const& req,
+      Adapter adapter,
+      timeouts ts,
+      CompletionToken token = CompletionToken{})
+   {
+      return base_type::async_run(ep, req, adapter, ts, std::move(token));
+   }
+
 private:
    using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;
    using this_type = connection<next_layer_type>;
@@ -106,19 +190,18 @@ private:
    template <class> friend struct detail::run_op;
 
    template <class CompletionToken>
-   auto async_connect(CompletionToken&& token)
+   auto async_connect(timeouts ts, CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::connect_with_timeout_op<this_type>{this}, token, stream_);
+         >(detail::connect_with_timeout_op<this_type>{this, ts}, token, stream_);
    }
 
    void close() { stream_.close(); }
    auto is_open() const noexcept { return stream_.is_open(); }
    auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
 
-   config cfg_;
    AsyncReadWriteStream stream_;
 };
 

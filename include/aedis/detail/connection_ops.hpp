@@ -33,6 +33,7 @@ namespace aedis::detail {
 template <class Conn>
 struct connect_with_timeout_op {
    Conn* conn = nullptr;
+   typename Conn::timeouts ts;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -42,7 +43,7 @@ struct connect_with_timeout_op {
    {
       reenter (coro)
       {
-         conn->ping_timer_.expires_after(conn->get_config().connect_timeout);
+         conn->ping_timer_.expires_after(ts.connect_timeout);
          yield
          detail::async_connect(
             conn->next_layer(), conn->ping_timer_, conn->endpoints_, std::move(self));
@@ -54,6 +55,7 @@ struct connect_with_timeout_op {
 template <class Conn>
 struct resolve_with_timeout_op {
    Conn* conn = nullptr;
+   std::chrono::steady_clock::duration resolve_timeout;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -63,7 +65,7 @@ struct resolve_with_timeout_op {
    {
       reenter (coro)
       {
-         conn->ping_timer_.expires_after(conn->get_config().resolve_timeout);
+         conn->ping_timer_.expires_after(resolve_timeout);
          yield
          aedis::detail::async_resolve(
             conn->resv_, conn->ping_timer_,
@@ -292,6 +294,7 @@ struct exec_op {
 template <class Conn>
 struct ping_op {
    Conn* conn;
+   std::chrono::steady_clock::duration ping_interval;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -302,7 +305,7 @@ struct ping_op {
    {
       reenter (coro) for (;;)
       {
-         conn->ping_timer_.expires_after(conn->get_config().ping_interval);
+         conn->ping_timer_.expires_after(ping_interval);
          yield
          conn->ping_timer_.async_wait(std::move(self));
          if (ec || !conn->is_open()) {
@@ -327,6 +330,7 @@ struct ping_op {
 template <class Conn>
 struct check_idle_op {
    Conn* conn;
+   std::chrono::steady_clock::duration ping_interval;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -334,7 +338,7 @@ struct check_idle_op {
    {
       reenter (coro) for (;;)
       {
-         conn->check_idle_timer_.expires_after(2 * conn->get_config().ping_interval);
+         conn->check_idle_timer_.expires_after(2 * ping_interval);
          yield
          conn->check_idle_timer_.async_wait(std::move(self));
          if (ec) {
@@ -350,7 +354,7 @@ struct check_idle_op {
          }
 
          auto const now = std::chrono::steady_clock::now();
-         if (conn->last_data_ +  (2 * conn->get_config().ping_interval) < now) {
+         if (conn->last_data_ +  (2 * ping_interval) < now) {
             conn->cancel(Conn::operation::run);
             self.complete(error::idle_timeout);
             return;
@@ -361,9 +365,10 @@ struct check_idle_op {
    }
 };
 
-template <class Conn>
+template <class Conn, class Timeouts>
 struct start_op {
    Conn* conn;
+   Timeouts ts;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -380,8 +385,8 @@ struct start_op {
          boost::asio::experimental::make_parallel_group(
             [this](auto token) { return conn->reader(token);},
             [this](auto token) { return conn->writer(token);},
-            [this](auto token) { return conn->async_check_idle(token);},
-            [this](auto token) { return conn->async_ping(token);}
+            [this](auto token) { return conn->async_check_idle(ts.ping_interval, token);},
+            [this](auto token) { return conn->async_ping(ts.ping_interval, token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
             std::move(self));
@@ -397,9 +402,10 @@ struct start_op {
    }
 };
 
-template <class Conn>
+template <class Conn, class Timeouts>
 struct run_op {
    Conn* conn = nullptr;
+   Timeouts ts;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -411,7 +417,7 @@ struct run_op {
       reenter (coro)
       {
          yield
-         conn->async_resolve_with_timeout(std::move(self));
+         conn->async_resolve_with_timeout(ts.resolve_timeout, std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
@@ -419,7 +425,7 @@ struct run_op {
          }
 
          yield
-         conn->derived().async_connect(std::move(self));
+         conn->derived().async_connect(ts, std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
@@ -427,7 +433,7 @@ struct run_op {
          }
 
          conn->prepare_hello(conn->ep_);
-         conn->ping_timer_.expires_after(conn->get_config().resp3_handshake_timeout);
+         conn->ping_timer_.expires_after(ts.resp3_handshake_timeout);
 
          yield
          resp3::detail::async_exec(
@@ -459,7 +465,7 @@ struct run_op {
             return ptr->written = false;
          });
 
-         yield conn->async_start(std::move(self));
+         yield conn->async_start(ts, std::move(self));
          self.complete(ec);
       }
    }
@@ -593,12 +599,13 @@ struct reader_op {
    }
 };
 
-template <class Conn, class Adapter>
+template <class Conn, class Adapter, class Timeouts>
 struct runexec_op {
    Conn* conn = nullptr;
    endpoint ep;
    resp3::request const* req = nullptr;
    Adapter adapter;
+   Timeouts ts;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -612,7 +619,7 @@ struct runexec_op {
       {
          yield
          boost::asio::experimental::make_parallel_group(
-            [this, ep2 = ep](auto token) { return conn->async_run(ep2, token);},
+            [this, ep2 = ep](auto token) { return conn->async_run(ep2, ts, token);},
             [this](auto token) { return conn->async_exec(*req, adapter, token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one_error(),

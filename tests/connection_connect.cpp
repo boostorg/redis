@@ -27,12 +27,12 @@ bool is_host_not_found(error_code ec)
    return false;
 }
 
-error_code test_async_run(endpoint ep, connection::config cfg = {})
+error_code test_async_run(endpoint ep, connection::timeouts cfg = {})
 {
    net::io_context ioc;
-   connection db{ioc, cfg};
+   connection db{ioc};
    error_code ret;
-   db.async_run(ep, [&](auto ec) { ret = ec; });
+   db.async_run(ep, cfg, [&](auto ec) { ret = ec; });
    ioc.run();
    return ret;
 }
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(test_resolve)
    ep.host = "Atibaia";
    ep.port = "6379";
 
-   connection::config cfg;
+   connection::timeouts cfg;
    cfg.resolve_timeout = std::chrono::seconds{100};
    auto const ec = test_async_run(ep, cfg);
 
@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(test_resolve_with_timeout)
    ep.host = "Atibaia";
    ep.port = "6379";
 
-   connection::config cfg;
+   connection::timeouts cfg;
    // Low-enough to cause a timeout always.
    cfg.resolve_timeout = std::chrono::milliseconds{1};
    auto const ec = test_async_run(ep, cfg);
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(test_connect)
    ep.host = "127.0.0.1";
    ep.port = "1";
 
-   connection::config cfg;
+   connection::timeouts cfg;
    cfg.connect_timeout = std::chrono::seconds{100};
    auto const ec = test_async_run(ep, cfg);
    BOOST_CHECK_EQUAL(ec, net::error::basic_errors::connection_refused);
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(test_connect_timeout)
    ep.host = "example.com";
    ep.port = "1";
 
-   connection::config cfg;
+   connection::timeouts cfg;
    cfg.connect_timeout = std::chrono::milliseconds{1};
    auto const ec = test_async_run(ep, cfg);
    BOOST_CHECK_EQUAL(ec, aedis::error::connect_timeout);
