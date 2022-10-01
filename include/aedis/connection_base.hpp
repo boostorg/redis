@@ -265,7 +265,7 @@ public:
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
-      BOOST_ASSERT_MSG(req.size() <= adapter.supported_response_size(), "Request and adapter have incompatible sizes.");
+      BOOST_ASSERT_MSG(req.size() <= adapter.get_supported_response_size(), "Request and adapter have incompatible sizes.");
 
       return boost::asio::async_compose
          < CompletionToken
@@ -299,13 +299,7 @@ public:
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
-      auto f =
-         [adapter]
-         (resp3::node<boost::string_view> const& node, boost::system::error_code& ec) mutable
-      {
-         adapter(0, node, ec);
-      };
-
+      auto f = detail::make_adapter_wrapper(adapter);
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
@@ -366,8 +360,8 @@ protected:
          writer_timer_.cancel();
    }
 
-   auto make_dynamic_buffer()
-      { return boost::asio::dynamic_buffer(read_buffer_, derived().get_config().max_read_size); }
+   auto make_dynamic_buffer(std::size_t max_read_size = 512)
+      { return boost::asio::dynamic_buffer(read_buffer_, max_read_size); }
 
    template <class CompletionToken>
    auto async_resolve_with_timeout(CompletionToken&& token)

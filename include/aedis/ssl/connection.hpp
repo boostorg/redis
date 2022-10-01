@@ -63,9 +63,6 @@ public:
       /// Time interval of ping operations.
       std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
 
-      /// The maximum size of read operations.
-      std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
-
       /// Whether to coalesce requests (see [pipelines](https://redis.io/topics/pipelining)).
       bool coalesce_requests = true;
    };

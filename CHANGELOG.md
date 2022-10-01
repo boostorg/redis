@@ -2,37 +2,42 @@
 
 ## master
 
-* Removes `aedis::sync` class, see intro_sync.cpp for an alternative.
+* Removes `max_read_size` from the `connection::config`. The maximum
+  read size can be specified now as a parameter of the
+  `aedis::adapt()` function.
+
+* Removes `aedis::sync` class, see intro_sync.cpp for how to perform
+  synchronous and thread safe calls. This is possible in Boost. 1.80
+  only as it requires `boost::asio::deferred`. 
 
 * Moves from `boost::optional` to `std::optional`. This is part of
   moving to C++17.
 
 * Changes the behaviour of the second `connection::async_run` overload
-  so that it also always return an error when the connection is lost.
+  so that it always return an error when the connection is lost.
 
-* Adds TLS support, see intro_tls.cpp for an example on how to use it.
+* Adds TLS support, see intro_tls.cpp for how to use it.
 
-* Adds example on how to resolve addresses over sentinels, see
-  subscriber_sentinel.cpp.
+* Adds an example that shows how to resolve addresses over sentinels,
+  see subscriber_sentinel.cpp.
 
-* Adds a `connection::config::resp3_handshake_timeout`.
+* Adds a `connection::config::resp3_handshake_timeout`. This is
+  timeout used to send the `HELLO` command.
 
-* Adds `endpoint` where in addition to host and port, users can also
-  optionally provide username and password that are needed to connect
-  to the Redis server and the expected server role (see
-  `error::unexpected_server_role`).
+* Adds `endpoint` where in addition to host and port, users can
+  optionally provide username, password and the expected server role
+  (see `error::unexpected_server_role`).
 
 * `connection::async_run` checks whether the server role received in
   the hello command is equal to the expected server role specified in
-  the the `aedis::endpoint`. To skip this check let the role variable
-  empty.
+  `aedis::endpoint`. To skip this check let the role variable empty.
 
-* Removes reconnect functionanlity from the `connection` class. It is
-  possible in simple reconnection strategies but bloats the
-  `connection` class in more complex scenarios, for example, with
-  sentinel, authentication and TLS. This is trivial to implement
-  separated from the class. As a result the enum `event` and
-  `async_receive_event` have been removed from the class too.
+* Removes reconnect functionanlity from `aedis::connection`. It
+  is possible in simple reconnection strategies but bloats the class
+  in more complex scenarios, for example, with sentinel,
+  authentication and TLS. This is trivial to implement in a separate
+  coroutine. As a result the enum `event` and `async_receive_event`
+  have been removed from the class too.
 
 * Fixes a bug in `connection::async_receive_push` that prevented
   passing any response adapter other that `adapt(std::vector<node>)`.
@@ -45,7 +50,7 @@
   to complete with success when an error in the
   `connection::async_exec` occurred.
 
-* Moves the buildsystem from autotools to CMake.
+* Ports the buildsystem from autotools to CMake.
 
 ## v1.0.0
 

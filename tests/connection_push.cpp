@@ -90,6 +90,23 @@ net::awaitable<void> push_consumer1(std::shared_ptr<connection> db, bool& push_r
    push_received = true;
 }
 
+struct adapter_error {
+   void
+   operator()(
+      std::size_t, aedis::resp3::node<boost::string_view> const&, boost::system::error_code& ec)
+   {
+      ec = aedis::error::incompatible_size;
+   }
+
+   [[nodiscard]]
+   auto get_supported_response_size() const noexcept
+      { return static_cast<std::size_t>(-1);}
+
+   [[nodiscard]]
+   auto get_max_read_size(std::size_t) const noexcept
+      { return static_cast<std::size_t>(-1);}
+};
+
 BOOST_AUTO_TEST_CASE(test_push_adapter)
 {
    net::io_context ioc;
@@ -100,12 +117,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   auto f = [](auto, auto, auto& ec)
-   {
-      ec = aedis::error::incompatible_size;
-   };
-
-   db->async_receive_push(f, [](auto ec, auto) {
+   db->async_receive_push(adapter_error{}, [](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, aedis::error::incompatible_size);
    });
 
