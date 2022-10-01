@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(test_wrong_data_type)
 BOOST_AUTO_TEST_CASE(test_not_connected)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-   request req{true};
+   request req{{true}};
    req.push("PING");
 
    net::io_context ioc;

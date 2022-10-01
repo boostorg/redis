@@ -173,16 +173,23 @@ void add_separator(Request& to)
  */
 class request {
 public:
+   /// Request configuration options.
+   struct config {
+      /** @brief If set to true, requests started with
+       * `connection::async_exe` will fail either if the connection is
+       * lost while the request is pending or if `async_exec` is
+       * called while there is no connection with Redis. The default
+       * behaviour is not to close requests.
+       */
+      bool close_on_connection_lost;
+   };
+
    /** @brief Constructor
     *  
-    *  @param close_on_connection_lost If true, the requests started
-    *  with `connection::async_exe` will fail either if the connection
-    *  is lost while the request is pending or if `async_exec` is
-    *  called when there is no connection with Redis. The default
-    *  behaviour is not to close requests.
+    *  @param cfg Configuration options.
     */
-   explicit request(bool close_on_connection_lost = false)
-   : close_on_connection_lost_{close_on_connection_lost}
+   explicit request(config cfg = config{false})
+   : cfg_{cfg}
    {}
 
    //// Returns the number of commands contained in this request.
@@ -343,16 +350,14 @@ public:
 
    /// Calls std::string::reserve on the internal storage.
    void reserve(std::size_t new_cap = 0)
-   {
-      payload_.reserve(new_cap);
-   }
+      { payload_.reserve(new_cap); }
 
-   auto close_on_connection_lost() const noexcept {return close_on_connection_lost_; }
+   auto get_config() const noexcept -> auto const& {return cfg_; }
 
 private:
    std::string payload_;
    std::size_t commands_ = 0;
-   bool close_on_connection_lost_ = false;
+   config cfg_;
 };
 
 } // aedis::resp3

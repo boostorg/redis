@@ -225,7 +225,7 @@ struct exec_op {
    {
       reenter (coro)
       {
-         if (req->close_on_connection_lost() && !conn->is_open()) {
+         if (req->get_config().close_on_connection_lost && !conn->is_open()) {
             // The user doesn't want to wait for the connection to be
             // stablished.
             self.complete(error::not_connected, 0);

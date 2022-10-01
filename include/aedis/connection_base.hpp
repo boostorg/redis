@@ -69,7 +69,7 @@ public:
    , read_timer_{ex}
    , push_channel_{ex}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
-   , req_{true}
+   , req_{{true}}
    {
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
@@ -82,7 +82,7 @@ public:
     *
     *  @li `operation::exec`: Cancels operations started with
     *  `async_exec`. Has precedence over
-    *  `request::close_on_connection_lost()`
+    *  `request::config::close_on_connection_lost`
     *  @li operation::run: Cancels the `async_run` operation. Notice
     *  that the preferred way to close a connection is to send a
     *  [QUIT](https://redis.io/commands/quit/) command to the server.
@@ -121,7 +121,7 @@ public:
             ping_timer_.cancel();
 
             auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-               return !ptr->req->close_on_connection_lost();
+               return !ptr->req->get_config().close_on_connection_lost;
             });
 
             // Cancel own pings if there are any waiting.
