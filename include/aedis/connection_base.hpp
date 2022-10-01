@@ -428,18 +428,26 @@ protected:
          >(detail::exec_read_op<Derived, Adapter>{&derived(), adapter, cmds}, token, resv_);
    }
 
+   void stage_request(req_info& ri)
+   {
+      write_buffer_ += ri.req->payload();
+      cmds_ += ri.req->size();
+      ri.written = true;
+   }
+
    void coalesce_requests()
    {
-      // Coaleces all requests: Copies the request to the variables
-      // that won't be touched while async_write is suspended.
       BOOST_ASSERT(write_buffer_.empty());
       BOOST_ASSERT(!reqs_.empty());
 
-      auto const size = derived().get_config().coalesce_requests ? reqs_.size() : 1;
-      for (auto i = 0UL; i < size; ++i) {
-         write_buffer_ += reqs_.at(i)->req->payload();
-         cmds_ += reqs_.at(i)->req->size();
-         reqs_.at(i)->written = true;
+      stage_request(*reqs_.at(0));
+
+      for (std::size_t i = 1; i < std::size(reqs_); ++i) {
+         if (!reqs_.at(i - 1)->req->get_config().coalesce ||
+             !reqs_.at(i - 0)->req->get_config().coalesce) {
+            break;
+         }
+         stage_request(*reqs_.at(i));
       }
    }
 

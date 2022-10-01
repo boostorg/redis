@@ -27,12 +27,11 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 {
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
-   db->get_config().coalesce_requests = false;
 
-   request req1;
+   request req1{{false, false}};
    req1.push("PING");
 
-   request req2;
+   request req2{{false, false}};
    req2.push("QUIT");
 
    db->async_exec(req1, adapt(), [](auto ec, auto){ BOOST_TEST(!ec); });
@@ -89,13 +88,13 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
    ioc.run();
 }
 
-void test_quit2(connection::config const& cfg)
+void test_quit2(bool coalesce)
 {
-   request req;
+   request req{{false, coalesce}};
    req.push("QUIT");
 
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
+   auto db = std::make_shared<connection>(ioc);
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, req, adapt(), [](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
@@ -107,11 +106,6 @@ void test_quit2(connection::config const& cfg)
 BOOST_AUTO_TEST_CASE(test_quit)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-   connection::config cfg;
-
-   cfg.coalesce_requests = true;
-   test_quit2(cfg);
-
-   cfg.coalesce_requests = false;
-   test_quit2(cfg);
+   test_quit2(true);
+   test_quit2(false);
 }

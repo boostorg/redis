@@ -181,14 +181,22 @@ public:
        * called while there is no connection with Redis. The default
        * behaviour is not to close requests.
        */
-      bool close_on_connection_lost;
+      bool close_on_connection_lost = false;
+
+      /** @brief Coalesce this with other requests.
+       *
+       *  If true this request will be coalesced with other requests,
+       *  see https://redis.io/topics/pipelining. If false, this
+       *  request will be sent individually.
+       */
+      bool coalesce = true;
    };
 
    /** @brief Constructor
     *  
     *  @param cfg Configuration options.
     */
-   explicit request(config cfg = config{false})
+   explicit request(config cfg = config{false, true})
    : cfg_{cfg}
    {}
 

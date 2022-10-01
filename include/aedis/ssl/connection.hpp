@@ -62,9 +62,6 @@ public:
 
       /// Time interval of ping operations.
       std::chrono::milliseconds ping_interval = std::chrono::seconds{1};
-
-      /// Whether to coalesce requests (see [pipelines](https://redis.io/topics/pipelining)).
-      bool coalesce_requests = true;
    };
 
    /// Constructor

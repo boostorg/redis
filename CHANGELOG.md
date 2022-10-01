@@ -2,6 +2,9 @@
 
 ## master
 
+* Removes `coalesce_requests` from the `connection::config`, this
+  became a request property now, see `request::config::coalesce`.
+
 * Removes `max_read_size` from the `connection::config`. The maximum
   read size can be specified now as a parameter of the
   `aedis::adapt()` function.

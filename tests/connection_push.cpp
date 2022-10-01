@@ -25,12 +25,12 @@ using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 
 // Checks whether we get idle timeout when no push reader is set.
-void test_missing_push_reader1(connection::config const& cfg)
+void test_missing_push_reader1(bool coalesce)
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
+   auto db = std::make_shared<connection>(ioc);
 
-   request req;
+   request req{{false, coalesce}};
    req.push("SUBSCRIBE", "channel");
 
    endpoint ep{"127.0.0.1", "6379"};
@@ -41,12 +41,12 @@ void test_missing_push_reader1(connection::config const& cfg)
    ioc.run();
 }
 
-void test_missing_push_reader2(connection::config const& cfg)
+void test_missing_push_reader2(bool coalesce)
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
+   auto db = std::make_shared<connection>(ioc);
 
-   request req; // Wrong command syntax.
+   request req{{false, coalesce}}; // Wrong command syntax.
    req.push("SUBSCRIBE");
 
    endpoint ep{"127.0.0.1", "6379"};
@@ -57,12 +57,12 @@ void test_missing_push_reader2(connection::config const& cfg)
    ioc.run();
 }
 
-void test_missing_push_reader3(connection::config const& cfg)
+void test_missing_push_reader3(bool coalesce)
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
+   auto db = std::make_shared<connection>(ioc);
 
-   request req; // Wrong command synthax.
+   request req{{false, coalesce}}; // Wrong command synthax.
    req.push("PING", "Message");
    req.push("SUBSCRIBE");
 
@@ -132,12 +132,12 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    // reconnection is possible after an error.
 }
 
-void test_push_is_received1(connection::config const& cfg)
+void test_push_is_received1(bool coalesce)
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
+   auto db = std::make_shared<connection>(ioc);
 
-   request req;
+   request req{{false, coalesce}};
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
@@ -158,21 +158,21 @@ void test_push_is_received1(connection::config const& cfg)
    BOOST_TEST(push_received);
 }
 
-void test_push_is_received2(connection::config const& cfg)
+void test_push_is_received2(bool coalesce)
 {
-   request req1;
+   request req1{{false, coalesce}};
    req1.push("PING", "Message1");
 
-   request req2;
+   request req2{{false, coalesce}};
    req2.push("SUBSCRIBE", "channel");
 
-   request req3;
+   request req3{{false, coalesce}};
    req3.push("PING", "Message2");
    req3.push("QUIT");
 
    net::io_context ioc;
 
-   auto db = std::make_shared<connection>(ioc, cfg);
+   auto db = std::make_shared<connection>(ioc);
 
    auto handler =[](auto ec, auto...)
    {
@@ -207,18 +207,18 @@ net::awaitable<void> push_consumer3(std::shared_ptr<connection> db)
 }
 
 // Test many subscribe requests.
-void test_push_many_subscribes(connection::config const& cfg)
+void test_push_many_subscribes(bool coalesce)
 {
-   request req0;
+   request req0{{false, coalesce}};
    req0.push("HELLO", 3);
 
-   request req1;
+   request req1{{false, coalesce}};
    req1.push("PING", "Message1");
 
-   request req2;
+   request req2{{false, coalesce}};
    req2.push("SUBSCRIBE", "channel");
 
-   request req3;
+   request req3{{false, coalesce}};
    req3.push("QUIT");
 
    auto handler =[](auto ec, auto...)
@@ -227,7 +227,7 @@ void test_push_many_subscribes(connection::config const& cfg)
    };
 
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc, cfg);
+   auto db = std::make_shared<connection>(ioc);
    db->async_exec(req0, adapt(), handler);
    db->async_exec(req1, adapt(), handler);
    db->async_exec(req2, adapt(), handler);
@@ -255,24 +255,22 @@ void test_push_many_subscribes(connection::config const& cfg)
 
 BOOST_AUTO_TEST_CASE(test_push)
 {
-   connection::config cfg;
-
-   cfg.coalesce_requests = true;
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
-   test_push_is_received1(cfg);
-   test_push_is_received2(cfg);
-   test_push_many_subscribes(cfg);
+   test_push_is_received1(true);
+   test_push_is_received2(true);
+   test_push_many_subscribes(true);
 #endif
-   test_missing_push_reader1(cfg);
-   test_missing_push_reader3(cfg);
+   test_missing_push_reader1(true);
+   test_missing_push_reader2(false);
+   test_missing_push_reader3(true);
 
-   cfg.coalesce_requests = false;
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
-   test_push_is_received1(cfg);
-   test_push_is_received2(cfg);
-   test_push_many_subscribes(cfg);
+   test_push_is_received1(true);
+   test_push_is_received2(false);
+   test_push_many_subscribes(false);
 #endif
-   test_missing_push_reader2(cfg);
-   test_missing_push_reader3(cfg);
+   test_missing_push_reader1(true);
+   test_missing_push_reader2(false);
+   test_missing_push_reader3(false);
 }
 
