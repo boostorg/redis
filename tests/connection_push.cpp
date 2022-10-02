@@ -20,6 +20,7 @@ namespace net = boost::asio;
 using aedis::resp3::request;
 using aedis::adapt;
 using aedis::endpoint;
+using aedis::operation;
 using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
@@ -144,7 +145,7 @@ void test_push_is_received1(bool coalesce)
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, req, adapt(), {}, [db](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      db->cancel(connection::operation::receive_push);
+      db->cancel(operation::receive_push);
    });
 
    bool push_received = false;
@@ -186,7 +187,7 @@ void test_push_is_received2(bool coalesce)
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, {}, [db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      db->cancel(connection::operation::receive_push);
+      db->cancel(operation::receive_push);
    });
 
    bool push_received = false;
@@ -244,7 +245,7 @@ void test_push_many_subscribes(bool coalesce)
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, {}, [db](auto ec, auto...) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      db->cancel(connection::operation::receive_push);
+      db->cancel(operation::receive_push);
    });
 
    net::co_spawn(ioc.get_executor(), push_consumer3(db), net::detached);

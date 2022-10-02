@@ -14,7 +14,7 @@
 namespace aedis::resp3 {
 
 /** \brief RESP3 data types.
-    \ingroup any
+    \ingroup high-level-api
   
     The RESP3 specification can be found at https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md.
  */
@@ -56,13 +56,13 @@ enum class type
 };
 
 /** \brief Converts the data type to a string.
- *  \ingroup any
+ *  \ingroup high-level-api
  *  \param t RESP3 type.
  */
 auto to_string(type t) -> char const*;
 
 /** \brief Writes the type to the output stream.
- *  \ingroup any
+ *  \ingroup high-level-api
  *  \param os Output stream.
  *  \param t RESP3 type.
  */

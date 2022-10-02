@@ -22,7 +22,7 @@
 namespace aedis {
 
 /** @brief Tag used to ignore responses.
- *  @ingroup any
+ *  @ingroup high-level-api
  *
  *  For example
  *
@@ -188,7 +188,7 @@ auto make_adapter_wrapper(Adapter adapter)
 } // detail
 
 /** @brief Creates an adapter that ignores responses.
- *  @ingroup any
+ *  @ingroup high-level-api
  *
  *  This function can be used to create adapters that ignores
  *  responses.
@@ -202,7 +202,7 @@ inline auto adapt(std::size_t max_read_size = (std::numeric_limits<std::size_t>:
 }
 
 /** @brief Adapts a type to be used as a response.
- *  @ingroup any
+ *  @ingroup high-level-api
  *
  *  The type T can be any STL container, any integer type and
  *  \c std::string

@@ -10,8 +10,8 @@ cmake_minimum_required(VERSION 3.14)
 
 project(
     Aedis
-    VERSION 1.0.0
-    DESCRIPTION "An async redis client designed for performance and scalability"
+    VERSION 1.1.0
+    DESCRIPTION "A redis client designed for performance and scalability"
     HOMEPAGE_URL "https://mzimbres.github.io/aedis"
     LANGUAGES CXX
 )
@@ -63,11 +63,12 @@ add_executable(serialization examples/serialization.cpp)
 add_executable(subscriber examples/subscriber.cpp)
 add_executable(subscriber_sentinel examples/subscriber_sentinel.cpp)
 add_executable(test_low_level tests/low_level.cpp)
-add_executable(low_level_sync tests/low_level_sync.cpp)
+add_executable(low_level_sync examples/low_level_sync.cpp)
 add_executable(test_connection_other tests/connection_other.cpp)
 add_executable(test_connection_connect tests/connection_connect.cpp)
 add_executable(test_connection_push tests/connection_push.cpp)
 add_executable(test_connection_quit tests/connection_quit.cpp)
+add_executable(test_connection_quit_coalesce tests/connection_quit_coalesce.cpp)
 add_executable(test_connection_reconnect tests/connection_reconnect.cpp)
 add_executable(test_connection_tls tests/connection_tls.cpp)
 
@@ -77,7 +78,6 @@ target_compile_features(subscriber PUBLIC cxx_std_20)
 target_compile_features(subscriber_sentinel PUBLIC cxx_std_20)
 target_compile_features(test_connection_other PUBLIC cxx_std_20)
 target_compile_features(test_connection_push PUBLIC cxx_std_20)
-target_compile_features(test_connection_quit PUBLIC cxx_std_20)
 
 target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL)
 target_link_libraries(test_connection_tls OpenSSL::Crypto OpenSSL::SSL)
@@ -96,6 +96,7 @@ add_test(test_connection_other test_connection_other)
 add_test(test_connection_connect test_connection_connect)
 add_test(test_connection_push test_connection_push)
 add_test(test_connection_quit test_connection_quit)
+add_test(test_connection_quit_coalesce test_connection_quit_coalesce)
 add_test(test_connection_reconnect test_connection_reconnect)
 add_test(test_connection_tls test_connection_tls)
 

@@ -12,7 +12,7 @@
 namespace aedis {
 
 /** \brief Generic errors.
- *  \ingroup any
+ *  \ingroup high-level-api
  */
 enum class error
 {

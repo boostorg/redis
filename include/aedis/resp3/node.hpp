@@ -15,7 +15,7 @@
 namespace aedis::resp3 {
 
 /** \brief A node in the response tree.
- *  \ingroup any
+ *  \ingroup high-level-api
  *
  *  Redis responses are the pre-order view of the response tree (see
  *  https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR).

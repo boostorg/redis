@@ -11,12 +11,12 @@
 #include <memory>
 
 #include <boost/asio/io_context.hpp>
-#include <aedis/connection_base.hpp>
+#include <aedis/detail/connection_base.hpp>
 
 namespace aedis {
 
 /** @brief A connection to the Redis server.
- *  @ingroup any
+ *  @ingroup high-level-api
  *
  *  This class keeps a healthy connection to the Redis instance where
  *  commands can be sent at any time. For more details, please see the
@@ -31,7 +31,7 @@ namespace aedis {
  */
 template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection :
-   private connection_base<
+   private detail::connection_base<
       typename AsyncReadWriteStream::executor_type,
       connection<AsyncReadWriteStream>> {
 public:
@@ -40,12 +40,9 @@ public:
 
    /// Type of the next layer
    using next_layer_type = AsyncReadWriteStream;
-   using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;
+   using base_type = detail::connection_base<executor_type, connection<AsyncReadWriteStream>>;
 
-   /// List of operations that can be canceled.
-   using operation = typename base_type::operation;
-
-   /** @brief Connection configuration parameters.
+   /** \brief Connection configuration parameters.
     */
    struct timeouts {
       /// Timeout of the resolve operation.
@@ -268,7 +265,7 @@ public:
 private:
    using this_type = connection<next_layer_type>;
 
-   template <class, class> friend class connection_base;
+   template <class, class> friend class detail::connection_base;
    template <class, class> friend struct detail::exec_read_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::receive_push_op;

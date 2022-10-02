@@ -11,7 +11,8 @@
 
 namespace aedis {
 
-/** @brief A Redis endpoint.
+/** \brief A Redis endpoint.
+ *  \ingroup high-level-api
  */
 struct endpoint {
    /// Redis server address.

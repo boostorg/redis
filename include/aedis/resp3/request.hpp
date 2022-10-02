@@ -149,7 +149,7 @@ void add_separator(Request& to)
 } // detail
 
 /** @brief Creates Redis requests.
- *  @ingroup any
+ *  @ingroup high-level-api
  *  
  *  A request is composed of one or more Redis commands and is
  *  referred to in the redis documentation as a pipeline, see

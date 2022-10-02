@@ -11,6 +11,9 @@
 
 namespace aedis::resp3 {
 
+/** \brief Writes a request synchronously.
+ *  \ingroup low-level-api
+ */
 template<
    class SyncWriteStream,
    class Request
@@ -32,6 +35,9 @@ auto write(
    return boost::asio::write(stream, boost::asio::buffer(req.payload()), ec);
 }
 
+/** \brief Writes a request asynchronously.
+ *  \ingroup low-level-api
+ */
 template<
    class AsyncWriteStream,
    class Request,

@@ -12,9 +12,14 @@
 #include <aedis/connection.hpp>
 #include <aedis/resp3/request.hpp>
 
-/** @defgroup any Reference
+/** @defgroup high-level-api Reference
  *
- *  This page contains the documentation of all user facing code.
+ *  This page contains the documentation of the Aedis high-level API.
+ */
+
+/** @defgroup low-level-api Reference
+ *
+ *  This page contains the documentation of the Aedis low-level API.
  */
 
 #endif // AEDIS_HPP

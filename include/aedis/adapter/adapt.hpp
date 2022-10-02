@@ -14,9 +14,8 @@ namespace aedis::adapter {
 template <class T>
 using adapter_t = typename detail::adapter_t<T>;
 
-/** \internal
-    \brief Creates a dummy response adapter.
-    \ingroup any
+/** \brief Creates a dummy response adapter.
+    \ingroup low-level-api
   
     The adapter returned by this function ignores responses. It is
     useful to avoid wasting time with responses which are not needed.
@@ -41,9 +40,8 @@ inline
 auto adapt2() noexcept
    { return detail::response_traits<void>::adapt(); }
 
-/** \internal
- *  \brief Adapts user data to read operations.
- *  \ingroup any
+/** \brief Adapts user data to read operations.
+ *  \ingroup low-level-api
  *
  *  STL containers, \c std::tuple and built-in types are supported and
  *  can be used in conjunction with \c std::optional<T>.

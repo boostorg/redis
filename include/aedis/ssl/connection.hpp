@@ -11,7 +11,7 @@
 #include <memory>
 
 #include <boost/asio/io_context.hpp>
-#include <aedis/connection_base.hpp>
+#include <aedis/detail/connection_base.hpp>
 #include <aedis/ssl/detail/connection_ops.hpp>
 
 namespace aedis::ssl {
@@ -19,8 +19,8 @@ namespace aedis::ssl {
 template <class>
 class connection;
 
-/** @brief A SSL connection to the Redis server.
- *  @ingroup any
+/** \brief A SSL connection to the Redis server.
+ *  \ingroup high-level-api
  *
  *  This class keeps a healthy connection to the Redis instance where
  *  commands can be sent at any time. For more details, please see the
@@ -35,7 +35,7 @@ class connection;
  */
 template <class AsyncReadWriteStream>
 class connection<boost::asio::ssl::stream<AsyncReadWriteStream>> :
-   private connection_base<
+   private aedis::detail::connection_base<
       typename boost::asio::ssl::stream<AsyncReadWriteStream>::executor_type,
       connection<boost::asio::ssl::stream<AsyncReadWriteStream>>> {
 public:
@@ -44,12 +44,9 @@ public:
 
    /// Executor type.
    using executor_type = typename next_layer_type::executor_type;
-   using base_type = connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
+   using base_type = aedis::detail::connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
 
-   /// List of operations that can be canceled.
-   using operation = typename base_type::operation;
-
-   /** @brief Connection configuration parameters.
+   /** \brief Connection configuration parameters.
     */
    struct timeouts {
       /// Timeout of the resolve operation.
@@ -165,7 +162,7 @@ public:
 private:
    using this_type = connection<next_layer_type>;
 
-   template <class, class> friend class aedis::connection_base;
+   template <class, class> friend class aedis::detail::connection_base;
    template <class, class> friend struct aedis::detail::exec_op;
    template <class, class> friend struct detail::ssl_connect_with_timeout_op;
    template <class> friend struct aedis::detail::run_op;

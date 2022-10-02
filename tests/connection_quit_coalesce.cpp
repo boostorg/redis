@@ -23,29 +23,25 @@ using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 using operation = aedis::operation;
 
-// Test if quit causes async_run to exit.
-BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
+BOOST_AUTO_TEST_CASE(test_quit_coalesce)
 {
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
 
-   request req1{{false, false}};
+   request req1{{false, true}};
    req1.push("PING");
 
-   request req2{{false, false}};
+   request req2{{false, true}};
    req2.push("QUIT");
 
    db->async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
-   db->async_exec(req2, adapt(), [](auto ec, auto) {
+   db->async_exec(req2, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
    db->async_exec(req1, adapt(), [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
-   db->async_exec(req1, adapt(), [](auto ec, auto){
-         BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
+      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
    db->async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
@@ -53,31 +49,9 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 
    endpoint ep{"127.0.0.1", "6379"};
    db->async_run(ep, {}, [db](auto ec){
-      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
+      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
       db->cancel(operation::exec);
    });
 
    ioc.run();
-}
-
-void test_quit2(bool coalesce)
-{
-   request req{{false, coalesce}};
-   req.push("QUIT");
-
-   net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
-   endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(), {}, [](auto ec, auto) {
-      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-   });
-
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_quit)
-{
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-   test_quit2(true);
-   test_quit2(false);
 }

@@ -106,12 +106,12 @@ struct receive_push_op {
             conn->make_dynamic_buffer(adapter.get_max_read_size(0)),
             adapter, std::move(self));
          if (ec) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
 
             // Needed to cancel the channel, otherwise the read
             // operation will be blocked forever see
             // test_push_adapter.
-            conn->cancel(Conn::operation::receive_push);
+            conn->cancel(operation::receive_push);
             self.complete(ec, 0);
             return;
          }
@@ -159,7 +159,7 @@ struct exec_read_op {
                   conn->make_dynamic_buffer(),
                   "\r\n", std::move(self));
                if (ec) {
-                  conn->cancel(Conn::operation::run);
+                  conn->cancel(operation::run);
                   self.complete(ec, 0);
                   return;
                }
@@ -191,7 +191,7 @@ struct exec_read_op {
             ++index;
 
             if (ec) {
-               conn->cancel(Conn::operation::run);
+               conn->cancel(operation::run);
                self.complete(ec, 0);
                return;
             }
@@ -311,7 +311,7 @@ struct ping_op {
          yield
          conn->ping_timer_.async_wait(std::move(self));
          if (ec || !conn->is_open()) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
             self.complete(ec);
             return;
          }
@@ -321,7 +321,7 @@ struct ping_op {
          yield
          conn->async_exec(conn->req_, adapt(), std::move(self));
          if (ec) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
             self.complete({});
             return;
          }
@@ -344,7 +344,7 @@ struct check_idle_op {
          yield
          conn->check_idle_timer_.async_wait(std::move(self));
          if (ec) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
             self.complete({});
             return;
          }
@@ -357,7 +357,7 @@ struct check_idle_op {
 
          auto const now = std::chrono::steady_clock::now();
          if (conn->last_data_ +  (2 * ping_interval) < now) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
             self.complete(error::idle_timeout);
             return;
          }
@@ -421,7 +421,7 @@ struct run_op {
          yield
          conn->async_resolve_with_timeout(ts.resolve_timeout, std::move(self));
          if (ec) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
             self.complete(ec);
             return;
          }
@@ -429,7 +429,7 @@ struct run_op {
          yield
          conn->derived().async_connect(conn->endpoints_, ts, conn->ping_timer_, std::move(self));
          if (ec) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
             self.complete(ec);
             return;
          }
@@ -448,7 +448,7 @@ struct run_op {
          );
 
          if (ec) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
             self.complete(ec);
             return;
          }
@@ -456,7 +456,7 @@ struct run_op {
          conn->ep_.password.clear();
 
          if (!conn->expect_role(conn->ep_.role)) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
             self.complete(error::unexpected_server_role);
             return;
          }
@@ -507,7 +507,7 @@ struct writer_op {
             yield
             conn->writer_timer_.async_wait(std::move(self));
             if (ec != boost::asio::error::operation_aborted) {
-               conn->cancel(Conn::operation::run);
+               conn->cancel(operation::run);
                self.complete(ec);
                return;
             }
@@ -548,7 +548,7 @@ struct reader_op {
             conn->make_dynamic_buffer(),
             "\r\n", std::move(self));
          if (ec) {
-            conn->cancel(Conn::operation::run);
+            conn->cancel(operation::run);
             self.complete(ec);
             return;
          }
@@ -579,7 +579,7 @@ struct reader_op {
             yield
             async_send_receive(conn->push_channel_, std::move(self));
             if (ec) {
-               conn->cancel(Conn::operation::run);
+               conn->cancel(operation::run);
                self.complete(ec);
                return;
             }
@@ -592,7 +592,7 @@ struct reader_op {
             conn->read_timer_.async_wait(std::move(self));
             if (ec != boost::asio::error::operation_aborted ||
                 !conn->is_open()) {
-               conn->cancel(Conn::operation::run);
+               conn->cancel(operation::run);
                self.complete(ec);
                return;
             }

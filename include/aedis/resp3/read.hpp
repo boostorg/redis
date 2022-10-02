@@ -17,9 +17,8 @@
 
 namespace aedis::resp3 {
 
-/** \internal
- *  \brief Reads a complete response to a command sychronously.
- *  \ingroup any
+/** \brief Reads a complete response to a command sychronously.
+ *  \ingroup low-level-api
  *
  *  This function reads a complete response to a command or a
  *  server push synchronously. For example
@@ -40,7 +39,7 @@ namespace aedis::resp3 {
  *
  *  \param stream The stream from which to read e.g. a tcp socket.
  *  \param buf Dynamic buffer (version 2).
- *  \param adapter The response adapter, see more on \ref low-level-responses.
+ *  \param adapter The response adapter.
  *  \param ec If an error occurs, it will be assigned to this paramter.
  *  \returns The number of bytes that have been consumed from the dynamic buffer.
  *
@@ -93,9 +92,8 @@ read(
    return consumed;
 }
 
-/** \internal
- *  \brief Reads a complete response to a command sychronously.
- *  \ingroup any
+/** \brief Reads a complete response to a command sychronously.
+ *  \ingroup low-level-api
  *  
  *  Same as the error_code overload but throws on error.
  */
@@ -118,9 +116,8 @@ read(
    return n;
 }
 
-/** \internal
- *  \brief Reads a complete response to a Redis command asynchronously.
- *  \ingroup any
+/** \brief Reads a complete response to a Redis command asynchronously.
+ *  \ingroup low-level-api
  *
  *  This function reads a complete response to a command or a
  *  server push asynchronously. For example
@@ -142,7 +139,7 @@ read(
  *
  *  \param stream The stream from which to read e.g. a tcp socket.
  *  \param buffer Dynamic buffer (version 2).
- *  \param adapter The response adapter, see more on \ref low-level-responses.
+ *  \param adapter The response adapter.
  *  \param token The completion token.
  *
  *  The completion handler will receive as a parameter the total

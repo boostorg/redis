@@ -21,11 +21,12 @@
 #include <boost/asio/experimental/channel.hpp>
 
 #include <aedis/adapt.hpp>
+#include <aedis/operation.hpp>
 #include <aedis/endpoint.hpp>
 #include <aedis/resp3/request.hpp>
 #include <aedis/detail/connection_ops.hpp>
 
-namespace aedis {
+namespace aedis::detail {
 
 /** Base class for high level Redis asynchronous connections.
  *
@@ -41,20 +42,6 @@ class connection_base {
 public:
    using executor_type = Executor;
    using this_type = connection_base<Executor, Derived>;
-
-   /** @brief List of async operations exposed by this class.
-    *  
-    *  The operations listed below can be cancelled with the `cancel`
-    *  member function.
-    */
-   enum class operation {
-      /// Refers to `connection::async_exec` operations.
-      exec,
-      /// Refers to `connection::async_run` operations.
-      run,
-      /// Refers to `connection::async_receive_push` operations.
-      receive_push,
-   };
 
    explicit connection_base(executor_type ex)
    : resv_{ex}
