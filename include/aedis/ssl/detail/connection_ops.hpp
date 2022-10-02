@@ -72,10 +72,12 @@ auto async_handshake(
       >(handshake_op<Stream>{&stream, &timer}, token, stream, timer);
 }
 
-template <class Conn>
+template <class Conn, class Timer>
 struct ssl_connect_with_timeout_op {
    Conn* conn = nullptr;
+   boost::asio::ip::tcp::resolver::results_type const* endpoints = nullptr;
    typename Conn::timeouts ts;
+   Timer* timer = nullptr;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -85,21 +87,21 @@ struct ssl_connect_with_timeout_op {
    {
       reenter (coro)
       {
-         conn->ping_timer_.expires_after(ts.connect_timeout);
+         timer->expires_after(ts.connect_timeout);
 
          yield
          aedis::detail::async_connect(
-            conn->lowest_layer(), conn->ping_timer_, conn->endpoints_, std::move(self));
+            conn->lowest_layer(), *timer, *endpoints, std::move(self));
 
          if (ec) {
             self.complete(ec);
             return;
          }
 
-         conn->ping_timer_.expires_after(ts.handshake_timeout);
+         timer->expires_after(ts.handshake_timeout);
 
          yield
-         async_handshake(conn->next_layer(), conn->ping_timer_, std::move(self));
+         async_handshake(conn->next_layer(), *timer, std::move(self));
          self.complete(ec);
       }
    }

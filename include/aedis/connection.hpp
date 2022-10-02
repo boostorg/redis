@@ -31,7 +31,7 @@ namespace aedis {
  */
 template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection :
-   public connection_base<
+   private connection_base<
       typename AsyncReadWriteStream::executor_type,
       connection<AsyncReadWriteStream>> {
 public:
@@ -40,6 +40,10 @@ public:
 
    /// Type of the next layer
    using next_layer_type = AsyncReadWriteStream;
+   using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;
+
+   /// List of operations that can be canceled.
+   using operation = typename base_type::operation;
 
    /** @brief Connection configuration parameters.
     */
@@ -66,6 +70,9 @@ public:
    explicit connection(boost::asio::io_context& ioc)
    : connection(ioc.get_executor())
    { }
+
+   /// Returns the associated executor.
+   auto get_executor() {return stream_.get_executor();}
 
    /// Resets the underlying stream.
    void reset_stream()
@@ -174,28 +181,117 @@ public:
       return base_type::async_run(ep, req, adapter, ts, std::move(token));
    }
 
+   /** @brief Executes a command on the Redis server asynchronously.
+    *
+    *  This function will send a request to the Redis server and
+    *  complete when the response arrives. If the request contains
+    *  only commands that don't expect a response, the completion
+    *  occurs after it has been written to the underlying stream.
+    *  Multiple concurrent calls to this function will be
+    *  automatically queued by the implementation.
+    *
+    *  @param req Request object.
+    *  @param adapter Response adapter.
+    *  @param token Asio completion token.
+    *
+    *  For an example see echo_server.cpp. The completion token must
+    *  have the following signature
+    *
+    *  @code
+    *  void f(boost::system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the response in
+    *  bytes.
+    */
+   template <
+      class Adapter = detail::response_traits<void>::adapter_type,
+      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
+   auto async_exec(
+      resp3::request const& req,
+      Adapter adapter = adapt(),
+      CompletionToken token = CompletionToken{})
+   {
+      return base_type::async_exec(req, adapter, std::move(token));
+   }
+
+   /** @brief Receives server side pushes asynchronously.
+    *
+    *  Users that expect server pushes should call this function in a
+    *  loop. If a push arrives and there is no reader, the connection
+    *  will hang and eventually timeout.
+    *
+    *  @param adapter The response adapter.
+    *  @param token The Asio completion token.
+    *
+    *  For an example see subscriber.cpp. The completion token must
+    *  have the following signature
+    *
+    *  @code
+    *  void f(boost::system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the push in
+    *  bytes.
+    */
+   template <
+      class Adapter = detail::response_traits<void>::adapter_type,
+      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
+   auto async_receive_push(
+      Adapter adapter = adapt(),
+      CompletionToken token = CompletionToken{})
+   {
+      return base_type::async_receive_push(adapter, std::move(token));
+   }
+
+   /** @brief Cancel operations.
+    *
+    *  @li `operation::exec`: Cancels operations started with
+    *  `async_exec`. Has precedence over
+    *  `request::config::close_on_connection_lost`
+    *  @li operation::run: Cancels the `async_run` operation. Notice
+    *  that the preferred way to close a connection is to send a
+    *  [QUIT](https://redis.io/commands/quit/) command to the server.
+    *  An unresponsive Redis server will also cause the idle-checks to
+    *  timeout and lead to `connection::async_run` completing with
+    *  `error::idle_timeout`.  Calling `cancel(operation::run)`
+    *  directly should be seen as the last option.
+    *  @li operation::receive_push: Cancels any ongoing callto
+    *  `async_receive_push`.
+    *
+    *  @param op: The operation to be cancelled.
+    *  @returns The number of operations that have been canceled.
+    */
+   auto cancel(operation op) -> std::size_t
+      { return base_type::cancel(op); }
+
 private:
-   using base_type = connection_base<executor_type, connection<AsyncReadWriteStream>>;
    using this_type = connection<next_layer_type>;
 
    template <class, class> friend class connection_base;
    template <class, class> friend struct detail::exec_read_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::receive_push_op;
-   template <class> friend struct detail::ping_op;
    template <class> friend struct detail::check_idle_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
-   template <class> friend struct detail::connect_with_timeout_op;
+   template <class, class> friend struct detail::connect_with_timeout_op;
    template <class> friend struct detail::run_op;
+   template <class> friend struct aedis::detail::ping_op;
 
-   template <class CompletionToken>
-   auto async_connect(timeouts ts, CompletionToken&& token)
+   template <class Timer, class CompletionToken>
+   auto
+   async_connect(
+      boost::asio::ip::tcp::resolver::results_type const& endpoints,
+      timeouts ts,
+      Timer& timer,
+      CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::connect_with_timeout_op<this_type>{this, ts}, token, stream_);
+         >(detail::connect_with_timeout_op<this_type, Timer>{this, &endpoints, ts, &timer},
+               token, stream_);
    }
 
    void close() { stream_.close(); }

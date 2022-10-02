@@ -35,7 +35,7 @@ class connection;
  */
 template <class AsyncReadWriteStream>
 class connection<boost::asio::ssl::stream<AsyncReadWriteStream>> :
-   public connection_base<
+   private connection_base<
       typename boost::asio::ssl::stream<AsyncReadWriteStream>::executor_type,
       connection<boost::asio::ssl::stream<AsyncReadWriteStream>>> {
 public:
@@ -44,6 +44,10 @@ public:
 
    /// Executor type.
    using executor_type = typename next_layer_type::executor_type;
+   using base_type = connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
+
+   /// List of operations that can be canceled.
+   using operation = typename base_type::operation;
 
    /** @brief Connection configuration parameters.
     */
@@ -75,6 +79,9 @@ public:
    explicit connection(boost::asio::io_context& ioc, boost::asio::ssl::context& ctx)
    : connection(ioc.get_executor(), ctx)
    { }
+
+   /// Returns the associated executor.
+   auto get_executor() {return stream_.get_executor();}
 
    /// Reset the underlying stream.
    void reset_stream(boost::asio::ssl::context& ctx)
@@ -119,30 +126,71 @@ public:
       return base_type::async_run(ep, req, adapter, ts, std::move(token));
    }
 
+   /** @brief Executes a command on the Redis server asynchronously.
+    *
+    *  See aedis::connection::async_exec for detailed information.
+    */
+   template <
+      class Adapter = aedis::detail::response_traits<void>::adapter_type,
+      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
+   auto async_exec(
+      resp3::request const& req,
+      Adapter adapter = adapt(),
+      CompletionToken token = CompletionToken{})
+   {
+      return base_type::async_exec(req, adapter, std::move(token));
+   }
+
+   /** @brief Receives server side pushes asynchronously.
+    *
+    *  See aedis::connection::async_receive_push for detailed information.
+    */
+   template <
+      class Adapter = aedis::detail::response_traits<void>::adapter_type,
+      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
+   auto async_receive_push(
+      Adapter adapter = adapt(),
+      CompletionToken token = CompletionToken{})
+   {
+      return base_type::async_receive_push(adapter, std::move(token));
+   }
+
+   /** @brief Cancel operations.
+    *
+    *  See aedis::connection::cancel for detailed information.
+    */
+   auto cancel(operation op) -> std::size_t
+      { return base_type::cancel(op); }
+
 private:
-   using base_type = connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
    using this_type = connection<next_layer_type>;
 
    template <class, class> friend class aedis::connection_base;
    template <class, class> friend struct aedis::detail::exec_op;
-   template <class> friend struct detail::ssl_connect_with_timeout_op;
+   template <class, class> friend struct detail::ssl_connect_with_timeout_op;
    template <class> friend struct aedis::detail::run_op;
    template <class> friend struct aedis::detail::writer_op;
-   template <class> friend struct aedis::detail::ping_op;
    template <class> friend struct aedis::detail::check_idle_op;
    template <class> friend struct aedis::detail::reader_op;
+   template <class, class> friend struct aedis::detail::exec_read_op;
+   template <class> friend struct aedis::detail::ping_op;
 
    auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
    auto is_open() const noexcept { return stream_.next_layer().is_open(); }
    void close() { stream_.next_layer().close(); }
 
-   template <class CompletionToken>
-   auto async_connect(timeouts ts, CompletionToken&& token)
+   template <class Timer, class CompletionToken>
+   auto
+   async_connect(
+      boost::asio::ip::tcp::resolver::results_type const& endpoints,
+      timeouts ts,
+      Timer& timer,
+      CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::ssl_connect_with_timeout_op<this_type>{this, ts}, token, stream_);
+         >(detail::ssl_connect_with_timeout_op<this_type, Timer>{this, &endpoints, ts, &timer}, token, stream_);
    }
 
    next_layer_type stream_;

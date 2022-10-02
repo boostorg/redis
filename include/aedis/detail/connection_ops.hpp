@@ -30,10 +30,12 @@
 
 namespace aedis::detail {
 
-template <class Conn>
+template <class Conn, class Timer>
 struct connect_with_timeout_op {
    Conn* conn = nullptr;
+   boost::asio::ip::tcp::resolver::results_type const* endpoints = nullptr;
    typename Conn::timeouts ts;
+   Timer* timer = nullptr;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -43,10 +45,10 @@ struct connect_with_timeout_op {
    {
       reenter (coro)
       {
-         conn->ping_timer_.expires_after(ts.connect_timeout);
+         timer->expires_after(ts.connect_timeout);
          yield
          detail::async_connect(
-            conn->next_layer(), conn->ping_timer_, conn->endpoints_, std::move(self));
+            conn->next_layer(), *timer, *endpoints, std::move(self));
          self.complete(ec);
       }
    }
@@ -425,7 +427,7 @@ struct run_op {
          }
 
          yield
-         conn->derived().async_connect(ts, std::move(self));
+         conn->derived().async_connect(conn->endpoints_, ts, conn->ping_timer_, std::move(self));
          if (ec) {
             conn->cancel(Conn::operation::run);
             self.complete(ec);
