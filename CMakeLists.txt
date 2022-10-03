@@ -1,7 +1,7 @@
 # At the moment the official build system is still autotools and this
 # file is meant to support Aedis on windows.
 
-# BOOST_ROOT=/opt/boost_1_80_0/ cmake -DCMAKE_CXX_FLAGS="-g -O0
+# BOOST_ROOT=/opt/boost_1_79/ cmake -DCMAKE_CXX_FLAGS="-g -O0
 # -std=c++20 -Wall -Wextra --coverage -fkeep-inline-functions
 # -fkeep-static-functions" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
 # ~/my/aedis
@@ -42,7 +42,7 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 
-find_package(Boost 1.80 REQUIRED)
+find_package(Boost 1.79 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(OpenSSL REQUIRED)
@@ -58,7 +58,7 @@ add_executable(containers examples/containers.cpp)
 add_executable(echo_server examples/echo_server.cpp)
 add_executable(intro examples/intro.cpp)
 add_executable(intro_tls examples/intro_tls.cpp)
-add_executable(intro_sync examples/intro_sync.cpp)
+#add_executable(intro_sync examples/intro_sync.cpp)
 add_executable(serialization examples/serialization.cpp)
 add_executable(subscriber examples/subscriber.cpp)
 add_executable(subscriber_sentinel examples/subscriber_sentinel.cpp)
@@ -87,8 +87,8 @@ target_link_libraries(test_connection_tls OpenSSL::Crypto OpenSSL::SSL)
 
 add_test(containers containers)
 add_test(intro intro)
-add_test(intro_sync intro_sync)
-add_test(intro_tls intro_sync)
+add_test(intro_tls intro_tls)
+#add_test(intro_sync intro_sync)
 add_test(serialization serialization)
 add_test(low_level_sync low_level_sync)
 add_test(test_low_level test_low_level)

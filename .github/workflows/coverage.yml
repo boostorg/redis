@@ -30,7 +30,7 @@ jobs:
       uses: MarkusJx/install-boost@v2.3.0
       id: install-boost
       with:
-        boost_version: 1.80.0
+        boost_version: 1.79.0
         platform_version: 22.04
     - name: Run CMake
       run: |

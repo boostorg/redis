@@ -47,7 +47,7 @@ int main()
 
 Requests on the other hand can be sent at any time, regardless of whether before or
 after a connection was established. For example, the code below sends
-the `PING` and `QUIT` command, waits for the response and exits
+the `PING` and `QUIT` commands, waits for the response and exits
 
 ```cpp
 net::awaitable<void> ping(std::shared_ptr<connection> conn)
@@ -66,7 +66,8 @@ net::awaitable<void> ping(std::shared_ptr<connection> conn)
 }
 ```
 
-The structure of how to send commands is evident from the code above
+The general structure about how to send commands is evident from the
+code above
 
 * Create a `aedis::resp3::request` object and add commands.
 * Declare responses as elements of a `std::tuple`.
@@ -79,10 +80,10 @@ same connection object that is being used to execute commands, for
 example (see subscriber.cpp)
 
 ```cpp
-net::awaitable<void> receive_pushes(connection& db)
+net::awaitable<void> receive_pushes(std::shared_ptr<connection> conn)
 {
    for (std::vector<node<std::string>> resp;;) {
-      co_await db->async_receive_push(adapt(resp));
+      co_await conn->async_receive_push(adapt(resp));
       // Process the push in resp.
       resp.clear();
    }
@@ -94,32 +95,31 @@ consumed, otherwise the connection will eventually timeout.
 
 ### Reconnect
 
-The `aedis::connection` class also supports reconnection. In simple
-scenarios for example, where reconnecting to the same server is enough
-a loop like shown below is enough to provide this functionality
+The `aedis::connection` class also supports reconnection.  In the
+simplest scenario, after a connection lost users will want to
+reconnect to the same server, the loop below shows how to do it
 
 ```cpp
-net::awaitable<void> reconnect(std::shared_ptr<connection> db)
+net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
 {
    net::steady_timer timer{co_await net::this_coro::executor};
-   endpoint ep{"127.0.0.1", "6379"};
    for (;;) {
       boost::system::error_code ec;
-      co_await db->async_run(ep, req, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
-      db->reset_stream();
+      co_await conn->async_run({"127.0.0.1", "6379"}, {}, net::redirect_error(net::use_awaitable, ec));
+      conn->reset_stream();
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();
    }
 }
 ```
 more complex scenarios, like performing a failover with sentinel can
-be found in the examples. Calls to `connection::async_exec` won't
-automatically fail as a result of connection lost, rather, they will
-remain suspended until a new connection is established, after that
-all requests are sent automatically. This behaviour can be
-changed per request by setting on the
-`aedis::resp3::request::config::close_on_connection_lost` or by calling
-`connection::cancel()` with `connection::operation::exec`
+be found in the examples. To aid proper failover, calls to
+`connection::async_exec` won't automatically fail as a result of
+connection lost, rather, they will remain suspended until a new
+connection is established, once that happens all awaiting requests will be sent
+automatically. This behaviour can be changed per request by setting on
+the `aedis::resp3::request::config::close_on_connection_lost` or by
+calling `connection::cancel()` with `connection::operation::exec`
 which will cause all pending requests to be canceled.
 
 ### Timeouts
@@ -137,25 +137,33 @@ function performs the following operations on behalf of the user
 * Keeps writing requests as it becomes possible e.g. after last response has arrived.
 
 To control the timeout-behaviour of the operations above users must
-create a `aedis::connection::timeouts` and pass it to as argument to
-the `aedis::connection::async_run` member function (or use the
-suggested defaults).
+create a `aedis::connection::timeouts` object and pass it to as
+argument to the `aedis::connection::async_run` member function (or use
+the suggested defaults).
 
-Another important topic regarding timeouts is the cancellation of
+Another related topic is the cancellation of
 `aedis::connection::async_exec`.  With the introduction of awaitable
 operators in Asio it is very simple implement timeouts either on
-individual or on a group of operations.  Users, for example, may be
+individual or on a group of operations, for example, users may be
 tempted in writing code like
 
 ```cpp
 co_await (conn.async_exec(...) || timer.async_wait(...))
 ```
 
-the problem with this approach in Aedis is that to improve performance
-Redis encourages the use of pipelines, where many requests are sent in
-a single chunk to the server. In this scenario it is harder to cancel
-individual operations without causing all other (independent) requests
-in the same pipeline to fail too.
+The problem with this approach in Aedis is twofold
+
+* Aedis has a buil-in healthy check that sends `PING` commands and
+  checks whether responses are being received on time.  Since user
+  commands use the same queue as the built-in `PING`, they are also
+  subjected to the idle timeout, rendering cancellation like above
+  unnecessary.
+
+* To improve performance Redis encourages the use of pipelines, where
+  many requests are sent in a single chunk to the server. In this
+  scenario it is harder to cancel individual operations without
+  causing all other (independent) requests in the same pipeline to
+  fail too.
 
 ### Installation
 
@@ -210,7 +218,7 @@ to the next sections
 * echo_server.cpp: A simple TCP echo server.
 * chat_room.cpp: A simple chat room.
 
-<a name="requests"></a>
+<a name="api-reference"></a>
 
 ### API Reference
 
@@ -345,7 +353,7 @@ std::tuple<
 co_await db->async_exec(req, adapt(resp));
 ```
 
-The tag @c aedis::ignore can be used to ignore individual
+The tag `aedis::ignore` can be used to ignore individual
 elements in the responses. If the intention is to ignore the
 response to all commands in the request use @c adapt()
 
@@ -354,7 +362,7 @@ co_await db->async_exec(req, adapt());
 ```
 
 Responses that contain nested aggregates or heterogeneous data
-types will be given special treatment later in [the-general-case](#the-general-case).  As
+types will be given special treatment later in [The general case](#the-general-case).  As
 of this writing, not all RESP3 types are used by the Redis server,
 which means in practice users will be concerned with a reduced
 subset of the RESP3 specification.
@@ -503,23 +511,23 @@ to compare Aedis with the most popular clients and why we need
 Aedis. Notice however that this is ongoing work as comparing
 client objectively is difficult and time consuming.
 
-Before we start it is worth mentioning some of the things it does
-not support
-
-* RESP3. Without RESP3 is impossible to support some important Redis features like client side caching, among other things.
-* Coroutines.
-* Reading responses directly in user data structures avoiding temporaries.
-* Error handling with error-code and exception overloads.
-* Healthy checks.
-
-The remaining points will be addressed individually.
-
 ### Redis-plus-plus
 
 The most popular client at the moment of this writing ranked by
 github stars is
 
 * https://github.com/sewenew/redis-plus-plus
+
+Before we start it is worth mentioning some of the things it does
+not support
+
+* RESP3. Without RESP3 is impossible to support some important Redis features like client side caching, among other things.
+* Coroutines.
+* Reading responses directly in user data structures avoiding temporaries.
+* Proper error handling with support for error-code.
+* Healthy checks.
+
+The remaining points will be addressed individually.
 
 Let us first have a look at what sending a command a pipeline and a
 transaction look like
@@ -729,7 +737,7 @@ The code used in the benchmarks can be found at
   the hello command is equal to the expected server role specified in
   `aedis::endpoint`. To skip this check let the role variable empty.
 
-* Removes reconnect functionanlity from `aedis::connection`. It
+* Removes reconnect functionality from `aedis::connection`. It
   is possible in simple reconnection strategies but bloats the class
   in more complex scenarios, for example, with sentinel,
   authentication and TLS. This is trivial to implement in a separate
@@ -852,7 +860,7 @@ The code used in the benchmarks can be found at
 
 ## Acknowledgement
 
-Acknowldgement to people that helped shape Aedis in one way or
+Acknowledgement to people that helped shape Aedis in one way or
 another.
 
 * Richard Hodges ([madmongo1](https://github.com/madmongo1)): For very helpful support with Asio, the design of asynchronous programs, etc.
