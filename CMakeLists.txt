@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(
     Aedis
-    VERSION 1.1.0
+    VERSION 1.1.1
     DESCRIPTION "A redis client designed for performance and scalability"
     HOMEPAGE_URL "https://mzimbres.github.io/aedis"
     LANGUAGES CXX
@@ -138,7 +138,6 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 #=======================================================================
 
 set(DOXYGEN_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/doc")
-
 configure_file(doc/Doxyfile.in doc/Doxyfile @ONLY)
 
 add_custom_target(
