@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['receive_5fevent_107',['receive_event',['../classaedis_1_1sync.html#ab8c9697147ecc00967a18325310cf5bb',1,'aedis::sync::receive_event(boost::system::error_code &amp;ec)'],['../classaedis_1_1sync.html#ae233c3865a24416841f53e4ac045ad48',1,'aedis::sync::receive_event()']]],
-  ['receive_5fpush_108',['receive_push',['../classaedis_1_1sync.html#a603af3f1a6e7d57ec72b58a30e595bd3',1,'aedis::sync::receive_push(ResponseAdapter adapter, boost::system::error_code &amp;ec)'],['../classaedis_1_1sync.html#a2f6cd1ffcb308c314c404e12dcc1997f',1,'aedis::sync::receive_push(ResponseAdapter adapter=aedis::adapt())']]],
-  ['run_109',['run',['../classaedis_1_1sync.html#a57832a8e09892dbeed8a079c186a4e1d',1,'aedis::sync::run(boost::system::error_code &amp;ec)'],['../classaedis_1_1sync.html#a08d7c05e47ea62dd7f6396a3b136cce1',1,'aedis::sync::run()']]]
+  ['read_0',['read',['../group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb',1,'aedis::resp3::read(SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter, boost::system::error_code &amp;ec) -&gt; std::size_t'],['../group__low-level-api.html#gab94ca8205fe516f47e48e148a6216026',1,'aedis::resp3::read(SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter=ResponseAdapter{})']]],
+  ['request_1',['request',['../classaedis_1_1resp3_1_1request.html#a01b5fa6b7fb4a1dbf857670b65f3ea48',1,'aedis::resp3::request']]],
+  ['reserve_2',['reserve',['../classaedis_1_1resp3_1_1request.html#a97e05ff085646e18e15092bbd560b8e7',1,'aedis::resp3::request']]],
+  ['reset_5fstream_3',['reset_stream',['../classaedis_1_1connection.html#ad9c0c7c2afb8ce64b9a28d42cd26107d',1,'aedis::connection::reset_stream()'],['../classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a981dfb0dafb1bfdf1f7fe5834b04c87a',1,'aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::reset_stream()']]]
 ];

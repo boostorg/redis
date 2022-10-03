@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['exec_99',['exec',['../classaedis_1_1sync.html#a8cdf8cd487ff9ff7832e65badf02e45f',1,'aedis::sync::exec(resp3::request const &amp;req, ResponseAdapter adapter, boost::system::error_code &amp;ec)'],['../classaedis_1_1sync.html#a3dbd44de6181c2159fe12b5035c92e2f',1,'aedis::sync::exec(resp3::request const &amp;req, ResponseAdapter adapter=aedis::adapt())']]]
+  ['get_5fexecutor_0',['get_executor',['../classaedis_1_1connection.html#af6a215c0d8a24d1e3466aed1a8801e91',1,'aedis::connection::get_executor()'],['../classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a99fc6d00fc97389df6ea5eee93e853c6',1,'aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::get_executor()']]]
 ];

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['sync_90',['sync',['../classaedis_1_1sync.html',1,'aedis']]]
+  ['request_0',['request',['../classaedis_1_1resp3_1_1request.html',1,'aedis::resp3']]]
 ];

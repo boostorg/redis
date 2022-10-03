@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['node_88',['node',['../structaedis_1_1resp3_1_1node.html',1,'aedis::resp3']]]
+  ['endpoint_0',['endpoint',['../group__high-level-api.html#structaedis_1_1endpoint',1,'aedis']]]
 ];

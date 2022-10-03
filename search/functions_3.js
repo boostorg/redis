@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['get_5fconfig_100',['get_config',['../classaedis_1_1connection.html#a2cfdddddf08797130b63e4091f348404',1,'aedis::connection::get_config() noexcept'],['../classaedis_1_1connection.html#acd8b240e368e9e4ed9b586a0e57ed0dd',1,'aedis::connection::get_config() const noexcept']]],
-  ['get_5fexecutor_101',['get_executor',['../classaedis_1_1connection.html#af6a215c0d8a24d1e3466aed1a8801e91',1,'aedis::connection']]]
+  ['next_5flayer_0',['next_layer',['../classaedis_1_1connection.html#a57abd52f84a33393488ffae91155670e',1,'aedis::connection::next_layer() noexcept -&gt; auto &amp;'],['../classaedis_1_1connection.html#afb3dbd74a64a1da38e9ddae752d62e32',1,'aedis::connection::next_layer() const noexcept -&gt; auto const &amp;'],['../classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a0974468c76c64c933fe54899026193e7',1,'aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::next_layer() noexcept'],['../classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a9e7643e45b155ad305d6d5b912d7d376',1,'aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::next_layer() const noexcept']]]
 ];

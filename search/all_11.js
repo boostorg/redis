@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['write_82',['write',['../classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9aefb2a684e4afb7d55e6147fbe5a332ee',1,'aedis::connection']]]
+  ['write_0',['write',['../group__low-level-api.html#gacbd6128072528430cb2e95782410258c',1,'aedis::resp3']]]
 ];
