@@ -137,8 +137,6 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 # Doxygen
 #=======================================================================
 
-set(DOXYGEN_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/doc")
-
 configure_file(doc/Doxyfile.in doc/Doxyfile @ONLY)
 
 add_custom_target(
