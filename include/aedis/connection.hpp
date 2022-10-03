@@ -273,8 +273,8 @@ private:
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
    template <class, class> friend struct detail::connect_with_timeout_op;
-   template <class> friend struct detail::run_op;
-   template <class> friend struct aedis::detail::ping_op;
+   template <class, class> friend struct detail::run_op;
+   template <class> friend struct detail::ping_op;
 
    template <class Timer, class CompletionToken>
    auto

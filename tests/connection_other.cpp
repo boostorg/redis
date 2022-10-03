@@ -8,7 +8,6 @@
 #include <boost/asio.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
 
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
@@ -17,7 +16,6 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
-using namespace net::experimental::awaitable_operators;
 
 using aedis::resp3::request;
 using aedis::adapt;
@@ -27,6 +25,8 @@ using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
+#include <boost/asio/experimental/awaitable_operators.hpp>
+using namespace net::experimental::awaitable_operators;
 
 net::awaitable<void> send_after(std::shared_ptr<connection> db, std::chrono::milliseconds ms)
 {

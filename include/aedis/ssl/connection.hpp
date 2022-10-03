@@ -165,7 +165,7 @@ private:
    template <class, class> friend class aedis::detail::connection_base;
    template <class, class> friend struct aedis::detail::exec_op;
    template <class, class> friend struct detail::ssl_connect_with_timeout_op;
-   template <class> friend struct aedis::detail::run_op;
+   template <class, class> friend struct aedis::detail::run_op;
    template <class> friend struct aedis::detail::writer_op;
    template <class> friend struct aedis::detail::check_idle_op;
    template <class> friend struct aedis::detail::reader_op;
