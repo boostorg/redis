@@ -35,17 +35,17 @@ using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 // to monitor the message traffic.
 
 // Receives messages from other users.
-net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
+net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
 {
    for (std::vector<node<std::string>> resp;;) {
-      co_await db->async_receive_push(adapt(resp));
+      co_await conn->async_receive_push(adapt(resp));
       print_push(resp);
       resp.clear();
    }
 }
 
 // Subscribes to the channels when a new connection is stablished.
-net::awaitable<void> reconnect(std::shared_ptr<connection> db)
+net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
 {
    request req;
    req.push("SUBSCRIBE", "chat-channel");
@@ -54,8 +54,8 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
    endpoint ep{"127.0.0.1", "6379"};
    for (;;) {
       boost::system::error_code ec;
-      co_await db->async_run(ep, req, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
-      db->reset_stream();
+      co_await conn->async_run(ep, req, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
+      conn->reset_stream();
       std::cout << ec.message() << std::endl;
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();
@@ -63,13 +63,13 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
 }
 
 // Publishes messages to other users.
-net::awaitable<void> publisher(stream_descriptor& in, std::shared_ptr<connection> db)
+net::awaitable<void> publisher(stream_descriptor& in, std::shared_ptr<connection> conn)
 {
    for (std::string msg;;) {
       auto n = co_await net::async_read_until(in, net::dynamic_buffer(msg, 1024), "\n");
       request req;
       req.push("PUBLISH", "chat-channel", msg);
-      co_await db->async_exec(req);
+      co_await conn->async_exec(req);
       msg.erase(0, n);
    }
 }
@@ -80,10 +80,10 @@ auto main() -> int
       net::io_context ioc{1};
       stream_descriptor in{ioc, ::dup(STDIN_FILENO)};
 
-      auto db = std::make_shared<connection>(ioc);
-      co_spawn(ioc, publisher(in, db), net::detached);
-      co_spawn(ioc, push_receiver(db), net::detached);
-      co_spawn(ioc, reconnect(db), net::detached);
+      auto conn = std::make_shared<connection>(ioc);
+      co_spawn(ioc, publisher(in, conn), net::detached);
+      co_spawn(ioc, push_receiver(conn), net::detached);
+      co_spawn(ioc, reconnect(conn), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

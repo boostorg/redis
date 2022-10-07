@@ -28,7 +28,7 @@ using net::experimental::as_tuple;
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;
 
-net::awaitable<void> send_after(std::shared_ptr<connection> db, std::chrono::milliseconds ms)
+auto exec_after(std::shared_ptr<connection> conn, std::chrono::milliseconds ms) -> net::awaitable<void>
 {
    net::steady_timer st{co_await net::this_coro::executor};
    st.expires_after(ms);
@@ -37,9 +37,58 @@ net::awaitable<void> send_after(std::shared_ptr<connection> db, std::chrono::mil
    request req;
    req.push("CLIENT", "PAUSE", ms.count());
 
-   auto [ec, n] = co_await db->async_exec(req, adapt(), as_tuple(net::use_awaitable));
+   auto [ec, n] = co_await conn->async_exec(req, adapt(), as_tuple(net::use_awaitable));
    BOOST_TEST(!ec);
 }
+
+auto async_test_idle(std::chrono::milliseconds ms) -> net::awaitable<void>
+{
+   connection::timeouts tms;
+   tms.resolve_timeout = std::chrono::seconds{1};
+   tms.connect_timeout = std::chrono::seconds{1};
+   tms.ping_interval = std::chrono::seconds{1};
+
+   auto ex = co_await net::this_coro::executor;
+   auto conn = std::make_shared<connection>(ex);
+
+   endpoint ep{"127.0.0.1", "6379"};
+
+   boost::system::error_code ec;
+
+   co_await (
+      conn->async_run(ep, tms, net::redirect_error(net::use_awaitable, ec)) &&
+      net::co_spawn(ex, exec_after(conn, ms), net::use_awaitable)
+   );
+
+   BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
+}
+
+auto async_run_exec(std::chrono::milliseconds ms) -> net::awaitable<void>
+{
+   auto ex = co_await net::this_coro::executor;
+   auto conn = std::make_shared<connection>(ex);
+
+   connection::timeouts ts;
+   ts.ping_interval = 2 * ms;
+   ts.resolve_timeout = 2 * ms;
+   ts.connect_timeout = 2 * ms;
+   ts.ping_interval = 2 * ms;
+   ts.resp3_handshake_timeout = 2 * ms;
+
+   request req;
+   req.push("QUIT");
+
+   endpoint ep{"127.0.0.1", "6379"};
+   boost::system::error_code ec1, ec2;
+   co_await (
+      conn->async_run(ep, ts, net::redirect_error(net::use_awaitable, ec1)) &&
+      conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
+   );
+
+   BOOST_TEST(!ec2);
+   BOOST_CHECK_EQUAL(ec1, net::error::misc_errors::eof);
+}
+
 
 BOOST_AUTO_TEST_CASE(test_idle)
 {
@@ -47,48 +96,17 @@ BOOST_AUTO_TEST_CASE(test_idle)
    std::chrono::milliseconds ms{5000};
 
    {
-      std::cout << "test_idle" << std::endl;
-      connection::timeouts cfg;
-      cfg.resolve_timeout = std::chrono::seconds{1};
-      cfg.connect_timeout = std::chrono::seconds{1};
-      cfg.ping_interval = std::chrono::seconds{1};
-
       net::io_context ioc;
-      auto db = std::make_shared<connection>(ioc);
-
-      net::co_spawn(ioc.get_executor(), send_after(db, ms), net::detached);
-
-      endpoint ep{"127.0.0.1", "6379"};
-      db->async_run(ep, cfg, [](auto ec){
-         BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
-      });
-
+      net::co_spawn(ioc.get_executor(), async_test_idle(ms), net::detached);
       ioc.run();
    }
 
-   //----------------------------------------------------------------
-   // Since we have paused the server above, we have to wait until the
-   // server is responsive again, so as not to cause other tests to
-   // fail.
-
    {
+      // Since we have paused the server above, we have to wait until the
+      // server is responsive again, so as not to cause other tests to
+      // fail.
       net::io_context ioc;
-      auto db = std::make_shared<connection>(ioc);
-      connection::timeouts cfg;
-      cfg.ping_interval = 2 * ms;
-      cfg.resolve_timeout = 2 * ms;
-      cfg.connect_timeout = 2 * ms;
-      cfg.ping_interval = 2 * ms;
-      cfg.resp3_handshake_timeout = 2 * ms;
-
-      request req;
-      req.push("QUIT");
-
-      endpoint ep{"127.0.0.1", "6379"};
-      db->async_run(ep, req, adapt(), cfg, [](auto ec, auto){
-         BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      });
-
+      net::co_spawn(ioc.get_executor(), async_run_exec(ms), net::detached);
       ioc.run();
    }
 }
@@ -128,9 +146,11 @@ BOOST_AUTO_TEST_CASE(test_wrong_data_type)
    std::tuple<int> resp;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
-   endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(resp), {}, [](auto ec, auto){
+   db->async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
+   });
+   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
    ioc.run();
@@ -139,7 +159,8 @@ BOOST_AUTO_TEST_CASE(test_wrong_data_type)
 BOOST_AUTO_TEST_CASE(test_not_connected)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-   request req{{true}};
+   request req;
+   req.get_config().fail_if_not_connected = true;
    req.push("PING");
 
    net::io_context ioc;

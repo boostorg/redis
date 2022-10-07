@@ -19,21 +19,22 @@ using aedis::resp3::request;
 using aedis::endpoint;
 using connection = aedis::connection<>;
 
+auto logger = [](auto ec, auto...)
+   { std::cout << ec.message() << std::endl; };
+
 auto main() -> int
 {
    try {
       net::io_context ioc;
-      connection db{ioc};
+      connection conn{ioc};
 
       request req;
       req.push("PING");
       req.push("QUIT");
 
       std::tuple<std::string, aedis::ignore> resp;
-      db.async_run({"127.0.0.1", "6379"}, req, adapt(resp), {}, [](auto ec, auto) {
-         std::cout << ec.message() << std::endl;
-      });
-
+      conn.async_exec(req, adapt(resp), logger);
+      conn.async_run({"127.0.0.1", "6379"}, {}, logger);
       ioc.run();
 
       std::cout << std::get<0>(resp) << std::endl;

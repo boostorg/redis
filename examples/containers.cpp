@@ -19,6 +19,9 @@ using aedis::resp3::request;
 using aedis::endpoint;
 using connection = aedis::connection<>;
 
+auto logger = [](auto ec, auto...)
+   { std::cout << ec.message() << std::endl; };
+
 auto main() -> int
 {
    try {
@@ -48,11 +51,9 @@ auto main() -> int
       > resp;
 
       net::io_context ioc;
-      connection db{ioc};
-      endpoint ep{"127.0.0.1", "6379"};
-      db.async_run(ep, req, adapt(resp), {}, [](auto ec, auto) {
-         std::cout << ec.message() << std::endl;
-      });
+      connection conn{ioc};
+      conn.async_exec(req, adapt(resp), logger);
+      conn.async_run({"127.0.0.1", "6379"}, {}, logger);
       ioc.run();
 
       print(std::get<0>(std::get<5>(resp)).value());

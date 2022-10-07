@@ -24,7 +24,7 @@ with only three library entities
 * `aedis::adapt()`: Adapts user data structures like STL containers to
   receive Redis responses.
 
-Let us see how this works in more detail.
+Let us see how it works in more detail.
 
 ### Connection
 
@@ -702,7 +702,15 @@ The code used in the benchmarks can be found at
 
 ## Changelog
 
-### v1.1.0
+### master
+
+* Renames `fail_on_connection_lost` to
+  `aedis::resp3::request::fail_on_connection_lost` and change its
+  behaviour: Setting it to true won't cause the request to be fail if
+  `async_exec` is called when there is no ongoing connection, which is
+  not the role of `aedis::resp3::request::fail_on_connection_lost`. 
+
+### v1.1.0/1
 
 * Removes `coalesce_requests` from the `aedis::connection::config`, it
   became a request property now, see `aedis::resp3::request::config::coalesce`.

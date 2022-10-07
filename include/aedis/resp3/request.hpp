@@ -181,7 +181,7 @@ public:
        * called while there is no connection with Redis. The default
        * behaviour is not to close requests.
        */
-      bool close_on_connection_lost = false;
+      bool fail_on_connection_lost = false;
 
       /** @brief Coalesce this with other requests.
        *
@@ -190,13 +190,19 @@ public:
        *  request will be sent individually.
        */
       bool coalesce = true;
+
+      /** @brief If set to true, requests started with
+       * `connection::async_exe` will fail if the called happens
+       *  before the connection with Redis is stablished.
+       */
+      bool fail_if_not_connected = false;
    };
 
    /** @brief Constructor
     *  
     *  @param cfg Configuration options.
     */
-   explicit request(config cfg = config{false, true})
+   explicit request(config cfg = config{false, true, false})
    : cfg_{cfg}
    {}
 
@@ -360,7 +366,11 @@ public:
    void reserve(std::size_t new_cap = 0)
       { payload_.reserve(new_cap); }
 
+   /// Returns a const reference to the config object.
    auto get_config() const noexcept -> auto const& {return cfg_; }
+
+   /// Returns a reference to the config object.
+   auto get_config() noexcept -> auto& {return cfg_; }
 
 private:
    std::string payload_;

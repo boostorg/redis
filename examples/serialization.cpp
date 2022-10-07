@@ -83,10 +83,13 @@ bool operator<(user const& a, user const& b)
    return std::tie(a.name, a.age, a.country) < std::tie(b.name, b.age, b.country);
 }
 
+auto logger = [](auto ec, auto...)
+   { std::cout << ec.message() << std::endl; };
+
 int main()
 {
    net::io_context ioc;
-   connection db{ioc};
+   connection conn{ioc};
 
    std::set<user> users
       {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
@@ -100,10 +103,8 @@ int main()
    std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
 
    endpoint ep{"127.0.0.1", "6379"};
-   db.async_run(ep, req, adapt(resp), {}, [](auto ec, auto) {
-      std::cout << ec.message() << std::endl;
-   });
-
+   conn.async_exec(req, adapt(resp),logger);
+   conn.async_run(ep, {}, logger);
    ioc.run();
 
    // Print

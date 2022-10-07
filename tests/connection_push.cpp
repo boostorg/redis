@@ -34,8 +34,11 @@ void test_missing_push_reader1(bool coalesce)
    request req{{false, coalesce}};
    req.push("SUBSCRIBE", "channel");
 
-   endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(), {}, [](auto ec, auto){
+   db->async_exec(req, adapt(), [](auto ec, auto){
+      BOOST_TEST(!ec);
+   });
+
+   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 

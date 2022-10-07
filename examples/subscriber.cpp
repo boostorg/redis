@@ -10,6 +10,7 @@
 #include <tuple>
 
 #include <boost/asio.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <aedis.hpp>
 #include "print.hpp"
@@ -18,6 +19,7 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::resp3::node;
@@ -43,10 +45,10 @@ using connection = aedis::connection<tcp_socket>;
  */
 
 // Receives pushes.
-net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
+net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
 {
    for (std::vector<node<std::string>> resp;;) {
-      co_await db->async_receive_push(adapt(resp));
+      co_await conn->async_receive_push(adapt(resp));
       print_push(resp);
       resp.clear();
    }
@@ -55,18 +57,24 @@ net::awaitable<void> push_receiver(std::shared_ptr<connection> db)
 // See
 // - https://redis.io/docs/manual/sentinel.
 // - https://redis.io/docs/reference/sentinel-clients.
-net::awaitable<void> reconnect(std::shared_ptr<connection> db)
+net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
 {
    request req;
+   req.get_config().fail_if_not_connected = false;
+   req.get_config().fail_on_connection_lost = true;
    req.push("SUBSCRIBE", "channel");
 
    stimer timer{co_await net::this_coro::executor};
    endpoint ep{"127.0.0.1", "6379"};
    for (;;) {
-      boost::system::error_code ec;
-      co_await db->async_run(ep, req, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
-      db->reset_stream();
-      std::cout << ec.message() << std::endl;
+      boost::system::error_code ec1, ec2;
+      co_await (
+         conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
+      );
+      conn->reset_stream();
+      std::clog << "reconnect (async_run): " << ec1.message() << std::endl;
+      std::clog << "reconnect (async_exec): " << ec2.message() << std::endl;
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();
    }
@@ -76,10 +84,10 @@ int main()
 {
    try {
       net::io_context ioc;
-      auto db = std::make_shared<connection>(ioc);
+      auto conn = std::make_shared<connection>(ioc);
 
-      net::co_spawn(ioc, push_receiver(db), net::detached);
-      net::co_spawn(ioc, reconnect(db), net::detached);
+      net::co_spawn(ioc, push_receiver(conn), net::detached);
+      net::co_spawn(ioc, reconnect(conn), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

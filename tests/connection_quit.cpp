@@ -23,6 +23,9 @@ using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 using operation = aedis::operation;
 
+// TODO: Add quit-cancel tests where we don't send a quit command but
+// call async_run && timer.async_wait() and awaitable operators.
+
 // Test if quit causes async_run to exit.
 BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 {
