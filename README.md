@@ -45,9 +45,10 @@ int main()
 }
 ```
 
-Requests on the other hand can be sent at any time, regardless of whether before or
-after a connection was established. For example, the code below sends
-the `PING` and `QUIT` commands, waits for the response and exits
+Requests on the other hand can be sent at any time, regardless of
+whether before or after a connection was established. For example, the
+code below sends the `PING` and `QUIT` commands, waits for the
+response and exits
 
 ```cpp
 net::awaitable<void> ping(std::shared_ptr<connection> conn)

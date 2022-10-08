@@ -97,6 +97,6 @@ BOOST_AUTO_TEST_CASE(test_reconnect_timeout)
    net::co_spawn(ioc, async_test_reconnect_timeout(), net::detached);
    ioc.run();
 }
-#elif
+#else
 int main(){}
 #endif

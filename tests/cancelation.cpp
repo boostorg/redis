@@ -1,0 +1,56 @@
+/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+ *
+ * Distributed under the Boost Software License, Version 1.0. (See
+ * accompanying file LICENSE.txt)
+ */
+
+#include <iostream>
+#include <boost/asio.hpp>
+#include <boost/system/errc.hpp>
+#include <boost/asio/experimental/as_tuple.hpp>
+
+#define BOOST_TEST_MODULE low level
+#include <boost/test/included/unit_test.hpp>
+
+#include <aedis.hpp>
+#include <aedis/src.hpp>
+
+namespace net = boost::asio;
+
+using aedis::resp3::request;
+using aedis::adapt;
+using connection = aedis::connection<>;
+using endpoint = aedis::endpoint;
+using error_code = boost::system::error_code;
+using net::experimental::as_tuple;
+
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
+#include <boost/asio/experimental/awaitable_operators.hpp>
+using namespace net::experimental::awaitable_operators;
+
+auto async_test_cancel_run() -> net::awaitable<void>
+{
+   auto ex = co_await net::this_coro::executor;
+   auto conn = std::make_shared<connection>(ex);
+   net::steady_timer st{ex};
+   st.expires_after(std::chrono::seconds{1});
+
+   endpoint ep{"127.0.0.1", "6379"};
+   boost::system::error_code ec1, ec2;
+   co_await (
+      conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) ||
+      st.async_wait(net::redirect_error(net::use_awaitable, ec2))
+   );
+
+   BOOST_CHECK_EQUAL(ec1, boost::asio::error::basic_errors::operation_aborted);
+   BOOST_TEST(!ec2);
+}
+
+BOOST_AUTO_TEST_CASE(test_cancel_run)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   net::io_context ioc;
+   net::co_spawn(ioc.get_executor(), async_test_cancel_run(), net::detached);
+   ioc.run();
+}
+#endif

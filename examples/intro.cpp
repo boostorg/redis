@@ -35,6 +35,7 @@ auto main() -> int
       std::tuple<std::string, aedis::ignore> resp;
       conn.async_exec(req, adapt(resp), logger);
       conn.async_run({"127.0.0.1", "6379"}, {}, logger);
+
       ioc.run();
 
       std::cout << std::get<0>(resp) << std::endl;
