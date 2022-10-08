@@ -11,6 +11,7 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
 #include "print.hpp"
 
@@ -18,6 +19,7 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::resp3::node;
@@ -31,10 +33,10 @@ using connection = aedis::connection<tcp_socket>;
 // https://redis.io/docs/reference/sentinel-clients.  This example
 // assumes a sentinel and a redis server running on localhost.
 
-net::awaitable<void> receive_pushes(std::shared_ptr<connection> db)
+net::awaitable<void> receive_pushes(std::shared_ptr<connection> conn)
 {
    for (std::vector<node<std::string>> resp;;) {
-      co_await db->async_receive_push(adapt(resp));
+      co_await conn->async_receive_push(adapt(resp));
       print_push(resp);
       resp.clear();
    }
@@ -50,19 +52,26 @@ net::awaitable<endpoint> resolve()
    , {"127.0.0.1", "26379"}
    };
 
-   request req1;
-   req1.push("SENTINEL", "get-master-addr-by-name", "mymaster");
-   req1.push("QUIT");
+   request req;
+   req.get_config().fail_if_not_connected = false;
+   req.get_config().fail_on_connection_lost = true;
+   req.push("SENTINEL", "get-master-addr-by-name", "mymaster");
+   req.push("QUIT");
 
-   auto ex = co_await net::this_coro::executor;
-   connection conn{ex};
+   connection conn{co_await net::this_coro::executor};
 
    std::tuple<std::optional<std::array<std::string, 2>>, aedis::ignore> addr;
    for (auto ep : endpoints) {
-      boost::system::error_code ec;
-      co_await conn.async_run(ep, req1, adapt(addr), {}, net::redirect_error(net::use_awaitable, ec));
+      boost::system::error_code ec1, ec2;
+      co_await (
+         conn.async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn.async_exec(req, adapt(addr), net::redirect_error(net::use_awaitable, ec2))
+      );
+
+      std::clog << "async_run: " << ec1.message() << "\n"
+                << "async_exec: " << ec2.message() << std::endl;
+
       conn.reset_stream();
-      std::cout << ec.message() << std::endl;
       if (std::get<0>(addr))
          break;
    }
@@ -76,10 +85,12 @@ net::awaitable<endpoint> resolve()
    co_return ep;
 }
 
-net::awaitable<void> reconnect(std::shared_ptr<connection> db)
+net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
 {
-   request req2;
-   req2.push("SUBSCRIBE", "channel");
+   request req;
+   req.get_config().fail_if_not_connected = false;
+   req.get_config().fail_on_connection_lost = true;
+   req.push("SUBSCRIBE", "channel");
 
    auto ex = co_await net::this_coro::executor;
    stimer timer{ex};
@@ -90,10 +101,16 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
          co_return;
       }
 
-      boost::system::error_code ec;
-      co_await db->async_run(ep, req2, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
-      std::cout << ec.message() << std::endl;
-      std::cout << "Starting the failover." << std::endl;
+      boost::system::error_code ec1, ec2;
+      co_await (
+         conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
+      );
+
+      std::clog << "async_run: " << ec1.message() << "\n"
+                << "async_exec: " << ec2.message() << "\n"
+                << "Starting the failover." << std::endl;
+
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();
    }
@@ -103,9 +120,9 @@ int main()
 {
    try {
       net::io_context ioc;
-      auto db = std::make_shared<connection>(ioc);
-      net::co_spawn(ioc, receive_pushes(db), net::detached);
-      net::co_spawn(ioc, reconnect(db), net::detached);
+      auto conn = std::make_shared<connection>(ioc);
+      net::co_spawn(ioc, receive_pushes(conn), net::detached);
+      net::co_spawn(ioc, reconnect(conn), net::detached);
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });
       ioc.run();

@@ -181,7 +181,7 @@ public:
        * called while there is no connection with Redis. The default
        * behaviour is not to close requests.
        */
-      bool fail_on_connection_lost = false;
+      bool fail_on_connection_lost = false; // TODO: Change the default to true.
 
       /** @brief Coalesce this with other requests.
        *
@@ -202,7 +202,7 @@ public:
     *  
     *  @param cfg Configuration options.
     */
-   explicit request(config cfg = config{false, true, false})
+   explicit request(config cfg = config{false, true, false}) // TODO: Here too.
    : cfg_{cfg}
    {}
 

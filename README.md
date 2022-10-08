@@ -710,6 +710,9 @@ The code used in the benchmarks can be found at
   `async_exec` is called when there is no ongoing connection, which is
   not the role of `aedis::resp3::request::fail_on_connection_lost`. 
 
+* Removes the `aedis::connection::async_run` overload that takes
+  request and adapter as parameters.
+
 ### v1.1.0/1
 
 * Removes `coalesce_requests` from the `aedis::connection::config`, it

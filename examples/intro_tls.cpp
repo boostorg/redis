@@ -20,6 +20,9 @@ using aedis::resp3::request;
 using aedis::endpoint;
 using connection = aedis::ssl::connection<net::ssl::stream<net::ip::tcp::socket>>;
 
+auto logger = [](auto ec, auto...)
+   { std::cout << ec.message() << std::endl; };
+
 bool verify_certificate(bool, net::ssl::verify_context&)
 {
    std::cout << "set_verify_callback" << std::endl;
@@ -38,13 +41,14 @@ auto main() -> int
       conn.next_layer().set_verify_callback(verify_certificate);
 
       request req;
+      req.get_config().fail_if_not_connected = false;
+      req.get_config().fail_on_connection_lost = true;
       req.push("PING");
       req.push("QUIT");
 
       std::tuple<std::string, aedis::ignore> resp;
-      conn.async_run({"127.0.0.1", "6379"}, req, adapt(resp), {}, [&](auto ec, auto) {
-         std::cout << ec.message() << std::endl;
-      });
+      conn.async_exec(req, adapt(resp), logger);
+      conn.async_run({"127.0.0.1", "6379"}, {}, logger);
 
       ioc.run();
 

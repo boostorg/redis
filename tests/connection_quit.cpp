@@ -30,7 +30,7 @@ using operation = aedis::operation;
 BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
+   auto conn = std::make_shared<connection>(ioc);
 
    request req1{{false, false}};
    req1.push("PING");
@@ -38,26 +38,26 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
    request req2{{false, false}};
    req2.push("QUIT");
 
-   db->async_exec(req1, adapt(), [](auto ec, auto){
+   conn->async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
-   db->async_exec(req2, adapt(), [](auto ec, auto) {
+   conn->async_exec(req2, adapt(), [](auto ec, auto) {
       BOOST_TEST(!ec);
    });
-   db->async_exec(req1, adapt(), [](auto ec, auto){
+   conn->async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
-   db->async_exec(req1, adapt(), [](auto ec, auto){
+   conn->async_exec(req1, adapt(), [](auto ec, auto){
          BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
-   db->async_exec(req1, adapt(), [](auto ec, auto){
+   conn->async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, {}, [db](auto ec){
+   conn->async_run(ep, {}, [conn](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      db->cancel(operation::exec);
+      conn->cancel(operation::exec);
    });
 
    ioc.run();
@@ -69,9 +69,12 @@ void test_quit2(bool coalesce)
    req.push("QUIT");
 
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
-   endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req, adapt(), {}, [](auto ec, auto) {
+   auto conn = std::make_shared<connection>(ioc);
+   conn->async_exec(req, adapt(), [](auto ec, auto) {
+      BOOST_TEST(!ec);
+   });
+
+   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
 

@@ -22,6 +22,8 @@ using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
+#include <boost/asio/experimental/awaitable_operators.hpp>
+using namespace boost::asio::experimental::awaitable_operators;
 
 net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
 {
@@ -31,10 +33,15 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
    int i = 0;
    endpoint ep{"127.0.0.1", "6379"};
    for (; i < 5; ++i) {
-      boost::system::error_code ec;
-      co_await db->async_run(ep, req, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
+      boost::system::error_code ec1, ec2;
+      co_await (
+         db->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec1)) &&
+         db->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec2))
+      );
+
+      BOOST_TEST(!ec1);
+      BOOST_CHECK_EQUAL(ec2, net::error::misc_errors::eof);
       db->reset_stream();
-      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    }
 
    BOOST_CHECK_EQUAL(i, 5);
@@ -51,27 +58,45 @@ BOOST_AUTO_TEST_CASE(test_reconnect)
    ioc.run();
 }
 
-#endif
+auto async_test_reconnect_timeout() -> net::awaitable<void>
+{
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   endpoint ep{"127.0.0.1", "6379"};
+   boost::system::error_code ec1, ec2;
+
+   request req1;
+   req1.get_config().fail_if_not_connected = false;
+   req1.get_config().fail_on_connection_lost = true;
+   req1.push("CLIENT", "PAUSE", 7000);
+
+   co_await (
+      conn->async_exec(req1, adapt(), net::redirect_error(net::use_awaitable, ec1)) &&
+      conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec2))
+   );
+
+   BOOST_TEST(!ec1);
+   BOOST_CHECK_EQUAL(ec2, aedis::error::idle_timeout);
+
+   request req2;
+   req2.get_config().fail_if_not_connected = false;
+   req2.get_config().fail_on_connection_lost = true;
+   req2.push("QUIT");
+
+   co_await (
+      conn->async_exec(req1, adapt(), net::redirect_error(net::use_awaitable, ec1)) &&
+      conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec2))
+   );
+
+   BOOST_CHECK_EQUAL(ec1, boost::system::errc::errc_t::operation_canceled);
+   BOOST_CHECK_EQUAL(ec2, aedis::error::exec_timeout);
+}
 
 BOOST_AUTO_TEST_CASE(test_reconnect_timeout)
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
-
-   request req1;
-   req1.push("CLIENT", "PAUSE", 7000);
-
-   request req2;
-   req2.push("QUIT");
-
-   endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, req1, adapt(), {}, [db, &req2, &ep](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
-      db->reset_stream();
-      db->async_run(ep, req2, adapt(), {}, [db](auto ec, auto){
-         BOOST_CHECK_EQUAL(ec, aedis::error::exec_timeout);
-      });
-   });
-
+   net::co_spawn(ioc, async_test_reconnect_timeout(), net::detached);
    ioc.run();
 }
+#elif
+int main(){}
+#endif

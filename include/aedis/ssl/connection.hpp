@@ -106,23 +106,6 @@ public:
       return base_type::async_run(ep, ts, std::move(token));
    }
 
-   /** @brief Connects and executes a request asynchronously.
-    *
-    *  See aedis::connection::async_run for detailed information.
-    */
-   template <
-      class Adapter = aedis::detail::response_traits<void>::adapter_type,
-      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_run(
-      endpoint ep,
-      resp3::request const& req,
-      Adapter adapter,
-      timeouts ts,
-      CompletionToken token = CompletionToken{})
-   {
-      return base_type::async_run(ep, req, adapter, ts, std::move(token));
-   }
-
    /** @brief Executes a command on the Redis server asynchronously.
     *
     *  See aedis::connection::async_exec for detailed information.

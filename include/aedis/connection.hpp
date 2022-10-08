@@ -145,39 +145,6 @@ public:
       return base_type::async_run(ep, ts, std::move(token));
    }
 
-   /** @brief Connects and executes a request asynchronously.
-    *
-    *  Combines the other `async_run` overload with `async_exec` in a
-    *  single function. This function is useful for users that want to
-    *  send a single request to the server and close it.
-    *
-    *  @param ep Redis endpoint.
-    *  @param req Request object.
-    *  @param adapter Response adapter.
-    *  @param ts Timeouts used by the operation.
-    *  @param token Asio completion token.
-    *
-    *  The completion token must have the following signature
-    *
-    *  @code
-    *  void f(boost::system::error_code, std::size_t);
-    *  @endcode
-    *
-    *  Where the second parameter is the size of the response in bytes.
-    */
-   template <
-      class Adapter = detail::response_traits<void>::adapter_type,
-      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_run(
-      endpoint ep,
-      resp3::request const& req,
-      Adapter adapter,
-      timeouts ts,
-      CompletionToken token = CompletionToken{})
-   {
-      return base_type::async_run(ep, req, adapter, ts, std::move(token));
-   }
-
    /** @brief Executes a command on the Redis server asynchronously.
     *
     *  This function will send a request to the Redis server and

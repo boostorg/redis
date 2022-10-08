@@ -601,48 +601,6 @@ struct reader_op {
    }
 };
 
-template <class Conn, class Adapter, class Timeouts>
-struct runexec_op {
-   Conn* conn = nullptr;
-   endpoint ep;
-   resp3::request const* req = nullptr;
-   Adapter adapter;
-   Timeouts ts;
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void operator()( Self& self
-                  , std::array<std::size_t, 2> order = {}
-                  , boost::system::error_code ec1 = {}
-                  , boost::system::error_code ec2 = {}
-                  , std::size_t n = 0)
-   {
-      reenter (coro)
-      {
-         yield
-         boost::asio::experimental::make_parallel_group(
-            [this, ep2 = ep](auto token) { return conn->async_run(ep2, ts, token);},
-            [this](auto token) { return conn->async_exec(*req, adapter, token);}
-         ).async_wait(
-            boost::asio::experimental::wait_for_one_error(),
-            std::move(self));
-
-         switch (order[0]) {
-           case 0: self.complete(ec1, n); return;
-           case 1: {
-              if (ec2)
-                 self.complete(ec2, n);
-              else
-                 self.complete(ec1, n);
-
-              return;
-           }
-           default: BOOST_ASSERT(false);
-         }
-      }
-   }
-};
-
 } // aedis::detail
 
 #include <boost/asio/unyield.hpp>

@@ -10,8 +10,8 @@
 #include <tuple>
 
 #include <boost/asio.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
 #include "print.hpp"
 
@@ -72,9 +72,9 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
          conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) &&
          conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
       );
+      std::clog << "async_run: " << ec1.message() << "\n"
+                << "async_exec: " << ec2.message() << std::endl;
       conn->reset_stream();
-      std::clog << "reconnect (async_run): " << ec1.message() << std::endl;
-      std::clog << "reconnect (async_exec): " << ec2.message() << std::endl;
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();
    }

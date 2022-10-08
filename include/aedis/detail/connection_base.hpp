@@ -147,21 +147,6 @@ public:
          >(detail::run_op<Derived, Timeouts>{&derived(), ts}, token, resv_);
    }
 
-   template <class Adapter, class Timeouts, class CompletionToken>
-   auto async_run(
-      endpoint ep,
-      resp3::request const& req,
-      Adapter adapter,
-      Timeouts ts,
-      CompletionToken token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(detail::runexec_op<Derived, Adapter, Timeouts>
-            {&derived(), ep, &req, adapter, ts}, token, resv_);
-   }
-
 private:
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = boost::asio::wait_traits<clock_type>;
@@ -190,7 +175,6 @@ private:
    template <class, class> friend struct detail::run_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::exec_read_op;
-   template <class, class, class> friend struct detail::runexec_op;
    template <class> friend struct detail::resolve_with_timeout_op;
    template <class> friend struct detail::check_idle_op;
    template <class, class> friend struct detail::start_op;

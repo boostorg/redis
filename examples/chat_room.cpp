@@ -10,6 +10,7 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
 #include "print.hpp"
 
@@ -17,6 +18,7 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::resp3::node;
@@ -53,10 +55,14 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
    stimer timer{co_await net::this_coro::executor};
    endpoint ep{"127.0.0.1", "6379"};
    for (;;) {
-      boost::system::error_code ec;
-      co_await conn->async_run(ep, req, adapt(), {}, net::redirect_error(net::use_awaitable, ec));
+      boost::system::error_code ec1, ec2;
+      co_await (
+         conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
+      );
+      std::clog << "async_run: " << ec1.message() << "\n"
+                << "async_exec: " << ec2.message() << std::endl;
       conn->reset_stream();
-      std::cout << ec.message() << std::endl;
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();
    }
