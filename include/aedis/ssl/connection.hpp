@@ -123,16 +123,16 @@ public:
 
    /** @brief Receives server side pushes asynchronously.
     *
-    *  See aedis::connection::async_receive_push for detailed information.
+    *  See aedis::connection::async_receive for detailed information.
     */
    template <
       class Adapter = aedis::detail::response_traits<void>::adapter_type,
       class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_receive_push(
+   auto async_receive(
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {
-      return base_type::async_receive_push(adapter, std::move(token));
+      return base_type::async_receive(adapter, std::move(token));
    }
 
    /** @brief Cancel operations.

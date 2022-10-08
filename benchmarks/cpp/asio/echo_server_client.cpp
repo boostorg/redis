@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <boost/asio.hpp>
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
 
@@ -62,3 +63,6 @@ int main(int argc, char* argv[])
       std::cerr << e.what() << std::endl;
    }
 }
+#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
+auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 1;}
+#endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

@@ -88,12 +88,12 @@ void test_missing_push_reader3(bool coalesce)
 net::awaitable<void> push_consumer1(std::shared_ptr<connection> conn, bool& push_received)
 {
    {
-      auto [ec, ev] = co_await conn->async_receive_push(adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await conn->async_receive(adapt(), as_tuple(net::use_awaitable));
       BOOST_TEST(!ec);
    }
 
    {
-      auto [ec, ev] = co_await conn->async_receive_push(adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await conn->async_receive(adapt(), as_tuple(net::use_awaitable));
       BOOST_CHECK_EQUAL(ec, boost::asio::experimental::channel_errc::channel_cancelled);
    }
 
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   conn->async_receive_push(adapter_error{}, [](auto ec, auto) {
+   conn->async_receive(adapter_error{}, [](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, aedis::error::incompatible_size);
    });
 
@@ -219,7 +219,7 @@ void test_push_is_received2(bool coalesce)
 net::awaitable<void> push_consumer3(std::shared_ptr<connection> conn)
 {
    for (;;)
-      co_await conn->async_receive_push(adapt(), net::use_awaitable);
+      co_await conn->async_receive(adapt(), net::use_awaitable);
 }
 
 // Test many subscribe requests.

@@ -125,7 +125,7 @@ public:
    template <
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_receive_push(
+   auto async_receive(
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {

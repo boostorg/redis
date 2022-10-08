@@ -26,7 +26,70 @@ with only three library entities
 
 Let us see how it works in more detail.
 
-### Connection
+### Installation
+
+Download the latest Aedis release from github 
+
+```cpp
+$ wget https://github.com/mzimbres/aedis/releases/download/v1.1.0/aedis-1.1.0.tar.gz
+```
+
+and unpack in your preferred location. Aedis is a header only
+library, so you can starting using it. For that include the
+following header 
+
+```cpp
+#include <aedis/src.hpp>
+
+```
+in no more than one source file in your applications (see intro.cpp
+for example). To build the examples and run the tests cmake is also
+supported
+
+```cpp
+$ BOOST_ROOT=/opt/boost_1_79_0/ cmake
+$ make
+$ make test
+```
+
+These are the requirements for using Aedis
+
+- Boost 1.79 or greater.
+- C++17. Some examples require C++20 with coroutine support.
+- Redis 6 or higher. Optionally also redis-cli and Redis Sentinel.
+
+The following compilers are supported
+
+- Tested with gcc: 10, 11, 12.
+- Tested with clang: 11, 13, 14.
+
+
+### Examples
+
+Users are encouraged to skim over the examples below before proceeding
+to the next sections
+
+* intro.cpp: The Aedis hello-world program. It sends one command to Redis and quits the connection.
+* intro_tls.cpp: Same as intro.cpp but over TLS.
+* intro_sync.cpp: Synchronous version of intro.cpp.
+* containers.cpp: Shows how to send and receive stl containers and how to use transactions.
+* serialization.cpp: Shows how to serialize types using Boost.Json.
+* subscriber.cpp: Shows how to implement pubsub that reconnects and resubscribes when the connection is lost.
+* subscriber_sentinel.cpp: Same as subscriber.cpp but with failover with sentinels.
+* echo_server.cpp: A simple TCP echo server.
+* chat_room.cpp: A simple chat room.
+
+<a name="api-reference"></a>
+
+### API Reference
+
+* [High-Level](#high-level-api): Recommend to all users
+* [Low-Level](#low-level-api): For users with needs yet to be imagined by the author.
+
+In the next sections we will see how to create requests and receive
+responses with more detail
+
+## Connection
 
 The code below will establish a connection with a Redis
 server where users can send commands (see intro.cpp)
@@ -165,69 +228,6 @@ The problem with this approach in Aedis is twofold
   scenario it is harder to cancel individual operations without
   causing all other (independent) requests in the same pipeline to
   fail too.
-
-### Installation
-
-Download the latest Aedis release from github 
-
-```cpp
-$ wget https://github.com/mzimbres/aedis/releases/download/v1.1.0/aedis-1.1.0.tar.gz
-```
-
-and unpack in your preferred location. Aedis is a header only
-library, so you can starting using it. For that include the
-following header 
-
-```cpp
-#include <aedis/src.hpp>
-
-```
-in no more than one source file in your applications (see intro.cpp
-for example). To build the examples and run the tests cmake is also
-supported
-
-```cpp
-$ BOOST_ROOT=/opt/boost_1_79_0/ cmake
-$ make
-$ make test
-```
-
-These are the requirements for using Aedis
-
-- Boost 1.79 or greater.
-- C++17. Some examples require C++20 with coroutine support.
-- Redis 6 or higher. Optionally also redis-cli and Redis Sentinel.
-
-The following compilers are supported
-
-- Tested with gcc: 10, 11, 12.
-- Tested with clang: 11, 13, 14.
-
-
-### Examples
-
-Users are encouraged to skim over the examples below before proceeding
-to the next sections
-
-* intro.cpp: The Aedis hello-world program. It sends one command to Redis and quits the connection.
-* intro_tls.cpp: Same as intro.cpp but over TLS.
-* intro_sync.cpp: Synchronous version of intro.cpp.
-* containers.cpp: Shows how to send and receive stl containers and how to use transactions.
-* serialization.cpp: Shows how to serialize types using Boost.Json.
-* subscriber.cpp: Shows how to implement pubsub that reconnects and resubscribes when the connection is lost.
-* subscriber_sentinel.cpp: Same as subscriber.cpp but with failover with sentinels.
-* echo_server.cpp: A simple TCP echo server.
-* chat_room.cpp: A simple chat room.
-
-<a name="api-reference"></a>
-
-### API Reference
-
-* [High-Level](#high-level-api): Recommend to all users
-* [Low-Level](#low-level-api): For users with needs yet to be imagined by the author.
-
-In the next sections we will see how to create requests and receive
-responses with more detail
 
 ## Requests
 

@@ -40,7 +40,7 @@ using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
 {
    for (std::vector<node<std::string>> resp;;) {
-      co_await conn->async_receive_push(adapt(resp));
+      co_await conn->async_receive(adapt(resp));
       print_push(resp);
       resp.clear();
    }

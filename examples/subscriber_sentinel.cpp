@@ -36,7 +36,7 @@ using connection = aedis::connection<tcp_socket>;
 net::awaitable<void> receive_pushes(std::shared_ptr<connection> conn)
 {
    for (std::vector<node<std::string>> resp;;) {
-      co_await conn->async_receive_push(adapt(resp));
+      co_await conn->async_receive(adapt(resp));
       print_push(resp);
       resp.clear();
    }

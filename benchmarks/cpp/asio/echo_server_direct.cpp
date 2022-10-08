@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <boost/asio.hpp>
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
 namespace this_coro = net::this_coro;
@@ -56,3 +57,6 @@ int main()
      std::printf("Exception: %s\n", e.what());
   }
 }
+#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
+auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 1;}
+#endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
