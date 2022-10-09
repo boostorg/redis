@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
    });
 
    endpoint ep{"127.0.0.1", "6379"};
-   conn->async_run(ep, {}, [conn](auto ec){
+   conn->async_run(ep, {}, [conn](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       conn->cancel(operation::exec);
    });
@@ -74,7 +74,7 @@ void test_quit2(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec) {
+   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
 

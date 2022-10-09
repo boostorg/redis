@@ -148,8 +148,8 @@ void add_separator(Request& to)
 }
 } // detail
 
-/** @brief Creates Redis requests.
- *  @ingroup high-level-api
+/** \brief Creates Redis requests.
+ *  \ingroup high-level-api
  *  
  *  A request is composed of one or more Redis commands and is
  *  referred to in the redis documentation as a pipeline, see
@@ -165,25 +165,25 @@ void add_separator(Request& to)
  *  co_await async_write(socket, buffer(r));
  *  @endcode
  *
- *  @remarks
+ *  \remarks
  *
- *  @li Non-string types will be converted to string by using \c
+ *  \li Non-string types will be converted to string by using \c
  *  to_bulk, which must be made available over ADL.
- *  @li Uses std::string as internal storage.
+ *  \li Uses std::string as internal storage.
  */
 class request {
 public:
    /// Request configuration options.
    struct config {
-      /** @brief If set to true, requests started with
+      /** \brief If set to true, requests started with
        * `connection::async_exe` will fail either if the connection is
        * lost while the request is pending or if `async_exec` is
        * called while there is no connection with Redis. The default
        * behaviour is not to close requests.
        */
-      bool fail_on_connection_lost = false;
+      bool cancel_on_connection_lost = false;
 
-      /** @brief Coalesce this with other requests.
+      /** \brief Coalesce this with other requests.
        *
        *  If true this request will be coalesced with other requests,
        *  see https://redis.io/topics/pipelining. If false, this
@@ -191,20 +191,25 @@ public:
        */
       bool coalesce = true;
 
-      /** @brief If set to true, requests started with
+      /** \brief If set to true, requests started with
        * `connection::async_exe` will fail if the called happens
        *  before the connection with Redis is stablished.
        */
-      bool fail_if_not_connected = false;
+      bool cancel_if_not_connected = false;
 
-      // TODO: Add retry flag.
+      /** \brief If true, the implementation will resend this
+       * request if it remained unresponded when
+       * `aedis::connection::async_run` completed. Has effect only if
+       * cancel_on_connection_lost is false.
+       */
+      bool retry = true;
    };
 
    /** @brief Constructor
     *  
     *  @param cfg Configuration options.
     */
-   explicit request(config cfg = config{false, true, false})
+   explicit request(config cfg = config{false, true, false, true})
    : cfg_{cfg}
    {}
 

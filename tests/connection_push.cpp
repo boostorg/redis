@@ -38,7 +38,7 @@ void test_missing_push_reader1(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -57,7 +57,7 @@ void test_missing_push_reader2(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -77,7 +77,7 @@ void test_missing_push_reader3(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
       BOOST_CHECK_EQUAL(ec, boost::asio::experimental::error::channel_errors::channel_cancelled);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -158,7 +158,7 @@ void test_push_is_received1(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec){
+   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
       conn->cancel(operation::receive_push);
    });

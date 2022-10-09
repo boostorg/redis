@@ -132,7 +132,7 @@ public:
     *  The completion token must have the following signature
     *
     *  @code
-    *  void f(boost::system::error_code);
+    *  void f(boost::system::error_code, std::size_t);
     *  @endcode
     */
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>

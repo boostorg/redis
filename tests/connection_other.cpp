@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(test_wrong_data_type)
    db->async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
    });
-   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -160,13 +160,44 @@ BOOST_AUTO_TEST_CASE(test_not_connected)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    request req;
-   req.get_config().fail_if_not_connected = true;
+   req.get_config().cancel_if_not_connected = true;
    req.push("PING");
 
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    db->async_exec(req, adapt(), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_connected);
+   });
+
+   ioc.run();
+}
+
+BOOST_AUTO_TEST_CASE(test_retry)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+
+   request req1;
+   req1.get_config().cancel_on_connection_lost = true;
+   req1.push("CLIENT", "PAUSE", 7000);
+
+   request req2;
+   req2.get_config().cancel_on_connection_lost = false;
+   req2.get_config().retry = false;
+   req2.push("PING");
+
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc);
+
+   db->async_exec(req1, adapt(), [](auto ec, auto){
+      BOOST_TEST(!ec);
+   });
+
+   db->async_exec(req2, adapt(), [](auto ec, auto){
+      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
+   });
+
+   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
+      BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
    ioc.run();

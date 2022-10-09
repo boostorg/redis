@@ -9,6 +9,7 @@
 //
 
 #include <cstdio>
+#include <iostream>
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 

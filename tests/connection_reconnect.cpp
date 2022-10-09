@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <boost/asio.hpp>
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
 
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
@@ -21,7 +22,6 @@ using connection = aedis::connection<>;
 using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
 
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace boost::asio::experimental::awaitable_operators;
 
@@ -65,8 +65,8 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    boost::system::error_code ec1, ec2;
 
    request req1;
-   req1.get_config().fail_if_not_connected = false;
-   req1.get_config().fail_on_connection_lost = true;
+   req1.get_config().cancel_if_not_connected = false;
+   req1.get_config().cancel_on_connection_lost = true;
    req1.push("CLIENT", "PAUSE", 7000);
 
    co_await (
@@ -78,8 +78,8 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    BOOST_CHECK_EQUAL(ec2, aedis::error::idle_timeout);
 
    request req2;
-   req2.get_config().fail_if_not_connected = false;
-   req2.get_config().fail_on_connection_lost = true;
+   req2.get_config().cancel_if_not_connected = false;
+   req2.get_config().cancel_on_connection_lost = true;
    req2.push("QUIT");
 
    co_await (

@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <boost/asio.hpp>
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
 
@@ -24,7 +25,6 @@ using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;
 
@@ -53,4 +53,6 @@ BOOST_AUTO_TEST_CASE(test_cancel_run)
    net::co_spawn(ioc.get_executor(), async_test_cancel_run(), net::detached);
    ioc.run();
 }
+#else
+int main(){}
 #endif

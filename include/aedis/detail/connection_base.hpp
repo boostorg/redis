@@ -52,8 +52,8 @@ public:
    , push_channel_{ex}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
-      req_.get_config().fail_if_not_connected = false;
-      req_.get_config().fail_on_connection_lost = true;
+      req_.get_config().cancel_if_not_connected = false;
+      req_.get_config().cancel_on_connection_lost = true;
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
@@ -84,17 +84,6 @@ public:
             writer_timer_.cancel();
             ping_timer_.cancel();
 
-            auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-               return !ptr->req->get_config().fail_on_connection_lost;
-            });
-
-            // Cancel own pings if there are any waiting.
-            std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-               ptr->stop = true;
-               ptr->timer.cancel();
-            });
-
-            reqs_.erase(point, std::end(reqs_));
             return 1U;
          }
          case operation::receive_push:
@@ -104,6 +93,32 @@ public:
          }
          default: BOOST_ASSERT(false); return 0;
       }
+   }
+
+   std::size_t cancel_requests()
+   {
+      auto cond = [](auto const& ptr)
+      {
+         if (ptr->req->get_config().cancel_on_connection_lost)
+            return false;
+
+         return !(!ptr->req->get_config().retry && ptr->written);
+      };
+
+      auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), cond);
+
+      auto const ret = std::distance(point, std::end(reqs_));
+
+      std::for_each(point, std::end(reqs_), [](auto const& ptr) {
+         ptr->stop = true;
+         ptr->timer.cancel();
+      });
+
+      reqs_.erase(point, std::end(reqs_));
+      std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
+         return ptr->written = false;
+      });
+      return ret;
    }
 
    template <
@@ -143,7 +158,7 @@ public:
       ep_ = std::move(ep);
       return boost::asio::async_compose
          < CompletionToken
-         , void(boost::system::error_code)
+         , void(boost::system::error_code, std::size_t)
          >(detail::run_op<Derived, Timeouts>{&derived(), ts}, token, resv_);
    }
 

@@ -229,7 +229,7 @@ struct exec_op {
    {
       reenter (coro)
       {
-         if (req->get_config().fail_if_not_connected && !conn->is_open()) {
+         if (req->get_config().cancel_if_not_connected && !conn->is_open()) {
             // The user doesn't want to wait for the connection to be
             // stablished.
             self.complete(error::not_connected, 0);
@@ -422,7 +422,7 @@ struct run_op {
          conn->async_resolve_with_timeout(ts.resolve_timeout, std::move(self));
          if (ec) {
             conn->cancel(operation::run);
-            self.complete(ec);
+            self.complete(ec, conn->cancel_requests());
             return;
          }
 
@@ -430,7 +430,7 @@ struct run_op {
          conn->derived().async_connect(conn->endpoints_, ts, conn->ping_timer_, std::move(self));
          if (ec) {
             conn->cancel(operation::run);
-            self.complete(ec);
+            self.complete(ec, conn->cancel_requests());
             return;
          }
 
@@ -449,7 +449,7 @@ struct run_op {
 
          if (ec) {
             conn->cancel(operation::run);
-            self.complete(ec);
+            self.complete(ec, conn->cancel_requests());
             return;
          }
 
@@ -457,18 +457,16 @@ struct run_op {
 
          if (!conn->expect_role(conn->ep_.role)) {
             conn->cancel(operation::run);
-            self.complete(error::unexpected_server_role);
+            self.complete(error::unexpected_server_role, conn->cancel_requests());
             return;
          }
 
          conn->write_buffer_.clear();
          conn->cmds_ = 0;
-         std::for_each(std::begin(conn->reqs_), std::end(conn->reqs_), [](auto const& ptr) {
-            return ptr->written = false;
-         });
 
          yield conn->async_start(ts, std::move(self));
-         self.complete(ec);
+
+         self.complete(ec, conn->cancel_requests());
       }
    }
 };

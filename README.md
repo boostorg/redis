@@ -706,13 +706,24 @@ The code used in the benchmarks can be found at
 ### master
 
 * Renames `fail_on_connection_lost` to
-  `aedis::resp3::request::fail_on_connection_lost` and change its
-  behaviour: Setting it to true won't cause the request to be fail if
-  `async_exec` is called when there is no ongoing connection, which is
-  not the role of `aedis::resp3::request::fail_on_connection_lost`. 
+  `aedis::resp3::request::cancel_on_connection_lost`. Now, it will
+  only cause connections to be canceled when `async_run` completes.
+
+* Introduces `aedis::resp3::request::cancel_if_not_connected` which will
+  cause a request to be canceled if `async_exec` is called before a
+  connection has been stablished.
+
+* Introduces new request flag `aedis::resp3::request::retry` that if
+  set to true will cause the request to not be canceled when it was
+  sent to Redis but remained unresponded after `async_run` completed.
+  It provides a way to avoid executing commands twice.
 
 * Removes the `aedis::connection::async_run` overload that takes
   request and adapter as parameters.
+
+* Adds a second parameter to the `aedis::connection::async_run`
+  completion signature that contains the number of requests that have
+  been canceled on its completion.
 
 ### v1.1.0/1
 

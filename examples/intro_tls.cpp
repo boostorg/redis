@@ -41,8 +41,8 @@ auto main() -> int
       conn.next_layer().set_verify_callback(verify_certificate);
 
       request req;
-      req.get_config().fail_if_not_connected = false;
-      req.get_config().fail_on_connection_lost = true;
+      req.get_config().cancel_if_not_connected = false;
+      req.get_config().cancel_on_connection_lost = true;
       req.push("PING");
       req.push("QUIT");
 
