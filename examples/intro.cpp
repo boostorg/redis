@@ -12,11 +12,8 @@
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
-namespace net = boost::asio;
-
 using aedis::adapt;
 using aedis::resp3::request;
-using aedis::endpoint;
 using connection = aedis::connection<>;
 
 auto logger = [](auto ec, auto...)
@@ -25,7 +22,7 @@ auto logger = [](auto ec, auto...)
 auto main() -> int
 {
    try {
-      net::io_context ioc;
+      boost::asio::io_context ioc;
       connection conn{ioc};
 
       request req;

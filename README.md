@@ -19,77 +19,15 @@ In addition to that, Aedis hides most of the low-level Asio code away
 from the user, which in the majority of the use cases will interact
 with only three library entities
 
-* `aedis::connection`: A healthy long-lasting connection to the Redis server.
+* `aedis::connection`: A connection to the Redis server.
 * `aedis::resp3::request`: A container of Redis commands.
-* `aedis::adapt()`: Adapts user data structures like STL containers to
-  receive Redis responses.
+* `aedis::adapt()`: Adapts user data structures to receive Redis responses.
 
-Let us see how it works in more detail.
+Let us see how that works in more detail.
 
-### Installation
+<a name="connection"></a>
 
-Download the latest Aedis release from github 
-
-```cpp
-$ wget https://github.com/mzimbres/aedis/releases/download/v1.1.0/aedis-1.1.0.tar.gz
-```
-
-and unpack in your preferred location. Aedis is a header only
-library, so you can starting using it. For that include the
-following header 
-
-```cpp
-#include <aedis/src.hpp>
-
-```
-in no more than one source file in your applications (see intro.cpp
-for example). To build the examples and run the tests cmake is also
-supported
-
-```cpp
-$ BOOST_ROOT=/opt/boost_1_79_0/ cmake
-$ make
-$ make test
-```
-
-These are the requirements for using Aedis
-
-- Boost 1.79 or greater.
-- C++17. Some examples require C++20 with coroutine support.
-- Redis 6 or higher. Optionally also redis-cli and Redis Sentinel.
-
-The following compilers are supported
-
-- Tested with gcc: 10, 11, 12.
-- Tested with clang: 11, 13, 14.
-
-
-### Examples
-
-Users are encouraged to skim over the examples below before proceeding
-to the next sections
-
-* intro.cpp: The Aedis hello-world program. It sends one command to Redis and quits the connection.
-* intro_tls.cpp: Same as intro.cpp but over TLS.
-* intro_sync.cpp: Synchronous version of intro.cpp.
-* containers.cpp: Shows how to send and receive stl containers and how to use transactions.
-* serialization.cpp: Shows how to serialize types using Boost.Json.
-* subscriber.cpp: Shows how to implement pubsub that reconnects and resubscribes when the connection is lost.
-* subscriber_sentinel.cpp: Same as subscriber.cpp but with failover with sentinels.
-* echo_server.cpp: A simple TCP echo server.
-* chat_room.cpp: A simple chat room.
-
-<a name="api-reference"></a>
-
-### API Reference
-
-* [High-Level](#high-level-api): Recommend to all users
-* [Low-Level](#low-level-api): For users with needs yet to be imagined by the author.
-
-In the next sections we will see how to create requests and receive
-responses with more detail
-
-## Connection
+### Connection
 
 The code below will establish a connection with a Redis
 server where users can send commands (see intro.cpp)
@@ -157,7 +95,7 @@ net::awaitable<void> receive_pushes(std::shared_ptr<connection> conn)
 @note Users should make sure any server pushes sent by the server are
 consumed, otherwise the connection will eventually timeout.
 
-### Reconnect
+#### Reconnect
 
 The `aedis::connection` class also supports reconnection.  In the
 simplest scenario, after a connection lost users will want to
@@ -186,7 +124,7 @@ the `aedis::resp3::request::config::close_on_connection_lost` or by
 calling `connection::cancel()` with `connection::operation::exec`
 which will cause all pending requests to be canceled.
 
-### Timeouts
+#### Timeouts
 
 Aedis high-level API provides built-in support for most timeouts users
 might need. For example, the `aedis::connection::async_run` member
@@ -229,7 +167,8 @@ The problem with this approach in Aedis is twofold
   causing all other (independent) requests in the same pipeline to
   fail too.
 
-## Requests
+<a name="requests"></a>
+### Requests
 
 Redis requests are composed of one of more Redis commands (in
 Redis documentation they are called
@@ -265,7 +204,7 @@ co_await db->async_exec(req, adapt(resp));
 
 <a name="serialization"></a>
 
-### Serialization
+#### Serialization
 
 The `push` and `push_range` functions above work with integers
 e.g. `int` and `std::string` out of the box. To send your own
@@ -298,7 +237,7 @@ Example serialization.cpp shows how store json string in Redis.
 
 <a name="responses"></a>
 
-## Responses
+### Responses
 
 To read responses effectively, users must know their RESP3 type,
 this can be found in the Redis documentation for each command
@@ -368,7 +307,7 @@ of this writing, not all RESP3 types are used by the Redis server,
 which means in practice users will be concerned with a reduced
 subset of the RESP3 specification.
 
-### Null
+#### Null
 
 It is not uncommon for apps to access keys that do not exist or
 that have already expired in the Redis server, to deal with these
@@ -382,7 +321,7 @@ co_await db->async_exec(req, adapt(resp));
 
 Everything else stays the same.
 
-### Transactions
+#### Transactions
 
 To read the response to transactions we have to observe that Redis
 queues the commands as they arrive and sends the responses back to
@@ -424,7 +363,7 @@ Note that above we are not ignoring the response to the commands
 themselves but whether they have been successfully queued. For a
 complete example see containers.cpp.
 
-### Deserialization
+#### Deserialization
 
 As mentioned in \ref serialization, it is common to
 serialize data before sending it to Redis e.g.  to json strings.
@@ -445,7 +384,7 @@ types e.g. `mystruct`, `std::map<std::string, mystruct>` etc.
 
 <a name="the-general-case"></a>
 
-### The general case
+#### The general case
 
 There are cases where responses to Redis
 commands won't fit in the model presented above, some examples are
@@ -501,6 +440,21 @@ from Redis with `HGETALL`, some of the options are
 * `std::map<U, V>`: Efficient if you are storing serialized data. Avoids temporaries and requires `from_bulk` for `U` and `V`.
 
 In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. `SMEMBERS`.
+
+### Examples
+
+To conclude this overview users are invited to skim over the
+examples below
+
+* intro.cpp: The Aedis hello-world program. It sends one command to Redis and quits the connection.
+* intro_tls.cpp: Same as intro.cpp but over TLS.
+* intro_sync.cpp: Synchronous version of intro.cpp.
+* containers.cpp: Shows how to send and receive stl containers and how to use transactions.
+* serialization.cpp: Shows how to serialize types using Boost.Json.
+* subscriber.cpp: Shows how to implement pubsub that reconnects and resubscribes when the connection is lost.
+* subscriber_sentinel.cpp: Same as subscriber.cpp but with failover with sentinels.
+* echo_server.cpp: A simple TCP echo server.
+* chat_room.cpp: A simple chat room.
 
 ## Why Aedis
 
@@ -616,7 +570,7 @@ enqueueing a message and triggering a write when it can be sent.
 It is also not clear how are pipelines realised with the design
 (if at all).
 
-### Benchmark: Echo server
+### Echo server benchmark
 
 This document benchmarks the performance of TCP echo servers I
 implemented in different languages using different Redis clients.  The
@@ -700,6 +654,50 @@ The code used in the benchmarks can be found at
    * [Aedis](https://github.com/mzimbres/aedis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/examples/echo_server.cpp)
    * [node-redis](https://github.com/redis/node-redis): [code](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_over_redis)
    * [go-redis](https://github.com/go-redis/redis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go)
+
+<a name="api-reference"></a>
+
+## Reference
+
+* [High-Level](#high-level-api): Recommend to all users
+* [Low-Level](#low-level-api): For users with needs yet to be imagined by the author.
+
+In the next sections we will see how to create requests and receive
+responses with more detail
+
+## Installation
+
+Download the latest release on
+https://github.com/mzimbres/aedis/releases.  Aedis is a header only
+library, so you can starting using it right away by adding the the
+`include` subdirectory to your project and including
+
+```cpp
+#include <aedis/src.hpp>
+
+```
+in no more than one source file in your applications. The 
+requirements for using Aedis are
+
+- Boost 1.79 or greater.
+- C++17 minimum.
+- Redis 6 or higher (must support RESP3). Optionally also redis-cli and Redis Sentinel.
+
+The following compilers are supported
+
+- Tested with gcc: 10, 11, 12.
+- Tested with clang: 11, 13, 14.
+
+## Acknowledgement
+
+Acknowledgement to people that helped shape Aedis in one way or
+another.
+
+* Richard Hodges ([madmongo1](https://github.com/madmongo1)): For very helpful support with Asio, the design of asynchronous programs, etc.
+* Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation.
+* Petr Dannhofer ([Eddie-cz](https://github.com/Eddie-cz)): For helping me understand how the `AUTH` and `HELLO` command can influence each other.
+* Mohammad Nejati ([ashtum](https://github.com/ashtum)): For pointing scenarios where calls to `async_exec` should fail when the connection is lost.
+* Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, the synchronous interface and general help with Asio.
 
 ## Changelog
 
@@ -880,15 +878,4 @@ The code used in the benchmarks can be found at
 ### v0.0.1
 
 * First release to collect design feedback.
-
-## Acknowledgement
-
-Acknowledgement to people that helped shape Aedis in one way or
-another.
-
-* Richard Hodges ([madmongo1](https://github.com/madmongo1)): For very helpful support with Asio, the design of asynchronous programs, etc.
-* Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation.
-* Petr Dannhofer ([Eddie-cz](https://github.com/Eddie-cz)): For helping me understand how the `AUTH` and `HELLO` command can influence each other.
-* Mohammad Nejati ([ashtum](https://github.com/ashtum)): For pointing scenarios where calls to `async_exec` should fail when the connection is lost.
-* Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, the synchronous interface and general help with Asio.
 

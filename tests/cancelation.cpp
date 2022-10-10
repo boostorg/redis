@@ -28,6 +28,9 @@ using net::experimental::as_tuple;
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;
 
+// TODO: Cancel with operation::exec and make sure future async_exec's
+// work after that.
+
 auto async_test_cancel_run() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
