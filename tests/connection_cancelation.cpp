@@ -56,6 +56,30 @@ BOOST_AUTO_TEST_CASE(test_cancel_run)
    net::co_spawn(ioc.get_executor(), async_test_cancel_run(), net::detached);
    ioc.run();
 }
+
+net::awaitable<void> reconnect(std::shared_ptr<connection> db)
+{
+   net::steady_timer timer{co_await net::this_coro::executor};
+   for (auto i = 0; i < 1000; ++i) {
+      timer.expires_after(std::chrono::milliseconds{10});
+      endpoint ep{"127.0.0.1", "6379"};
+      co_await (
+         db->async_run(ep, {}, net::use_awaitable) ||
+         timer.async_wait(net::use_awaitable)
+      );
+      std::cout << i << ": Retrying" << std::endl;
+   }
+   std::cout << "Finished" << std::endl;
+}
+
+BOOST_AUTO_TEST_CASE(test_cancelation)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   net::io_context ioc;
+   auto db = std::make_shared<connection>(ioc);
+   net::co_spawn(ioc, reconnect(db), net::detached);
+   ioc.run();
+}
 #else
 int main(){}
 #endif

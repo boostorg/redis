@@ -91,7 +91,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    BOOST_CHECK_EQUAL(ec2, aedis::error::exec_timeout);
 }
 
-BOOST_AUTO_TEST_CASE(test_reconnect_timeout)
+BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
 {
    net::io_context ioc;
    net::co_spawn(ioc, async_test_reconnect_timeout(), net::detached);

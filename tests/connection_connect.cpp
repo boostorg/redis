@@ -37,8 +37,7 @@ error_code test_async_run(endpoint ep, connection::timeouts cfg = {})
    return ret;
 }
 
-// Tests whether resolve fails with the correct error.
-BOOST_AUTO_TEST_CASE(test_resolve)
+BOOST_AUTO_TEST_CASE(resolve_bad_host)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
 
@@ -53,7 +52,7 @@ BOOST_AUTO_TEST_CASE(test_resolve)
    BOOST_TEST(is_host_not_found(ec));
 }
 
-BOOST_AUTO_TEST_CASE(test_resolve_with_timeout)
+BOOST_AUTO_TEST_CASE(resolve_with_timeout)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
 
@@ -68,7 +67,7 @@ BOOST_AUTO_TEST_CASE(test_resolve_with_timeout)
    BOOST_CHECK_EQUAL(ec, aedis::error::resolve_timeout);
 }
 
-BOOST_AUTO_TEST_CASE(test_connect)
+BOOST_AUTO_TEST_CASE(connect_bad_port)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
 
@@ -82,7 +81,7 @@ BOOST_AUTO_TEST_CASE(test_connect)
    BOOST_CHECK_EQUAL(ec, net::error::basic_errors::connection_refused);
 }
 
-BOOST_AUTO_TEST_CASE(test_connect_timeout)
+BOOST_AUTO_TEST_CASE(connect_with_timeout)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
 
@@ -96,7 +95,7 @@ BOOST_AUTO_TEST_CASE(test_connect_timeout)
    BOOST_CHECK_EQUAL(ec, aedis::error::connect_timeout);
 }
 
-BOOST_AUTO_TEST_CASE(test_hello_fail)
+BOOST_AUTO_TEST_CASE(bad_hello_response)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
 
@@ -109,7 +108,7 @@ BOOST_AUTO_TEST_CASE(test_hello_fail)
    BOOST_CHECK_EQUAL(ec, aedis::error::invalid_data_type);
 }
 
-BOOST_AUTO_TEST_CASE(test_hello_tls_over_plain_fail)
+BOOST_AUTO_TEST_CASE(plain_conn_on_tls_endpoint)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
 
@@ -121,7 +120,7 @@ BOOST_AUTO_TEST_CASE(test_hello_tls_over_plain_fail)
    BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
 }
 
-BOOST_AUTO_TEST_CASE(test_auth_fail)
+BOOST_AUTO_TEST_CASE(auth_fail)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
 
@@ -137,7 +136,7 @@ BOOST_AUTO_TEST_CASE(test_auth_fail)
    BOOST_CHECK_EQUAL(ec, aedis::error::resp3_simple_error);
 }
 
-BOOST_AUTO_TEST_CASE(test_wrong_role)
+BOOST_AUTO_TEST_CASE(wrong_role)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
 
