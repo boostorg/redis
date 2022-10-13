@@ -81,6 +81,9 @@ enum class error
 
    /// There is no stablished connection.
    not_connected,
+
+   /// RESP3 handshake error (HELLO command).
+   resp3_handshake_error,
 };
 
 /** \internal

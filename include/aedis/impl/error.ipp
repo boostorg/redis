@@ -43,6 +43,7 @@ struct error_category_impl : boost::system::error_category {
 	 case error::unexpected_server_role: return "Unexpected server role.";
 	 case error::ssl_handshake_timeout: return "SSL handshake timeout.";
 	 case error::not_connected: return "Not connected.";
+	 case error::resp3_handshake_error: return "RESP3 handshake error (HELLO command).";
 	 default: BOOST_ASSERT(false); return "Aedis error.";
       }
    }

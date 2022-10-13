@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(auth_fail)
    ep.password = "jabuticaba";
 
    auto const ec = test_async_run(ep);
-   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_simple_error);
+   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_handshake_error);
 }
 
 BOOST_AUTO_TEST_CASE(wrong_role)

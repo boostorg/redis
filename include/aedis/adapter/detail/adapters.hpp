@@ -106,10 +106,9 @@ private:
 
 public:
    explicit general_aggregate(Result* c = nullptr): result_(c) {}
-   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code& ec)
+   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code&)
    {
       result_->push_back({n.data_type, n.aggregate_size, n.depth, std::string{std::cbegin(n.value), std::cend(n.value)}});
-      set_on_resp3_error(n.data_type, ec);
    }
 };
 

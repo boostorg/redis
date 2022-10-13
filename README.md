@@ -723,6 +723,12 @@ another.
   completion signature that contains the number of requests that have
   been canceled on its completion.
 
+* Changes the way `aedis::adapt()` behaves with
+  `std::vector<aedis::resp3::node<T>>`. Receiving RESP3 simple errors,
+  blob errors or null won't causes an error but will be treated as
+  normal response.  It is the user responsability to check the content
+  in the vector.
+
 ### v1.1.0/1
 
 * Removes `coalesce_requests` from the `aedis::connection::config`, it

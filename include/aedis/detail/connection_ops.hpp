@@ -404,6 +404,14 @@ struct start_op {
    }
 };
 
+bool check_resp3_handshake_failed(std::vector<resp3::node<std::string>> const& resp)
+{
+   return std::size(resp) == 1 && 
+         (resp.front().data_type == resp3::type::simple_error ||
+          resp.front().data_type == resp3::type::blob_error ||
+          resp.front().data_type == resp3::type::null);
+}
+
 template <class Conn, class Timeouts>
 struct run_op {
    Conn* conn = nullptr;
@@ -436,6 +444,7 @@ struct run_op {
 
          conn->prepare_hello(conn->ep_);
          conn->ping_timer_.expires_after(ts.resp3_handshake_timeout);
+         conn->response_.clear();
 
          yield
          resp3::detail::async_exec(
@@ -450,6 +459,12 @@ struct run_op {
          if (ec) {
             conn->cancel(operation::run);
             self.complete(ec, conn->cancel_requests());
+            return;
+         }
+
+         if (check_resp3_handshake_failed(conn->response_)) {
+            conn->cancel(operation::run);
+            self.complete(error::resp3_handshake_error, conn->cancel_requests());
             return;
          }
 
