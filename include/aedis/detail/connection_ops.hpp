@@ -404,6 +404,7 @@ struct start_op {
    }
 };
 
+inline
 bool check_resp3_handshake_failed(std::vector<resp3::node<std::string>> const& resp)
 {
    return std::size(resp) == 1 && 
