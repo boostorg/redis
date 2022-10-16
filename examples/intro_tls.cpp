@@ -17,13 +17,12 @@
 namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
-using aedis::endpoint;
 using connection = aedis::ssl::connection<net::ssl::stream<net::ip::tcp::socket>>;
 
-auto logger = [](auto ec, auto...)
+auto const logger = [](auto ec, auto...)
    { std::cout << ec.message() << std::endl; };
 
-bool verify_certificate(bool, net::ssl::verify_context&)
+auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {
    std::cout << "set_verify_callback" << std::endl;
    return true;

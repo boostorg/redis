@@ -22,12 +22,8 @@ namespace aedis {
  *  commands can be sent at any time. For more details, please see the
  *  documentation of each individual function.
  *
- *  @remarks This class exposes only asynchronous member functions,
- *  synchronous communications with the Redis server is provided by
- *  the `aedis::sync` class.
- *
- *  @tparam Derived class.
- *
+ *  @tparam AsyncReadWriteStream A stream that supports reading and
+ *  writing.
  */
 template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
 class connection :
@@ -45,16 +41,16 @@ public:
    /** \brief Connection configuration parameters.
     */
    struct timeouts {
-      /// Timeout of the resolve operation.
+      /// Timeout used for the resolve operation.
       std::chrono::steady_clock::duration resolve_timeout = std::chrono::seconds{10};
 
-      /// Timeout of the connect operation.
+      /// Timeout used for the connect operation.
       std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10};
 
       /// Timeout of the resp3 handshake operation.
       std::chrono::steady_clock::duration resp3_handshake_timeout = std::chrono::seconds{2};
 
-      /// Time interval of ping operations.
+      /// Time interval with which PING commands are sent to Redis.
       std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{1};
    };
 
@@ -108,8 +104,8 @@ public:
     *  `endpoint::password`.
     *
     *  @li Checks whether the server role corresponds to the one
-    *  specifed in the `endpoint`. If `endpoint::role` is left empty,
-    *  no check is performed. If the role role is different than the
+    *  specified in the `endpoint`. If `endpoint::role` is left empty,
+    *  no check is performed. If the role is different than the
     *  expected `async_run` will complete with
     *  `error::unexpected_server_role`.
     *
@@ -211,8 +207,8 @@ public:
    /** @brief Cancel operations.
     *
     *  @li `operation::exec`: Cancels operations started with
-    *  `async_exec`. Has precedence over
-    *  `request::config::close_on_connection_lost`
+    *  `async_exec`. Affects only requests that haven't been written
+    *  yet.
     *  @li operation::run: Cancels the `async_run` operation. Notice
     *  that the preferred way to close a connection is to send a
     *  [QUIT](https://redis.io/commands/quit/) command to the server.
@@ -260,7 +256,7 @@ private:
 
    void close() { stream_.close(); }
    auto is_open() const noexcept { return stream_.is_open(); }
-   auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
+   auto lowest_layer() noexcept -> auto& { return stream_.lowest_layer(); }
 
    AsyncReadWriteStream stream_;
 };

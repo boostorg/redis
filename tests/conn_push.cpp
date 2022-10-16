@@ -45,33 +45,10 @@ void test_missing_push_reader1(bool coalesce)
    ioc.run();
 }
 
-void test_missing_push_reader2(bool coalesce)
+void test_missing_push_reader2(request const& req)
 {
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
-
-   request req{{false, coalesce}}; // Wrong command syntax.
-   req.push("SUBSCRIBE");
-
-   conn->async_exec(req, adapt(), [](auto ec, auto){
-      BOOST_TEST(!ec);
-   });
-
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
-   });
-
-   ioc.run();
-}
-
-void test_missing_push_reader3(bool coalesce)
-{
-   net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
-
-   request req{{false, coalesce}}; // Wrong command synthax.
-   req.push("PING", "Message");
-   req.push("SUBSCRIBE");
 
    conn->async_exec(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
@@ -271,22 +248,33 @@ void test_push_many_subscribes(bool coalesce)
 
 BOOST_AUTO_TEST_CASE(test_push)
 {
+   request req1{{false}};
+   req1.push("PING", "Message");
+   req1.push("SUBSCRIBE"); // Wrong command synthax.
+
+   request req2{{false}};
+   req2.push("SUBSCRIBE"); // Wrong command syntax.
+
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
    test_push_is_received1(true);
    test_push_is_received2(true);
    test_push_many_subscribes(true);
 #endif
+   req1.get_config().coalesce = true;
+   req2.get_config().coalesce = false;
    test_missing_push_reader1(true);
-   test_missing_push_reader2(false);
-   test_missing_push_reader3(true);
+   test_missing_push_reader2(req1);
+   test_missing_push_reader2(req2);
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
    test_push_is_received1(true);
    test_push_is_received2(false);
    test_push_many_subscribes(false);
 #endif
+   req1.get_config().coalesce = false;
+   req2.get_config().coalesce = false;
    test_missing_push_reader1(true);
-   test_missing_push_reader2(false);
-   test_missing_push_reader3(false);
+   test_missing_push_reader2(req1);
+   test_missing_push_reader2(req2);
 }
 

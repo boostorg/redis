@@ -30,76 +30,34 @@ Let us see how that works in more detail.
 ### Connection
 
 The code below will establish a connection with a Redis
-server where users can send commands (see intro.cpp)
+server, send a request and print the response to the screen (see intro.cpp)
 
 ```cpp
 int main()
 {
-   net::io_context ioc;
+   boost::asio::io_context ioc;
    connection conn{ioc};
 
-   conn.async_run({"127.0.0.1", "6379"}, {}, [](auto ec) { ... });
-
-   // Pass conn to other operations ...
-
-   ioc.run();
-}
-```
-
-Requests on the other hand can be sent at any time, regardless of
-whether before or after a connection was established. For example, the
-code below sends the `PING` and `QUIT` commands, waits for the
-response and exits
-
-```cpp
-net::awaitable<void> ping(std::shared_ptr<connection> conn)
-{
-   // Request
    request req;
-   req.push("PING", "some message");
+   req.push("PING");
    req.push("QUIT");
 
-   // Response
    std::tuple<std::string, aedis::ignore> resp;
+   conn.async_exec(req, adapt(resp), logger);
+   conn.async_run({"127.0.0.1", "6379"}, {}, logger);
 
-   // Execution
-   co_await conn->async_exec(req, adapt(resp));
-   std::cout << "Response: " << std::get<0>(resp) << std::endl;
+   ioc.run();
+
+   std::cout << std::get<0>(resp) << std::endl;
 }
 ```
 
-The general structure about how to send commands is evident from the
-code above
-
-* Create a `aedis::resp3::request` object and add commands.
-* Declare responses as elements of a `std::tuple`.
-* Execute the request.
-
-Multiple calls to `connection::async_exec` are synchronized
-automatically so that different operations (or coroutines) don't have
-to be aware of each other. Server side pushes can be received on the
-same connection object that is being used to execute commands, for
-example (see subscriber.cpp)
-
-```cpp
-net::awaitable<void> receive_pushes(std::shared_ptr<connection> conn)
-{
-   for (std::vector<node<std::string>> resp;;) {
-      co_await conn->async_receive_push(adapt(resp));
-      // Process the push in resp.
-      resp.clear();
-   }
-}
-```
-
-@note Users should make sure any server pushes sent by the server are
-consumed, otherwise the connection will eventually timeout.
-
-#### Reconnect
-
-The `aedis::connection` class also supports reconnection.  In the
-simplest scenario, after a connection lost users will want to
-reconnect to the same server, the loop below shows how to do it
+Requests can be sent at any time, regardless of whether before or
+after a connection was established. Furthermore, multiple calls to
+`aedis::connection::async_exec` will be synchronized automatically by
+the connection class. Reconnection is also supported, for example, the
+loop below implements reconnection for users wishing to reconnect to
+the same server (see subscriber.cpp),
 
 ```cpp
 net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
@@ -114,17 +72,35 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
    }
 }
 ```
-more complex scenarios, like performing a failover with sentinel can
-be found in the examples. To aid proper failover, calls to
-`connection::async_exec` won't automatically fail as a result of
-connection lost, rather, they will remain suspended until a new
-connection is established, once that happens all awaiting requests will be sent
-automatically. This behaviour can be changed per request by setting on
-the `aedis::resp3::request::config::close_on_connection_lost` or by
-calling `connection::cancel()` with `connection::operation::exec`
-which will cause all pending requests to be canceled.
+More complex scenarios, such as performing failover with
+sentinel can be found in the examples. To aid proper failover, calls
+to `connection::async_exec` won't be affected by a
+connection is lost, rather, they will remain suspended until a new
+connection is established and will be sent automatically if the user
+desires so, see aedis::resp3::request::config for more information.
 
-#### Timeouts
+#### Server-side pushes
+
+Aedis supports server side pushes on the same connection that is being
+used to perform requests. To receive them use the
+`aedis::connection::async_receive` like shown below (see
+subscriber.cpp)
+
+```cpp
+net::awaitable<void> receive_pushes(std::shared_ptr<connection> conn)
+{
+   for (std::vector<node<std::string>> resp;;) {
+      co_await conn->async_receive_push(adapt(resp));
+      // Process the push in resp.
+      resp.clear();
+   }
+}
+```
+
+Users should ensure any server pushes sent by the server are
+consumed, otherwise the connection will eventually timeout.
+
+#### Cancelation
 
 Aedis high-level API provides built-in support for most timeouts users
 might need. For example, the `aedis::connection::async_run` member
@@ -141,31 +117,24 @@ function performs the following operations on behalf of the user
 To control the timeout-behaviour of the operations above users must
 create a `aedis::connection::timeouts` object and pass it to as
 argument to the `aedis::connection::async_run` member function (or use
-the suggested defaults).
+the suggested defaults). In addition to that, the
+`aedis::connection::cancel` function provide a way to cancel each of
+the async operations in the connection class.
 
-Another related topic is the cancellation of
-`aedis::connection::async_exec`.  With the introduction of awaitable
-operators in Asio it is very simple implement timeouts either on
-individual or on a group of operations, for example, users may be
-tempted in writing code like
+Cancellation with Asio awaitable operators are also in most cases, for
+example
 
 ```cpp
-co_await (conn.async_exec(...) || timer.async_wait(...))
+// Supported but not very useful.
+co_await (conn.async_run(...) || timer.async_wait(...))
+
+// Supported.
+co_await (conn.async_run(...) && conn.async_exec(...))
+
+// Not supported yet, not very useful though. Use a proper
+// ping_interval instead.
+co_await (conn.async_exec(...) || time.async_wait(...))
 ```
-
-The problem with this approach in Aedis is twofold
-
-* Aedis has a buil-in healthy check that sends `PING` commands and
-  checks whether responses are being received on time.  Since user
-  commands use the same queue as the built-in `PING`, they are also
-  subjected to the idle timeout, rendering cancellation like above
-  unnecessary.
-
-* To improve performance Redis encourages the use of pipelines, where
-  many requests are sent in a single chunk to the server. In this
-  scenario it is harder to cancel individual operations without
-  causing all other (independent) requests in the same pipeline to
-  fail too.
 
 <a name="requests"></a>
 ### Requests
@@ -704,14 +673,14 @@ another.
 ### master
 
 * Renames `fail_on_connection_lost` to
-  `aedis::resp3::request::cancel_on_connection_lost`. Now, it will
+  `aedis::resp3::request::config::cancel_on_connection_lost`. Now, it will
   only cause connections to be canceled when `async_run` completes.
 
-* Introduces `aedis::resp3::request::cancel_if_not_connected` which will
+* Introduces `aedis::resp3::request::config::cancel_if_not_connected` which will
   cause a request to be canceled if `async_exec` is called before a
   connection has been stablished.
 
-* Introduces new request flag `aedis::resp3::request::retry` that if
+* Introduces new request flag `aedis::resp3::request::config::retry` that if
   set to true will cause the request to not be canceled when it was
   sent to Redis but remained unresponded after `async_run` completed.
   It provides a way to avoid executing commands twice.
@@ -726,8 +695,11 @@ another.
 * Changes the way `aedis::adapt()` behaves with
   `std::vector<aedis::resp3::node<T>>`. Receiving RESP3 simple errors,
   blob errors or null won't causes an error but will be treated as
-  normal response.  It is the user responsability to check the content
+  normal response.  It is the user responsibility to check the content
   in the vector.
+
+* Fixes a bug in `connection::cancel(operation::exec)`. Now this
+  call will only cancel non-written requests.
 
 ### v1.1.0/1
 

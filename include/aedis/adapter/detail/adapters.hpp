@@ -49,11 +49,10 @@ auto parse_double(
 // Serialization.
 
 template <class T>
-typename std::enable_if<std::is_integral<T>::value, void>::type
-from_bulk(
+auto from_bulk(
    T& i,
    boost::string_view sv,
-   boost::system::error_code& ec)
+   boost::system::error_code& ec) -> typename std::enable_if<std::is_integral<T>::value, void>::type
 {
    i = resp3::detail::parse_uint(sv.data(), sv.size(), ec);
 }

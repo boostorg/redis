@@ -21,6 +21,9 @@ Checks: "*,\
   -bugprone-use-after-move,\
   -hicpp-invalid-access-moved,\
   -misc-no-recursion,\
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,\
+  -cppcoreguidelines-avoid-magic-numbers,\
+  -cppcoreguidelines-pro-bounds-constant-array-index,\
   -cppcoreguidelines-non-private-member-variables-in-classes"
 WarningsAsErrors: ''
 CheckOptions:

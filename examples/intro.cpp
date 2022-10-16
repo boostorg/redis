@@ -16,7 +16,7 @@ using aedis::adapt;
 using aedis::resp3::request;
 using connection = aedis::connection<>;
 
-auto logger = [](auto ec, auto...)
+auto const logger = [](auto ec, auto...)
    { std::cout << ec.message() << std::endl; };
 
 auto main() -> int

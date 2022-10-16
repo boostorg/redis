@@ -162,7 +162,6 @@ void add_separator(Request& to)
  *  r.push("PING");
  *  r.push("PING", "key");
  *  r.push("QUIT");
- *  co_await async_write(socket, buffer(r));
  *  @endcode
  *
  *  \remarks
@@ -176,24 +175,21 @@ public:
    /// Request configuration options.
    struct config {
       /** \brief If set to true, requests started with
-       * `connection::async_exe` will fail either if the connection is
-       * lost while the request is pending or if `async_exec` is
-       * called while there is no connection with Redis. The default
+       * `aedis::connection::async_exec` will fail if the connection is
+       * lost while the request is pending. The default
        * behaviour is not to close requests.
        */
       bool cancel_on_connection_lost = false;
 
-      /** \brief Coalesce this with other requests.
-       *
-       *  If true this request will be coalesced with other requests,
+      /** \brief If true this request will be coalesced with other requests,
        *  see https://redis.io/topics/pipelining. If false, this
        *  request will be sent individually.
        */
       bool coalesce = true;
 
       /** \brief If set to true, requests started with
-       * `connection::async_exe` will fail if the called happens
-       *  before the connection with Redis is stablished.
+       * `aedis::connection::async_exec` will fail if the call happens
+       *  before the connection with Redis was stablished.
        */
       bool cancel_if_not_connected = false;
 
@@ -214,10 +210,10 @@ public:
    {}
 
    //// Returns the number of commands contained in this request.
-   auto size() const noexcept -> std::size_t { return commands_;};
+   [[nodiscard]] auto size() const noexcept -> std::size_t { return commands_;};
 
    // Returns the request payload.
-   auto payload() const noexcept -> auto const& { return payload_;}
+   [[nodiscard]] auto payload() const noexcept -> auto const& { return payload_;}
 
    /// Clears the request preserving allocated memory.
    void clear()
@@ -374,10 +370,10 @@ public:
       { payload_.reserve(new_cap); }
 
    /// Returns a const reference to the config object.
-   auto get_config() const noexcept -> auto const& {return cfg_; }
+   [[nodiscard]] auto get_config() const noexcept -> auto const& {return cfg_; }
 
    /// Returns a reference to the config object.
-   auto get_config() noexcept -> auto& {return cfg_; }
+   [[nodiscard]] auto get_config() noexcept -> auto& {return cfg_; }
 
 private:
    std::string payload_;

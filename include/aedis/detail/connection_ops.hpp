@@ -28,6 +28,9 @@
 
 #include <boost/asio/yield.hpp>
 
+// TODO: implement support for cancelation of async_exec with
+// timer.async_wait.
+
 namespace aedis::detail {
 
 template <class Conn, class Timer>
@@ -295,8 +298,8 @@ struct exec_op {
 
 template <class Conn>
 struct ping_op {
-   Conn* conn;
-   std::chrono::steady_clock::duration ping_interval;
+   Conn* conn{};
+   std::chrono::steady_clock::duration ping_interval{};
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -311,8 +314,8 @@ struct ping_op {
          yield
          conn->ping_timer_.async_wait(std::move(self));
          if (ec || !conn->is_open()) {
-            conn->cancel(operation::run);
-            self.complete(ec);
+            //conn->cancel(operation::run);
+            self.complete({});
             return;
          }
 
@@ -321,7 +324,7 @@ struct ping_op {
          yield
          conn->async_exec(conn->req_, adapt(), std::move(self));
          if (ec) {
-            conn->cancel(operation::run);
+            //conn->cancel(operation::run);
             self.complete({});
             return;
          }
@@ -331,8 +334,8 @@ struct ping_op {
 
 template <class Conn>
 struct check_idle_op {
-   Conn* conn;
-   std::chrono::steady_clock::duration ping_interval;
+   Conn* conn{};
+   std::chrono::steady_clock::duration ping_interval{};
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -405,7 +408,7 @@ struct start_op {
 };
 
 inline
-bool check_resp3_handshake_failed(std::vector<resp3::node<std::string>> const& resp)
+auto check_resp3_handshake_failed(std::vector<resp3::node<std::string>> const& resp) -> bool
 {
    return std::size(resp) == 1 && 
          (resp.front().data_type == resp3::type::simple_error ||

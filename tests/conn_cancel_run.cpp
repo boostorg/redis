@@ -19,6 +19,7 @@
 namespace net = boost::asio;
 
 using aedis::resp3::request;
+using aedis::operation;
 using aedis::adapt;
 using connection = aedis::connection<>;
 using endpoint = aedis::endpoint;
@@ -28,10 +29,7 @@ using net::experimental::as_tuple;
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;
 
-// TODO: Cancel with operation::exec and make sure future async_exec's
-// work after that.
-
-auto async_test_cancel_run() -> net::awaitable<void>
+auto async_cancel_run_with_timer() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
@@ -49,15 +47,15 @@ auto async_test_cancel_run() -> net::awaitable<void>
    BOOST_TEST(!ec2);
 }
 
-BOOST_AUTO_TEST_CASE(test_cancel_run)
+BOOST_AUTO_TEST_CASE(cancel_run_with_timer)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
-   net::co_spawn(ioc.get_executor(), async_test_cancel_run(), net::detached);
+   net::co_spawn(ioc.get_executor(), async_cancel_run_with_timer(), net::detached);
    ioc.run();
 }
 
-net::awaitable<void> reconnect(std::shared_ptr<connection> db)
+net::awaitable<void> async_cancel_run_with_timer_stress(std::shared_ptr<connection> db)
 {
    net::steady_timer timer{co_await net::this_coro::executor};
    for (auto i = 0; i < 1000; ++i) {
@@ -72,14 +70,15 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> db)
    std::cout << "Finished" << std::endl;
 }
 
-BOOST_AUTO_TEST_CASE(test_cancelation)
+BOOST_AUTO_TEST_CASE(cancel_run_with_timer_stress)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
-   net::co_spawn(ioc, reconnect(db), net::detached);
+   net::co_spawn(ioc, async_cancel_run_with_timer_stress(db), net::detached);
    ioc.run();
 }
+
 #else
 int main(){}
 #endif

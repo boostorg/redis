@@ -26,11 +26,8 @@ class connection;
  *  commands can be sent at any time. For more details, please see the
  *  documentation of each individual function.
  *
- *  @remarks This class exposes only asynchronous member functions,
- *  synchronous communications with the Redis server is provided by
- *  the `aedis::sync` class.
- *
- *  @tparam Derived class.
+ *  @tparam AsyncReadWriteStream A stream that supports reading and
+ *  writing.
  *
  */
 template <class AsyncReadWriteStream>

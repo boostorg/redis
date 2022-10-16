@@ -65,14 +65,7 @@ public:
       switch (op) {
          case operation::exec:
          {
-            for (auto& e: reqs_) {
-               e->stop = true;
-               e->timer.cancel_one();
-            }
-
-            auto const ret = reqs_.size();
-            reqs_ = {};
-            return ret;
+            return cancel_requests_not_writen();
          }
          case operation::run:
          {
@@ -95,10 +88,33 @@ public:
       }
    }
 
+   auto cancel_requests_not_writen() -> std::size_t
+   {
+      auto f = [](auto const& ptr)
+      {
+         BOOST_ASSERT(ptr != nullptr);
+         return ptr->written;
+      };
+
+      auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), f);
+
+      auto const ret = std::distance(point, std::end(reqs_));
+
+      std::for_each(point, std::end(reqs_), [](auto const& ptr) {
+         ptr->stop = true;
+         ptr->timer.cancel();
+      });
+
+      reqs_.erase(point, std::end(reqs_));
+      return ret;
+   }
+
    std::size_t cancel_requests()
    {
       auto cond = [](auto const& ptr)
       {
+         BOOST_ASSERT(ptr != nullptr);
+
          if (ptr->req->get_config().cancel_on_connection_lost)
             return false;
 
