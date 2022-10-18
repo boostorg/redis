@@ -102,6 +102,26 @@ consumed, otherwise the connection will eventually timeout.
 
 #### Cancelation
 
+In addition to that, the
+`aedis::connection::cancel` function provide a way to cancel each of
+the async operations in the connection class.
+
+Cancellation with Asio awaitable operators are also in most cases, for
+example
+
+```cpp
+// Not very useful.
+co_await (conn.async_run(...) || timer.async_wait(...))
+
+// Useful when reconnecting.
+co_await (conn.async_run(...) && conn.async_exec(...))
+
+// Not very useful.
+co_await (conn.async_exec(...) || time.async_wait(...))
+```
+
+#### Timeouts
+
 Aedis high-level API provides built-in support for most timeouts users
 might need. For example, the `aedis::connection::async_run` member
 function performs the following operations on behalf of the user
@@ -117,26 +137,10 @@ function performs the following operations on behalf of the user
 To control the timeout-behaviour of the operations above users must
 create a `aedis::connection::timeouts` object and pass it to as
 argument to the `aedis::connection::async_run` member function (or use
-the suggested defaults). In addition to that, the
-`aedis::connection::cancel` function provide a way to cancel each of
-the async operations in the connection class.
-
-Cancellation with Asio awaitable operators are also in most cases, for
-example
-
-```cpp
-// Supported but not very useful.
-co_await (conn.async_run(...) || timer.async_wait(...))
-
-// Supported.
-co_await (conn.async_run(...) && conn.async_exec(...))
-
-// Not supported yet, not very useful though. Use a proper
-// ping_interval instead.
-co_await (conn.async_exec(...) || time.async_wait(...))
-```
+the suggested defaults). 
 
 <a name="requests"></a>
+
 ### Requests
 
 Redis requests are composed of one of more Redis commands (in
@@ -700,6 +704,10 @@ another.
 
 * Fixes a bug in `connection::cancel(operation::exec)`. Now this
   call will only cancel non-written requests.
+
+* Implements per-operation implicit cancelation support for
+  `aedis::connection::async_exec`. The following call will `co_await (conn.async_exec(...) || timer.async_wait(...))`
+  will cancel the request as long as it has not been written.
 
 ### v1.1.0/1
 

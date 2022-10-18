@@ -93,7 +93,7 @@ public:
       auto f = [](auto const& ptr)
       {
          BOOST_ASSERT(ptr != nullptr);
-         return ptr->written;
+         return ptr->written();
       };
 
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), f);
@@ -101,8 +101,7 @@ public:
       auto const ret = std::distance(point, std::end(reqs_));
 
       std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-         ptr->stop = true;
-         ptr->timer.cancel();
+         ptr->stop();
       });
 
       reqs_.erase(point, std::end(reqs_));
@@ -115,10 +114,10 @@ public:
       {
          BOOST_ASSERT(ptr != nullptr);
 
-         if (ptr->req->get_config().cancel_on_connection_lost)
+         if (ptr->get_request().get_config().cancel_on_connection_lost)
             return false;
 
-         return !(!ptr->req->get_config().retry && ptr->written);
+         return !(!ptr->get_request().get_config().retry && ptr->written());
       };
 
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), cond);
@@ -126,13 +125,12 @@ public:
       auto const ret = std::distance(point, std::end(reqs_));
 
       std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-         ptr->stop = true;
-         ptr->timer.cancel();
+         ptr->stop();
       });
 
       reqs_.erase(point, std::end(reqs_));
       std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-         return ptr->written = false;
+         return ptr->mark_unwritten();
       });
       return ret;
    }
@@ -189,13 +187,71 @@ private:
    auto derived() -> Derived& { return static_cast<Derived&>(*this); }
 
    struct req_info {
-      explicit req_info(executor_type ex) : timer{ex} {}
-      timer_type timer;
-      resp3::request const* req = nullptr;
-      std::size_t cmds = 0;
-      bool stop = false;
-      bool written = false;
+   public:
+      enum class action
+      {
+         stop,
+         proceed,
+         none,
+      };
+      explicit req_info(resp3::request const& req, executor_type ex)
+      : timer_{ex}
+      , action_{action::none}
+      , req_{&req}
+      , cmds_{std::size(req)}
+      , written_{false}
+      {
+         timer_.expires_at(std::chrono::steady_clock::time_point::max());
+      }
+
+      auto proceed()
+      {
+         timer_.cancel();
+         action_ = action::proceed;
+      }
+
+      void stop()
+      {
+         timer_.cancel();
+         action_ = action::stop;
+      }
+
+      auto written() const noexcept
+         { return written_; }
+
+      void mark_written() noexcept
+         { written_ = true; }
+
+      void mark_unwritten() noexcept
+         { written_ = false; }
+
+      auto get_number_of_commands() const noexcept
+         { return cmds_; }
+
+      auto const& get_request() const noexcept
+         { return *req_; }
+
+      auto get_action() const noexcept
+         { return action_;}
+
+      template <class CompletionToken>
+      auto async_wait(CompletionToken token)
+      {
+         return timer_.async_wait(std::move(token));
+      }
+
+   private:
+      timer_type timer_;
+      action action_;
+      resp3::request const* req_;
+      std::size_t cmds_;
+      bool written_;
    };
+
+   void remove_request(std::shared_ptr<req_info> const& info)
+   {
+      reqs_.erase(std::remove(std::begin(reqs_), std::end(reqs_), info));
+   }
 
    using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
@@ -214,11 +270,11 @@ private:
    void cancel_push_requests()
    {
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-         return !(ptr->written && ptr->req->size() == 0);
+         return !(ptr->written() && ptr->get_request().size() == 0);
       });
 
       std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-         ptr->timer.cancel();
+         ptr->proceed();
       });
 
       reqs_.erase(point, std::end(reqs_));
@@ -311,9 +367,9 @@ private:
 
    void stage_request(req_info& ri)
    {
-      write_buffer_ += ri.req->payload();
-      cmds_ += ri.req->size();
-      ri.written = true;
+      write_buffer_ += ri.get_request().payload();
+      cmds_ += ri.get_request().size();
+      ri.mark_written();
    }
 
    void coalesce_requests()
@@ -324,8 +380,8 @@ private:
       stage_request(*reqs_.at(0));
 
       for (std::size_t i = 1; i < std::size(reqs_); ++i) {
-         if (!reqs_.at(i - 1)->req->get_config().coalesce ||
-             !reqs_.at(i - 0)->req->get_config().coalesce) {
+         if (!reqs_.at(i - 1)->get_request().get_config().coalesce ||
+             !reqs_.at(i - 0)->get_request().get_config().coalesce) {
             break;
          }
          stage_request(*reqs_.at(i));

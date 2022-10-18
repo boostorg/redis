@@ -28,9 +28,6 @@
 
 #include <boost/asio/yield.hpp>
 
-// TODO: implement support for cancelation of async_exec with
-// timer.async_wait.
-
 namespace aedis::detail {
 
 template <class Conn, class Timer>
@@ -239,15 +236,12 @@ struct exec_op {
             return;
          }
 
-         info = std::allocate_shared<req_info_type>(boost::asio::get_associated_allocator(self), conn->resv_.get_executor());
-         info->timer.expires_at(std::chrono::steady_clock::time_point::max());
-         info->req = req;
-         info->cmds = req->size();
-         info->stop = false;
+         info = std::allocate_shared<req_info_type>(boost::asio::get_associated_allocator(self), *req, conn->resv_.get_executor());
 
          conn->add_request_info(info);
+EXEC_OP_WAIT:
          yield
-         info->timer.async_wait(std::move(self));
+         info->async_wait(std::move(self));
          BOOST_ASSERT(!!ec);
          if (ec != boost::asio::error::operation_aborted) {
             self.complete(ec, 0);
@@ -255,9 +249,20 @@ struct exec_op {
          }
 
          // null can happen for example when resolve fails.
-         if (!conn->is_open() || info->stop) {
+         if (!conn->is_open() || info->get_action() == Conn::req_info::action::stop) {
             self.complete(ec, 0);
             return;
+         }
+
+         // TODO: Use self.cancelled(), as of this writing it is protected in asio.
+         if (info->get_action() == Conn::req_info::action::none) {
+            if (info->written()) {
+               goto EXEC_OP_WAIT; // TOO late, can't cancel.
+            } else {
+               conn->remove_request(info);
+               self.complete(ec, 0);
+               return;
+            }
          }
 
          BOOST_ASSERT(conn->is_open());
@@ -271,7 +276,7 @@ struct exec_op {
          BOOST_ASSERT(conn->reqs_.front() != nullptr);
          BOOST_ASSERT(conn->cmds_ != 0);
          yield
-         conn->async_exec_read(adapter, conn->reqs_.front()->cmds, std::move(self));
+         conn->async_exec_read(adapter, conn->reqs_.front()->get_number_of_commands(), std::move(self));
          if (ec) {
             self.complete(ec, 0);
             return;
@@ -288,7 +293,7 @@ struct exec_op {
                conn->writer_timer_.cancel_one();
          } else {
             BOOST_ASSERT(!conn->reqs_.empty());
-            conn->reqs_.front()->timer.cancel_one();
+            conn->reqs_.front()->proceed();
          }
 
          self.complete({}, read_size);
@@ -314,7 +319,6 @@ struct ping_op {
          yield
          conn->ping_timer_.async_wait(std::move(self));
          if (ec || !conn->is_open()) {
-            //conn->cancel(operation::run);
             self.complete({});
             return;
          }
@@ -324,7 +328,6 @@ struct ping_op {
          yield
          conn->async_exec(conn->req_, adapt(), std::move(self));
          if (ec) {
-            //conn->cancel(operation::run);
             self.complete({});
             return;
          }
@@ -592,7 +595,7 @@ struct reader_op {
          BOOST_ASSERT(!conn->read_buffer_.empty());
          if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push
              || conn->reqs_.empty()
-             || (!conn->reqs_.empty() && conn->reqs_.front()->cmds == 0)) {
+             || (!conn->reqs_.empty() && conn->reqs_.front()->get_number_of_commands() == 0)) {
             yield
             async_send_receive(conn->push_channel_, std::move(self));
             if (ec) {
@@ -603,8 +606,8 @@ struct reader_op {
          } else {
             BOOST_ASSERT(conn->cmds_ != 0);
             BOOST_ASSERT(!conn->reqs_.empty());
-            BOOST_ASSERT(conn->reqs_.front()->cmds != 0);
-            conn->reqs_.front()->timer.cancel_one();
+            BOOST_ASSERT(conn->reqs_.front()->get_number_of_commands() != 0);
+            conn->reqs_.front()->proceed();
             yield
             conn->read_timer_.async_wait(std::move(self));
             if (ec != boost::asio::error::operation_aborted ||

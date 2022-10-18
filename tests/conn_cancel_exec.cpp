@@ -94,6 +94,51 @@ BOOST_AUTO_TEST_CASE(cancel_exec_with_timer)
    ioc.run();
 }
 
+auto async_ignore_cancel_of_written_req(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   auto ex = co_await net::this_coro::executor;
+
+   net::steady_timer st{ex};
+   st.expires_after(std::chrono::seconds{1});
+
+   net::steady_timer st2{ex};
+   st2.expires_after(std::chrono::seconds{3});
+
+   boost::system::error_code ec1, ec2, ec3;
+
+   request req1;
+   req1.get_config().coalesce = false;
+   req1.push("BLPOP", "any", 3);
+
+   request req2;
+   req2.push("PING");
+
+   co_await (
+      conn->async_exec(req1, adapt(), net::redirect_error(net::use_awaitable, ec1)) ||
+      conn->async_exec(req2, adapt(), net::redirect_error(net::use_awaitable, ec2)) ||
+      st.async_wait(net::redirect_error(net::use_awaitable, ec3))
+   );
+
+   BOOST_TEST(!ec1);
+   BOOST_CHECK_EQUAL(ec2, boost::asio::error::basic_errors::operation_aborted);
+   BOOST_TEST(!ec3);
+
+   request req3;
+   req3.push("PING");
+   req3.push("QUIT");
+   co_await conn->async_exec(req3, adapt(), net::redirect_error(net::use_awaitable, ec1));
+   BOOST_TEST(!ec1);
+}
+
+BOOST_AUTO_TEST_CASE(ignore_cancel_of_written_req)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   net::io_context ioc;
+   auto conn = std::make_shared<connection>(ioc);
+   net::co_spawn(ioc.get_executor(), async_run(conn), net::detached);
+   net::co_spawn(ioc.get_executor(), async_ignore_cancel_of_written_req(conn), net::detached);
+   ioc.run();
+}
 #else
 int main(){}
 #endif
