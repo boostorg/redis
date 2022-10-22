@@ -65,7 +65,7 @@ public:
       switch (op) {
          case operation::exec:
          {
-            return cancel_requests_not_written();
+            return cancel_unwritten_requests();
          }
          case operation::run:
          {
@@ -89,12 +89,12 @@ public:
       }
    }
 
-   auto cancel_requests_not_written() -> std::size_t
+   auto cancel_unwritten_requests() -> std::size_t
    {
       auto f = [](auto const& ptr)
       {
          BOOST_ASSERT(ptr != nullptr);
-         return ptr->written();
+         return ptr->is_written();
       };
 
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), f);
@@ -118,7 +118,7 @@ public:
          if (ptr->get_request().get_config().cancel_on_connection_lost)
             return false;
 
-         return !(!ptr->get_request().get_config().retry && ptr->written());
+         return !(!ptr->get_request().get_config().retry && ptr->is_written());
       };
 
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), cond);
@@ -131,7 +131,7 @@ public:
 
       reqs_.erase(point, std::end(reqs_));
       std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-         return ptr->mark_unwritten();
+         return ptr->reset_status();
       });
       return ret;
    }
@@ -187,6 +187,21 @@ private:
 
    auto derived() -> Derived& { return static_cast<Derived&>(*this); }
 
+   void on_write()
+   {
+      // We have to clear the payload right after writing it to use it
+      // as a flag that informs there is no ongoing write.
+      write_buffer_.clear();
+
+      // Notice this must come before the for-each below.
+      cancel_push_requests();
+
+      std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
+         if (ptr->is_staged())
+            ptr->mark_written();
+      });
+   }
+
    struct req_info {
    public:
       enum class action
@@ -195,12 +210,13 @@ private:
          proceed,
          none,
       };
+
       explicit req_info(resp3::request const& req, executor_type ex)
       : timer_{ex}
       , action_{action::none}
       , req_{&req}
       , cmds_{std::size(req)}
-      , written_{false}
+      , status_{status::none}
       {
          timer_.expires_at(std::chrono::steady_clock::time_point::max());
       }
@@ -217,14 +233,20 @@ private:
          action_ = action::stop;
       }
 
-      auto written() const noexcept
-         { return written_; }
+      auto is_written() const noexcept
+         { return status_ == status::written; }
+
+      auto is_staged() const noexcept
+         { return status_ == status::staged; }
 
       void mark_written() noexcept
-         { written_ = true; }
+         { status_ = status::written; }
 
-      void mark_unwritten() noexcept
-         { written_ = false; }
+      void mark_staged() noexcept
+         { status_ = status::staged; }
+
+      void reset_status() noexcept
+         { status_ = status::none; }
 
       auto get_number_of_commands() const noexcept
          { return cmds_; }
@@ -242,11 +264,17 @@ private:
       }
 
    private:
+      enum class status
+      { none
+      , staged
+      , written
+      };
+
       timer_type timer_;
       action action_;
       resp3::request const* req_;
       std::size_t cmds_;
-      bool written_;
+      status status_;
    };
 
    void remove_request(std::shared_ptr<req_info> const& info)
@@ -271,7 +299,7 @@ private:
    void cancel_push_requests()
    {
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-         return !(ptr->written() && ptr->get_request().size() == 0);
+         return !(ptr->is_staged() && ptr->get_request().size() == 0);
       });
 
       std::for_each(point, std::end(reqs_), [](auto const& ptr) {
@@ -370,16 +398,13 @@ private:
    {
       write_buffer_ += ri.get_request().payload();
       cmds_ += ri.get_request().size();
-
-      // TODO: We mark a request a written only after a successful
-      // write on the socket and not before writting. Otherwise, if
-      // the write fails they will be seen as written and may be
-      // removed with cancel(run).
-      ri.mark_written();
+      ri.mark_staged();
    }
 
    void coalesce_requests()
    {
+      // Coalesce the requests and marks them staged. After a
+      // successful write staged requests will be marked as written.
       BOOST_ASSERT(write_buffer_.empty());
       BOOST_ASSERT(!reqs_.empty());
 

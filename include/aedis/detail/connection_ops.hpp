@@ -247,7 +247,7 @@ EXEC_OP_WAIT:
          }
 
          if (self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
-            if (info->written()) {
+            if (info->is_written()) {
                self.get_cancellation_state().clear();
                goto EXEC_OP_WAIT; // Too late, can't cancel.
             } else {
@@ -502,12 +502,7 @@ struct writer_op {
                self.complete(ec);
                return;
             }
-
-            // We have to clear the payload right after the read op in
-            // order to to use it as a flag that informs there is no
-            // ongoing write.
-            conn->write_buffer_.clear();
-            conn->cancel_push_requests();
+            conn->on_write();
          }
 
          yield conn->writer_timer_.async_wait(std::move(self));
