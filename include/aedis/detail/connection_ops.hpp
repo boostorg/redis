@@ -111,7 +111,7 @@ struct receive_push_op {
             // Needed to cancel the channel, otherwise the read
             // operation will be blocked forever see
             // test_push_adapter.
-            conn->cancel(operation::receive_push);
+            conn->cancel(operation::receive);
             self.complete(ec, 0);
             return;
          }
@@ -229,12 +229,10 @@ struct exec_op {
    {
       reenter (coro)
       {
-         if (req->get_config().cancel_if_not_connected && !conn->is_open()) {
-            // The user doesn't want to wait for the connection to be
-            // stablished.
-            self.complete(error::not_connected, 0);
-            return;
-         }
+         // Check whether the user wants to wait for the connection to
+         // be stablished.
+         if (req->get_config().cancel_if_not_connected && !conn->is_open())
+            return self.complete(error::not_connected, 0);
 
          info = std::allocate_shared<req_info_type>(boost::asio::get_associated_allocator(self), *req, conn->resv_.get_executor());
 
@@ -242,22 +240,16 @@ struct exec_op {
 EXEC_OP_WAIT:
          yield
          info->async_wait(std::move(self));
-         BOOST_ASSERT(!!ec);
-         if (ec != boost::asio::error::operation_aborted) {
-            self.complete(ec, 0);
-            return;
+         BOOST_ASSERT(ec == boost::asio::error::operation_aborted);
+
+         if (info->get_action() == Conn::req_info::action::stop) {
+            return self.complete(ec, 0);
          }
 
-         // null can happen for example when resolve fails.
-         if (!conn->is_open() || info->get_action() == Conn::req_info::action::stop) {
-            self.complete(ec, 0);
-            return;
-         }
-
-         // TODO: Use self.cancelled(), as of this writing it is protected in asio.
-         if (info->get_action() == Conn::req_info::action::none) {
+         if (self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
             if (info->written()) {
-               goto EXEC_OP_WAIT; // TOO late, can't cancel.
+               self.get_cancellation_state().clear();
+               goto EXEC_OP_WAIT; // Too late, can't cancel.
             } else {
                conn->remove_request(info);
                self.complete(ec, 0);
@@ -267,20 +259,16 @@ EXEC_OP_WAIT:
 
          BOOST_ASSERT(conn->is_open());
           
-         if (req->size() == 0) {
-            self.complete({}, 0);
-            return;
-         }
+         if (req->size() == 0)
+            return self.complete({}, 0);
 
          BOOST_ASSERT(!conn->reqs_.empty());
          BOOST_ASSERT(conn->reqs_.front() != nullptr);
          BOOST_ASSERT(conn->cmds_ != 0);
          yield
          conn->async_exec_read(adapter, conn->reqs_.front()->get_number_of_commands(), std::move(self));
-         if (ec) {
-            self.complete(ec, 0);
-            return;
-         }
+         if (ec)
+            return self.complete(ec, 0);
 
          read_size = n;
 
@@ -316,18 +304,16 @@ struct ping_op {
       reenter (coro) for (;;)
       {
          conn->ping_timer_.expires_after(ping_interval);
-         yield
-         conn->ping_timer_.async_wait(std::move(self));
-         if (ec || !conn->is_open()) {
+         yield conn->ping_timer_.async_wait(std::move(self));
+         if (ec) {
             self.complete({});
             return;
          }
 
          conn->req_.clear();
          conn->req_.push("PING");
-         yield
-         conn->async_exec(conn->req_, adapt(), std::move(self));
-         if (ec) {
+         yield conn->async_exec(conn->req_, adapt(), std::move(self));
+         if (self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
             self.complete({});
             return;
          }
@@ -347,13 +333,13 @@ struct check_idle_op {
       reenter (coro) for (;;)
       {
          conn->check_idle_timer_.expires_after(2 * ping_interval);
-         yield
-         conn->check_idle_timer_.async_wait(std::move(self));
+         yield conn->check_idle_timer_.async_wait(std::move(self));
          if (ec) {
             conn->cancel(operation::run);
             self.complete({});
             return;
          }
+
          if (!conn->is_open()) {
             // Notice this is not an error, it was requested from an
             // external op.
@@ -437,7 +423,7 @@ struct run_op {
          conn->async_resolve_with_timeout(ts.resolve_timeout, std::move(self));
          if (ec) {
             conn->cancel(operation::run);
-            self.complete(ec, conn->cancel_requests());
+            self.complete(ec);
             return;
          }
 
@@ -445,7 +431,7 @@ struct run_op {
          conn->derived().async_connect(conn->endpoints_, ts, conn->ping_timer_, std::move(self));
          if (ec) {
             conn->cancel(operation::run);
-            self.complete(ec, conn->cancel_requests());
+            self.complete(ec);
             return;
          }
 
@@ -465,13 +451,13 @@ struct run_op {
 
          if (ec) {
             conn->cancel(operation::run);
-            self.complete(ec, conn->cancel_requests());
+            self.complete(ec);
             return;
          }
 
          if (check_resp3_handshake_failed(conn->response_)) {
             conn->cancel(operation::run);
-            self.complete(error::resp3_handshake_error, conn->cancel_requests());
+            self.complete(error::resp3_handshake_error);
             return;
          }
 
@@ -479,7 +465,7 @@ struct run_op {
 
          if (!conn->expect_role(conn->ep_.role)) {
             conn->cancel(operation::run);
-            self.complete(error::unexpected_server_role, conn->cancel_requests());
+            self.complete(error::unexpected_server_role);
             return;
          }
 
@@ -488,7 +474,7 @@ struct run_op {
 
          yield conn->async_start(ts, std::move(self));
 
-         self.complete(ec, conn->cancel_requests());
+         self.complete(ec);
       }
    }
 };

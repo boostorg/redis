@@ -106,11 +106,11 @@ auto async_ignore_cancel_of_written_req(std::shared_ptr<connection> conn) -> net
 
    boost::system::error_code ec1, ec2, ec3;
 
-   request req1;
+   request req1; // Will be cancelled after it has been written.
    req1.get_config().coalesce = false;
    req1.push("BLPOP", "any", 3);
 
-   request req2;
+   request req2; // Will be cancelled.
    req2.push("PING");
 
    co_await (

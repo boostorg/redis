@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    db->async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
    });
-   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
+   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(request_retry)
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
+   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 

@@ -56,7 +56,7 @@ auto main() -> int
       net::io_context ioc{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE_IO};
       auto db = std::make_shared<connection>(ioc);
       endpoint ep{"127.0.0.1", "6379"};
-      db->async_run(ep, {}, [&](auto const& ec, auto) {
+      db->async_run(ep, {}, [&](auto const& ec) {
          std::clog << ec.message() << std::endl;
          ioc.stop();
       });

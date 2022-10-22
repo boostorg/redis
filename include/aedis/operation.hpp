@@ -20,8 +20,8 @@ enum class operation {
    exec,
    /// Refers to `connection::async_run` operations.
    run,
-   /// Refers to `connection::async_receive_push` operations.
-   receive_push,
+   /// Refers to `connection::async_receive` operations.
+   receive,
 };
 
 } // aedis

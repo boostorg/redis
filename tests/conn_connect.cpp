@@ -32,7 +32,7 @@ error_code test_async_run(endpoint ep, connection::timeouts cfg = {})
    net::io_context ioc;
    connection db{ioc};
    error_code ret;
-   db.async_run(ep, cfg, [&](auto ec, auto) { ret = ec; });
+   db.async_run(ep, cfg, [&](auto ec) { ret = ec; });
    ioc.run();
    return ret;
 }

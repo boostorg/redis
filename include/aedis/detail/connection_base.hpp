@@ -52,7 +52,7 @@ public:
    , push_channel_{ex}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
-      req_.get_config().cancel_if_not_connected = false;
+      req_.get_config().cancel_if_not_connected = true;
       req_.get_config().cancel_on_connection_lost = true;
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
@@ -65,7 +65,7 @@ public:
       switch (op) {
          case operation::exec:
          {
-            return cancel_requests_not_writen();
+            return cancel_requests_not_written();
          }
          case operation::run:
          {
@@ -76,10 +76,11 @@ public:
             check_idle_timer_.cancel();
             writer_timer_.cancel();
             ping_timer_.cancel();
+            cancel_on_conn_lost();
 
             return 1U;
          }
-         case operation::receive_push:
+         case operation::receive:
          {
             push_channel_.cancel();
             return 1U;
@@ -88,7 +89,7 @@ public:
       }
    }
 
-   auto cancel_requests_not_writen() -> std::size_t
+   auto cancel_requests_not_written() -> std::size_t
    {
       auto f = [](auto const& ptr)
       {
@@ -108,7 +109,7 @@ public:
       return ret;
    }
 
-   std::size_t cancel_requests()
+   std::size_t cancel_on_conn_lost()
    {
       auto cond = [](auto const& ptr)
       {
@@ -172,7 +173,7 @@ public:
       ep_ = std::move(ep);
       return boost::asio::async_compose
          < CompletionToken
-         , void(boost::system::error_code, std::size_t)
+         , void(boost::system::error_code)
          >(detail::run_op<Derived, Timeouts>{&derived(), ts}, token, resv_);
    }
 

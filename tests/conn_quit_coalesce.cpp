@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
    });
 
    endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, {}, [db](auto ec, auto){
+   db->async_run(ep, {}, [db](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
       db->cancel(operation::exec);
    });

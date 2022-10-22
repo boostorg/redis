@@ -32,13 +32,14 @@ void test_missing_push_reader1(bool coalesce)
    auto conn = std::make_shared<connection>(ioc);
 
    request req{{false, coalesce}};
+   req.get_config().cancel_on_connection_lost = true;
    req.push("SUBSCRIBE", "channel");
 
    conn->async_exec(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
+   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -54,7 +55,7 @@ void test_missing_push_reader2(request const& req)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
+   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -96,6 +97,7 @@ struct adapter_error {
 
 BOOST_AUTO_TEST_CASE(test_push_adapter)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
 
@@ -112,7 +114,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
       BOOST_CHECK_EQUAL(ec, boost::asio::experimental::error::channel_errors::channel_cancelled);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec, auto){
+   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -135,9 +137,9 @@ void test_push_is_received1(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec, auto){
+   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      conn->cancel(operation::receive_push);
+      conn->cancel(operation::receive);
    });
 
    bool push_received = false;
@@ -177,9 +179,9 @@ void test_push_is_received2(bool coalesce)
    conn->async_exec(req3, adapt(), handler);
 
    endpoint ep{"127.0.0.1", "6379"};
-   conn->async_run(ep, {}, [conn](auto ec, auto...) {
+   conn->async_run(ep, {}, [conn](auto ec) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      conn->cancel(operation::receive_push);
+      conn->cancel(operation::receive);
    });
 
    bool push_received = false;
@@ -235,46 +237,73 @@ void test_push_many_subscribes(bool coalesce)
    conn->async_exec(req3, adapt(), handler);
 
    endpoint ep{"127.0.0.1", "6379"};
-   conn->async_run(ep, {}, [conn](auto ec, auto...) {
+   conn->async_run(ep, {}, [conn](auto ec) {
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
-      conn->cancel(operation::receive_push);
+      conn->cancel(operation::receive);
    });
 
    net::co_spawn(ioc.get_executor(), push_consumer3(conn), net::detached);
    ioc.run();
 }
 
+BOOST_AUTO_TEST_CASE(push_received1)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   test_push_is_received1(true);
+   test_push_is_received1(false);
+}
+
+BOOST_AUTO_TEST_CASE(push_received2)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   test_push_is_received2(true);
+   test_push_is_received2(false);
+}
+
+BOOST_AUTO_TEST_CASE(many_subscribers)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   test_push_many_subscribes(true);
+   test_push_many_subscribes(false);
+}
 #endif
 
-BOOST_AUTO_TEST_CASE(test_push)
+BOOST_AUTO_TEST_CASE(missing_reader1_coalesce)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   test_missing_push_reader1(true);
+}
+
+BOOST_AUTO_TEST_CASE(missing_reader1_no_coalesce)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   test_missing_push_reader1(false);
+}
+
+BOOST_AUTO_TEST_CASE(missing_reader2a)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    request req1{{false}};
    req1.push("PING", "Message");
    req1.push("SUBSCRIBE"); // Wrong command synthax.
 
+   req1.get_config().coalesce = true;
+   test_missing_push_reader2(req1);
+
+   req1.get_config().coalesce = false;
+   test_missing_push_reader2(req1);
+}
+
+BOOST_AUTO_TEST_CASE(missing_reader2b)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    request req2{{false}};
    req2.push("SUBSCRIBE"); // Wrong command syntax.
 
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
-   test_push_is_received1(true);
-   test_push_is_received2(true);
-   test_push_many_subscribes(true);
-#endif
-   req1.get_config().coalesce = true;
-   req2.get_config().coalesce = false;
-   test_missing_push_reader1(true);
-   test_missing_push_reader2(req1);
+   req2.get_config().coalesce = true;
    test_missing_push_reader2(req2);
 
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
-   test_push_is_received1(true);
-   test_push_is_received2(false);
-   test_push_many_subscribes(false);
-#endif
-   req1.get_config().coalesce = false;
    req2.get_config().coalesce = false;
-   test_missing_push_reader1(true);
-   test_missing_push_reader2(req1);
    test_missing_push_reader2(req2);
 }
 
