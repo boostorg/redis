@@ -498,6 +498,7 @@ struct writer_op {
             yield
             boost::asio::async_write(conn->next_layer(), boost::asio::buffer(conn->write_buffer_), std::move(self));
             if (ec) {
+               conn->cancel(operation::run);
                self.complete(ec);
                return;
             }
@@ -509,21 +510,8 @@ struct writer_op {
             conn->cancel_push_requests();
          }
 
-         if (conn->is_open()) {
-            yield
-            conn->writer_timer_.async_wait(std::move(self));
-            if (ec != boost::asio::error::operation_aborted) {
-               conn->cancel(operation::run);
-               self.complete(ec);
-               return;
-            }
-            // The timer may be canceled either to stop the write op
-            // or to proceed to the next write, the difference between
-            // the two is that for the former the socket will be
-            // closed first. We check for that below.
-         }
-
-         if (!conn->is_open()) {
+         yield conn->writer_timer_.async_wait(std::move(self));
+         if (self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
             // Notice this is not an error of the op, stoping was
             // requested from the outside, so we complete with
             // success.

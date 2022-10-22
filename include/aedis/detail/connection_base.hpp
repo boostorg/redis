@@ -370,6 +370,11 @@ private:
    {
       write_buffer_ += ri.get_request().payload();
       cmds_ += ri.get_request().size();
+
+      // TODO: We mark a request a written only after a successful
+      // write on the socket and not before writting. Otherwise, if
+      // the write fails they will be seen as written and may be
+      // removed with cancel(run).
       ri.mark_written();
    }
 
