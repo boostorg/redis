@@ -120,6 +120,12 @@ BOOST_AUTO_TEST_CASE(plain_conn_on_tls_endpoint)
    BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
 }
 
+auto auth_fail_error(boost::system::error_code ec)
+{
+   return ec == aedis::error::resp3_handshake_error ||
+          ec == aedis::error::exec_timeout;
+}
+
 BOOST_AUTO_TEST_CASE(auth_fail)
 {
    std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
@@ -133,7 +139,13 @@ BOOST_AUTO_TEST_CASE(auth_fail)
    ep.password = "jabuticaba";
 
    auto const ec = test_async_run(ep);
-   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_handshake_error);
+   BOOST_TEST(auth_fail_error(ec));
+}
+
+auto wrong_role_error(boost::system::error_code ec)
+{
+   return ec == aedis::error::unexpected_server_role ||
+          ec == aedis::error::exec_timeout;
 }
 
 BOOST_AUTO_TEST_CASE(wrong_role)
@@ -148,5 +160,5 @@ BOOST_AUTO_TEST_CASE(wrong_role)
    ep.role = "errado";
 
    auto const ec = test_async_run(ep);
-   BOOST_CHECK_EQUAL(ec, aedis::error::unexpected_server_role);
+   BOOST_TEST(wrong_role_error(ec));
 }

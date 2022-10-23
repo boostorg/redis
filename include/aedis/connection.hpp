@@ -216,7 +216,7 @@ public:
     *  timeout and lead to `connection::async_run` completing with
     *  `error::idle_timeout`.  Calling `cancel(operation::run)`
     *  directly should be seen as the last option.
-    *  @li operation::receive_push: Cancels any ongoing callto
+    *  @li operation::receive: Cancels any ongoing callto
     *  `async_receive`.
     *
     *  @param op: The operation to be cancelled.
@@ -231,7 +231,7 @@ private:
    template <class, class> friend class detail::connection_base;
    template <class, class> friend struct detail::exec_read_op;
    template <class, class> friend struct detail::exec_op;
-   template <class, class> friend struct detail::receive_push_op;
+   template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::check_idle_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;

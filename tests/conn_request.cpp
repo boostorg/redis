@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
    });
    db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
+      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 
    ioc.run();

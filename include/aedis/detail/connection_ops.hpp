@@ -79,7 +79,7 @@ struct resolve_with_timeout_op {
 };
 
 template <class Conn, class Adapter>
-struct receive_push_op {
+struct receive_op {
    Conn* conn = nullptr;
    Adapter adapter;
    std::size_t read_size = 0;
@@ -96,8 +96,7 @@ struct receive_push_op {
          yield
          conn->push_channel_.async_receive(std::move(self));
          if (ec) {
-            self.complete(ec, 0);
-            return;
+            return self.complete(ec, 0);
          }
 
          yield
@@ -166,15 +165,13 @@ struct exec_read_op {
             }
 
             // If the next request is a push we have to handle it to
-            // the receive_push_op wait for it to be done and continue.
+            // the receive_op wait for it to be done and continue.
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
                yield
                async_send_receive(conn->push_channel_, std::move(self));
                if (ec) {
-                  // Notice we don't call cancel_run() as that is the
-                  // responsability of the receive_push_op.
-                  self.complete(ec, 0);
-                  return;
+                  conn->cancel(operation::run);
+                  return self.complete(ec, 0);
                }
 
                continue;
@@ -238,8 +235,7 @@ struct exec_op {
 
          conn->add_request_info(info);
 EXEC_OP_WAIT:
-         yield
-         info->async_wait(std::move(self));
+         yield info->async_wait(std::move(self));
          BOOST_ASSERT(ec == boost::asio::error::operation_aborted);
 
          if (info->get_action() == Conn::req_info::action::stop) {
@@ -305,7 +301,9 @@ struct ping_op {
       {
          conn->ping_timer_.expires_after(ping_interval);
          yield conn->ping_timer_.async_wait(std::move(self));
-         if (ec) {
+         if (!conn->is_open() || ec) {
+            // Checking for is_open is necessary becuse the timer can
+            // complete with success although cancel has been called.
             self.complete({});
             return;
          }
@@ -313,9 +311,12 @@ struct ping_op {
          conn->req_.clear();
          conn->req_.push("PING");
          yield conn->async_exec(conn->req_, adapt(), std::move(self));
-         if (self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
-            self.complete({});
-            return;
+         if (!conn->is_open() ||
+             self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
+            // Checking for is_open is necessary to avoid
+            // looping back on the timer although cancel has been
+            // called.
+            return self.complete({});
          }
       }
    }
@@ -334,17 +335,10 @@ struct check_idle_op {
       {
          conn->check_idle_timer_.expires_after(2 * ping_interval);
          yield conn->check_idle_timer_.async_wait(std::move(self));
-         if (ec) {
-            conn->cancel(operation::run);
-            self.complete({});
-            return;
-         }
-
-         if (!conn->is_open()) {
-            // Notice this is not an error, it was requested from an
-            // external op.
-            self.complete({});
-            return;
+         if (!conn->is_open() || ec) {
+            // Checking for is_open is necessary becuse the timer can
+            // complete with success although cancel has been called.
+            return self.complete({});
          }
 
          auto const now = std::chrono::steady_clock::now();
@@ -502,11 +496,21 @@ struct writer_op {
                self.complete(ec);
                return;
             }
+
             conn->on_write();
+
+            // A socket.close() might may have been called while a
+            // successful write might had already been queued, so we
+            // have to check here before proceeding.
+            if (!conn->is_open()) {
+               self.complete({});
+               return;
+            }
          }
 
          yield conn->writer_timer_.async_wait(std::move(self));
-         if (self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
+         if (!conn->is_open() ||
+             self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
             // Notice this is not an error of the op, stoping was
             // requested from the outside, so we complete with
             // success.
@@ -565,11 +569,10 @@ struct reader_op {
          if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push
              || conn->reqs_.empty()
              || (!conn->reqs_.empty() && conn->reqs_.front()->get_number_of_commands() == 0)) {
-            yield
-            async_send_receive(conn->push_channel_, std::move(self));
-            if (ec) {
+            yield async_send_receive(conn->push_channel_, std::move(self));
+            if (!conn->is_open() || ec) {
                conn->cancel(operation::run);
-               self.complete(ec);
+               self.complete(boost::asio::error::basic_errors::operation_aborted);
                return;
             }
          } else {
@@ -577,12 +580,13 @@ struct reader_op {
             BOOST_ASSERT(!conn->reqs_.empty());
             BOOST_ASSERT(conn->reqs_.front()->get_number_of_commands() != 0);
             conn->reqs_.front()->proceed();
-            yield
-            conn->read_timer_.async_wait(std::move(self));
-            if (ec != boost::asio::error::operation_aborted ||
-                !conn->is_open()) {
+            yield conn->read_timer_.async_wait(std::move(self));
+            if (!conn->is_open() ||
+                self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
+               // Added this cancel here to make sure any outstanding
+               // ping is cancelled.
                conn->cancel(operation::run);
-               self.complete(ec);
+               self.complete(boost::asio::error::basic_errors::operation_aborted);
                return;
             }
          }

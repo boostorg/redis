@@ -26,6 +26,7 @@ using operation = aedis::operation;
 // Test if quit causes async_run to exit.
 BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 {
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
 

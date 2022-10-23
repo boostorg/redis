@@ -16,12 +16,12 @@ Some of its distinctive features are
 * Healthy checks, back pressure and low latency.
 
 In addition to that, Aedis hides most of the low-level Asio code away
-from the user, which in the majority of the use cases will interact
-with only three library entities
+from the user, which, in the majority of the cases, will interact with
+only three library entities
 
 * `aedis::connection`: A connection to the Redis server.
 * `aedis::resp3::request`: A container of Redis commands.
-* `aedis::adapt()`: Adapts user data structures to receive Redis responses.
+* `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
 
 Let us see how that works in more detail.
 
@@ -29,8 +29,27 @@ Let us see how that works in more detail.
 
 ### Connection
 
-The code below will establish a connection with a Redis
-server, send a request and print the response to the screen (see intro.cpp)
+The `aedis::connection` is a high-level class that provides async
+communication with a Redis server by means of three member
+functions
+
+* `aedis::connection::async_run`: Establishes a connection.
+* `aedis::connection::async_exec`: Executes commands.
+* `aedis::connection::async_receive`: Receives server-side pushes.
+
+In general, these operations will be running concurrently in user
+application, where, for example
+
+* One e.g. coroutine calls `async_run` in a loop to
+  reconnect whenever a connection is lost (see subscriber.cpp and
+  subscriber_sentinel.cpp).
+* Multiple coroutines call `async_exec` independently and without
+  coordination e.g. queuing. For example, when each session in a http
+  server has to communicate with Redis (see echo_server.cpp).
+* One corutine loops on `async_receive` to receive server-side pushes.
+
+Before it gets too theoretical, let us see a simple example, the code
+below will execute a `PING` command and exit (see intro.cpp)
 
 ```cpp
 int main()
@@ -52,73 +71,69 @@ int main()
 }
 ```
 
-Requests can be sent at any time, regardless of whether before or
-after a connection was established. Furthermore, multiple calls to
-`aedis::connection::async_exec` will be synchronized automatically by
-the connection class. Reconnection is also supported, for example, the
-loop below implements reconnection for users wishing to reconnect to
-the same server (see subscriber.cpp),
+Aedis provides full control about how requests should behave when a
+connection is lost see `aedis::resp3::request::config` for more
+information.
 
-```cpp
-net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
-{
-   net::steady_timer timer{co_await net::this_coro::executor};
-   for (;;) {
-      boost::system::error_code ec;
-      co_await conn->async_run({"127.0.0.1", "6379"}, {}, net::redirect_error(net::use_awaitable, ec));
-      conn->reset_stream();
-      timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait();
-   }
-}
-```
-More complex scenarios, such as performing failover with
-sentinel can be found in the examples. To aid proper failover, calls
-to `connection::async_exec` won't be affected by a
-connection is lost, rather, they will remain suspended until a new
-connection is established and will be sent automatically if the user
-desires so, see aedis::resp3::request::config for more information.
-
-#### Server-side pushes
-
-Aedis supports server side pushes on the same connection that is being
-used to perform requests. To receive them use the
-`aedis::connection::async_receive` like shown below (see
-subscriber.cpp)
+The same connection that is being used to send requests can be also
+used to receive server-side pushes. The coroutine below was extracted
+from subscriber.cpp
 
 ```cpp
 net::awaitable<void> receive_pushes(std::shared_ptr<connection> conn)
 {
    for (std::vector<node<std::string>> resp;;) {
-      co_await conn->async_receive_push(adapt(resp));
+      co_await conn->async_receive(adapt(resp));
       // Process the push in resp.
       resp.clear();
    }
 }
 ```
 
-Users should ensure any server pushes sent by the server are
-consumed, otherwise the connection will eventually timeout.
+The reason for using `std::vector<node<std::string>>` as a response
+type will be explaned below.  Users should ensure any server pushes
+sent by the server are consumed, otherwise the connection will
+eventually timeout.
 
 #### Cancelation
 
-In addition to that, the
-`aedis::connection::cancel` function provide a way to cancel each of
-the async operations in the connection class.
-
-Cancellation with Asio awaitable operators are also in most cases, for
-example
+Aedis supports both explicit and implicit cancellation of connection
+operations. Explicit cancellation is support by the
+`aedis::connection::cancel` member function. Implicit cancellation
+will be discussed with more detail below.
 
 ```cpp
-// Not very useful.
-co_await (conn.async_run(...) || timer.async_wait(...))
-
-// Useful when reconnecting.
 co_await (conn.async_run(...) && conn.async_exec(...))
+```
 
-// Not very useful.
+* This is useful when implementing reconnection for applications the
+  use pubsub. When a connection is lost and then restablished,
+  applications will usually want to re-subscribe to all channels, the
+  composition above makes this easier.
+
+```cpp
 co_await (conn.async_exec(...) || time.async_wait(...))
 ```
+
+* This is supported but the author did not find many use cases for it
+  yet i.e. cancelling execution of a request after a specified amount
+  of time. Alternatively, users can also set
+  `aedis::connection::timeouts::ping_interval` to a proper value. This
+  works because all requests use the same queue, so they are equally
+  affected by the timeout.
+
+* The cancellation will be ignored if the request has already
+  been written to the socket.
+
+```cpp
+co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
+```
+
+* This is supported but not very useful if the `aedis::resp3::request`
+  objects are on the same scope/operation. The reason is that, unless
+  you have set the `aedis::resp3::request::config::coalesce` to
+  `false` (you shouldn't), the connection will merge the individual
+  requests into a single payload anyway.
 
 #### Timeouts
 
@@ -709,7 +724,13 @@ another.
   `aedis::connection::async_exec`. The following call will `co_await (conn.async_exec(...) || timer.async_wait(...))`
   will cancel the request as long as it has not been written.
 
-### v1.1.0/1
+* Changes `aedis::connection::async_run` completion signature to
+  `f(error_code)`. This is how is was in the past, the second
+  parameter was not helpful.
+
+* Renames `operation::receive_push` to `aedis::operation::receive`.
+
+### v1.1.0...1
 
 * Removes `coalesce_requests` from the `aedis::connection::config`, it
   became a request property now, see `aedis::resp3::request::config::coalesce`.
@@ -835,30 +856,21 @@ another.
 * Fixes build in clang the compilers and makes some improvements in
   the documentation.
 
-### v0.2.1
+### v0.2.0...1
 
-* Fixes a bug that happens on very high load.
-
-### v0.2.0
-
+* Fixes a bug that happens on very high load. (v0.2.1) 
 * Major rewrite of the high-level API. There is no more need to use the low-level API anymore.
 * No more callbacks: Sending requests follows the ASIO asynchronous model.
 * Support for reconnection: Pending requests are not canceled when a connection is lost and are re-sent when a new one is established.
 * The library is not sending HELLO-3 on user behalf anymore. This is important to support AUTH properly.
 
-### v0.1.2
+### v0.1.0...2
 
-* Adds reconnect coroutine in the `echo_server` example.
-* Corrects `client::async_wait_for_data` with `make_parallel_group` to launch operation.
-* Improvements in the documentation.
-* Avoids dynamic memory allocation in the client class after reconnection.
-
-### v0.1.1
-
-* Improves the documentation and adds some features to the high-level client.
-
-### v0.1.0
-
+* Adds reconnect coroutine in the `echo_server` example. (v0.1.2)
+* Corrects `client::async_wait_for_data` with `make_parallel_group` to launch operation. (v0.1.2)
+* Improvements in the documentation. (v0.1.2)
+* Avoids dynamic memory allocation in the client class after reconnection. (v0.1.2)
+* Improves the documentation and adds some features to the high-level client. (v.0.1.1)
 * Improvements in the design and documentation.
 
 ### v0.0.1

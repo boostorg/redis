@@ -163,7 +163,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::receive_push_op<Derived, decltype(f)>{&derived(), f}, token, resv_);
+         >(detail::receive_op<Derived, decltype(f)>{&derived(), f}, token, resv_);
    }
 
    template <class Timeouts, class CompletionToken>
@@ -284,7 +284,7 @@ private:
 
    using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
-   template <class, class> friend struct detail::receive_push_op;
+   template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
    template <class> friend struct detail::ping_op;

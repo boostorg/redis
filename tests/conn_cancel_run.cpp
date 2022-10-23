@@ -79,6 +79,59 @@ BOOST_AUTO_TEST_CASE(cancel_run_with_timer_stress)
    ioc.run();
 }
 
+net::awaitable<void> async_cancel_run_with_timer_stress2()
+{
+   auto ex =  co_await net::this_coro::executor;
+   
+   auto db0 = connection{ex};
+   auto db1 = connection{ex};
+   auto db2 = connection{ex};
+   auto db3 = connection{ex};
+   auto db4 = connection{ex};
+   auto db5 = connection{ex};
+   auto db6 = connection{ex};
+   auto db7 = connection{ex};
+   auto db8 = connection{ex};
+   auto db9 = connection{ex};
+
+   auto timer = net::steady_timer{ex};
+   
+   connection::timeouts tms;
+   tms.resolve_timeout = std::chrono::seconds{10};
+   tms.connect_timeout = std::chrono::seconds{10};
+   tms.resp3_handshake_timeout = std::chrono::seconds{2};
+   tms.ping_interval = std::chrono::seconds{1};
+
+   endpoint ep{ "127.0.0.1", "6379" };
+
+   for (int i = 0; i < 30; i++) {
+      timer.expires_after(std::chrono::milliseconds{1005}); // Note extra 5ms
+      co_await (
+         db0.async_run(ep, tms, net::use_awaitable) ||
+         db1.async_run(ep, tms, net::use_awaitable) ||
+         db2.async_run(ep, tms, net::use_awaitable) ||
+         db3.async_run(ep, tms, net::use_awaitable) ||
+         db4.async_run(ep, tms, net::use_awaitable) ||
+         db5.async_run(ep, tms, net::use_awaitable) ||
+         db6.async_run(ep, tms, net::use_awaitable) ||
+         db7.async_run(ep, tms, net::use_awaitable) ||
+         db8.async_run(ep, tms, net::use_awaitable) ||
+         db9.async_run(ep, tms, net::use_awaitable) ||
+         timer.async_wait(net::use_awaitable)
+      );
+      std::cout << i << std::endl;
+   }
+}
+
+// PR #29
+BOOST_AUTO_TEST_CASE(cancel_run_with_timer_stress2)
+{
+   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
+   net::io_context ioc;
+   net::co_spawn(ioc, async_cancel_run_with_timer_stress2(), net::detached);
+   ioc.run();
+}
+
 #else
 int main(){}
 #endif
