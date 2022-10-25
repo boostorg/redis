@@ -42,6 +42,11 @@ struct handshake_op {
             boost::asio::experimental::wait_for_one(),
             std::move(self));
 
+         if (is_cancelled(self)) {
+            self.complete(boost::asio::error::operation_aborted);
+            return;
+         }
+
          switch (order[0]) {
             case 0: self.complete(ec1); return;
             case 1:
@@ -88,21 +93,16 @@ struct ssl_connect_with_timeout_op {
       reenter (coro)
       {
          timer->expires_after(ts.connect_timeout);
-
          yield
          aedis::detail::async_connect(
             conn->lowest_layer(), *timer, *endpoints, std::move(self));
-
-         if (ec) {
-            self.complete(ec);
-            return;
-         }
+         AEDIS_CHECK_OP0();
 
          timer->expires_after(ts.handshake_timeout);
-
          yield
          async_handshake(conn->next_layer(), *timer, std::move(self));
-         self.complete(ec);
+         AEDIS_CHECK_OP0();
+         self.complete({});
       }
    }
 };

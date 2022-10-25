@@ -77,7 +77,7 @@ add_executable(test_conn_cancel_run tests/conn_cancel_run.cpp)
 add_executable(test_conn_cancel_exec tests/conn_cancel_exec.cpp)
 
 target_compile_features(chat_room PUBLIC cxx_std_20)
-target_compile_features(containers PUBLIC cxx_std_17)
+target_compile_features(containers PUBLIC cxx_std_20)
 target_compile_features(echo_server PUBLIC cxx_std_20)
 target_compile_features(echo_server_client PUBLIC cxx_std_20)
 target_compile_features(echo_server_direct PUBLIC cxx_std_20)

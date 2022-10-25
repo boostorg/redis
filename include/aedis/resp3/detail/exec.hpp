@@ -51,9 +51,10 @@ struct exec_op {
                *socket,
                boost::asio::buffer(req->payload()),
                std::move(self));
+            AEDIS_CHECK_OP1();
 
-            if (ec || n_cmds == 0) {
-               self.complete(ec, n);
+            if (n_cmds == 0) {
+               self.complete({}, n);
                return;
             }
 
@@ -61,10 +62,7 @@ struct exec_op {
          }
 
          yield resp3::async_read(*socket, dbuf, adapter, std::move(self));
-         if (ec) {
-            self.complete(ec, 0);
-            return;
-         }
+         AEDIS_CHECK_OP1();
 
          size += n;
          if (--n_cmds == 0) {
@@ -125,6 +123,11 @@ struct exec_with_timeout_op {
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
             std::move(self));
+
+         if (is_cancelled(self)) {
+            self.complete(boost::asio::error::operation_aborted, 0);
+            return;
+         }
 
          switch (order[0]) {
             case 0: self.complete(ec1, n); break;

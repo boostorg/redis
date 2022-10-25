@@ -46,10 +46,9 @@ struct connect_with_timeout_op {
       reenter (coro)
       {
          timer->expires_after(ts.connect_timeout);
-         yield
-         detail::async_connect(
-            conn->next_layer(), *timer, *endpoints, std::move(self));
-         self.complete(ec);
+         yield detail::async_connect(conn->next_layer(), *timer, *endpoints, std::move(self));
+         AEDIS_CHECK_OP0();
+         self.complete({});
       }
    }
 };
@@ -72,8 +71,9 @@ struct resolve_with_timeout_op {
          aedis::detail::async_resolve(
             conn->resv_, conn->ping_timer_,
             conn->ep_.host, conn->ep_.port, std::move(self));
+         AEDIS_CHECK_OP0();
          conn->endpoints_ = res;
-         self.complete(ec);
+         self.complete({});
       }
    }
 };
@@ -93,33 +93,26 @@ struct receive_op {
    {
       reenter (coro)
       {
-         yield
-         conn->push_channel_.async_receive(std::move(self));
-         if (ec) {
-            return self.complete(ec, 0);
-         }
+         yield conn->push_channel_.async_receive(std::move(self));
+         AEDIS_CHECK_OP1();
 
          yield
          resp3::async_read(
             conn->next_layer(),
             conn->make_dynamic_buffer(adapter.get_max_read_size(0)),
             adapter, std::move(self));
-         if (ec) {
-            conn->cancel(operation::run);
 
-            // Needed to cancel the channel, otherwise the read
-            // operation will be blocked forever see
-            // test_push_adapter.
-            conn->cancel(operation::receive);
-            self.complete(ec, 0);
-            return;
-         }
+         // cancel(receive) is needed to cancel the channel, otherwise
+         // the read operation will be blocked forever see
+         // test_push_adapter.
+         AEDIS_CHECK_OP1(conn->cancel(operation::run); conn->cancel(operation::receive));
 
          read_size = n;
 
-         yield
-         conn->push_channel_.async_send({}, 0, std::move(self));
-         self.complete(ec, read_size);
+         yield conn->push_channel_.async_send({}, 0, std::move(self));
+         AEDIS_CHECK_OP1();
+
+         self.complete({}, read_size);
          return;
       }
    }
@@ -157,11 +150,7 @@ struct exec_read_op {
                   conn->next_layer(),
                   conn->make_dynamic_buffer(),
                   "\r\n", std::move(self));
-               if (ec) {
-                  conn->cancel(operation::run);
-                  self.complete(ec, 0);
-                  return;
-               }
+               AEDIS_CHECK_OP1(conn->cancel(operation::run));
             }
 
             // If the next request is a push we have to handle it to
@@ -169,11 +158,7 @@ struct exec_read_op {
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
                yield
                async_send_receive(conn->push_channel_, std::move(self));
-               if (ec) {
-                  conn->cancel(operation::run);
-                  return self.complete(ec, 0);
-               }
-
+               AEDIS_CHECK_OP1(conn->cancel(operation::run));
                continue;
             }
             //-----------------------------------
@@ -187,11 +172,7 @@ struct exec_read_op {
 
             ++index;
 
-            if (ec) {
-               conn->cancel(operation::run);
-               self.complete(ec, 0);
-               return;
-            }
+            AEDIS_CHECK_OP1(conn->cancel(operation::run));
 
             read_size += n;
 
@@ -242,7 +223,7 @@ EXEC_OP_WAIT:
             return self.complete(ec, 0);
          }
 
-         if (self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
+         if (is_cancelled(self)) {
             if (info->is_written()) {
                self.get_cancellation_state().clear();
                goto EXEC_OP_WAIT; // Too late, can't cancel.
@@ -263,8 +244,7 @@ EXEC_OP_WAIT:
          BOOST_ASSERT(conn->cmds_ != 0);
          yield
          conn->async_exec_read(adapter, conn->reqs_.front()->get_number_of_commands(), std::move(self));
-         if (ec)
-            return self.complete(ec, 0);
+         AEDIS_CHECK_OP1();
 
          read_size = n;
 
@@ -301,7 +281,7 @@ struct ping_op {
       {
          conn->ping_timer_.expires_after(ping_interval);
          yield conn->ping_timer_.async_wait(std::move(self));
-         if (!conn->is_open() || ec) {
+         if (!conn->is_open() || ec || is_cancelled(self)) {
             // Checking for is_open is necessary becuse the timer can
             // complete with success although cancel has been called.
             self.complete({});
@@ -311,8 +291,7 @@ struct ping_op {
          conn->req_.clear();
          conn->req_.push("PING");
          yield conn->async_exec(conn->req_, adapt(), std::move(self));
-         if (!conn->is_open() ||
-             self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
+         if (!conn->is_open() || is_cancelled(self)) {
             // Checking for is_open is necessary to avoid
             // looping back on the timer although cancel has been
             // called.
@@ -335,7 +314,7 @@ struct check_idle_op {
       {
          conn->check_idle_timer_.expires_after(2 * ping_interval);
          yield conn->check_idle_timer_.async_wait(std::move(self));
-         if (!conn->is_open() || ec) {
+         if (!conn->is_open() || ec || is_cancelled(self)) {
             // Checking for is_open is necessary becuse the timer can
             // complete with success although cancel has been called.
             return self.complete({});
@@ -379,6 +358,11 @@ struct start_op {
             boost::asio::experimental::wait_for_one(),
             std::move(self));
 
+         if (is_cancelled(self)) {
+            self.complete(boost::asio::error::operation_aborted);
+            return;
+         }
+
          switch (order[0]) {
            case 0: self.complete(ec0); break;
            case 1: self.complete(ec1); break;
@@ -413,21 +397,11 @@ struct run_op {
    {
       reenter (coro)
       {
-         yield
-         conn->async_resolve_with_timeout(ts.resolve_timeout, std::move(self));
-         if (ec) {
-            conn->cancel(operation::run);
-            self.complete(ec);
-            return;
-         }
+         yield conn->async_resolve_with_timeout(ts.resolve_timeout, std::move(self));
+         AEDIS_CHECK_OP0(conn->cancel(operation::run));
 
-         yield
-         conn->derived().async_connect(conn->endpoints_, ts, conn->ping_timer_, std::move(self));
-         if (ec) {
-            conn->cancel(operation::run);
-            self.complete(ec);
-            return;
-         }
+         yield conn->derived().async_connect(conn->endpoints_, ts, conn->ping_timer_, std::move(self));
+         AEDIS_CHECK_OP0(conn->cancel(operation::run));
 
          conn->prepare_hello(conn->ep_);
          conn->ping_timer_.expires_after(ts.resp3_handshake_timeout);
@@ -443,11 +417,7 @@ struct run_op {
             std::move(self)
          );
 
-         if (ec) {
-            conn->cancel(operation::run);
-            self.complete(ec);
-            return;
-         }
+         AEDIS_CHECK_OP0(conn->cancel(operation::run));
 
          if (check_resp3_handshake_failed(conn->response_)) {
             conn->cancel(operation::run);
@@ -467,8 +437,8 @@ struct run_op {
          conn->cmds_ = 0;
 
          yield conn->async_start(ts, std::move(self));
-
-         self.complete(ec);
+         AEDIS_CHECK_OP0();
+         self.complete({});
       }
    }
 };
@@ -491,11 +461,7 @@ struct writer_op {
             conn->coalesce_requests();
             yield
             boost::asio::async_write(conn->next_layer(), boost::asio::buffer(conn->write_buffer_), std::move(self));
-            if (ec) {
-               conn->cancel(operation::run);
-               self.complete(ec);
-               return;
-            }
+            AEDIS_CHECK_OP0(conn->cancel(operation::run));
 
             conn->on_write();
 
@@ -509,8 +475,7 @@ struct writer_op {
          }
 
          yield conn->writer_timer_.async_wait(std::move(self));
-         if (!conn->is_open() ||
-             self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
+         if (!conn->is_open() || is_cancelled(self)) {
             // Notice this is not an error of the op, stoping was
             // requested from the outside, so we complete with
             // success.
@@ -540,11 +505,7 @@ struct reader_op {
             conn->next_layer(),
             conn->make_dynamic_buffer(),
             "\r\n", std::move(self));
-         if (ec) {
-            conn->cancel(operation::run);
-            self.complete(ec);
-            return;
-         }
+         AEDIS_CHECK_OP0(conn->cancel(operation::run));
 
          conn->last_data_ = std::chrono::steady_clock::now();
 
@@ -570,7 +531,7 @@ struct reader_op {
              || conn->reqs_.empty()
              || (!conn->reqs_.empty() && conn->reqs_.front()->get_number_of_commands() == 0)) {
             yield async_send_receive(conn->push_channel_, std::move(self));
-            if (!conn->is_open() || ec) {
+            if (!conn->is_open() || ec || is_cancelled(self)) {
                conn->cancel(operation::run);
                self.complete(boost::asio::error::basic_errors::operation_aborted);
                return;
@@ -581,8 +542,7 @@ struct reader_op {
             BOOST_ASSERT(conn->reqs_.front()->get_number_of_commands() != 0);
             conn->reqs_.front()->proceed();
             yield conn->read_timer_.async_wait(std::move(self));
-            if (!conn->is_open() ||
-                self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none) {
+            if (!conn->is_open() || is_cancelled(self)) {
                // Added this cancel here to make sure any outstanding
                // ping is cancelled.
                conn->cancel(operation::run);

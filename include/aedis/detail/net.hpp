@@ -53,6 +53,11 @@ struct connect_op {
             boost::asio::experimental::wait_for_one(),
             std::move(self));
 
+         if (is_cancelled(self)) {
+            self.complete(boost::asio::error::operation_aborted, {});
+            return;
+         }
+
          switch (order[0]) {
             case 0: self.complete(ec1, ep); return;
             case 1:
@@ -96,6 +101,11 @@ struct resolve_op {
             boost::asio::experimental::wait_for_one(),
             std::move(self));
 
+         if (is_cancelled(self)) {
+            self.complete(boost::asio::error::operation_aborted, {});
+            return;
+         }
+
          switch (order[0]) {
             case 0: self.complete(ec1, res); return;
 
@@ -129,14 +139,13 @@ struct send_receive_op {
       {
          yield
          channel->async_send(boost::system::error_code{}, 0, std::move(self));
-         if (ec) {
-            self.complete(ec, 0);
-            return;
-         }
+         AEDIS_CHECK_OP1();
 
          yield
          channel->async_receive(std::move(self));
-         self.complete(ec, 0);
+         AEDIS_CHECK_OP1();
+
+         self.complete({}, 0);
       }
    }
 };

@@ -13,7 +13,7 @@ Some of its distinctive features are
 * Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
 * Support for STL containers, TLS and Redis sentinel.
 * Serialization and deserialization of your own data types.
-* Healthy checks, back pressure and low latency.
+* Healthy checks, back pressure, cancellation and low latency.
 
 In addition to that, Aedis hides most of the low-level Asio code away
 from the user, which, in the majority of the cases, will interact with

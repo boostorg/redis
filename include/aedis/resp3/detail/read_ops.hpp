@@ -17,6 +17,29 @@
 
 #include <boost/asio/yield.hpp>
 
+namespace aedis::detail
+{
+template <class T>
+auto is_cancelled(T const& self)
+{
+   return self.get_cancellation_state().cancelled() != boost::asio::cancellation_type_t::none;
+}
+}
+
+#define AEDIS_CHECK_OP0(X)\
+   if (ec || aedis::detail::is_cancelled(self)) {\
+      X;\
+      self.complete(!!ec ? ec : boost::asio::error::operation_aborted);\
+      return;\
+   }
+
+#define AEDIS_CHECK_OP1(X)\
+   if (ec || aedis::detail::is_cancelled(self)) {\
+      X;\
+      self.complete(!!ec ? ec : boost::asio::error::operation_aborted, {});\
+      return;\
+   }
+
 namespace aedis::resp3::detail {
 
 struct ignore_response {
@@ -59,12 +82,7 @@ public:
          if (parser_.bulk() == type::invalid) {
             yield
             boost::asio::async_read_until(stream_, buf_, "\r\n", std::move(self));
-
-            if (ec) {
-               self.complete(ec, 0);
-               return;
-            }
-
+            AEDIS_CHECK_OP1();
          } else {
 	    // On a bulk read we can't read until delimiter since the
 	    // payload may contain the delimiter itself so we have to
@@ -83,11 +101,7 @@ public:
                   buf_.data(buffer_size_, parser_.bulk_length() + 2 - buffer_size_),
                   boost::asio::transfer_all(),
                   std::move(self));
-
-               if (ec) {
-                  self.complete(ec, 0);
-                  return;
-               }
+               AEDIS_CHECK_OP1();
             }
 
             n = parser_.bulk_length() + 2;
