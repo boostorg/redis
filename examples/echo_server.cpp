@@ -50,19 +50,29 @@ awaitable_type listener(std::shared_ptr<connection> db)
       net::co_spawn(ex, echo_loop(co_await acc.async_accept(), db), net::detached);
 }
 
+net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
+{
+   net::steady_timer timer{co_await net::this_coro::executor};
+   endpoint ep{"127.0.0.1", "6379"};
+   for (boost::system::error_code ec1;;) {
+      co_await conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1));
+      conn->reset_stream();
+      timer.expires_after(std::chrono::seconds{1});
+      co_await timer.async_wait(net::use_awaitable);
+   }
+}
+
 auto main() -> int
 {
    try {
-      net::io_context ioc{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE_IO};
+      net::io_context ioc{1};
       auto db = std::make_shared<connection>(ioc);
-      endpoint ep{"127.0.0.1", "6379"};
-      db->async_run(ep, {}, [&](auto const& ec) {
-         std::clog << ec.message() << std::endl;
-         ioc.stop();
-      });
+      co_spawn(ioc, reconnect(db), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
-      signals.async_wait([&](auto, auto){ ioc.stop(); });
+      signals.async_wait([&](auto, auto) {
+         ioc.stop();
+      });
 
       co_spawn(ioc, listener(db), net::detached);
       ioc.run();

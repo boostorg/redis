@@ -25,6 +25,11 @@ using aedis::endpoint;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using connection = aedis::connection<tcp_socket>;
 
+auto redir(boost::system::error_code& ec)
+{
+   return net::redirect_error(net::use_awaitable, ec);
+}
+
 // Sends some containers.
 net::awaitable<void> send()
 {
@@ -44,10 +49,22 @@ net::awaitable<void> send()
    connection conn{ex};
    endpoint ep{"127.0.0.1", "6379"};
    boost::system::error_code ec1, ec2;
-   co_await (
-      conn.async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) ||
-      conn.async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
-   );
+   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(), redir(ec2)));
+}
+
+net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
+{
+   connection conn{co_await net::this_coro::executor};
+
+   request req;
+   req.push("HGETALL", "hset-key");
+   req.push("QUIT");
+
+   std::tuple<std::map<std::string, std::string>, aedis::ignore> resp;
+
+   boost::system::error_code ec1, ec2;
+   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(resp), redir(ec2)));
+   co_return std::move(std::get<0>(resp));
 }
 
 net::awaitable<void> async_main()
@@ -70,16 +87,15 @@ net::awaitable<void> async_main()
    > resp;
 
    co_await send();
-   connection conn{ex};
    endpoint ep{"127.0.0.1", "6379"};
+   auto const hashes = co_await retrieve_hashes(ep);
+   connection conn{ex};
    boost::system::error_code ec1, ec2;
-   co_await (
-      conn.async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) ||
-      conn.async_exec(req, adapt(resp), net::redirect_error(net::use_awaitable, ec2))
-   );
+   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(resp), redir(ec2)));
 
    print(std::get<0>(std::get<3>(resp)).value());
    print(std::get<1>(std::get<3>(resp)).value());
+   print(hashes);
 }
 
 auto main() -> int

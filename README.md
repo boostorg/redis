@@ -23,13 +23,38 @@ only three library entities
 * `aedis::resp3::request`: A container of Redis commands.
 * `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
 
-Let us see how that works in more detail.
+The example below shows for example how to read Redis hashes in an
+`std::map` using a coroutine
+
+```cpp
+net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
+{
+   connection conn{co_await net::this_coro::executor};
+
+   request req;
+   req.push("HGETALL", "hset-key");
+   req.push("QUIT");
+
+   std::tuple<std::map<std::string, std::string>, aedis::ignore> resp;
+
+   boost::system::error_code ec1, ec2;
+   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(resp), redir(ec2)));
+   co_return std::move(std::get<0>(resp));
+}
+
+```
+
+In the example above the connection is short lived and will cease to
+exist when the coroutine returns. In most cases however users will
+want to reuse the connection for multiple requests to achieve better
+performance, in the next sections we will have a closer look on how
+this can be done among other things.
 
 <a name="connection"></a>
 
 ### Connection
 
-The `aedis::connection` is a high-level class that provides async
+The `aedis::connection` is a high-level class that provides async-only
 communication with a Redis server by means of three member
 functions
 
@@ -40,60 +65,97 @@ functions
 In general, these operations will be running concurrently in user
 application, where, for example
 
-* One e.g. coroutine calls `async_run` in a loop to
-  reconnect whenever a connection is lost (see subscriber.cpp and
-  subscriber_sentinel.cpp).
-* Multiple coroutines call `async_exec` independently and without
-  coordination e.g. queuing. For example, when each session in a http
-  server has to communicate with Redis (see echo_server.cpp).
-* One corutine loops on `async_receive` to receive server-side pushes.
+1. **Reconnect**: One e.g. coroutine will call `async_run` in a loop
+   to reconnect whenever a connection is lost.
+2. **Exec**: Multiple coroutines will call `async_exec` independently
+   and without coordination e.g. queuing.
+3. **Receive**: One corutine will loop on `async_receive` to receive
+   server-side pushes. This is optinal, not all apps need to receive
+   pushes.
 
-Before it gets too theoretical, let us see a simple example, the code
-below will execute a `PING` command and exit (see intro.cpp)
+Each of the operations above can be performed without regards to the
+other as they are independent from each other.  Let us now see with
+more detail each point above.
+
+#### Reconnect
+
+For example, point 1. above can be implemented as (see echo_server.cpp)
 
 ```cpp
-int main()
+net::awaitable<void> reconnect(std::shared_ptr<connection> conn, endpoint ep)
 {
-   boost::asio::io_context ioc;
-   connection conn{ioc};
-
-   request req;
-   req.push("PING");
-   req.push("QUIT");
-
-   std::tuple<std::string, aedis::ignore> resp;
-   conn.async_exec(req, adapt(resp), logger);
-   conn.async_run({"127.0.0.1", "6379"}, {}, logger);
-
-   ioc.run();
-
-   std::cout << std::get<0>(resp) << std::endl;
+   net::steady_timer timer{co_await net::this_coro::executor};
+   for (boost::system::error_code ec1;;) {
+      co_await conn->async_run(ep, {}, redir(ec1));
+      conn->reset_stream();
+      timer.expires_after(std::chrono::seconds{1});
+      co_await timer.async_wait(net::use_awaitable);
+   }
 }
 ```
 
-Aedis provides full control about how requests should behave when a
-connection is lost see `aedis::resp3::request::config` for more
-information.
+The example above is suitable for reconnection to the same sever. Two
+other important scenario are
 
-The same connection that is being used to send requests can be also
-used to receive server-side pushes. The coroutine below was extracted
-from subscriber.cpp
+* Failover with sentinels: see example subscriber_sentinel.cpp.
+* Reconnection with re-subscription to channel: see subscriber.cpp.
+
+#### Exec
+
+For number 2. we can take the echo_server.cpp example
 
 ```cpp
-net::awaitable<void> receive_pushes(std::shared_ptr<connection> conn)
+awaitable_type echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
+{
+   request req;
+   std::tuple<std::string> resp;
+
+   for (std::string buffer;;) {
+      auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
+      req.push("PING", buffer);
+      co_await db->async_exec(req, adapt(resp));
+      co_await net::async_write(socket, net::buffer(std::get<0>(resp)));
+      std::get<0>(resp).clear();
+      req.clear();
+      buffer.erase(0, n);
+   }
+}
+```
+
+The coroutine above will
+
+* Read a user message.
+* Send that message to the server and read its response.
+* Write it back to the user.
+
+A server can start multiple such coroutines sharing the same Redis
+connection. Notice also how the server above provides back-pressure as
+the coroutine won't read the next message from the socket until a
+cycle is complete.
+
+#### Receive
+
+Point number 3. can be also taken from an example, in this case
+subscriber.cpp
+
+```cpp
+net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
 {
    for (std::vector<node<std::string>> resp;;) {
       co_await conn->async_receive(adapt(resp));
-      // Process the push in resp.
+      print_push(resp);
       resp.clear();
    }
 }
 ```
 
-The reason for using `std::vector<node<std::string>>` as a response
-type will be explaned below.  Users should ensure any server pushes
-sent by the server are consumed, otherwise the connection will
-eventually timeout.
+The same connection that is being used to send requests can be also
+used to receive server-side pushes.
+
+Users should ensure any server pushes sent by the server are consumed,
+otherwise the connection will eventually timeout.
+
+TODO: Talk about the behaviour of request when a disconnection occurs.
 
 #### Cancelation
 
