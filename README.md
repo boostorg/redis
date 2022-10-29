@@ -24,7 +24,7 @@ only three library entities
 * `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
 
 The example below shows for example how to read Redis hashes in an
-`std::map` using a coroutine
+`std::map` using a coroutine and a short-lived connection
 
 ```cpp
 net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
@@ -35,108 +35,124 @@ net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   std::tuple<std::map<std::string, std::string>, aedis::ignore> resp;
+   std::tuple<
+      std::map<std::string, std::string>,
+      aedis::ignore> response;
 
    boost::system::error_code ec1, ec2;
-   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(resp), redir(ec2)));
-   co_return std::move(std::get<0>(resp));
+   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(response), redir(ec2)));
+   co_return std::move(std::get<0>(response));
 }
 
 ```
 
-In the example above the connection is short lived and will cease to
-exist when the coroutine returns. In most cases however users will
-want to reuse the connection for multiple requests to achieve better
-performance, in the next sections we will have a closer look on how
-this can be done among other things.
+In the next section we will see more details about connections,
+requests and responses.
 
 <a name="connection"></a>
 
 ### Connection
 
-The `aedis::connection` is a high-level class that provides async-only
+The `aedis::connection` is a class that provides async-only
 communication with a Redis server by means of three member
 functions
 
-* `aedis::connection::async_run`: Establishes a connection.
+* `aedis::connection::async_run`: Establishes a connection and
+  completes only when it is lost.
 * `aedis::connection::async_exec`: Executes commands.
 * `aedis::connection::async_receive`: Receives server-side pushes.
 
 In general, these operations will be running concurrently in user
 application, where, for example
 
-1. **Reconnect**: One e.g. coroutine will call `async_run` in a loop
+1. **Connect**: One coroutine will call `async_run` in a loop
    to reconnect whenever a connection is lost.
-2. **Exec**: Multiple coroutines will call `async_exec` independently
-   and without coordination e.g. queuing.
+2. **Execute**: Multiple coroutines will call `async_exec` independently
+   and without coordination (e.g. queuing).
 3. **Receive**: One corutine will loop on `async_receive` to receive
-   server-side pushes. This is optinal, not all apps need to receive
-   pushes.
+   server-side pushes (required only if the app expects server pushes).
 
 Each of the operations above can be performed without regards to the
-other as they are independent from each other.  Let us now see with
+other as they are independent from each other.  Let us see with
 more detail each point above.
 
 #### Reconnect
 
-For example, point 1. above can be implemented as (see echo_server.cpp)
+In general, applications will connect to a Redis server and hang
+around for as long as possible, until the connection is lost for some
+reason.  When that happens, simple setups will want to wait for a
+short period of time and try to connect again.  The code snippet below
+shows how this can be implemented using coroutines (see echo_server.cpp)
 
 ```cpp
 net::awaitable<void> reconnect(std::shared_ptr<connection> conn, endpoint ep)
 {
    net::steady_timer timer{co_await net::this_coro::executor};
-   for (boost::system::error_code ec1;;) {
-      co_await conn->async_run(ep, {}, redir(ec1));
+   for (boost::system::error_code ec;;) {
+
+      // Establiches a connection and hangs around until it is lost.
+      co_await conn->async_run(ep, {}, redir(ec));
       conn->reset_stream();
+
+      // Waits some time before trying to restablish the connection.
       timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait(net::use_awaitable);
+      co_await timer.async_wait();
    }
 }
 ```
 
-The example above is suitable for reconnection to the same sever. Two
-other important scenario are
+Other common scenarios are, for example, performing a failover with
+sentinels and resubscribing to pubsub channels both are covered in
+`subscriber_sentinel.cpp`.
 
-* Failover with sentinels: see example subscriber_sentinel.cpp.
-* Reconnection with re-subscription to channel: see subscriber.cpp.
+#### Execute
 
-#### Exec
+The basic idea about `async_exec` was stated above already: execute Redis
+commands. One of the most important things about it though is that it
+can be called multiple times without coordination, for example, in a
+HTTP or Websocket server where each session calls it to communicate
+with the database. The benefits of this feature are manyfold
 
-For number 2. we can take the echo_server.cpp example
+* Having only connection to the database increases the performance
+  of [pipelines](https://redis.io/topics/pipelining).
+* Having sessions indepent from each other makes backend code simpler.
+
+The code below illustrates this concepts in a TCP `echo_server.cpp`
 
 ```cpp
-awaitable_type echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
+awaitable_type echo_server_session(tcp_socket socket, std::shared_ptr<connection> db)
 {
    request req;
-   std::tuple<std::string> resp;
+   std::tuple<std::string> response;
 
    for (std::string buffer;;) {
+      // Reads a user message.
       auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
+
+      // Echos it through Redis.
       req.push("PING", buffer);
-      co_await db->async_exec(req, adapt(resp));
-      co_await net::async_write(socket, net::buffer(std::get<0>(resp)));
-      std::get<0>(resp).clear();
+      co_await db->async_exec(req, adapt(response));
+
+      // Writes is back to the user.
+      co_await net::async_write(socket, net::buffer(std::get<0>(response)));
+
+      // Cleanup
+      std::get<0>(response).clear();
       req.clear();
       buffer.erase(0, n);
    }
 }
 ```
 
-The coroutine above will
-
-* Read a user message.
-* Send that message to the server and read its response.
-* Write it back to the user.
-
-A server can start multiple such coroutines sharing the same Redis
-connection. Notice also how the server above provides back-pressure as
-the coroutine won't read the next message from the socket until a
-cycle is complete.
+Notice also how the session above provides back-pressure as the
+coroutine won't read the next message from the socket until a cycle is
+complete.
 
 #### Receive
 
-Point number 3. can be also taken from an example, in this case
-subscriber.cpp
+Point number 3. is only necessary for servers that expect server
+pushes, like, for example, when using Redis pubsub. The example below
+was taken from subscriber.cpp
 
 ```cpp
 net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
@@ -149,71 +165,83 @@ net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
 }
 ```
 
-The same connection that is being used to send requests can be also
-used to receive server-side pushes.
-
-Users should ensure any server pushes sent by the server are consumed,
-otherwise the connection will eventually timeout.
-
-TODO: Talk about the behaviour of request when a disconnection occurs.
+In general, it is advisable to all apps to keep a coroutine calling
+`async_receive` as an unread push will cause the connection to stall
+and eventually timeout.  Notice that the same connection that is being
+used to send requests can be also used to receive server-side pushes.
 
 #### Cancelation
 
-Aedis supports both explicit and implicit cancellation of connection
-operations. Explicit cancellation is support by the
-`aedis::connection::cancel` member function. Implicit cancellation
-will be discussed with more detail below.
+Aedis supports both implicit and explicit cancellation of connection
+operations. Explicit cancellation is support by means of the
+`aedis::connection::cancel` member function. Implicit cancellation,
+like those that may happen when using Asio awaitable operators && and
+|| will be discussed with more detail below.
 
 ```cpp
 co_await (conn.async_run(...) && conn.async_exec(...))
 ```
 
-* This is useful when implementing reconnection for applications the
-  use pubsub. When a connection is lost and then restablished,
-  applications will usually want to re-subscribe to all channels, the
-  composition above makes this easier.
+* Useful when implementing reconnection on applications that
+  use pubsub.
+* Makes the channel re-subscribe operation simpler when the
+  connection is restablished.
+
+```cpp
+co_await (conn.async_run(...) || conn.async_exec(...))
+```
+
+* Useful for short-lived connections that are meant to be closed after
+  a command has been executed.
 
 ```cpp
 co_await (conn.async_exec(...) || time.async_wait(...))
 ```
 
-* This is supported but the author did not find many use cases for it
-  yet i.e. cancelling execution of a request after a specified amount
-  of time. Alternatively, users can also set
+* Provides a way to limit how long the execution of a single request
+  should last.
+* Alternatively, for a connection-wide timeout on requests set
   `aedis::connection::timeouts::ping_interval` to a proper value. This
-  works because all requests use the same queue, so they are equally
-  affected by the timeout.
+  works because all requests use the same queue. This is also more
+  efficient as only one timer will be used.
 
 * The cancellation will be ignored if the request has already
   been written to the socket.
 
 ```cpp
+co_await (conn.async_run(...) || time.async_wait(...))
+```
+
+* Set a limit on how long the connection should live (see also
+  `aedis::connection::timeouts`)
+
+```cpp
 co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
 ```
 
-* This is supported but not very useful if the `aedis::resp3::request`
-  objects are on the same scope/operation. The reason is that, unless
-  you have set the `aedis::resp3::request::config::coalesce` to
-  `false` (you shouldn't), the connection will merge the individual
-  requests into a single payload anyway.
+* This is supported but is considered an antipattern. Unless
+  the user has set the `aedis::resp3::request::config::coalesce` to
+  `false`, and he shouldn't, the connection will automatically merge
+  the individual requests into a single payload anyway.
 
 #### Timeouts
 
-Aedis high-level API provides built-in support for most timeouts users
-might need. For example, the `aedis::connection::async_run` member
-function performs the following operations on behalf of the user
+Aedis high-level API provides built-in support for many of the
+timeouts users usually need. For example, the
+`aedis::connection::async_run` member function performs the following
+operations on behalf of the user
 
 * Resolves Redis address.
-* Connects to the endpoint.
+* Connects to the resolved endpoint.
 * TLS handhshake (for TLS endpoints).
-* RESP3 handshake, authentication and role check.
-* Keeps sending PING commands to check for unresponsive servers.
+* RESP3 handshake and authentication and role check.
+* Healthy checks with the PING command.
 * Keeps reading from the socket to handle server pushes and command responses.
 * Keeps writing requests as it becomes possible e.g. after last response has arrived.
 
-To control the timeout-behaviour of the operations above users must
+To control the timeout-behaviour of these operations users must
 create a `aedis::connection::timeouts` object and pass it to as
-argument to the `aedis::connection::async_run` member function (or use
+argument to the `aedis::connection::async_run` (or use
 the suggested defaults). 
 
 <a name="requests"></a>
@@ -246,11 +274,7 @@ std::map<std::string, mystruct> map
 req.push_range("HSET", "key", map);
 ```
 
-Sending a request to Redis is then performed with the following function
-
-```cpp
-co_await db->async_exec(req, adapt(resp));
-```
+Sending a request to Redis is performed with `aedis::connection::async_exec` as already stated.
 
 <a name="serialization"></a>
 
@@ -261,10 +285,10 @@ e.g. `int` and `std::string` out of the box. To send your own
 data type defined a `to_bulk` function like this
 
 ```cpp
-struct mystruct {
-   // Example struct.
-};
+// Example struct.
+struct mystruct {...};
 
+// Serialize your data structure here.
 void to_bulk(std::string& to, mystruct const& obj)
 {
    std::string dummy = "Dummy serializaiton string.";
@@ -289,9 +313,32 @@ Example serialization.cpp shows how store json string in Redis.
 
 ### Responses
 
-To read responses effectively, users must know their RESP3 type,
-this can be found in the Redis documentation for each command
-(https://redis.io/commands). For example
+Aedis uses the following strategy to support Redis responses
+
+* **Static**: For `aedis::resp3::request` whose sizes are known at compile time
+  std::tuple is supported.
+* **Dynamic**: Otherwise use `std::vector<aedis::resp3::node<std::string>>`.
+
+For example, below is a request with a compile time size
+
+```cpp
+request req;
+req.push("PING");
+req.push("INCR", "key");
+req.push("QUIT");
+```
+
+to read the response to this request users can use the following tuple
+
+```cpp
+// Replace an element with aedis::ignore to ignore the response
+std::tuple<std::string, int, std::string>
+```
+
+The pattern is obvious, the tuple must have the same size as the
+request (exceptions below) and each element must be able to store
+the response to the command it refers to. The following table provides
+the response types of some commands
 
 Command  | RESP3 type                          | Documentation
 ---------|-------------------------------------|--------------
@@ -302,9 +349,7 @@ get      | Blob-string                         | https://redis.io/commands/get
 smembers | Set                                 | https://redis.io/commands/smembers
 hgetall  | Map                                 | https://redis.io/commands/hgetall
 
-Once the RESP3 type of a given response is known we can choose a
-proper C++ data structure to receive it in. Fortunately, this is a
-simple task for most types. The table below summarises the options
+To map these RESP3 types into a C++ data structure use the table below
 
 RESP3 type     | Possible C++ type                                            | Type
 ---------------|--------------------------------------------------------------|------------------
@@ -345,7 +390,8 @@ co_await db->async_exec(req, adapt(resp));
 
 The tag `aedis::ignore` can be used to ignore individual
 elements in the responses. If the intention is to ignore the
-response to all commands in the request use @c adapt()
+response to all commands in the request use `adapt()` without
+arguments instead
 
 ```cpp
 co_await db->async_exec(req, adapt());
@@ -357,6 +403,27 @@ of this writing, not all RESP3 types are used by the Redis server,
 which means in practice users will be concerned with a reduced
 subset of the RESP3 specification.
 
+#### Push
+
+The only commands that are excluded from the rules from last section
+are those that have RESP3 push types as response, those are
+
+* `"SUBSCRIBE"`
+* `"PSUBSCRIBE"`
+* `"UNSUBSCRIBE"`
+
+For example, this request
+
+```cpp
+request req;
+req.push("PING");
+req.push("SUBSCRIBE", "channel");
+req.push("QUIT");
+```
+
+must be read in this tuple `std::tuple<std::string, std::string>`,
+that has size two.
+
 #### Null
 
 It is not uncommon for apps to access keys that do not exist or
@@ -365,17 +432,22 @@ cases Aedis provides support for `std::optional`. To use it,
 wrap your type around `std::optional` like this
 
 ```cpp
-std::optional<std::unordered_map<T, U>> resp;
-co_await db->async_exec(req, adapt(resp));
+std::tuple<
+   std::optional<A>,
+   std::optional<B>,
+   ...
+   > response;
+
+co_await db->async_exec(req, adapt(response));
 ```
 
-Everything else stays the same.
+Everything else stays pretty much the same.
 
 #### Transactions
 
-To read the response to transactions we have to observe that Redis
-queues the commands as they arrive and sends the responses back to
-the user as an array, in the response to the @c exec command.
+To read responses to transactions we have to observe that Redis
+queues transaction commands as they arrive and then, when the `EXEC` command arrives,
+sends the responses back to the user as elements of an array.
 For example, to read the response to the this request
 
 ```cpp
@@ -399,19 +471,19 @@ using exec_resp_type =
    >;
 
 std::tuple<
-   ignore,     // multi
-   ignore,     // get
-   ignore,     // lrange
-   ignore,     // hgetall
+   aedis::ignore,     // multi
+   aedis::ignore,     // get
+   aedis::ignore,     // lrange
+   aedis::ignore,     // hgetall
    exec_resp_type, // exec
 > resp;
 
 co_await db->async_exec(req, adapt(resp));
 ```
 
-Note that above we are not ignoring the response to the commands
-themselves but whether they have been successfully queued. For a
-complete example see containers.cpp.
+Note that we are not ignoring the response to the commands
+themselves above, commands in a transaction will always get `"QUEUED"`
+as response. For a complete example see containers.cpp.
 
 #### Deserialization
 
@@ -446,8 +518,8 @@ will result in error.
 * Transactions with a dynamic number of commands can't be read in a `std::tuple`.
 
 To deal with these cases Aedis provides the `resp3::node`
-type, that is the most general form of an element in a response,
-be it a simple RESP3 type or an aggregate. It is defined like this
+type abstraction, that is the most general form of an element in a response,
+be it a simple RESP3 type or the element of an aggregate. It is defined like this
 
 ```cpp
 template <class String>
@@ -468,14 +540,10 @@ struct node {
 
 Any response to a Redis command can be received in a
 `std::vector<node<std::string>>`.  The vector can be seen as a
-pre-order view of the response tree.  Using it is no different than
+pre-order view of the response tree.  Using it is not different than
 using other types
 
 ```cpp
-// Receives any RESP3 simple data type.
-node<std::string> resp;
-co_await db->async_exec(req, adapt(resp));
-
 // Receives any RESP3 simple or aggregate data type.
 std::vector<node<std::string>> resp;
 co_await db->async_exec(req, adapt(resp));
@@ -489,7 +557,8 @@ from Redis with `HGETALL`, some of the options are
 * `std::map<std::string, std::string>`: Efficient if you need the data as a `std::map`.
 * `std::map<U, V>`: Efficient if you are storing serialized data. Avoids temporaries and requires `from_bulk` for `U` and `V`.
 
-In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. `SMEMBERS`.
+In addition to the above users can also use unordered versions of the
+containers. The same reasoning also applies to sets e.g. `SMEMBERS`.
 
 ### Examples
 
@@ -508,34 +577,29 @@ examples below
 
 ## Why Aedis
 
-At the time of this writing there are seventeen Redis clients
-listed in the [official](https://redis.io/docs/clients/#cpp) list.
-With so many clients available it is not unlikely that users are
-asking themselves why yet another one.  In this section I will try
-to compare Aedis with the most popular clients and why we need
-Aedis. Notice however that this is ongoing work as comparing
-client objectively is difficult and time consuming.
-
-### Redis-plus-plus
-
-The most popular client at the moment of this writing ranked by
-github stars is
+The main reason for why I started writing Aedis was to have a client
+compatible with Asio asynchronous model. As I made progresses I could
+also address what I considered weaknesses in other libraries.  Due to
+time constraints I won't be able to give a detailed comparison with
+each client listed in the
+[official](https://redis.io/docs/clients/#cpp) list of clients,
+instead I will focus on the most popular client on github in number of
+stars, namely
 
 * https://github.com/sewenew/redis-plus-plus
 
-Before we start it is worth mentioning some of the things it does
-not support
+Before we start it is important to mentioning some of the things
+redis-plus-plus does not support
 
 * RESP3. Without RESP3 is impossible to support some important Redis features like client side caching, among other things.
 * Coroutines.
-* Reading responses directly in user data structures avoiding temporaries.
+* Reading responses directly in user data structures to avoid creating temporaries.
 * Proper error handling with support for error-code.
 * Healthy checks.
 
-The remaining points will be addressed individually.
-
-Let us first have a look at what sending a command a pipeline and a
-transaction look like
+The remaining points will be addressed individually.  Let us first
+have a look at what sending a command a pipeline and a transaction
+look like
 
 ```cpp
 auto redis = Redis("tcp://127.0.0.1:6379");
@@ -584,7 +648,7 @@ the following characteristics
 > NOTE: By default, creating a Pipeline object is NOT cheap, since
 > it creates a new connection.
 
-This is clearly a downside of the API as pipelines should be the
+This is clearly a downside in the API as pipelines should be the
 default way of communicating and not an exception, paying such a
 high price for each pipeline imposes a severe cost in performance.
 Transactions also suffer from the very same problem.
@@ -617,7 +681,7 @@ problem however with this async design is that it makes it
 impossible to write asynchronous programs correctly since it
 starts an async operation on every command sent instead of
 enqueueing a message and triggering a write when it can be sent.
-It is also not clear how are pipelines realised with the design
+It is also not clear how are pipelines realised with this design
 (if at all).
 
 ### Echo server benchmark
@@ -712,9 +776,6 @@ The code used in the benchmarks can be found at
 * [High-Level](#high-level-api): Recommend to all users
 * [Low-Level](#low-level-api): For users with needs yet to be imagined by the author.
 
-In the next sections we will see how to create requests and receive
-responses with more detail
-
 ## Installation
 
 Download the latest release on
@@ -731,7 +792,8 @@ requirements for using Aedis are
 
 - Boost 1.79 or greater.
 - C++17 minimum.
-- Redis 6 or higher (must support RESP3). Optionally also redis-cli and Redis Sentinel.
+- Redis 6 or higher (must support RESP3).
+- Optionally also redis-cli and Redis Sentinel.
 
 The following compilers are supported
 
@@ -746,8 +808,8 @@ another.
 * Richard Hodges ([madmongo1](https://github.com/madmongo1)): For very helpful support with Asio, the design of asynchronous programs, etc.
 * Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation.
 * Petr Dannhofer ([Eddie-cz](https://github.com/Eddie-cz)): For helping me understand how the `AUTH` and `HELLO` command can influence each other.
-* Mohammad Nejati ([ashtum](https://github.com/ashtum)): For pointing scenarios where calls to `async_exec` should fail when the connection is lost.
-* Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, the synchronous interface and general help with Asio.
+* Mohammad Nejati ([ashtum](https://github.com/ashtum)): For pointing out scenarios where calls to `async_exec` should fail when the connection is lost.
+* Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, cancellation, synchronous interfaces and general help with Asio.
 
 ## Changelog
 

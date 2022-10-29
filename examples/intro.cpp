@@ -26,6 +26,7 @@ auto main() -> int
       connection conn{ioc};
 
       request req;
+      req.get_config().cancel_on_connection_lost = true;
       req.push("PING");
       req.push("QUIT");
 

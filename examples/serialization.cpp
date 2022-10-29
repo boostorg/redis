@@ -95,6 +95,7 @@ int main()
       {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
 
    request req;
+   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push_range("SADD", "sadd-key", users); // Sends
    req.push("SMEMBERS", "sadd-key"); // Retrieves

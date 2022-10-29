@@ -26,17 +26,17 @@ using tcp_acceptor = net::use_awaitable_t<executor_type>::as_default_on_t<accept
 using awaitable_type = net::awaitable<void, executor_type>;
 using connection = aedis::connection<tcp_socket>;
 
-awaitable_type echo_loop(tcp_socket socket, std::shared_ptr<connection> db)
+awaitable_type echo_server_session(tcp_socket socket, std::shared_ptr<connection> db)
 {
    request req;
-   std::tuple<std::string> resp;
+   std::tuple<std::string> response;
 
    for (std::string buffer;;) {
       auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
       req.push("PING", buffer);
-      co_await db->async_exec(req, adapt(resp));
-      co_await net::async_write(socket, net::buffer(std::get<0>(resp)));
-      std::get<0>(resp).clear();
+      co_await db->async_exec(req, adapt(response));
+      co_await net::async_write(socket, net::buffer(std::get<0>(response)));
+      std::get<0>(response).clear();
       req.clear();
       buffer.erase(0, n);
    }
@@ -47,7 +47,7 @@ awaitable_type listener(std::shared_ptr<connection> db)
    auto ex = co_await net::this_coro::executor;
    tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});
    for (;;)
-      net::co_spawn(ex, echo_loop(co_await acc.async_accept(), db), net::detached);
+      net::co_spawn(ex, echo_server_session(co_await acc.async_accept(), db), net::detached);
 }
 
 net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
@@ -56,6 +56,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
    endpoint ep{"127.0.0.1", "6379"};
    for (boost::system::error_code ec1;;) {
       co_await conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1));
+      std::clog << "async_run: " << ec1.message() << std::endl;
       conn->reset_stream();
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait(net::use_awaitable);

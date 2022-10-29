@@ -25,6 +25,35 @@ using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 
+BOOST_AUTO_TEST_CASE(push_filtered_out)
+{
+   net::io_context ioc;
+   auto conn = std::make_shared<connection>(ioc);
+
+   request req;
+   req.push("PING");
+   req.push("SUBSCRIBE", "channel");
+   req.push("QUIT");
+
+   std::tuple<std::string, std::string> resp;
+   conn->async_exec(req, adapt(resp), [](auto ec, auto){
+      BOOST_TEST(!ec);
+   });
+
+   conn->async_receive(adapt(), [](auto ec, auto){
+      BOOST_TEST(!ec);
+   });
+
+   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec){
+      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
+   });
+
+   ioc.run();
+
+   BOOST_CHECK_EQUAL(std::get<0>(resp), "PONG");
+   BOOST_CHECK_EQUAL(std::get<1>(resp), "OK");
+}
+
 // Checks whether we get idle timeout when no push reader is set.
 void test_missing_push_reader1(bool coalesce)
 {

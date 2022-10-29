@@ -53,7 +53,6 @@ net::awaitable<endpoint> resolve()
    };
 
    request req;
-   req.get_config().cancel_if_not_connected = false;
    req.get_config().cancel_on_connection_lost = true;
    req.push("SENTINEL", "get-master-addr-by-name", "mymaster");
    req.push("QUIT");
@@ -88,7 +87,6 @@ net::awaitable<endpoint> resolve()
 net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
 {
    request req;
-   req.get_config().cancel_if_not_connected = false;
    req.get_config().cancel_on_connection_lost = true;
    req.push("SUBSCRIBE", "channel");
 

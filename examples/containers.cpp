@@ -25,13 +25,14 @@ using aedis::endpoint;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using connection = aedis::connection<tcp_socket>;
 
+// To avoid verbosity.
 auto redir(boost::system::error_code& ec)
 {
    return net::redirect_error(net::use_awaitable, ec);
 }
 
 // Sends some containers.
-net::awaitable<void> send()
+net::awaitable<void> send(endpoint ep)
 {
    auto ex = co_await net::this_coro::executor;
 
@@ -42,21 +43,25 @@ net::awaitable<void> send()
       {{"key1", "value1"}, {"key2", "value2"}, {"key3", "value3"}};
 
    request req;
+   req.get_config().cancel_on_connection_lost = true;
    req.push_range("RPUSH", "rpush-key", vec); // Sends
    req.push_range("HSET", "hset-key", map); // Sends
    req.push("QUIT");
 
    connection conn{ex};
-   endpoint ep{"127.0.0.1", "6379"};
    boost::system::error_code ec1, ec2;
    co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(), redir(ec2)));
+   std::clog << "async_run: " << ec1.message() << "\n"
+             << "async_exec: " << ec2.message() << "\n";
 }
 
+// Retrieves a Redis hash as an std::map.
 net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
 {
    connection conn{co_await net::this_coro::executor};
 
    request req;
+   req.get_config().cancel_on_connection_lost = true;
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
@@ -67,11 +72,13 @@ net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
    co_return std::move(std::get<0>(resp));
 }
 
-net::awaitable<void> async_main()
+// Retrieves as a data structure.
+net::awaitable<void> transaction(endpoint ep)
 {
-   auto ex = co_await net::this_coro::executor;
+   connection conn{co_await net::this_coro::executor};
 
    request req;
+   req.get_config().cancel_on_connection_lost = true;
    req.push("MULTI");
    req.push("LRANGE", "rpush-key", 0, -1); // Retrieves
    req.push("HGETALL", "hset-key"); // Retrieves
@@ -86,15 +93,21 @@ net::awaitable<void> async_main()
       aedis::ignore  // quit
    > resp;
 
-   co_await send();
-   endpoint ep{"127.0.0.1", "6379"};
-   auto const hashes = co_await retrieve_hashes(ep);
-   connection conn{ex};
    boost::system::error_code ec1, ec2;
    co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(resp), redir(ec2)));
 
    print(std::get<0>(std::get<3>(resp)).value());
    print(std::get<1>(std::get<3>(resp)).value());
+}
+
+net::awaitable<void> async_main()
+{
+   auto ex = co_await net::this_coro::executor;
+
+   endpoint ep{"127.0.0.1", "6379"};
+   co_await send(ep);
+   co_await transaction(ep);
+   auto const hashes = co_await retrieve_hashes(ep);
    print(hashes);
 }
 

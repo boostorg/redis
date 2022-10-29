@@ -50,6 +50,7 @@ net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
 net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
 {
    request req;
+   req.get_config().cancel_on_connection_lost = true;
    req.push("SUBSCRIBE", "chat-channel");
 
    stimer timer{co_await net::this_coro::executor};

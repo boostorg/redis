@@ -209,6 +209,10 @@ struct exec_op {
       {
          // Check whether the user wants to wait for the connection to
          // be stablished.
+         // TODO: is_open below reflects only whether a TCP connection
+         // has been stablished. We need a variable that informs
+         // whether HELLO was successfull and we are connected with
+         // Redis.
          if (req->get_config().cancel_if_not_connected && !conn->is_open())
             return self.complete(error::not_connected, 0);
 

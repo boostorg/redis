@@ -43,6 +43,7 @@ int main()
       }};
 
       request req;
+      req.get_config().cancel_on_connection_lost = true;
       req.push("PING");
       req.push("QUIT");
 
