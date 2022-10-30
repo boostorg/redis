@@ -266,7 +266,7 @@ public:
     *     };
     *
     *  request req;
-    *  req.push_range2("HSET", "key", std::cbegin(map), std::cend(map));
+    *  req.push_range("HSET", "key", std::cbegin(map), std::cend(map));
     *  @endcode
     *  
     *  \param cmd The command e.g. Redis or Sentinel command.
@@ -275,7 +275,8 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class Key, class ForwardIterator>
-   void push_range2(boost::string_view cmd, Key const& key, ForwardIterator begin, ForwardIterator end)
+   void push_range(boost::string_view cmd, Key const& key, ForwardIterator begin, ForwardIterator end,
+                    typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
       using resp3::type;
@@ -306,7 +307,7 @@ public:
     *     { "channel1" , "channel2" , "channel3" }
     *
     *  request req;
-    *  req.push("SUBSCRIBE", std::cbegin(channels), std::cedn(channels));
+    *  req.push("SUBSCRIBE", std::cbegin(channels), std::cend(channels));
     *  \endcode
     *
     *  \param cmd The Redis command
@@ -314,7 +315,8 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class ForwardIterator>
-   void push_range2(boost::string_view cmd, ForwardIterator begin, ForwardIterator end)
+   void push_range(boost::string_view cmd, ForwardIterator begin, ForwardIterator end,
+                   typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
       using resp3::type;
@@ -343,11 +345,12 @@ public:
     *  \param range Range to send e.g. and \c std::map.
     */
    template <class Key, class Range>
-   void push_range(boost::string_view cmd, Key const& key, Range const& range)
+   void push_range(boost::string_view cmd, Key const& key, Range const& range,
+                   decltype(std::begin(range)) * = nullptr)
    {
       using std::begin;
       using std::end;
-      push_range2(cmd, key, begin(range), end(range));
+      push_range(cmd, key, begin(range), end(range));
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -358,11 +361,12 @@ public:
     *  \param range Range to send e.g. and \c std::map.
     */
    template <class Range>
-   void push_range(boost::string_view cmd, Range const& range)
+   void push_range(boost::string_view cmd, Range const& range,
+                   decltype(std::begin(range)) * = nullptr)
    {
       using std::begin;
       using std::end;
-      push_range2(cmd, begin(range), end(range));
+      push_range(cmd, begin(range), end(range));
    }
 
    /// Calls std::string::reserve on the internal storage.

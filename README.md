@@ -264,7 +264,7 @@ std::list<std::string> list
 req.push_range("SUBSCRIBE", list);
 
 // Same as above but as an iterator range.
-req.push_range2("SUBSCRIBE", std::cbegin(list), std::cend(list));
+req.push_range("SUBSCRIBE", std::cbegin(list), std::cend(list));
 
 // Pushes a map.
 std::map<std::string, mystruct> map
