@@ -11,6 +11,8 @@
 #include <tuple>
 
 #include <boost/hana.hpp>
+#include <boost/container/pmr/global_resource.hpp>
+#include <boost/container/pmr/string.hpp>
 #include <boost/utility/string_view.hpp>
 
 #include <aedis/resp3/type.hpp>
@@ -205,11 +207,18 @@ public:
     *  
     *  @param cfg Configuration options.
     */
-   explicit request(config cfg = config{false, true, false, true})
-   : cfg_{cfg}
+   explicit request(boost::container::pmr::memory_resource * resource)
+         : payload_(resource), cfg_{false, true, false, true}
    {}
 
-   //// Returns the number of commands contained in this request.
+    explicit request(config cfg = config{false, true, false, true},
+                     boost::container::pmr::memory_resource * resource =
+                     boost::container::pmr::get_default_resource())
+        : payload_(resource), cfg_{cfg}
+    {}
+
+
+    //// Returns the number of commands contained in this request.
    [[nodiscard]] auto size() const noexcept -> std::size_t { return commands_;};
 
    // Returns the request payload.
@@ -380,7 +389,7 @@ public:
    [[nodiscard]] auto get_config() noexcept -> auto& {return cfg_; }
 
 private:
-   std::string payload_;
+   boost::container::pmr::string payload_;
    std::size_t commands_ = 0;
    config cfg_;
 };

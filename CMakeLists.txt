@@ -26,6 +26,7 @@ target_link_libraries(aedis
     Boost::asio
     Boost::assert
     Boost::config
+    Boost::container
     Boost::core
     Boost::mp11
     Boost::optional
@@ -42,7 +43,7 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 
-find_package(Boost 1.79 REQUIRED)
+find_package(Boost 1.79 REQUIRED container)
 include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(OpenSSL REQUIRED)
@@ -77,6 +78,8 @@ add_executable(test_conn_cancel_run tests/conn_cancel_run.cpp)
 add_executable(test_conn_cancel_exec tests/conn_cancel_exec.cpp)
 add_executable(test_conn_echo_stress tests/conn_echo_stress.cpp)
 
+
+
 target_compile_features(chat_room PUBLIC cxx_std_20)
 target_compile_features(containers PUBLIC cxx_std_20)
 target_compile_features(echo_server PUBLIC cxx_std_20)
@@ -100,8 +103,26 @@ target_compile_features(test_conn_cancel_run PUBLIC cxx_std_20)
 target_compile_features(test_conn_cancel_exec PUBLIC cxx_std_20)
 target_compile_features(test_conn_echo_stress PUBLIC cxx_std_20)
 
-target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL)
-target_link_libraries(test_conn_tls OpenSSL::Crypto OpenSSL::SSL)
+target_link_libraries(intro Boost::container)
+target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL Boost::container)
+target_link_libraries(chat_room PUBLIC Boost::container)
+target_link_libraries(containers PUBLIC Boost::container)
+target_link_libraries(echo_server PUBLIC Boost::container)
+target_link_libraries(low_level_sync PUBLIC Boost::container)
+target_link_libraries(serialization PUBLIC Boost::container)
+target_link_libraries(subscriber PUBLIC Boost::container)
+target_link_libraries(subscriber_sentinel PUBLIC Boost::container)
+target_link_libraries(test_conn_cancel_exec PUBLIC Boost::container)
+target_link_libraries(test_conn_cancel_run PUBLIC Boost::container)
+target_link_libraries(test_conn_connect PUBLIC Boost::container)
+target_link_libraries(test_conn_push PUBLIC Boost::container)
+target_link_libraries(test_conn_quit PUBLIC Boost::container)
+target_link_libraries(test_conn_quit_coalesce PUBLIC Boost::container)
+target_link_libraries(test_conn_reconnect PUBLIC Boost::container)
+target_link_libraries(test_conn_reconnect PUBLIC Boost::container)
+target_link_libraries(test_conn_request PUBLIC Boost::container)
+target_link_libraries(test_conn_tls OpenSSL::Crypto OpenSSL::SSL Boost::container)
+
 
 # Tests
 #=======================================================================
