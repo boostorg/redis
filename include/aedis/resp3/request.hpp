@@ -196,7 +196,7 @@ public:
       /** \brief If true, the implementation will resend this
        * request if it remained unresponded when
        * `aedis::connection::async_run` completed. Has effect only if
-       * cancel_on_connection_lost is false.
+       * cancel_on_connection_lost is true.
        */
       bool retry = true;
    };

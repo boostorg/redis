@@ -16,7 +16,7 @@ Some of its distinctive features are
 * Healthy checks, back pressure, cancellation and low latency.
 
 In addition to that, Aedis hides most of the low-level Asio code away
-from the user, which, in the majority of the cases, will interact with
+from the user, which in the majority of the cases, will interact with
 only three library entities
 
 * `aedis::connection`: A connection to the Redis server.
@@ -24,7 +24,8 @@ only three library entities
 * `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
 
 The example below shows for example how to read Redis hashes in an
-`std::map` using a coroutine and a short-lived connection
+`std::map` using a coroutine, a short-lived connection and
+cancellation
 
 ```cpp
 net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
@@ -69,20 +70,20 @@ application, where, for example
    to reconnect whenever a connection is lost.
 2. **Execute**: Multiple coroutines will call `async_exec` independently
    and without coordination (e.g. queuing).
-3. **Receive**: One corutine will loop on `async_receive` to receive
+3. **Receive**: One coroutine will loop on `async_receive` to receive
    server-side pushes (required only if the app expects server pushes).
 
 Each of the operations above can be performed without regards to the
 other as they are independent from each other.  Let us see with
 more detail each point above.
 
-#### Reconnect
+#### Connect
 
 In general, applications will connect to a Redis server and hang
 around for as long as possible, until the connection is lost for some
 reason.  When that happens, simple setups will want to wait for a
 short period of time and try to connect again.  The code snippet below
-shows how this can be implemented using coroutines (see echo_server.cpp)
+shows how this can be achieved with a coroutine (see echo_server.cpp)
 
 ```cpp
 net::awaitable<void> reconnect(std::shared_ptr<connection> conn, endpoint ep)
@@ -102,8 +103,8 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn, endpoint ep)
 ```
 
 Other common scenarios are, for example, performing a failover with
-sentinels and resubscribing to pubsub channels both are covered in
-`subscriber_sentinel.cpp`.
+sentinels and re-subscribing to pubsub channels, both are covered in
+the `subscriber_sentinel.cpp` example.
 
 #### Execute
 
@@ -111,11 +112,11 @@ The basic idea about `async_exec` was stated above already: execute Redis
 commands. One of the most important things about it though is that it
 can be called multiple times without coordination, for example, in a
 HTTP or Websocket server where each session calls it to communicate
-with the database. The benefits of this feature are manyfold
+with the database. The benefits of this feature are manifold
 
 * Having only connection to the database increases the performance
   of [pipelines](https://redis.io/topics/pipelining).
-* Having sessions indepent from each other makes backend code simpler.
+* Having sessions independent from each other makes backend code simpler.
 
 The code below illustrates this concepts in a TCP `echo_server.cpp`
 
@@ -150,7 +151,7 @@ complete.
 
 #### Receive
 
-Point number 3. is only necessary for servers that expect server
+Point number 3. above is only necessary for servers that expect server
 pushes, like, for example, when using Redis pubsub. The example below
 was taken from subscriber.cpp
 
@@ -170,7 +171,7 @@ In general, it is advisable to all apps to keep a coroutine calling
 and eventually timeout.  Notice that the same connection that is being
 used to send requests can be also used to receive server-side pushes.
 
-#### Cancelation
+#### Cancellation
 
 Aedis supports both implicit and explicit cancellation of connection
 operations. Explicit cancellation is support by means of the
@@ -185,7 +186,7 @@ co_await (conn.async_run(...) && conn.async_exec(...))
 * Useful when implementing reconnection on applications that
   use pubsub.
 * Makes the channel re-subscribe operation simpler when the
-  connection is restablished.
+  connection is reestablished.
 
 ```cpp
 co_await (conn.async_run(...) || conn.async_exec(...))
@@ -200,9 +201,9 @@ co_await (conn.async_exec(...) || time.async_wait(...))
 
 * Provides a way to limit how long the execution of a single request
   should last.
-* Alternatively, for a connection-wide timeout on requests set
+* Alternatively, for a connection-wide timeout set
   `aedis::connection::timeouts::ping_interval` to a proper value. This
-  works because all requests use the same queue. This is also more
+  will work because all requests use the same queue and is also more
   efficient as only one timer will be used.
 
 * The cancellation will be ignored if the request has already
@@ -233,16 +234,16 @@ operations on behalf of the user
 
 * Resolves Redis address.
 * Connects to the resolved endpoint.
-* TLS handhshake (for TLS endpoints).
+* TLS handshake (for TLS endpoints).
 * RESP3 handshake and authentication and role check.
-* Healthy checks with the PING command.
+* Periodic healthy checks with the PING command.
 * Keeps reading from the socket to handle server pushes and command responses.
 * Keeps writing requests as it becomes possible e.g. after last response has arrived.
 
 To control the timeout-behaviour of these operations users must
 create a `aedis::connection::timeouts` object and pass it to as
-argument to the `aedis::connection::async_run` (or use
-the suggested defaults). 
+argument to the `aedis::connection::async_run` (if
+the suggested defaults are not suitable). 
 
 <a name="requests"></a>
 
@@ -296,7 +297,7 @@ void to_bulk(std::string& to, mystruct const& obj)
 }
 ```
 
-Once `to_bulk` is defined and accessible over ADL `mystruct` can
+Once `to_bulk` is defined and visible over ADL `mystruct` can
 be passed to the `request`
 
 ```cpp
@@ -331,7 +332,8 @@ req.push("QUIT");
 to read the response to this request users can use the following tuple
 
 ```cpp
-// Replace an element with aedis::ignore to ignore the response
+// Replace a tuple element with aedis::ignore to ignore the response
+// to a specific command.
 std::tuple<std::string, int, std::string>
 ```
 
@@ -388,10 +390,9 @@ std::tuple<
 co_await db->async_exec(req, adapt(resp));
 ```
 
-The tag `aedis::ignore` can be used to ignore individual
-elements in the responses. If the intention is to ignore the
-response to all commands in the request use `adapt()` without
-arguments instead
+The tag `aedis::ignore` can be used to ignore individual elements in
+the responses. If the intention is to ignore the response to all
+commands altogether use `adapt()` without arguments instead
 
 ```cpp
 co_await db->async_exec(req, adapt());
@@ -445,10 +446,10 @@ Everything else stays pretty much the same.
 
 #### Transactions
 
-To read responses to transactions we have to observe that Redis
-queues transaction commands as they arrive and then, when the `EXEC` command arrives,
-sends the responses back to the user as elements of an array.
-For example, to read the response to the this request
+To read responses to transactions we have to observe that Redis will
+queue its commands and send their responses to the user as elements
+of an array, after the `EXEC` command comes.  For example, to read
+the response to the this request
 
 ```cpp
 db.send("MULTI");
@@ -481,9 +482,9 @@ std::tuple<
 co_await db->async_exec(req, adapt(resp));
 ```
 
-Note that we are not ignoring the response to the commands
-themselves above, commands in a transaction will always get `"QUEUED"`
-as response. For a complete example see containers.cpp.
+Note that we are not ignoring the response to the commands themselves
+above as commands in a transaction will always get `"QUEUED"` as
+response. For a complete example see containers.cpp.
 
 #### Deserialization
 
@@ -517,9 +518,10 @@ will result in error.
 * RESP3 aggregates that contain nested aggregates can't be read in STL containers.
 * Transactions with a dynamic number of commands can't be read in a `std::tuple`.
 
-To deal with these cases Aedis provides the `resp3::node`
-type abstraction, that is the most general form of an element in a response,
-be it a simple RESP3 type or the element of an aggregate. It is defined like this
+To deal with these cases Aedis provides the `aedis::resp3::node` type
+abstraction, that is the most general form of an element in a
+response, be it a simple RESP3 type or the element of an aggregate. It
+is defined like this
 
 ```cpp
 template <class String>
@@ -578,12 +580,12 @@ examples below
 ## Why Aedis
 
 The main reason for why I started writing Aedis was to have a client
-compatible with Asio asynchronous model. As I made progresses I could
+compatible with the Asio asynchronous model. As I made progresses I could
 also address what I considered weaknesses in other libraries.  Due to
 time constraints I won't be able to give a detailed comparison with
 each client listed in the
 [official](https://redis.io/docs/clients/#cpp) list of clients,
-instead I will focus on the most popular client on github in number of
+instead I will focus on the most popular C++ client on github in number of
 stars, namely
 
 * https://github.com/sewenew/redis-plus-plus
@@ -773,14 +775,14 @@ The code used in the benchmarks can be found at
 
 ## Reference
 
-* [High-Level](#high-level-api): Recommend to all users
-* [Low-Level](#low-level-api): For users with needs yet to be imagined by the author.
+* [High-Level](#high-level-api): Covers the topics discussed in this document.
+* [Low-Level](#low-level-api): Covers low-level building blocks. Provided mostly for developers, most users won't need any information provided here.
 
 ## Installation
 
 Download the latest release on
 https://github.com/mzimbres/aedis/releases.  Aedis is a header only
-library, so you can starting using it right away by adding the the
+library, so you can starting using it right away by adding the
 `include` subdirectory to your project and including
 
 ```cpp
@@ -821,7 +823,7 @@ another.
 
 * Introduces `aedis::resp3::request::config::cancel_if_not_connected` which will
   cause a request to be canceled if `async_exec` is called before a
-  connection has been stablished.
+  connection has been established.
 
 * Introduces new request flag `aedis::resp3::request::config::retry` that if
   set to true will cause the request to not be canceled when it was
@@ -844,7 +846,7 @@ another.
 * Fixes a bug in `connection::cancel(operation::exec)`. Now this
   call will only cancel non-written requests.
 
-* Implements per-operation implicit cancelation support for
+* Implements per-operation implicit cancellation support for
   `aedis::connection::async_exec`. The following call will `co_await (conn.async_exec(...) || timer.async_wait(...))`
   will cancel the request as long as it has not been written.
 

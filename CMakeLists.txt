@@ -75,6 +75,7 @@ add_executable(test_conn_tls tests/conn_tls.cpp)
 add_executable(test_low_level tests/low_level.cpp)
 add_executable(test_conn_cancel_run tests/conn_cancel_run.cpp)
 add_executable(test_conn_cancel_exec tests/conn_cancel_exec.cpp)
+add_executable(test_conn_echo_stress tests/conn_echo_stress.cpp)
 
 target_compile_features(chat_room PUBLIC cxx_std_20)
 target_compile_features(containers PUBLIC cxx_std_20)
@@ -97,6 +98,7 @@ target_compile_features(test_conn_tls PUBLIC cxx_std_17)
 target_compile_features(test_low_level PUBLIC cxx_std_17)
 target_compile_features(test_conn_cancel_run PUBLIC cxx_std_20)
 target_compile_features(test_conn_cancel_exec PUBLIC cxx_std_20)
+target_compile_features(test_conn_echo_stress PUBLIC cxx_std_20)
 
 target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL)
 target_link_libraries(test_conn_tls OpenSSL::Crypto OpenSSL::SSL)
@@ -120,6 +122,7 @@ add_test(test_conn_reconnect test_conn_reconnect)
 add_test(test_conn_tls test_conn_tls)
 add_test(test_conn_cancel_run test_conn_cancel_run)
 add_test(test_conn_cancel_exec test_conn_cancel_exec)
+add_test(test_conn_echo_stress test_conn_echo_stress)
 
 # Install
 #=======================================================================

@@ -8,7 +8,6 @@
 #include <boost/asio.hpp>
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/system/errc.hpp>
-#include <boost/asio/experimental/as_tuple.hpp>
 
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
@@ -24,7 +23,6 @@ using aedis::adapt;
 using connection = aedis::connection<>;
 using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
-using net::experimental::as_tuple;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;

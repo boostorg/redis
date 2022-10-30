@@ -13,6 +13,9 @@ namespace aedis::resp3 {
 
 /** \brief Writes a request synchronously.
  *  \ingroup low-level-api
+ *
+ *  \param stream Stream to write the request to.
+ *  \param req Request to write.
  */
 template<
    class SyncWriteStream,
@@ -37,6 +40,10 @@ auto write(
 
 /** \brief Writes a request asynchronously.
  *  \ingroup low-level-api
+ *
+ *  \param stream Stream to write the request to.
+ *  \param req Request to write.
+ *  \param token Asio completion token.
  */
 template<
    class AsyncWriteStream,

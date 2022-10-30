@@ -41,13 +41,13 @@ public:
    /** \brief Connection configuration parameters.
     */
    struct timeouts {
-      /// Timeout used for the resolve operation.
+      /// Timeout of the resolve operation.
       std::chrono::steady_clock::duration resolve_timeout = std::chrono::seconds{10};
 
-      /// Timeout used for the connect operation.
+      /// Timeout of the connect operation.
       std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10};
 
-      /// Timeout of the resp3 handshake operation.
+      /// Timeout of the resp3-handshake operation.
       std::chrono::steady_clock::duration resp3_handshake_timeout = std::chrono::seconds{2};
 
       /// Time interval with which PING commands are sent to Redis.
@@ -83,7 +83,7 @@ public:
    /// Returns a const reference to the next layer.
    auto next_layer() const noexcept -> auto const& { return stream_; }
 
-   /** @brief Starts communication with the Redis server asynchronously.
+   /** @brief Establishes a connection with the Redis server asynchronously.
     *
     *  This function performs the following steps
     *
@@ -128,7 +128,7 @@ public:
     *  The completion token must have the following signature
     *
     *  @code
-    *  void f(boost::system::error_code, std::size_t);
+    *  void f(boost::system::error_code);
     *  @endcode
     */
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>

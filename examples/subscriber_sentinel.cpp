@@ -130,5 +130,5 @@ int main()
 }
 
 #else // defined(BOOST_ASIO_HAS_CO_AWAIT)
-int main() {std::cout << "Requires coroutine support." << std::endl; return 1;}
+int main() {std::cout << "Requires coroutine support." << std::endl; return 0;}
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

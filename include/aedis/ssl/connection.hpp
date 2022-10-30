@@ -89,9 +89,9 @@ public:
    /// Returns a const reference to the next layer.
    auto const& next_layer() const noexcept { return stream_; }
 
-   /** @brief Connects and executes a request asynchronously.
+   /** @brief Establishes a connection with the Redis server asynchronously.
     *
-    *  See aedis::connection::async_run for detailed information.
+    *  See aedis::connection::async_run for more information.
     */
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto
@@ -105,7 +105,7 @@ public:
 
    /** @brief Executes a command on the Redis server asynchronously.
     *
-    *  See aedis::connection::async_exec for detailed information.
+    *  See aedis::connection::async_exec for more information.
     */
    template <
       class Adapter = aedis::detail::response_traits<void>::adapter_type,
@@ -134,7 +134,7 @@ public:
 
    /** @brief Cancel operations.
     *
-    *  See aedis::connection::cancel for detailed information.
+    *  See aedis::connection::cancel for more information.
     */
    auto cancel(operation op) -> std::size_t
       { return base_type::cancel(op); }
