@@ -46,7 +46,7 @@ void extract(object const& obj, T& t, boost::string_view key)
     t = value_to<T>(obj.at(key));
 }
 
-user tag_invoke(value_to_tag<user>, value const& jv)
+auto tag_invoke(value_to_tag<user>, value const& jv)
 {
     user u;
     object const& obj = jv.as_object();
@@ -57,7 +57,7 @@ user tag_invoke(value_to_tag<user>, value const& jv)
 }
 
 // Serializes
-void to_bulk(boost::container::pmr::string& to, user const& u)
+void to_bulk(std::pmr::string& to, user const& u)
 {
    aedis::resp3::to_bulk(to, serialize(value_from(u)));
 }
@@ -69,7 +69,7 @@ void from_bulk(user& u, boost::string_view sv, boost::system::error_code&)
    u = value_to<user>(jv);
 }
 
-std::ostream& operator<<(std::ostream& os, user const& u)
+auto operator<<(std::ostream& os, user const& u) -> std::ostream&
 {
    os << "Name: " << u.name << "\n"
       << "Age: " << u.age << "\n"
@@ -78,36 +78,40 @@ std::ostream& operator<<(std::ostream& os, user const& u)
    return os;
 }
 
-bool operator<(user const& a, user const& b)
+auto operator<(user const& a, user const& b)
 {
    return std::tie(a.name, a.age, a.country) < std::tie(b.name, b.age, b.country);
 }
 
-auto logger = [](auto ec, auto...)
+auto const logger = [](auto ec, auto...)
    { std::cout << ec.message() << std::endl; };
 
-int main()
+auto main() -> int
 {
-   net::io_context ioc;
-   connection conn{ioc};
+   try {
+      net::io_context ioc;
+      connection conn{ioc};
 
-   std::set<user> users
-      {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
+      std::set<user> users
+         {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
 
-   request req;
-   req.get_config().cancel_on_connection_lost = true;
-   req.push("HELLO", 3);
-   req.push_range("SADD", "sadd-key", users); // Sends
-   req.push("SMEMBERS", "sadd-key"); // Retrieves
-   req.push("QUIT");
+      request req;
+      req.get_config().cancel_on_connection_lost = true;
+      req.push("HELLO", 3);
+      req.push_range("SADD", "sadd-key", users); // Sends
+      req.push("SMEMBERS", "sadd-key"); // Retrieves
+      req.push("QUIT");
 
-   std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
+      std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
 
-   endpoint ep{"127.0.0.1", "6379"};
-   conn.async_exec(req, adapt(resp),logger);
-   conn.async_run(ep, {}, logger);
-   ioc.run();
+      endpoint ep{"127.0.0.1", "6379"};
+      conn.async_exec(req, adapt(resp),logger);
+      conn.async_run(ep, {}, logger);
+      ioc.run();
 
-   // Print
-   print(std::get<2>(resp));
+      // Print
+      print(std::get<2>(resp));
+   } catch (std::exception const& e) {
+      std::cerr << "Error: " << e.what() << std::endl;
+   }
 }

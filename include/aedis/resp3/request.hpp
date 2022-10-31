@@ -9,10 +9,9 @@
 
 #include <string>
 #include <tuple>
+#include <memory_resource>
 
 #include <boost/hana.hpp>
-#include <boost/container/pmr/global_resource.hpp>
-#include <boost/container/pmr/string.hpp>
 #include <boost/utility/string_view.hpp>
 
 #include <aedis/resp3/type.hpp>
@@ -203,18 +202,15 @@ public:
       bool retry = true;
    };
 
-   /** @brief Constructor
+   /** \brief Constructor
     *  
-    *  @param cfg Configuration options.
+    *  \param cfg Configuration options.
+    *  \param resource Memory resource.
     */
-   explicit request(boost::container::pmr::memory_resource * resource)
-         : payload_(resource), cfg_{false, true, false, true}
-   {}
-
-    explicit request(config cfg = config{false, true, false, true},
-                     boost::container::pmr::memory_resource * resource =
-                     boost::container::pmr::get_default_resource())
-        : payload_(resource), cfg_{cfg}
+    explicit
+    request(config cfg = config{false, true, false, true},
+            std::pmr::memory_resource* resource = std::pmr::get_default_resource())
+    : payload_(resource), cfg_{cfg}
     {}
 
 
@@ -389,7 +385,7 @@ public:
    [[nodiscard]] auto get_config() noexcept -> auto& {return cfg_; }
 
 private:
-   boost::container::pmr::string payload_;
+   std::pmr::string payload_;
    std::size_t commands_ = 0;
    config cfg_;
 };

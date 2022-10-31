@@ -26,16 +26,16 @@ namespace aedis::resp3 {
 template <class String>
 struct node {
    /// The RESP3 type of the data in this node.
-   resp3::type data_type;
+   type data_type = type::invalid;
 
    /// The number of elements of an aggregate.
-   std::size_t aggregate_size;
+   std::size_t aggregate_size{};
 
    /// The depth of this node in the response tree.
-   std::size_t depth;
+   std::size_t depth{};
 
    /// The actual data. For aggregate types this is usually empty.
-   String value;
+   String value{};
 };
 
 /** @brief Converts the node to a string.

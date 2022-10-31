@@ -26,7 +26,6 @@ target_link_libraries(aedis
     Boost::asio
     Boost::assert
     Boost::config
-    Boost::container
     Boost::core
     Boost::mp11
     Boost::optional
@@ -43,7 +42,7 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 
-find_package(Boost 1.79 REQUIRED container)
+find_package(Boost 1.79 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(OpenSSL REQUIRED)
@@ -67,18 +66,17 @@ add_executable(serialization examples/serialization.cpp)
 add_executable(subscriber examples/subscriber.cpp)
 add_executable(subscriber_sentinel examples/subscriber_sentinel.cpp)
 add_executable(test_conn_connect tests/conn_connect.cpp)
-add_executable(test_conn_request tests/conn_request.cpp)
+add_executable(test_conn_exec tests/conn_exec.cpp)
 add_executable(test_conn_push tests/conn_push.cpp)
 add_executable(test_conn_quit tests/conn_quit.cpp)
 add_executable(test_conn_quit_coalesce tests/conn_quit_coalesce.cpp)
 add_executable(test_conn_reconnect tests/conn_reconnect.cpp)
 add_executable(test_conn_tls tests/conn_tls.cpp)
 add_executable(test_low_level tests/low_level.cpp)
-add_executable(test_conn_cancel_run tests/conn_cancel_run.cpp)
-add_executable(test_conn_cancel_exec tests/conn_cancel_exec.cpp)
+add_executable(test_conn_run_cancel tests/conn_run_cancel.cpp)
+add_executable(test_conn_exec_cancel tests/conn_exec_cancel.cpp)
 add_executable(test_conn_echo_stress tests/conn_echo_stress.cpp)
-
-
+add_executable(test_request tests/request.cpp)
 
 target_compile_features(chat_room PUBLIC cxx_std_20)
 target_compile_features(containers PUBLIC cxx_std_20)
@@ -92,37 +90,20 @@ target_compile_features(serialization PUBLIC cxx_std_17)
 target_compile_features(subscriber PUBLIC cxx_std_20)
 target_compile_features(subscriber_sentinel PUBLIC cxx_std_20)
 target_compile_features(test_conn_connect PUBLIC cxx_std_17)
-target_compile_features(test_conn_request PUBLIC cxx_std_20)
+target_compile_features(test_conn_exec PUBLIC cxx_std_20)
 target_compile_features(test_conn_push PUBLIC cxx_std_20)
 target_compile_features(test_conn_quit PUBLIC cxx_std_17)
 target_compile_features(test_conn_quit_coalesce PUBLIC cxx_std_17)
 target_compile_features(test_conn_reconnect PUBLIC cxx_std_20)
 target_compile_features(test_conn_tls PUBLIC cxx_std_17)
 target_compile_features(test_low_level PUBLIC cxx_std_17)
-target_compile_features(test_conn_cancel_run PUBLIC cxx_std_20)
-target_compile_features(test_conn_cancel_exec PUBLIC cxx_std_20)
+target_compile_features(test_conn_run_cancel PUBLIC cxx_std_20)
+target_compile_features(test_conn_exec_cancel PUBLIC cxx_std_20)
 target_compile_features(test_conn_echo_stress PUBLIC cxx_std_20)
+target_compile_features(test_request PUBLIC cxx_std_17)
 
-target_link_libraries(intro Boost::container)
-target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL Boost::container)
-target_link_libraries(chat_room PUBLIC Boost::container)
-target_link_libraries(containers PUBLIC Boost::container)
-target_link_libraries(echo_server PUBLIC Boost::container)
-target_link_libraries(low_level_sync PUBLIC Boost::container)
-target_link_libraries(serialization PUBLIC Boost::container)
-target_link_libraries(subscriber PUBLIC Boost::container)
-target_link_libraries(subscriber_sentinel PUBLIC Boost::container)
-target_link_libraries(test_conn_cancel_exec PUBLIC Boost::container)
-target_link_libraries(test_conn_cancel_run PUBLIC Boost::container)
-target_link_libraries(test_conn_connect PUBLIC Boost::container)
-target_link_libraries(test_conn_push PUBLIC Boost::container)
-target_link_libraries(test_conn_quit PUBLIC Boost::container)
-target_link_libraries(test_conn_quit_coalesce PUBLIC Boost::container)
-target_link_libraries(test_conn_reconnect PUBLIC Boost::container)
-target_link_libraries(test_conn_reconnect PUBLIC Boost::container)
-target_link_libraries(test_conn_request PUBLIC Boost::container)
-target_link_libraries(test_conn_tls OpenSSL::Crypto OpenSSL::SSL Boost::container)
-
+target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL)
+target_link_libraries(test_conn_tls OpenSSL::Crypto OpenSSL::SSL)
 
 # Tests
 #=======================================================================
@@ -134,16 +115,17 @@ add_test(intro_tls intro_tls)
 add_test(serialization serialization)
 add_test(low_level_sync low_level_sync)
 add_test(test_low_level test_low_level)
-add_test(test_conn_request test_conn_request)
+add_test(test_conn_exec test_conn_exec)
 add_test(test_conn_connect test_conn_connect)
 add_test(test_conn_push test_conn_push)
 add_test(test_conn_quit test_conn_quit)
 add_test(test_conn_quit_coalesce test_conn_quit_coalesce)
 add_test(test_conn_reconnect test_conn_reconnect)
 add_test(test_conn_tls test_conn_tls)
-add_test(test_conn_cancel_run test_conn_cancel_run)
-add_test(test_conn_cancel_exec test_conn_cancel_exec)
+add_test(test_conn_run_cancel test_conn_run_cancel)
+add_test(test_conn_exec_cancel test_conn_exec_cancel)
 add_test(test_conn_echo_stress test_conn_echo_stress)
+add_test(test_request test_request)
 
 # Install
 #=======================================================================

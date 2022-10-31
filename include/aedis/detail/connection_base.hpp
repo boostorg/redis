@@ -109,7 +109,7 @@ public:
       return ret;
    }
 
-   std::size_t cancel_on_conn_lost()
+   auto cancel_on_conn_lost() -> std::size_t
    {
       auto cond = [](auto const& ptr)
       {
@@ -233,10 +233,10 @@ private:
          action_ = action::stop;
       }
 
-      auto is_written() const noexcept
+      [[nodiscard]] auto is_written() const noexcept
          { return status_ == status::written; }
 
-      auto is_staged() const noexcept
+      [[nodiscard]] auto is_staged() const noexcept
          { return status_ == status::staged; }
 
       void mark_written() noexcept
@@ -248,13 +248,13 @@ private:
       void reset_status() noexcept
          { status_ = status::none; }
 
-      auto get_number_of_commands() const noexcept
+      [[nodiscard]] auto get_number_of_commands() const noexcept
          { return cmds_; }
 
-      auto const& get_request() const noexcept
+      [[nodiscard]] auto get_request() const noexcept -> auto const&
          { return *req_; }
 
-      auto get_action() const noexcept
+      [[nodiscard]] auto get_action() const noexcept
          { return action_;}
 
       template <class CompletionToken>

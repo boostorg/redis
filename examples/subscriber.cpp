@@ -80,7 +80,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
    }
 }
 
-int main()
+auto main() -> int
 {
    try {
       net::io_context ioc;
@@ -99,5 +99,5 @@ int main()
 }
 
 #else // defined(BOOST_ASIO_HAS_CO_AWAIT)
-int main() {std::cout << "Requires coroutine support." << std::endl; return 0;}
+auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 0;}
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

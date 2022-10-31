@@ -8,8 +8,6 @@
 #include <boost/asio.hpp>
 #include <boost/system/errc.hpp>
 
-#include <boost/container/pmr/monotonic_buffer_resource.hpp>
-
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
@@ -31,7 +29,6 @@ using namespace net::experimental::awaitable_operators;
 
 BOOST_AUTO_TEST_CASE(wrong_response_data_type)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    request req;
    req.push("QUIT");
 
@@ -51,11 +48,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
 
 BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-   namespace pmr = boost::container::pmr;
-   char buf[4096];
-   pmr::monotonic_buffer_resource resource{buf, 4096};
-   request req{&resource};
+   request req;
    req.get_config().cancel_if_not_connected = true;
    req.push("PING");
 
@@ -70,8 +63,6 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 
 BOOST_AUTO_TEST_CASE(request_retry)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
    request req1;
    req1.get_config().cancel_on_connection_lost = true;
    req1.push("CLIENT", "PAUSE", 7000);

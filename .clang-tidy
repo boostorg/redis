@@ -9,6 +9,7 @@ Checks: "*,\
   -google-readability-braces-around-statements,\
   -hicpp-braces-around-statements,\
   -hicpp-named-parameter,\
+  -hicpp-avoid-goto,\
   -google-build-using-namespace,\
   -altera-*,\
   -fuchsia-*,\
@@ -24,6 +25,9 @@ Checks: "*,\
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,\
   -cppcoreguidelines-avoid-magic-numbers,\
   -cppcoreguidelines-pro-bounds-constant-array-index,\
+  -cppcoreguidelines-interfaces-global-init,\
+  -cppcoreguidelines-macro-usage,\
+  -cppcoreguidelines-avoid-goto,\
   -cppcoreguidelines-non-private-member-variables-in-classes"
 WarningsAsErrors: ''
 CheckOptions:
