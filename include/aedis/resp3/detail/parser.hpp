@@ -212,7 +212,7 @@ public:
 
    // The bulk type expected in the next read. If none is expected returns
    // type::invalid.
-   auto bulk() const noexcept { return bulk_; }
+   [[nodiscard]] auto bulk() const noexcept { return bulk_; }
 
    // The length expected in the the next bulk.
    [[nodiscard]] auto bulk_length() const noexcept { return bulk_length_; }

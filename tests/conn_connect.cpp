@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(plain_conn_on_tls_endpoint)
    ep.port = "443";
 
    auto const ec = test_async_run(ep);
-   BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
+   BOOST_TEST(!!ec);
 }
 
 auto auth_fail_error(boost::system::error_code ec)

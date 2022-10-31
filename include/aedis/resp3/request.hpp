@@ -9,6 +9,7 @@
 
 #include <string>
 #include <tuple>
+#include <memory_resource>
 
 #include <boost/hana.hpp>
 #include <boost/utility/string_view.hpp>
@@ -201,15 +202,19 @@ public:
       bool retry = true;
    };
 
-   /** @brief Constructor
+   /** \brief Constructor
     *  
-    *  @param cfg Configuration options.
+    *  \param cfg Configuration options.
+    *  \param resource Memory resource.
     */
-   explicit request(config cfg = config{false, true, false, true})
-   : cfg_{cfg}
-   {}
+    explicit
+    request(config cfg = config{false, true, false, true},
+            std::pmr::memory_resource* resource = std::pmr::get_default_resource())
+    : payload_(resource), cfg_{cfg}
+    {}
 
-   //// Returns the number of commands contained in this request.
+
+    //// Returns the number of commands contained in this request.
    [[nodiscard]] auto size() const noexcept -> std::size_t { return commands_;};
 
    // Returns the request payload.
@@ -380,7 +385,7 @@ public:
    [[nodiscard]] auto get_config() noexcept -> auto& {return cfg_; }
 
 private:
-   std::string payload_;
+   std::pmr::string payload_;
    std::size_t commands_ = 0;
    config cfg_;
 };

@@ -257,7 +257,7 @@ Redis documentation they are called
 request req;
 
 // Command with variable length of arguments.
-req.push("SET", "key", "some value", value, "EX", "2");
+req.push("SET", "key", "some value", "EX", "2");
 
 // Pushes a list.
 std::list<std::string> list
@@ -816,6 +816,12 @@ another.
 ## Changelog
 
 ### master
+
+* Adds allocator support in the `aedis::resp3::request` (a
+  contribution from Klemens Morgenstern).
+
+* Renames `aedis::resp3::request::push_range2` to `push_range`. The
+  suffix 2 was used for disambiguation. Klemens fixed it with SFINAE.
 
 * Renames `fail_on_connection_lost` to
   `aedis::resp3::request::config::cancel_on_connection_lost`. Now, it will

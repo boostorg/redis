@@ -56,7 +56,7 @@ struct connect_with_timeout_op {
 template <class Conn>
 struct resolve_with_timeout_op {
    Conn* conn = nullptr;
-   std::chrono::steady_clock::duration resolve_timeout;
+   std::chrono::steady_clock::duration resolve_timeout{};
    boost::asio::coroutine coro{};
 
    template <class Self>
