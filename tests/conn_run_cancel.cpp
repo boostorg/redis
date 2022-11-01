@@ -49,7 +49,6 @@ auto async_cancel_run_with_timer() -> net::awaitable<void>
 
 BOOST_AUTO_TEST_CASE(cancel_run_with_timer)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    net::co_spawn(ioc.get_executor(), async_cancel_run_with_timer(), net::detached);
    ioc.run();
@@ -86,7 +85,6 @@ async_check_cancellation_not_missed(
 // See PR #29
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_0)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 10, std::chrono::milliseconds{0}), net::detached);
@@ -95,7 +93,6 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_0)
 
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_2)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 20, std::chrono::milliseconds{2}), net::detached);
@@ -104,7 +101,6 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_2)
 
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_8)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 20, std::chrono::milliseconds{8}), net::detached);
@@ -113,7 +109,6 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_8)
 
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_16)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 20, std::chrono::milliseconds{16}), net::detached);
@@ -122,7 +117,6 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_16)
 
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_32)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 20, std::chrono::milliseconds{32}), net::detached);
@@ -131,7 +125,6 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_32)
 
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_64)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 20, std::chrono::milliseconds{64}), net::detached);
@@ -140,7 +133,6 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_64)
 
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_128)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 20, std::chrono::milliseconds{128}), net::detached);
@@ -149,7 +141,6 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_128)
 
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_256)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 20, std::chrono::milliseconds{256}), net::detached);
@@ -158,7 +149,6 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_256)
 
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_512)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 20, std::chrono::milliseconds{512}), net::detached);
@@ -167,12 +157,33 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_512)
 
 BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_1024)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, async_check_cancellation_not_missed(conn, 20, std::chrono::milliseconds{1024}), net::detached);
    ioc.run();
 }
+
+BOOST_AUTO_TEST_CASE(reset_before_run_completes)
+{
+   net::io_context ioc;
+   auto conn = std::make_shared<connection>(ioc);
+
+   // Sends a ping just as a means of waiting until we are connected.
+   request req;
+   req.push("PING");
+
+   conn->async_exec(req, adapt(), [conn](auto ec, auto){
+      BOOST_TEST(!ec);
+      conn->reset_stream();
+   });
+
+   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec){
+      BOOST_CHECK_EQUAL(ec, net::error::operation_aborted);
+   });
+
+   ioc.run();
+}
+
 #else
 int main(){}
 #endif

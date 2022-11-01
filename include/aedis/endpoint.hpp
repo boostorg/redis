@@ -31,9 +31,7 @@ struct endpoint {
    std::string password{};
 };
 
-auto is_valid(endpoint const& ep) noexcept -> bool;
 auto requires_auth(endpoint const& ep) noexcept -> bool;
-auto operator<<(std::ostream& os, endpoint const& ep) -> std::ostream&;
 
 } // aedis
 

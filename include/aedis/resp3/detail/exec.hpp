@@ -54,8 +54,7 @@ struct exec_op {
             AEDIS_CHECK_OP1();
 
             if (n_cmds == 0) {
-               self.complete({}, n);
-               return;
+               return self.complete({}, n);
             }
 
             req = nullptr;
@@ -66,8 +65,7 @@ struct exec_op {
 
          size += n;
          if (--n_cmds == 0) {
-            self.complete(ec, size);
-            return;
+            return self.complete(ec, size);
          }
       }
    }

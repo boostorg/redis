@@ -469,7 +469,7 @@ struct writer_op {
 
             conn->on_write();
 
-            // A socket.close() might may have been called while a
+            // A socket.close() may have been called while a
             // successful write might had already been queued, so we
             // have to check here before proceeding.
             if (!conn->is_open()) {

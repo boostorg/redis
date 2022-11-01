@@ -22,6 +22,9 @@ namespace aedis::adapter::detail {
 
 struct ignore {};
 
+auto operator==(ignore, ignore) noexcept {return true;}
+auto operator!=(ignore, ignore) noexcept {return false;}
+
 /* Traits class for response objects.
  *
  * Provides traits for all supported response types i.e. all STL

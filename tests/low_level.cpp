@@ -113,6 +113,9 @@ std::optional<int> op_int_ok = 11;
 std::optional<bool> op_bool_ok = true;
 
 std::string const streamed_string_wire = "$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n";
+std::string const streamed_string_wire_error = "$?\r\n;b\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n";
+// TODO: Test a streamed string that is not finished with a string of
+// size 0 but other command comes in.
 std::vector<node_type> streamed_string_e1
 { {aedis::resp3::type::streamed_string_part, 1, 1, "Hell"}
 , {aedis::resp3::type::streamed_string_part, 1, 1, "o wor"}
@@ -150,6 +153,7 @@ std::vector<node_type> streamed_string_e2 { {resp3::type::streamed_string_part, 
    test(ex, make_expected(streamed_string_wire, std::string{"Hello word"}, "streamed_string.string")); \
    test(ex, make_expected(streamed_string_wire, int{}, "streamed_string.string", aedis::error::not_a_number)); \
    test(ex, make_expected(streamed_string_wire, streamed_string_e1, "streamed_string.node")); \
+   test(ex, make_expected(streamed_string_wire_error, std::string{}, "streamed_string.error", aedis::error::not_a_number)); \
 
 BOOST_AUTO_TEST_CASE(test_push)
 {
@@ -483,14 +487,17 @@ BOOST_AUTO_TEST_CASE(test_simple_error)
    net::io_context ioc;
    auto const in01 = expect<node_type>{"-Error\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, "simple_error.node", aedis::error::resp3_simple_error};
    auto const in02 = expect<node_type>{"-\r\n", node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, "simple_error.node.empty", aedis::error::resp3_simple_error};
+   auto const in03 = expect<aedis::ignore>{"-Error\r\n", aedis::ignore{}, "simple_error.not.ignore.error", aedis::error::resp3_simple_error};
 
    auto ex = ioc.get_executor();
 
    test_sync(ex, in01);
    test_sync(ex, in02);
+   test_sync(ex, in03);
 
    test_async(ex, in01);
    test_async(ex, in02);
+   test_async(ex, in03);
    ioc.run();
 }
 
@@ -557,14 +564,17 @@ BOOST_AUTO_TEST_CASE(test_blob_error)
    net::io_context ioc;
    auto const in01 = expect<node_type>{"!21\r\nSYNTAX invalid syntax\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, "blob_error", aedis::error::resp3_blob_error};
    auto const in02 = expect<node_type>{"!0\r\n\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {}}, "blob_error.empty", aedis::error::resp3_blob_error};
+   auto const in03 = expect<aedis::ignore>{"!3\r\nfoo\r\n", aedis::ignore{}, "blob_error.ignore.adapter.error", aedis::error::resp3_blob_error};
 
    auto ex = ioc.get_executor();
 
    test_sync(ex, in01);
    test_sync(ex, in02);
+   test_sync(ex, in03);
 
    test_async(ex, in01);
    test_async(ex, in02);
+   test_async(ex, in03);
    ioc.run();
 }
 
@@ -713,6 +723,45 @@ BOOST_AUTO_TEST_CASE(test_null)
    ioc.run();
 }
 
+BOOST_AUTO_TEST_CASE(ignore_adapter_simple_error)
+{
+   net::io_context ioc;
+   std::string rbuffer;
+
+   boost::system::error_code ec;
+
+   test_stream ts {ioc};
+   ts.append("-Error\r\n");
+   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
+   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_simple_error);
+   BOOST_TEST(!rbuffer.empty());
+}
+
+BOOST_AUTO_TEST_CASE(ignore_adapter_blob_error)
+{
+   net::io_context ioc;
+   std::string rbuffer;
+   boost::system::error_code ec;
+
+   test_stream ts {ioc};
+   ts.append("!21\r\nSYNTAX invalid syntax\r\n");
+   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
+   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_blob_error);
+   BOOST_TEST(!rbuffer.empty());
+}
+
+BOOST_AUTO_TEST_CASE(ignore_adapter_no_error)
+{
+   net::io_context ioc;
+   std::string rbuffer;
+   boost::system::error_code ec;
+   test_stream ts {ioc};
+   ts.append(":10\r\n");
+   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
+   BOOST_TEST(!ec);
+   BOOST_TEST(rbuffer.empty());
+}
+
 BOOST_AUTO_TEST_CASE(all_tests)
 {
    net::io_context ioc;
@@ -768,6 +817,8 @@ BOOST_AUTO_TEST_CASE(error)
    check_error("aedis", aedis::error::not_a_double);
    check_error("aedis", aedis::error::resp3_null);
    check_error("aedis", aedis::error::unexpected_server_role);
+   check_error("aedis", aedis::error::not_connected);
+   check_error("aedis", aedis::error::resp3_handshake_error);
 }
 
 std::string get_type_as_str(aedis::resp3::type t)

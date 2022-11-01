@@ -28,6 +28,11 @@ using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using connection = aedis::connection<tcp_socket>;
 
+auto is_valid(endpoint const& ep) noexcept -> bool
+{
+   return !std::empty(ep.host) && !std::empty(ep.port);
+}
+
 // Connects to a Redis instance over sentinel and performs failover in
 // case of disconnection, see
 // https://redis.io/docs/reference/sentinel-clients.  This example
@@ -94,7 +99,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
    stimer timer{ex};
    for (;;) {
       auto ep = co_await net::co_spawn(ex, resolve(), net::use_awaitable);
-      if (!aedis::is_valid(ep)) {
+      if (!is_valid(ep)) {
          std::clog << "Can't resolve master name" << std::endl;
          co_return;
       }
