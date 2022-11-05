@@ -26,7 +26,6 @@ using operation = aedis::operation;
 // Test if quit causes async_run to exit.
 BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
 
@@ -54,7 +53,7 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 
    endpoint ep{"127.0.0.1", "6379"};
    conn->async_run(ep, {}, [conn](auto ec){
-      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
+      BOOST_TEST(!ec);
       conn->cancel(operation::exec);
    });
 
@@ -73,7 +72,7 @@ void test_quit2(bool coalesce)
    });
 
    conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec) {
-      BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
+      BOOST_TEST(!ec);
    });
 
    ioc.run();
@@ -81,7 +80,6 @@ void test_quit2(bool coalesce)
 
 BOOST_AUTO_TEST_CASE(test_quit)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    test_quit2(true);
    test_quit2(false);
 }

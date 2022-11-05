@@ -509,6 +509,12 @@ struct reader_op {
             conn->next_layer(),
             conn->make_dynamic_buffer(),
             "\r\n", std::move(self));
+
+         if (ec == boost::asio::error::eof) {
+            conn->cancel(operation::run);
+            return self.complete({}); // EOFINAE: EOF is not an error.
+         }
+
          AEDIS_CHECK_OP0(conn->cancel(operation::run));
 
          conn->last_data_ = std::chrono::steady_clock::now();

@@ -49,10 +49,7 @@ net::awaitable<void> send(endpoint ep)
    req.push("QUIT");
 
    connection conn{ex};
-   boost::system::error_code ec1, ec2;
-   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(), redir(ec2)));
-   std::clog << "async_run: " << ec1.message() << "\n"
-             << "async_exec: " << ec2.message() << "\n";
+   co_await (conn.async_run(ep) || conn.async_exec(req));
 }
 
 // Retrieves a Redis hash as an std::map.
@@ -65,11 +62,11 @@ net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   std::tuple<std::map<std::string, std::string>, aedis::ignore> resp;
+   std::map<std::string, std::string> ret;
+   auto resp = std::tie(ret, std::ignore);
+   co_await (conn.async_run(ep) || conn.async_exec(req, adapt(resp)));
 
-   boost::system::error_code ec1, ec2;
-   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(resp), redir(ec2)));
-   co_return std::move(std::get<0>(resp));
+   co_return std::move(ret);
 }
 
 // Retrieves as a data structure.
@@ -93,8 +90,7 @@ net::awaitable<void> transaction(endpoint ep)
       aedis::ignore  // quit
    > resp;
 
-   boost::system::error_code ec1, ec2;
-   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(resp), redir(ec2)));
+   co_await (conn.async_run(ep) || conn.async_exec(req, adapt(resp)));
 
    print(std::get<0>(std::get<3>(resp)).value());
    print(std::get<1>(std::get<3>(resp)).value());
@@ -102,13 +98,15 @@ net::awaitable<void> transaction(endpoint ep)
 
 net::awaitable<void> async_main()
 {
-   auto ex = co_await net::this_coro::executor;
-
-   endpoint ep{"127.0.0.1", "6379"};
-   co_await send(ep);
-   co_await transaction(ep);
-   auto const hashes = co_await retrieve_hashes(ep);
-   print(hashes);
+   try {
+      endpoint ep{"127.0.0.1", "6379"};
+      co_await send(ep);
+      co_await transaction(ep);
+      auto const hashes = co_await retrieve_hashes(ep);
+      print(hashes);
+   } catch (std::exception const& e) {
+      std::cerr << e.what() << std::endl;
+   }
 }
 
 auto main() -> int

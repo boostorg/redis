@@ -63,15 +63,23 @@ public:
    };
 
    /// Constructor
-   explicit connection(executor_type ex, boost::asio::ssl::context& ctx)
-   : base_type{ex}
+   explicit
+   connection(
+      executor_type ex,
+      boost::asio::ssl::context& ctx,
+      std::pmr::memory_resource* resource = std::pmr::get_default_resource())
+   : base_type{ex, resource}
    , stream_{ex, ctx}
    {
    }
 
    /// Constructor
-   explicit connection(boost::asio::io_context& ioc, boost::asio::ssl::context& ctx)
-   : connection(ioc.get_executor(), ctx)
+   explicit
+   connection(
+      boost::asio::io_context& ioc,
+      boost::asio::ssl::context& ctx,
+      std::pmr::memory_resource* resource = std::pmr::get_default_resource())
+   : connection(ioc.get_executor(), ctx, resource)
    { }
 
    /// Returns the associated executor.

@@ -20,10 +20,7 @@
 
 namespace aedis::adapter::detail {
 
-struct ignore {};
-
-auto operator==(ignore, ignore) noexcept {return true;}
-auto operator!=(ignore, ignore) noexcept {return false;}
+using ignore = std::decay_t<decltype(std::ignore)>;
 
 /* Traits class for response objects.
  *
@@ -32,18 +29,15 @@ auto operator!=(ignore, ignore) noexcept {return false;}
  */
 template <class ResponseType>
 struct response_traits {
-   using adapter_type = adapter::detail::wrapper<ResponseType>;
+   using adapter_type = adapter::detail::wrapper<typename std::decay<ResponseType>::type>;
    static auto adapt(ResponseType& r) noexcept { return adapter_type{&r}; }
 };
-
-template <class T>
-using adapter_t = typename response_traits<T>::adapter_type;
 
 template <>
 struct response_traits<ignore> {
    using response_type = ignore;
    using adapter_type = resp3::detail::ignore_response;
-   static auto adapt(response_type&) noexcept { return adapter_type{}; }
+   static auto adapt(response_type) noexcept { return adapter_type{}; }
 };
 
 template <class T>
@@ -67,10 +61,13 @@ struct response_traits<void> {
    static auto adapt() noexcept { return adapter_type{}; }
 };
 
+template <class T>
+using adapter_t = typename response_traits<std::decay_t<T>>::adapter_type;
+
 // Duplicated here to avoid circular include dependency.
 template<class T>
 auto internal_adapt(T& t) noexcept
-   { return response_traits<T>::adapt(t); }
+   { return response_traits<std::decay_t<T>>::adapt(t); }
 
 template <std::size_t N>
 struct assigner {

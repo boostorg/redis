@@ -40,7 +40,7 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
       );
 
       BOOST_TEST(!ec1);
-      BOOST_CHECK_EQUAL(ec2, net::error::misc_errors::eof);
+      BOOST_TEST(!ec2);
       db->reset_stream();
    }
 

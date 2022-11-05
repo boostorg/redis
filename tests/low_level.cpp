@@ -24,6 +24,13 @@
 
 // TODO: Test with empty strings.
 
+
+namespace std
+{
+auto operator==(aedis::ignore, aedis::ignore) noexcept {return true;}
+auto operator!=(aedis::ignore, aedis::ignore) noexcept {return false;}
+}
+
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 
@@ -873,5 +880,15 @@ BOOST_AUTO_TEST_CASE(type_convert)
    CHECK_CASE(blob_string);
    CHECK_CASE(streamed_string_part);
 #undef CHECK_CASE
+}
+
+BOOST_AUTO_TEST_CASE(adapter)
+{
+   using aedis::adapt;
+
+   std::string s;
+   auto resp = std::tie(s, std::ignore);
+   auto f = adapt(resp);
+   (void)f;
 }
 

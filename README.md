@@ -33,18 +33,15 @@ net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
    connection conn{co_await net::this_coro::executor};
 
    request req;
+   req.get_config().cancel_on_connection_lost = true;
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   std::tuple<
-      std::map<std::string, std::string>,
-      aedis::ignore> response;
+   std::tuple<std::map<std::string, std::string>, aedis::ignore> resp;
+   co_await (conn.async_run(ep) || conn.async_exec(req, adapt(resp)));
 
-   boost::system::error_code ec1, ec2;
-   co_await (conn.async_run(ep, {}, redir(ec1)) || conn.async_exec(req, adapt(response), redir(ec2)));
-   co_return std::move(std::get<0>(response));
+   co_return std::move(std::get<0>(resp));
 }
-
 ```
 
 In the next section we will see more details about connections,
@@ -805,8 +802,14 @@ library, so you can starting using it right away by adding the
 #include <aedis/src.hpp>
 
 ```
-in no more than one source file in your applications. The 
-requirements for using Aedis are
+in no more than one source file in your applications. For example, to
+compile one of the examples manually
+
+```cpp
+g++ -std=c++20 -pthread -I/opt/boost_1_79_0/include/ -I./aedis/include examples/intro.cpp
+```
+
+The requirements for using Aedis are
 
 - Boost 1.79 or greater.
 - C++17 minimum.
@@ -833,6 +836,16 @@ another.
 
 ### master
 
+* `aedis::adapt` supports now tuples created with `std::tie`.
+  `aedis::ignore` is now an alias to the type of `std::ignore`.
+
+* Provides allocator support for the internal queue used in the
+  `aedis::connection` class.
+
+* Changes the behaviour of `async_run` to complete with success if
+  asio::error::eof is received. This makes it easier to  write
+  composed operations with awaitable operators.
+
 * Adds allocator support in the `aedis::resp3::request` (a
   contribution from Klemens Morgenstern).
 
@@ -854,10 +867,6 @@ another.
 
 * Removes the `aedis::connection::async_run` overload that takes
   request and adapter as parameters.
-
-* Adds a second parameter to the `aedis::connection::async_run`
-  completion signature that contains the number of requests that have
-  been canceled on its completion.
 
 * Changes the way `aedis::adapt()` behaves with
   `std::vector<aedis::resp3::node<T>>`. Receiving RESP3 simple errors,

@@ -55,13 +55,19 @@ public:
    };
 
    /// Constructor
-   explicit connection(executor_type ex)
-   : base_type{ex}
+   explicit
+   connection(
+      executor_type ex,
+      std::pmr::memory_resource* resource = std::pmr::get_default_resource())
+   : base_type{ex, resource}
    , stream_{ex}
    {}
 
-   explicit connection(boost::asio::io_context& ioc)
-   : connection(ioc.get_executor())
+   explicit
+   connection(
+      boost::asio::io_context& ioc,
+      std::pmr::memory_resource* resource = std::pmr::get_default_resource())
+   : connection(ioc.get_executor(), resource)
    { }
 
    /// Returns the associated executor.
@@ -130,6 +136,10 @@ public:
     *  @code
     *  void f(boost::system::error_code);
     *  @endcode
+    *
+    *  This function will complete when the connection is lost as
+    *  follows. If the error is boost::asio::error::eof this function
+    *  will complete without error.
     */
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto

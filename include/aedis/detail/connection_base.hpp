@@ -13,6 +13,7 @@
 #include <chrono>
 #include <memory>
 #include <type_traits>
+#include <memory_resource>
 
 #include <boost/assert.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -43,13 +44,15 @@ public:
    using executor_type = Executor;
    using this_type = connection_base<Executor, Derived>;
 
-   explicit connection_base(executor_type ex)
+   explicit
+   connection_base(executor_type ex, std::pmr::memory_resource* resource)
    : resv_{ex}
    , ping_timer_{ex}
    , check_idle_timer_{ex}
    , writer_timer_{ex}
    , read_timer_{ex}
    , push_channel_{ex}
+   , reqs_{resource}
    , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
       req_.get_config().cancel_if_not_connected = true;
@@ -282,7 +285,7 @@ private:
       reqs_.erase(std::remove(std::begin(reqs_), std::end(reqs_), info));
    }
 
-   using reqs_type = std::deque<std::shared_ptr<req_info>>;
+   using reqs_type = std::pmr::deque<std::shared_ptr<req_info>>;
 
    template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::reader_op;

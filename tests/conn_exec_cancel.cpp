@@ -36,7 +36,7 @@ auto async_run(std::shared_ptr<connection> conn) -> net::awaitable<void>
    endpoint ep{"127.0.0.1", "6379"};
    boost::system::error_code ec;
    co_await conn->async_run(ep, tms, net::redirect_error(net::use_awaitable, ec));
-   BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
+   BOOST_TEST(!ec);
 }
 
 auto async_cancel_exec(std::shared_ptr<connection> conn) -> net::awaitable<void>
