@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.1.1</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.2.0</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -99,7 +99,7 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span> </div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="keyword">namespace </span>aedis::adapter::detail {</div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span> </div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keyword">struct </span><a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a> {};</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keyword">using </span><a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a> = std::decay_t&lt;<span class="keyword">decltype</span>(<a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">std::ignore</a>)&gt;;</div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="comment">/* Traits class for response objects.</span></div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="comment"> *</span></div>
@@ -108,45 +108,45 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="comment"> */</span></div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> ResponseType&gt;</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="keyword">struct </span>response_traits {</div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>   <span class="keyword">using </span>adapter_type = adapter::detail::wrapper&lt;ResponseType&gt;;</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>   <span class="keyword">using </span>adapter_type = <a class="code hl_enumeration" href="group__high-level-api.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">adapter::detail::wrapper&lt;typename std::decay&lt;ResponseType&gt;::type</a>&gt;;</div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(ResponseType&amp; r) <span class="keyword">noexcept</span> { <span class="keywordflow">return</span> adapter_type{&amp;r}; }</div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>};</div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="keyword">using </span>adapter_t = <span class="keyword">typename</span> response_traits&lt;T&gt;::adapter_type;</div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keyword">struct </span>response_traits&lt;<a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>&gt; {</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>   <span class="keyword">using </span>response_type = <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>;</div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>   <span class="keyword">using </span>adapter_type = resp3::detail::ignore_response;</div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(response_type&amp;) <span class="keyword">noexcept</span> { <span class="keywordflow">return</span> adapter_type{}; }</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>};</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="keyword">struct </span>response_traits&lt;resp3::node&lt;T&gt;&gt; {</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>   <span class="keyword">using </span>response_type = <a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">resp3::node&lt;T&gt;</a>;</div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>   <span class="keyword">using </span>adapter_type = adapter::detail::general_simple&lt;response_type&gt;;</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(response_type&amp; v) <span class="keyword">noexcept</span> { <span class="keywordflow">return</span> adapter_type{&amp;v}; }</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>};</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> String, <span class="keyword">class</span> Allocator&gt;</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="keyword">struct </span>response_traits&lt;std::vector&lt;resp3::node&lt;String&gt;, Allocator&gt;&gt; {</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>   <span class="keyword">using </span>response_type = std::vector&lt;resp3::node&lt;String&gt;, Allocator&gt;;</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>   <span class="keyword">using </span>adapter_type = adapter::detail::general_aggregate&lt;response_type&gt;;</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(response_type&amp; v) <span class="keyword">noexcept</span> { <span class="keywordflow">return</span> adapter_type{&amp;v}; }</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>};</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span> </div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="keyword">struct </span>response_traits&lt;void&gt; {</div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>   <span class="keyword">using </span>response_type = void;</div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>   <span class="keyword">using </span>adapter_type = resp3::detail::ignore_response;</div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>() noexcept { <span class="keywordflow">return</span> adapter_type{}; }</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>};</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="keyword">template</span> &lt;&gt;</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="keyword">struct </span>response_traits&lt;<a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>&gt; {</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>   <span class="keyword">using </span>response_type = <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>;</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>   <span class="keyword">using </span>adapter_type = resp3::detail::ignore_response;</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(response_type) <span class="keyword">noexcept</span> { <span class="keywordflow">return</span> adapter_type{}; }</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>};</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span> </div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="keyword">struct </span>response_traits&lt;resp3::node&lt;T&gt;&gt; {</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>   <span class="keyword">using </span>response_type = <a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">resp3::node&lt;T&gt;</a>;</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>   <span class="keyword">using </span>adapter_type = adapter::detail::general_simple&lt;response_type&gt;;</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(response_type&amp; v) <span class="keyword">noexcept</span> { <span class="keywordflow">return</span> adapter_type{&amp;v}; }</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>};</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span> </div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> String, <span class="keyword">class</span> Allocator&gt;</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="keyword">struct </span>response_traits&lt;std::vector&lt;resp3::node&lt;String&gt;, Allocator&gt;&gt; {</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>   <span class="keyword">using </span>response_type = std::vector&lt;resp3::node&lt;String&gt;, Allocator&gt;;</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>   <span class="keyword">using </span>adapter_type = adapter::detail::general_aggregate&lt;response_type&gt;;</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(response_type&amp; v) <span class="keyword">noexcept</span> { <span class="keywordflow">return</span> adapter_type{&amp;v}; }</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>};</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="keyword">template</span> &lt;&gt;</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="keyword">struct </span>response_traits&lt;void&gt; {</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>   <span class="keyword">using </span>response_type = void;</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>   <span class="keyword">using </span>adapter_type = resp3::detail::ignore_response;</div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>   <span class="keyword">static</span> <span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>() noexcept { <span class="keywordflow">return</span> adapter_type{}; }</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>};</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="keyword">using </span>adapter_t = <span class="keyword">typename</span> response_traits&lt;std::decay_t&lt;T&gt;&gt;::adapter_type;</div>
 <div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span> </div>
 <div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="comment">// Duplicated here to avoid circular include dependency.</span></div>
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="keyword">template</span>&lt;<span class="keyword">class</span> T&gt;</div>
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="keyword">auto</span> internal_adapt(T&amp; t) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>   { <span class="keywordflow">return</span> <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">response_traits&lt;T&gt;::adapt</a>(t); }</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>   { <span class="keywordflow">return</span> response_traits&lt;std::decay_t&lt;T&gt;&gt;<a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">::adapt</a>(t); }</div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span> </div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> N&gt;</div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="keyword">struct </span>assigner {</div>
@@ -191,8 +191,8 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>   <span class="keywordtype">void</span> count(<a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">resp3::node&lt;boost::string_view&gt;</a> <span class="keyword">const</span>&amp; nd)</div>
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>   {</div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>      <span class="keywordflow">if</span> (nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">depth</a> == 1) {</div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>         <span class="keywordflow">if</span> (is_aggregate(nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#aae147962496e8ab3f52b2d8575307a5a">data_type</a>))</div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>            aggregate_size_ = element_multiplicity(nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#aae147962496e8ab3f52b2d8575307a5a">data_type</a>) * nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a>;</div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>         <span class="keywordflow">if</span> (is_aggregate(nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a>))</div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>            aggregate_size_ = element_multiplicity(nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a>) * nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a>;</div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>         <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>            ++i_;</div>
 <div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span> </div>
@@ -211,7 +211,7 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>      <span class="keyword">using </span>boost::variant2::visit;</div>
 <div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span> </div>
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>      <span class="keywordflow">if</span> (nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">depth</a> == 0) {</div>
-<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>         <span class="keyword">auto</span> <span class="keyword">const</span> real_aggr_size = nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a> * element_multiplicity(nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#aae147962496e8ab3f52b2d8575307a5a">data_type</a>);</div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>         <span class="keyword">auto</span> <span class="keyword">const</span> real_aggr_size = nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a> * element_multiplicity(nd.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a>);</div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>         <span class="keywordflow">if</span> (real_aggr_size != std::tuple_size&lt;Tuple&gt;::value)</div>
 <div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span>        ec = <a class="code hl_enumvalue" href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa18a0cd8e67dab1a91bce2ee6ce1671c9">error::incompatible_size</a>;</div>
 <div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span> </div>
@@ -235,12 +235,13 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span> </div>
 <div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span><span class="preprocessor">#endif </span><span class="comment">// AEDIS_ADAPTER_RESPONSE_TRAITS_HPP</span></div>
 <div class="ttc" id="agroup__high-level-api_html_ga0d619e51ab37f7854e7218a061900820"><div class="ttname"><a href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a></div><div class="ttdeci">adapter::detail::ignore ignore</div><div class="ttdoc">Tag used to ignore responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00036">adapt.hpp:36</a></div></div>
+<div class="ttc" id="agroup__high-level-api_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__high-level-api.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 data types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00021">type.hpp:22</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_gac56bb1a8df93445853a4b9dae2d97b6e"><div class="ttname"><a href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a></div><div class="ttdeci">auto adapt(std::size_t max_read_size=(std::numeric_limits&lt; std::size_t &gt;::max)()) noexcept</div><div class="ttdoc">Creates an adapter that ignores responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00199">adapt.hpp:199</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_gga1833aa5e140bbaa9d319ecb1a71bd8baa18a0cd8e67dab1a91bce2ee6ce1671c9"><div class="ttname"><a href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa18a0cd8e67dab1a91bce2ee6ce1671c9">aedis::error::incompatible_size</a></div><div class="ttdeci">@ incompatible_size</div><div class="ttdoc">Aggregate container has incompatible size.</div></div>
 <div class="ttc" id="astructaedis_1_1resp3_1_1node_html"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00027">node.hpp:27</a></div></div>
 <div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a49cc8e665a20c071d7355c230f1268ac"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aedis::resp3::node::aggregate_size</a></div><div class="ttdeci">std::size_t aggregate_size</div><div class="ttdoc">The number of elements of an aggregate.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00032">node.hpp:32</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a7fcf8b9f1afb4f602119e5a17209d093"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">aedis::resp3::node::data_type</a></div><div class="ttdeci">type data_type</div><div class="ttdoc">The RESP3 type of the data in this node.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00029">node.hpp:29</a></div></div>
 <div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a829e2bf6551568a60406fad87e44804d"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">aedis::resp3::node::depth</a></div><div class="ttdeci">std::size_t depth</div><div class="ttdoc">The depth of this node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00035">node.hpp:35</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_aae147962496e8ab3f52b2d8575307a5a"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#aae147962496e8ab3f52b2d8575307a5a">aedis::resp3::node::data_type</a></div><div class="ttdeci">resp3::type data_type</div><div class="ttdoc">The RESP3 type of the data in this node.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00029">node.hpp:29</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

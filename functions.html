@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.1.1</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.2.0</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -75,23 +75,24 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <h3><a id="index_a" name="index_a"></a>- a -</h3><ul>
 <li>aggregate_size&#160;:&#160;<a class="el" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aedis::resp3::node&lt; String &gt;</a></li>
 <li>async_exec()&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff">aedis::connection&lt; AsyncReadWriteStream &gt;</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a79b424eced0c1a5be53b403e0975a89e">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></li>
-<li>async_receive_push()&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#a64109cde6ce5eb31aa36ff85cc43ce95">aedis::connection&lt; AsyncReadWriteStream &gt;</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#aa1645f43b3a5477a3c0ff370ae48eb31">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></li>
+<li>async_receive()&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#a98ea9deb9246ece128faea63aa8602f8">aedis::connection&lt; AsyncReadWriteStream &gt;</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#ae79dd395c988c2b41832d9bb83760cf7">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></li>
 <li>async_run()&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558">aedis::connection&lt; AsyncReadWriteStream &gt;</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a9add34cba6778f45a7b0f5d02fbd4bef">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></li>
 </ul>
 
 
 <h3><a id="index_c" name="index_c"></a>- c -</h3><ul>
 <li>cancel()&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#a114105726f94e52215c1ea2a9f8600d8">aedis::connection&lt; AsyncReadWriteStream &gt;</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a1dc757930ad632244ba41a58de4f51c1">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></li>
+<li>cancel_if_not_connected&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a4054811af1ac8f14a04a501907bc05be">aedis::resp3::request::config</a></li>
+<li>cancel_on_connection_lost&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#aab978e56c202631d2fea293b73725e69">aedis::resp3::request::config</a></li>
 <li>clear()&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">aedis::resp3::request</a></li>
-<li>close_on_connection_lost&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a6a4133593d69da73da3df0e8dbab2695">aedis::resp3::request::config</a></li>
 <li>coalesce&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a253cef2ca5d60b1b319019fafb3d27b3">aedis::resp3::request::config</a></li>
 <li>connect_timeout&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#add04e4269fdb3120ef50bd7171fdec54">aedis::connection&lt; AsyncReadWriteStream &gt;::timeouts</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a1b634984eac1a63d7fad6513d65a7401">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::timeouts</a></li>
-<li>connection()&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#ae24375d85043ce25163fc5ac1697f845">aedis::connection&lt; AsyncReadWriteStream &gt;</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#acba1ce61a3b14860d5b66b04a1c41734">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></li>
+<li>connection()&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#a24d99ad348058cf8be3346a52ef846a3">aedis::connection&lt; AsyncReadWriteStream &gt;</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a164beb89f68235fcb70afcf1f5561ea0">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></li>
 </ul>
 
 
 <h3><a id="index_d" name="index_d"></a>- d -</h3><ul>
-<li>data_type&#160;:&#160;<a class="el" href="structaedis_1_1resp3_1_1node.html#aae147962496e8ab3f52b2d8575307a5a">aedis::resp3::node&lt; String &gt;</a></li>
+<li>data_type&#160;:&#160;<a class="el" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">aedis::resp3::node&lt; String &gt;</a></li>
 <li>depth&#160;:&#160;<a class="el" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">aedis::resp3::node&lt; String &gt;</a></li>
 </ul>
 
@@ -102,6 +103,7 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 
 
 <h3><a id="index_g" name="index_g"></a>- g -</h3><ul>
+<li>get_config()&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a202320ac3ef896036ec1048a87e9d06c">aedis::resp3::request</a></li>
 <li>get_executor()&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#af6a215c0d8a24d1e3466aed1a8801e91">aedis::connection&lt; AsyncReadWriteStream &gt;</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a99fc6d00fc97389df6ea5eee93e853c6">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></li>
 </ul>
 
@@ -129,17 +131,17 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <li>ping_interval&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#ae2ed7afc9bed17c628b8b2e1991d24fa">aedis::connection&lt; AsyncReadWriteStream &gt;::timeouts</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a641125b420aed75d988fba6fa181e68f">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::timeouts</a></li>
 <li>port&#160;:&#160;<a class="el" href="group__high-level-api.html#aef69172079dfa8cba7188040183c96e0">aedis::endpoint</a></li>
 <li>push()&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request</a></li>
-<li>push_range()&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a811536f213c80d537db4c205e56fc199">aedis::resp3::request</a></li>
-<li>push_range2()&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a29c7c13a796f72f7599f8ba45bba498b">aedis::resp3::request</a></li>
+<li>push_range()&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a3c4321c7c14eb92a977c48b0433c424e">aedis::resp3::request</a></li>
 </ul>
 
 
 <h3><a id="index_r" name="index_r"></a>- r -</h3><ul>
-<li>request()&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a01b5fa6b7fb4a1dbf857670b65f3ea48">aedis::resp3::request</a></li>
+<li>request()&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#ab9f599e6b08cbf3965e5cd7963af80ce">aedis::resp3::request</a></li>
 <li>reserve()&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a97e05ff085646e18e15092bbd560b8e7">aedis::resp3::request</a></li>
 <li>reset_stream()&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#ad9c0c7c2afb8ce64b9a28d42cd26107d">aedis::connection&lt; AsyncReadWriteStream &gt;</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a981dfb0dafb1bfdf1f7fe5834b04c87a">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></li>
 <li>resolve_timeout&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#a53cc3abae997568f9d2b2ca4cc9939af">aedis::connection&lt; AsyncReadWriteStream &gt;::timeouts</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#aabb79639097df12e19fd3ad41c4995c1">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::timeouts</a></li>
 <li>resp3_handshake_timeout&#160;:&#160;<a class="el" href="classaedis_1_1connection.html#a8ee9dcb7de3732ff3409883cab005382">aedis::connection&lt; AsyncReadWriteStream &gt;::timeouts</a>, <a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a119f93668525c988f87cd10ddab4bc9c">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::timeouts</a></li>
+<li>retry&#160;:&#160;<a class="el" href="classaedis_1_1resp3_1_1request.html#a653d47ba62bd2b3f84f424a2b2b35b9a">aedis::resp3::request::config</a></li>
 <li>role&#160;:&#160;<a class="el" href="group__high-level-api.html#a117002a65e8eafe515691de66e198ff8">aedis::endpoint</a></li>
 </ul>
 

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.1.1</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.2.0</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -96,48 +96,50 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="keyword">namespace </span>net = boost::asio;</div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="keyword">using </span><a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a>;</div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="keyword">using </span><a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a>;</div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="keyword">using </span><a class="code hl_struct" href="group__high-level-api.html#structaedis_1_1endpoint">aedis::endpoint</a>;</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="keyword">using </span><a class="code hl_class" href="classaedis_1_1connection.html">connection</a> = aedis::ssl::connection&lt;net::ssl::stream&lt;net::ip::tcp::socket&gt;&gt;;</div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span> </div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keywordtype">bool</span> verify_certificate(<span class="keywordtype">bool</span>, net::ssl::verify_context&amp;)</div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>{</div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>   std::cout &lt;&lt; <span class="stringliteral">&quot;set_verify_callback&quot;</span> &lt;&lt; std::endl;</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>   <span class="keywordflow">return</span> <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>}</div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span> </div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="keyword">auto</span> main() -&gt; <span class="keywordtype">int</span></div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>{</div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>   <span class="keywordflow">try</span> {</div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>      net::io_context ioc;</div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span> </div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>      net::ssl::context ctx{net::ssl::context::sslv23};</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="keyword">using </span><a class="code hl_class" href="classaedis_1_1connection.html">connection</a> = aedis::ssl::connection&lt;net::ssl::stream&lt;net::ip::tcp::socket&gt;&gt;;</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="keyword">auto</span> <span class="keyword">const</span> logger = [](<span class="keyword">auto</span> ec, <span class="keyword">auto</span>...)</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>   { std::cout &lt;&lt; ec.message() &lt;&lt; std::endl; };</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="keyword">auto</span> verify_certificate(<span class="keywordtype">bool</span>, net::ssl::verify_context&amp;) -&gt; <span class="keywordtype">bool</span></div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>{</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>   std::cout &lt;&lt; <span class="stringliteral">&quot;set_verify_callback&quot;</span> &lt;&lt; std::endl;</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>   <span class="keywordflow">return</span> <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>}</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="keyword">auto</span> main() -&gt; <span class="keywordtype">int</span></div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>{</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>   <span class="keywordflow">try</span> {</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>      net::io_context ioc;</div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>      <a class="code hl_class" href="classaedis_1_1connection.html">connection</a> conn{ioc, ctx};</div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>      conn.<a class="code hl_function" href="classaedis_1_1connection.html#a57abd52f84a33393488ffae91155670e">next_layer</a>().set_verify_mode(net::ssl::verify_peer);</div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>      conn.next_layer().set_verify_callback(verify_certificate);</div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span> </div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>      <a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;PING&quot;</span>);</div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>      std::tuple&lt;std::string, aedis::ignore&gt; resp;</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>      conn.async_run({<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>}, req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp), {}, [&amp;](<span class="keyword">auto</span> ec, <span class="keyword">auto</span>) {</div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>         std::cout &lt;&lt; ec.message() &lt;&lt; std::endl;</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>      });</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span> </div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>      ioc.run();</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>      net::ssl::context ctx{net::ssl::context::sslv23};</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>      <a class="code hl_class" href="classaedis_1_1connection.html">connection</a> conn{ioc, ctx};</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>      conn.<a class="code hl_function" href="classaedis_1_1connection.html#a57abd52f84a33393488ffae91155670e">next_layer</a>().set_verify_mode(net::ssl::verify_peer);</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>      conn.next_layer().set_verify_callback(verify_certificate);</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span> </div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>      <a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a202320ac3ef896036ec1048a87e9d06c">get_config</a>().cancel_on_connection_lost = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;PING&quot;</span>);</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>      std::tuple&lt;std::string, aedis::ignore&gt; resp;</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>      conn.async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp), logger);</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>      conn.async_run({<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>}, {}, logger);</div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span> </div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>      std::cout &lt;&lt; <span class="stringliteral">&quot;Response: &quot;</span> &lt;&lt; std::get&lt;0&gt;(resp) &lt;&lt; std::endl;</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>      std::cerr &lt;&lt; <span class="stringliteral">&quot;Error: &quot;</span> &lt;&lt; e.what() &lt;&lt; std::endl;</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>   }</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>}</div>
-<div class="ttc" id="aclassaedis_1_1connection_html"><div class="ttname"><a href="classaedis_1_1connection.html">aedis::connection</a></div><div class="ttdoc">A connection to the Redis server.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00033">connection.hpp:36</a></div></div>
-<div class="ttc" id="aclassaedis_1_1connection_html_a57abd52f84a33393488ffae91155670e"><div class="ttname"><a href="classaedis_1_1connection.html#a57abd52f84a33393488ffae91155670e">aedis::connection::next_layer</a></div><div class="ttdeci">auto next_layer() noexcept -&gt; auto &amp;</div><div class="ttdoc">Returns a reference to the next layer.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00085">connection.hpp:85</a></div></div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>      ioc.run();</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>      std::cout &lt;&lt; <span class="stringliteral">&quot;Response: &quot;</span> &lt;&lt; std::get&lt;0&gt;(resp) &lt;&lt; std::endl;</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>      std::cerr &lt;&lt; <span class="stringliteral">&quot;Error: &quot;</span> &lt;&lt; e.what() &lt;&lt; std::endl;</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>   }</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>}</div>
+<div class="ttc" id="aclassaedis_1_1connection_html"><div class="ttname"><a href="classaedis_1_1connection.html">aedis::connection</a></div><div class="ttdoc">A connection to the Redis server.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00029">connection.hpp:32</a></div></div>
+<div class="ttc" id="aclassaedis_1_1connection_html_a57abd52f84a33393488ffae91155670e"><div class="ttname"><a href="classaedis_1_1connection.html#a57abd52f84a33393488ffae91155670e">aedis::connection::next_layer</a></div><div class="ttdeci">auto next_layer() noexcept -&gt; auto &amp;</div><div class="ttdoc">Returns a reference to the next layer.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00087">connection.hpp:87</a></div></div>
 <div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00174">request.hpp:174</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_ae9cfe90ea55427d5345846f80b70be1b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request::push</a></div><div class="ttdeci">void push(boost::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00232">request.hpp:232</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a202320ac3ef896036ec1048a87e9d06c"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a202320ac3ef896036ec1048a87e9d06c">aedis::resp3::request::get_config</a></div><div class="ttdeci">auto get_config() const noexcept -&gt; auto const &amp;</div><div class="ttdoc">Returns a const reference to the config object.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00382">request.hpp:382</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_ae9cfe90ea55427d5345846f80b70be1b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request::push</a></div><div class="ttdeci">void push(boost::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00246">request.hpp:246</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_gac56bb1a8df93445853a4b9dae2d97b6e"><div class="ttname"><a href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a></div><div class="ttdeci">auto adapt(std::size_t max_read_size=(std::numeric_limits&lt; std::size_t &gt;::max)()) noexcept</div><div class="ttdoc">Creates an adapter that ignores responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00199">adapt.hpp:199</a></div></div>
-<div class="ttc" id="agroup__high-level-api_html_structaedis_1_1endpoint"><div class="ttname"><a href="group__high-level-api.html#structaedis_1_1endpoint">aedis::endpoint</a></div><div class="ttdoc">A Redis endpoint.</div><div class="ttdef"><b>Definition:</b> <a href="endpoint_8hpp_source.html#l00017">endpoint.hpp:17</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->
 <!-- start footer part -->

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.1.1</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.2.0</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -74,42 +74,44 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 </div><!--header-->
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
-<ul><li class="level1"><a href="#autotoc_md1">Overview</a><ul><li class="level2"><a href="#autotoc_md2">Connection</a></li>
-<li class="level2"><a href="#autotoc_md3">Reconnect</a></li>
-<li class="level2"><a href="#autotoc_md4">Timeouts</a></li>
-<li class="level2"><a href="#autotoc_md5">Installation</a></li>
-<li class="level2"><a href="#autotoc_md6">Examples</a></li>
-<li class="level2"><a href="#autotoc_md7">API Reference</a></li>
+<ul><li class="level1"><a href="#autotoc_md1">Overview</a><ul><li class="level2"><a href="#autotoc_md2">Connection</a><ul><li class="level3"><a href="#autotoc_md3">Connect</a></li>
+<li class="level3"><a href="#autotoc_md4">Execute</a></li>
+<li class="level3"><a href="#autotoc_md5">Receive</a></li>
+<li class="level3"><a href="#autotoc_md6">Cancellation</a></li>
+<li class="level3"><a href="#autotoc_md7">Timeouts</a></li>
 </ul>
 </li>
-<li class="level1"><a href="#autotoc_md8">Requests</a><ul><li class="level2"><a href="#autotoc_md9">Serialization</a></li>
+<li class="level2"><a href="#autotoc_md8">Requests</a><ul><li class="level3"><a href="#autotoc_md9">Serialization</a></li>
 </ul>
 </li>
-<li class="level1"><a href="#autotoc_md10">Responses</a><ul><li class="level2"><a href="#autotoc_md11">Null</a></li>
-<li class="level2"><a href="#autotoc_md12">Transactions</a></li>
-<li class="level2"><a href="#autotoc_md13">Deserialization</a></li>
-<li class="level2"><a href="#autotoc_md14">The general case</a></li>
+<li class="level2"><a href="#autotoc_md10">Responses</a><ul><li class="level3"><a href="#autotoc_md11">Push</a></li>
+<li class="level3"><a href="#autotoc_md12">Null</a></li>
+<li class="level3"><a href="#autotoc_md13">Transactions</a></li>
+<li class="level3"><a href="#autotoc_md14">Deserialization</a></li>
+<li class="level3"><a href="#autotoc_md15">The general case</a></li>
 </ul>
 </li>
-<li class="level1"><a href="#autotoc_md15">Why Aedis</a><ul><li class="level2"><a href="#autotoc_md16">Redis-plus-plus</a></li>
-<li class="level2"><a href="#autotoc_md17">Benchmark: Echo server</a><ul><li class="level3"><a href="#autotoc_md18">Without Redis</a></li>
-<li class="level3"><a href="#autotoc_md19">With Redis</a></li>
+<li class="level2"><a href="#autotoc_md16">Examples</a></li>
+</ul>
+</li>
+<li class="level1"><a href="#autotoc_md17">Why Aedis</a><ul><li class="level2"><a href="#autotoc_md18">Echo server benchmark</a><ul><li class="level3"><a href="#autotoc_md19">Without Redis</a></li>
+<li class="level3"><a href="#autotoc_md20">With Redis</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="level1"><a href="#autotoc_md20">Changelog</a><ul><li class="level2"><a href="#autotoc_md21">v1.1.0</a></li>
-<li class="level2"><a href="#autotoc_md22">v1.0.0</a></li>
-<li class="level2"><a href="#autotoc_md23">v0.3.0</a></li>
-<li class="level2"><a href="#autotoc_md24">v0.2.1</a></li>
-<li class="level2"><a href="#autotoc_md25">v0.2.0</a></li>
-<li class="level2"><a href="#autotoc_md26">v0.1.2</a></li>
-<li class="level2"><a href="#autotoc_md27">v0.1.1</a></li>
-<li class="level2"><a href="#autotoc_md28">v0.1.0</a></li>
-<li class="level2"><a href="#autotoc_md29">v0.0.1</a></li>
+<li class="level1"><a href="#autotoc_md21">Reference</a></li>
+<li class="level1"><a href="#autotoc_md22">Installation</a></li>
+<li class="level1"><a href="#autotoc_md23">Acknowledgement</a></li>
+<li class="level1"><a href="#autotoc_md24">Changelog</a><ul><li class="level2"><a href="#autotoc_md25">v1.2.0</a></li>
+<li class="level2"><a href="#autotoc_md26">v1.1.0...1</a></li>
+<li class="level2"><a href="#autotoc_md27">v1.0.0</a></li>
+<li class="level2"><a href="#autotoc_md28">v0.3.0</a></li>
+<li class="level2"><a href="#autotoc_md29">v0.2.0...1</a></li>
+<li class="level2"><a href="#autotoc_md30">v0.1.0...2</a></li>
+<li class="level2"><a href="#autotoc_md31">v0.0.1</a></li>
 </ul>
 </li>
-<li class="level1"><a href="#autotoc_md30">Acknowledgement</a></li>
 </ul>
 </div>
 <div class="textblock"><p ><a class="anchor" id="md_README"></a></p>
@@ -120,148 +122,158 @@ Overview</h1>
 <li>Support for the latest version of the Redis communication protocol <a href="https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md">RESP3</a>.</li>
 <li>Support for STL containers, TLS and Redis sentinel.</li>
 <li>Serialization and deserialization of your own data types.</li>
-<li>Healthy checks, back pressure and low latency.</li>
+<li>Healthy checks, back pressure, cancellation and low latency.</li>
 </ul>
-<p >In addition to that, Aedis hides most of the low-level Asio code away from the user, which in the majority of the use cases will interact with only three library entities</p>
+<p >In addition to that, Aedis hides most of the low-level Asio code away from the user, which in the majority of the cases, will interact with only three library entities</p>
 <ul>
-<li><code><a class="el" href="classaedis_1_1connection.html" title="A connection to the Redis server.">aedis::connection</a></code>: A healthy long-lasting connection to the Redis server.</li>
+<li><code><a class="el" href="classaedis_1_1connection.html" title="A connection to the Redis server.">aedis::connection</a></code>: A connection to the Redis server.</li>
 <li><code><a class="el" href="classaedis_1_1resp3_1_1request.html" title="Creates Redis requests.">aedis::resp3::request</a></code>: A container of Redis commands.</li>
-<li><code><a class="el" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e" title="Creates an adapter that ignores responses.">aedis::adapt()</a></code>: Adapts user data structures like STL containers to receive Redis responses.</li>
+<li><code><a class="el" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e" title="Creates an adapter that ignores responses.">aedis::adapt()</a></code>: A function that adapts data structures to receive Redis responses.</li>
 </ul>
-<p >Let us see how this works in more detail.</p>
-<h2><a class="anchor" id="autotoc_md2"></a>
-Connection</h2>
-<p >The code below will establish a connection with a Redis server where users can send commands (see <a class="el" href="intro_8cpp_source.html">intro.cpp</a>)</p>
-<div class="fragment"><div class="line"><span class="keywordtype">int</span> main()</div>
+<p >The example below shows for example how to read Redis hashes in an <code>std::map</code> using a coroutine, a short-lived connection and cancellation</p>
+<div class="fragment"><div class="line">net::awaitable&lt;std::map&lt;std::string, std::string&gt;&gt; retrieve_hashes(endpoint ep)</div>
 <div class="line">{</div>
-<div class="line">   net::io_context ioc;</div>
-<div class="line">   <a class="code hl_class" href="classaedis_1_1connection.html">connection</a> conn{ioc};</div>
+<div class="line">   <a class="code hl_class" href="classaedis_1_1connection.html">connection</a> conn{<span class="keyword">co_await</span> net::this_coro::executor};</div>
 <div class="line"> </div>
-<div class="line">   conn.<a class="code hl_function" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558">async_run</a>({<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>}, {}, [](<span class="keyword">auto</span> ec) { ... });</div>
-<div class="line"> </div>
-<div class="line">   <span class="comment">// Pass conn to other operations ...</span></div>
-<div class="line"> </div>
-<div class="line">   ioc.run();</div>
-<div class="line">}</div>
-<div class="ttc" id="aclassaedis_1_1connection_html"><div class="ttname"><a href="classaedis_1_1connection.html">aedis::connection</a></div><div class="ttdoc">A connection to the Redis server.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00033">connection.hpp:36</a></div></div>
-<div class="ttc" id="aclassaedis_1_1connection_html_ab13b8c7ea4e3c41faec732e048188558"><div class="ttname"><a href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558">aedis::connection::async_run</a></div><div class="ttdeci">auto async_run(endpoint ep, timeouts ts=timeouts{}, CompletionToken token=CompletionToken{})</div><div class="ttdoc">Starts communication with the Redis server asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00140">connection.hpp:140</a></div></div>
-</div><!-- fragment --><p >Requests on the other hand can be sent at any time, regardless of whether before or after a connection was established. For example, the code below sends the <code>PING</code> and <code>QUIT</code> commands, waits for the response and exits</p>
-<div class="fragment"><div class="line">net::awaitable&lt;void&gt; ping(std::shared_ptr&lt;connection&gt; conn)</div>
-<div class="line">{</div>
-<div class="line">   <span class="comment">// Request</span></div>
 <div class="line">   request req;</div>
-<div class="line">   req.push(<span class="stringliteral">&quot;PING&quot;</span>, <span class="stringliteral">&quot;some message&quot;</span>);</div>
+<div class="line">   req.get_config().cancel_on_connection_lost = <span class="keyword">true</span>;</div>
+<div class="line">   req.push(<span class="stringliteral">&quot;HGETALL&quot;</span>, <span class="stringliteral">&quot;hset-key&quot;</span>);</div>
 <div class="line">   req.push(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
 <div class="line"> </div>
-<div class="line">   <span class="comment">// Response</span></div>
-<div class="line">   std::tuple&lt;std::string, aedis::ignore&gt; resp;</div>
+<div class="line">   std::tuple&lt;std::map&lt;std::string, std::string&gt;, <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>&gt; resp;</div>
+<div class="line">   <span class="keyword">co_await</span> (conn.async_run(ep) || conn.async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp)));</div>
 <div class="line"> </div>
-<div class="line">   <span class="comment">// Execution</span></div>
-<div class="line">   <span class="keyword">co_await</span> conn-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
-<div class="line">   std::cout &lt;&lt; <span class="stringliteral">&quot;Response: &quot;</span> &lt;&lt; std::get&lt;0&gt;(resp) &lt;&lt; std::endl;</div>
+<div class="line">   <span class="keyword">co_return</span> std::move(std::get&lt;0&gt;(resp));</div>
 <div class="line">}</div>
+<div class="ttc" id="aclassaedis_1_1connection_html"><div class="ttname"><a href="classaedis_1_1connection.html">aedis::connection</a></div><div class="ttdoc">A connection to the Redis server.</div><div class="ttdef"><b>Definition:</b> <a href="connection_8hpp_source.html#l00029">connection.hpp:32</a></div></div>
+<div class="ttc" id="agroup__high-level-api_html_ga0d619e51ab37f7854e7218a061900820"><div class="ttname"><a href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a></div><div class="ttdeci">adapter::detail::ignore ignore</div><div class="ttdoc">Tag used to ignore responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00036">adapt.hpp:36</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_gac56bb1a8df93445853a4b9dae2d97b6e"><div class="ttname"><a href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a></div><div class="ttdeci">auto adapt(std::size_t max_read_size=(std::numeric_limits&lt; std::size_t &gt;::max)()) noexcept</div><div class="ttdoc">Creates an adapter that ignores responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00199">adapt.hpp:199</a></div></div>
-</div><!-- fragment --><p >The general structure about how to send commands is evident from the code above</p>
+</div><!-- fragment --><p >In the next section we will see more details about connections, requests and responses.</p>
+<p ><a class="anchor" id="connection"></a></p>
+<h2><a class="anchor" id="autotoc_md2"></a>
+Connection</h2>
+<p >The <code><a class="el" href="classaedis_1_1connection.html" title="A connection to the Redis server.">aedis::connection</a></code> is a class that provides async-only communication with a Redis server by means of three member functions</p>
 <ul>
-<li>Create a <code><a class="el" href="classaedis_1_1resp3_1_1request.html" title="Creates Redis requests.">aedis::resp3::request</a></code> object and add commands.</li>
-<li>Declare responses as elements of a <code>std::tuple</code>.</li>
-<li>Execute the request.</li>
+<li><code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">aedis::connection::async_run</a></code>: Establishes a connection and completes only when it is lost.</li>
+<li><code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">aedis::connection::async_exec</a></code>: Executes commands.</li>
+<li><code><a class="el" href="classaedis_1_1connection.html#a98ea9deb9246ece128faea63aa8602f8" title="Receives server side pushes asynchronously.">aedis::connection::async_receive</a></code>: Receives server-side pushes.</li>
 </ul>
-<p >Multiple calls to <code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> are synchronized automatically so that different operations (or coroutines) don't have to be aware of each other. Server side pushes can be received on the same connection object that is being used to execute commands, for example (see <a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a>)</p>
-<div class="fragment"><div class="line">net::awaitable&lt;void&gt; receive_pushes(std::shared_ptr&lt;connection&gt; conn)</div>
-<div class="line">{</div>
-<div class="line">   <span class="keywordflow">for</span> (std::vector&lt;node&lt;std::string&gt;&gt; resp;;) {</div>
-<div class="line">      <span class="keyword">co_await</span> conn-&gt;async_receive_push(<a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
-<div class="line">      <span class="comment">// Process the push in resp.</span></div>
-<div class="line">      resp.clear();</div>
-<div class="line">   }</div>
-<div class="line">}</div>
-</div><!-- fragment --><dl class="section note"><dt>Note</dt><dd>Users should make sure any server pushes sent by the server are consumed, otherwise the connection will eventually timeout.</dd></dl>
-<h2><a class="anchor" id="autotoc_md3"></a>
-Reconnect</h2>
-<p >The <code><a class="el" href="classaedis_1_1connection.html" title="A connection to the Redis server.">aedis::connection</a></code> class also supports reconnection. In the simplest scenario, after a connection lost users will want to reconnect to the same server, the loop below shows how to do it</p>
-<div class="fragment"><div class="line">net::awaitable&lt;void&gt; reconnect(std::shared_ptr&lt;connection&gt; conn)</div>
+<p >In general, these operations will be running concurrently in user application, where, for example</p>
+<ol type="1">
+<li><b>Connect</b>: One coroutine will call <code>async_run</code> in a loop to reconnect whenever a connection is lost.</li>
+<li><b>Execute</b>: Multiple coroutines will call <code>async_exec</code> independently and without coordination (e.g. queuing).</li>
+<li><b>Receive</b>: One coroutine will loop on <code>async_receive</code> to receive server-side pushes (required only if the app expects server pushes).</li>
+</ol>
+<p >Each of the operations above can be performed without regards to the others as they are independent from each other. Below we will cover the points above with more detail.</p>
+<h3><a class="anchor" id="autotoc_md3"></a>
+Connect</h3>
+<p >In general, applications will connect to a Redis server and hang around for as long as possible, until the connection is lost for some reason. When that happens, simple setups will want to wait for a short period of time and try to reconnect. The code snippet below shows how this can be achieved with a coroutine (see <a class="el" href="echo__server_8cpp_source.html">echo_server.cpp</a>)</p>
+<div class="fragment"><div class="line">net::awaitable&lt;void&gt; reconnect(std::shared_ptr&lt;connection&gt; conn, endpoint ep)</div>
 <div class="line">{</div>
 <div class="line">   net::steady_timer timer{<span class="keyword">co_await</span> net::this_coro::executor};</div>
-<div class="line">   <span class="keywordflow">for</span> (;;) {</div>
-<div class="line">      boost::system::error_code ec;</div>
-<div class="line">      <span class="keyword">co_await</span> conn-&gt;async_run({<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>}, {}, net::redirect_error(net::use_awaitable, ec));</div>
+<div class="line">   <span class="keywordflow">for</span> (boost::system::error_code ec;;) {</div>
+<div class="line"> </div>
+<div class="line">      <span class="comment">// Establishes a connection and hangs around until it is lost.</span></div>
+<div class="line">      <span class="keyword">co_await</span> conn-&gt;async_run(ep, {}, redir(ec));</div>
 <div class="line">      conn-&gt;reset_stream();</div>
+<div class="line"> </div>
+<div class="line">      <span class="comment">// Waits some time before trying to restablish the connection.</span></div>
 <div class="line">      timer.expires_after(std::chrono::seconds{1});</div>
 <div class="line">      <span class="keyword">co_await</span> timer.async_wait();</div>
 <div class="line">   }</div>
 <div class="line">}</div>
-</div><!-- fragment --><p> more complex scenarios, like performing a failover with sentinel can be found in the examples. To aid proper failover, calls to <code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> won't automatically fail as a result of connection lost, rather, they will remain suspended until a new connection is established, once that happens all awaiting requests will be sent automatically. This behaviour can be changed per request by setting on the <code><a class="el" href="classaedis_1_1resp3_1_1request.html#a6a4133593d69da73da3df0e8dbab2695" title="If set to true, requests started with connection::async_exe will fail either if the connection is los...">aedis::resp3::request::config::close_on_connection_lost</a></code> or by calling <code><a class="el" href="classaedis_1_1connection.html#a114105726f94e52215c1ea2a9f8600d8" title="Cancel operations.">connection::cancel()</a></code> with <code>connection::operation::exec</code> which will cause all pending requests to be canceled.</p>
-<h2><a class="anchor" id="autotoc_md4"></a>
-Timeouts</h2>
-<p >Aedis high-level API provides built-in support for most timeouts users might need. For example, the <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">aedis::connection::async_run</a></code> member function performs the following operations on behalf of the user</p>
+</div><!-- fragment --><p >Other common scenarios are, for example, performing a failover with sentinels and re-subscribing to pubsub channels, both are covered in the <code><a class="el" href="subscriber__sentinel_8cpp_source.html">subscriber_sentinel.cpp</a></code> example.</p>
+<h3><a class="anchor" id="autotoc_md4"></a>
+Execute</h3>
+<p >The basic idea about <code>async_exec</code> was stated above already: execute Redis commands. One of the most important things about it though is that it can be called multiple times without coordination, for example, in a HTTP or Websocket server where each session calls it independently to communicate with Redis. The benefits of this feature are manifold</p>
+<ul>
+<li>Reduces code complexity as users won't have to implement queues every time e.g. HTTP sessions want to share a connection to Redis.</li>
+<li>A small number of connections improves the performance associated with <a href="https://redis.io/topics/pipelining">pipelines</a>. A single connection will be indeed enough in most of cases.</li>
+</ul>
+<p >The code below illustrates this concepts in a TCP session of the <code><a class="el" href="echo__server_8cpp_source.html">echo_server.cpp</a></code> example</p>
+<div class="fragment"><div class="line">awaitable_type echo_server_session(tcp_socket socket, std::shared_ptr&lt;connection&gt; db)</div>
+<div class="line">{</div>
+<div class="line">   request req;</div>
+<div class="line">   std::tuple&lt;std::string&gt; response;</div>
+<div class="line"> </div>
+<div class="line">   <span class="keywordflow">for</span> (std::string buffer;;) {</div>
+<div class="line">      <span class="comment">// Reads a user message.</span></div>
+<div class="line">      <span class="keyword">auto</span> n = <span class="keyword">co_await</span> net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), <span class="stringliteral">&quot;\n&quot;</span>);</div>
+<div class="line"> </div>
+<div class="line">      <span class="comment">// Echos it through Redis.</span></div>
+<div class="line">      req.push(<span class="stringliteral">&quot;PING&quot;</span>, buffer);</div>
+<div class="line">      <span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(response));</div>
+<div class="line"> </div>
+<div class="line">      <span class="comment">// Writes is back to the user.</span></div>
+<div class="line">      <span class="keyword">co_await</span> <a class="code hl_function" href="group__low-level-api.html#ga54dda2974f233dd25a2eaf20ce9b5385">net::async_write</a>(socket, net::buffer(std::get&lt;0&gt;(response)));</div>
+<div class="line"> </div>
+<div class="line">      <span class="comment">// Cleanup</span></div>
+<div class="line">      std::get&lt;0&gt;(response).clear();</div>
+<div class="line">      req.clear();</div>
+<div class="line">      buffer.erase(0, n);</div>
+<div class="line">   }</div>
+<div class="line">}</div>
+<div class="ttc" id="agroup__low-level-api_html_ga54dda2974f233dd25a2eaf20ce9b5385"><div class="ttname"><a href="group__low-level-api.html#ga54dda2974f233dd25a2eaf20ce9b5385">aedis::resp3::async_write</a></div><div class="ttdeci">auto async_write(AsyncWriteStream &amp;stream, Request const &amp;req, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncWriteStream::executor_type &gt;{})</div><div class="ttdoc">Writes a request asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="write_8hpp_source.html#l00053">write.hpp:53</a></div></div>
+</div><!-- fragment --><p >Notice also how the session above provides back-pressure as the coroutine won't read the next message from the socket until a cycle is complete.</p>
+<h3><a class="anchor" id="autotoc_md5"></a>
+Receive</h3>
+<p >Point number 3. above is only necessary for servers that expect server pushes, like, for example, when using Redis pubsub. The example below was taken from <a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a></p>
+<div class="fragment"><div class="line">net::awaitable&lt;void&gt; push_receiver(std::shared_ptr&lt;connection&gt; conn)</div>
+<div class="line">{</div>
+<div class="line">   <span class="keywordflow">for</span> (std::vector&lt;node&lt;std::string&gt;&gt; resp;;) {</div>
+<div class="line">      <span class="keyword">co_await</span> conn-&gt;async_receive(<a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
+<div class="line">      print_push(resp);</div>
+<div class="line">      resp.clear();</div>
+<div class="line">   }</div>
+<div class="line">}</div>
+</div><!-- fragment --><p >In general, it is advisable to all apps to keep a coroutine calling <code>async_receive</code> as an unread push will cause the connection to stall and eventually timeout. Notice that the same connection that is being used to send requests can be also used to receive server-side pushes.</p>
+<h3><a class="anchor" id="autotoc_md6"></a>
+Cancellation</h3>
+<p >Aedis supports both implicit and explicit cancellation of connection operations. Explicit cancellation is supported by means of the <code><a class="el" href="classaedis_1_1connection.html#a114105726f94e52215c1ea2a9f8600d8" title="Cancel operations.">aedis::connection::cancel</a></code> member function. Implicit cancellation, like those that may happen when using Asio awaitable operators &amp;&amp; and || will be discussed with more detail below.</p>
+<div class="fragment"><div class="line"><span class="keyword">co_await</span> (conn.async_run(...) &amp;&amp; conn.async_exec(...))</div>
+</div><!-- fragment --><ul>
+<li>Useful when implementing reconnection on applications that use pubsub.</li>
+<li>Makes the channel re-subscribe operation simpler when the connection is reestablished.</li>
+</ul>
+<div class="fragment"><div class="line"><span class="keyword">co_await</span> (conn.async_run(...) || conn.async_exec(...))</div>
+</div><!-- fragment --><ul>
+<li>Useful for short-lived connections that are meant to be closed after a command has been executed.</li>
+</ul>
+<div class="fragment"><div class="line"><span class="keyword">co_await</span> (conn.async_exec(...) || time.async_wait(...))</div>
+</div><!-- fragment --><ul>
+<li>Provides a way to limit how long the execution of a single request should last.</li>
+<li>Alternatively, for a connection-wide timeout set <code><a class="el" href="classaedis_1_1connection.html#ae2ed7afc9bed17c628b8b2e1991d24fa" title="Time interval with which PING commands are sent to Redis.">aedis::connection::timeouts::ping_interval</a></code> to a proper value. This will work because all requests use the same queue and is also more efficient since only one timer will be used.</li>
+<li>The cancellation will be ignored if the request has already been written to the socket.</li>
+</ul>
+<div class="fragment"><div class="line"><span class="keyword">co_await</span> (conn.async_run(...) || time.async_wait(...))</div>
+</div><!-- fragment --><ul>
+<li>Set a limit on how long the connection should live (see also <code><a class="el" href="classaedis_1_1connection.html#structaedis_1_1connection_1_1timeouts" title="Connection configuration parameters.">aedis::connection::timeouts</a></code>)</li>
+</ul>
+<div class="fragment"><div class="line"><span class="keyword">co_await</span> (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))</div>
+</div><!-- fragment --><ul>
+<li>This works but is considered an antipattern. Unless the user has set <code><a class="el" href="classaedis_1_1resp3_1_1request.html#a253cef2ca5d60b1b319019fafb3d27b3" title="If true this request will be coalesced with other requests, see https://redis.io/topics/pipelining....">aedis::resp3::request::config::coalesce</a></code> to <code>false</code>, and he shouldn't, the connection will automatically merge the individual requests into a single payload anyway.</li>
+</ul>
+<h3><a class="anchor" id="autotoc_md7"></a>
+Timeouts</h3>
+<p >Aedis high-level API provides built-in support for many of the timeouts users usually need. For example, the <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">aedis::connection::async_run</a></code> member function performs the following operations on behalf of the user</p>
 <ul>
 <li>Resolves Redis address.</li>
-<li>Connects to the endpoint.</li>
-<li>TLS handhshake (for TLS endpoints).</li>
-<li>RESP3 handshake, authentication and role check.</li>
-<li>Keeps sending PING commands to check for unresponsive servers.</li>
+<li>Connects to the resolved endpoint.</li>
+<li>TLS handshake (for TLS endpoints).</li>
+<li>RESP3 handshake and authentication and role check.</li>
+<li>Periodic healthy checks with the PING command.</li>
 <li>Keeps reading from the socket to handle server pushes and command responses.</li>
 <li>Keeps writing requests as it becomes possible e.g. after last response has arrived.</li>
 </ul>
-<p >To control the timeout-behaviour of the operations above users must create a <code><a class="el" href="classaedis_1_1connection.html#structaedis_1_1connection_1_1timeouts" title="Connection configuration parameters.">aedis::connection::timeouts</a></code> object and pass it to as argument to the <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">aedis::connection::async_run</a></code> member function (or use the suggested defaults).</p>
-<p >Another related topic is the cancellation of <code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">aedis::connection::async_exec</a></code>. With the introduction of awaitable operators in Asio it is very simple implement timeouts either on individual or on a group of operations, for example, users may be tempted in writing code like</p>
-<div class="fragment"><div class="line"><span class="keyword">co_await</span> (conn.async_exec(...) || timer.async_wait(...))</div>
-</div><!-- fragment --><p >The problem with this approach in Aedis is twofold</p>
-<ul>
-<li>Aedis has a buil-in healthy check that sends <code>PING</code> commands and checks whether responses are being received on time. Since user commands use the same queue as the built-in <code>PING</code>, they are also subjected to the idle timeout, rendering cancellation like above unnecessary.</li>
-<li>To improve performance Redis encourages the use of pipelines, where many requests are sent in a single chunk to the server. In this scenario it is harder to cancel individual operations without causing all other (independent) requests in the same pipeline to fail too.</li>
-</ul>
-<h2><a class="anchor" id="autotoc_md5"></a>
-Installation</h2>
-<p >Download the latest Aedis release from github</p>
-<div class="fragment"><div class="line">$ wget https:<span class="comment">//github.com/mzimbres/aedis/releases/download/v1.1.0/aedis-1.1.0.tar.gz</span></div>
-</div><!-- fragment --><p >and unpack in your preferred location. Aedis is a header only library, so you can starting using it. For that include the following header</p>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
-</div><!-- fragment --><p> in no more than one source file in your applications (see <a class="el" href="intro_8cpp_source.html">intro.cpp</a> for example). To build the examples and run the tests cmake is also supported</p>
-<div class="fragment"><div class="line">$ BOOST_ROOT=/opt/boost_1_79_0/ cmake</div>
-<div class="line">$ make</div>
-<div class="line">$ make test</div>
-</div><!-- fragment --><p >These are the requirements for using Aedis</p>
-<ul>
-<li>Boost 1.79 or greater.</li>
-<li>C++17. Some examples require C++20 with coroutine support.</li>
-<li>Redis 6 or higher. Optionally also redis-cli and Redis Sentinel.</li>
-</ul>
-<p >The following compilers are supported</p>
-<ul>
-<li>Tested with gcc: 10, 11, 12.</li>
-<li>Tested with clang: 11, 13, 14.</li>
-</ul>
-<h2><a class="anchor" id="autotoc_md6"></a>
-Examples</h2>
-<p >Users are encouraged to skim over the examples below before proceeding to the next sections</p>
-<ul>
-<li><a class="el" href="intro_8cpp_source.html">intro.cpp</a>: The Aedis hello-world program. It sends one command to Redis and quits the connection.</li>
-<li><a class="el" href="intro__tls_8cpp_source.html">intro_tls.cpp</a>: Same as <a class="el" href="intro_8cpp_source.html">intro.cpp</a> but over TLS.</li>
-<li><a class="el" href="intro__sync_8cpp_source.html">intro_sync.cpp</a>: Synchronous version of <a class="el" href="intro_8cpp_source.html">intro.cpp</a>.</li>
-<li><a class="el" href="containers_8cpp_source.html">containers.cpp</a>: Shows how to send and receive stl containers and how to use transactions.</li>
-<li><a class="el" href="serialization_8cpp_source.html">serialization.cpp</a>: Shows how to serialize types using Boost.Json.</li>
-<li><a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a>: Shows how to implement pubsub that reconnects and resubscribes when the connection is lost.</li>
-<li><a class="el" href="subscriber__sentinel_8cpp_source.html">subscriber_sentinel.cpp</a>: Same as <a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a> but with failover with sentinels.</li>
-<li><a class="el" href="echo__server_8cpp_source.html">echo_server.cpp</a>: A simple TCP echo server.</li>
-<li><a class="el" href="chat__room_8cpp_source.html">chat_room.cpp</a>: A simple chat room.</li>
-</ul>
-<p ><a class="anchor" id="api-reference"></a></p>
-<h2><a class="anchor" id="autotoc_md7"></a>
-API Reference</h2>
-<ul>
-<li><a class="el" href="group__high-level-api.html">High-Level</a>: Recommend to all users</li>
-<li><a class="el" href="group__low-level-api.html">Low-Level</a>: For users with needs yet to be imagined by the author.</li>
-</ul>
-<p >In the next sections we will see how to create requests and receive responses with more detail</p>
-<h1><a class="anchor" id="autotoc_md8"></a>
-Requests</h1>
+<p >To control the timeout-behaviour of these operations users must create a <code><a class="el" href="classaedis_1_1connection.html#structaedis_1_1connection_1_1timeouts" title="Connection configuration parameters.">aedis::connection::timeouts</a></code> object and pass it to as argument to the <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">aedis::connection::async_run</a></code> (if the suggested defaults are not suitable).</p>
+<p ><a class="anchor" id="requests"></a></p>
+<h2><a class="anchor" id="autotoc_md8"></a>
+Requests</h2>
 <p >Redis requests are composed of one of more Redis commands (in Redis documentation they are called <a href="https://redis.io/topics/pipelining">pipelines</a>). For example</p>
 <div class="fragment"><div class="line">request req;</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Command with variable length of arguments.</span></div>
-<div class="line">req.push(<span class="stringliteral">&quot;SET&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;some value&quot;</span>, value, <span class="stringliteral">&quot;EX&quot;</span>, <span class="stringliteral">&quot;2&quot;</span>);</div>
+<div class="line">req.push(<span class="stringliteral">&quot;SET&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;some value&quot;</span>, <span class="stringliteral">&quot;EX&quot;</span>, <span class="stringliteral">&quot;2&quot;</span>);</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Pushes a list.</span></div>
 <div class="line">std::list&lt;std::string&gt; list</div>
@@ -269,7 +281,7 @@ Requests</h1>
 <div class="line">req.push_range(<span class="stringliteral">&quot;SUBSCRIBE&quot;</span>, list);</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Same as above but as an iterator range.</span></div>
-<div class="line">req.push_range2(<span class="stringliteral">&quot;SUBSCRIBE&quot;</span>, std::cbegin(list), std::cend(list));</div>
+<div class="line">req.push_range(<span class="stringliteral">&quot;SUBSCRIBE&quot;</span>, std::cbegin(list), std::cend(list));</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Pushes a map.</span></div>
 <div class="line">std::map&lt;std::string, mystruct&gt; map</div>
@@ -277,23 +289,22 @@ Requests</h1>
 <div class="line">   , {<span class="stringliteral">&quot;key2&quot;</span>, <span class="stringliteral">&quot;value2&quot;</span>}</div>
 <div class="line">   , {<span class="stringliteral">&quot;key3&quot;</span>, <span class="stringliteral">&quot;value3&quot;</span>}};</div>
 <div class="line">req.push_range(<span class="stringliteral">&quot;HSET&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>, map);</div>
-</div><!-- fragment --><p >Sending a request to Redis is then performed with the following function</p>
-<div class="fragment"><div class="line"><span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
-</div><!-- fragment --><p ><a class="anchor" id="serialization"></a></p>
-<h2><a class="anchor" id="autotoc_md9"></a>
-Serialization</h2>
+</div><!-- fragment --><p >Sending a request to Redis is performed with <code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">aedis::connection::async_exec</a></code> as already stated.</p>
+<p ><a class="anchor" id="serialization"></a></p>
+<h3><a class="anchor" id="autotoc_md9"></a>
+Serialization</h3>
 <p >The <code>push</code> and <code>push_range</code> functions above work with integers e.g. <code>int</code> and <code>std::string</code> out of the box. To send your own data type defined a <code>to_bulk</code> function like this</p>
-<div class="fragment"><div class="line"><span class="keyword">struct </span>mystruct {</div>
-<div class="line">   <span class="comment">// Example struct.</span></div>
-<div class="line">};</div>
+<div class="fragment"><div class="line"><span class="comment">// Example struct.</span></div>
+<div class="line"><span class="keyword">struct </span>mystruct {...};</div>
 <div class="line"> </div>
-<div class="line"><span class="keywordtype">void</span> <a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">to_bulk</a>(std::string&amp; to, mystruct <span class="keyword">const</span>&amp; obj)</div>
+<div class="line"><span class="comment">// Serialize your data structure here.</span></div>
+<div class="line"><span class="keywordtype">void</span> <a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">to_bulk</a>(std::pmr::string&amp; to, mystruct <span class="keyword">const</span>&amp; obj)</div>
 <div class="line">{</div>
 <div class="line">   std::string dummy = <span class="stringliteral">&quot;Dummy serializaiton string.&quot;</span>;</div>
 <div class="line">   aedis::resp3::to_bulk(to, dummy);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a30ed6048af1b522f52d7e0e53eac4332"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">aedis::resp3::request::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, boost::string_view data)</div><div class="ttdoc">Adds a bulk to the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00048">request.hpp:48</a></div></div>
-</div><!-- fragment --><p >Once <code>to_bulk</code> is defined and accessible over ADL <code>mystruct</code> can be passed to the <code>request</code></p>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a30ed6048af1b522f52d7e0e53eac4332"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">aedis::resp3::request::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, boost::string_view data)</div><div class="ttdoc">Adds a bulk to the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00049">request.hpp:49</a></div></div>
+</div><!-- fragment --><p >Once <code>to_bulk</code> is defined and visible over ADL <code>mystruct</code> can be passed to the <code>request</code></p>
 <div class="fragment"><div class="line">request req;</div>
 <div class="line"> </div>
 <div class="line">std::map&lt;std::string, mystruct&gt; map {...};</div>
@@ -301,9 +312,24 @@ Serialization</h2>
 <div class="line">req.push_range(<span class="stringliteral">&quot;HSET&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>, map);</div>
 </div><!-- fragment --><p >Example <a class="el" href="serialization_8cpp_source.html">serialization.cpp</a> shows how store json string in Redis.</p>
 <p ><a class="anchor" id="responses"></a></p>
-<h1><a class="anchor" id="autotoc_md10"></a>
-Responses</h1>
-<p >To read responses effectively, users must know their RESP3 type, this can be found in the Redis documentation for each command (<a href="https://redis.io/commands">https://redis.io/commands</a>). For example</p>
+<h2><a class="anchor" id="autotoc_md10"></a>
+Responses</h2>
+<p >Aedis uses the following strategy to support Redis responses</p>
+<ul>
+<li><b>Static</b>: For <code><a class="el" href="classaedis_1_1resp3_1_1request.html" title="Creates Redis requests.">aedis::resp3::request</a></code> whose sizes are known at compile time std::tuple is supported.</li>
+<li><b>Dynamic</b>: Otherwise use <code>std::vector&lt;<a class="el" href="structaedis_1_1resp3_1_1node.html" title="A node in the response tree.">aedis::resp3::node</a>&lt;std::string&gt;&gt;</code>.</li>
+</ul>
+<p >For example, below is a request with a compile time size</p>
+<div class="fragment"><div class="line">request req;</div>
+<div class="line">req.push(<span class="stringliteral">&quot;PING&quot;</span>);</div>
+<div class="line">req.push(<span class="stringliteral">&quot;INCR&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>);</div>
+<div class="line">req.push(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
+</div><!-- fragment --><p >To read the response to this request users can use the following tuple</p>
+<div class="fragment"><div class="line">std::tuple&lt;std::string, int, std::string&gt;</div>
+</div><!-- fragment --><p >The pattern may have become apparent to the user, the tuple must have the same size as the request (exceptions below) and each element must be able to store the response to the command it refers to. To ignore responses to individual commands in the request use the tag <code>aedis::ignore</code></p>
+<div class="fragment"><div class="line"><span class="comment">// Ignore the second and last responses.</span></div>
+<div class="line">std::tuple&lt;std::string, aedis::ignore, std::string, aedis::ignore&gt;</div>
+</div><!-- fragment --><p >The following table provides the response types of some commands</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Command   </th><th class="markdownTableHeadNone">RESP3 type   </th><th class="markdownTableHeadNone">Documentation    </th></tr>
@@ -320,7 +346,7 @@ Responses</h1>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone">hgetall   </td><td class="markdownTableBodyNone">Map   </td><td class="markdownTableBodyNone"><a href="https://redis.io/commands/hgetall">https://redis.io/commands/hgetall</a>   </td></tr>
 </table>
-<p >Once the RESP3 type of a given response is known we can choose a proper C++ data structure to receive it in. Fortunately, this is a simple task for most types. The table below summarises the options</p>
+<p >To map these RESP3 types into a C++ data structure use the table below</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">RESP3 type   </th><th class="markdownTableHeadNone">Possible C++ type   </th><th class="markdownTableHeadNone">Type    </th></tr>
@@ -347,7 +373,7 @@ Responses</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">Push   </td><td class="markdownTableBodyNone"><code>std::vector</code>, <code>std::map</code>, <code>std::unordered_map</code>   </td><td class="markdownTableBodyNone">Aggregate   </td></tr>
 </table>
-<p >For example</p>
+<p >For example, the response to the request</p>
 <div class="fragment"><div class="line">request req;</div>
 <div class="line">req.push(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
 <div class="line">req.push_range(<span class="stringliteral">&quot;RPUSH&quot;</span>, <span class="stringliteral">&quot;key1&quot;</span>, vec);</div>
@@ -355,8 +381,8 @@ Responses</h1>
 <div class="line">req.push(<span class="stringliteral">&quot;LRANGE&quot;</span>, <span class="stringliteral">&quot;key3&quot;</span>, 0, -1);</div>
 <div class="line">req.push(<span class="stringliteral">&quot;HGETALL&quot;</span>, <span class="stringliteral">&quot;key4&quot;</span>);</div>
 <div class="line">req.push(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
-<div class="line"> </div>
-<div class="line">std::tuple&lt;</div>
+</div><!-- fragment --><p >can be read in the tuple below</p>
+<div class="fragment"><div class="line">std::tuple&lt;</div>
 <div class="line">   <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>,  <span class="comment">// hello</span></div>
 <div class="line">   int,            <span class="comment">// rpush</span></div>
 <div class="line">   int,            <span class="comment">// hset</span></div>
@@ -364,21 +390,39 @@ Responses</h1>
 <div class="line">   std::map&lt;U, V&gt;, <span class="comment">// hgetall</span></div>
 <div class="line">   std::string     <span class="comment">// quit</span></div>
 <div class="line">&gt; resp;</div>
-<div class="line"> </div>
-<div class="line"><span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
-<div class="ttc" id="agroup__high-level-api_html_ga0d619e51ab37f7854e7218a061900820"><div class="ttname"><a href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a></div><div class="ttdeci">adapter::detail::ignore ignore</div><div class="ttdoc">Tag used to ignore responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00036">adapt.hpp:36</a></div></div>
-</div><!-- fragment --><p >The tag <code>aedis::ignore</code> can be used to ignore individual elements in the responses. If the intention is to ignore the response to all commands in the request use <code><a class="el" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e" title="Creates an adapter that ignores responses.">adapt()</a></code> </p>
+</div><!-- fragment --><p >Where both are passed to <code>async_exec</code> as showed elsewhere</p>
+<div class="fragment"><div class="line"><span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
+</div><!-- fragment --><p >If the intention is to ignore the response to all commands altogether use <code><a class="el" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e" title="Creates an adapter that ignores responses.">adapt()</a></code> without arguments instead</p>
 <div class="fragment"><div class="line"><span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>());</div>
 </div><!-- fragment --><p >Responses that contain nested aggregates or heterogeneous data types will be given special treatment later in <a class="el" href="index.html#the-general-case">The general case</a>. As of this writing, not all RESP3 types are used by the Redis server, which means in practice users will be concerned with a reduced subset of the RESP3 specification.</p>
-<h2><a class="anchor" id="autotoc_md11"></a>
-Null</h2>
+<h3><a class="anchor" id="autotoc_md11"></a>
+Push</h3>
+<p >Commands that have push response like</p>
+<ul>
+<li><code>"SUBSCRIBE"</code></li>
+<li><code>"PSUBSCRIBE"</code></li>
+<li><code>"UNSUBSCRIBE"</code></li>
+</ul>
+<p >must be not be included in the tuple. For example, the request below</p>
+<div class="fragment"><div class="line">request req;</div>
+<div class="line">req.push(<span class="stringliteral">&quot;PING&quot;</span>);</div>
+<div class="line">req.push(<span class="stringliteral">&quot;SUBSCRIBE&quot;</span>, <span class="stringliteral">&quot;channel&quot;</span>);</div>
+<div class="line">req.push(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
+</div><!-- fragment --><p >must be read in this tuple <code>std::tuple&lt;std::string, std::string&gt;</code>, that has size two.</p>
+<h3><a class="anchor" id="autotoc_md12"></a>
+Null</h3>
 <p >It is not uncommon for apps to access keys that do not exist or that have already expired in the Redis server, to deal with these cases Aedis provides support for <code>std::optional</code>. To use it, wrap your type around <code>std::optional</code> like this</p>
-<div class="fragment"><div class="line">std::optional&lt;std::unordered_map&lt;T, U&gt;&gt; resp;</div>
-<div class="line"><span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
-</div><!-- fragment --><p >Everything else stays the same.</p>
-<h2><a class="anchor" id="autotoc_md12"></a>
-Transactions</h2>
-<p >To read the response to transactions we have to observe that Redis queues the commands as they arrive and sends the responses back to the user as an array, in the response to the <code>exec</code> command. For example, to read the response to the this request</p>
+<div class="fragment"><div class="line">std::tuple&lt;</div>
+<div class="line">   std::optional&lt;A&gt;,</div>
+<div class="line">   std::optional&lt;B&gt;,</div>
+<div class="line">   ...</div>
+<div class="line">   &gt; response;</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(response));</div>
+</div><!-- fragment --><p >Everything else stays pretty much the same.</p>
+<h3><a class="anchor" id="autotoc_md13"></a>
+Transactions</h3>
+<p >To read responses to transactions we must first observe that Redis will queue its commands and send their responses to the user as elements of an array, after the <code>EXEC</code> command comes. For example, to read the response to this request</p>
 <div class="fragment"><div class="line">db.send(<span class="stringliteral">&quot;MULTI&quot;</span>);</div>
 <div class="line">db.send(<span class="stringliteral">&quot;GET&quot;</span>, <span class="stringliteral">&quot;key1&quot;</span>);</div>
 <div class="line">db.send(<span class="stringliteral">&quot;LRANGE&quot;</span>, <span class="stringliteral">&quot;key2&quot;</span>, 0, -1);</div>
@@ -395,33 +439,33 @@ Transactions</h2>
 <div class="line">   &gt;;</div>
 <div class="line"> </div>
 <div class="line">std::tuple&lt;</div>
-<div class="line">   <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>,     <span class="comment">// multi</span></div>
-<div class="line">   <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>,     <span class="comment">// get</span></div>
-<div class="line">   <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>,     <span class="comment">// lrange</span></div>
-<div class="line">   <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">ignore</a>,     <span class="comment">// hgetall</span></div>
+<div class="line">   <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>,     <span class="comment">// multi</span></div>
+<div class="line">   <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>,     <span class="comment">// get</span></div>
+<div class="line">   <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>,     <span class="comment">// lrange</span></div>
+<div class="line">   <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>,     <span class="comment">// hgetall</span></div>
 <div class="line">   exec_resp_type, <span class="comment">// exec</span></div>
 <div class="line">&gt; resp;</div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
-</div><!-- fragment --><p >Note that above we are not ignoring the response to the commands themselves but whether they have been successfully queued. For a complete example see <a class="el" href="containers_8cpp_source.html">containers.cpp</a>.</p>
-<h2><a class="anchor" id="autotoc_md13"></a>
-Deserialization</h2>
-<p >As mentioned in <a class="el" href="index.html#serialization">serialization</a>, it is common to serialize data before sending it to Redis e.g. to json strings. For performance and convenience reasons, we may also want to deserialize it directly in its final data structure. Aedis supports this use case by calling a user provided <code>from_bulk</code> function while parsing the response. For example</p>
+</div><!-- fragment --><p >For a complete example see <a class="el" href="containers_8cpp_source.html">containers.cpp</a>.</p>
+<h3><a class="anchor" id="autotoc_md14"></a>
+Deserialization</h3>
+<p >As mentioned in <a class="el" href="index.html#serialization">serialization</a>, it is common practice to serialize data before sending it to Redis e.g. as json strings. For performance and convenience reasons, we may also want to deserialize it directly in its final data structure when reading them back from Redis. Aedis supports this use case by calling a user provided <code>from_bulk</code> function while parsing the response. For example</p>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> from_bulk(mystruct&amp; obj, <span class="keywordtype">char</span> <span class="keyword">const</span>* p, std::size_t size, boost::system::error_code&amp; ec)</div>
 <div class="line">{</div>
 <div class="line">   <span class="comment">// Deserializes p into obj.</span></div>
 <div class="line">}</div>
 </div><!-- fragment --><p >After that, you can start receiving data efficiently in the desired types e.g. <code>mystruct</code>, <code>std::map&lt;std::string, mystruct&gt;</code> etc.</p>
 <p ><a class="anchor" id="the-general-case"></a></p>
-<h2><a class="anchor" id="autotoc_md14"></a>
-The general case</h2>
+<h3><a class="anchor" id="autotoc_md15"></a>
+The general case</h3>
 <p >There are cases where responses to Redis commands won't fit in the model presented above, some examples are</p>
 <ul>
 <li>Commands (like <code>set</code>) whose responses don't have a fixed RESP3 type. Expecting an <code>int</code> and receiving a blob-string will result in error.</li>
 <li>RESP3 aggregates that contain nested aggregates can't be read in STL containers.</li>
 <li>Transactions with a dynamic number of commands can't be read in a <code>std::tuple</code>.</li>
 </ul>
-<p >To deal with these cases Aedis provides the <code>resp3::node</code> type, that is the most general form of an element in a response, be it a simple RESP3 type or an aggregate. It is defined like this</p>
+<p >To deal with these cases Aedis provides the <code><a class="el" href="structaedis_1_1resp3_1_1node.html" title="A node in the response tree.">aedis::resp3::node</a></code> type abstraction, that is the most general form of an element in a response, be it a simple RESP3 type or the element of an aggregate. It is defined like this</p>
 <div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> String&gt;</div>
 <div class="line"><span class="keyword">struct </span>node {</div>
 <div class="line">   <span class="comment">// The RESP3 type of the data in this node.</span></div>
@@ -437,12 +481,8 @@ The general case</h2>
 <div class="line">   String value;</div>
 <div class="line">};</div>
 <div class="ttc" id="agroup__high-level-api_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__high-level-api.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 data types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00021">type.hpp:22</a></div></div>
-</div><!-- fragment --><p >Any response to a Redis command can be received in a <code>std::vector&lt;node&lt;std::string&gt;&gt;</code>. The vector can be seen as a pre-order view of the response tree. Using it is no different than using other types</p>
-<div class="fragment"><div class="line"><span class="comment">// Receives any RESP3 simple data type.</span></div>
-<div class="line">node&lt;std::string&gt; resp;</div>
-<div class="line"><span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
-<div class="line"> </div>
-<div class="line"><span class="comment">// Receives any RESP3 simple or aggregate data type.</span></div>
+</div><!-- fragment --><p >Any response to a Redis command can be received in a <code>std::vector&lt;node&lt;std::string&gt;&gt;</code>. The vector can be seen as a pre-order view of the response tree. Using it is not different than using other types</p>
+<div class="fragment"><div class="line"><span class="comment">// Receives any RESP3 simple or aggregate data type.</span></div>
 <div class="line">std::vector&lt;node&lt;std::string&gt;&gt; resp;</div>
 <div class="line"><span class="keyword">co_await</span> db-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
 </div><!-- fragment --><p >For example, suppose we want to retrieve a hash data structure from Redis with <code>HGETALL</code>, some of the options are</p>
@@ -452,26 +492,36 @@ The general case</h2>
 <li><code>std::map&lt;std::string, std::string&gt;</code>: Efficient if you need the data as a <code>std::map</code>.</li>
 <li><code>std::map&lt;U, V&gt;</code>: Efficient if you are storing serialized data. Avoids temporaries and requires <code>from_bulk</code> for <code>U</code> and <code>V</code>.</li>
 </ul>
-<p >In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. <code>SMEMBERS</code>.</p>
-<h1><a class="anchor" id="autotoc_md15"></a>
-Why Aedis</h1>
-<p >At the time of this writing there are seventeen Redis clients listed in the <a href="https://redis.io/docs/clients/#cpp">official</a> list. With so many clients available it is not unlikely that users are asking themselves why yet another one. In this section I will try to compare Aedis with the most popular clients and why we need Aedis. Notice however that this is ongoing work as comparing client objectively is difficult and time consuming.</p>
+<p >In addition to the above users can also use unordered versions of the containers. The same reasoning also applies to sets e.g. <code>SMEMBERS</code> and other data structures in general.</p>
 <h2><a class="anchor" id="autotoc_md16"></a>
-Redis-plus-plus</h2>
-<p >The most popular client at the moment of this writing ranked by github stars is</p>
+Examples</h2>
+<p >To conclude this overview users are invited to skim over the examples below</p>
+<ul>
+<li><a class="el" href="intro_8cpp_source.html">intro.cpp</a>: The Aedis hello-world program. It sends one command to Redis and quits the connection.</li>
+<li><a class="el" href="intro__tls_8cpp_source.html">intro_tls.cpp</a>: Same as <a class="el" href="intro_8cpp_source.html">intro.cpp</a> but over TLS.</li>
+<li><a class="el" href="intro__sync_8cpp_source.html">intro_sync.cpp</a>: Synchronous version of <a class="el" href="intro_8cpp_source.html">intro.cpp</a>.</li>
+<li><a class="el" href="containers_8cpp_source.html">containers.cpp</a>: Shows how to send and receive stl containers and how to use transactions.</li>
+<li><a class="el" href="serialization_8cpp_source.html">serialization.cpp</a>: Shows how to serialize types using Boost.Json.</li>
+<li><a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a>: Shows how to implement pubsub that reconnects and resubscribes when the connection is lost.</li>
+<li><a class="el" href="subscriber__sentinel_8cpp_source.html">subscriber_sentinel.cpp</a>: Same as <a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a> but with failover with sentinels.</li>
+<li><a class="el" href="echo__server_8cpp_source.html">echo_server.cpp</a>: A simple TCP echo server.</li>
+<li><a class="el" href="chat__room_8cpp_source.html">chat_room.cpp</a>: A simple chat room.</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md17"></a>
+Why Aedis</h1>
+<p >The main reason for why I started writing Aedis was to have a client compatible with the Asio asynchronous model. As I made progresses I could also address what I considered weaknesses in other libraries. Due to time constraints I won't be able to give a detailed comparison with each client listed in the <a href="https://redis.io/docs/clients/#cpp">official</a> list, instead I will focus on the most popular C++ client on github in number of stars, namely</p>
 <ul>
 <li><a href="https://github.com/sewenew/redis-plus-plus">https://github.com/sewenew/redis-plus-plus</a></li>
 </ul>
-<p >Before we start it is worth mentioning some of the things it does not support</p>
+<p >Before we start it is important to mentioning some of the things redis-plus-plus does not support</p>
 <ul>
-<li>RESP3. Without RESP3 is impossible to support some important Redis features like client side caching, among other things.</li>
+<li>The latest version of the communication protocol RESP3. Without it it is impossible to support some important Redis features like client side caching, among other things.</li>
 <li>Coroutines.</li>
-<li>Reading responses directly in user data structures avoiding temporaries.</li>
+<li>Reading responses directly in user data structures to avoid creating temporaries.</li>
 <li>Proper error handling with support for error-code.</li>
 <li>Healthy checks.</li>
 </ul>
-<p >The remaining points will be addressed individually.</p>
-<p >Let us first have a look at what sending a command a pipeline and a transaction look like</p>
+<p >The remaining points will be addressed individually. Let us first have a look at what sending a command a pipeline and a transaction look like</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> redis = Redis(<span class="stringliteral">&quot;tcp://127.0.0.1:6379&quot;</span>);</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Send commands</span></div>
@@ -514,7 +564,7 @@ Redis-plus-plus</h2>
 <blockquote class="doxtable">
 <p >&zwj;NOTE: By default, creating a Pipeline object is NOT cheap, since it creates a new connection. </p>
 </blockquote>
-<p>This is clearly a downside of the API as pipelines should be the default way of communicating and not an exception, paying such a high price for each pipeline imposes a severe cost in performance. Transactions also suffer from the very same problem.</p>
+<p>This is clearly a downside in the API as pipelines should be the default way of communicating and not an exception, paying such a high price for each pipeline imposes a severe cost in performance. Transactions also suffer from the very same problem.</p>
 <blockquote class="doxtable">
 <p >&zwj;NOTE: Creating a Transaction object is NOT cheap, since it creates a new connection. </p>
 </blockquote>
@@ -529,9 +579,9 @@ Redis-plus-plus</h2>
 <div class="line">Future&lt;string&gt; ping_res = async_redis.ping();</div>
 <div class="line"> </div>
 <div class="line">cout &lt;&lt; ping_res.get() &lt;&lt; endl;</div>
-</div><!-- fragment --><p> As the reader can see, the async interface is based on futures which is also known to have a bad performance. The biggest problem however with this async design is that it makes it impossible to write asynchronous programs correctly since it starts an async operation on every command sent instead of enqueueing a message and triggering a write when it can be sent. It is also not clear how are pipelines realised with the design (if at all).</p>
-<h2><a class="anchor" id="autotoc_md17"></a>
-Benchmark: Echo server</h2>
+</div><!-- fragment --><p> As the reader can see, the async interface is based on futures which is also known to have a bad performance. The biggest problem however with this async design is that it makes it impossible to write asynchronous programs correctly since it starts an async operation on every command sent instead of enqueueing a message and triggering a write when it can be sent. It is also not clear how are pipelines realised with this design (if at all).</p>
+<h2><a class="anchor" id="autotoc_md18"></a>
+Echo server benchmark</h2>
 <p >This document benchmarks the performance of TCP echo servers I implemented in different languages using different Redis clients. The main motivations for choosing an echo server are</p>
 <ul>
 <li>Simple to implement and does not require expertise level in most languages.</li>
@@ -545,7 +595,7 @@ Benchmark: Echo server</h2>
 <li>Avoid the use of complex things like connection and thread pool.</li>
 </ul>
 <p >To reproduce these results run one of the echo-server programs in one terminal and the <a href="https://github.com/mzimbres/aedis/blob/42880e788bec6020dd018194075a211ad9f339e8/benchmarks/cpp/asio/echo_server_client.cpp">echo-server-client</a> in another.</p>
-<h3><a class="anchor" id="autotoc_md18"></a>
+<h3><a class="anchor" id="autotoc_md19"></a>
 Without Redis</h3>
 <p >First I tested a pure TCP echo server, i.e. one that sends the messages directly to the client without interacting with Redis. The result can be seen below</p>
 <p ><img src="https://mzimbres.github.io/aedis/tcp-echo-direct.png" alt="" class="inline"/></p>
@@ -563,7 +613,7 @@ Without Redis</h3>
 <li><a href="https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_direct">Nodejs</a></li>
 <li><a href="https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_direct.go">Go</a></li>
 </ul>
-<h3><a class="anchor" id="autotoc_md19"></a>
+<h3><a class="anchor" id="autotoc_md20"></a>
 With Redis</h3>
 <p >This is similar to the echo server described above but messages are echoed by Redis and not by the echo-server itself, which acts as a proxy between the client and the Redis server. The results can be seen below</p>
 <p ><img src="https://mzimbres.github.io/aedis/tcp-echo-over-redis.png" alt="" class="inline"/></p>
@@ -579,39 +629,92 @@ With Redis</h3>
 <li><a href="https://github.com/redis/node-redis">node-redis</a>: <a href="https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_over_redis">code</a></li>
 <li><a href="https://github.com/go-redis/redis">go-redis</a>: <a href="https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go">code</a></li>
 </ul>
-<h1><a class="anchor" id="autotoc_md20"></a>
-Changelog</h1>
-<h2><a class="anchor" id="autotoc_md21"></a>
-v1.1.0</h2>
+<p ><a class="anchor" id="api-reference"></a></p>
+<h1><a class="anchor" id="autotoc_md21"></a>
+Reference</h1>
 <ul>
-<li>Removes <code>coalesce_requests</code> from the <code>aedis::connection::config</code>, it became a request property now, see <code><a class="el" href="classaedis_1_1resp3_1_1request.html#a253cef2ca5d60b1b319019fafb3d27b3" title="Coalesce this with other requests.">aedis::resp3::request::config::coalesce</a></code>.</li>
+<li><a class="el" href="group__high-level-api.html">High-Level</a>: Covers the topics discussed in this document.</li>
+<li><a class="el" href="group__low-level-api.html">Low-Level</a>: Covers low-level building blocks. Provided mostly for developers, most users won't need any information provided here.</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md22"></a>
+Installation</h1>
+<p >Download the latest release on <a href="https://github.com/mzimbres/aedis/releases">https://github.com/mzimbres/aedis/releases</a>. Aedis is a header only library, so you can starting using it right away by adding the <code>include</code> subdirectory to your project and including</p>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;aedis/src.hpp&gt;</span></div>
+</div><!-- fragment --><p> in no more than one source file in your applications. For example, to compile one of the examples manually</p>
+<div class="fragment"><div class="line">g++ -std=c++20 -pthread -I/opt/boost_1_79_0/include/ -I./aedis/include examples/intro.cpp</div>
+</div><!-- fragment --><p >The requirements for using Aedis are</p>
+<ul>
+<li>Boost 1.79 or greater.</li>
+<li>C++17 minimum.</li>
+<li>Redis 6 or higher (must support RESP3).</li>
+<li>Optionally also redis-cli and Redis Sentinel.</li>
+</ul>
+<p >The following compilers are supported</p>
+<ul>
+<li>Tested with gcc: 10, 11, 12.</li>
+<li>Tested with clang: 11, 13, 14.</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md23"></a>
+Acknowledgement</h1>
+<p >Acknowledgement to people that helped shape Aedis in one way or another.</p>
+<ul>
+<li>Richard Hodges (<a href="https://github.com/madmongo1">madmongo1</a>): For very helpful support with Asio, the design of asynchronous programs, etc.</li>
+<li>Vinícius dos Santos Oliveira (<a href="https://github.com/vinipsmaker">vinipsmaker</a>): For useful discussion about how Aedis consumes buffers in the read operation.</li>
+<li>Petr Dannhofer (<a href="https://github.com/Eddie-cz">Eddie-cz</a>): For helping me understand how the <code>AUTH</code> and <code>HELLO</code> command can influence each other.</li>
+<li>Mohammad Nejati (<a href="https://github.com/ashtum">ashtum</a>): For pointing out scenarios where calls to <code>async_exec</code> should fail when the connection is lost.</li>
+<li>Klemens Morgenstern (<a href="https://github.com/klemens-morgenstern">klemens-morgenstern</a>): For useful discussion about timeouts, cancellation, synchronous interfaces and general help with Asio.</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md24"></a>
+Changelog</h1>
+<h2><a class="anchor" id="autotoc_md25"></a>
+v1.2.0</h2>
+<ul>
+<li><code>aedis::adapt</code> supports now tuples created with <code>std::tie</code>. <code>aedis::ignore</code> is now an alias to the type of <code>std::ignore</code>.</li>
+<li>Provides allocator support for the internal queue used in the <code><a class="el" href="classaedis_1_1connection.html" title="A connection to the Redis server.">aedis::connection</a></code> class.</li>
+<li>Changes the behaviour of <code>async_run</code> to complete with success if asio::error::eof is received. This makes it easier to write composed operations with awaitable operators.</li>
+<li>Adds allocator support in the <code><a class="el" href="classaedis_1_1resp3_1_1request.html" title="Creates Redis requests.">aedis::resp3::request</a></code> (a contribution from Klemens Morgenstern).</li>
+<li>Renames <code>aedis::resp3::request::push_range2</code> to <code>push_range</code>. The suffix 2 was used for disambiguation. Klemens fixed it with SFINAE.</li>
+<li>Renames <code>fail_on_connection_lost</code> to <code><a class="el" href="classaedis_1_1resp3_1_1request.html#aab978e56c202631d2fea293b73725e69" title="If set to true, requests started with aedis::connection::async_exec will fail if the connection is lo...">aedis::resp3::request::config::cancel_on_connection_lost</a></code>. Now, it will only cause connections to be canceled when <code>async_run</code> completes.</li>
+<li>Introduces <code><a class="el" href="classaedis_1_1resp3_1_1request.html#a4054811af1ac8f14a04a501907bc05be" title="If set to true, requests started with aedis::connection::async_exec will fail if the call happens bef...">aedis::resp3::request::config::cancel_if_not_connected</a></code> which will cause a request to be canceled if <code>async_exec</code> is called before a connection has been established.</li>
+<li>Introduces new request flag <code><a class="el" href="classaedis_1_1resp3_1_1request.html#a653d47ba62bd2b3f84f424a2b2b35b9a" title="If true, the implementation will resend this request if it remained unresponded when aedis::connectio...">aedis::resp3::request::config::retry</a></code> that if set to true will cause the request to not be canceled when it was sent to Redis but remained unresponded after <code>async_run</code> completed. It provides a way to avoid executing commands twice.</li>
+<li>Removes the <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">aedis::connection::async_run</a></code> overload that takes request and adapter as parameters.</li>
+<li>Changes the way <code><a class="el" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e" title="Creates an adapter that ignores responses.">aedis::adapt()</a></code> behaves with <code>std::vector&lt;<a class="el" href="structaedis_1_1resp3_1_1node.html" title="A node in the response tree.">aedis::resp3::node</a>&lt;T&gt;&gt;</code>. Receiving RESP3 simple errors, blob errors or null won't causes an error but will be treated as normal response. It is the user responsibility to check the content in the vector.</li>
+<li>Fixes a bug in <code>connection::cancel(operation::exec)</code>. Now this call will only cancel non-written requests.</li>
+<li>Implements per-operation implicit cancellation support for <code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">aedis::connection::async_exec</a></code>. The following call will <code>co_await (conn.async_exec(...) || timer.async_wait(...))</code> will cancel the request as long as it has not been written.</li>
+<li>Changes <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">aedis::connection::async_run</a></code> completion signature to <code>f(error_code)</code>. This is how is was in the past, the second parameter was not helpful.</li>
+<li>Renames <code>operation::receive_push</code> to <code><a class="el" href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd" title="Refers to connection::async_receive operations.">aedis::operation::receive</a></code>.</li>
+</ul>
+<h2><a class="anchor" id="autotoc_md26"></a>
+v1.1.0...1</h2>
+<ul>
+<li>Removes <code>coalesce_requests</code> from the <code>aedis::connection::config</code>, it became a request property now, see <code><a class="el" href="classaedis_1_1resp3_1_1request.html#a253cef2ca5d60b1b319019fafb3d27b3" title="If true this request will be coalesced with other requests, see https://redis.io/topics/pipelining....">aedis::resp3::request::config::coalesce</a></code>.</li>
 <li>Removes <code>max_read_size</code> from the <code>aedis::connection::config</code>. The maximum read size can be specified now as a parameter of the <code><a class="el" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e" title="Creates an adapter that ignores responses.">aedis::adapt()</a></code> function.</li>
 <li>Removes <code>aedis::sync</code> class, see <a class="el" href="intro__sync_8cpp_source.html">intro_sync.cpp</a> for how to perform synchronous and thread safe calls. This is possible in Boost. 1.80 only as it requires <code>boost::asio::deferred</code>.</li>
 <li>Moves from <code>boost::optional</code> to <code>std::optional</code>. This is part of moving to C++17.</li>
-<li>Changes the behaviour of the second <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">aedis::connection::async_run</a></code> overload so that it always returns an error when the connection is lost.</li>
+<li>Changes the behaviour of the second <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">aedis::connection::async_run</a></code> overload so that it always returns an error when the connection is lost.</li>
 <li>Adds TLS support, see <a class="el" href="intro__tls_8cpp_source.html">intro_tls.cpp</a>.</li>
 <li>Adds an example that shows how to resolve addresses over sentinels, see <a class="el" href="subscriber__sentinel_8cpp_source.html">subscriber_sentinel.cpp</a>.</li>
-<li>Adds a <code><a class="el" href="classaedis_1_1connection.html#a8ee9dcb7de3732ff3409883cab005382" title="Timeout of the resp3 handshake operation.">aedis::connection::timeouts::resp3_handshake_timeout</a></code>. This is timeout used to send the <code>HELLO</code> command.</li>
+<li>Adds a <code><a class="el" href="classaedis_1_1connection.html#a8ee9dcb7de3732ff3409883cab005382" title="Timeout of the resp3-handshake operation.">aedis::connection::timeouts::resp3_handshake_timeout</a></code>. This is timeout used to send the <code>HELLO</code> command.</li>
 <li>Adds <code><a class="el" href="group__high-level-api.html#structaedis_1_1endpoint" title="A Redis endpoint.">aedis::endpoint</a></code> where in addition to host and port, users can optionally provide username, password and the expected server role (see <code><a class="el" href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa72a58510e4bd5f265721fcb3e22336e2" title="Unexpected server role.">aedis::error::unexpected_server_role</a></code>).</li>
-<li><code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">aedis::connection::async_run</a></code> checks whether the server role received in the hello command is equal to the expected server role specified in <code><a class="el" href="group__high-level-api.html#structaedis_1_1endpoint" title="A Redis endpoint.">aedis::endpoint</a></code>. To skip this check let the role variable empty.</li>
+<li><code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">aedis::connection::async_run</a></code> checks whether the server role received in the hello command is equal to the expected server role specified in <code><a class="el" href="group__high-level-api.html#structaedis_1_1endpoint" title="A Redis endpoint.">aedis::endpoint</a></code>. To skip this check let the role variable empty.</li>
 <li>Removes reconnect functionality from <code><a class="el" href="classaedis_1_1connection.html" title="A connection to the Redis server.">aedis::connection</a></code>. It is possible in simple reconnection strategies but bloats the class in more complex scenarios, for example, with sentinel, authentication and TLS. This is trivial to implement in a separate coroutine. As a result the enum <code>event</code> and <code>async_receive_event</code> have been removed from the class too.</li>
-<li>Fixes a bug in <code><a class="el" href="classaedis_1_1connection.html#a64109cde6ce5eb31aa36ff85cc43ce95" title="Receives server side pushes asynchronously.">connection::async_receive_push</a></code> that prevented passing any response adapter other that <code>adapt(std::vector&lt;node&gt;)</code>.</li>
-<li>Changes the behaviour of <code><a class="el" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e" title="Creates an adapter that ignores responses.">aedis::adapt()</a></code> that caused RESP3 errors to be ignored. One consequence of it is that <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">connection::async_run</a></code> would not exit with failure in servers that required authentication.</li>
-<li>Changes the behaviour of <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">connection::async_run</a></code> that would cause it to complete with success when an error in the <code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> occurred.</li>
+<li>Fixes a bug in <code>connection::async_receive_push</code> that prevented passing any response adapter other that <code>adapt(std::vector&lt;node&gt;)</code>.</li>
+<li>Changes the behaviour of <code><a class="el" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e" title="Creates an adapter that ignores responses.">aedis::adapt()</a></code> that caused RESP3 errors to be ignored. One consequence of it is that <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">connection::async_run</a></code> would not exit with failure in servers that required authentication.</li>
+<li>Changes the behaviour of <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">connection::async_run</a></code> that would cause it to complete with success when an error in the <code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> occurred.</li>
 <li>Ports the buildsystem from autotools to CMake.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md22"></a>
+<h2><a class="anchor" id="autotoc_md27"></a>
 v1.0.0</h2>
 <ul>
 <li>Adds experimental cmake support for windows users.</li>
 <li>Adds new class <code>aedis::sync</code> that wraps an <code><a class="el" href="classaedis_1_1connection.html" title="A connection to the Redis server.">aedis::connection</a></code> in a thread-safe and synchronous API. All free functions from the <code>sync.hpp</code> are now member functions of <code>aedis::sync</code>.</li>
-<li>Split <code>aedis::connection::async_receive_event</code> in two functions, one to receive events and another for server side pushes, see <code><a class="el" href="classaedis_1_1connection.html#a64109cde6ce5eb31aa36ff85cc43ce95" title="Receives server side pushes asynchronously.">aedis::connection::async_receive_push</a></code>.</li>
+<li>Split <code>aedis::connection::async_receive_event</code> in two functions, one to receive events and another for server side pushes, see <code>aedis::connection::async_receive_push</code>.</li>
 <li>Removes collision between <code>aedis::adapter::adapt</code> and <code>aedis::adapt</code>.</li>
 <li>Adds <code>connection::operation</code> enum to replace <code>cancel_*</code> member functions with a single cancel function that gets the operations that should be cancelled as argument.</li>
 <li>Bugfix: a bug on reconnect from a state where the <code>connection</code> object had unsent commands. It could cause <code>async_exec</code> to never complete under certain conditions.</li>
 <li>Bugfix: Documentation of <code><a class="el" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e" title="Creates an adapter that ignores responses.">adapt()</a></code> functions were missing from Doxygen.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md23"></a>
+<h2><a class="anchor" id="autotoc_md28"></a>
 v0.3.0</h2>
 <ul>
 <li>Adds <code>experimental::exec</code> and <code>receive_event</code> functions to offer a thread safe and synchronous way of executing requests across threads. See <code><a class="el" href="intro__sync_8cpp_source.html">intro_sync.cpp</a></code> and <code>subscriber_sync.cpp</code> for examples.</li>
@@ -622,57 +725,35 @@ v0.3.0</h2>
 <li>Adds support for reconnection. See <code>connection::enable_reconnect</code>.</li>
 <li>Fixes a bug in the <code>connection::async_run(host, port)</code> overload that was causing crashes on reconnection.</li>
 <li>Fixes the executor usage in the connection class. Before theses changes it was imposing <code>any_io_executor</code> on users.</li>
-<li><code>connection::async_receiver_event</code> is not cancelled anymore when <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">connection::async_run</a></code> exits. This change makes user code simpler.</li>
-<li><code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> with host and port overload has been removed. Use the other <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">connection::async_run</a></code> overload.</li>
-<li>The host and port parameters from <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">connection::async_run</a></code> have been move to <code>connection::config</code> to better support authentication and failover.</li>
+<li><code>connection::async_receiver_event</code> is not cancelled anymore when <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">connection::async_run</a></code> exits. This change makes user code simpler.</li>
+<li><code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> with host and port overload has been removed. Use the other <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">connection::async_run</a></code> overload.</li>
+<li>The host and port parameters from <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">connection::async_run</a></code> have been move to <code>connection::config</code> to better support authentication and failover.</li>
 <li>Many simplifications in the <code>chat_room</code> example.</li>
 <li>Fixes build in clang the compilers and makes some improvements in the documentation.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md24"></a>
-v0.2.1</h2>
+<h2><a class="anchor" id="autotoc_md29"></a>
+v0.2.0...1</h2>
 <ul>
-<li>Fixes a bug that happens on very high load.</li>
-</ul>
-<h2><a class="anchor" id="autotoc_md25"></a>
-v0.2.0</h2>
-<ul>
+<li>Fixes a bug that happens on very high load. (v0.2.1)</li>
 <li>Major rewrite of the high-level API. There is no more need to use the low-level API anymore.</li>
 <li>No more callbacks: Sending requests follows the ASIO asynchronous model.</li>
 <li>Support for reconnection: Pending requests are not canceled when a connection is lost and are re-sent when a new one is established.</li>
 <li>The library is not sending HELLO-3 on user behalf anymore. This is important to support AUTH properly.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md26"></a>
-v0.1.2</h2>
+<h2><a class="anchor" id="autotoc_md30"></a>
+v0.1.0...2</h2>
 <ul>
-<li>Adds reconnect coroutine in the <code>echo_server</code> example.</li>
-<li>Corrects <code>client::async_wait_for_data</code> with <code>make_parallel_group</code> to launch operation.</li>
-<li>Improvements in the documentation.</li>
-<li>Avoids dynamic memory allocation in the client class after reconnection.</li>
-</ul>
-<h2><a class="anchor" id="autotoc_md27"></a>
-v0.1.1</h2>
-<ul>
-<li>Improves the documentation and adds some features to the high-level client.</li>
-</ul>
-<h2><a class="anchor" id="autotoc_md28"></a>
-v0.1.0</h2>
-<ul>
+<li>Adds reconnect coroutine in the <code>echo_server</code> example. (v0.1.2)</li>
+<li>Corrects <code>client::async_wait_for_data</code> with <code>make_parallel_group</code> to launch operation. (v0.1.2)</li>
+<li>Improvements in the documentation. (v0.1.2)</li>
+<li>Avoids dynamic memory allocation in the client class after reconnection. (v0.1.2)</li>
+<li>Improves the documentation and adds some features to the high-level client. (v.0.1.1)</li>
 <li>Improvements in the design and documentation.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md29"></a>
+<h2><a class="anchor" id="autotoc_md31"></a>
 v0.0.1</h2>
 <ul>
-<li>First release to collect design feedback.</li>
-</ul>
-<h1><a class="anchor" id="autotoc_md30"></a>
-Acknowledgement</h1>
-<p >Acknowledgement to people that helped shape Aedis in one way or another.</p>
-<ul>
-<li>Richard Hodges (<a href="https://github.com/madmongo1">madmongo1</a>): For very helpful support with Asio, the design of asynchronous programs, etc.</li>
-<li>Vinícius dos Santos Oliveira (<a href="https://github.com/vinipsmaker">vinipsmaker</a>): For useful discussion about how Aedis consumes buffers in the read operation.</li>
-<li>Petr Dannhofer (<a href="https://github.com/Eddie-cz">Eddie-cz</a>): For helping me understand how the <code>AUTH</code> and <code>HELLO</code> command can influence each other.</li>
-<li>Mohammad Nejati (<a href="https://github.com/ashtum">ashtum</a>): For pointing scenarios where calls to <code>async_exec</code> should fail when the connection is lost.</li>
-<li>Klemens Morgenstern (<a href="https://github.com/klemens-morgenstern">klemens-morgenstern</a>): For useful discussion about timeouts, the synchronous interface and general help with Asio. </li>
+<li>First release to collect design feedback. </li>
 </ul>
 </div></div><!-- PageDoc -->
 </div><!-- contents -->

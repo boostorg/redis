@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.1.1</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.2.0</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -273,6 +273,8 @@ Username if authentication is required. </td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa69c2dbb5917ca550a862e9c1c839bca1" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa69c2dbb5917ca550a862e9c1c839bca1"></a>not_connected&#160;</td><td class="fielddoc"><p >There is no stablished connection. </p>
 </td></tr>
+<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa0a136c9aa0cf147a91fd94689b2016ea" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa0a136c9aa0cf147a91fd94689b2016ea"></a>resp3_handshake_error&#160;</td><td class="fielddoc"><p >RESP3 handshake error (HELLO command). </p>
+</td></tr>
 </table>
 
 <p class="definition">Definition at line <a class="el" href="error_8hpp_source.html#l00017">17</a> of file <a class="el" href="error_8hpp_source.html">error.hpp</a>.</p>
@@ -304,9 +306,9 @@ Username if authentication is required. </td></tr>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bca52fb3679b07eb74d90784e612ca5cb30" name="ggadcfe42e0996c05d14fe5f8bacce384bca52fb3679b07eb74d90784e612ca5cb30"></a>exec&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> operations. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6" name="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6"></a>run&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Starts communication with the Redis server asynchronously.">connection::async_run</a></code> operations. </p>
+<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6" name="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6"></a>run&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">connection::async_run</a></code> operations. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bca88da1a0204e096ccf4da011d17a5408b" name="ggadcfe42e0996c05d14fe5f8bacce384bca88da1a0204e096ccf4da011d17a5408b"></a>receive_push&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1connection.html#a64109cde6ce5eb31aa36ff85cc43ce95" title="Receives server side pushes asynchronously.">connection::async_receive_push</a></code> operations. </p>
+<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd" name="ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd"></a>receive&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1connection.html#a98ea9deb9246ece128faea63aa8602f8" title="Receives server side pushes asynchronously.">connection::async_receive</a></code> operations. </p>
 </td></tr>
 </table>
 
@@ -452,7 +454,12 @@ template&lt;class T &gt; </div>
 </div><div class="memdoc">
 
 <p>Adapts a type to be used as a response. </p>
-<p >The type T can be any STL container, any integer type and <code>std::string</code> </p>
+<p >The type T must be either</p>
+<ol type="1">
+<li>a std::tuple&lt;T1, T2, T3, ...&gt; or</li>
+<li>std::vector&lt;node&lt;String&gt;&gt;</li>
+</ol>
+<p >The types T1, T2, etc can be any STL container, any integer type and <code>std::string</code> </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">t</td><td>Tuple containing the responses. </td></tr>
@@ -461,7 +468,7 @@ template&lt;class T &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="adapt_8hpp_source.html#l00215">215</a> of file <a class="el" href="adapt_8hpp_source.html">adapt.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="adapt_8hpp_source.html#l00220">220</a> of file <a class="el" href="adapt_8hpp_source.html">adapt.hpp</a>.</p>
 
 </div>
 </div>

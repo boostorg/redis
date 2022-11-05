@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.1.1</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.2.0</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -135,21 +135,24 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa75083d065f281806e339f2bf9c19951b">ssl_handshake_timeout</a>,</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span> </div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa69c2dbb5917ca550a862e9c1c839bca1">not_connected</a>,</div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>};</div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span> </div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><span class="keyword">auto</span> make_error_code(<a class="code hl_enumeration" href="group__high-level-api.html#ga1833aa5e140bbaa9d319ecb1a71bd8ba">error</a> e) -&gt; boost::system::error_code;</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span> </div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>} <span class="comment">// aedis</span></div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="keyword">namespace </span>std {</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span> </div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span><span class="keyword">template</span>&lt;&gt;</div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="keyword">struct </span>is_error_code_enum&lt;::<a class="code hl_enumeration" href="group__high-level-api.html#ga1833aa5e140bbaa9d319ecb1a71bd8ba">aedis::error</a>&gt; : std::true_type {};</div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa0a136c9aa0cf147a91fd94689b2016ea">resp3_handshake_error</a>,</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>};</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span><span class="keyword">auto</span> make_error_code(<a class="code hl_enumeration" href="group__high-level-api.html#ga1833aa5e140bbaa9d319ecb1a71bd8ba">error</a> e) -&gt; boost::system::error_code;</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span> </div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>} <span class="comment">// aedis</span></div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span> </div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="keyword">namespace </span>std {</div>
 <div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span> </div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>} <span class="comment">// std</span></div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="preprocessor">#endif </span><span class="comment">// AEDIS_ERROR_HPP</span></div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="keyword">template</span>&lt;&gt;</div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="keyword">struct </span>is_error_code_enum&lt;::<a class="code hl_enumeration" href="group__high-level-api.html#ga1833aa5e140bbaa9d319ecb1a71bd8ba">aedis::error</a>&gt; : std::true_type {};</div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span> </div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>} <span class="comment">// std</span></div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span> </div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="preprocessor">#endif </span><span class="comment">// AEDIS_ERROR_HPP</span></div>
 <div class="ttc" id="agroup__high-level-api_html_ga1833aa5e140bbaa9d319ecb1a71bd8ba"><div class="ttname"><a href="group__high-level-api.html#ga1833aa5e140bbaa9d319ecb1a71bd8ba">aedis::error</a></div><div class="ttdeci">error</div><div class="ttdoc">Generic errors.</div><div class="ttdef"><b>Definition:</b> <a href="error_8hpp_source.html#l00017">error.hpp:18</a></div></div>
+<div class="ttc" id="agroup__high-level-api_html_gga1833aa5e140bbaa9d319ecb1a71bd8baa0a136c9aa0cf147a91fd94689b2016ea"><div class="ttname"><a href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa0a136c9aa0cf147a91fd94689b2016ea">aedis::error::resp3_handshake_error</a></div><div class="ttdeci">@ resp3_handshake_error</div><div class="ttdoc">RESP3 handshake error (HELLO command).</div></div>
 <div class="ttc" id="agroup__high-level-api_html_gga1833aa5e140bbaa9d319ecb1a71bd8baa0ee50d3b384cbc519d91139f2607bcf5"><div class="ttname"><a href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa0ee50d3b384cbc519d91139f2607bcf5">aedis::error::expects_resp3_set</a></div><div class="ttdeci">@ expects_resp3_set</div><div class="ttdoc">Expects a set aggregate but got something else.</div></div>
 <div class="ttc" id="agroup__high-level-api_html_gga1833aa5e140bbaa9d319ecb1a71bd8baa18a0cd8e67dab1a91bce2ee6ce1671c9"><div class="ttname"><a href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa18a0cd8e67dab1a91bce2ee6ce1671c9">aedis::error::incompatible_size</a></div><div class="ttdeci">@ incompatible_size</div><div class="ttdoc">Aggregate container has incompatible size.</div></div>
 <div class="ttc" id="agroup__high-level-api_html_gga1833aa5e140bbaa9d319ecb1a71bd8baa1aadcfc9d4ed9466a35fbbf2e8e9da00"><div class="ttname"><a href="group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa1aadcfc9d4ed9466a35fbbf2e8e9da00">aedis::error::resolve_timeout</a></div><div class="ttdeci">@ resolve_timeout</div><div class="ttdoc">Resolve timeout.</div></div>

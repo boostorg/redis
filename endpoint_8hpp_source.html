@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.1.1</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.2.0</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -102,19 +102,16 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno"><a class="line" href="group__high-level-api.html#a1eff750c70b5e42e9e483f540340a405">   31</a></span>   std::string <a class="code hl_variable" href="group__high-level-api.html#a1eff750c70b5e42e9e483f540340a405">password</a>{};</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>};</div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span> </div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keyword">auto</span> is_valid(endpoint <span class="keyword">const</span>&amp; ep) <span class="keyword">noexcept</span> -&gt; bool;</div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span><span class="keyword">auto</span> requires_auth(endpoint <span class="keyword">const</span>&amp; ep) <span class="keyword">noexcept</span> -&gt; bool;</div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="keyword">auto</span> <a class="code hl_function" href="group__high-level-api.html#ga59a01d6e56b2afb270a045e2b79cb64b">operator&lt;&lt;</a>(std::ostream&amp; os, endpoint <span class="keyword">const</span>&amp; ep) -&gt; std::ostream&amp;;</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keyword">auto</span> requires_auth(endpoint <span class="keyword">const</span>&amp; ep) <span class="keyword">noexcept</span> -&gt; bool;</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>} <span class="comment">// aedis</span></div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>} <span class="comment">// aedis</span></div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span> </div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="preprocessor">#endif </span><span class="comment">// AEDIS_ENDPOINT_HPP</span></div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="preprocessor">#endif </span><span class="comment">// AEDIS_ENDPOINT_HPP</span></div>
 <div class="ttc" id="agroup__high-level-api_html_a117002a65e8eafe515691de66e198ff8"><div class="ttname"><a href="group__high-level-api.html#a117002a65e8eafe515691de66e198ff8">aedis::endpoint::role</a></div><div class="ttdeci">std::string role</div><div class="ttdoc">Expected role if any.</div><div class="ttdef"><b>Definition:</b> <a href="endpoint_8hpp_source.html#l00025">endpoint.hpp:25</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_a1eff750c70b5e42e9e483f540340a405"><div class="ttname"><a href="group__high-level-api.html#a1eff750c70b5e42e9e483f540340a405">aedis::endpoint::password</a></div><div class="ttdeci">std::string password</div><div class="ttdoc">Password if authentication is required.</div><div class="ttdef"><b>Definition:</b> <a href="endpoint_8hpp_source.html#l00031">endpoint.hpp:31</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_a3449bc6f7a6bf43dc4ed4dea2cadc38b"><div class="ttname"><a href="group__high-level-api.html#a3449bc6f7a6bf43dc4ed4dea2cadc38b">aedis::endpoint::host</a></div><div class="ttdeci">std::string host</div><div class="ttdoc">Redis server address.</div><div class="ttdef"><b>Definition:</b> <a href="endpoint_8hpp_source.html#l00019">endpoint.hpp:19</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_aef69172079dfa8cba7188040183c96e0"><div class="ttname"><a href="group__high-level-api.html#aef69172079dfa8cba7188040183c96e0">aedis::endpoint::port</a></div><div class="ttdeci">std::string port</div><div class="ttdoc">Redis server port.</div><div class="ttdef"><b>Definition:</b> <a href="endpoint_8hpp_source.html#l00022">endpoint.hpp:22</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_afafa237b7e1a77ec0231e7e83c509e80"><div class="ttname"><a href="group__high-level-api.html#afafa237b7e1a77ec0231e7e83c509e80">aedis::endpoint::username</a></div><div class="ttdeci">std::string username</div><div class="ttdoc">Username if authentication is required.</div><div class="ttdef"><b>Definition:</b> <a href="endpoint_8hpp_source.html#l00028">endpoint.hpp:28</a></div></div>
-<div class="ttc" id="agroup__high-level-api_html_ga59a01d6e56b2afb270a045e2b79cb64b"><div class="ttname"><a href="group__high-level-api.html#ga59a01d6e56b2afb270a045e2b79cb64b">aedis::resp3::operator&lt;&lt;</a></div><div class="ttdeci">auto operator&lt;&lt;(std::ostream &amp;os, type t) -&gt; std::ostream &amp;</div><div class="ttdoc">Writes the type to the output stream.</div></div>
 <div class="ttc" id="agroup__high-level-api_html_structaedis_1_1endpoint"><div class="ttname"><a href="group__high-level-api.html#structaedis_1_1endpoint">aedis::endpoint</a></div><div class="ttdoc">A Redis endpoint.</div><div class="ttdef"><b>Definition:</b> <a href="endpoint_8hpp_source.html#l00017">endpoint.hpp:17</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.14-->

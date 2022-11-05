@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.1.1</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.2.0</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -89,10 +89,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__low-level-api.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">aedis::resp3::async_read</a> (AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=ResponseAdapter{}, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</td></tr>
 <tr class="memdesc:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a complete response to a Redis command asynchronously.  <a href="group__low-level-api.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">More...</a><br /></td></tr>
 <tr class="separator:ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga54dda2974f233dd25a2eaf20ce9b5385"><td class="memTemplParams" colspan="2"><a id="ga54dda2974f233dd25a2eaf20ce9b5385" name="ga54dda2974f233dd25a2eaf20ce9b5385"></a>
-template&lt;class AsyncWriteStream , class Request , class CompletionToken  = boost::asio::default_completion_token_t&lt;typename AsyncWriteStream::executor_type&gt;&gt; </td></tr>
-<tr class="memitem:ga54dda2974f233dd25a2eaf20ce9b5385"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>aedis::resp3::async_write</b> (AsyncWriteStream &amp;stream, Request const &amp;req, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncWriteStream::executor_type &gt;{})</td></tr>
-<tr class="memdesc:ga54dda2974f233dd25a2eaf20ce9b5385"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a request asynchronously. <br /></td></tr>
+<tr class="memitem:ga54dda2974f233dd25a2eaf20ce9b5385"><td class="memTemplParams" colspan="2">template&lt;class AsyncWriteStream , class Request , class CompletionToken  = boost::asio::default_completion_token_t&lt;typename AsyncWriteStream::executor_type&gt;&gt; </td></tr>
+<tr class="memitem:ga54dda2974f233dd25a2eaf20ce9b5385"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__low-level-api.html#ga54dda2974f233dd25a2eaf20ce9b5385">aedis::resp3::async_write</a> (AsyncWriteStream &amp;stream, Request const &amp;req, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncWriteStream::executor_type &gt;{})</td></tr>
+<tr class="memdesc:ga54dda2974f233dd25a2eaf20ce9b5385"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a request asynchronously.  <a href="group__low-level-api.html#ga54dda2974f233dd25a2eaf20ce9b5385">More...</a><br /></td></tr>
 <tr class="separator:ga54dda2974f233dd25a2eaf20ce9b5385"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad7df3a165405aef64f72618d45d100cb"><td class="memTemplParams" colspan="2">template&lt;class SyncReadStream , class DynamicBuffer , class ResponseAdapter &gt; </td></tr>
 <tr class="memitem:gad7df3a165405aef64f72618d45d100cb"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">aedis::resp3::read</a> (SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter, boost::system::error_code &amp;ec) -&gt; std::size_t</td></tr>
@@ -102,10 +101,9 @@ template&lt;class AsyncWriteStream , class Request , class CompletionToken  = bo
 <tr class="memitem:gab94ca8205fe516f47e48e148a6216026"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__low-level-api.html#gab94ca8205fe516f47e48e148a6216026">aedis::resp3::read</a> (SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter=ResponseAdapter{})</td></tr>
 <tr class="memdesc:gab94ca8205fe516f47e48e148a6216026"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a complete response to a command sychronously.  <a href="group__low-level-api.html#gab94ca8205fe516f47e48e148a6216026">More...</a><br /></td></tr>
 <tr class="separator:gab94ca8205fe516f47e48e148a6216026"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gacbd6128072528430cb2e95782410258c"><td class="memTemplParams" colspan="2"><a id="gacbd6128072528430cb2e95782410258c" name="gacbd6128072528430cb2e95782410258c"></a>
-template&lt;class SyncWriteStream , class Request &gt; </td></tr>
-<tr class="memitem:gacbd6128072528430cb2e95782410258c"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>aedis::resp3::write</b> (SyncWriteStream &amp;stream, Request const &amp;req)</td></tr>
-<tr class="memdesc:gacbd6128072528430cb2e95782410258c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a request synchronously. <br /></td></tr>
+<tr class="memitem:gacbd6128072528430cb2e95782410258c"><td class="memTemplParams" colspan="2">template&lt;class SyncWriteStream , class Request &gt; </td></tr>
+<tr class="memitem:gacbd6128072528430cb2e95782410258c"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__low-level-api.html#gacbd6128072528430cb2e95782410258c">aedis::resp3::write</a> (SyncWriteStream &amp;stream, Request const &amp;req)</td></tr>
+<tr class="memdesc:gacbd6128072528430cb2e95782410258c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a request synchronously.  <a href="group__low-level-api.html#gacbd6128072528430cb2e95782410258c">More...</a><br /></td></tr>
 <tr class="separator:gacbd6128072528430cb2e95782410258c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -149,7 +147,7 @@ template&lt;class SyncWriteStream , class Request &gt; </td></tr>
 <div class="line"><a class="code hl_function" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">resp3::read</a>(socket, dynamic_buffer(buffer), <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp)); <span class="comment">// ping</span></div>
 <div class="line"><a class="code hl_function" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">resp3::read</a>(socket, dynamic_buffer(buffer, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>()));     <span class="comment">// quit</span></div>
 <div class="ttc" id="agroup__high-level-api_html_gac56bb1a8df93445853a4b9dae2d97b6e"><div class="ttname"><a href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a></div><div class="ttdeci">auto adapt(std::size_t max_read_size=(std::numeric_limits&lt; std::size_t &gt;::max)()) noexcept</div><div class="ttdoc">Creates an adapter that ignores responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00199">adapt.hpp:199</a></div></div>
-<div class="ttc" id="agroup__low-level-api_html_gacbd6128072528430cb2e95782410258c"><div class="ttname"><a href="group__low-level-api.html#gacbd6128072528430cb2e95782410258c">aedis::resp3::write</a></div><div class="ttdeci">auto write(SyncWriteStream &amp;stream, Request const &amp;req)</div><div class="ttdoc">Writes a request synchronously.</div><div class="ttdef"><b>Definition:</b> <a href="write_8hpp_source.html#l00021">write.hpp:21</a></div></div>
+<div class="ttc" id="agroup__low-level-api_html_gacbd6128072528430cb2e95782410258c"><div class="ttname"><a href="group__low-level-api.html#gacbd6128072528430cb2e95782410258c">aedis::resp3::write</a></div><div class="ttdeci">auto write(SyncWriteStream &amp;stream, Request const &amp;req)</div><div class="ttdoc">Writes a request synchronously.</div><div class="ttdef"><b>Definition:</b> <a href="write_8hpp_source.html#l00024">write.hpp:24</a></div></div>
 <div class="ttc" id="agroup__low-level-api_html_gad7df3a165405aef64f72618d45d100cb"><div class="ttname"><a href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">aedis::resp3::read</a></div><div class="ttdeci">auto read(SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter, boost::system::error_code &amp;ec) -&gt; std::size_t</div><div class="ttdoc">Reads a complete response to a command sychronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00056">read.hpp:56</a></div></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="adapter_2adapt_8hpp_source.html#l00040">40</a> of file <a class="el" href="adapter_2adapt_8hpp_source.html">adapt.hpp</a>.</p>
@@ -202,7 +200,7 @@ template&lt;class T &gt; </div>
 <div class="line"><span class="comment">// Reads the response to a transaction</span></div>
 <div class="line">std::tuple&lt;std::string, int, int, std::vector&lt;std::string&gt;, <span class="keywordtype">int</span>&gt; execs;</div>
 <div class="line"><span class="keyword">co_await</span> <a class="code hl_function" href="group__low-level-api.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">resp3::async_read</a>(socket, dynamic_buffer(buffer), <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(execs));</div>
-<div class="ttc" id="agroup__low-level-api_html_ga54dda2974f233dd25a2eaf20ce9b5385"><div class="ttname"><a href="group__low-level-api.html#ga54dda2974f233dd25a2eaf20ce9b5385">aedis::resp3::async_write</a></div><div class="ttdeci">auto async_write(AsyncWriteStream &amp;stream, Request const &amp;req, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncWriteStream::executor_type &gt;{})</div><div class="ttdoc">Writes a request asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="write_8hpp_source.html#l00046">write.hpp:46</a></div></div>
+<div class="ttc" id="agroup__low-level-api_html_ga54dda2974f233dd25a2eaf20ce9b5385"><div class="ttname"><a href="group__low-level-api.html#ga54dda2974f233dd25a2eaf20ce9b5385">aedis::resp3::async_write</a></div><div class="ttdeci">auto async_write(AsyncWriteStream &amp;stream, Request const &amp;req, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncWriteStream::executor_type &gt;{})</div><div class="ttdoc">Writes a request asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="write_8hpp_source.html#l00053">write.hpp:53</a></div></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="adapter_2adapt_8hpp_source.html#l00075">75</a> of file <a class="el" href="adapter_2adapt_8hpp_source.html">adapt.hpp</a>.</p>
 
@@ -268,6 +266,54 @@ template&lt;class AsyncReadStream , class DynamicBuffer , class ResponseAdapter 
 </div><!-- fragment --><dl class="section remark"><dt>Remarks</dt><dd>This function calls buf.consume() in each chunk of data after it has been passed to the adapter. Users must not consume the bytes after it returns. </dd></dl>
 
 <p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00163">163</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ga54dda2974f233dd25a2eaf20ce9b5385" name="ga54dda2974f233dd25a2eaf20ce9b5385"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga54dda2974f233dd25a2eaf20ce9b5385">&#9670;&nbsp;</a></span>async_write()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class AsyncWriteStream , class Request , class CompletionToken  = boost::asio::default_completion_token_t&lt;typename AsyncWriteStream::executor_type&gt;&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">auto aedis::resp3::async_write </td>
+          <td>(</td>
+          <td class="paramtype">AsyncWriteStream &amp;&#160;</td>
+          <td class="paramname"><em>stream</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Request const &amp;&#160;</td>
+          <td class="paramname"><em>req</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">CompletionToken &amp;&amp;&#160;</td>
+          <td class="paramname"><em>token</em> = <code>boost::asio::default_completion_token_t&lt;typename&#160;AsyncWriteStream::executor_type&gt;{}</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Writes a request asynchronously. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">stream</td><td>Stream to write the request to. </td></tr>
+    <tr><td class="paramname">req</td><td>Request to write. </td></tr>
+    <tr><td class="paramname">token</td><td>Asio completion token. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="write_8hpp_source.html#l00053">53</a> of file <a class="el" href="write_8hpp_source.html">write.hpp</a>.</p>
 
 </div>
 </div>
@@ -372,6 +418,47 @@ template&lt;class SyncReadStream , class DynamicBuffer , class ResponseAdapter  
 <p >Same as the error_code overload but throws on error. </p>
 
 <p class="definition">Definition at line <a class="el" href="read_8hpp_source.html#l00105">105</a> of file <a class="el" href="read_8hpp_source.html">read.hpp</a>.</p>
+
+</div>
+</div>
+<a id="gacbd6128072528430cb2e95782410258c" name="gacbd6128072528430cb2e95782410258c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gacbd6128072528430cb2e95782410258c">&#9670;&nbsp;</a></span>write()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SyncWriteStream , class Request &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">auto aedis::resp3::write </td>
+          <td>(</td>
+          <td class="paramtype">SyncWriteStream &amp;&#160;</td>
+          <td class="paramname"><em>stream</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Request const &amp;&#160;</td>
+          <td class="paramname"><em>req</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Writes a request synchronously. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">stream</td><td>Stream to write the request to. </td></tr>
+    <tr><td class="paramname">req</td><td>Request to write. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="write_8hpp_source.html#l00024">24</a> of file <a class="el" href="write_8hpp_source.html">write.hpp</a>.</p>
 
 </div>
 </div>
