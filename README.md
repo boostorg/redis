@@ -834,7 +834,7 @@ another.
 
 ## Changelog
 
-### master
+### v1.2.0
 
 * `aedis::adapt` supports now tuples created with `std::tie`.
   `aedis::ignore` is now an alias to the type of `std::ignore`.
