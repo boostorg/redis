@@ -21,14 +21,14 @@ struct endpoint {
    /// Redis server port.
    std::string port;
 
-   /// Expected role if any.
-   std::string role{};
-
    /// Username if authentication is required.
    std::string username{};
 
    /// Password if authentication is required.
    std::string password{};
+
+   /// Expected role if any.
+   std::string role{};
 };
 
 auto requires_auth(endpoint const& ep) noexcept -> bool;

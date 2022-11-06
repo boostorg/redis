@@ -18,6 +18,7 @@
 namespace net = boost::asio;
 
 using aedis::adapt;
+using aedis::resp3::request;
 using connection = aedis::ssl::connection<net::ssl::stream<net::ip::tcp::socket>>;
 using endpoint = aedis::endpoint;
 
@@ -46,8 +47,6 @@ boost::system::error_code hello_fail(endpoint ep)
 
 BOOST_AUTO_TEST_CASE(test_tls_handshake_fail)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
    endpoint ep;
    ep.host = "google.com";
    ep.port = "80";
@@ -58,8 +57,6 @@ BOOST_AUTO_TEST_CASE(test_tls_handshake_fail)
 
 BOOST_AUTO_TEST_CASE(test_tls_handshake_fail2)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
    endpoint ep;
    ep.host = "127.0.0.1";
    ep.port = "6379";
@@ -69,12 +66,42 @@ BOOST_AUTO_TEST_CASE(test_tls_handshake_fail2)
 
 BOOST_AUTO_TEST_CASE(test_hello_fail)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
    endpoint ep;
    ep.host = "google.com";
    ep.port = "443";
    auto const ec = hello_fail(ep);
    BOOST_CHECK_EQUAL(ec, aedis::error::invalid_data_type);
+}
+
+BOOST_AUTO_TEST_CASE(ping)
+{
+   net::io_context ioc;
+
+   net::ssl::context ctx{net::ssl::context::sslv23};
+
+   connection conn{ioc, ctx};
+   conn.next_layer().set_verify_mode(net::ssl::verify_peer);
+   conn.next_layer().set_verify_callback(verify_certificate);
+
+   std::string const in = "Kabuf";
+
+   request req;
+   req.get_config().cancel_on_connection_lost = true;
+   req.push("PING", in);
+   req.push("QUIT");
+
+   std::string out;
+   auto resp = std::tie(out, std::ignore);
+   conn.async_exec(req, adapt(resp), [](auto ec, auto) {
+      BOOST_TEST(!ec);
+   });
+
+   conn.async_run({"db.occase.de", "6380", "aedis", "aedis"}, {}, [](auto ec) {
+      BOOST_TEST(!ec);
+   });
+
+   ioc.run();
+
+   BOOST_CHECK_EQUAL(in, out);
 }
 

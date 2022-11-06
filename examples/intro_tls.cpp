@@ -46,7 +46,7 @@ auto main() -> int
 
       std::tuple<std::string, aedis::ignore> resp;
       conn.async_exec(req, adapt(resp), logger);
-      conn.async_run({"127.0.0.1", "6379"}, {}, logger);
+      conn.async_run({"db.occase.de", "6380", "aedis", "aedis"}, {}, logger);
 
       ioc.run();
 
