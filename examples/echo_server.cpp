@@ -9,12 +9,14 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
 
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::endpoint;
@@ -25,6 +27,10 @@ using acceptor_type = net::basic_socket_acceptor<net::ip::tcp, executor_type>;
 using tcp_acceptor = net::use_awaitable_t<executor_type>::as_default_on_t<acceptor_type>;
 using awaitable_type = net::awaitable<void, executor_type>;
 using connection = aedis::connection<tcp_socket>;
+using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
+
+// Some example code.
+#include "reconnect.ipp"
 
 awaitable_type echo_server_session(tcp_socket socket, std::shared_ptr<connection> db)
 {
@@ -50,32 +56,24 @@ awaitable_type listener(std::shared_ptr<connection> db)
       net::co_spawn(ex, echo_server_session(co_await acc.async_accept(), db), net::detached);
 }
 
-net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
-{
-   net::steady_timer timer{co_await net::this_coro::executor};
-   endpoint ep{"127.0.0.1", "6379"};
-   for (boost::system::error_code ec1;;) {
-      co_await conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1));
-      std::clog << "async_run: " << ec1.message() << std::endl;
-      conn->reset_stream();
-      timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait(net::use_awaitable);
-   }
-}
-
 auto main() -> int
 {
    try {
       net::io_context ioc{1};
       auto db = std::make_shared<connection>(ioc);
-      co_spawn(ioc, reconnect(db), net::detached);
+
+      request req;
+      req.get_config().cancel_on_connection_lost = true;
+      req.push("HELLO", 3);
+
+      co_spawn(ioc, reconnect(db, req), net::detached);
+      co_spawn(ioc, listener(db), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto) {
          ioc.stop();
       });
 
-      co_spawn(ioc, listener(db), net::detached);
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

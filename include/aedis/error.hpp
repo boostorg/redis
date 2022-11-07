@@ -73,17 +73,11 @@ enum class error
    /// Got RESP3 null.
    resp3_null,
 
-   /// Unexpected server role.
-   unexpected_server_role,
-
    /// SSL handshake timeout.
    ssl_handshake_timeout,
 
    /// There is no stablished connection.
    not_connected,
-
-   /// RESP3 handshake error (HELLO command).
-   resp3_handshake_error,
 };
 
 /** \internal

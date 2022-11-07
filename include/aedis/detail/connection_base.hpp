@@ -315,6 +315,15 @@ private:
    void add_request_info(std::shared_ptr<req_info> const& info)
    {
       reqs_.push_back(info);
+
+      if (info->get_request().has_hello_priority()) {
+         auto rend = std::partition_point(std::rbegin(reqs_), std::rend(reqs_), [](auto const& e) {
+               return !e->is_written() && !e->is_staged();
+         });
+
+         std::rotate(std::rbegin(reqs_), std::rbegin(reqs_) + 1, rend);
+      }
+
       if (derived().is_open() && cmds_ == 0 && write_buffer_.empty())
          writer_timer_.cancel();
    }
@@ -422,36 +431,6 @@ private:
       }
    }
 
-   void prepare_hello(endpoint const& ep)
-   {
-      req_.clear();
-      if (requires_auth(ep)) {
-         req_.push("HELLO", "3", "AUTH", ep.username, ep.password);
-      } else {
-         req_.push("HELLO", "3");
-      }
-   }
-
-   auto expect_role(std::string const& expected) -> bool
-   {
-      if (std::empty(expected))
-         return true;
-
-      resp3::node<std::string> role_node;
-      role_node.data_type = resp3::type::blob_string;
-      role_node.aggregate_size = 1;
-      role_node.depth = 1;
-      role_node.value = "role";
-
-      auto iter = std::find(std::cbegin(response_), std::cend(response_), role_node);
-      if (iter == std::end(response_))
-         return false;
-
-      ++iter;
-      BOOST_ASSERT(iter != std::cend(response_));
-      return iter->value == expected;
-   }
-
    // IO objects
    resolver_type resv_;
    timer_type ping_timer_;
@@ -469,7 +448,6 @@ private:
    time_point_type last_data_;
 
    resp3::request req_;
-   std::vector<resp3::node<std::string>> response_;
    endpoint ep_;
    // The result of async_resolve.
    boost::asio::ip::tcp::resolver::results_type endpoints_;

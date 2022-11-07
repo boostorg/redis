@@ -29,6 +29,9 @@ using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::st
 using connection = aedis::connection<tcp_socket>;
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 
+// Some example code.
+#include "reconnect.ipp"
+
 // Chat over redis pubsub. To test, run this program from different
 // terminals and type messages to stdin. Use
 //
@@ -37,35 +40,12 @@ using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 // to monitor the message traffic.
 
 // Receives messages from other users.
-net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
+auto push_receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    for (std::vector<node<std::string>> resp;;) {
       co_await conn->async_receive(adapt(resp));
       print_push(resp);
       resp.clear();
-   }
-}
-
-// Subscribes to the channels when a new connection is stablished.
-net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
-{
-   request req;
-   req.get_config().cancel_on_connection_lost = true;
-   req.push("SUBSCRIBE", "chat-channel");
-
-   stimer timer{co_await net::this_coro::executor};
-   endpoint ep{"127.0.0.1", "6379"};
-   for (;;) {
-      boost::system::error_code ec1, ec2;
-      co_await (
-         conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) &&
-         conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
-      );
-      std::clog << "async_run: " << ec1.message() << "\n"
-                << "async_exec: " << ec2.message() << std::endl;
-      conn->reset_stream();
-      timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait();
    }
 }
 
@@ -86,11 +66,16 @@ auto main() -> int
    try {
       net::io_context ioc{1};
       stream_descriptor in{ioc, ::dup(STDIN_FILENO)};
-
       auto conn = std::make_shared<connection>(ioc);
+
+      request req;
+      req.get_config().cancel_on_connection_lost = true;
+      req.push("HELLO", 3);
+      req.push("SUBSCRIBE", "chat-channel");
+
       co_spawn(ioc, publisher(in, conn), net::detached);
       co_spawn(ioc, push_receiver(conn), net::detached);
-      co_spawn(ioc, reconnect(conn), net::detached);
+      co_spawn(ioc, reconnect(conn, req), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

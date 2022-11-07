@@ -27,16 +27,17 @@ auto main() -> int
 
       request req;
       req.get_config().cancel_on_connection_lost = true;
+      req.push("HELLO", 3);
       req.push("PING");
       req.push("QUIT");
 
-      std::tuple<std::string, aedis::ignore> resp;
+      std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
       conn.async_exec(req, adapt(resp), logger);
       conn.async_run({"127.0.0.1", "6379"}, {}, logger);
 
       ioc.run();
 
-      std::cout << std::get<0>(resp) << std::endl;
+      std::cout << std::get<1>(resp) << std::endl;
    } catch (...) {
       std::cerr << "Error" << std::endl;
    }

@@ -37,6 +37,7 @@ net::awaitable<void> push_consumer(std::shared_ptr<connection> conn, int expecte
    }
 
    request req;
+   req.push("HELLO", 3);
    req.push("QUIT");
    co_await conn->async_exec(req, adapt(), net::use_awaitable);
 }
@@ -46,19 +47,20 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
    auto ex = co_await net::this_coro::executor;
 
    request req;
-   std::tuple<std::string> resp;
+   std::tuple<aedis::ignore, std::string> resp;
 
    for (auto i = 0; i < n; ++i) {
       auto const msg = id + "/" + std::to_string(i);
       //std::cout << msg << std::endl;
+      req.push("HELLO", 3);
       req.push("PING", msg);
       req.push("SUBSCRIBE", "channel");
       boost::system::error_code ec;
       co_await conn->async_exec(req, adapt(resp), net::redirect_error(net::use_awaitable, ec));
       BOOST_TEST(!ec);
-      BOOST_CHECK_EQUAL(msg, std::get<0>(resp));
+      BOOST_CHECK_EQUAL(msg, std::get<1>(resp));
       req.clear();
-      std::get<0>(resp).clear();
+      std::get<1>(resp).clear();
    }
 }
 

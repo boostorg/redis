@@ -14,6 +14,9 @@
 #include <aedis.hpp>
 #include <aedis/src.hpp>
 
+// TODO: Test whether HELLO won't be inserted passt commands that have
+// been already writen.
+
 namespace net = boost::asio;
 
 using aedis::resp3::request;
@@ -30,10 +33,11 @@ using namespace net::experimental::awaitable_operators;
 BOOST_AUTO_TEST_CASE(wrong_response_data_type)
 {
    request req;
+   req.push("HELLO", 3);
    req.push("QUIT");
 
    // Wrong data type.
-   std::tuple<int> resp;
+   std::tuple<aedis::ignore, int> resp;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    db->async_exec(req, adapt(resp), [](auto ec, auto){
@@ -50,6 +54,7 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 {
    request req;
    req.get_config().cancel_if_not_connected = true;
+   req.push("HELLO", 3);
    req.push("PING");
 
    net::io_context ioc;
@@ -65,6 +70,7 @@ BOOST_AUTO_TEST_CASE(request_retry)
 {
    request req1;
    req1.get_config().cancel_on_connection_lost = true;
+   req1.push("HELLO", 3);
    req1.push("CLIENT", "PAUSE", 7000);
 
    request req2;

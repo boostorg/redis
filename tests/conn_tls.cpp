@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(test_tls_handshake_fail2)
    ep.host = "127.0.0.1";
    ep.port = "6379";
    auto const ec = hello_fail(ep);
-   BOOST_CHECK_EQUAL(ec, aedis::error::ssl_handshake_timeout);
+   BOOST_TEST(ec, aedis::error::ssl_handshake_timeout);
 }
 
 BOOST_AUTO_TEST_CASE(test_hello_fail)
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(test_hello_fail)
    ep.host = "google.com";
    ep.port = "443";
    auto const ec = hello_fail(ep);
-   BOOST_CHECK_EQUAL(ec, aedis::error::invalid_data_type);
+   BOOST_TEST(!ec);
 }
 
 BOOST_AUTO_TEST_CASE(ping)
@@ -87,16 +87,17 @@ BOOST_AUTO_TEST_CASE(ping)
 
    request req;
    req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3, "AUTH", "aedis", "aedis");
    req.push("PING", in);
    req.push("QUIT");
 
    std::string out;
-   auto resp = std::tie(out, std::ignore);
+   auto resp = std::tie(std::ignore, out, std::ignore);
    conn.async_exec(req, adapt(resp), [](auto ec, auto) {
       BOOST_TEST(!ec);
    });
 
-   conn.async_run({"db.occase.de", "6380", "aedis", "aedis"}, {}, [](auto ec) {
+   conn.async_run({"db.occase.de", "6380"}, {}, [](auto ec) {
       BOOST_TEST(!ec);
    });
 

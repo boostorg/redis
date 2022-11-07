@@ -51,7 +51,6 @@ net::awaitable<void> test_reconnect_impl(std::shared_ptr<connection> db)
 // Test whether the client works after a reconnect.
 BOOST_AUTO_TEST_CASE(test_reconnect)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto db = std::make_shared<connection>(ioc);
    net::co_spawn(ioc, test_reconnect_impl(db), net::detached);
@@ -67,6 +66,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    request req1;
    req1.get_config().cancel_if_not_connected = false;
    req1.get_config().cancel_on_connection_lost = true;
+   req1.push("HELLO", 3);
    req1.push("CLIENT", "PAUSE", 7000);
 
    co_await (
@@ -80,6 +80,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    request req2;
    req2.get_config().cancel_if_not_connected = false;
    req2.get_config().cancel_on_connection_lost = true;
+   req2.push("HELLO", 3);
    req2.push("QUIT");
 
    co_await (
@@ -88,7 +89,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    );
 
    BOOST_CHECK_EQUAL(ec1, boost::system::errc::errc_t::operation_canceled);
-   BOOST_CHECK_EQUAL(ec2, aedis::error::exec_timeout);
+   BOOST_CHECK_EQUAL(ec2, aedis::error::idle_timeout);
 }
 
 BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)

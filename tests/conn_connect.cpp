@@ -39,8 +39,6 @@ error_code test_async_run(endpoint ep, connection::timeouts cfg = {})
 
 BOOST_AUTO_TEST_CASE(resolve_bad_host)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
    endpoint ep;
    ep.host = "Atibaia";
    ep.port = "6379";
@@ -54,8 +52,6 @@ BOOST_AUTO_TEST_CASE(resolve_bad_host)
 
 BOOST_AUTO_TEST_CASE(resolve_with_timeout)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
    endpoint ep;
    ep.host = "Atibaia";
    ep.port = "6379";
@@ -69,8 +65,6 @@ BOOST_AUTO_TEST_CASE(resolve_with_timeout)
 
 BOOST_AUTO_TEST_CASE(connect_bad_port)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
    endpoint ep;
    ep.host = "127.0.0.1";
    ep.port = "1";
@@ -83,8 +77,6 @@ BOOST_AUTO_TEST_CASE(connect_bad_port)
 
 BOOST_AUTO_TEST_CASE(connect_with_timeout)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
    endpoint ep;
    ep.host = "example.com";
    ep.port = "1";
@@ -95,70 +87,13 @@ BOOST_AUTO_TEST_CASE(connect_with_timeout)
    BOOST_CHECK_EQUAL(ec, aedis::error::connect_timeout);
 }
 
-BOOST_AUTO_TEST_CASE(bad_hello_response)
-{
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
-   // Succeeds with the tcp connection but fails the hello.
-   endpoint ep;
-   ep.host = "google.com";
-   ep.port = "80";
-
-   auto const ec = test_async_run(ep);
-   BOOST_CHECK_EQUAL(ec, aedis::error::invalid_data_type);
-}
-
 BOOST_AUTO_TEST_CASE(plain_conn_on_tls_endpoint)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
    endpoint ep;
    ep.host = "google.com";
    ep.port = "443";
 
    auto const ec = test_async_run(ep);
-   BOOST_TEST(!!ec);
+   BOOST_TEST(!ec);
 }
 
-auto auth_fail_error(boost::system::error_code ec)
-{
-   return ec == aedis::error::resp3_handshake_error ||
-          ec == aedis::error::exec_timeout;
-}
-
-BOOST_AUTO_TEST_CASE(auth_fail)
-{
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
-   // Should cause an error in the authentication as our redis server
-   // has no authentication configured.
-   endpoint ep;
-   ep.host = "127.0.0.1";
-   ep.port = "6379";
-   ep.username = "caboclo-do-mato";
-   ep.password = "jabuticaba";
-
-   auto const ec = test_async_run(ep);
-   BOOST_TEST(auth_fail_error(ec));
-}
-
-auto wrong_role_error(boost::system::error_code ec)
-{
-   return ec == aedis::error::unexpected_server_role ||
-          ec == aedis::error::exec_timeout;
-}
-
-BOOST_AUTO_TEST_CASE(wrong_role)
-{
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
-
-   // Should cause an error in the authentication as our redis server
-   // has no authentication configured.
-   endpoint ep;
-   ep.host = "127.0.0.1";
-   ep.port = "6379";
-   ep.role = "errado";
-
-   auto const ec = test_async_run(ep);
-   BOOST_TEST(wrong_role_error(ec));
-}

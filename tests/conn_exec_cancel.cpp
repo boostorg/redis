@@ -27,7 +27,7 @@ using error_code = boost::system::error_code;
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;
 
-auto async_run(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto async_run(std::shared_ptr<connection> conn, error_code expected) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
 
@@ -36,7 +36,8 @@ auto async_run(std::shared_ptr<connection> conn) -> net::awaitable<void>
    endpoint ep{"127.0.0.1", "6379"};
    boost::system::error_code ec;
    co_await conn->async_run(ep, tms, net::redirect_error(net::use_awaitable, ec));
-   BOOST_TEST(!ec);
+   std::cout << ec.message() << std::endl;
+   BOOST_CHECK_EQUAL(ec, expected);
 }
 
 auto async_cancel_exec(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -50,6 +51,7 @@ auto async_cancel_exec(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
    request req1;
    req1.get_config().coalesce = false;
+   req1.push("HELLO", 3);
    req1.push("BLPOP", "any", 3);
 
    // Should not be canceled.
@@ -84,10 +86,9 @@ auto async_cancel_exec(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 BOOST_AUTO_TEST_CASE(cancel_exec_with_timer)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
-   net::co_spawn(ioc.get_executor(), async_run(conn), net::detached);
+   net::co_spawn(ioc.get_executor(), async_run(conn, {}), net::detached);
    net::co_spawn(ioc.get_executor(), async_cancel_exec(conn), net::detached);
    ioc.run();
 }
@@ -106,10 +107,13 @@ auto async_ignore_cancel_of_written_req(std::shared_ptr<connection> conn) -> net
 
    request req1; // Will be cancelled after it has been written.
    req1.get_config().coalesce = false;
+   req1.push("HELLO", 3);
    req1.push("BLPOP", "any", 3);
+std::cout << "req1: " << &req1 << std::endl;
 
    request req2; // Will be cancelled.
    req2.push("PING");
+std::cout << "req2: " << &req2 << std::endl;
 
    co_await (
       conn->async_exec(req1, adapt(), net::redirect_error(net::use_awaitable, ec1)) ||
@@ -117,23 +121,19 @@ auto async_ignore_cancel_of_written_req(std::shared_ptr<connection> conn) -> net
       st.async_wait(net::redirect_error(net::use_awaitable, ec3))
    );
 
-   BOOST_TEST(!ec1);
+   std::cout << "--------" << std::endl;
+
+   BOOST_CHECK_EQUAL(ec1, boost::asio::error::basic_errors::operation_aborted);
    BOOST_CHECK_EQUAL(ec2, boost::asio::error::basic_errors::operation_aborted);
    BOOST_TEST(!ec3);
-
-   request req3;
-   req3.push("PING");
-   req3.push("QUIT");
-   co_await conn->async_exec(req3, adapt(), net::redirect_error(net::use_awaitable, ec1));
-   BOOST_TEST(!ec1);
 }
 
 BOOST_AUTO_TEST_CASE(ignore_cancel_of_written_req)
 {
-   std::cout << boost::unit_test::framework::current_test_case().p_name << std::endl;
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
-   net::co_spawn(ioc.get_executor(), async_run(conn), net::detached);
+   error_code expected = boost::asio::error::operation_aborted;
+   net::co_spawn(ioc.get_executor(), async_run(conn, expected), net::detached);
    net::co_spawn(ioc.get_executor(), async_ignore_cancel_of_written_req(conn), net::detached);
    ioc.run();
 }

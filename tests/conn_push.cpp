@@ -31,11 +31,12 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
    auto conn = std::make_shared<connection>(ioc);
 
    request req;
+   req.push("HELLO", 3);
    req.push("PING");
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   std::tuple<std::string, std::string> resp;
+   std::tuple<aedis::ignore, std::string, std::string> resp;
    conn->async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
@@ -50,8 +51,8 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
 
    ioc.run();
 
-   BOOST_CHECK_EQUAL(std::get<0>(resp), "PONG");
-   BOOST_CHECK_EQUAL(std::get<1>(resp), "OK");
+   BOOST_CHECK_EQUAL(std::get<1>(resp), "PONG");
+   BOOST_CHECK_EQUAL(std::get<2>(resp), "OK");
 }
 
 // Checks whether we get idle timeout when no push reader is set.
@@ -62,6 +63,7 @@ void test_missing_push_reader1(bool coalesce)
 
    request req{{false, coalesce}};
    req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
 
    conn->async_exec(req, adapt(), [](auto ec, auto){
@@ -130,6 +132,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    auto conn = std::make_shared<connection>(ioc);
 
    request req;
+   req.push("HELLO", 3);
    req.push("PING");
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
@@ -158,6 +161,7 @@ void test_push_is_received1(bool coalesce)
    auto conn = std::make_shared<connection>(ioc);
 
    request req{{false, coalesce}};
+   req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
@@ -184,6 +188,7 @@ void test_push_is_received1(bool coalesce)
 void test_push_is_received2(bool coalesce)
 {
    request req1{{false, coalesce}};
+   req1.push("HELLO", 3);
    req1.push("PING", "Message1");
 
    request req2{{false, coalesce}};
@@ -306,6 +311,7 @@ BOOST_AUTO_TEST_CASE(missing_reader1_no_coalesce)
 BOOST_AUTO_TEST_CASE(missing_reader2a)
 {
    request req1{{false}};
+   req1.push("HELLO", 3);
    req1.push("PING", "Message");
    req1.push("SUBSCRIBE"); // Wrong command synthax.
 
@@ -319,6 +325,7 @@ BOOST_AUTO_TEST_CASE(missing_reader2a)
 BOOST_AUTO_TEST_CASE(missing_reader2b)
 {
    request req2{{false}};
+   req2.push("HELLO", 3);
    req2.push("SUBSCRIBE"); // Wrong command syntax.
 
    req2.get_config().coalesce = true;

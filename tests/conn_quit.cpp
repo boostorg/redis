@@ -30,6 +30,7 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
    auto conn = std::make_shared<connection>(ioc);
 
    request req1{{false, false}};
+   req1.push("HELLO", 3);
    req1.push("PING");
 
    request req2{{false, false}};
@@ -63,6 +64,7 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 void test_quit2(bool coalesce)
 {
    request req{{false, coalesce}};
+   req.push("HELLO", 3);
    req.push("QUIT");
 
    net::io_context ioc;

@@ -838,9 +838,7 @@ BOOST_AUTO_TEST_CASE(error)
    check_error("aedis", aedis::error::incompatible_size);
    check_error("aedis", aedis::error::not_a_double);
    check_error("aedis", aedis::error::resp3_null);
-   check_error("aedis", aedis::error::unexpected_server_role);
    check_error("aedis", aedis::error::not_connected);
-   check_error("aedis", aedis::error::resp3_handshake_error);
 }
 
 std::string get_type_as_str(aedis::resp3::type t)

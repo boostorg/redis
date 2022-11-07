@@ -65,7 +65,6 @@ async_check_cancellation_not_missed(
    connection::timeouts tms;
    tms.resolve_timeout = std::chrono::seconds{10};
    tms.connect_timeout = std::chrono::seconds{10};
-   tms.resp3_handshake_timeout = std::chrono::seconds{2};
    tms.ping_interval = std::chrono::seconds{1};
 
    endpoint ep{"127.0.0.1", "6379"};
@@ -170,6 +169,7 @@ BOOST_AUTO_TEST_CASE(reset_before_run_completes)
 
    // Sends a ping just as a means of waiting until we are connected.
    request req;
+   req.push("HELLO", 3);
    req.push("PING");
 
    conn->async_exec(req, adapt(), [conn](auto ec, auto){

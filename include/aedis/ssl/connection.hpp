@@ -55,9 +55,6 @@ public:
       /// Timeout of the ssl handshake operation.
       std::chrono::steady_clock::duration handshake_timeout = std::chrono::seconds{10};
 
-      /// Timeout of the resp3 handshake operation.
-      std::chrono::steady_clock::duration resp3_handshake_timeout = std::chrono::seconds{2};
-
       /// Time interval of ping operations.
       std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{1};
    };
@@ -70,8 +67,7 @@ public:
       std::pmr::memory_resource* resource = std::pmr::get_default_resource())
    : base_type{ex, resource}
    , stream_{ex, ctx}
-   {
-   }
+   { }
 
    /// Constructor
    explicit

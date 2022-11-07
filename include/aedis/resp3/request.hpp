@@ -68,6 +68,8 @@ namespace detail {
 
 auto has_push_response(boost::string_view cmd) -> bool;
 
+auto is_hello(boost::string_view cmd) -> bool;
+
 template <class T>
 struct add_bulk_impl {
    template <class Request>
@@ -200,6 +202,14 @@ public:
        * cancel_on_connection_lost is true.
        */
       bool retry = true;
+
+      /** \brief If this request has a HELLO command and this flag is
+       * set to true, the `aedis::connection` will move it to the
+       * front of the queue of awaiting requests. This makes it
+       * possible to send HELLO and authenticate before other
+       * commands are sent.
+       */
+      bool hello_with_priority = true;
    };
 
    /** \brief Constructor
@@ -208,17 +218,19 @@ public:
     *  \param resource Memory resource.
     */
     explicit
-    request(config cfg = config{false, true, false, true},
+    request(config cfg = config{false, true, false, true, true},
             std::pmr::memory_resource* resource = std::pmr::get_default_resource())
-    : payload_(resource), cfg_{cfg}
-    {}
-
+    : cfg_{cfg}, payload_(resource) {}
 
     //// Returns the number of commands contained in this request.
-   [[nodiscard]] auto size() const noexcept -> std::size_t { return commands_;};
+   [[nodiscard]] auto size() const noexcept -> std::size_t
+      { return commands_;};
 
-   // Returns the request payload.
-   [[nodiscard]] auto payload() const noexcept -> auto const& { return payload_;}
+   [[nodiscard]] auto payload() const noexcept -> auto const&
+      { return payload_;}
+
+   [[nodiscard]] auto has_hello_priority() const noexcept -> auto const&
+      { return has_hello_priority_;}
 
    /// Clears the request preserving allocated memory.
    void clear()
@@ -226,6 +238,16 @@ public:
       payload_.clear();
       commands_ = 0;
    }
+
+   /// Calls std::string::reserve on the internal storage.
+   void reserve(std::size_t new_cap = 0)
+      { payload_.reserve(new_cap); }
+
+   /// Returns a const reference to the config object.
+   [[nodiscard]] auto get_config() const noexcept -> auto const& {return cfg_; }
+
+   /// Returns a reference to the config object.
+   [[nodiscard]] auto get_config() noexcept -> auto& {return cfg_; }
 
    /** @brief Appends a new command to the end of the request.
     *
@@ -254,8 +276,7 @@ public:
       detail::add_bulk(payload_, cmd);
       detail::add_bulk(payload_, make_tuple(args...));
 
-      if (!detail::has_push_response(cmd))
-         ++commands_;
+      check_cmd(cmd);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -298,8 +319,7 @@ public:
       for (; begin != end; ++begin)
 	 detail::add_bulk(payload_, *begin);
 
-      if (!detail::has_push_response(cmd))
-         ++commands_;
+      check_cmd(cmd);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -337,8 +357,7 @@ public:
       for (; begin != end; ++begin)
 	 detail::add_bulk(payload_, *begin);
 
-      if (!detail::has_push_response(cmd))
-         ++commands_;
+      check_cmd(cmd);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -374,20 +393,19 @@ public:
       push_range(cmd, begin(range), end(range));
    }
 
-   /// Calls std::string::reserve on the internal storage.
-   void reserve(std::size_t new_cap = 0)
-      { payload_.reserve(new_cap); }
-
-   /// Returns a const reference to the config object.
-   [[nodiscard]] auto get_config() const noexcept -> auto const& {return cfg_; }
-
-   /// Returns a reference to the config object.
-   [[nodiscard]] auto get_config() noexcept -> auto& {return cfg_; }
-
 private:
+   void check_cmd(boost::string_view cmd)
+   {
+      if (!detail::has_push_response(cmd))
+         ++commands_;
+
+      has_hello_priority_ = detail::is_hello(cmd) && cfg_.hello_with_priority;
+   }
+
+   config cfg_;
    std::pmr::string payload_;
    std::size_t commands_ = 0;
-   config cfg_;
+   bool has_hello_priority_ = false;
 };
 
 } // aedis::resp3

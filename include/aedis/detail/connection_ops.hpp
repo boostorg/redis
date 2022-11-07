@@ -224,6 +224,8 @@ EXEC_OP_WAIT:
          BOOST_ASSERT(ec == boost::asio::error::operation_aborted);
 
          if (info->get_action() == Conn::req_info::action::stop) {
+            // Don't have to call remove_request as it has already
+            // been by cancel(exec).
             return self.complete(ec, 0);
          }
 
@@ -240,15 +242,25 @@ EXEC_OP_WAIT:
 
          BOOST_ASSERT(conn->is_open());
           
-         if (req->size() == 0)
+         if (req->size() == 0) {
+            // Don't have to call remove_request as it has already
+            // been removed.
             return self.complete({}, 0);
+         }
 
          BOOST_ASSERT(!conn->reqs_.empty());
          BOOST_ASSERT(conn->reqs_.front() != nullptr);
          BOOST_ASSERT(conn->cmds_ != 0);
          yield
          conn->async_exec_read(adapter, conn->reqs_.front()->get_number_of_commands(), std::move(self));
-         AEDIS_CHECK_OP1();
+         if (is_cancelled(self)) {
+            conn->remove_request(info);
+            return self.complete(boost::asio::error::operation_aborted, {});
+         }
+
+         if (ec) {
+            return self.complete(ec, {});
+         }
 
          read_size = n;
 
@@ -378,15 +390,6 @@ struct start_op {
    }
 };
 
-inline
-auto check_resp3_handshake_failed(std::vector<resp3::node<std::string>> const& resp) -> bool
-{
-   return std::size(resp) == 1 && 
-         (resp.front().data_type == resp3::type::simple_error ||
-          resp.front().data_type == resp3::type::blob_error ||
-          resp.front().data_type == resp3::type::null);
-}
-
 template <class Conn, class Timeouts>
 struct run_op {
    Conn* conn = nullptr;
@@ -406,36 +409,6 @@ struct run_op {
 
          yield conn->derived().async_connect(conn->endpoints_, ts, conn->ping_timer_, std::move(self));
          AEDIS_CHECK_OP0(conn->cancel(operation::run));
-
-         conn->prepare_hello(conn->ep_);
-         conn->ping_timer_.expires_after(ts.resp3_handshake_timeout);
-         conn->response_.clear();
-
-         yield
-         resp3::detail::async_exec(
-            conn->next_layer(),
-            conn->ping_timer_,
-            conn->req_,
-            adapter::adapt2(conn->response_),
-            conn->make_dynamic_buffer(),
-            std::move(self)
-         );
-
-         AEDIS_CHECK_OP0(conn->cancel(operation::run));
-
-         if (check_resp3_handshake_failed(conn->response_)) {
-            conn->cancel(operation::run);
-            self.complete(error::resp3_handshake_error);
-            return;
-         }
-
-         conn->ep_.password.clear();
-
-         if (!conn->expect_role(conn->ep_.role)) {
-            conn->cancel(operation::run);
-            self.complete(error::unexpected_server_role);
-            return;
-         }
 
          conn->write_buffer_.clear();
          conn->cmds_ = 0;

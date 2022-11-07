@@ -44,6 +44,7 @@ net::awaitable<void> send(endpoint ep)
 
    request req;
    req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3);
    req.push_range("RPUSH", "rpush-key", vec); // Sends
    req.push_range("HSET", "hset-key", map); // Sends
    req.push("QUIT");
@@ -59,11 +60,12 @@ net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
 
    request req;
    req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
    std::map<std::string, std::string> ret;
-   auto resp = std::tie(ret, std::ignore);
+   auto resp = std::tie(std::ignore, ret, std::ignore);
    co_await (conn.async_run(ep) || conn.async_exec(req, adapt(resp)));
 
    co_return std::move(ret);
@@ -76,6 +78,7 @@ net::awaitable<void> transaction(endpoint ep)
 
    request req;
    req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3);
    req.push("MULTI");
    req.push("LRANGE", "rpush-key", 0, -1); // Retrieves
    req.push("HGETALL", "hset-key"); // Retrieves
@@ -83,6 +86,7 @@ net::awaitable<void> transaction(endpoint ep)
    req.push("QUIT");
 
    std::tuple<
+      aedis::ignore, // hello
       aedis::ignore, // multi
       aedis::ignore, // lrange
       aedis::ignore, // hgetall
@@ -92,8 +96,8 @@ net::awaitable<void> transaction(endpoint ep)
 
    co_await (conn.async_run(ep) || conn.async_exec(req, adapt(resp)));
 
-   print(std::get<0>(std::get<3>(resp)).value());
-   print(std::get<1>(std::get<3>(resp)).value());
+   print(std::get<0>(std::get<4>(resp)).value());
+   print(std::get<1>(std::get<4>(resp)).value());
 }
 
 net::awaitable<void> async_main()

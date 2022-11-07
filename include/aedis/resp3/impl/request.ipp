@@ -16,4 +16,9 @@ auto has_push_response(boost::string_view cmd) -> bool
    return false;
 }
 
+auto is_hello(boost::string_view cmd) -> bool
+{
+   return cmd == "HELLO";
+}
+
 } // aedis::resp3::detail

@@ -28,6 +28,9 @@ using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using connection = aedis::connection<tcp_socket>;
 
+// Some example code.
+#include "reconnect.ipp"
+
 /* This example will subscribe and read pushes indefinitely.
  *
  * To test send messages with redis-cli
@@ -45,38 +48,12 @@ using connection = aedis::connection<tcp_socket>;
  */
 
 // Receives pushes.
-net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
+auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    for (std::vector<node<std::string>> resp;;) {
       co_await conn->async_receive(adapt(resp));
       print_push(resp);
       resp.clear();
-   }
-}
-
-// See
-// - https://redis.io/docs/manual/sentinel.
-// - https://redis.io/docs/reference/sentinel-clients.
-net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
-{
-   request req;
-   req.get_config().cancel_if_not_connected = false;
-   req.get_config().cancel_on_connection_lost = true;
-   req.push("SUBSCRIBE", "channel");
-
-   stimer timer{co_await net::this_coro::executor};
-   endpoint ep{"127.0.0.1", "6379"};
-   for (;;) {
-      boost::system::error_code ec1, ec2;
-      co_await (
-         conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) &&
-         conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
-      );
-      std::clog << "async_run: " << ec1.message() << "\n"
-                << "async_exec: " << ec2.message() << std::endl;
-      conn->reset_stream();
-      timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait();
    }
 }
 
@@ -86,8 +63,15 @@ auto main() -> int
       net::io_context ioc;
       auto conn = std::make_shared<connection>(ioc);
 
-      net::co_spawn(ioc, push_receiver(conn), net::detached);
-      net::co_spawn(ioc, reconnect(conn), net::detached);
+      request req;
+      req.get_config().cancel_on_connection_lost = true;
+      req.push("HELLO", 3);
+      req.push("SUBSCRIBE", "channel");
+
+      // TODO: use only one example for reconnect and reconnect with
+      // sentinel.
+      net::co_spawn(ioc, receiver(conn), net::detached);
+      net::co_spawn(ioc, reconnect(conn, req), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

@@ -29,6 +29,7 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
    auto db = std::make_shared<connection>(ioc);
 
    request req1{{false, true}};
+   req1.push("HELLO", 3);
    req1.push("PING");
 
    request req2{{false, true}};

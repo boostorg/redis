@@ -41,16 +41,17 @@ auto main() -> int
 
       request req;
       req.get_config().cancel_on_connection_lost = true;
+      req.push("HELLO", 3, "AUTH", "aedis", "aedis");
       req.push("PING");
       req.push("QUIT");
 
-      std::tuple<std::string, aedis::ignore> resp;
+      std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
       conn.async_exec(req, adapt(resp), logger);
-      conn.async_run({"db.occase.de", "6380", "aedis", "aedis"}, {}, logger);
+      conn.async_run({"db.occase.de", "6380"}, {}, logger);
 
       ioc.run();
 
-      std::cout << "Response: " << std::get<0>(resp) << std::endl;
+      std::cout << "Response: " << std::get<1>(resp) << std::endl;
    } catch (std::exception const& e) {
       std::cerr << "Error: " << e.what() << std::endl;
    }

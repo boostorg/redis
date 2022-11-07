@@ -34,13 +34,15 @@ net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
 
    request req;
    req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   std::tuple<std::map<std::string, std::string>, aedis::ignore> resp;
+   std::map<std::string, std::string> ret;
+   auto resp = std::tie(std::ignore, ret, std::ignore);
    co_await (conn.async_run(ep) || conn.async_exec(req, adapt(resp)));
 
-   co_return std::move(std::get<0>(resp));
+   co_return std::move(ret);
 }
 ```
 
@@ -833,6 +835,15 @@ another.
 * Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, cancellation, synchronous interfaces and general help with Asio.
 
 ## Changelog
+
+### master
+
+* Removes automatic sending of the `HELLO` command. This can't be
+  implemented properly without bloating the connection class, for
+  example, passing all its parameters. It is user responsability to
+  send HELLO. Requests that contain it have priority over other
+  requests and will be moved to the front of the queue, see
+  `aedis::resp3::request::config` 
 
 ### v1.2.0
 

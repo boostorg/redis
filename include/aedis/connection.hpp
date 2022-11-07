@@ -47,9 +47,6 @@ public:
       /// Timeout of the connect operation.
       std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10};
 
-      /// Timeout of the resp3-handshake operation.
-      std::chrono::steady_clock::duration resp3_handshake_timeout = std::chrono::seconds{2};
-
       /// Time interval with which PING commands are sent to Redis.
       std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{1};
    };
@@ -99,21 +96,6 @@ public:
     *  @li Connects to one of the endpoints returned by the resolve
     *  operation with the timeout passed in the base class
     *  `connection::timeouts::connect_timeout`.
-    *
-    *  @li Performs a RESP3 handshake by sending a
-    *  [HELLO](https://redis.io/commands/hello/) command with protocol
-    *  version 3 and the credentials contained in the
-    *  `aedis::endpoint` object.  The timeout used is the one specified
-    *  in `connection::timeouts::resp3_handshake_timeout`.
-    *
-    *  @li Erases any password that may be contained in
-    *  `endpoint::password`.
-    *
-    *  @li Checks whether the server role corresponds to the one
-    *  specified in the `endpoint`. If `endpoint::role` is left empty,
-    *  no check is performed. If the role is different than the
-    *  expected `async_run` will complete with
-    *  `error::unexpected_server_role`.
     *
     *  @li Starts healthy checks with a timeout twice the value of
     *  `connection::timeouts::ping_interval`. If no data is received during that
