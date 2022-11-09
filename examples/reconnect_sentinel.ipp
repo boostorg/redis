@@ -1,4 +1,9 @@
 
+struct endpoint {
+   std::string host;
+   std::string port;
+};
+
 auto is_valid(endpoint const& ep) noexcept -> bool
 {
    return !std::empty(ep.host) && !std::empty(ep.port);
@@ -25,7 +30,7 @@ net::awaitable<endpoint> resolve()
    for (auto ep : endpoints) {
       boost::system::error_code ec1, ec2;
       co_await (
-         conn.async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn.async_run(ep.host, ep.port, {}, net::redirect_error(net::use_awaitable, ec1)) &&
          conn.async_exec(req, adapt(addr), net::redirect_error(net::use_awaitable, ec2))
       );
 
@@ -67,7 +72,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
 
       boost::system::error_code ec1, ec2;
       co_await (
-         conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn->async_run(ep.host, ep.port, {}, net::redirect_error(net::use_awaitable, ec1)) &&
          conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
       );
 

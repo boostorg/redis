@@ -22,7 +22,6 @@ using aedis::resp3::request;
 using aedis::operation;
 using aedis::adapt;
 using connection = aedis::connection<>;
-using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 
@@ -36,10 +35,9 @@ auto async_cancel_run_with_timer() -> net::awaitable<void>
    net::steady_timer st{ex};
    st.expires_after(std::chrono::seconds{1});
 
-   endpoint ep{"127.0.0.1", "6379"};
    boost::system::error_code ec1, ec2;
    co_await (
-      conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) ||
+      conn->async_run("127.0.0.1", "6379", {}, net::redirect_error(net::use_awaitable, ec1)) ||
       st.async_wait(net::redirect_error(net::use_awaitable, ec2))
    );
 
@@ -67,13 +65,11 @@ async_check_cancellation_not_missed(
    tms.connect_timeout = std::chrono::seconds{10};
    tms.ping_interval = std::chrono::seconds{1};
 
-   endpoint ep{"127.0.0.1", "6379"};
-
    for (auto i = 0; i < n; ++i) {
       timer.expires_after(ms);
       boost::system::error_code ec1, ec2;
       co_await (
-         conn->async_run(ep, {}, net::redirect_error(net::use_awaitable, ec1)) ||
+         conn->async_run("127.0.0.1", "6379", {}, net::redirect_error(net::use_awaitable, ec1)) ||
          timer.async_wait(net::redirect_error(net::use_awaitable, ec2))
       );
       BOOST_CHECK_EQUAL(ec1, boost::asio::error::basic_errors::operation_aborted);
@@ -177,7 +173,7 @@ BOOST_AUTO_TEST_CASE(reset_before_run_completes)
       conn->reset_stream();
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec){
+   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::operation_aborted);
    });
 

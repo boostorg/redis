@@ -19,7 +19,6 @@ namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
-using aedis::endpoint;
 using executor_type = net::io_context::executor_type;
 using socket_type = net::basic_stream_socket<net::ip::tcp, executor_type>;
 using tcp_socket = net::use_awaitable_t<executor_type>::as_default_on_t<socket_type>;

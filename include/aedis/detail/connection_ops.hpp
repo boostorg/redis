@@ -56,6 +56,8 @@ struct connect_with_timeout_op {
 template <class Conn>
 struct resolve_with_timeout_op {
    Conn* conn = nullptr;
+   boost::string_view host;
+   boost::string_view port;
    std::chrono::steady_clock::duration resolve_timeout{};
    boost::asio::coroutine coro{};
 
@@ -70,7 +72,7 @@ struct resolve_with_timeout_op {
          yield
          aedis::detail::async_resolve(
             conn->resv_, conn->ping_timer_,
-            conn->ep_.host, conn->ep_.port, std::move(self));
+            host, port, std::move(self));
          AEDIS_CHECK_OP0();
          conn->endpoints_ = res;
          self.complete({});
@@ -393,6 +395,8 @@ struct start_op {
 template <class Conn, class Timeouts>
 struct run_op {
    Conn* conn = nullptr;
+   boost::string_view host;
+   boost::string_view port;
    Timeouts ts;
    boost::asio::coroutine coro{};
 
@@ -404,7 +408,7 @@ struct run_op {
    {
       reenter (coro)
       {
-         yield conn->async_resolve_with_timeout(ts.resolve_timeout, std::move(self));
+         yield conn->async_resolve_with_timeout(host, port, ts.resolve_timeout, std::move(self));
          AEDIS_CHECK_OP0(conn->cancel(operation::run));
 
          yield conn->derived().async_connect(conn->endpoints_, ts, conn->ping_timer_, std::move(self));

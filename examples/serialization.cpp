@@ -21,7 +21,6 @@
 namespace net = boost::asio;
 using aedis::resp3::request;
 using aedis::adapt;
-using aedis::endpoint;
 using connection = aedis::connection<>;
 using namespace boost::json;
 
@@ -104,9 +103,8 @@ auto main() -> int
 
       std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
 
-      endpoint ep{"127.0.0.1", "6379"};
       conn.async_exec(req, adapt(resp),logger);
-      conn.async_run(ep, {}, logger);
+      conn.async_run("127.0.0.1", "6379", {}, logger);
       ioc.run();
 
       // Print

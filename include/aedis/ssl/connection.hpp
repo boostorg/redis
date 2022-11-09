@@ -100,11 +100,12 @@ public:
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto
    async_run(
-      endpoint ep,
+      boost::string_view host,
+      boost::string_view port,
       timeouts ts = timeouts{},
       CompletionToken token = CompletionToken{})
    {
-      return base_type::async_run(ep, ts, std::move(token));
+      return base_type::async_run(host, port, ts, std::move(token));
    }
 
    /** @brief Executes a command on the Redis server asynchronously.

@@ -17,7 +17,6 @@
 namespace net = boost::asio;
 
 using aedis::adapt;
-using aedis::endpoint;
 using aedis::resp3::request;
 using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
@@ -48,8 +47,7 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   endpoint ep{"127.0.0.1", "6379"};
-   db->async_run(ep, {}, [db](auto ec){
+   db->async_run("127.0.0.1", "6379", {}, [db](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
       db->cancel(operation::exec);
    });

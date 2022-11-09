@@ -23,7 +23,6 @@
 
 #include <aedis/adapt.hpp>
 #include <aedis/operation.hpp>
-#include <aedis/endpoint.hpp>
 #include <aedis/resp3/request.hpp>
 #include <aedis/detail/connection_ops.hpp>
 
@@ -171,13 +170,16 @@ public:
 
    template <class Timeouts, class CompletionToken>
    auto
-   async_run(endpoint ep, Timeouts ts, CompletionToken token)
+   async_run(
+      boost::string_view host,
+      boost::string_view port,
+      Timeouts ts,
+      CompletionToken token)
    {
-      ep_ = std::move(ep);
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<Derived, Timeouts>{&derived(), ts}, token, resv_);
+         >(detail::run_op<Derived, Timeouts>{&derived(), host, port, ts}, token, resv_);
    }
 
 private:
@@ -334,13 +336,15 @@ private:
    template <class CompletionToken>
    auto
    async_resolve_with_timeout(
+      boost::string_view host,
+      boost::string_view port,
       std::chrono::steady_clock::duration d,
       CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::resolve_with_timeout_op<this_type>{this, d},
+         >(detail::resolve_with_timeout_op<this_type>{this, host, port, d},
             token, resv_);
    }
 
@@ -448,7 +452,6 @@ private:
    time_point_type last_data_;
 
    resp3::request req_;
-   endpoint ep_;
    // The result of async_resolve.
    boost::asio::ip::tcp::resolver::results_type endpoints_;
 };

@@ -21,7 +21,6 @@ using aedis::resp3::request;
 using aedis::operation;
 using aedis::adapt;
 using connection = aedis::connection<>;
-using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
@@ -78,8 +77,7 @@ auto async_echo_stress() -> net::awaitable<void>
    for (int i = 0; i < sessions; ++i) 
       net::co_spawn(ex, echo_session(conn, std::to_string(i), msgs), net::detached);
 
-   endpoint ep{"127.0.0.1", "6379"};
-   co_await conn->async_run(ep, {}, net::use_awaitable);
+   co_await conn->async_run("127.0.0.1", "6379", {}, net::use_awaitable);
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)

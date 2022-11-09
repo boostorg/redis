@@ -23,7 +23,6 @@ using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::resp3::node;
-using aedis::endpoint;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using connection = aedis::connection<tcp_socket>;

@@ -22,7 +22,6 @@ namespace net = boost::asio;
 using aedis::resp3::request;
 using aedis::adapt;
 using connection = aedis::connection<>;
-using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
@@ -43,7 +42,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    db->async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
    });
-   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+   db->async_run("127.0.0.1", "6379", {}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 
@@ -89,7 +88,7 @@ BOOST_AUTO_TEST_CASE(request_retry)
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   db->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+   db->async_run("127.0.0.1", "6379", {}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 

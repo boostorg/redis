@@ -19,7 +19,6 @@ namespace net = boost::asio;
 
 using aedis::resp3::request;
 using aedis::adapt;
-using aedis::endpoint;
 using aedis::operation;
 using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
@@ -45,7 +44,7 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec){
+   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec){
       BOOST_TEST(!ec);
    });
 
@@ -70,7 +69,7 @@ void test_missing_push_reader1(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec){
+   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -86,7 +85,7 @@ void test_missing_push_reader2(request const& req)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+   conn->async_run("127.0.0.1", "6379", {}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -145,7 +144,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
       BOOST_CHECK_EQUAL(ec, boost::asio::experimental::error::channel_errors::channel_cancelled);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [](auto ec){
+   conn->async_run("127.0.0.1", "6379", {}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -169,7 +168,7 @@ void test_push_is_received1(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn->async_run({"127.0.0.1", "6379"}, {}, [conn](auto ec){
+   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec){
       BOOST_TEST(!ec);
       conn->cancel(operation::receive);
    });
@@ -211,8 +210,7 @@ void test_push_is_received2(bool coalesce)
    conn->async_exec(req2, adapt(), handler);
    conn->async_exec(req3, adapt(), handler);
 
-   endpoint ep{"127.0.0.1", "6379"};
-   conn->async_run(ep, {}, [conn](auto ec) {
+   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec) {
       BOOST_TEST(!ec);
       conn->cancel(operation::receive);
    });
@@ -269,8 +267,7 @@ void test_push_many_subscribes(bool coalesce)
    conn->async_exec(req2, adapt(), handler);
    conn->async_exec(req3, adapt(), handler);
 
-   endpoint ep{"127.0.0.1", "6379"};
-   conn->async_run(ep, {}, [conn](auto ec) {
+   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec) {
       BOOST_TEST(!ec);
       conn->cancel(operation::receive);
    });

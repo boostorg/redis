@@ -17,8 +17,12 @@
 namespace net = boost::asio;
 
 using connection = aedis::connection<>;
-using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
+
+struct endpoint {
+   std::string host;
+   std::string port;
+};
 
 bool is_host_not_found(error_code ec)
 {
@@ -32,7 +36,7 @@ error_code test_async_run(endpoint ep, connection::timeouts cfg = {})
    net::io_context ioc;
    connection db{ioc};
    error_code ret;
-   db.async_run(ep, cfg, [&](auto ec) { ret = ec; });
+   db.async_run(ep.host, ep.port, cfg, [&](auto ec) { ret = ec; });
    ioc.run();
    return ret;
 }

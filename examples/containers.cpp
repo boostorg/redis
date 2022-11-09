@@ -21,7 +21,6 @@ namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
-using aedis::endpoint;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using connection = aedis::connection<tcp_socket>;
 
@@ -32,7 +31,7 @@ auto redir(boost::system::error_code& ec)
 }
 
 // Sends some containers.
-net::awaitable<void> send(endpoint ep)
+auto send(boost::string_view host, boost::string_view port) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
 
@@ -50,11 +49,14 @@ net::awaitable<void> send(endpoint ep)
    req.push("QUIT");
 
    connection conn{ex};
-   co_await (conn.async_run(ep) || conn.async_exec(req));
+   co_await (conn.async_run(host, port) || conn.async_exec(req));
 }
 
 // Retrieves a Redis hash as an std::map.
-net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
+auto
+retrieve_hashes(
+   boost::string_view host,
+   boost::string_view port) -> net::awaitable<std::map<std::string, std::string>>
 {
    connection conn{co_await net::this_coro::executor};
 
@@ -66,13 +68,13 @@ net::awaitable<std::map<std::string, std::string>> retrieve_hashes(endpoint ep)
 
    std::map<std::string, std::string> ret;
    auto resp = std::tie(std::ignore, ret, std::ignore);
-   co_await (conn.async_run(ep) || conn.async_exec(req, adapt(resp)));
+   co_await (conn.async_run(host, port) || conn.async_exec(req, adapt(resp)));
 
    co_return std::move(ret);
 }
 
 // Retrieves as a data structure.
-net::awaitable<void> transaction(endpoint ep)
+auto transaction(boost::string_view host, boost::string_view port) -> net::awaitable<void>
 {
    connection conn{co_await net::this_coro::executor};
 
@@ -94,7 +96,7 @@ net::awaitable<void> transaction(endpoint ep)
       aedis::ignore  // quit
    > resp;
 
-   co_await (conn.async_run(ep) || conn.async_exec(req, adapt(resp)));
+   co_await (conn.async_run(host, port) || conn.async_exec(req, adapt(resp)));
 
    print(std::get<0>(std::get<4>(resp)).value());
    print(std::get<1>(std::get<4>(resp)).value());
@@ -103,10 +105,12 @@ net::awaitable<void> transaction(endpoint ep)
 net::awaitable<void> async_main()
 {
    try {
-      endpoint ep{"127.0.0.1", "6379"};
-      co_await send(ep);
-      co_await transaction(ep);
-      auto const hashes = co_await retrieve_hashes(ep);
+      boost::string_view host{"127.0.0.1"};
+      boost::string_view port{"6379"};
+
+      co_await send(host, port);
+      co_await transaction(host, port);
+      auto const hashes = co_await retrieve_hashes(host, port);
       print(hashes);
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

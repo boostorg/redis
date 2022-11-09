@@ -16,7 +16,6 @@
 namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
-using aedis::endpoint;
 using connection = aedis::connection<>;
 
 template <class Adapter>
@@ -38,7 +37,7 @@ int main()
 
       connection conn{ioc};
       std::thread t{[&]() {
-         conn.async_run({"127.0.0.1", "6379"}, {}, logger);
+         conn.async_run("127.0.0.1", "6379", {}, logger);
          ioc.run();
       }};
 

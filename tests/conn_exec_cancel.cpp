@@ -21,7 +21,6 @@ using aedis::resp3::request;
 using aedis::operation;
 using aedis::adapt;
 using connection = aedis::connection<>;
-using endpoint = aedis::endpoint;
 using error_code = boost::system::error_code;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
@@ -33,9 +32,8 @@ auto async_run(std::shared_ptr<connection> conn, error_code expected) -> net::aw
 
    connection::timeouts tms;
    tms.ping_interval = std::chrono::seconds{10};
-   endpoint ep{"127.0.0.1", "6379"};
    boost::system::error_code ec;
-   co_await conn->async_run(ep, tms, net::redirect_error(net::use_awaitable, ec));
+   co_await conn->async_run("127.0.0.1", "6379", tms, net::redirect_error(net::use_awaitable, ec));
    std::cout << ec.message() << std::endl;
    BOOST_CHECK_EQUAL(ec, expected);
 }

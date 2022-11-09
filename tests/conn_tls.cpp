@@ -20,7 +20,11 @@ namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
 using connection = aedis::ssl::connection<net::ssl::stream<net::ip::tcp::socket>>;
-using endpoint = aedis::endpoint;
+
+struct endpoint {
+   std::string host;
+   std::string port;
+};
 
 bool verify_certificate(bool, net::ssl::verify_context&)
 {
@@ -37,7 +41,7 @@ boost::system::error_code hello_fail(endpoint ep)
    conn->next_layer().set_verify_mode(net::ssl::verify_peer);
    conn->next_layer().set_verify_callback(verify_certificate);
    boost::system::error_code ret;
-   conn->async_run(ep, {}, [&](auto ec) {
+   conn->async_run(ep.host, ep.port, {}, [&](auto ec) {
       ret = ec;
    });
 
@@ -97,7 +101,7 @@ BOOST_AUTO_TEST_CASE(ping)
       BOOST_TEST(!ec);
    });
 
-   conn.async_run({"db.occase.de", "6380"}, {}, [](auto ec) {
+   conn.async_run("db.occase.de", "6380", {}, [](auto ec) {
       BOOST_TEST(!ec);
    });
 
