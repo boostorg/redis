@@ -33,7 +33,7 @@ auto async_run(std::shared_ptr<connection> conn, error_code expected) -> net::aw
    connection::timeouts tms;
    tms.ping_interval = std::chrono::seconds{10};
    boost::system::error_code ec;
-   co_await conn->async_run("127.0.0.1", "6379", tms, net::redirect_error(net::use_awaitable, ec));
+   co_await conn->async_run(tms, net::redirect_error(net::use_awaitable, ec));
    std::cout << ec.message() << std::endl;
    BOOST_CHECK_EQUAL(ec, expected);
 }
@@ -63,7 +63,7 @@ auto async_cancel_exec(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
    // Should be canceled.
    conn->async_exec(req1, adapt(), [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
    });
 
    // Will complete while BLPOP is pending.
@@ -85,7 +85,13 @@ auto async_cancel_exec(std::shared_ptr<connection> conn) -> net::awaitable<void>
 BOOST_AUTO_TEST_CASE(cancel_exec_with_timer)
 {
    net::io_context ioc;
+
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+
    auto conn = std::make_shared<connection>(ioc);
+   net::connect(conn->next_layer(), endpoints);
+
    net::co_spawn(ioc.get_executor(), async_run(conn, {}), net::detached);
    net::co_spawn(ioc.get_executor(), async_cancel_exec(conn), net::detached);
    ioc.run();
@@ -107,11 +113,9 @@ auto async_ignore_cancel_of_written_req(std::shared_ptr<connection> conn) -> net
    req1.get_config().coalesce = false;
    req1.push("HELLO", 3);
    req1.push("BLPOP", "any", 3);
-std::cout << "req1: " << &req1 << std::endl;
 
    request req2; // Will be cancelled.
    req2.push("PING");
-std::cout << "req2: " << &req2 << std::endl;
 
    co_await (
       conn->async_exec(req1, adapt(), net::redirect_error(net::use_awaitable, ec1)) ||
@@ -119,18 +123,21 @@ std::cout << "req2: " << &req2 << std::endl;
       st.async_wait(net::redirect_error(net::use_awaitable, ec3))
    );
 
-   std::cout << "--------" << std::endl;
-
-   BOOST_CHECK_EQUAL(ec1, boost::asio::error::basic_errors::operation_aborted);
-   BOOST_CHECK_EQUAL(ec2, boost::asio::error::basic_errors::operation_aborted);
+   BOOST_CHECK_EQUAL(ec1, net::error::basic_errors::operation_aborted);
+   BOOST_CHECK_EQUAL(ec2, net::error::basic_errors::operation_aborted);
    BOOST_TEST(!ec3);
 }
 
 BOOST_AUTO_TEST_CASE(ignore_cancel_of_written_req)
 {
    net::io_context ioc;
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+
    auto conn = std::make_shared<connection>(ioc);
-   error_code expected = boost::asio::error::operation_aborted;
+   net::connect(conn->next_layer(), endpoints);
+
+   error_code expected = net::error::operation_aborted;
    net::co_spawn(ioc.get_executor(), async_run(conn, expected), net::detached);
    net::co_spawn(ioc.get_executor(), async_ignore_cancel_of_written_req(conn), net::detached);
    ioc.run();

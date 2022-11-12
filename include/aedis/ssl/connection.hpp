@@ -46,15 +46,6 @@ public:
    /** \brief Connection configuration parameters.
     */
    struct timeouts {
-      /// Timeout of the resolve operation.
-      std::chrono::steady_clock::duration resolve_timeout = std::chrono::seconds{10};
-
-      /// Timeout of the connect operation.
-      std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10};
-
-      /// Timeout of the ssl handshake operation.
-      std::chrono::steady_clock::duration handshake_timeout = std::chrono::seconds{10};
-
       /// Time interval of ping operations.
       std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{1};
    };
@@ -100,12 +91,10 @@ public:
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto
    async_run(
-      boost::string_view host,
-      boost::string_view port,
       timeouts ts = timeouts{},
       CompletionToken token = CompletionToken{})
    {
-      return base_type::async_run(host, port, ts, std::move(token));
+      return base_type::async_run(ts, std::move(token));
    }
 
    /** @brief Executes a command on the Redis server asynchronously.
@@ -144,12 +133,13 @@ public:
    auto cancel(operation op) -> std::size_t
       { return base_type::cancel(op); }
 
+   auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
+
 private:
    using this_type = connection<next_layer_type>;
 
    template <class, class> friend class aedis::detail::connection_base;
    template <class, class> friend struct aedis::detail::exec_op;
-   template <class, class> friend struct detail::ssl_connect_with_timeout_op;
    template <class, class> friend struct aedis::detail::run_op;
    template <class> friend struct aedis::detail::writer_op;
    template <class> friend struct aedis::detail::check_idle_op;
@@ -157,23 +147,8 @@ private:
    template <class, class> friend struct aedis::detail::exec_read_op;
    template <class> friend struct aedis::detail::ping_op;
 
-   auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
    auto is_open() const noexcept { return stream_.next_layer().is_open(); }
    void close() { stream_.next_layer().close(); }
-
-   template <class Timer, class CompletionToken>
-   auto
-   async_connect(
-      boost::asio::ip::tcp::resolver::results_type const& endpoints,
-      timeouts ts,
-      Timer& timer,
-      CompletionToken&& token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::ssl_connect_with_timeout_op<this_type, Timer>{this, &endpoints, ts, &timer}, token, stream_);
-   }
 
    next_layer_type stream_;
 };

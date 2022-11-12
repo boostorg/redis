@@ -169,17 +169,12 @@ public:
    }
 
    template <class Timeouts, class CompletionToken>
-   auto
-   async_run(
-      boost::string_view host,
-      boost::string_view port,
-      Timeouts ts,
-      CompletionToken token)
+   auto async_run(Timeouts ts, CompletionToken token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<Derived, Timeouts>{&derived(), host, port, ts}, token, resv_);
+         >(detail::run_op<Derived, Timeouts>{&derived(), ts}, token, resv_);
    }
 
 private:
@@ -296,7 +291,6 @@ private:
    template <class, class> friend struct detail::run_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::exec_read_op;
-   template <class> friend struct detail::resolve_with_timeout_op;
    template <class> friend struct detail::check_idle_op;
    template <class, class> friend struct detail::start_op;
    template <class> friend struct detail::send_receive_op;
@@ -332,21 +326,6 @@ private:
 
    auto make_dynamic_buffer(std::size_t max_read_size = 512)
       { return boost::asio::dynamic_buffer(read_buffer_, max_read_size); }
-
-   template <class CompletionToken>
-   auto
-   async_resolve_with_timeout(
-      boost::string_view host,
-      boost::string_view port,
-      std::chrono::steady_clock::duration d,
-      CompletionToken&& token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::resolve_with_timeout_op<this_type>{this, host, port, d},
-            token, resv_);
-   }
 
    template <class CompletionToken>
    auto reader(CompletionToken&& token)

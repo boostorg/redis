@@ -88,9 +88,6 @@ auto const logger = [](auto ec, auto...)
 auto main() -> int
 {
    try {
-      net::io_context ioc;
-      connection conn{ioc};
-
       std::set<user> users
          {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
 
@@ -103,8 +100,13 @@ auto main() -> int
 
       std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
 
+      net::io_context ioc;
+      net::ip::tcp::resolver resv{ioc};
+      auto const endpoints = resv.resolve("127.0.0.1", "6379");
+      connection conn{ioc};
+      net::connect(conn.next_layer(), endpoints);
       conn.async_exec(req, adapt(resp),logger);
-      conn.async_run("127.0.0.1", "6379", {}, logger);
+      conn.async_run({}, logger);
       ioc.run();
 
       // Print

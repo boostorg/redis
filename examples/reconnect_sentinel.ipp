@@ -24,13 +24,27 @@ net::awaitable<endpoint> resolve()
    req.push("SENTINEL", "get-master-addr-by-name", "mymaster");
    req.push("QUIT");
 
-   connection conn{co_await net::this_coro::executor};
+   auto ex = co_await net::this_coro::executor;
+   connection conn{ex};
 
    std::tuple<std::optional<std::array<std::string, 2>>, aedis::ignore> addr;
+   resolver resv{ex};
    for (auto ep : endpoints) {
       boost::system::error_code ec1, ec2;
+
+      // TODO: Run with a timer.
+      auto const endpoints =
+         co_await resv.async_resolve(ep.host, ep.port, net::redirect_error(net::use_awaitable, ec1));
+
+      std::clog << "async_resolve: " << ec1.message() << std::endl;
+
+      // TODO: Run with a timer.
+      // TODO: Why default token is not working.
+      //co_await net::async_connect(conn->next_layer(), endpoints, net::redirect_error(net::use_awaitable, ec1));
+      co_await net::async_connect(conn.next_layer(), endpoints);
+
       co_await (
-         conn.async_run(ep.host, ep.port, {}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn.async_run({}, net::redirect_error(net::use_awaitable, ec1)) &&
          conn.async_exec(req, adapt(addr), net::redirect_error(net::use_awaitable, ec2))
       );
 
@@ -63,6 +77,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
 
    auto ex = co_await net::this_coro::executor;
    stimer timer{ex};
+   resolver resv{ex};
    for (;;) {
       auto ep = co_await net::co_spawn(ex, resolve(), net::use_awaitable);
       if (!is_valid(ep)) {
@@ -71,8 +86,20 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
       }
 
       boost::system::error_code ec1, ec2;
+
+      // TODO: Run with a timer.
+      auto const endpoints =
+         co_await resv.async_resolve(ep.host, ep.port, net::redirect_error(net::use_awaitable, ec1));
+
+      std::clog << "async_resolve: " << ec1.message() << std::endl;
+
+      // TODO: Run with a timer.
+      // TODO: Why default token is not working.
+      //co_await net::async_connect(conn->next_layer(), endpoints, net::redirect_error(net::use_awaitable, ec1));
+      co_await net::async_connect(conn->next_layer(), endpoints);
+
       co_await (
-         conn->async_run(ep.host, ep.port, {}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn->async_run({}, net::redirect_error(net::use_awaitable, ec1)) &&
          conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
       );
 

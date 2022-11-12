@@ -27,7 +27,11 @@ using net::experimental::as_tuple;
 BOOST_AUTO_TEST_CASE(push_filtered_out)
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
+
 
    request req;
    req.push("HELLO", 3);
@@ -36,15 +40,15 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
    req.push("QUIT");
 
    std::tuple<aedis::ignore, std::string, std::string> resp;
-   conn->async_exec(req, adapt(resp), [](auto ec, auto){
+   conn.async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn->async_receive(adapt(), [](auto ec, auto){
+   conn.async_receive(adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec){
+   conn.async_run({}, [](auto ec){
       BOOST_TEST(!ec);
    });
 
@@ -58,18 +62,22 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
 void test_missing_push_reader1(bool coalesce)
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
 
    request req{{false, coalesce}};
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
 
-   conn->async_exec(req, adapt(), [](auto ec, auto){
+   conn.async_exec(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec){
+   conn.async_run({}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -79,13 +87,17 @@ void test_missing_push_reader1(bool coalesce)
 void test_missing_push_reader2(request const& req)
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
 
-   conn->async_exec(req, adapt(), [](auto ec, auto){
+
+   conn.async_exec(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn->async_run("127.0.0.1", "6379", {}, [](auto ec){
+   conn.async_run({}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 
@@ -93,16 +105,16 @@ void test_missing_push_reader2(request const& req)
 }
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
-net::awaitable<void> push_consumer1(std::shared_ptr<connection> conn, bool& push_received)
+net::awaitable<void> push_consumer1(connection& conn, bool& push_received)
 {
    {
-      auto [ec, ev] = co_await conn->async_receive(adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await conn.async_receive(adapt(), as_tuple(net::use_awaitable));
       BOOST_TEST(!ec);
    }
 
    {
-      auto [ec, ev] = co_await conn->async_receive(adapt(), as_tuple(net::use_awaitable));
-      BOOST_CHECK_EQUAL(ec, boost::asio::experimental::channel_errc::channel_cancelled);
+      auto [ec, ev] = co_await conn.async_receive(adapt(), as_tuple(net::use_awaitable));
+      BOOST_CHECK_EQUAL(ec, net::experimental::channel_errc::channel_cancelled);
    }
 
    push_received = true;
@@ -128,7 +140,10 @@ struct adapter_error {
 BOOST_AUTO_TEST_CASE(test_push_adapter)
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
 
    request req;
    req.push("HELLO", 3);
@@ -136,15 +151,15 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   conn->async_receive(adapter_error{}, [](auto ec, auto) {
+   conn.async_receive(adapter_error{}, [](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, aedis::error::incompatible_size);
    });
 
-   conn->async_exec(req, adapt(), [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, boost::asio::experimental::error::channel_errors::channel_cancelled);
+   conn.async_exec(req, adapt(), [](auto ec, auto){
+      BOOST_CHECK_EQUAL(ec, net::experimental::error::channel_errors::channel_cancelled);
    });
 
-   conn->async_run("127.0.0.1", "6379", {}, [](auto ec){
+   conn.async_run({}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -157,20 +172,24 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
 void test_push_is_received1(bool coalesce)
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
+
 
    request req{{false, coalesce}};
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   conn->async_exec(req, adapt(), [](auto ec, auto){
+   conn.async_exec(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec){
+   conn.async_run({}, [&](auto ec){
       BOOST_TEST(!ec);
-      conn->cancel(operation::receive);
+      conn.cancel(operation::receive);
    });
 
    bool push_received = false;
@@ -199,20 +218,24 @@ void test_push_is_received2(bool coalesce)
 
    net::io_context ioc;
 
-   auto conn = std::make_shared<connection>(ioc);
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
+
 
    auto handler =[](auto ec, auto...)
    {
       BOOST_TEST(!ec);
    };
 
-   conn->async_exec(req1, adapt(), handler);
-   conn->async_exec(req2, adapt(), handler);
-   conn->async_exec(req3, adapt(), handler);
+   conn.async_exec(req1, adapt(), handler);
+   conn.async_exec(req2, adapt(), handler);
+   conn.async_exec(req3, adapt(), handler);
 
-   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec) {
+   conn.async_run({}, [&](auto ec) {
       BOOST_TEST(!ec);
-      conn->cancel(operation::receive);
+      conn.cancel(operation::receive);
    });
 
    bool push_received = false;
@@ -226,10 +249,10 @@ void test_push_is_received2(bool coalesce)
    BOOST_TEST(push_received);
 }
 
-net::awaitable<void> push_consumer3(std::shared_ptr<connection> conn)
+net::awaitable<void> push_consumer3(connection& conn)
 {
    for (;;)
-      co_await conn->async_receive(adapt(), net::use_awaitable);
+      co_await conn.async_receive(adapt(), net::use_awaitable);
 }
 
 // Test many subscribe requests.
@@ -253,23 +276,27 @@ void test_push_many_subscribes(bool coalesce)
    };
 
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
-   conn->async_exec(req0, adapt(), handler);
-   conn->async_exec(req1, adapt(), handler);
-   conn->async_exec(req2, adapt(), handler);
-   conn->async_exec(req2, adapt(), handler);
-   conn->async_exec(req1, adapt(), handler);
-   conn->async_exec(req2, adapt(), handler);
-   conn->async_exec(req1, adapt(), handler);
-   conn->async_exec(req2, adapt(), handler);
-   conn->async_exec(req2, adapt(), handler);
-   conn->async_exec(req1, adapt(), handler);
-   conn->async_exec(req2, adapt(), handler);
-   conn->async_exec(req3, adapt(), handler);
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
 
-   conn->async_run("127.0.0.1", "6379", {}, [conn](auto ec) {
+   conn.async_exec(req0, adapt(), handler);
+   conn.async_exec(req1, adapt(), handler);
+   conn.async_exec(req2, adapt(), handler);
+   conn.async_exec(req2, adapt(), handler);
+   conn.async_exec(req1, adapt(), handler);
+   conn.async_exec(req2, adapt(), handler);
+   conn.async_exec(req1, adapt(), handler);
+   conn.async_exec(req2, adapt(), handler);
+   conn.async_exec(req2, adapt(), handler);
+   conn.async_exec(req1, adapt(), handler);
+   conn.async_exec(req2, adapt(), handler);
+   conn.async_exec(req3, adapt(), handler);
+
+   conn.async_run({}, [&](auto ec) {
       BOOST_TEST(!ec);
-      conn->cancel(operation::receive);
+      conn.cancel(operation::receive);
    });
 
    net::co_spawn(ioc.get_executor(), push_consumer3(conn), net::detached);

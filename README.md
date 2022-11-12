@@ -845,6 +845,11 @@ another.
   requests and will be moved to the front of the queue, see
   `aedis::resp3::request::config` 
 
+* Automatic name resolving and connecting have been removed from
+  `aedis::connection::async_run`. Users have to do this step manually
+  now. The reason for this change is that having them built-in doesn't
+  offer enough the flexibility that is need for boost users.
+
 ### v1.2.0
 
 * `aedis::adapt` supports now tuples created with `std::tie`.

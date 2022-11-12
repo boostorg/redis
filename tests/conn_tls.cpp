@@ -32,61 +32,8 @@ bool verify_certificate(bool, net::ssl::verify_context&)
    return true;
 }
 
-boost::system::error_code hello_fail(endpoint ep)
-{
-   net::io_context ioc;
-
-   net::ssl::context ctx{net::ssl::context::sslv23};
-   auto conn = std::make_shared<connection>(ioc.get_executor(), ctx);
-   conn->next_layer().set_verify_mode(net::ssl::verify_peer);
-   conn->next_layer().set_verify_callback(verify_certificate);
-   boost::system::error_code ret;
-   conn->async_run(ep.host, ep.port, {}, [&](auto ec) {
-      ret = ec;
-   });
-
-   ioc.run();
-   return ret;
-}
-
-BOOST_AUTO_TEST_CASE(test_tls_handshake_fail)
-{
-   endpoint ep;
-   ep.host = "google.com";
-   ep.port = "80";
-   auto const ec = hello_fail(ep);
-   BOOST_TEST(!!ec);
-   std::cout << "-----> " << ec.message() << std::endl;
-}
-
-BOOST_AUTO_TEST_CASE(test_tls_handshake_fail2)
-{
-   endpoint ep;
-   ep.host = "127.0.0.1";
-   ep.port = "6379";
-   auto const ec = hello_fail(ep);
-   BOOST_TEST(ec, aedis::error::ssl_handshake_timeout);
-}
-
-BOOST_AUTO_TEST_CASE(test_hello_fail)
-{
-   endpoint ep;
-   ep.host = "google.com";
-   ep.port = "443";
-   auto const ec = hello_fail(ep);
-   BOOST_TEST(!ec);
-}
-
 BOOST_AUTO_TEST_CASE(ping)
 {
-   net::io_context ioc;
-
-   net::ssl::context ctx{net::ssl::context::sslv23};
-
-   connection conn{ioc, ctx};
-   conn.next_layer().set_verify_mode(net::ssl::verify_peer);
-   conn.next_layer().set_verify_callback(verify_certificate);
-
    std::string const in = "Kabuf";
 
    request req;
@@ -97,11 +44,23 @@ BOOST_AUTO_TEST_CASE(ping)
 
    std::string out;
    auto resp = std::tie(std::ignore, out, std::ignore);
+
+   net::io_context ioc;
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("db.occase.de", "6380");
+   net::ssl::context ctx{net::ssl::context::sslv23};
+   connection conn{ioc, ctx};
+   conn.next_layer().set_verify_mode(net::ssl::verify_peer);
+   conn.next_layer().set_verify_callback(verify_certificate);
+
+   net::connect(conn.lowest_layer(), endpoints);
+   conn.next_layer().handshake(net::ssl::stream_base::client);
+
    conn.async_exec(req, adapt(resp), [](auto ec, auto) {
       BOOST_TEST(!ec);
    });
 
-   conn.async_run("db.occase.de", "6380", {}, [](auto ec) {
+   conn.async_run({}, [](auto ec) {
       BOOST_TEST(!ec);
    });
 

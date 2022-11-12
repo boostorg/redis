@@ -10,6 +10,8 @@
 #include <boost/asio.hpp>
 #include <aedis.hpp>
 
+// TODO: Fix this after updating to 1.80.
+
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 

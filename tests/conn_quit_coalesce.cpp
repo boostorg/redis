@@ -25,7 +25,10 @@ using operation = aedis::operation;
 BOOST_AUTO_TEST_CASE(test_quit_coalesce)
 {
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
 
    request req1{{false, true}};
    req1.push("HELLO", 3);
@@ -34,22 +37,22 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
    request req2{{false, true}};
    req2.push("QUIT");
 
-   db->async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
-   db->async_exec(req2, adapt(), [](auto ec, auto){
+   conn.async_exec(req2, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
-   db->async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
-   db->async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   db->async_run("127.0.0.1", "6379", {}, [db](auto ec){
+   conn.async_run({}, [&](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-      db->cancel(operation::exec);
+      conn.cancel(operation::exec);
    });
 
    ioc.run();

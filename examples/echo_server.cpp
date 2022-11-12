@@ -17,21 +17,19 @@
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
+using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
+using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
+using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
+
 using aedis::adapt;
 using aedis::resp3::request;
-using executor_type = net::io_context::executor_type;
-using socket_type = net::basic_stream_socket<net::ip::tcp, executor_type>;
-using tcp_socket = net::use_awaitable_t<executor_type>::as_default_on_t<socket_type>;
-using acceptor_type = net::basic_socket_acceptor<net::ip::tcp, executor_type>;
-using tcp_acceptor = net::use_awaitable_t<executor_type>::as_default_on_t<acceptor_type>;
-using awaitable_type = net::awaitable<void, executor_type>;
 using connection = aedis::connection<tcp_socket>;
-using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 
 // Some example code.
 #include "reconnect.ipp"
 
-awaitable_type echo_server_session(tcp_socket socket, std::shared_ptr<connection> db)
+auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> db) -> net::awaitable<void>
 {
    request req;
    std::tuple<std::string> response;
@@ -47,7 +45,7 @@ awaitable_type echo_server_session(tcp_socket socket, std::shared_ptr<connection
    }
 }
 
-awaitable_type listener(std::shared_ptr<connection> db)
+auto listener(std::shared_ptr<connection> db) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});

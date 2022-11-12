@@ -24,11 +24,6 @@ using aedis::adapt;
 using connection = aedis::connection<>;
 using error_code = boost::system::error_code;
 
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
-#include <boost/asio/experimental/awaitable_operators.hpp>
-using namespace net::experimental::awaitable_operators;
-#endif
-
 BOOST_AUTO_TEST_CASE(wrong_response_data_type)
 {
    request req;
@@ -38,11 +33,16 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    // Wrong data type.
    std::tuple<aedis::ignore, int> resp;
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
-   db->async_exec(req, adapt(resp), [](auto ec, auto){
+
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
+
+   conn.async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
    });
-   db->async_run("127.0.0.1", "6379", {}, [](auto ec){
+   conn.async_run({}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 
@@ -57,8 +57,8 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
    req.push("PING");
 
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
-   db->async_exec(req, adapt(), [](auto ec, auto){
+   auto conn = std::make_shared<connection>(ioc);
+   conn->async_exec(req, adapt(), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_connected);
    });
 
@@ -78,17 +78,21 @@ BOOST_AUTO_TEST_CASE(request_retry)
    req2.push("PING");
 
    net::io_context ioc;
-   auto db = std::make_shared<connection>(ioc);
+   net::ip::tcp::resolver resv{ioc};
+   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
 
-   db->async_exec(req1, adapt(), [](auto ec, auto){
+
+   conn.async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   db->async_exec(req2, adapt(), [](auto ec, auto){
+   conn.async_exec(req2, adapt(), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   db->async_run("127.0.0.1", "6379", {}, [](auto ec){
+   conn.async_run({}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
    });
 

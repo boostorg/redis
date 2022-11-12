@@ -6,15 +6,18 @@
 
 #include <tuple>
 #include <string>
+#include <iostream>
+
 #include <boost/asio.hpp>
 #include <aedis.hpp>
 
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
+namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
-using connection = aedis::connection<>;
+using connection = aedis::connection<net::ip::tcp::socket>;
 
 auto const logger = [](auto ec, auto...)
    { std::cout << ec.message() << std::endl; };
@@ -22,9 +25,6 @@ auto const logger = [](auto ec, auto...)
 auto main() -> int
 {
    try {
-      boost::asio::io_context ioc;
-      connection conn{ioc};
-
       request req;
       req.get_config().cancel_on_connection_lost = true;
       req.push("HELLO", 3);
@@ -32,13 +32,18 @@ auto main() -> int
       req.push("QUIT");
 
       std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
-      conn.async_exec(req, adapt(resp), logger);
-      conn.async_run("127.0.0.1", "6379", {}, logger);
 
+      net::io_context ioc;
+      net::ip::tcp::resolver resv{ioc};
+      auto const endpoints = resv.resolve("127.0.0.1", "6379");
+      connection conn{ioc};
+      net::connect(conn.next_layer(), endpoints);
+      conn.async_exec(req, adapt(resp),logger);
+      conn.async_run({}, logger);
       ioc.run();
 
       std::cout << std::get<1>(resp) << std::endl;
-   } catch (...) {
-      std::cerr << "Error" << std::endl;
+   } catch (std::exception const& e) {
+      std::cerr << "Error: " << e.what() << std::endl;
    }
 }

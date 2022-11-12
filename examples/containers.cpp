@@ -31,10 +31,8 @@ auto redir(boost::system::error_code& ec)
 }
 
 // Sends some containers.
-auto send(boost::string_view host, boost::string_view port) -> net::awaitable<void>
+auto send(net::ip::tcp::resolver::results_type const& endpoints) -> net::awaitable<void>
 {
-   auto ex = co_await net::this_coro::executor;
-
    std::vector<int> vec
       {1, 2, 3, 4, 5, 6};
 
@@ -44,22 +42,20 @@ auto send(boost::string_view host, boost::string_view port) -> net::awaitable<vo
    request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
-   req.push_range("RPUSH", "rpush-key", vec); // Sends
-   req.push_range("HSET", "hset-key", map); // Sends
+   req.push_range("RPUSH", "rpush-key", vec);
+   req.push_range("HSET", "hset-key", map);
    req.push("QUIT");
 
-   connection conn{ex};
-   co_await (conn.async_run(host, port) || conn.async_exec(req));
+   connection conn{co_await net::this_coro::executor};
+   co_await net::async_connect(conn.next_layer(), endpoints);
+   co_await (conn.async_run() || conn.async_exec(req));
 }
 
 // Retrieves a Redis hash as an std::map.
 auto
 retrieve_hashes(
-   boost::string_view host,
-   boost::string_view port) -> net::awaitable<std::map<std::string, std::string>>
+   net::ip::tcp::resolver::results_type const& endpoints) -> net::awaitable<std::map<std::string, std::string>>
 {
-   connection conn{co_await net::this_coro::executor};
-
    request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
@@ -68,16 +64,16 @@ retrieve_hashes(
 
    std::map<std::string, std::string> ret;
    auto resp = std::tie(std::ignore, ret, std::ignore);
-   co_await (conn.async_run(host, port) || conn.async_exec(req, adapt(resp)));
 
+   connection conn{co_await net::this_coro::executor};
+   co_await net::async_connect(conn.next_layer(), endpoints);
+   co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
    co_return std::move(ret);
 }
 
 // Retrieves as a data structure.
-auto transaction(boost::string_view host, boost::string_view port) -> net::awaitable<void>
+auto transaction(net::ip::tcp::resolver::results_type const& endpoints) -> net::awaitable<void>
 {
-   connection conn{co_await net::this_coro::executor};
-
    request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
@@ -96,7 +92,9 @@ auto transaction(boost::string_view host, boost::string_view port) -> net::await
       aedis::ignore  // quit
    > resp;
 
-   co_await (conn.async_run(host, port) || conn.async_exec(req, adapt(resp)));
+   connection conn{co_await net::this_coro::executor};
+   co_await net::async_connect(conn.next_layer(), endpoints);
+   co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
 
    print(std::get<0>(std::get<4>(resp)).value());
    print(std::get<1>(std::get<4>(resp)).value());
@@ -105,12 +103,12 @@ auto transaction(boost::string_view host, boost::string_view port) -> net::await
 net::awaitable<void> async_main()
 {
    try {
-      boost::string_view host{"127.0.0.1"};
-      boost::string_view port{"6379"};
+      net::ip::tcp::resolver resv{co_await net::this_coro::executor};
+      auto addrs = co_await resv.async_resolve("127.0.0.1", "6379", net::use_awaitable);
 
-      co_await send(host, port);
-      co_await transaction(host, port);
-      auto const hashes = co_await retrieve_hashes(host, port);
+      co_await send(addrs);
+      co_await transaction(addrs);
+      auto const hashes = co_await retrieve_hashes(addrs);
       print(hashes);
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

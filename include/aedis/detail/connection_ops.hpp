@@ -20,7 +20,6 @@
 #include <aedis/error.hpp>
 #include <aedis/detail/net.hpp>
 #include <aedis/resp3/type.hpp>
-#include <aedis/resp3/detail/exec.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/read.hpp>
 #include <aedis/resp3/write.hpp>
@@ -29,56 +28,6 @@
 #include <boost/asio/yield.hpp>
 
 namespace aedis::detail {
-
-template <class Conn, class Timer>
-struct connect_with_timeout_op {
-   Conn* conn = nullptr;
-   boost::asio::ip::tcp::resolver::results_type const* endpoints = nullptr;
-   typename Conn::timeouts ts;
-   Timer* timer = nullptr;
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , boost::asio::ip::tcp::endpoint const& = {})
-   {
-      reenter (coro)
-      {
-         timer->expires_after(ts.connect_timeout);
-         yield detail::async_connect(conn->next_layer(), *timer, *endpoints, std::move(self));
-         AEDIS_CHECK_OP0();
-         self.complete({});
-      }
-   }
-};
-
-template <class Conn>
-struct resolve_with_timeout_op {
-   Conn* conn = nullptr;
-   boost::string_view host;
-   boost::string_view port;
-   std::chrono::steady_clock::duration resolve_timeout{};
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void operator()( Self& self
-                  , boost::system::error_code ec = {}
-                  , boost::asio::ip::tcp::resolver::results_type const& res = {})
-   {
-      reenter (coro)
-      {
-         conn->ping_timer_.expires_after(resolve_timeout);
-         yield
-         aedis::detail::async_resolve(
-            conn->resv_, conn->ping_timer_,
-            host, port, std::move(self));
-         AEDIS_CHECK_OP0();
-         conn->endpoints_ = res;
-         self.complete({});
-      }
-   }
-};
 
 template <class Conn, class Adapter>
 struct receive_op {
@@ -215,8 +164,9 @@ struct exec_op {
          // has been stablished. We need a variable that informs
          // whether HELLO was successfull and we are connected with
          // Redis.
-         if (req->get_config().cancel_if_not_connected && !conn->is_open())
+         if (req->get_config().cancel_if_not_connected && !conn->is_open()) {
             return self.complete(error::not_connected, 0);
+         }
 
          info = std::allocate_shared<req_info_type>(boost::asio::get_associated_allocator(self), *req, conn->resv_.get_executor());
 
@@ -395,25 +345,14 @@ struct start_op {
 template <class Conn, class Timeouts>
 struct run_op {
    Conn* conn = nullptr;
-   boost::string_view host;
-   boost::string_view port;
    Timeouts ts;
    boost::asio::coroutine coro{};
 
    template <class Self>
-   void operator()(
-      Self& self,
-      boost::system::error_code ec = {},
-      std::size_t = 0)
+   void operator()(Self& self, boost::system::error_code ec = {}, std::size_t = 0)
    {
       reenter (coro)
       {
-         yield conn->async_resolve_with_timeout(host, port, ts.resolve_timeout, std::move(self));
-         AEDIS_CHECK_OP0(conn->cancel(operation::run));
-
-         yield conn->derived().async_connect(conn->endpoints_, ts, conn->ping_timer_, std::move(self));
-         AEDIS_CHECK_OP0(conn->cancel(operation::run));
-
          conn->write_buffer_.clear();
          conn->cmds_ = 0;
 

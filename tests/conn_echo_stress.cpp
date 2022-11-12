@@ -16,12 +16,14 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
+using error_code = boost::system::error_code;
+using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
 using aedis::resp3::request;
 using aedis::operation;
 using aedis::adapt;
-using connection = aedis::connection<>;
-using error_code = boost::system::error_code;
+using connection = aedis::connection<tcp_socket>;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;
@@ -38,7 +40,7 @@ net::awaitable<void> push_consumer(std::shared_ptr<connection> conn, int expecte
    request req;
    req.push("HELLO", 3);
    req.push("QUIT");
-   co_await conn->async_exec(req, adapt(), net::use_awaitable);
+   co_await conn->async_exec(req, adapt());
 }
 
 auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> net::awaitable<void>
@@ -77,7 +79,11 @@ auto async_echo_stress() -> net::awaitable<void>
    for (int i = 0; i < sessions; ++i) 
       net::co_spawn(ex, echo_session(conn, std::to_string(i), msgs), net::detached);
 
-   co_await conn->async_run("127.0.0.1", "6379", {}, net::use_awaitable);
+   resolver resv{ex};
+   auto const addrs = co_await resv.async_resolve("127.0.0.1", "6379");
+   co_await net::async_connect(conn->next_layer(), addrs);
+
+   co_await conn->async_run();
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)

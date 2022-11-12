@@ -41,12 +41,6 @@ public:
    /** \brief Connection configuration parameters.
     */
    struct timeouts {
-      /// Timeout of the resolve operation.
-      std::chrono::steady_clock::duration resolve_timeout = std::chrono::seconds{10};
-
-      /// Timeout of the connect operation.
-      std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10};
-
       /// Time interval with which PING commands are sent to Redis.
       std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{1};
    };
@@ -126,12 +120,10 @@ public:
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto
    async_run(
-      boost::string_view host,
-      boost::string_view port,
       timeouts ts = timeouts{},
       CompletionToken token = CompletionToken{})
    {
-      return base_type::async_run(host, port, ts, std::move(token));
+      return base_type::async_run(ts, std::move(token));
    }
 
    /** @brief Executes a command on the Redis server asynchronously.
@@ -228,24 +220,8 @@ private:
    template <class> friend struct detail::check_idle_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
-   template <class, class> friend struct detail::connect_with_timeout_op;
    template <class, class> friend struct detail::run_op;
    template <class> friend struct detail::ping_op;
-
-   template <class Timer, class CompletionToken>
-   auto
-   async_connect(
-      boost::asio::ip::tcp::resolver::results_type const& endpoints,
-      timeouts ts,
-      Timer& timer,
-      CompletionToken&& token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::connect_with_timeout_op<this_type, Timer>{this, &endpoints, ts, &timer},
-               token, stream_);
-   }
 
    void close() { stream_.close(); }
    auto is_open() const noexcept { return stream_.is_open(); }

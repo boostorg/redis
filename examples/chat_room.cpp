@@ -19,14 +19,16 @@
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
-using aedis::adapt;
-using aedis::resp3::request;
-using aedis::resp3::node;
+using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::stream_descriptor>;
-using connection = aedis::connection<tcp_socket>;
 using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
+
+using aedis::adapt;
+using aedis::resp3::request;
+using aedis::resp3::node;
+using connection = aedis::connection<tcp_socket>;
 
 // Some example code.
 #include "reconnect.ipp"

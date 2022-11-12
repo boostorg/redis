@@ -6,8 +6,13 @@
 
 #include <tuple>
 #include <string>
+#include <iostream>
+
 #include <boost/asio.hpp>
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/asio/ssl.hpp>
+
 #include <aedis.hpp>
 #include <aedis/ssl/connection.hpp>
 
@@ -15,12 +20,13 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+using namespace net::experimental::awaitable_operators;
+using socket_t = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
+using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
+
 using aedis::adapt;
 using aedis::resp3::request;
-using connection = aedis::ssl::connection<net::ssl::stream<net::ip::tcp::socket>>;
-
-auto const logger = [](auto ec, auto...)
-   { std::cout << ec.message() << std::endl; };
+using connection = aedis::ssl::connection<net::ssl::stream<socket_t>>;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {
@@ -28,31 +34,45 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
    return true;
 }
 
+net::awaitable<void> ping()
+{
+   request req;
+   req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3, "AUTH", "aedis", "aedis");
+   req.push("PING");
+   req.push("QUIT");
+
+   std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+
+   // Resolve
+   auto ex = co_await net::this_coro::executor;
+   resolver resv{ex};
+   auto const endpoints = co_await resv.async_resolve("db.occase.de", "6380");
+
+   net::ssl::context ctx{net::ssl::context::sslv23};
+   connection conn{ex, ctx};
+   conn.next_layer().set_verify_mode(net::ssl::verify_peer);
+   conn.next_layer().set_verify_callback(verify_certificate);
+
+   //auto f = [](boost::system::error_code const&, auto const&) { return true; };
+   co_await net::async_connect(conn.lowest_layer(), endpoints);
+   co_await conn.next_layer().async_handshake(net::ssl::stream_base::client);
+   co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
+
+   std::cout << "Response: " << std::get<1>(resp) << std::endl;
+}
+
 auto main() -> int
 {
    try {
       net::io_context ioc;
-
-      net::ssl::context ctx{net::ssl::context::sslv23};
-
-      connection conn{ioc, ctx};
-      conn.next_layer().set_verify_mode(net::ssl::verify_peer);
-      conn.next_layer().set_verify_callback(verify_certificate);
-
-      request req;
-      req.get_config().cancel_on_connection_lost = true;
-      req.push("HELLO", 3, "AUTH", "aedis", "aedis");
-      req.push("PING");
-      req.push("QUIT");
-
-      std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
-      conn.async_exec(req, adapt(resp), logger);
-      conn.async_run("db.occase.de", "6380", {}, logger);
-
+      net::co_spawn(ioc, ping(), net::detached);
       ioc.run();
-
-      std::cout << "Response: " << std::get<1>(resp) << std::endl;
-   } catch (std::exception const& e) {
-      std::cerr << "Error: " << e.what() << std::endl;
+   } catch (...) {
+      std::cerr << "Error." << std::endl;
    }
 }
+
+#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
+auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 0;}
+#endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
