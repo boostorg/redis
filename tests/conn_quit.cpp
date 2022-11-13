@@ -13,6 +13,7 @@
 
 #include <aedis.hpp>
 #include <aedis/src.hpp>
+#include "common.hpp"
 
 namespace net = boost::asio;
 
@@ -27,8 +28,7 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 {
    net::io_context ioc;
 
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
@@ -70,8 +70,7 @@ void test_quit2(bool coalesce)
    req.push("QUIT");
 
    net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 

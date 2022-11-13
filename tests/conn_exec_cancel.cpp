@@ -15,6 +15,8 @@
 #include <aedis.hpp>
 #include <aedis/src.hpp>
 
+#include "common.hpp"
+
 namespace net = boost::asio;
 
 using aedis::resp3::request;
@@ -86,8 +88,7 @@ BOOST_AUTO_TEST_CASE(cancel_exec_with_timer)
 {
    net::io_context ioc;
 
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
 
    auto conn = std::make_shared<connection>(ioc);
    net::connect(conn->next_layer(), endpoints);
@@ -130,10 +131,9 @@ auto async_ignore_cancel_of_written_req(std::shared_ptr<connection> conn) -> net
 
 BOOST_AUTO_TEST_CASE(ignore_cancel_of_written_req)
 {
-   net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
 
+   net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    net::connect(conn->next_layer(), endpoints);
 

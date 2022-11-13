@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <boost/asio.hpp>
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
 
@@ -14,6 +15,7 @@
 
 #include <aedis.hpp>
 #include <aedis/src.hpp>
+#include "common.hpp"
 
 namespace net = boost::asio;
 
@@ -27,11 +29,9 @@ using net::experimental::as_tuple;
 BOOST_AUTO_TEST_CASE(push_filtered_out)
 {
    net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
-
 
    request req;
    req.push("HELLO", 3);
@@ -48,7 +48,10 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
       BOOST_TEST(!ec);
    });
 
-   conn.async_run({}, [](auto ec){
+   connection::timeouts tm;
+   tm.ping_interval = std::chrono::seconds{100};
+   conn.async_run(tm, [](auto ec){
+      std::cout << "===> " << ec.message() << std::endl;
       BOOST_TEST(!ec);
    });
 
@@ -63,8 +66,7 @@ void test_missing_push_reader1(bool coalesce)
 {
    net::io_context ioc;
 
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
@@ -87,8 +89,7 @@ void test_missing_push_reader1(bool coalesce)
 void test_missing_push_reader2(request const& req)
 {
    net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
@@ -140,8 +141,7 @@ struct adapter_error {
 BOOST_AUTO_TEST_CASE(test_push_adapter)
 {
    net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
@@ -172,8 +172,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
 void test_push_is_received1(bool coalesce)
 {
    net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
@@ -218,8 +217,7 @@ void test_push_is_received2(bool coalesce)
 
    net::io_context ioc;
 
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
@@ -276,8 +274,7 @@ void test_push_many_subscribes(bool coalesce)
    };
 
    net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
@@ -359,3 +356,6 @@ BOOST_AUTO_TEST_CASE(missing_reader2b)
    test_missing_push_reader2(req2);
 }
 
+#else
+int main() {}
+#endif

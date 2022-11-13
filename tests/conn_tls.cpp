@@ -14,6 +14,7 @@
 #include <aedis.hpp>
 #include <aedis/ssl/connection.hpp>
 #include <aedis/src.hpp>
+#include "common.hpp"
 
 namespace net = boost::asio;
 
@@ -45,9 +46,9 @@ BOOST_AUTO_TEST_CASE(ping)
    std::string out;
    auto resp = std::tie(std::ignore, out, std::ignore);
 
+   auto const endpoints = resolve("db.occase.de", "6380");
+
    net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("db.occase.de", "6380");
    net::ssl::context ctx{net::ssl::context::sslv23};
    connection conn{ioc, ctx};
    conn.next_layer().set_verify_mode(net::ssl::verify_peer);

@@ -13,6 +13,7 @@
 
 #include <aedis.hpp>
 #include <aedis/src.hpp>
+#include "common.hpp"
 
 namespace net = boost::asio;
 
@@ -31,8 +32,7 @@ net::awaitable<void> test_reconnect_impl()
    request req;
    req.push("QUIT");
 
-   net::ip::tcp::resolver resv{ex};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ex};
 
    int i = 0;
@@ -66,8 +66,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    auto ex = co_await net::this_coro::executor;
 
    auto conn = std::make_shared<connection>(ex);
-   net::ip::tcp::resolver resv{ex};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
 
    boost::system::error_code ec1, ec2;
 

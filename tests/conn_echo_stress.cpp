@@ -15,8 +15,9 @@
 #include <aedis.hpp>
 #include <aedis/src.hpp>
 
+#include "common.hpp"
+
 namespace net = boost::asio;
-using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using error_code = boost::system::error_code;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
@@ -79,17 +80,15 @@ auto async_echo_stress() -> net::awaitable<void>
    for (int i = 0; i < sessions; ++i) 
       net::co_spawn(ex, echo_session(conn, std::to_string(i), msgs), net::detached);
 
-   resolver resv{ex};
-   auto const addrs = co_await resv.async_resolve("127.0.0.1", "6379");
+   auto const addrs = resolve();
    co_await net::async_connect(conn->next_layer(), addrs);
-
    co_await conn->async_run();
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)
 {
    net::io_context ioc;
-   net::co_spawn(ioc.get_executor(), async_echo_stress(), net::detached);
+   net::co_spawn(ioc, async_echo_stress(), net::detached);
    ioc.run();
 }
 

@@ -15,6 +15,7 @@
 
 #include <aedis.hpp>
 #include <aedis/src.hpp>
+#include "common.hpp"
 
 namespace net = boost::asio;
 
@@ -31,8 +32,7 @@ using namespace net::experimental::awaitable_operators;
 auto async_cancel_run_with_timer() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   net::ip::tcp::resolver resv{ex};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ex};
    net::connect(conn.next_layer(), endpoints);
 
@@ -56,12 +56,11 @@ BOOST_AUTO_TEST_CASE(cancel_run_with_timer)
    ioc.run();
 }
 
-net::awaitable<void>
-async_check_cancellation_not_missed(int n, std::chrono::milliseconds ms)
+auto
+async_check_cancellation_not_missed(int n, std::chrono::milliseconds ms) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   net::ip::tcp::resolver resv{ex};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ex};
 
    net::steady_timer timer{ex};
@@ -156,8 +155,7 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_1024)
 BOOST_AUTO_TEST_CASE(reset_before_run_completes)
 {
    net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   auto const endpoints = resv.resolve("127.0.0.1", "6379");
+   auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
