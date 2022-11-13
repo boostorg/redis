@@ -12,7 +12,6 @@
 
 #include <boost/asio/io_context.hpp>
 #include <aedis/detail/connection_base.hpp>
-#include <aedis/ssl/detail/connection_ops.hpp>
 
 namespace aedis::ssl {
 
@@ -42,13 +41,6 @@ public:
    /// Executor type.
    using executor_type = typename next_layer_type::executor_type;
    using base_type = aedis::detail::connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
-
-   /** \brief Connection configuration parameters.
-    */
-   struct timeouts {
-      /// Time interval of ping operations.
-      std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{1};
-   };
 
    /// Constructor
    explicit
@@ -89,12 +81,9 @@ public:
     *  See aedis::connection::async_run for more information.
     */
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto
-   async_run(
-      timeouts ts = timeouts{},
-      CompletionToken token = CompletionToken{})
+   auto async_run(CompletionToken token = CompletionToken{})
    {
-      return base_type::async_run(ts, std::move(token));
+      return base_type::async_run(std::move(token));
    }
 
    /** @brief Executes a command on the Redis server asynchronously.
@@ -142,10 +131,8 @@ private:
    template <class, class> friend struct aedis::detail::exec_op;
    template <class, class> friend struct aedis::detail::run_op;
    template <class> friend struct aedis::detail::writer_op;
-   template <class> friend struct aedis::detail::check_idle_op;
    template <class> friend struct aedis::detail::reader_op;
    template <class, class> friend struct aedis::detail::exec_read_op;
-   template <class> friend struct aedis::detail::ping_op;
 
    auto is_open() const noexcept { return stream_.next_layer().is_open(); }
    void close() { stream_.next_layer().close(); }

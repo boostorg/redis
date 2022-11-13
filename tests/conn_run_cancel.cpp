@@ -41,7 +41,7 @@ auto async_cancel_run_with_timer() -> net::awaitable<void>
 
    boost::system::error_code ec1, ec2;
    co_await (
-      conn.async_run({}, net::redirect_error(net::use_awaitable, ec1)) ||
+      conn.async_run(net::redirect_error(net::use_awaitable, ec1)) ||
       st.async_wait(net::redirect_error(net::use_awaitable, ec2))
    );
 
@@ -65,15 +65,12 @@ async_check_cancellation_not_missed(int n, std::chrono::milliseconds ms) -> net:
 
    net::steady_timer timer{ex};
 
-   connection::timeouts tms;
-   tms.ping_interval = std::chrono::seconds{1};
-
    for (auto i = 0; i < n; ++i) {
       timer.expires_after(ms);
       net::connect(conn.next_layer(), endpoints);
       boost::system::error_code ec1, ec2;
       co_await (
-         conn.async_run({}, net::redirect_error(net::use_awaitable, ec1)) ||
+         conn.async_run(net::redirect_error(net::use_awaitable, ec1)) ||
          timer.async_wait(net::redirect_error(net::use_awaitable, ec2))
       );
       BOOST_CHECK_EQUAL(ec1, boost::asio::error::basic_errors::operation_aborted);
@@ -170,7 +167,7 @@ BOOST_AUTO_TEST_CASE(reset_before_run_completes)
       conn.reset_stream();
    });
 
-   conn.async_run({}, [&](auto ec){
+   conn.async_run([&](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::operation_aborted);
    });
 

@@ -38,13 +38,6 @@ public:
    using next_layer_type = AsyncReadWriteStream;
    using base_type = detail::connection_base<executor_type, connection<AsyncReadWriteStream>>;
 
-   /** \brief Connection configuration parameters.
-    */
-   struct timeouts {
-      /// Time interval with which PING commands are sent to Redis.
-      std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{1};
-   };
-
    /// Constructor
    explicit
    connection(
@@ -82,29 +75,11 @@ public:
 
    /** @brief Establishes a connection with the Redis server asynchronously.
     *
-    *  This function performs the following steps
+    *  This function will start reading from the socket and executes
+    *  all requests that have been started prior to this function
+    *  call.
     *
-    *  @li Resolves the Redis host as of `async_resolve` with the
-    *  timeout passed in the base class `connection::timeouts::resolve_timeout`.
-    *
-    *  @li Connects to one of the endpoints returned by the resolve
-    *  operation with the timeout passed in the base class
-    *  `connection::timeouts::connect_timeout`.
-    *
-    *  @li Starts healthy checks with a timeout twice the value of
-    *  `connection::timeouts::ping_interval`. If no data is received during that
-    *  time interval `connection::async_run` completes with
-    *  `error::idle_timeout`.
-    *
-    *  @li Starts the healthy check operation that sends the
-    *  [PING](https://redis.io/commands/ping/) to Redis with a
-    *  frequency equal to `connection::timeouts::ping_interval`.
-    *
-    *  @li Starts reading from the socket and executes all requests
-    *  that have been started prior to this function call.
-    *
-    *  @param ep Redis endpoint.
-    *  @param ts Timeouts used by the operations.
+    *  @param Redis endpoint.
     *  @param token Completion token.
     *
     *  The completion token must have the following signature
@@ -118,12 +93,9 @@ public:
     *  will complete without error.
     */
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto
-   async_run(
-      timeouts ts = timeouts{},
-      CompletionToken token = CompletionToken{})
+   auto async_run(CompletionToken token = CompletionToken{})
    {
-      return base_type::async_run(ts, std::move(token));
+      return base_type::async_run(std::move(token));
    }
 
    /** @brief Executes a command on the Redis server asynchronously.
@@ -217,11 +189,9 @@ private:
    template <class, class> friend struct detail::exec_read_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::receive_op;
-   template <class> friend struct detail::check_idle_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
    template <class, class> friend struct detail::run_op;
-   template <class> friend struct detail::ping_op;
 
    void close() { stream_.close(); }
    auto is_open() const noexcept { return stream_.is_open(); }

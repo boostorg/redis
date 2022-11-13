@@ -168,7 +168,7 @@ struct exec_op {
             return self.complete(error::not_connected, 0);
          }
 
-         info = std::allocate_shared<req_info_type>(boost::asio::get_associated_allocator(self), *req, conn->resv_.get_executor());
+         info = std::allocate_shared<req_info_type>(boost::asio::get_associated_allocator(self), *req, conn->get_executor());
 
          conn->add_request_info(info);
 EXEC_OP_WAIT:
@@ -234,94 +234,25 @@ EXEC_OP_WAIT:
 };
 
 template <class Conn>
-struct ping_op {
-   Conn* conn{};
-   std::chrono::steady_clock::duration ping_interval{};
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void
-   operator()( Self& self
-             , boost::system::error_code ec = {}
-             , std::size_t = 0)
-   {
-      reenter (coro) for (;;)
-      {
-         conn->ping_timer_.expires_after(ping_interval);
-         yield conn->ping_timer_.async_wait(std::move(self));
-         if (!conn->is_open() || ec || is_cancelled(self)) {
-            // Checking for is_open is necessary becuse the timer can
-            // complete with success although cancel has been called.
-            self.complete({});
-            return;
-         }
-
-         conn->req_.clear();
-         conn->req_.push("PING");
-         yield conn->async_exec(conn->req_, adapt(), std::move(self));
-         if (!conn->is_open() || is_cancelled(self)) {
-            // Checking for is_open is necessary to avoid
-            // looping back on the timer although cancel has been
-            // called.
-            return self.complete({});
-         }
-      }
-   }
-};
-
-template <class Conn>
-struct check_idle_op {
-   Conn* conn{};
-   std::chrono::steady_clock::duration ping_interval{};
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void operator()(Self& self, boost::system::error_code ec = {})
-   {
-      reenter (coro) for (;;)
-      {
-         conn->check_idle_timer_.expires_after(2 * ping_interval);
-         yield conn->check_idle_timer_.async_wait(std::move(self));
-         if (!conn->is_open() || ec || is_cancelled(self)) {
-            // Checking for is_open is necessary becuse the timer can
-            // complete with success although cancel has been called.
-            return self.complete({});
-         }
-
-         auto const now = std::chrono::steady_clock::now();
-         if (conn->last_data_ +  (2 * ping_interval) < now) {
-            conn->cancel(operation::run);
-            self.complete(error::idle_timeout);
-            return;
-         }
-
-         conn->last_data_ = now;
-      }
-   }
-};
-
-template <class Conn, class Timeouts>
-struct start_op {
-   Conn* conn;
-   Timeouts ts;
+struct run_op {
+   Conn* conn = nullptr;
    boost::asio::coroutine coro{};
 
    template <class Self>
    void operator()( Self& self
-                  , std::array<std::size_t, 4> order = {}
+                  , std::array<std::size_t, 2> order = {}
                   , boost::system::error_code ec0 = {}
-                  , boost::system::error_code ec1 = {}
-                  , boost::system::error_code ec2 = {}
-                  , boost::system::error_code ec3 = {})
+                  , boost::system::error_code ec1 = {})
    {
       reenter (coro)
       {
+         conn->write_buffer_.clear();
+         conn->cmds_ = 0;
+
          yield
          boost::asio::experimental::make_parallel_group(
             [this](auto token) { return conn->reader(token);},
-            [this](auto token) { return conn->writer(token);},
-            [this](auto token) { return conn->async_check_idle(ts.ping_interval, token);},
-            [this](auto token) { return conn->async_ping(ts.ping_interval, token);}
+            [this](auto token) { return conn->writer(token);}
          ).async_wait(
             boost::asio::experimental::wait_for_one(),
             std::move(self));
@@ -334,31 +265,8 @@ struct start_op {
          switch (order[0]) {
            case 0: self.complete(ec0); break;
            case 1: self.complete(ec1); break;
-           case 2: self.complete(ec2); break;
-           case 3: self.complete(ec3); break;
            default: BOOST_ASSERT(false);
          }
-      }
-   }
-};
-
-template <class Conn, class Timeouts>
-struct run_op {
-   Conn* conn = nullptr;
-   Timeouts ts;
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void operator()(Self& self, boost::system::error_code ec = {}, std::size_t = 0)
-   {
-      reenter (coro)
-      {
-         conn->write_buffer_.clear();
-         conn->cmds_ = 0;
-
-         yield conn->async_start(ts, std::move(self));
-         AEDIS_CHECK_OP0();
-         self.complete({});
       }
    }
 };
@@ -432,8 +340,6 @@ struct reader_op {
          }
 
          AEDIS_CHECK_OP0(conn->cancel(operation::run));
-
-         conn->last_data_ = std::chrono::steady_clock::now();
 
          // We handle unsolicited events in the following way
          //

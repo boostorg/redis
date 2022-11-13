@@ -44,7 +44,7 @@ net::awaitable<endpoint> resolve()
       co_await net::async_connect(conn.next_layer(), endpoints);
 
       co_await (
-         conn.async_run({}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn.async_run(net::redirect_error(net::use_awaitable, ec1)) &&
          conn.async_exec(req, adapt(addr), net::redirect_error(net::use_awaitable, ec2))
       );
 
@@ -99,7 +99,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
       co_await net::async_connect(conn->next_layer(), endpoints);
 
       co_await (
-         conn->async_run({}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn->async_run(net::redirect_error(net::use_awaitable, ec1)) &&
          conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
       );
 

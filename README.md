@@ -850,6 +850,11 @@ another.
   now. The reason for this change is that having them built-in doesn't
   offer enough the flexibility that is need for boost users.
 
+* Removes healthy checks and idle timeout. This functionality must now
+  be implemented by users, the examples show how to do it. This is
+  part of making Aedis useful to a larger audience and suitable for
+  the Boost review process.
+
 ### v1.2.0
 
 * `aedis::adapt` supports now tuples created with `std::tie`.

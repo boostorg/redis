@@ -32,10 +32,8 @@ auto async_run(std::shared_ptr<connection> conn, error_code expected) -> net::aw
 {
    auto ex = co_await net::this_coro::executor;
 
-   connection::timeouts tms;
-   tms.ping_interval = std::chrono::seconds{10};
    boost::system::error_code ec;
-   co_await conn->async_run(tms, net::redirect_error(net::use_awaitable, ec));
+   co_await conn->async_run(net::redirect_error(net::use_awaitable, ec));
    std::cout << ec.message() << std::endl;
    BOOST_CHECK_EQUAL(ec, expected);
 }

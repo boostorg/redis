@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(ping)
       BOOST_TEST(!ec);
    });
 
-   conn.async_run({}, [](auto ec) {
+   conn.async_run([](auto ec) {
       BOOST_TEST(!ec);
    });
 

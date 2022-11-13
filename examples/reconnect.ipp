@@ -27,7 +27,7 @@ auto reconnect(std::shared_ptr<connection> conn, request req) -> net::awaitable<
       std::clog << "async_connect: " << ec1.message() << std::endl;
 
       co_await (
-         conn->async_run({}, net::redirect_error(net::use_awaitable, ec1)) &&
+         conn->async_run(net::redirect_error(net::use_awaitable, ec1)) &&
          conn->async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec2))
       );
 

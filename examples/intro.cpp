@@ -38,8 +38,8 @@ auto main() -> int
       auto const endpoints = resv.resolve("127.0.0.1", "6379");
       connection conn{ioc};
       net::connect(conn.next_layer(), endpoints);
-      conn.async_exec(req, adapt(resp),logger);
-      conn.async_run({}, logger);
+      conn.async_exec(req, adapt(resp), logger);
+      conn.async_run(logger);
       ioc.run();
 
       std::cout << std::get<1>(resp) << std::endl;

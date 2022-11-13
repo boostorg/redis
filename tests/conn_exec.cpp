@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    conn.async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
    });
-   conn.async_run({}, [](auto ec){
+   conn.async_run([](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 
@@ -79,10 +79,19 @@ BOOST_AUTO_TEST_CASE(request_retry)
    req2.push("PING");
 
    net::io_context ioc;
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
+   net::steady_timer st{ioc};
+   st.expires_after(std::chrono::seconds{1});
+   st.async_wait([&](auto){
+      // Cancels the request before receiving the response. This
+      // should cause the second request to complete with error
+      // although it has cancel_on_connection_lost = false.
+      conn.cancel(aedis::operation::run);
+   });
+
+   auto const endpoints = resolve();
+   net::connect(conn.next_layer(), endpoints);
 
    conn.async_exec(req1, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
@@ -92,8 +101,8 @@ BOOST_AUTO_TEST_CASE(request_retry)
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   conn.async_run({}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
+   conn.async_run([](auto ec){
+      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
    ioc.run();

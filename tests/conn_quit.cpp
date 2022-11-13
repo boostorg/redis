@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   conn.async_run({}, [&](auto ec){
+   conn.async_run([&](auto ec){
       BOOST_TEST(!ec);
       conn.cancel(operation::exec);
    });
@@ -79,7 +79,7 @@ void test_quit2(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn.async_run({}, [](auto ec) {
+   conn.async_run([](auto ec) {
       BOOST_TEST(!ec);
    });
 

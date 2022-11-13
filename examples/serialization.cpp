@@ -106,7 +106,7 @@ auto main() -> int
       connection conn{ioc};
       net::connect(conn.next_layer(), endpoints);
       conn.async_exec(req, adapt(resp),logger);
-      conn.async_run({}, logger);
+      conn.async_run(logger);
       ioc.run();
 
       // Print

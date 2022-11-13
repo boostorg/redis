@@ -21,10 +21,6 @@ struct error_category_impl : boost::system::error_category {
    auto message(int ev) const -> std::string override
    {
       switch(static_cast<error>(ev)) {
-	 case error::resolve_timeout: return "Resolve operation timeout.";
-	 case error::connect_timeout: return "Connect operation timeout.";
-	 case error::idle_timeout: return "Idle timeout.";
-	 case error::exec_timeout: return "Exec timeout.";
 	 case error::invalid_data_type: return "Invalid resp3 type.";
 	 case error::not_a_number: return "Can't convert string to number.";
 	 case error::exceeeds_max_nested_depth: return "Exceeds the maximum number of nested responses.";
@@ -40,7 +36,6 @@ struct error_category_impl : boost::system::error_category {
 	 case error::incompatible_size: return "Aggregate container has incompatible size.";
 	 case error::not_a_double: return "Not a double.";
 	 case error::resp3_null: return "Got RESP3 null.";
-	 case error::ssl_handshake_timeout: return "SSL handshake timeout.";
 	 case error::not_connected: return "Not connected.";
 	 default: BOOST_ASSERT(false); return "Aedis error.";
       }

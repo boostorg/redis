@@ -818,11 +818,6 @@ void check_error(char const* name, aedis::error ev)
 
 BOOST_AUTO_TEST_CASE(error)
 {
-   check_error("aedis", aedis::error::resolve_timeout);
-   check_error("aedis", aedis::error::resolve_timeout);
-   check_error("aedis", aedis::error::connect_timeout);
-   check_error("aedis", aedis::error::idle_timeout);
-   check_error("aedis", aedis::error::exec_timeout);
    check_error("aedis", aedis::error::invalid_data_type);
    check_error("aedis", aedis::error::not_a_number);
    check_error("aedis", aedis::error::exceeeds_max_nested_depth);

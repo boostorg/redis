@@ -48,9 +48,7 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
       BOOST_TEST(!ec);
    });
 
-   connection::timeouts tm;
-   tm.ping_interval = std::chrono::seconds{100};
-   conn.async_run(tm, [](auto ec){
+   conn.async_run([](auto ec){
       std::cout << "===> " << ec.message() << std::endl;
       BOOST_TEST(!ec);
    });
@@ -61,45 +59,24 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
    BOOST_CHECK_EQUAL(std::get<2>(resp), "OK");
 }
 
-// Checks whether we get idle timeout when no push reader is set.
-void test_missing_push_reader1(bool coalesce)
-{
-   net::io_context ioc;
-
-   auto const endpoints = resolve();
-   connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
-
-   request req{{false, coalesce}};
-   req.get_config().cancel_on_connection_lost = true;
-   req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "channel");
-
-   conn.async_exec(req, adapt(), [](auto ec, auto){
-      BOOST_TEST(!ec);
-   });
-
-   conn.async_run({}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
-   });
-
-   ioc.run();
-}
-
-void test_missing_push_reader2(request const& req)
+void receive_wrong_syntax(request const& req)
 {
    net::io_context ioc;
    auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
-
    conn.async_exec(req, adapt(), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn.async_run({}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, aedis::error::idle_timeout);
+   conn.async_run([](auto ec){
+      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
+   });
+
+   conn.async_receive(adapt(), [&](auto ec, auto){
+      BOOST_TEST(!ec);
+      conn.cancel(aedis::operation::run);
    });
 
    ioc.run();
@@ -159,7 +136,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
       BOOST_CHECK_EQUAL(ec, net::experimental::error::channel_errors::channel_cancelled);
    });
 
-   conn.async_run({}, [](auto ec){
+   conn.async_run([](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -186,7 +163,7 @@ void test_push_is_received1(bool coalesce)
       BOOST_TEST(!ec);
    });
 
-   conn.async_run({}, [&](auto ec){
+   conn.async_run([&](auto ec){
       BOOST_TEST(!ec);
       conn.cancel(operation::receive);
    });
@@ -231,7 +208,7 @@ void test_push_is_received2(bool coalesce)
    conn.async_exec(req2, adapt(), handler);
    conn.async_exec(req3, adapt(), handler);
 
-   conn.async_run({}, [&](auto ec) {
+   conn.async_run([&](auto ec) {
       BOOST_TEST(!ec);
       conn.cancel(operation::receive);
    });
@@ -291,7 +268,7 @@ void test_push_many_subscribes(bool coalesce)
    conn.async_exec(req2, adapt(), handler);
    conn.async_exec(req3, adapt(), handler);
 
-   conn.async_run({}, [&](auto ec) {
+   conn.async_run([&](auto ec) {
       BOOST_TEST(!ec);
       conn.cancel(operation::receive);
    });
@@ -319,17 +296,7 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
 }
 #endif
 
-BOOST_AUTO_TEST_CASE(missing_reader1_coalesce)
-{
-   test_missing_push_reader1(true);
-}
-
-BOOST_AUTO_TEST_CASE(missing_reader1_no_coalesce)
-{
-   test_missing_push_reader1(false);
-}
-
-BOOST_AUTO_TEST_CASE(missing_reader2a)
+BOOST_AUTO_TEST_CASE(receive_wrong_syntax1)
 {
    request req1{{false}};
    req1.push("HELLO", 3);
@@ -337,23 +304,23 @@ BOOST_AUTO_TEST_CASE(missing_reader2a)
    req1.push("SUBSCRIBE"); // Wrong command synthax.
 
    req1.get_config().coalesce = true;
-   test_missing_push_reader2(req1);
+   receive_wrong_syntax(req1);
 
    req1.get_config().coalesce = false;
-   test_missing_push_reader2(req1);
+   receive_wrong_syntax(req1);
 }
 
-BOOST_AUTO_TEST_CASE(missing_reader2b)
+BOOST_AUTO_TEST_CASE(receice_wrong_syntay2)
 {
    request req2{{false}};
    req2.push("HELLO", 3);
    req2.push("SUBSCRIBE"); // Wrong command syntax.
 
    req2.get_config().coalesce = true;
-   test_missing_push_reader2(req2);
+   receive_wrong_syntax(req2);
 
    req2.get_config().coalesce = false;
-   test_missing_push_reader2(req2);
+   receive_wrong_syntax(req2);
 }
 
 #else

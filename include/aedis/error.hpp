@@ -16,20 +16,8 @@ namespace aedis {
  */
 enum class error
 {
-   /// Resolve timeout.
-   resolve_timeout = 1,
-
-   /// Connect timeout.
-   connect_timeout,
-
-   /// Idle timeout.
-   idle_timeout,
-
-   /// Exec timeout.
-   exec_timeout,
-
    /// Invalid RESP3 type.
-   invalid_data_type,
+   invalid_data_type = 1,
 
    /// Can't parse the string as a number.
    not_a_number,
@@ -72,9 +60,6 @@ enum class error
 
    /// Got RESP3 null.
    resp3_null,
-
-   /// SSL handshake timeout.
-   ssl_handshake_timeout,
 
    /// There is no stablished connection.
    not_connected,

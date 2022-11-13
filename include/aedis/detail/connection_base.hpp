@@ -45,22 +45,16 @@ public:
 
    explicit
    connection_base(executor_type ex, std::pmr::memory_resource* resource)
-   : resv_{ex}
-   , ping_timer_{ex}
-   , check_idle_timer_{ex}
-   , writer_timer_{ex}
+   : writer_timer_{ex}
    , read_timer_{ex}
    , push_channel_{ex}
    , reqs_{resource}
-   , last_data_{std::chrono::time_point<std::chrono::steady_clock>::min()}
    {
-      req_.get_config().cancel_if_not_connected = true;
-      req_.get_config().cancel_on_connection_lost = true;
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
-   auto get_executor() {return resv_.get_executor();}
+   auto get_executor() {return writer_timer_.get_executor();}
 
    auto cancel(operation op) -> std::size_t
    {
@@ -71,13 +65,9 @@ public:
          }
          case operation::run:
          {
-            resv_.cancel();
             derived().close();
-
             read_timer_.cancel();
-            check_idle_timer_.cancel();
             writer_timer_.cancel();
-            ping_timer_.cancel();
             cancel_on_conn_lost();
 
             return 1U;
@@ -151,7 +141,7 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::exec_op<Derived, Adapter>{&derived(), &req, adapter}, token, resv_);
+         >(detail::exec_op<Derived, Adapter>{&derived(), &req, adapter}, token, writer_timer_);
    }
 
    template <
@@ -165,16 +155,16 @@ public:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::receive_op<Derived, decltype(f)>{&derived(), f}, token, resv_);
+         >(detail::receive_op<Derived, decltype(f)>{&derived(), f}, token, writer_timer_);
    }
 
-   template <class Timeouts, class CompletionToken>
-   auto async_run(Timeouts ts, CompletionToken token)
+   template <class CompletionToken>
+   auto async_run(CompletionToken token)
    {
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::run_op<Derived, Timeouts>{&derived(), ts}, token, resv_);
+         >(detail::run_op<Derived>{&derived()}, token, writer_timer_);
    }
 
 private:
@@ -287,12 +277,9 @@ private:
    template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
-   template <class> friend struct detail::ping_op;
    template <class, class> friend struct detail::run_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::exec_read_op;
-   template <class> friend struct detail::check_idle_op;
-   template <class, class> friend struct detail::start_op;
    template <class> friend struct detail::send_receive_op;
 
    void cancel_push_requests()
@@ -333,7 +320,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::reader_op<Derived>{&derived()}, token, resv_.get_executor());
+         >(detail::reader_op<Derived>{&derived()}, token, writer_timer_);
    }
 
    template <class CompletionToken>
@@ -342,42 +329,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code)
-         >(detail::writer_op<Derived>{&derived()}, token, resv_.get_executor());
-   }
-
-   template <
-      class Timeouts,
-      class CompletionToken>
-   auto async_start(Timeouts ts, CompletionToken&& token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::start_op<this_type, Timeouts>{this, ts}, token, resv_);
-   }
-
-   template <class CompletionToken>
-   auto
-   async_ping(
-      std::chrono::steady_clock::duration d,
-      CompletionToken&& token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::ping_op<Derived>{&derived(), d}, token, resv_);
-   }
-
-   template <class CompletionToken>
-   auto
-   async_check_idle(
-      std::chrono::steady_clock::duration d,
-      CompletionToken&& token)
-   {
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code)
-         >(detail::check_idle_op<Derived>{&derived(), d}, token, check_idle_timer_);
+         >(detail::writer_op<Derived>{&derived()}, token, writer_timer_);
    }
 
    template <class Adapter, class CompletionToken>
@@ -386,7 +338,7 @@ private:
       return boost::asio::async_compose
          < CompletionToken
          , void(boost::system::error_code, std::size_t)
-         >(detail::exec_read_op<Derived, Adapter>{&derived(), adapter, cmds}, token, resv_);
+         >(detail::exec_read_op<Derived, Adapter>{&derived(), adapter, cmds}, token, writer_timer_);
    }
 
    void stage_request(req_info& ri)
@@ -415,9 +367,6 @@ private:
    }
 
    // IO objects
-   resolver_type resv_;
-   timer_type ping_timer_;
-   timer_type check_idle_timer_;
    timer_type writer_timer_;
    timer_type read_timer_;
    push_channel_type push_channel_;
@@ -426,13 +375,6 @@ private:
    std::string write_buffer_;
    std::size_t cmds_ = 0;
    reqs_type reqs_;
-
-   // Last time we received data.
-   time_point_type last_data_;
-
-   resp3::request req_;
-   // The result of async_resolve.
-   boost::asio::ip::tcp::resolver::results_type endpoints_;
 };
 
 } // aedis
