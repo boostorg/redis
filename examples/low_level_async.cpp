@@ -6,42 +6,47 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/asio/experimental/awaitable_operators.hpp>
-#include <aedis.hpp>
 
-#include <tuple>
+#include <aedis.hpp>
+#include <aedis/src.hpp>
+
 #include <string>
 #include <iostream>
 
-// Include this in no more than one .cpp file.
-#include <aedis/src.hpp>
-
 namespace net = boost::asio;
-using namespace net::experimental::awaitable_operators;
+namespace resp3 = aedis::resp3;
 using endpoints = net::ip::tcp::resolver::results_type;
+using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
-using aedis::adapt;
 using aedis::resp3::request;
-using connection = net::use_awaitable_t<>::as_default_on_t<aedis::connection<>>;
+using aedis::adapter::adapt2;
+using net::ip::tcp;
 
 net::awaitable<void> ping(endpoints const& addrs)
 {
+   tcp_socket socket{co_await net::this_coro::executor};
+   net::connect(socket, addrs);
+
+   // Creates the request and writes to the socket.
    request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("PING");
    req.push("QUIT");
+   co_await resp3::async_write(socket, req);
 
-   std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+   // Responses
+   std::string buffer, resp;
 
-   connection conn{co_await net::this_coro::executor};
-   co_await net::async_connect(conn.next_layer(), addrs);
-   co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
+   // Reads the responses to all commands in the request.
+   auto dbuffer = net::dynamic_buffer(buffer);
+   co_await resp3::async_read(socket, dbuffer);
+   co_await resp3::async_read(socket, dbuffer, adapt2(resp));
+   co_await resp3::async_read(socket, dbuffer);
 
-   std::cout << "PING: " << std::get<1>(resp) << std::endl;
+   std::cout << "Ping: " << resp << std::endl;
 }
 
-auto main() -> int
+int main()
 {
    try {
       net::io_context ioc;
@@ -51,7 +56,6 @@ auto main() -> int
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << "Error: " << e.what() << std::endl;
-      return 1;
    }
 }
 

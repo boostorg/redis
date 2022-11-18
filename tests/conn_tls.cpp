@@ -20,7 +20,7 @@ namespace net = boost::asio;
 
 using aedis::adapt;
 using aedis::resp3::request;
-using connection = aedis::ssl::connection<net::ssl::stream<net::ip::tcp::socket>>;
+using connection = aedis::ssl::connection<>;
 
 struct endpoint {
    std::string host;

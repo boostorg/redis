@@ -25,22 +25,31 @@ namespace aedis {
  *  @tparam AsyncReadWriteStream A stream that supports reading and
  *  writing.
  */
-template <class AsyncReadWriteStream = boost::asio::ip::tcp::socket>
-class connection :
+template <class AsyncReadWriteStream>
+class basic_connection :
    private detail::connection_base<
       typename AsyncReadWriteStream::executor_type,
-      connection<AsyncReadWriteStream>> {
+      basic_connection<AsyncReadWriteStream>> {
 public:
    /// Executor type.
    using executor_type = typename AsyncReadWriteStream::executor_type;
 
    /// Type of the next layer
    using next_layer_type = AsyncReadWriteStream;
-   using base_type = detail::connection_base<executor_type, connection<AsyncReadWriteStream>>;
+
+   /// Rebinds the socket type to another executor.
+   template <class Executor1>
+   struct rebind_executor
+   {
+      /// The socket type when rebound to the specified executor.
+      using other = basic_connection<typename next_layer_type::template rebind_executor<Executor1>::other>;
+   };
+
+   using base_type = detail::connection_base<executor_type, basic_connection<AsyncReadWriteStream>>;
 
    /// Constructor
    explicit
-   connection(
+   basic_connection(
       executor_type ex,
       std::pmr::memory_resource* resource = std::pmr::get_default_resource())
    : base_type{ex, resource}
@@ -48,10 +57,10 @@ public:
    {}
 
    explicit
-   connection(
+   basic_connection(
       boost::asio::io_context& ioc,
       std::pmr::memory_resource* resource = std::pmr::get_default_resource())
-   : connection(ioc.get_executor(), resource)
+   : basic_connection(ioc.get_executor(), resource)
    { }
 
    /// Returns the associated executor.
@@ -183,7 +192,7 @@ public:
       { return base_type::cancel(op); }
 
 private:
-   using this_type = connection<next_layer_type>;
+   using this_type = basic_connection<next_layer_type>;
 
    template <class, class> friend class detail::connection_base;
    template <class, class> friend struct detail::exec_read_op;
@@ -199,6 +208,10 @@ private:
 
    AsyncReadWriteStream stream_;
 };
+
+/// A connection that uses a boost::asio::ip::tcp::socket.
+template<class Executor = boost::asio::any_io_executor>
+using connection = basic_connection<boost::asio::basic_stream_socket<boost::asio::ip::tcp, Executor>>;
 
 } // aedis
 

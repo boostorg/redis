@@ -19,12 +19,11 @@
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 
 using aedis::resp3::request;
 using aedis::operation;
 using aedis::adapt;
-using connection = aedis::connection<tcp_socket>;
+using connection = net::use_awaitable_t<>::as_default_on_t<aedis::connection<>>;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;

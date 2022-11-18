@@ -21,12 +21,11 @@
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
-using socket_t = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 
 using aedis::adapt;
 using aedis::resp3::request;
-using connection = aedis::ssl::connection<net::ssl::stream<socket_t>>;
+using connection = net::use_awaitable_t<>::as_default_on_t<aedis::ssl::connection<>>;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {

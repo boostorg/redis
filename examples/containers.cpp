@@ -4,34 +4,29 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <map>
-#include <vector>
-#include <iostream>
-
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
 #include "print.hpp"
 
+#include <map>
+#include <vector>
+#include <iostream>
+
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
+using endpoints = net::ip::tcp::resolver::results_type;
+
 using aedis::adapt;
 using aedis::resp3::request;
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using connection = aedis::connection<tcp_socket>;
-
-// To avoid verbosity.
-auto redir(boost::system::error_code& ec)
-{
-   return net::redirect_error(net::use_awaitable, ec);
-}
+using connection = net::use_awaitable_t<>::as_default_on_t<aedis::connection<>>;
 
 // Sends some containers.
-auto send(net::ip::tcp::resolver::results_type const& endpoints) -> net::awaitable<void>
+auto send(endpoints const& addrs) -> net::awaitable<void>
 {
    std::vector<int> vec
       {1, 2, 3, 4, 5, 6};
@@ -47,14 +42,12 @@ auto send(net::ip::tcp::resolver::results_type const& endpoints) -> net::awaitab
    req.push("QUIT");
 
    connection conn{co_await net::this_coro::executor};
-   co_await net::async_connect(conn.next_layer(), endpoints);
+   co_await net::async_connect(conn.next_layer(), addrs);
    co_await (conn.async_run() || conn.async_exec(req));
 }
 
 // Retrieves a Redis hash as an std::map.
-auto
-retrieve_hashes(
-   net::ip::tcp::resolver::results_type const& endpoints) -> net::awaitable<std::map<std::string, std::string>>
+auto hgetall(endpoints const& addrs) -> net::awaitable<void>
 {
    request req;
    req.get_config().cancel_on_connection_lost = true;
@@ -62,17 +55,17 @@ retrieve_hashes(
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   std::map<std::string, std::string> ret;
-   auto resp = std::tie(std::ignore, ret, std::ignore);
+   std::tuple<aedis::ignore, std::map<std::string, std::string>, aedis::ignore> resp;
 
    connection conn{co_await net::this_coro::executor};
-   co_await net::async_connect(conn.next_layer(), endpoints);
+   co_await net::async_connect(conn.next_layer(), addrs);
    co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
-   co_return std::move(ret);
+
+   print(std::get<1>(resp));
 }
 
 // Retrieves as a data structure.
-auto transaction(net::ip::tcp::resolver::results_type const& endpoints) -> net::awaitable<void>
+auto transaction(net::ip::tcp::resolver::results_type const& addrs) -> net::awaitable<void>
 {
    request req;
    req.get_config().cancel_on_connection_lost = true;
@@ -93,7 +86,7 @@ auto transaction(net::ip::tcp::resolver::results_type const& endpoints) -> net::
    > resp;
 
    connection conn{co_await net::this_coro::executor};
-   co_await net::async_connect(conn.next_layer(), endpoints);
+   co_await net::async_connect(conn.next_layer(), addrs);
    co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
 
    print(std::get<0>(std::get<4>(resp)).value());
@@ -108,8 +101,7 @@ net::awaitable<void> async_main()
 
       co_await send(addrs);
       co_await transaction(addrs);
-      auto const hashes = co_await retrieve_hashes(addrs);
-      print(hashes);
+      co_await hgetall(addrs);
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }

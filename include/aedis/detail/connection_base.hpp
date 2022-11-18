@@ -48,6 +48,8 @@ public:
    : writer_timer_{ex}
    , read_timer_{ex}
    , push_channel_{ex}
+   , read_buffer_{resource}
+   , write_buffer_{resource}
    , reqs_{resource}
    {
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
@@ -371,8 +373,8 @@ private:
    timer_type read_timer_;
    push_channel_type push_channel_;
 
-   std::string read_buffer_;
-   std::string write_buffer_;
+   std::pmr::string read_buffer_;
+   std::pmr::string write_buffer_;
    std::size_t cmds_ = 0;
    reqs_type reqs_;
 };

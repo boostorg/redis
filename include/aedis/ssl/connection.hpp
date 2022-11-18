@@ -16,7 +16,7 @@
 namespace aedis::ssl {
 
 template <class>
-class connection;
+class basic_connection;
 
 /** \brief A SSL connection to the Redis server.
  *  \ingroup high-level-api
@@ -30,21 +30,30 @@ class connection;
  *
  */
 template <class AsyncReadWriteStream>
-class connection<boost::asio::ssl::stream<AsyncReadWriteStream>> :
+class basic_connection<boost::asio::ssl::stream<AsyncReadWriteStream>> :
    private aedis::detail::connection_base<
       typename boost::asio::ssl::stream<AsyncReadWriteStream>::executor_type,
-      connection<boost::asio::ssl::stream<AsyncReadWriteStream>>> {
+      basic_connection<boost::asio::ssl::stream<AsyncReadWriteStream>>> {
 public:
    /// Type of the next layer
    using next_layer_type = boost::asio::ssl::stream<AsyncReadWriteStream>;
 
    /// Executor type.
    using executor_type = typename next_layer_type::executor_type;
-   using base_type = aedis::detail::connection_base<executor_type, connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
+
+   /// Rebinds the socket type to another executor.
+   template <class Executor1>
+   struct rebind_executor
+   {
+      /// The socket type when rebound to the specified executor.
+      using other = basic_connection<boost::asio::ssl::stream<typename AsyncReadWriteStream::template rebind_executor<Executor1>::other>>;
+   };
+
+   using base_type = aedis::detail::connection_base<executor_type, basic_connection<boost::asio::ssl::stream<AsyncReadWriteStream>>>;
 
    /// Constructor
    explicit
-   connection(
+   basic_connection(
       executor_type ex,
       boost::asio::ssl::context& ctx,
       std::pmr::memory_resource* resource = std::pmr::get_default_resource())
@@ -54,11 +63,11 @@ public:
 
    /// Constructor
    explicit
-   connection(
+   basic_connection(
       boost::asio::io_context& ioc,
       boost::asio::ssl::context& ctx,
       std::pmr::memory_resource* resource = std::pmr::get_default_resource())
-   : connection(ioc.get_executor(), ctx, resource)
+   : basic_connection(ioc.get_executor(), ctx, resource)
    { }
 
    /// Returns the associated executor.
@@ -125,7 +134,7 @@ public:
    auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
 
 private:
-   using this_type = connection<next_layer_type>;
+   using this_type = basic_connection<next_layer_type>;
 
    template <class, class> friend class aedis::detail::connection_base;
    template <class, class> friend struct aedis::detail::exec_op;
@@ -139,6 +148,12 @@ private:
 
    next_layer_type stream_;
 };
+
+template<class Executor = boost::asio::any_io_executor>
+using connection =
+   basic_connection<
+      boost::asio::ssl::stream<
+         boost::asio::basic_stream_socket<boost::asio::ip::tcp, Executor>>>;
 
 } // aedis::ssl
 

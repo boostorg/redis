@@ -13,7 +13,9 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
+
 #include "print.hpp"
+#include "reconnect.hpp"
 
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
@@ -21,16 +23,10 @@
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using stimer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::resp3::node;
-using connection = aedis::connection<tcp_socket>;
-
-// Some example code.
-#include "reconnect.ipp"
 
 /* This example will subscribe and read pushes indefinitely.
  *

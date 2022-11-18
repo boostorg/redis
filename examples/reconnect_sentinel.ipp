@@ -1,4 +1,6 @@
 
+using timer_type = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
+
 struct endpoint {
    std::string host;
    std::string port;
@@ -76,7 +78,7 @@ net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
    req.push("SUBSCRIBE", "channel");
 
    auto ex = co_await net::this_coro::executor;
-   stimer timer{ex};
+   timer_type timer{ex};
    resolver resv{ex};
    for (;;) {
       auto ep = co_await net::co_spawn(ex, resolve(), net::use_awaitable);
