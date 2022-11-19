@@ -23,9 +23,9 @@ only three library entities
 * `aedis::resp3::request`: A container of Redis commands.
 * `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
 
-The example below shows for example how to read Redis hashes in an
-`std::map` using a coroutine, a short-lived connection and
-cancellation (see containers.cpp)
+The example below shows for example how to use a short lived
+connection to read Redis hashes in an `std::map` using a coroutine
+(see containers.cpp)
 
 ```cpp
 auto hgetall(endpoints const& addrs) -> net::awaitable<void>
@@ -57,15 +57,15 @@ The `aedis::connection` is a class that provides async-only
 communication with a Redis server by means of three member
 functions
 
-* `aedis::connection::async_run`: Establishes a connection and completes only when it is lost.
-* `aedis::connection::async_exec`: Executes commands.
-* `aedis::connection::async_receive`: Receives server-side pushes.
+* `connection::async_run`: Establishes a connection and completes only when it is lost.
+* `connection::async_exec`: Executes commands.
+* `connection::async_receive`: Receives server-side pushes.
 
 In general, these operations will be running concurrently in user
 application, where, for example
 
-1. **Connect**: One coroutine will call `async_run` in a loop
-   to connect and reconnect whenever a connection is lost.
+1. **Run**: One coroutine will call `async_run` to start read
+   and write operations with the Redis server.
 2. **Execute**: Multiple coroutines will call `async_exec` independently
    and without coordination (e.g. queuing).
 3. **Receive**: One coroutine will loop on `async_receive` to receive
@@ -75,54 +75,79 @@ Each of these operations can be performed without regards to the
 others as they are independent from each other. Below we will cover
 the points above with more detail.
 
-#### Connect
+#### Run
 
-In general, applications will connect to a Redis server and hang
-around for as long as possible, until the connection is lost for some
-reason.  When that happens, simple setups will want to wait for a
-short period of time and try to reconnect. The general for of this
-loop looks like this (see reconnect.cpp)
+The code snipet above has shown how to use `connection::async_run` in
+short-lived connections, in the general case however, applications
+will connect to a Redis server and hang around for as long as
+possible, until the connection is lost for some reason.  When that
+happens, simple setups will want to wait for a short period of time
+and try to reconnect. To support this usage pattern Aedis connections
+can be reconnected _while there are pending requests and receive
+operations_.  The general for of a reconnect loop looks like this (see
+reconnect.hpp)
 
 ```cpp
 net::awaitable<void> reconnect(std::shared_ptr<connection> conn)
 {
+   request req;
+   req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3);
+   req.push("SUBSCRIBE", "channel");
+
    net::steady_timer timer{co_await net::this_coro::executor};
    for (;;) {
       boost::system::error_code ec1, ec2;
 
       // 1. Resolve the Redis host.
       // 2. Connect to one of the addresses from 1.
-      // ...
+      // ... (omited)
 
-      // 3. Start execution, sends hello and optionaly subscribes to channels.
+      // 3. Start execution, sends hello and subscribes to a channel.
       co_await (conn->async_run(redir(ec1)) && conn->async_exec(req, adapt(), redir(ec2)));
+
+      // 4. Prepares for reconnection.
       conn->reset_stream();
 
-      // 4. Waits for some time before trying to restablish the connection.
+      // 5. Waits for some time before trying to restablish the connection.
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();
    }
 }
 ```
 
-Other common scenarios are, for example, performing a failover with
-sentinels and re-subscribing to pubsub channels, both are covered in
-the `subscriber_sentinel.cpp` example.
+It is important to emphasize here that Redis servers use the old
+communication protocol RESP2 by default, therefore it is important to
+send a `HELLO 3` command everytime a connection is established.
+Another common scenarios for reconnection is, for example, a failover
+with sentinels, also covered in the `reconnect.hpp` example.
 
 #### Execute
 
 The basic idea about `async_exec` was stated above already: execute
-Redis commands. One of the most important things about it though is
+Redis commands. One of the most important things about it however is
 that it can be called multiple times without coordination, for
 example, in a HTTP or Websocket server where each session calls it
 independently to communicate with Redis. The benefits of this feature
 are manifold
 
 * Reduces code complexity as users won't have to implement queues
-  every time e.g. HTTP sessions want to share a connection to Redis.
+  every time e.g. different HTTP sessions want to share a connection to Redis.
 * A small number of connections improves the performance associated
   with [pipelines](https://redis.io/topics/pipelining). A single
   connection will be indeed enough in most of cases.
+
+There are some important things about `connection::async_exec` that
+are worth stating here
+
+* `connection::async_exec` will write a request and read the response
+  directly in the data structure passed by the user, avoiding
+  temporaries altogether.
+* Multiple calls to `async_exec` will be coalesced in a single payload
+  (pipelined) and written only once, improving performance massively.
+* Users have full control whether `async_exec` should remain suspended
+  if a connection is lost, (among other things). See
+  `aedis::resp3::request::config`.
 
 The code below illustrates this concepts in a TCP session of the
 `echo_server.cpp` example
@@ -158,9 +183,9 @@ complete.
 
 #### Receive
 
-Point number 3. above is only necessary for servers that expect server
-pushes, like, for example, when using Redis pubsub. The example below
-was taken from subscriber.cpp
+Receiving Redis pushes works similar to the `async_exec` discussed
+above but without the request.  The example below was taken from
+subscriber.cpp
 
 ```cpp
 net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
@@ -190,10 +215,9 @@ like those that may happen when using Asio awaitable operators && and
 co_await (conn.async_run(...) && conn.async_exec(...))
 ```
 
-* Useful when implementing reconnection on applications that
-  use pubsub.
-* Makes the channel re-subscribe operation simpler when the
-  connection is reestablished.
+* Useful when implementing reconnection.
+* `async_exec` is responsible for sending the `HELLO` command and
+  optionally for subscribing to channels.
 
 ```cpp
 co_await (conn.async_run(...) || conn.async_exec(...))
@@ -208,11 +232,6 @@ co_await (conn.async_exec(...) || time.async_wait(...))
 
 * Provides a way to limit how long the execution of a single request
   should last.
-* Alternatively, for a connection-wide timeout set
-  `aedis::connection::timeouts::ping_interval` to a proper value. This
-  will work because all requests use the same queue and is also more
-  efficient since only one timer will be used.
-
 * The cancellation will be ignored if the request has already
   been written to the socket.
 
@@ -220,8 +239,7 @@ co_await (conn.async_exec(...) || time.async_wait(...))
 co_await (conn.async_run(...) || time.async_wait(...))
 ```
 
-* Set a limit on how long the connection should live (see also
-  `aedis::connection::timeouts`)
+* Sets a limit on how long the connection should live.
 
 ```cpp
 co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
@@ -270,7 +288,7 @@ Sending a request to Redis is performed with `aedis::connection::async_exec` as 
 
 The `push` and `push_range` functions above work with integers
 e.g. `int` and `std::string` out of the box. To send your own
-data type defined a `to_bulk` function like this
+data type define a `to_bulk` function like this
 
 ```cpp
 // Example struct.
@@ -452,11 +470,11 @@ of an array, after the `EXEC` command comes.  For example, to read
 the response to this request
 
 ```cpp
-db.send("MULTI");
-db.send("GET", "key1");
-db.send("LRANGE", "key2", 0, -1);
-db.send("HGETALL", "key3");
-db.send("EXEC");
+req.push("MULTI");
+req.push("GET", "key1");
+req.push("LRANGE", "key2", 0, -1);
+req.push("HGETALL", "key3");
+req.push("EXEC");
 ```
 
 use the following response type
@@ -472,10 +490,10 @@ using exec_resp_type =
    >;
 
 std::tuple<
-   aedis::ignore,     // multi
-   aedis::ignore,     // get
-   aedis::ignore,     // lrange
-   aedis::ignore,     // hgetall
+   aedis::ignore,  // multi
+   aedis::ignore,  // get
+   aedis::ignore,  // lrange
+   aedis::ignore,  // hgetall
    exec_resp_type, // exec
 > resp;
 
@@ -568,11 +586,9 @@ examples below
 
 * intro.cpp: The Aedis hello-world program. It sends one command to Redis and quits the connection.
 * intro_tls.cpp: Same as intro.cpp but over TLS.
-* intro_sync.cpp: Synchronous version of intro.cpp.
 * containers.cpp: Shows how to send and receive stl containers and how to use transactions.
 * serialization.cpp: Shows how to serialize types using Boost.Json.
 * subscriber.cpp: Shows how to implement pubsub that reconnects and resubscribes when the connection is lost.
-* subscriber_sentinel.cpp: Same as subscriber.cpp but with failover with sentinels.
 * echo_server.cpp: A simple TCP echo server.
 * chat_room.cpp: A simple chat room.
 
@@ -839,11 +855,10 @@ another.
   part of making Aedis useful to a larger audience and suitable for
   the Boost review process.
 
-* The `aedis::connection` is now using `asio::basic_stream_socket` by
-  default and taking an executor as template parameter, instead of a
-  stream,  likewise for `aedis::ssl::connection`. Users that want to
-  use streams other than asio's `asio::basic_stream_socket` should now
-  specialize `aedis::basic_connection`.
+* The `aedis::connection` is now using a typeddef to a
+  `net::ip::tcp::socket` and  `aedis::ssl::connection` to
+  `net::ssl::stream<net::ip::tcp::socket>`.  Users that need to use
+  other stream type must now specialize `aedis::basic_connection`.
 
 * Adds a low level example of async code.
 

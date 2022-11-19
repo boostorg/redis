@@ -21,7 +21,7 @@
 namespace net = boost::asio;
 using aedis::resp3::request;
 using aedis::adapt;
-using connection = aedis::connection<>;
+using connection = aedis::connection;
 using namespace boost::json;
 
 struct user {

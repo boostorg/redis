@@ -19,7 +19,7 @@ namespace net = boost::asio;
 
 using aedis::resp3::request;
 using aedis::adapt;
-using connection = aedis::connection<>;
+using connection = aedis::connection;
 using error_code = boost::system::error_code;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>

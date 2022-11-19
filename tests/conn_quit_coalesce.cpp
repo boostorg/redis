@@ -19,7 +19,7 @@ namespace net = boost::asio;
 
 using aedis::adapt;
 using aedis::resp3::request;
-using connection = aedis::connection<>;
+using connection = aedis::connection;
 using error_code = boost::system::error_code;
 using operation = aedis::operation;
 

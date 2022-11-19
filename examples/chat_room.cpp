@@ -72,7 +72,7 @@ auto main() -> int
 
       co_spawn(ioc, publisher(in, conn), net::detached);
       co_spawn(ioc, push_receiver(conn), net::detached);
-      co_spawn(ioc, reconnect(conn, req), net::detached);
+      co_spawn(ioc, reconnect(conn, req, false), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

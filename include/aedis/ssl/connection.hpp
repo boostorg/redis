@@ -149,11 +149,10 @@ private:
    next_layer_type stream_;
 };
 
-template<class Executor = boost::asio::any_io_executor>
-using connection =
-   basic_connection<
-      boost::asio::ssl::stream<
-         boost::asio::basic_stream_socket<boost::asio::ip::tcp, Executor>>>;
+/** \brief A connection that uses a boost::asio::ssl::stream<boost::asio::ip::tcp::socket>.
+ *  \ingroup high-level-api
+ */
+using connection = basic_connection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>;
 
 } // aedis::ssl
 

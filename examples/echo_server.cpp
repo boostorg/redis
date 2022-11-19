@@ -59,7 +59,7 @@ auto main() -> int
       req.get_config().cancel_on_connection_lost = true;
       req.push("HELLO", 3);
 
-      co_spawn(ioc, reconnect(db, req), net::detached);
+      co_spawn(ioc, reconnect(db, req, false), net::detached);
       co_spawn(ioc, listener(db), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);

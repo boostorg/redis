@@ -65,10 +65,8 @@ auto main() -> int
       req.push("HELLO", 3);
       req.push("SUBSCRIBE", "channel");
 
-      // TODO: use only one example for reconnect and reconnect with
-      // sentinel.
       net::co_spawn(ioc, receiver(conn), net::detached);
-      net::co_spawn(ioc, reconnect(conn, req), net::detached);
+      net::co_spawn(ioc, reconnect(conn, req, false), net::detached);
 
       net::signal_set signals(ioc, SIGINT, SIGTERM);
       signals.async_wait([&](auto, auto){ ioc.stop(); });

@@ -25,7 +25,7 @@ using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>
 
 using aedis::adapt;
 using aedis::resp3::request;
-using connection = net::use_awaitable_t<>::as_default_on_t<aedis::ssl::connection<>>;
+using connection = net::use_awaitable_t<>::as_default_on_t<aedis::ssl::connection>;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {

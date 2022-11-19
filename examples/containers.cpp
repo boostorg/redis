@@ -4,15 +4,15 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <map>
+#include <vector>
+#include <iostream>
+
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
 #include "print.hpp"
-
-#include <map>
-#include <vector>
-#include <iostream>
 
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
@@ -23,7 +23,7 @@ using endpoints = net::ip::tcp::resolver::results_type;
 
 using aedis::adapt;
 using aedis::resp3::request;
-using connection = net::use_awaitable_t<>::as_default_on_t<aedis::connection<>>;
+using connection = net::use_awaitable_t<>::as_default_on_t<aedis::connection>;
 
 // Sends some containers.
 auto send(endpoints const& addrs) -> net::awaitable<void>

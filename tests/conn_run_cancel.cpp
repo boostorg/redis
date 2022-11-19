@@ -22,7 +22,7 @@ namespace net = boost::asio;
 using aedis::resp3::request;
 using aedis::operation;
 using aedis::adapt;
-using connection = aedis::connection<>;
+using connection = aedis::connection;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 
