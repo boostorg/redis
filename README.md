@@ -57,7 +57,7 @@ The `aedis::connection` is a class that provides async-only
 communication with a Redis server by means of three member
 functions
 
-* `connection::async_run`: Establishes a connection and completes only when it is lost.
+* `connection::async_run`: Establishes a connection and remains suspended until it is lost.
 * `connection::async_exec`: Executes commands.
 * `connection::async_receive`: Receives server-side pushes.
 
@@ -84,7 +84,7 @@ possible, until the connection is lost for some reason.  When that
 happens, simple setups will want to wait for a short period of time
 and try to reconnect. To support this usage pattern Aedis connections
 can be reconnected _while there are pending requests and receive
-operations_.  The general for of a reconnect loop looks like this (see
+operations_.  The general form of a reconnect loop looks like this (see
 reconnect.hpp)
 
 ```cpp
@@ -143,7 +143,7 @@ are worth stating here
 * `connection::async_exec` will write a request and read the response
   directly in the data structure passed by the user, avoiding
   temporaries altogether.
-* Multiple calls to `async_exec` will be coalesced in a single payload
+* Requests belonging to different `async_exec` will be coalesced in a single payload
   (pipelined) and written only once, improving performance massively.
 * Users have full control whether `async_exec` should remain suspended
   if a connection is lost, (among other things). See
@@ -164,7 +164,7 @@ auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> db) -> n
 
       // Echos it through Redis.
       req.push("PING", buffer);
-      co_await db->async_exec(req, adapt(response));
+      co_await conn->async_exec(req, adapt(response));
 
       // Writes is back to the user.
       co_await net::async_write(socket, net::buffer(std::get<0>(response)));
@@ -254,7 +254,7 @@ co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec
 
 ### Requests
 
-Redis requests are composed of one of more Redis commands (in
+Redis requests are composed of one or more Redis commands (in
 Redis documentation they are called
 [pipelines](https://redis.io/topics/pipelining)). For example
 
@@ -407,14 +407,14 @@ std::tuple<
 Where both are passed to `async_exec` as showed elsewhere
 
 ```cpp
-co_await db->async_exec(req, adapt(resp));
+co_await conn->async_exec(req, adapt(resp));
 ```
 
 If the intention is to ignore the response to all commands altogether
 use `adapt()` without arguments instead
 
 ```cpp
-co_await db->async_exec(req, adapt());
+co_await conn->async_exec(req, adapt());
 ```
 
 Responses that contain nested aggregates or heterogeneous data
@@ -457,7 +457,7 @@ std::tuple<
    ...
    > response;
 
-co_await db->async_exec(req, adapt(response));
+co_await conn->async_exec(req, adapt(response));
 ```
 
 Everything else stays pretty much the same.
@@ -497,7 +497,7 @@ std::tuple<
    exec_resp_type, // exec
 > resp;
 
-co_await db->async_exec(req, adapt(resp));
+co_await conn->async_exec(req, adapt(resp));
 ```
 
 For a complete example see containers.cpp.
@@ -564,7 +564,7 @@ using other types
 ```cpp
 // Receives any RESP3 simple or aggregate data type.
 std::vector<node<std::string>> resp;
-co_await db->async_exec(req, adapt(resp));
+co_await conn->async_exec(req, adapt(resp));
 ```
 
 For example, suppose we want to retrieve a hash data structure
@@ -611,8 +611,8 @@ redis-plus-plus does not support
 * The latest version of the communication protocol RESP3. Without it it is impossible to support some important Redis features like client side caching, among other things.
 * Coroutines.
 * Reading responses directly in user data structures to avoid creating temporaries.
-* Proper error handling with support for error-code.
-* Healthy checks.
+* Error handling with support for error-code.
+* Cancellation.
 
 The remaining points will be addressed individually.  Let us first
 have a look at what sending a command a pipeline and a transaction
@@ -740,7 +740,7 @@ decrease.
    * I did expect nodejs to come a little behind given it is is
      javascript code. Otherwise I did expect it to have similar
      performance to libuv since it is the framework behind it.
-   * Go did surprise me: faster than nodejs and liuv!
+   * Go did surprise me: faster than nodejs and libuv!
 
 The code used in the benchmarks can be found at
 
@@ -770,15 +770,14 @@ in the graph, the reasons are
      comes so far behind that it can't even be represented together
      with the other benchmarks without making them look insignificant.
      I don't know for sure why it is so slow, I suppose it has
-     something to do with its lack of proper
+     something to do with its lack of automatic
      [pipelining](https://redis.io/docs/manual/pipelining/) support.
      In fact, the more TCP connections I lauch the worse its
      performance gets.
 
-   * Libuv: I left it out because it would require too much work to
-     write it and make it have a good performance. More specifically,
-     I would have to use hiredis and implement support for pipelines
-     manually.
+   * Libuv: I left it out because it would require me writing to much
+     c code. More specifically, I would have to use hiredis and
+     implement support for pipelines manually.
 
 The code used in the benchmarks can be found at
 
@@ -787,6 +786,10 @@ The code used in the benchmarks can be found at
    * [go-redis](https://github.com/go-redis/redis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go)
 
 <a name="api-reference"></a>
+
+#### Conclusion
+
+Redis clients have to support automatic pipelining to have competitive performance.
 
 ## Reference
 

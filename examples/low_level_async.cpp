@@ -4,14 +4,14 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <string>
+#include <iostream>
+
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 #include <aedis.hpp>
 #include <aedis/src.hpp>
-
-#include <string>
-#include <iostream>
 
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;

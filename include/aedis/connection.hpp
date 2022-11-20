@@ -88,7 +88,6 @@ public:
     *  all requests that have been started prior to this function
     *  call.
     *
-    *  @param Redis endpoint.
     *  @param token Completion token.
     *
     *  The completion token must have the following signature
