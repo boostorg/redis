@@ -13,7 +13,6 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
-
 #include "print.hpp"
 #include "reconnect.hpp"
 
@@ -23,6 +22,7 @@
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
+using signal_set_type = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
 
 using aedis::adapt;
 using aedis::resp3::request;
@@ -54,26 +54,35 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    }
 }
 
+auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   request req;
+   req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3);
+   req.push("SUBSCRIBE", "channel");
+
+   co_await conn->async_exec(req);
+}
+
+auto async_main() -> net::awaitable<void>
+{
+   auto ex = co_await net::this_coro::executor;
+   auto conn = std::make_shared<connection>(ex);
+   signal_set_type sig{ex, SIGINT, SIGTERM};
+
+   co_await ((run(conn) || healthy_checker(conn) || sig.async_wait() || receiver(conn)) &&
+         subscriber(conn));
+}
+
 auto main() -> int
 {
    try {
-      net::io_context ioc;
-      auto conn = std::make_shared<connection>(ioc);
-
-      request req;
-      req.get_config().cancel_on_connection_lost = true;
-      req.push("HELLO", 3);
-      req.push("SUBSCRIBE", "channel");
-
-      net::co_spawn(ioc, receiver(conn), net::detached);
-      net::co_spawn(ioc, reconnect(conn, req, false), net::detached);
-
-      net::signal_set signals(ioc, SIGINT, SIGTERM);
-      signals.async_wait([&](auto, auto){ ioc.stop(); });
-
+      net::io_context ioc{1};
+      co_spawn(ioc, async_main(), net::detached);
       ioc.run();
    } catch (std::exception const& e) {
-      std::cerr << "Error: " << e.what() << std::endl;
+      std::cerr << "Exception: " << e.what() << std::endl;
+      return 1;
    }
 }
 

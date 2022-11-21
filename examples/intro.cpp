@@ -29,7 +29,7 @@ net::awaitable<void> ping(endpoints const& addrs)
    request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
-   req.push("PING");
+   req.push("PING", "Hello world");
    req.push("QUIT");
 
    std::tuple<aedis::ignore, std::string, aedis::ignore> resp;

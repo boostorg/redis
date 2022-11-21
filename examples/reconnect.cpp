@@ -17,6 +17,7 @@ using timer_type = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 
 using aedis::resp3::request;
 using aedis::adapt;
+using aedis::operation;
 
 auto redir(boost::system::error_code& ec)
    { return net::redirect_error(net::use_awaitable, ec); }
@@ -26,6 +27,46 @@ void log(char const* msg)
 
 void log(char const* msg, boost::system::error_code const& ec)
    { std::clog << msg << ec.message() << std::endl; }
+
+auto healthy_checker(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   request req;
+   req.get_config().cancel_on_connection_lost = true;
+   req.push("PING");
+
+   timer_type timer{co_await net::this_coro::executor};
+
+   for (boost::system::error_code ec1, ec2;;) {
+      timer.expires_after(std::chrono::seconds{1});
+      co_await (
+         conn->async_exec(req, adapt(), redir(ec1)) ||
+         timer.async_wait(redir(ec2))
+      );
+
+      if (ec1 || !ec2) {
+         co_return;
+      }
+
+      // Waits some time before trying the next ping.
+      timer.expires_after(std::chrono::seconds{1});
+      co_await timer.async_wait();
+   }
+}
+
+auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   resolver resv{co_await net::this_coro::executor};
+   auto const addrs = co_await resv.async_resolve("127.0.0.1", "6379");
+   // TODO: Call conn->cancel(...); on error as there might be ongoing
+   // async_exec and async_receive.
+
+   // TODO: Add a timeout to async_connect.
+   co_await net::async_connect(conn->next_layer(), addrs);
+   co_await conn->async_run();
+
+   conn->cancel(operation::exec);
+   conn->cancel(operation::receive);
+}
 
 auto reconnect_simple(std::shared_ptr<connection> conn, request req) -> net::awaitable<void>
 {

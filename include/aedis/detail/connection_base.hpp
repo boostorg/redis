@@ -279,7 +279,7 @@ private:
    template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
-   template <class, class> friend struct detail::run_op;
+   template <class> friend struct detail::run_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::exec_read_op;
    template <class> friend struct detail::send_receive_op;

@@ -33,6 +33,7 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
    return true;
 }
 
+// Pass resolved address as paramter.
 net::awaitable<void> ping()
 {
    request req;
