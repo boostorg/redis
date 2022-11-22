@@ -38,10 +38,7 @@ auto healthy_checker(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
    for (boost::system::error_code ec1, ec2;;) {
       timer.expires_after(std::chrono::seconds{1});
-      co_await (
-         conn->async_exec(req, adapt(), redir(ec1)) ||
-         timer.async_wait(redir(ec2))
-      );
+      co_await (conn->async_exec(req, adapt(), redir(ec1)) || timer.async_wait(redir(ec2)));
 
       if (ec1 || !ec2) {
          co_return;
@@ -57,10 +54,8 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    resolver resv{co_await net::this_coro::executor};
    auto const addrs = co_await resv.async_resolve("127.0.0.1", "6379");
-   // TODO: Call conn->cancel(...); on error as there might be ongoing
-   // async_exec and async_receive.
 
-   // TODO: Add a timeout to async_connect.
+   // Starts low-level read/write operations.
    co_await net::async_connect(conn->next_layer(), addrs);
    co_await conn->async_run();
 
@@ -78,16 +73,10 @@ auto reconnect_simple(std::shared_ptr<connection> conn, request req) -> net::awa
       boost::system::error_code ec1, ec2;
 
       timer.expires_after(std::chrono::seconds{10});
-      auto const addrs = co_await (
-         resv.async_resolve("127.0.0.1", "6379") ||
-         timer.async_wait()
-      );
+      auto const addrs = co_await (resv.async_resolve("127.0.0.1", "6379") || timer.async_wait());
 
       timer.expires_after(std::chrono::seconds{5});
-      co_await (
-         conn->next_layer().async_connect(*std::get<0>(addrs).begin(), redir(ec1)) ||
-         timer.async_wait()
-      );
+      co_await (conn->next_layer().async_connect(*std::get<0>(addrs).begin(), redir(ec1)) || timer.async_wait());
 
       log("async_connect: ", ec1);
 
@@ -138,10 +127,7 @@ auto resolve_master_address(std::vector<endpoint> const& endpoints) -> net::awai
       //co_await net::async_connect(conn->next_layer(), endpoints, redir(ec1));
       co_await net::async_connect(conn.next_layer(), endpoints);
 
-      co_await (
-         conn.async_run(redir(ec1)) &&
-         conn.async_exec(req, adapt(addr), redir(ec2))
-      );
+      co_await (conn.async_run(redir(ec1)) && conn.async_exec(req, adapt(addr), redir(ec2)));
 
       log("async_run: ", ec1);
       log("async_exec: ", ec2);

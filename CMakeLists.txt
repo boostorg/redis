@@ -21,6 +21,7 @@ target_include_directories(aedis INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+
 target_link_libraries(aedis
   INTERFACE
     Boost::asio
@@ -55,7 +56,7 @@ include_directories(include)
 
 #add_executable(intro_sync examples/intro_sync.cpp) // Uncomment after update to Boost 1.80
 add_executable(chat_room examples/chat_room.cpp examples/reconnect.cpp)
-add_executable(containers examples/containers.cpp)
+add_executable(containers examples/containers.cpp examples/reconnect.cpp)
 add_executable(echo_server examples/echo_server.cpp examples/reconnect.cpp)
 add_executable(echo_server_client benchmarks/cpp/asio/echo_server_client.cpp)
 add_executable(echo_server_direct benchmarks/cpp/asio/echo_server_direct.cpp)
@@ -63,7 +64,7 @@ add_executable(intro examples/intro.cpp)
 add_executable(intro_tls examples/intro_tls.cpp)
 add_executable(low_level_sync examples/low_level_sync.cpp)
 add_executable(low_level_async examples/low_level_async.cpp)
-add_executable(serialization examples/serialization.cpp)
+add_executable(serialization examples/serialization.cpp examples/reconnect.cpp)
 add_executable(subscriber examples/subscriber.cpp examples/reconnect.cpp)
 add_executable(test_conn_exec tests/conn_exec.cpp)
 add_executable(test_conn_push tests/conn_push.cpp)
@@ -86,7 +87,7 @@ target_compile_features(intro PUBLIC cxx_std_20)
 target_compile_features(intro_tls PUBLIC cxx_std_20)
 target_compile_features(low_level_sync PUBLIC cxx_std_17)
 target_compile_features(low_level_async PUBLIC cxx_std_20)
-target_compile_features(serialization PUBLIC cxx_std_17)
+target_compile_features(serialization PUBLIC cxx_std_20)
 target_compile_features(subscriber PUBLIC cxx_std_20)
 target_compile_features(test_conn_exec PUBLIC cxx_std_20)
 target_compile_features(test_conn_push PUBLIC cxx_std_20)
