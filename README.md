@@ -865,7 +865,7 @@ another.
 
 ## Changelog
 
-### master
+### v1.3.0
 
 * Removes automatic sending of the `HELLO` command. This can't be
   implemented properly without bloating the connection class. It is
