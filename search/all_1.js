@@ -1,7 +1,9 @@
 var searchData=
 [
-  ['big_5fnumber_0',['big_number',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab040dba39a0590fc59cb721cc33d4d5e',1,'aedis::resp3']]],
-  ['blob_5ferror_1',['blob_error',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5',1,'aedis::resp3']]],
-  ['blob_5fstring_2',['blob_string',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a25d949a9cf13c0b450d0e51e1d024b36',1,'aedis::resp3']]],
-  ['boolean_3',['boolean',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a84e2c64f38f78ba3ea5c905ab5a2da27',1,'aedis::resp3']]]
+  ['basic_5fconnection_0',['basic_connection',['../classaedis_1_1basic__connection.html',1,'aedis::basic_connection&lt; AsyncReadWriteStream &gt;'],['../classaedis_1_1basic__connection.html#a094e1b996645d5ecef12e5c5f6fa0d5e',1,'aedis::basic_connection::basic_connection()'],['../classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a137d4455c65e2eddcd72510872c87d49',1,'aedis::ssl::basic_connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::basic_connection(executor_type ex, boost::asio::ssl::context &amp;ctx, std::pmr::memory_resource *resource=std::pmr::get_default_resource())'],['../classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a21df79389e98d2e209f29e8725097f37',1,'aedis::ssl::basic_connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::basic_connection(boost::asio::io_context &amp;ioc, boost::asio::ssl::context &amp;ctx, std::pmr::memory_resource *resource=std::pmr::get_default_resource())']]],
+  ['basic_5fconnection_3c_20boost_3a_3aasio_3a_3assl_3a_3astream_3c_20asyncreadwritestream_20_3e_20_3e_1',['basic_connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;',['../classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html',1,'aedis::ssl']]],
+  ['big_5fnumber_2',['big_number',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab040dba39a0590fc59cb721cc33d4d5e',1,'aedis::resp3']]],
+  ['blob_5ferror_3',['blob_error',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5',1,'aedis::resp3']]],
+  ['blob_5fstring_4',['blob_string',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a25d949a9cf13c0b450d0e51e1d024b36',1,'aedis::resp3']]],
+  ['boolean_5',['boolean',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a84e2c64f38f78ba3ea5c905ab5a2da27',1,'aedis::resp3']]]
 ];

@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['operator_3c_3c_0',['operator&lt;&lt;',['../structaedis_1_1resp3_1_1node.html#af9ae33068af7e76d1e3605adb40ef762',1,'aedis::resp3::node::operator&lt;&lt;()'],['../group__high-level-api.html#ga59a01d6e56b2afb270a045e2b79cb64b',1,'aedis::resp3::operator&lt;&lt;()']]],
-  ['operator_3d_3d_1',['operator==',['../structaedis_1_1resp3_1_1node.html#a2ffd7c2ffcf18e82ac771609e6899541',1,'aedis::resp3::node']]]
+  ['next_5flayer_0',['next_layer',['../classaedis_1_1basic__connection.html#a98a6bf065f054d7f35f8084675cc8e85',1,'aedis::basic_connection::next_layer() noexcept -&gt; auto &amp;'],['../classaedis_1_1basic__connection.html#a9b3246fee4afd0d8d60cc2e0ea6f24cc',1,'aedis::basic_connection::next_layer() const noexcept -&gt; auto const &amp;'],['../classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a2edf602750c582aa51b4f5db13f5d278',1,'aedis::ssl::basic_connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::next_layer() noexcept'],['../classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a85624d24ce2847755d3afdb7d579ce5c',1,'aedis::ssl::basic_connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::next_layer() const noexcept']]]
 ];

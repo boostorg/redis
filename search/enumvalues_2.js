@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['connect_5ftimeout_0',['connect_timeout',['../group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa68fe378b7acbea462cde519f2d27ed71',1,'aedis']]]
+  ['doublean_0',['doublean',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab8a898635de34303ffbaf667a8d9f495',1,'aedis::resp3']]]
 ];

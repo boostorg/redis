@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['executor_5ftype_0',['executor_type',['../classaedis_1_1connection.html#abb0fd720745590669c556dcea25bc3f4',1,'aedis::connection::executor_type()'],['../classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#ac1c6b3d9be558dc63599b05945812581',1,'aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::executor_type()']]]
+  ['connection_0',['connection',['../group__high-level-api.html#gaa3f4386285ec5342bdc53068c0b09ab3',1,'aedis::connection()'],['../group__high-level-api.html#ga9660738285442648d2c1ecc3b1ca7a00',1,'aedis::ssl::connection()']]]
 ];

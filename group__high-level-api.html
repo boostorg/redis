@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.2.0</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.0</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -81,15 +81,12 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1connection.html">aedis::connection&lt; AsyncReadWriteStream &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A connection to the Redis server.  <a href="classaedis_1_1connection.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1basic__connection.html">aedis::basic_connection&lt; AsyncReadWriteStream &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A connection to the Redis server.  <a href="classaedis_1_1basic__connection.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html">aedis::ssl::connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A SSL connection to the Redis server.  <a href="classaedis_1_1ssl_1_1connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html">aedis::ssl::basic_connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A SSL connection to the Redis server.  <a href="classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:structaedis_1_1endpoint"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__high-level-api.html#structaedis_1_1endpoint">aedis::endpoint</a></td></tr>
-<tr class="memdesc:structaedis_1_1endpoint"><td class="mdescLeft">&#160;</td><td class="mdescRight">A Redis endpoint.  <a href="group__high-level-api.html#structaedis_1_1endpoint">More...</a><br /></td></tr>
-<tr class="separator:structaedis_1_1endpoint"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node&lt; String &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A node in the response tree.  <a href="structaedis_1_1resp3_1_1node.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -99,6 +96,14 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
+<tr class="memitem:gaa3f4386285ec5342bdc53068c0b09ab3"><td class="memItemLeft" align="right" valign="top"><a id="gaa3f4386285ec5342bdc53068c0b09ab3" name="gaa3f4386285ec5342bdc53068c0b09ab3"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>aedis::connection</b> = <a class="el" href="classaedis_1_1basic__connection.html">basic_connection</a>&lt; boost::asio::ip::tcp::socket &gt;</td></tr>
+<tr class="memdesc:gaa3f4386285ec5342bdc53068c0b09ab3"><td class="mdescLeft">&#160;</td><td class="mdescRight">A connection that uses a boost::asio::ip::tcp::socket. <br /></td></tr>
+<tr class="separator:gaa3f4386285ec5342bdc53068c0b09ab3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9660738285442648d2c1ecc3b1ca7a00"><td class="memItemLeft" align="right" valign="top"><a id="ga9660738285442648d2c1ecc3b1ca7a00" name="ga9660738285442648d2c1ecc3b1ca7a00"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>aedis::ssl::connection</b> = basic_connection&lt; boost::asio::ssl::stream&lt; boost::asio::ip::tcp::socket &gt; &gt;</td></tr>
+<tr class="memdesc:ga9660738285442648d2c1ecc3b1ca7a00"><td class="mdescLeft">&#160;</td><td class="mdescRight">A connection that uses a boost::asio::ssl::stream&lt;boost::asio::ip::tcp::socket&gt;. <br /></td></tr>
+<tr class="separator:ga9660738285442648d2c1ecc3b1ca7a00"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0d619e51ab37f7854e7218a061900820"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a> = adapter::detail::ignore</td></tr>
 <tr class="memdesc:ga0d619e51ab37f7854e7218a061900820"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tag used to ignore responses.  <a href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">More...</a><br /></td></tr>
 <tr class="separator:ga0d619e51ab37f7854e7218a061900820"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -133,57 +138,6 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p >This page contains the documentation of the Aedis high-level API. </p>
-<hr/><h2 class="groupheader">Class Documentation</h2>
-<a name="structaedis_1_1endpoint" id="structaedis_1_1endpoint"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#structaedis_1_1endpoint">&#9670;&nbsp;</a></span>aedis::endpoint</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct aedis::endpoint</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<div class="textblock"><p >A Redis endpoint. </p>
-
-<p class="definition">Definition at line <a class="el" href="endpoint_8hpp_source.html#l00017">17</a> of file <a class="el" href="endpoint_8hpp_source.html">endpoint.hpp</a>.</p>
-</div><table class="fieldtable">
-<tr><th colspan="3">Class Members</th></tr>
-<tr><td class="fieldtype">
-<a id="a3449bc6f7a6bf43dc4ed4dea2cadc38b" name="a3449bc6f7a6bf43dc4ed4dea2cadc38b"></a>string</td>
-<td class="fieldname">
-host</td>
-<td class="fielddoc">
-Redis server address. </td></tr>
-<tr><td class="fieldtype">
-<a id="a1eff750c70b5e42e9e483f540340a405" name="a1eff750c70b5e42e9e483f540340a405"></a>string</td>
-<td class="fieldname">
-password</td>
-<td class="fielddoc">
-Password if authentication is required. </td></tr>
-<tr><td class="fieldtype">
-<a id="aef69172079dfa8cba7188040183c96e0" name="aef69172079dfa8cba7188040183c96e0"></a>string</td>
-<td class="fieldname">
-port</td>
-<td class="fielddoc">
-Redis server port. </td></tr>
-<tr><td class="fieldtype">
-<a id="a117002a65e8eafe515691de66e198ff8" name="a117002a65e8eafe515691de66e198ff8"></a>string</td>
-<td class="fieldname">
-role</td>
-<td class="fielddoc">
-Expected role if any. </td></tr>
-<tr><td class="fieldtype">
-<a id="afafa237b7e1a77ec0231e7e83c509e80" name="afafa237b7e1a77ec0231e7e83c509e80"></a>string</td>
-<td class="fieldname">
-username</td>
-<td class="fielddoc">
-Username if authentication is required. </td></tr>
-</table>
-
-</div>
-</div>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="ga0d619e51ab37f7854e7218a061900820" name="ga0d619e51ab37f7854e7218a061900820"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga0d619e51ab37f7854e7218a061900820">&#9670;&nbsp;</a></span>ignore</h2>
@@ -229,15 +183,7 @@ Username if authentication is required. </td></tr>
 
 <p>Generic errors. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa1aadcfc9d4ed9466a35fbbf2e8e9da00" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa1aadcfc9d4ed9466a35fbbf2e8e9da00"></a>resolve_timeout&#160;</td><td class="fielddoc"><p >Resolve timeout. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa68fe378b7acbea462cde519f2d27ed71" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa68fe378b7acbea462cde519f2d27ed71"></a>connect_timeout&#160;</td><td class="fielddoc"><p >Connect timeout. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baaa89ad1b8aaa085e108ffd59e1b60c232" name="gga1833aa5e140bbaa9d319ecb1a71bd8baaa89ad1b8aaa085e108ffd59e1b60c232"></a>idle_timeout&#160;</td><td class="fielddoc"><p >Idle timeout. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baad6d3a349f3028c34531329e0ed11a749" name="gga1833aa5e140bbaa9d319ecb1a71bd8baad6d3a349f3028c34531329e0ed11a749"></a>exec_timeout&#160;</td><td class="fielddoc"><p >Exec timeout. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baae8c616c26029d0c1cce5d1be03f8095b" name="gga1833aa5e140bbaa9d319ecb1a71bd8baae8c616c26029d0c1cce5d1be03f8095b"></a>invalid_data_type&#160;</td><td class="fielddoc"><p >Invalid RESP3 type. </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baae8c616c26029d0c1cce5d1be03f8095b" name="gga1833aa5e140bbaa9d319ecb1a71bd8baae8c616c26029d0c1cce5d1be03f8095b"></a>invalid_data_type&#160;</td><td class="fielddoc"><p >Invalid RESP3 type. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa397fbfb003cc70661a3a35ff6a4aecdd" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa397fbfb003cc70661a3a35ff6a4aecdd"></a>not_a_number&#160;</td><td class="fielddoc"><p >Can't parse the string as a number. </p>
 </td></tr>
@@ -267,13 +213,7 @@ Username if authentication is required. </td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa7efb28b4bcad515049a042bc6b6c944b" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa7efb28b4bcad515049a042bc6b6c944b"></a>resp3_null&#160;</td><td class="fielddoc"><p >Got RESP3 null. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa72a58510e4bd5f265721fcb3e22336e2" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa72a58510e4bd5f265721fcb3e22336e2"></a>unexpected_server_role&#160;</td><td class="fielddoc"><p >Unexpected server role. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa75083d065f281806e339f2bf9c19951b" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa75083d065f281806e339f2bf9c19951b"></a>ssl_handshake_timeout&#160;</td><td class="fielddoc"><p >SSL handshake timeout. </p>
-</td></tr>
 <tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa69c2dbb5917ca550a862e9c1c839bca1" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa69c2dbb5917ca550a862e9c1c839bca1"></a>not_connected&#160;</td><td class="fielddoc"><p >There is no stablished connection. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1833aa5e140bbaa9d319ecb1a71bd8baa0a136c9aa0cf147a91fd94689b2016ea" name="gga1833aa5e140bbaa9d319ecb1a71bd8baa0a136c9aa0cf147a91fd94689b2016ea"></a>resp3_handshake_error&#160;</td><td class="fielddoc"><p >RESP3 handshake error (HELLO command). </p>
 </td></tr>
 </table>
 
@@ -302,13 +242,13 @@ Username if authentication is required. </td></tr>
 </div><div class="memdoc">
 
 <p>Connection operations that can be cancelled. </p>
-<p >The operations listed below can be passed to the <code><a class="el" href="classaedis_1_1connection.html#a114105726f94e52215c1ea2a9f8600d8" title="Cancel operations.">aedis::connection::cancel</a></code> member function. </p>
+<p >The operations listed below can be passed to the <code><a class="el" href="classaedis_1_1basic__connection.html#a6031e4ec3662db74a0ce94e0877bae12" title="Cancel operations.">aedis::connection::cancel</a></code> member function. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bca52fb3679b07eb74d90784e612ca5cb30" name="ggadcfe42e0996c05d14fe5f8bacce384bca52fb3679b07eb74d90784e612ca5cb30"></a>exec&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1connection.html#a74065e41d97eb1388f3d081b3195c4ff" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> operations. </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bca52fb3679b07eb74d90784e612ca5cb30" name="ggadcfe42e0996c05d14fe5f8bacce384bca52fb3679b07eb74d90784e612ca5cb30"></a>exec&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1basic__connection.html#a4d7f180e64db5d4e07f7c62b3aa931d4" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> operations. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6" name="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6"></a>run&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1connection.html#ab13b8c7ea4e3c41faec732e048188558" title="Establishes a connection with the Redis server asynchronously.">connection::async_run</a></code> operations. </p>
+<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6" name="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6"></a>run&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1basic__connection.html#a821df744a8c7e63f98e73608329fa1d7" title="Establishes a connection with the Redis server asynchronously.">connection::async_run</a></code> operations. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd" name="ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd"></a>receive&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1connection.html#a98ea9deb9246ece128faea63aa8602f8" title="Receives server side pushes asynchronously.">connection::async_receive</a></code> operations. </p>
+<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd" name="ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd"></a>receive&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1basic__connection.html#ac865f2f3339856b4bbe233e353a3a6b3" title="Receives server side pushes asynchronously.">connection::async_receive</a></code> operations. </p>
 </td></tr>
 </table>
 
