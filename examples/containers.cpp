@@ -4,26 +4,33 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <map>
-#include <vector>
-#include <iostream>
-
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
-#include "print.hpp"
-#include "reconnect.hpp"
+#include <map>
+#include <vector>
 
-// Include this in no more than one .cpp file.
-#include <aedis/src.hpp>
+#include "common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
 
-// Sends some containers.
+void print(std::map<std::string, std::string> const& cont)
+{
+   for (auto const& e: cont)
+      std::cout << e.first << ": " << e.second << "\n";
+}
+
+void print(std::vector<int> const& cont)
+{
+   for (auto const& e: cont) std::cout << e << " ";
+   std::cout << "\n";
+}
+
+// Stores the content of some STL containers in Redis.
 auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    std::vector<int> vec
@@ -91,22 +98,14 @@ net::awaitable<void> async_main()
 
    // Uses short-lived connections to store and retrieve the
    // containers.
-   co_await (run(conn) || store(conn));
-   co_await (run(conn) || hgetall(conn));
-   co_await (run(conn) || transaction(conn));
+   co_await connect(conn, "127.0.0.1", "6379");
+   co_await (conn->async_run() || store(conn));
+
+   co_await connect(conn, "127.0.0.1", "6379");
+   co_await (conn->async_run() || hgetall(conn));
+
+   co_await connect(conn, "127.0.0.1", "6379");
+   co_await (conn->async_run() || transaction(conn));
 }
 
-auto main() -> int
-{
-   try {
-      net::io_context ioc;
-      net::co_spawn(ioc, async_main(), net::detached);
-      ioc.run();
-   } catch (...) {
-      std::cerr << "Error." << std::endl;
-   }
-}
-
-#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
-auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 0;}
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

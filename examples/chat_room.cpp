@@ -4,30 +4,23 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <string>
-#include <iostream>
-#include "unistd.h"
-
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
-#include "print.hpp"
-#include "reconnect.hpp"
+#include <unistd.h>
 
-// Include this in no more than one .cpp file.
-#include <aedis/src.hpp>
+#include "common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::stream_descriptor>;
 using signal_set_type = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
-
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::resp3::node;
 
-// Chat over redis pubsub. To test, run this program from different
+// Chat over Redis pubsub. To test, run this program from different
 // terminals and type messages to stdin.
 
 // Receives Redis server-side pushes.
@@ -35,12 +28,12 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    for (std::vector<node<std::string>> resp;;) {
       co_await conn->async_receive(adapt(resp));
-      print_push(resp);
+      std::cout << resp.at(1).value << " " << resp.at(2).value << " " << resp.at(3).value << std::endl;
       resp.clear();
    }
 }
 
-// Publishes messages to other users.
+// Publishes stdin messages to a Redis channel.
 auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    for (std::string msg;;) {
@@ -52,8 +45,6 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
    }
 }
 
-// Sends HELLO and subscribes to channel everytime a connection is
-// stablished.
 auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    request req;
@@ -71,22 +62,9 @@ auto async_main() -> net::awaitable<void>
    auto stream = std::make_shared<stream_descriptor>(ex, ::dup(STDIN_FILENO));
    signal_set_type sig{ex, SIGINT, SIGTERM};
 
-   co_await ((run(conn) || publisher(stream, conn) || receiver(conn) ||
+   co_await connect(conn, "127.0.0.1", "6379");
+   co_await ((conn->async_run() || publisher(stream, conn) || receiver(conn) ||
          healthy_checker(conn) || sig.async_wait()) && subscriber(conn));
 }
 
-auto main() -> int
-{
-   try {
-      net::io_context ioc{1};
-      co_spawn(ioc, async_main(), net::detached);
-      ioc.run();
-   } catch (std::exception const& e) {
-      std::cerr << "Exception: " << e.what() << std::endl;
-      return 1;
-   }
-}
-
-#else // defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
-auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 0;}
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)

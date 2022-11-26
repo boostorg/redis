@@ -51,6 +51,7 @@
         "CMAKE_CXX_FLAGS": "-Wall -Wextra -fsanitize=address",
         "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_COMPILER": "clang++-11",
         "PROJECT_BINARY_DIR": "${sourceDir}/build/dev",
         "DOXYGEN_OUTPUT_DIRECTORY": "${sourceDir}/build/dev/doc/"
       }

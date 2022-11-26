@@ -51,21 +51,59 @@ find_package(OpenSSL REQUIRED)
 enable_testing()
 include_directories(include)
 
+# Main function for the examples.
+#=======================================================================
+
+add_library(common STATIC examples/common.cpp)
+target_compile_features(common PUBLIC cxx_std_20)
+
 # Executables
 #=======================================================================
 
 #add_executable(intro_sync examples/intro_sync.cpp) // Uncomment after update to Boost 1.80
-add_executable(chat_room examples/chat_room.cpp examples/reconnect.cpp)
-add_executable(containers examples/containers.cpp examples/reconnect.cpp)
-add_executable(echo_server examples/echo_server.cpp examples/reconnect.cpp)
+
+add_executable(intro examples/intro.cpp)
+target_link_libraries(intro common)
+target_compile_features(intro PUBLIC cxx_std_20)
+add_test(intro intro)
+
+add_executable(chat_room examples/chat_room.cpp)
+target_compile_features(chat_room PUBLIC cxx_std_20)
+target_link_libraries(chat_room common)
+
+add_executable(containers examples/containers.cpp)
+target_compile_features(containers PUBLIC cxx_std_20)
+target_link_libraries(containers common)
+add_test(containers containers)
+
+add_executable(echo_server examples/echo_server.cpp)
+target_compile_features(echo_server PUBLIC cxx_std_20)
+target_link_libraries(echo_server common)
+
+add_executable(resolve_with_sentinel examples/resolve_with_sentinel.cpp)
+target_compile_features(resolve_with_sentinel PUBLIC cxx_std_20)
+target_link_libraries(resolve_with_sentinel common)
+add_test(resolve_with_sentinel resolve_with_sentinel)
+
+add_executable(serialization examples/serialization.cpp)
+target_compile_features(serialization PUBLIC cxx_std_20)
+target_link_libraries(serialization common)
+add_test(serialization serialization)
+
+add_executable(subscriber examples/subscriber.cpp)
+target_compile_features(subscriber PUBLIC cxx_std_20)
+target_link_libraries(subscriber common)
+
+add_executable(intro_tls examples/intro_tls.cpp)
+target_compile_features(intro_tls PUBLIC cxx_std_20)
+add_test(intro_tls intro_tls)
+target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL)
+target_link_libraries(intro_tls common)
+
 add_executable(echo_server_client benchmarks/cpp/asio/echo_server_client.cpp)
 add_executable(echo_server_direct benchmarks/cpp/asio/echo_server_direct.cpp)
-add_executable(intro examples/intro.cpp)
-add_executable(intro_tls examples/intro_tls.cpp)
 add_executable(low_level_sync examples/low_level_sync.cpp)
 add_executable(low_level_async examples/low_level_async.cpp)
-add_executable(serialization examples/serialization.cpp examples/reconnect.cpp)
-add_executable(subscriber examples/subscriber.cpp examples/reconnect.cpp)
 add_executable(test_conn_exec tests/conn_exec.cpp)
 add_executable(test_conn_push tests/conn_push.cpp)
 add_executable(test_conn_quit tests/conn_quit.cpp)
@@ -78,17 +116,10 @@ add_executable(test_conn_exec_cancel tests/conn_exec_cancel.cpp)
 add_executable(test_conn_echo_stress tests/conn_echo_stress.cpp)
 add_executable(test_request tests/request.cpp)
 
-target_compile_features(chat_room PUBLIC cxx_std_20)
-target_compile_features(containers PUBLIC cxx_std_20)
-target_compile_features(echo_server PUBLIC cxx_std_20)
 target_compile_features(echo_server_client PUBLIC cxx_std_20)
 target_compile_features(echo_server_direct PUBLIC cxx_std_20)
-target_compile_features(intro PUBLIC cxx_std_20)
-target_compile_features(intro_tls PUBLIC cxx_std_20)
 target_compile_features(low_level_sync PUBLIC cxx_std_17)
 target_compile_features(low_level_async PUBLIC cxx_std_20)
-target_compile_features(serialization PUBLIC cxx_std_20)
-target_compile_features(subscriber PUBLIC cxx_std_20)
 target_compile_features(test_conn_exec PUBLIC cxx_std_20)
 target_compile_features(test_conn_push PUBLIC cxx_std_20)
 target_compile_features(test_conn_quit PUBLIC cxx_std_17)
@@ -101,17 +132,12 @@ target_compile_features(test_conn_exec_cancel PUBLIC cxx_std_20)
 target_compile_features(test_conn_echo_stress PUBLIC cxx_std_20)
 target_compile_features(test_request PUBLIC cxx_std_17)
 
-target_link_libraries(intro_tls OpenSSL::Crypto OpenSSL::SSL)
 target_link_libraries(test_conn_tls OpenSSL::Crypto OpenSSL::SSL)
 
 # Tests
 #=======================================================================
 
-add_test(containers containers)
-add_test(intro intro)
-add_test(intro_tls intro_tls)
 #add_test(intro_sync intro_sync)
-add_test(serialization serialization)
 add_test(low_level_sync low_level_sync)
 add_test(low_level_async low_level_async)
 add_test(test_low_level test_low_level)

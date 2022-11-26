@@ -199,7 +199,7 @@ private:
    template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
-   template <class, class> friend struct detail::run_op;
+   template <class> friend struct detail::run_op;
 
    void close() { stream_.close(); }
    auto is_open() const noexcept { return stream_.is_open(); }

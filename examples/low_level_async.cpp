@@ -17,7 +17,6 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 using endpoints = net::ip::tcp::resolver::results_type;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-
 using aedis::resp3::request;
 using aedis::adapter::adapt2;
 using net::ip::tcp;

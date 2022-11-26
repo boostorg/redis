@@ -138,10 +138,11 @@ private:
 
    template <class, class> friend class aedis::detail::connection_base;
    template <class, class> friend struct aedis::detail::exec_op;
+   template <class, class> friend struct aedis::detail::exec_read_op;
+   template <class, class> friend struct detail::receive_op;
    template <class> friend struct aedis::detail::run_op;
    template <class> friend struct aedis::detail::writer_op;
    template <class> friend struct aedis::detail::reader_op;
-   template <class, class> friend struct aedis::detail::exec_read_op;
 
    auto is_open() const noexcept { return stream_.next_layer().is_open(); }
    void close() { stream_.next_layer().close(); }

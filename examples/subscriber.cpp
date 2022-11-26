@@ -4,26 +4,18 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <string>
-#include <vector>
-#include <iostream>
-#include <tuple>
-
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
-#include "print.hpp"
-#include "reconnect.hpp"
 
-// Include this in no more than one .cpp file.
-#include <aedis/src.hpp>
+#include "common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using signal_set_type = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
-
+using timer_type = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using aedis::adapt;
 using aedis::resp3::request;
 using aedis::resp3::node;
@@ -49,19 +41,9 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    for (std::vector<node<std::string>> resp;;) {
       co_await conn->async_receive(adapt(resp));
-      print_push(resp);
+      std::cout << resp.at(1).value << " " << resp.at(2).value << " " << resp.at(3).value << std::endl;
       resp.clear();
    }
-}
-
-auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.get_config().cancel_on_connection_lost = true;
-   req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "channel");
-
-   co_await conn->async_exec(req);
 }
 
 auto async_main() -> net::awaitable<void>
@@ -69,23 +51,22 @@ auto async_main() -> net::awaitable<void>
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
    signal_set_type sig{ex, SIGINT, SIGTERM};
+   timer_type timer{ex};
 
-   co_await ((run(conn) || healthy_checker(conn) || sig.async_wait() || receiver(conn)) &&
-         subscriber(conn));
-}
+   request req;
+   req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3);
+   req.push("SUBSCRIBE", "channel");
 
-auto main() -> int
-{
-   try {
-      net::io_context ioc{1};
-      co_spawn(ioc, async_main(), net::detached);
-      ioc.run();
-   } catch (std::exception const& e) {
-      std::cerr << "Exception: " << e.what() << std::endl;
-      return 1;
+   // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
+   for (;;) {
+      co_await connect(conn, "127.0.0.1", "6379");
+      co_await ((conn->async_run() || healthy_checker(conn) || sig.async_wait() ||
+               receiver(conn)) && conn->async_exec(req));
+      conn->reset_stream();
+      timer.expires_after(std::chrono::seconds{1});
+      co_await timer.async_wait();
    }
 }
 
-#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
-auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 0;}
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

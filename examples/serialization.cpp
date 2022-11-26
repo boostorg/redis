@@ -4,6 +4,12 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/asio.hpp>
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/experimental/awaitable_operators.hpp>
+#include <boost/json.hpp>
+#include <aedis.hpp>
+#include "common.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
@@ -11,16 +17,7 @@
 #include <iterator>
 #include <string>
 
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/asio/experimental/awaitable_operators.hpp>
-#include <boost/json.hpp>
-#include <aedis.hpp>
-#include "print.hpp"
-#include "reconnect.hpp"
-
 // Include this in no more than one .cpp file.
-#include <aedis/src.hpp>
 #include <boost/json/src.hpp>
 
 namespace net = boost::asio;
@@ -47,17 +44,17 @@ void tag_invoke(value_from_tag, value& jv, user const& u)
 template<class T>
 void extract(object const& obj, T& t, boost::string_view key)
 {
-    t = value_to<T>(obj.at(key));
+   t = value_to<T>(obj.at(key));
 }
 
 auto tag_invoke(value_to_tag<user>, value const& jv)
 {
-    user u;
-    object const& obj = jv.as_object();
-    extract(obj, u.name, "name");
-    extract(obj, u.age, "age");
-    extract(obj, u.country, "country");
-    return u;
+   user u;
+   object const& obj = jv.as_object();
+   extract(obj, u.name, "name");
+   extract(obj, u.age, "age");
+   extract(obj, u.country, "country");
+   return u;
 }
 
 // Serializes
@@ -87,7 +84,7 @@ auto operator<(user const& a, user const& b)
    return std::tie(a.name, a.age, a.country) < std::tie(b.name, b.age, b.country);
 }
 
-net::awaitable<void> exec(std::shared_ptr<connection> conn)
+net::awaitable<void> async_main()
 {
    std::set<user> users
       {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
@@ -101,30 +98,12 @@ net::awaitable<void> exec(std::shared_ptr<connection> conn)
 
    std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
 
-   co_await conn->async_exec(req, adapt(resp));
-
-   // Print
-   print(std::get<2>(resp));
-}
-
-net::awaitable<void> async_main()
-{
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   co_await connect(conn, "127.0.0.1", "6379");
+   co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
 
-   co_await (run(conn) || exec(conn));
+   for (auto const& e: std::get<2>(resp))
+      std::cout << e << "\n";
 }
 
-auto main() -> int
-{
-   try {
-      net::io_context ioc;
-      net::co_spawn(ioc, async_main(), net::detached);
-      ioc.run();
-   } catch (...) {
-      std::cerr << "Error." << std::endl;
-   }
-}
-
-#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
-auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 0;}
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
