@@ -35,6 +35,7 @@ auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) ->
    }
 }
 
+// Listens for tcp connections.
 auto listener(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
@@ -43,6 +44,7 @@ auto listener(std::shared_ptr<connection> conn) -> net::awaitable<void>
       net::co_spawn(ex, echo_server_session(co_await acc.async_accept(), conn), net::detached);
 }
 
+// Called from the main function (see common.cpp)
 auto async_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;

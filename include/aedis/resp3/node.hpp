@@ -38,10 +38,10 @@ struct node {
    String value{};
 };
 
-/** @brief Converts the node to a string.
- *  @relates node
+/** \brief Converts the node to a string.
+ *  \relates node
  *
- *  @param in The node object.
+ *  \param in The node object.
  */
 template <class String>
 auto to_string(node<String> const& in)

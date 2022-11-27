@@ -19,7 +19,7 @@ using aedis::resp3::request;
 auto redir(boost::system::error_code& ec)
    { return net::redirect_error(net::use_awaitable, ec); }
 
-struct endpoint {
+struct address {
    std::string host;
    std::string port;
 };
@@ -27,7 +27,7 @@ struct endpoint {
 // For more info see
 // - https://redis.io/docs/manual/sentinel.
 // - https://redis.io/docs/reference/sentinel-clients.
-auto resolve_master_address(std::vector<endpoint> const& endpoints) -> net::awaitable<endpoint>
+auto resolve_master_address(std::vector<address> const& endpoints) -> net::awaitable<address>
 {
    request req;
    req.get_config().cancel_on_connection_lost = true;
@@ -43,17 +43,17 @@ auto resolve_master_address(std::vector<endpoint> const& endpoints) -> net::awai
       co_await (conn->async_run() && conn->async_exec(req, adapt(addr), redir(ec)));
       conn->reset_stream();
       if (std::get<0>(addr))
-         co_return endpoint{std::get<0>(addr).value().at(0), std::get<0>(addr).value().at(1)};
+         co_return address{std::get<0>(addr).value().at(0), std::get<0>(addr).value().at(1)};
    }
 
-   co_return endpoint{};
+   co_return address{};
 }
 
 auto async_main() -> net::awaitable<void>
 {
    // A list of sentinel addresses from which only one is responsive
    // to simulate sentinels that are down.
-   std::vector<endpoint> const endpoints
+   std::vector<address> const endpoints
    { {"foo", "26379"}
    , {"bar", "26379"}
    , {"127.0.0.1", "26379"}

@@ -30,8 +30,23 @@ struct user {
    std::string name;
    std::string age;
    std::string country;
+
+   friend auto operator<(user const& a, user const& b)
+   {
+      return std::tie(a.name, a.age, a.country) < std::tie(b.name, b.age, b.country);
+   }
+
+   friend auto operator<<(std::ostream& os, user const& u) -> std::ostream&
+   {
+      os << "Name: " << u.name << "\n"
+         << "Age: " << u.age << "\n"
+         << "Country: " << u.country;
+
+      return os;
+   }
 };
 
+// Boost.Json serialization.
 void tag_invoke(value_from_tag, value& jv, user const& u)
 {
    jv =
@@ -57,31 +72,16 @@ auto tag_invoke(value_to_tag<user>, value const& jv)
    return u;
 }
 
-// Serializes
+// Aedis serialization
 void to_bulk(std::pmr::string& to, user const& u)
 {
    aedis::resp3::to_bulk(to, serialize(value_from(u)));
 }
 
-// Deserializes
 void from_bulk(user& u, boost::string_view sv, boost::system::error_code&)
 {
    value jv = parse(sv);
    u = value_to<user>(jv);
-}
-
-auto operator<<(std::ostream& os, user const& u) -> std::ostream&
-{
-   os << "Name: " << u.name << "\n"
-      << "Age: " << u.age << "\n"
-      << "Country: " << u.country;
-
-   return os;
-}
-
-auto operator<(user const& a, user const& b)
-{
-   return std::tie(a.name, a.age, a.country) < std::tie(b.name, b.age, b.country);
 }
 
 net::awaitable<void> async_main()

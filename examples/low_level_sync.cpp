@@ -31,7 +31,7 @@ int main()
       // Creates the request and writes to the socket.
       request req;
       req.push("HELLO", 3);
-      req.push("PING");
+      req.push("PING", "Hello world");
       req.push("QUIT");
       resp3::write(socket, req);
 

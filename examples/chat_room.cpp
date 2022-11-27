@@ -23,7 +23,7 @@ using aedis::resp3::node;
 // Chat over Redis pubsub. To test, run this program from different
 // terminals and type messages to stdin.
 
-// Receives Redis server-side pushes.
+// Receives Redis pushes.
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    for (std::vector<node<std::string>> resp;;) {
@@ -55,6 +55,7 @@ auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
    co_await conn->async_exec(req);
 }
 
+// Called from the main function (see common.cpp)
 auto async_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;

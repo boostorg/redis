@@ -893,10 +893,22 @@ BOOST_AUTO_TEST_CASE(type_convert)
 BOOST_AUTO_TEST_CASE(adapter)
 {
    using aedis::adapt;
+   using resp3::type;
 
-   std::string s;
-   auto resp = std::tie(s, std::ignore);
+   boost::system::error_code ec;
+
+   std::string a;
+   int b;
+   auto resp = std::tie(a, b, std::ignore);
+
    auto f = adapt(resp);
-   (void)f;
+   f(0, resp3::node<boost::string_view>{type::simple_string, 1, 0, "Hello"}, ec);
+   f(1, resp3::node<boost::string_view>{type::number, 1, 0, "42"}, ec);
+
+   BOOST_CHECK_EQUAL(a, "Hello");
+   BOOST_TEST(!ec);
+
+   BOOST_CHECK_EQUAL(b, 42);
+   BOOST_TEST(!ec);
 }
 

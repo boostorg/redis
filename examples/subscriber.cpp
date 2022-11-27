@@ -13,7 +13,6 @@
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
-using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using signal_set_type = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
 using timer_type = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using aedis::adapt;
@@ -46,6 +45,16 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    }
 }
 
+auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   request req;
+   req.get_config().cancel_on_connection_lost = true;
+   req.push("HELLO", 3);
+   req.push("SUBSCRIBE", "channel");
+
+   co_await conn->async_exec(req);
+}
+
 auto async_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
@@ -53,16 +62,12 @@ auto async_main() -> net::awaitable<void>
    signal_set_type sig{ex, SIGINT, SIGTERM};
    timer_type timer{ex};
 
-   request req;
-   req.get_config().cancel_on_connection_lost = true;
-   req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "channel");
-
    // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
    for (;;) {
       co_await connect(conn, "127.0.0.1", "6379");
       co_await ((conn->async_run() || healthy_checker(conn) || sig.async_wait() ||
-               receiver(conn)) && conn->async_exec(req));
+               receiver(conn)) && subscriber(conn));
+
       conn->reset_stream();
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();

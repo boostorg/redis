@@ -15,6 +15,7 @@ using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
 
+// Called from the main function (see common.cpp)
 net::awaitable<void> async_main()
 {
    request req;

@@ -39,7 +39,7 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 ```
 
-The execution of calls to `connection::async_exec` like above are
+The execution of `connection::async_exec` as shown above is
 triggered by the `connection::async_run` member function, which is
 required to be running concurrently for as long as the connection
 stands.  For example, the code below uses a short-lived connection to
@@ -68,22 +68,31 @@ reading from the socket. The reationale behind this design is
   concurrently.
 
 In the following sections we will discuss with more details the main
-entities Aedis users are concerned with, namely
+code entities Aedis users are concerned with, namely
 
 * `aedis::resp3::request`: A container of Redis commands.
 * `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
 * `aedis::connection`: A connection to the Redis server.
 
 before that however, users might find it helpful to skim over the
-examples, to gain a better feeling about the library capabilities
+examples, to gain a better feeling about the library capabilities.
 
-* intro.cpp: The Aedis hello-world program. It sends one command to Redis and quits the connection.
+* intro.cpp: The Aedis hello-world program. Sends one command to Redis and quits the connection.
 * intro_tls.cpp: Same as intro.cpp but over TLS.
-* containers.cpp: Shows how to send and receive stl containers and how to use transactions.
+* containers.cpp: Shows how to send and receive STL containers and how to use transactions.
 * serialization.cpp: Shows how to serialize types using Boost.Json.
-* subscriber.cpp: Shows how to implement pubsub that reconnects and resubscribes when the connection is lost.
+* resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
+* subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
 * echo_server.cpp: A simple TCP echo server.
-* chat_room.cpp: A command line chat room built on Redis pubsub.
+* chat_room.cpp: A command line chat built on Redis pubsub.
+
+The next two examples uses the Aedis low-level API
+
+* low_level_sync.cpp: Sends a ping synchronously.
+* low_level_async.cpp: Sends a ping asynchronously
+
+To avoid repetition code that is common to all examples have been
+grouped in common.hpp.
 
 <a name="requests"></a>
 ### Requests
@@ -93,25 +102,22 @@ Redis documentation they are called
 [pipelines](https://redis.io/topics/pipelining)). For example
 
 ```cpp
+// Some example containers.
+std::list<std::string> list {...};
+std::map<std::string, mystruct> map { ...};
+
 request req;
 
 // Command with variable length of arguments.
 req.push("SET", "key", "some value", "EX", "2");
 
 // Pushes a list.
-std::list<std::string> list
-   {"channel1", "channel2", "channel3"};
-
 req.push_range("SUBSCRIBE", list);
 
 // Same as above but as an iterator range.
 req.push_range("SUBSCRIBE", std::cbegin(list), std::cend(list));
 
 // Pushes a map.
-std::map<std::string, mystruct> map
-   { {"key1", "value1"}
-   , {"key2", "value2"}
-   , {"key3", "value3"}};
 req.push_range("HSET", "key", map);
 ```
 
@@ -121,9 +127,9 @@ Sending a request to Redis is performed with `aedis::connection::async_exec` as 
 
 #### Serialization
 
-The `push` and `push_range` functions above work with integers
-e.g. `int` and `std::string` out of the box. To send your own
-data type define a `to_bulk` function like this
+The `resp3::request::push` and `resp3::request::push_range` member functions work
+with integer data types e.g. `int` and `std::string` out of the box.
+To send your own data type define a `to_bulk` function like this
 
 ```cpp
 // Example struct.
@@ -175,10 +181,11 @@ To read the response to this request users can use the following tuple
 std::tuple<std::string, int, std::string>
 ```
 
-The pattern may have become apparent to the user, the tuple must have
-the same size as the request (exceptions below) and each element must
-be able to store the response to the command it refers to.  To ignore
-responses to individual commands in the request use the tag
+The pattern might have become apparent to the reader: the tuple must
+have as many elements as the request has commands (exceptions below).
+It is also necessary that each tuple element is capable of storing the
+response to the command it refers to, otherwise an error will ocurr.
+To ignore responses to individual commands in the request use the tag
 `aedis::ignore`
 
 ```cpp
@@ -186,7 +193,8 @@ responses to individual commands in the request use the tag
 std::tuple<std::string, aedis::ignore, std::string, aedis::ignore>
 ```
 
-The following table provides the response types of some commands
+The following table provides the resp3-types returned by some Redis
+commands
 
 Command  | RESP3 type                          | Documentation
 ---------|-------------------------------------|--------------
@@ -249,7 +257,11 @@ If the intention is to ignore the response to all commands altogether
 use `adapt()` without arguments instead
 
 ```cpp
+// Uses the ignore adapter explicitly.
 co_await conn->async_exec(req, adapt());
+
+// Ignore adapter is also the default argument.
+co_await conn->async_exec(req);
 ```
 
 Responses that contain nested aggregates or heterogeneous data
@@ -258,7 +270,7 @@ of this writing, not all RESP3 types are used by the Redis server,
 which means in practice users will be concerned with a reduced
 subset of the RESP3 specification.
 
-#### Push
+#### Pushes
 
 Commands that have push response like
 
@@ -266,7 +278,7 @@ Commands that have push response like
 * `"PSUBSCRIBE"`
 * `"UNSUBSCRIBE"`
 
-must be not be included in the tuple. For example, the request below
+must be **NOT** be included in the tuple. For example, the request below
 
 ```cpp
 request req;
@@ -290,9 +302,9 @@ std::tuple<
    std::optional<A>,
    std::optional<B>,
    ...
-   > response;
+   > resp;
 
-co_await conn->async_exec(req, adapt(response));
+co_await conn->async_exec(req, adapt(resp));
 ```
 
 Everything else stays pretty much the same.
@@ -300,9 +312,9 @@ Everything else stays pretty much the same.
 #### Transactions
 
 To read responses to transactions we must first observe that Redis will
-queue its commands and send their responses to the user as elements
-of an array, after the `EXEC` command comes.  For example, to read
-the response to this request
+queue the transaction commands and send their individual responses as elements
+of an array, the array is itself the response to the `EXEC` command.
+For example, to read the response to this request
 
 ```cpp
 req.push("MULTI");
@@ -342,9 +354,9 @@ For a complete example see containers.cpp.
 As mentioned in \ref serialization, it is common practice to
 serialize data before sending it to Redis e.g. as json strings.
 For performance and convenience reasons, we may also want to
-deserialize it directly in its final data structure when reading them
-back from Redis. Aedis supports this use case by calling a user
-provided `from_bulk` function while parsing the response. For example
+deserialize responses directly in their final data structure. Aedis
+supports this use case by calling a user provided `from_bulk` function
+while parsing the response. For example
 
 ```cpp
 void from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
@@ -421,15 +433,16 @@ The `aedis::connection` is a class that provides async-only
 communication with a Redis server by means of three member
 functions
 
-* `connection::async_run`: Starts read and write operations and remains suspended until the connection it is lost.
+* `connection::async_run`: Starts read and write operations and remains suspended until the connection is lost.
 * `connection::async_exec`: Executes commands.
 * `connection::async_receive`: Receives server-side pushes.
 
 In general, these operations will be running concurrently in user
 application, where, for example
 
-1. **Run**: One coroutine will call `async_run`, perhaps in a loop and
-   with healthy checks.
+1. **Run**: One coroutine will call `async_run`, perhaps with other
+   operations like healthy checks and in a loop to implement
+   reconnection.
 2. **Execute**: Multiple coroutines will call `async_exec` independently
    and without coordination (e.g. queuing).
 3. **Receive**: One coroutine will loop on `async_receive` to receive
