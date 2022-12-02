@@ -8,7 +8,7 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
-#include "common.hpp"
+#include "common/common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
@@ -44,7 +44,7 @@ auto listener(std::shared_ptr<connection> conn) -> net::awaitable<void>
       net::co_spawn(ex, echo_server_session(co_await acc.async_accept(), conn), net::detached);
 }
 
-// Called from the main function (see common.cpp)
+// Called from the main function (see main.cpp)
 auto async_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;

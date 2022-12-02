@@ -9,13 +9,13 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/json.hpp>
 #include <aedis.hpp>
-#include "common.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <set>
 #include <iterator>
 #include <string>
+#include "common/common.hpp"
 
 // Include this in no more than one .cpp file.
 #include <boost/json/src.hpp>

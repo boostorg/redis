@@ -10,23 +10,21 @@
 #include <boost/asio.hpp>
 #include <aedis.hpp>
 
-// TODO: Fix this after updating to 1.80.
-
 // Include this in no more than one .cpp file.
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
 using aedis::adapt;
 using aedis::resp3::request;
-using connection = aedis::connection<>;
+using connection = aedis::connection;
 
 template <class Adapter>
-auto exec(connection& conn, request const& req, Adapter adapter, boost::system::error_code& ec)
+auto exec(std::shared_ptr<connection> conn, request const& req, Adapter adapter)
 {
    net::dispatch(
-      conn.get_executor(),
-      net::deferred([&]() { return conn.async_exec(req, adapter, net::deferred); }))
-      (net::redirect_error(net::use_future, ec)).get();
+      conn->get_executor(),
+      net::deferred([&]() { return conn->async_exec(req, adapter, net::deferred); }))
+      (net::use_future).get();
 }
 
 auto logger = [](auto const& ec)
@@ -37,9 +35,12 @@ int main()
    try {
       net::io_context ioc{1};
 
-      connection conn{ioc};
-      std::thread t{[&]() {
-         conn.async_run(logger);
+      auto conn = std::make_shared<connection>(ioc);
+      net::ip::tcp::resolver resv{ioc};
+      auto const res = resv.resolve("127.0.0.1", "6379");
+      net::connect(conn->next_layer(), res);
+      std::thread t{[conn, &ioc]() {
+         conn->async_run(logger);
          ioc.run();
       }};
 
@@ -49,13 +50,10 @@ int main()
       req.push("PING");
       req.push("QUIT");
 
-      boost::system::error_code ec;
-      std::tuple<std::string, aedis::ignore> resp;
-      exec(conn, req, adapt(resp), ec);
+      std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+      exec(conn, req, adapt(resp));
 
-      std::cout
-         << "Exec: " << ec.message() << "\n"
-         << "Response: " << std::get<0>(resp) << std::endl;
+      std::cout << "Response: " << std::get<1>(resp) << std::endl;
 
       t.join();
    } catch (std::exception const& e) {

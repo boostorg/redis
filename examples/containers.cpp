@@ -11,7 +11,7 @@
 #include <map>
 #include <vector>
 
-#include "common.hpp"
+#include "common/common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
@@ -92,7 +92,7 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
    print(std::get<1>(std::get<4>(resp)).value());
 }
 
-// Called from the main function (see common.cpp)
+// Called from the main function (see main.cpp)
 net::awaitable<void> async_main()
 {
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);

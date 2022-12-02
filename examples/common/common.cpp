@@ -6,6 +6,7 @@
 
 #include "common.hpp"
 
+#include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <iostream>
@@ -17,9 +18,6 @@ using timer_type = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using aedis::resp3::request;
 using aedis::adapt;
 using aedis::operation;
-
-// Include this in no more than one .cpp file.
-#include <aedis/src.hpp>
 
 namespace
 {
@@ -74,21 +72,4 @@ connect(
       throw std::runtime_error("Connect timeout");
 }
 
-extern net::awaitable<void> async_main();
-
-// Main function used in our examples.
-auto main() -> int
-{
-   try {
-      net::io_context ioc;
-      net::co_spawn(ioc, async_main(), net::detached);
-      ioc.run();
-   } catch (std::exception const& e) {
-      std::cerr << "Error: " << e.what() << std::endl;
-      return 1;
-   }
-}
-
-#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
-auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 0;}
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

@@ -210,7 +210,7 @@ inline auto adapt(std::size_t max_read_size = (std::numeric_limits<std::size_t>:
  *  2. std::vector<node<String>>
  *
  *  The types T1, T2, etc can be any STL container, any integer type
- *  and \c std::string
+ *  and `std::string`.
  *
  *  @param t Tuple containing the responses.
  *  @param max_read_size Specifies the maximum size of the read

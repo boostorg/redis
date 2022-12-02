@@ -8,15 +8,15 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
-#include "common.hpp"
+#include "common/common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 using aedis::resp3::request;
 
-// Called from the main function (see common.cpp)
-net::awaitable<void> async_main()
+// Called from the main function (see main.cpp)
+auto async_main() -> net::awaitable<void>
 {
    request req;
    req.get_config().cancel_on_connection_lost = true;

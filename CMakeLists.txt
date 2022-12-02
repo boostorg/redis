@@ -43,7 +43,7 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 
-find_package(Boost 1.79 REQUIRED)
+find_package(Boost 1.80 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(OpenSSL REQUIRED)
@@ -54,18 +54,24 @@ include_directories(include)
 # Main function for the examples.
 #=======================================================================
 
-add_library(common STATIC examples/common.cpp)
+add_library(common STATIC
+   examples/common/common.cpp
+   examples/common/main.cpp
+   examples/common/aedis.cpp
+)
 target_compile_features(common PUBLIC cxx_std_20)
 
 # Executables
 #=======================================================================
 
-#add_executable(intro_sync examples/intro_sync.cpp) // Uncomment after update to Boost 1.80
-
 add_executable(intro examples/intro.cpp)
 target_link_libraries(intro common)
 target_compile_features(intro PUBLIC cxx_std_20)
 add_test(intro intro)
+
+add_executable(intro_sync examples/intro_sync.cpp)
+target_compile_features(intro_sync PUBLIC cxx_std_20)
+add_test(intro_sync intro_sync)
 
 add_executable(chat_room examples/chat_room.cpp)
 target_compile_features(chat_room PUBLIC cxx_std_20)

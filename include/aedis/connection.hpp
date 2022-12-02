@@ -47,7 +47,7 @@ public:
 
    using base_type = detail::connection_base<executor_type, basic_connection<AsyncReadWriteStream>>;
 
-   /// Constructor
+   /// Contructs from an executor.
    explicit
    basic_connection(
       executor_type ex,
@@ -56,6 +56,7 @@ public:
    , stream_{ex}
    {}
 
+   /// Contructs from a context.
    explicit
    basic_connection(
       boost::asio::io_context& ioc,
@@ -82,10 +83,11 @@ public:
    /// Returns a const reference to the next layer.
    auto next_layer() const noexcept -> auto const& { return stream_; }
 
-   /** @brief Establishes a connection with the Redis server asynchronously.
+   /** @brief Starts read and write operations
     *
-    *  This function will start reading from the socket and executes
-    *  all requests that have been started prior to this function
+    *  This function starts read and write operations with the Redis
+    *  server. More specifically it will trigger the write of all
+    *  requests i.e. calls to `async_exec` that happened prior to this
     *  call.
     *
     *  @param token Completion token.
@@ -109,10 +111,10 @@ public:
    /** @brief Executes a command on the Redis server asynchronously.
     *
     *  This function will send a request to the Redis server and
-    *  complete when the response arrives. If the request contains
-    *  only commands that don't expect a response, the completion
-    *  occurs after it has been written to the underlying stream.
-    *  Multiple concurrent calls to this function will be
+    *  complete after the response has been processed. If the request
+    *  contains only commands that don't expect a response, the
+    *  completion occurs after it has been written to the underlying
+    *  stream.  Multiple concurrent calls to this function will be
     *  automatically queued by the implementation.
     *
     *  @param req Request object.
@@ -177,12 +179,7 @@ public:
     *  @li operation::run: Cancels the `async_run` operation. Notice
     *  that the preferred way to close a connection is to send a
     *  [QUIT](https://redis.io/commands/quit/) command to the server.
-    *  An unresponsive Redis server will also cause the idle-checks to
-    *  timeout and lead to `connection::async_run` completing with
-    *  `error::idle_timeout`.  Calling `cancel(operation::run)`
-    *  directly should be seen as the last option.
-    *  @li operation::receive: Cancels any ongoing callto
-    *  `async_receive`.
+    *  @li operation::receive: Cancels any ongoing calls to *  `async_receive`.
     *
     *  @param op: The operation to be cancelled.
     *  @returns The number of operations that have been canceled.

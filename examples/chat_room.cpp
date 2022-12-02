@@ -10,7 +10,7 @@
 #include <aedis.hpp>
 #include <unistd.h>
 
-#include "common.hpp"
+#include "common/common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
@@ -55,7 +55,7 @@ auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
    co_await conn->async_exec(req);
 }
 
-// Called from the main function (see common.cpp)
+// Called from the main function (see main.cpp)
 auto async_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;

@@ -14,6 +14,8 @@
 #include <boost/system.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/asio/deferred.hpp>
+#include <boost/asio/append.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 
 #include <aedis/adapt.hpp>
@@ -29,11 +31,47 @@
 
 namespace aedis::detail {
 
+template <class Channel, class Op, class CompletionToken>
+auto async_guarded(Channel& channel, Op op, CompletionToken&& token)
+{
+   return boost::asio::deferred.values(&channel)
+   | boost::asio::deferred(
+        [](Channel* ch)
+        {
+            return ch->async_receive(boost::asio::append(boost::asio::deferred, ch));
+        }
+     )
+   | boost::asio::deferred(
+        [op2 = std::move(op)](std::error_code ec, std::size_t, Channel* ch)
+        {
+           return boost::asio::deferred.when(!ec)
+              .then(op2(boost::asio::append(boost::asio::deferred, ch)))
+              .otherwise(boost::asio::deferred.values(ec, 0, ch));
+        }
+     )
+   | boost::asio::deferred(
+        [&](std::error_code ec, std::size_t n, Channel* ch)
+        {
+           return boost::asio::deferred.when(!ec)
+              .then(ch->async_send({}, 0, boost::asio::append(boost::asio::deferred, n)))
+              .otherwise(boost::asio::deferred.values(ec, 0));
+        }
+     )
+   | boost::asio::deferred(
+        [](std::error_code ec, std::size_t n)
+        {
+           return boost::asio::deferred.when(!ec)
+              .then(boost::asio::deferred.values(boost::system::error_code{}, n))
+              .otherwise(boost::asio::deferred.values(ec, 0));
+        }
+     )
+   | std::forward<CompletionToken>(token);
+}
+
 template <class Conn, class Adapter>
 struct receive_op {
    Conn* conn = nullptr;
    Adapter adapter;
-   std::size_t read_size = 0;
    boost::asio::coroutine coro{};
 
    template <class Self>
@@ -44,26 +82,16 @@ struct receive_op {
    {
       reenter (coro)
       {
-         yield conn->push_channel_.async_receive(std::move(self));
-         AEDIS_CHECK_OP1();
-
          yield
-         resp3::async_read(
-            conn->next_layer(),
-            conn->make_dynamic_buffer(adapter.get_max_read_size(0)),
-            adapter, std::move(self));
-
-         // cancel(receive) is needed to cancel the channel, otherwise
-         // the read operation will be blocked forever see
-         // test_push_adapter.
+         async_guarded(
+            conn->push_channel_,
+            resp3::async_read(
+               conn->next_layer(),
+               conn->make_dynamic_buffer(adapter.get_max_read_size(0)),
+               adapter, boost::asio::deferred),
+               std::move(self));
          AEDIS_CHECK_OP1(conn->cancel(operation::run); conn->cancel(operation::receive));
-
-         read_size = n;
-
-         yield conn->push_channel_.async_send({}, 0, std::move(self));
-         AEDIS_CHECK_OP1();
-
-         self.complete({}, read_size);
+         self.complete({}, n);
          return;
       }
    }

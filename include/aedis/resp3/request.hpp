@@ -171,43 +171,40 @@ void add_separator(Request& to)
  *
  *  \li Non-string types will be converted to string by using \c
  *  to_bulk, which must be made available over ADL.
- *  \li Uses std::string as internal storage.
+ *  \li Uses a std::pmr::string for internal storage.
  */
 class request {
 public:
    /// Request configuration options.
    struct config {
-      /** \brief If set to true, requests started with
-       * `aedis::connection::async_exec` will fail if the connection is
-       * lost while the request is pending. The default
+      /** \brief If true the request will complete with error if the
+       * connection is lost while the request is pending. The default
        * behaviour is not to close requests.
        */
       bool cancel_on_connection_lost = false;
 
-      /** \brief If true this request will be coalesced with other requests,
-       *  see https://redis.io/topics/pipelining. If false, this
-       *  request will be sent individually.
+      /** \brief If true the request will be coalesced with other requests,
+       *  see https://redis.io/topics/pipelining. Otherwise the
+       *  request is sent individually.
        */
       bool coalesce = true;
 
-      /** \brief If set to true, requests started with
-       * `aedis::connection::async_exec` will fail if the call happens
-       *  before the connection with Redis was stablished.
+      /** \brief If true, the request will complete with error if the
+       * call happens before the connection with Redis was stablished.
        */
       bool cancel_if_not_connected = false;
 
       /** \brief If true, the implementation will resend this
-       * request if it remained unresponded when
-       * `aedis::connection::async_run` completed. Has effect only if
+       * request if it remains unresponded when
+       * `aedis::connection::async_run` completes. Has effect only if
        * cancel_on_connection_lost is true.
        */
       bool retry = true;
 
       /** \brief If this request has a HELLO command and this flag is
-       * set to true, the `aedis::connection` will move it to the
-       * front of the queue of awaiting requests. This makes it
-       * possible to send HELLO and authenticate before other
-       * commands are sent.
+       * true, the `aedis::connection` will move it to the front of
+       * the queue of awaiting requests. This makes it possible to
+       * send HELLO and authenticate before other commands are sent.
        */
       bool hello_with_priority = true;
    };
@@ -239,7 +236,7 @@ public:
       commands_ = 0;
    }
 
-   /// Calls std::string::reserve on the internal storage.
+   /// Calls std::pmr::string::reserve on the internal storage.
    void reserve(std::size_t new_cap = 0)
       { payload_.reserve(new_cap); }
 

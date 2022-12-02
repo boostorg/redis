@@ -9,7 +9,7 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
 
-#include "common.hpp"
+#include "common/common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;

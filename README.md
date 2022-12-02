@@ -16,7 +16,14 @@ Some of its distinctive features are
 * Back pressure, cancellation and low latency.
 
 In addition to that, Aedis hides most of the low-level Asio code away
-from the user. For example, the coroutine below retrieves Redis hashes
+from the user, which in the majority of the case will be concerned
+with three library entities
+
+* `aedis::resp3::request`: A container of Redis commands.
+* `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
+* `aedis::connection`: A connection to the Redis server.
+
+For example, the coroutine below reads Redis [hashes](https://redis.io/docs/data-types/hashes/)
 in a `std::map` and quits the connection (see containers.cpp)
 
 ```cpp
@@ -24,7 +31,6 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    // A request contains multiple Redis commands.
    request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
@@ -39,11 +45,10 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 ```
 
-The execution of `connection::async_exec` as shown above is
-triggered by the `connection::async_run` member function, which is
-required to be running concurrently for as long as the connection
-stands.  For example, the code below uses a short-lived connection to
-execute the coroutine above
+The execution of `connection::async_exec` as shown above must
+still be triggered by the `connection::async_run` member function. For
+example, the code below uses a short-lived connection to execute the
+coroutine above
 
 ```cpp
 net::awaitable<void> async_main()
@@ -53,7 +58,7 @@ net::awaitable<void> async_main()
    // Resolves and connects (from examples/common.hpp to avoid vebosity)
    co_await connect(conn, "127.0.0.1", "6379");
 
-   // Runs and executes the request.
+   // Runs hgetall (previous example).
    co_await (conn->async_run() || hgetall(conn));
 }
 ```
@@ -67,32 +72,25 @@ reading from the socket. The reationale behind this design is
 * Support server pushes and requests in the same connection object,
   concurrently.
 
-In the following sections we will discuss with more details the main
-code entities Aedis users are concerned with, namely
-
-* `aedis::resp3::request`: A container of Redis commands.
-* `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
-* `aedis::connection`: A connection to the Redis server.
-
-before that however, users might find it helpful to skim over the
-examples, to gain a better feeling about the library capabilities.
+Before we see with more detail how connections, requests and responses
+work, users might find it helpful to skim over the examples, to gain a
+better feeling about the library capabilities.
 
 * intro.cpp: The Aedis hello-world program. Sends one command to Redis and quits the connection.
 * intro_tls.cpp: Same as intro.cpp but over TLS.
+* intro_sync.cpp: Shows how to use the conneciton class synchronously.
 * containers.cpp: Shows how to send and receive STL containers and how to use transactions.
 * serialization.cpp: Shows how to serialize types using Boost.Json.
 * resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
 * subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
 * echo_server.cpp: A simple TCP echo server.
 * chat_room.cpp: A command line chat built on Redis pubsub.
-
-The next two examples uses the Aedis low-level API
-
-* low_level_sync.cpp: Sends a ping synchronously.
-* low_level_async.cpp: Sends a ping asynchronously
+* low_level_sync.cpp: Sends a ping synchronously using the low-level API.
+* low_level_async.cpp: Sends a ping asynchronously using the low-level API.
 
 To avoid repetition code that is common to all examples have been
-grouped in common.hpp.
+grouped in common.hpp. The main function is defined in main.cpp and
+used by all examples.
 
 <a name="requests"></a>
 ### Requests
@@ -498,7 +496,7 @@ auto async_main() -> net::awaitable<void>
 It is important to emphasize that Redis servers use the old
 communication protocol RESP2 by default, therefore it is necessary to
 send a `HELLO 3` command everytime a connection is established.
-Another common scenarios for reconnection is, for example, a failover
+Another common scenario for reconnection is, for example, a failover
 with sentinels, covered in `resolve_with_sentinel.cpp` example.
 
 #### Execute
@@ -613,7 +611,7 @@ co_await (conn.async_exec(...) || time.async_wait(...))
   should last.
 * The cancellation will be ignored if the request has already
   been written to the socket.
-* It is usually a better idea to have a healthy checker that adding
+* It is usually a better idea to have a healthy checker than adding
   per request timeout, see subscriber.cpp for an example.
 
 ```cpp
