@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.0</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.1</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -246,7 +246,7 @@ Functions</h2></td></tr>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bca52fb3679b07eb74d90784e612ca5cb30" name="ggadcfe42e0996c05d14fe5f8bacce384bca52fb3679b07eb74d90784e612ca5cb30"></a>exec&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1basic__connection.html#a4d7f180e64db5d4e07f7c62b3aa931d4" title="Executes a command on the Redis server asynchronously.">connection::async_exec</a></code> operations. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6" name="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6"></a>run&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1basic__connection.html#a821df744a8c7e63f98e73608329fa1d7" title="Establishes a connection with the Redis server asynchronously.">connection::async_run</a></code> operations. </p>
+<tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6" name="ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6"></a>run&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1basic__connection.html#a821df744a8c7e63f98e73608329fa1d7" title="Starts read and write operations.">connection::async_run</a></code> operations. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd" name="ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd"></a>receive&#160;</td><td class="fielddoc"><p >Refers to <code><a class="el" href="classaedis_1_1basic__connection.html#ac865f2f3339856b4bbe233e353a3a6b3" title="Receives server side pushes asynchronously.">connection::async_receive</a></code> operations. </p>
 </td></tr>
@@ -399,7 +399,7 @@ template&lt;class T &gt; </div>
 <li>a std::tuple&lt;T1, T2, T3, ...&gt; or</li>
 <li>std::vector&lt;node&lt;String&gt;&gt;</li>
 </ol>
-<p >The types T1, T2, etc can be any STL container, any integer type and <code>std::string</code> </p>
+<p >The types T1, T2, etc can be any STL container, any integer type and <code>std::string</code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">t</td><td>Tuple containing the responses. </td></tr>

@@ -27,7 +27,7 @@
 <table bgcolor="#346295" cellspacing="0" cellpadding="6">
  <tbody>
  <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.0</font> &#160; <br> A redis client designed for performance and scalability </td>
+  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.1</font> &#160; <br> A redis client designed for performance and scalability </td>
   <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
           <img id="MSearchSelect" src="search/mag_sel.svg"
@@ -133,7 +133,7 @@ auto&#160;</td><td class="memItemRight" valign="bottom"><b>get_config</b> () noe
 <tr class="separator:aec6ece292eee4590694c20f75b28e39a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a97e05ff085646e18e15092bbd560b8e7"><td class="memItemLeft" align="right" valign="top"><a id="a97e05ff085646e18e15092bbd560b8e7" name="a97e05ff085646e18e15092bbd560b8e7"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>reserve</b> (std::size_t new_cap=0)</td></tr>
-<tr class="memdesc:a97e05ff085646e18e15092bbd560b8e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calls std::string::reserve on the internal storage. <br /></td></tr>
+<tr class="memdesc:a97e05ff085646e18e15092bbd560b8e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calls std::pmr::string::reserve on the internal storage. <br /></td></tr>
 <tr class="separator:a97e05ff085646e18e15092bbd560b8e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="related" name="related"></a>
@@ -155,11 +155,11 @@ Related Functions</h2></td></tr>
 <div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;PING&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>);</div>
 <div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
 <div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00176">request.hpp:176</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_ae9cfe90ea55427d5345846f80b70be1b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request::push</a></div><div class="ttdeci">void push(boost::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00268">request.hpp:268</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_ae9cfe90ea55427d5345846f80b70be1b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request::push</a></div><div class="ttdeci">void push(boost::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00265">request.hpp:265</a></div></div>
 </div><!-- fragment --><dl class="section remark"><dt>Remarks</dt><dd></dd></dl>
 <ul>
 <li>Non-string types will be converted to string by using <code>to_bulk</code>, which must be made available over ADL. </li>
-<li>Uses std::string as internal storage. </li>
+<li>Uses a std::pmr::string for internal storage. </li>
 </ul>
 
 <p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00176">176</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
@@ -185,31 +185,31 @@ Related Functions</h2></td></tr>
 <td class="fieldname">
 cancel_if_not_connected</td>
 <td class="fielddoc">
-If set to true, requests started with <code><a class="el" href="classaedis_1_1basic__connection.html#a4d7f180e64db5d4e07f7c62b3aa931d4" title="Executes a command on the Redis server asynchronously.">aedis::connection::async_exec</a></code> will fail if the call happens before the connection with Redis was stablished. </td></tr>
+If true, the request will complete with error if the call happens before the connection with Redis was stablished. </td></tr>
 <tr><td class="fieldtype">
 <a id="aab978e56c202631d2fea293b73725e69" name="aab978e56c202631d2fea293b73725e69"></a>bool</td>
 <td class="fieldname">
 cancel_on_connection_lost</td>
 <td class="fielddoc">
-If set to true, requests started with <code><a class="el" href="classaedis_1_1basic__connection.html#a4d7f180e64db5d4e07f7c62b3aa931d4" title="Executes a command on the Redis server asynchronously.">aedis::connection::async_exec</a></code> will fail if the connection is lost while the request is pending. The default behaviour is not to close requests. </td></tr>
+If true the request will complete with error if the connection is lost while the request is pending. The default behaviour is not to close requests. </td></tr>
 <tr><td class="fieldtype">
 <a id="a253cef2ca5d60b1b319019fafb3d27b3" name="a253cef2ca5d60b1b319019fafb3d27b3"></a>bool</td>
 <td class="fieldname">
 coalesce</td>
 <td class="fielddoc">
-If true this request will be coalesced with other requests, see <a href="https://redis.io/topics/pipelining">https://redis.io/topics/pipelining</a>. If false, this request will be sent individually. </td></tr>
+If true the request will be coalesced with other requests, see <a href="https://redis.io/topics/pipelining">https://redis.io/topics/pipelining</a>. Otherwise the request is sent individually. </td></tr>
 <tr><td class="fieldtype">
 <a id="a05826b460a6a4699824edf412e8cc1ba" name="a05826b460a6a4699824edf412e8cc1ba"></a>bool</td>
 <td class="fieldname">
 hello_with_priority</td>
 <td class="fielddoc">
-If this request has a HELLO command and this flag is set to true, the <code>aedis::connection</code> will move it to the front of the queue of awaiting requests. This makes it possible to send HELLO and authenticate before other commands are sent. </td></tr>
+If this request has a HELLO command and this flag is true, the <code>aedis::connection</code> will move it to the front of the queue of awaiting requests. This makes it possible to send HELLO and authenticate before other commands are sent. </td></tr>
 <tr><td class="fieldtype">
 <a id="a653d47ba62bd2b3f84f424a2b2b35b9a" name="a653d47ba62bd2b3f84f424a2b2b35b9a"></a>bool</td>
 <td class="fieldname">
 retry</td>
 <td class="fielddoc">
-If true, the implementation will resend this request if it remained unresponded when <code><a class="el" href="classaedis_1_1basic__connection.html#a821df744a8c7e63f98e73608329fa1d7" title="Establishes a connection with the Redis server asynchronously.">aedis::connection::async_run</a></code> completed. Has effect only if cancel_on_connection_lost is true. </td></tr>
+If true, the implementation will resend this request if it remains unresponded when <code><a class="el" href="classaedis_1_1basic__connection.html#a821df744a8c7e63f98e73608329fa1d7" title="Starts read and write operations.">aedis::connection::async_run</a></code> completes. Has effect only if cancel_on_connection_lost is true. </td></tr>
 </table>
 
 </div>
@@ -258,7 +258,7 @@ If true, the implementation will resend this request if it remained unresponded 
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00221">221</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00218">218</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -312,7 +312,7 @@ template&lt;class... Ts&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00268">268</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00265">265</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -380,7 +380,7 @@ template&lt;class ForwardIterator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00343">343</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00340">340</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -448,7 +448,7 @@ template&lt;class Key , class ForwardIterator &gt; </div>
 <div class="line"> </div>
 <div class="line"><a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a3e2cd2720b326d4b786726fed260e3c3">request</a> req;</div>
 <div class="line">req.push_range(<span class="stringliteral">&quot;HSET&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>, std::cbegin(map), std::cend(map));</div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a3e2cd2720b326d4b786726fed260e3c3"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a3e2cd2720b326d4b786726fed260e3c3">aedis::resp3::request::request</a></div><div class="ttdeci">request(config cfg=config{false, true, false, true, true}, std::pmr::memory_resource *resource=std::pmr::get_default_resource())</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00221">request.hpp:221</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a3e2cd2720b326d4b786726fed260e3c3"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a3e2cd2720b326d4b786726fed260e3c3">aedis::resp3::request::request</a></div><div class="ttdeci">request(config cfg=config{false, true, false, true, true}, std::pmr::memory_resource *resource=std::pmr::get_default_resource())</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00218">request.hpp:218</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae"><div class="ttname"><a href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">aedis::resp3::type::map</a></div><div class="ttdeci">@ map</div><div class="ttdoc">Aggregate.</div></div>
 </div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -460,7 +460,7 @@ template&lt;class Key , class ForwardIterator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00304">304</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00301">301</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -523,7 +523,7 @@ template&lt;class Key , class Range &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00372">372</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00369">369</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -579,7 +579,7 @@ template&lt;class Range &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00388">388</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00385">385</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
