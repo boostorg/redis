@@ -16,7 +16,7 @@ Some of its distinctive features are
 * Back pressure, cancellation and low latency.
 
 In addition to that, Aedis hides most of the low-level Asio code away
-from the user, which in the majority of the case will be concerned
+from the user, which in the majority of the cases will be concerned
 with three library entities
 
 * `aedis::resp3::request`: A container of Redis commands.
@@ -73,10 +73,10 @@ reading from the socket. The reationale behind this design is
   concurrently.
 
 Before we see with more detail how connections, requests and responses
-work, users might find it helpful to skim over the examples, to gain a
-better feeling about the library capabilities.
+work, users might find it useful to skim over the examples in order to
+gain a better feeling about the library capabilities.
 
-* intro.cpp: The Aedis hello-world program. Sends one command to Redis and quits the connection.
+* intro.cpp: The Aedis hello-world program. Sends one command and quits the connection.
 * intro_tls.cpp: Same as intro.cpp but over TLS.
 * intro_sync.cpp: Shows how to use the conneciton class synchronously.
 * containers.cpp: Shows how to send and receive STL containers and how to use transactions.
@@ -89,8 +89,8 @@ better feeling about the library capabilities.
 * low_level_async.cpp: Sends a ping asynchronously using the low-level API.
 
 To avoid repetition code that is common to all examples have been
-grouped in common.hpp. The main function is defined in main.cpp and
-used by all examples.
+grouped in common.hpp. The main function used in some async examples
+has been factored out in the main.cpp file.
 
 <a name="requests"></a>
 ### Requests
@@ -842,18 +842,18 @@ library, so you can starting using it right away by adding the
 
 ```cpp
 #include <aedis/src.hpp>
-
 ```
-in no more than one source file in your applications. For example, to
-compile one of the examples manually
+
+in no more than one source file in your applications. To build the
+examples and test cmake is supported, for example
 
 ```cpp
-g++ -std=c++20 -pthread -I/opt/boost_1_79_0/include/ -Iinclude -Iexamples examples/intro.cpp examples/common.cpp
+BOOST_ROOT=/opt/boost_1_80_0 cmake --preset dev
 ```
 
 The requirements for using Aedis are
 
-- Boost 1.79 or greater.
+- Boost 1.80 or greater.
 - C++17 minimum.
 - Redis 6 or higher (must support RESP3).
 - Optionally also redis-cli and Redis Sentinel.
@@ -865,8 +865,7 @@ The following compilers are supported
 
 ## Acknowledgement
 
-Acknowledgement to people that helped shape Aedis in one way or
-another.
+Acknowledgement to people that helped shape Aedis
 
 * Richard Hodges ([madmongo1](https://github.com/madmongo1)): For very helpful support with Asio, the design of asynchronous programs, etc.
 * Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation.
@@ -876,7 +875,7 @@ another.
 
 ## Changelog
 
-### v1.3.0
+### v1.3.0-1
 
 * Removes automatic sending of the `HELLO` command. This can't be
   implemented properly without bloating the connection class. It is
