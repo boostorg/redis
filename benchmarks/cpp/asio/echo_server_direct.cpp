@@ -33,7 +33,7 @@ awaitable_type echo(tcp_socket socket)
         std::size_t n = co_await socket.async_read_some(net::buffer(data), use_awaitable);
         co_await async_write(socket, net::buffer(data, n), use_awaitable);
      }
-  } catch (std::exception const& e) {
+  } catch (std::exception const&) {
      //std::printf("echo Exception: %s\n", e.what());
   }
 }

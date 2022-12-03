@@ -875,7 +875,13 @@ Acknowledgement to people that helped shape Aedis
 
 ## Changelog
 
+### master
+
+* Removes dependency on Boost.Hana.
+
 ### v1.3.0-1
+
+* Upgrades to Boost 1.80.0
 
 * Removes automatic sending of the `HELLO` command. This can't be
   implemented properly without bloating the connection class. It is

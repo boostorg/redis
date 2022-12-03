@@ -11,7 +11,6 @@
 #include <tuple>
 #include <memory_resource>
 
-#include <boost/hana.hpp>
 #include <boost/utility/string_view.hpp>
 
 #include <aedis/resp3/type.hpp>
@@ -80,6 +79,21 @@ struct add_bulk_impl {
    }
 };
 
+template <class ...Ts>
+struct add_bulk_impl<std::tuple<Ts...>> {
+   template <class Request>
+   static void add(Request& to, std::tuple<Ts...> const& t)
+   {
+      auto f = [&](auto const&... vs)
+      {
+         using namespace aedis::resp3;
+         (to_bulk(to, vs), ...);
+      };
+
+      std::apply(f, t);
+   }
+};
+
 template <class U, class V>
 struct add_bulk_impl<std::pair<U, V>> {
    template <class Request>
@@ -88,23 +102,6 @@ struct add_bulk_impl<std::pair<U, V>> {
       using namespace aedis::resp3;
       to_bulk(to, from.first);
       to_bulk(to, from.second);
-   }
-};
-
-template <class ...Ts>
-struct add_bulk_impl<boost::hana::tuple<Ts...>> {
-   template <class Request>
-   static void add(Request& to, boost::hana::tuple<Ts...> const& from)
-   {
-      using boost::hana::for_each;
-
-      // Fold expressions is C++17 so we use hana.
-      //(detail::add_bulk(*request_, args), ...);
-
-      for_each(from, [&](auto const& e) {
-         using namespace aedis::resp3;
-         to_bulk(to, e);
-      });
    }
 };
 
@@ -264,14 +261,12 @@ public:
    template <class... Ts>
    void push(boost::string_view cmd, Ts const&... args)
    {
-      using boost::hana::for_each;
-      using boost::hana::make_tuple;
       using resp3::type;
 
       auto constexpr pack_size = sizeof...(Ts);
       detail::add_header(payload_, type::array, 1 + pack_size);
       detail::add_bulk(payload_, cmd);
-      detail::add_bulk(payload_, make_tuple(args...));
+      detail::add_bulk(payload_, std::tie(std::forward<Ts const&>(args)...));
 
       check_cmd(cmd);
    }
