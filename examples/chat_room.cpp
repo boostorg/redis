@@ -5,14 +5,16 @@
  */
 
 #include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <iostream>
+namespace net = boost::asio;
+#if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
 #include <unistd.h>
 
 #include "common/common.hpp"
 
-namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::stream_descriptor>;
 using signal_set_type = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
@@ -68,4 +70,11 @@ auto async_main() -> net::awaitable<void>
          healthy_checker(conn) || sig.async_wait()) && subscriber(conn));
 }
 
-#endif // defined(BOOST_ASIO_HAS_CO_AWAIT) && defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
+#else // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
+auto async_main() -> net::awaitable<void>
+{
+   std::cout << "Requires support for posix streams." << std::endl;
+   co_return;
+}
+#endif // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
+#endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

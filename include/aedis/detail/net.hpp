@@ -33,11 +33,11 @@ struct send_receive_op {
       {
          yield
          channel->async_send(boost::system::error_code{}, 0, std::move(self));
-         AEDIS_CHECK_OP1();
+         AEDIS_CHECK_OP1(;);
 
          yield
          channel->async_receive(std::move(self));
-         AEDIS_CHECK_OP1();
+         AEDIS_CHECK_OP1(;);
 
          self.complete({}, 0);
       }

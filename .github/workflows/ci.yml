@@ -80,7 +80,6 @@ jobs:
               -G "${{matrix.generator}}" \
               ${{matrix.config_args}} \
               ${BOOST_COMPILER_ARG}\
-              -D_WIN32_WINNT=0x0601\
               "${GITHUB_WORKSPACE}"
       env:
         BOOST_ROOT: ${{env.BOOST_INSTALL_PATH}}/boost

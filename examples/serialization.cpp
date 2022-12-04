@@ -7,6 +7,8 @@
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
+#define BOOST_JSON_NO_LIB
+#define BOOST_CONTAINER_NO_LIB
 #include <boost/json.hpp>
 #include <aedis.hpp>
 #include <algorithm>
@@ -99,6 +101,7 @@ net::awaitable<void> async_main()
    std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+
    co_await connect(conn, "127.0.0.1", "6379");
    co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
 

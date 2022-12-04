@@ -24,7 +24,6 @@
 
 // TODO: Test with empty strings.
 
-
 namespace std
 {
 auto operator==(aedis::ignore, aedis::ignore) noexcept {return true;}

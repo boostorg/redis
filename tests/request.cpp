@@ -10,7 +10,7 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis.hpp>
+#include <aedis/resp3/request.hpp>
 #include <aedis/src.hpp>
 
 using aedis::resp3::request;
