@@ -902,8 +902,8 @@ BOOST_AUTO_TEST_CASE(adapter)
    auto resp = std::tie(a, b, std::ignore);
 
    auto f = adapt(resp);
-   f(0, resp3::node<boost::string_view>{type::simple_string, 1, 0, "Hello"}, ec);
-   f(1, resp3::node<boost::string_view>{type::number, 1, 0, "42"}, ec);
+   f(0, resp3::node<std::string_view>{type::simple_string, 1, 0, "Hello"}, ec);
+   f(1, resp3::node<std::string_view>{type::number, 1, 0, "42"}, ec);
 
    BOOST_CHECK_EQUAL(a, "Hello");
    BOOST_TEST(!ec);

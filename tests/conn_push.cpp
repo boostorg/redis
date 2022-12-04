@@ -101,7 +101,7 @@ net::awaitable<void> push_consumer1(connection& conn, bool& push_received)
 struct adapter_error {
    void
    operator()(
-      std::size_t, aedis::resp3::node<boost::string_view> const&, boost::system::error_code& ec)
+      std::size_t, aedis::resp3::node<std::string_view> const&, boost::system::error_code& ec)
    {
       ec = aedis::error::incompatible_size;
    }

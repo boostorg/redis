@@ -10,10 +10,9 @@
 #include <array>
 #include <limits>
 #include <system_error>
+#include <string_view>
 
 #include <boost/assert.hpp>
-#include <boost/utility/string_view.hpp>
-
 #include <aedis/error.hpp>
 #include <aedis/resp3/node.hpp>
 
@@ -24,7 +23,7 @@ auto parse_uint(char const* data, std::size_t size, boost::system::error_code& e
 template <class ResponseAdapter>
 class parser {
 private:
-   using node_type = node<boost::string_view>;
+   using node_type = node<std::string_view>;
    static constexpr std::size_t max_embedded_depth = 5;
 
    ResponseAdapter adapter_;

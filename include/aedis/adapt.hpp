@@ -9,10 +9,10 @@
 
 #include <tuple>
 #include <limits>
+#include <string_view>
 
 #include <boost/mp11.hpp>
 #include <boost/variant2.hpp>
-#include <boost/utility/string_view.hpp>
 #include <boost/system.hpp>
 
 #include <aedis/resp3/node.hpp>
@@ -44,7 +44,7 @@ public:
 
    void
    operator()(
-      std::size_t, resp3::node<boost::string_view> const&, boost::system::error_code&) { }
+      std::size_t, resp3::node<std::string_view> const&, boost::system::error_code&) { }
 
    [[nodiscard]]
    auto get_supported_response_size() const noexcept
@@ -87,7 +87,7 @@ public:
    void
    operator()(
       std::size_t i,
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       using boost::variant2::visit;
@@ -122,7 +122,7 @@ public:
    void
    operator()(
       std::size_t,
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       adapter_(nd, ec);
@@ -164,7 +164,7 @@ class wrapper {
 public:
    explicit wrapper(Adapter adapter) : adapter_{adapter} {}
 
-   void operator()(resp3::node<boost::string_view> const& node, boost::system::error_code& ec)
+   void operator()(resp3::node<std::string_view> const& node, boost::system::error_code& ec)
       { return adapter_(0, node, ec); }
 
    [[nodiscard]]

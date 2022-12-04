@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <tuple>
+#include <string_view>
 
 #include <boost/mp11.hpp>
 #include <boost/variant2.hpp>
@@ -109,7 +110,7 @@ public:
       detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, *r);
    }
 
-   void count(resp3::node<boost::string_view> const& nd)
+   void count(resp3::node<std::string_view> const& nd)
    {
       if (nd.depth == 1) {
          if (is_aggregate(nd.data_type))
@@ -126,7 +127,7 @@ public:
 
    void
    operator()(
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       using boost::variant2::visit;

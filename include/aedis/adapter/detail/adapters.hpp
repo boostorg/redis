@@ -18,11 +18,11 @@
 #include <deque>
 #include <vector>
 #include <array>
+#include <string_view>
 
 #include <boost/assert.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/home/x3.hpp>
-#include <boost/utility/string_view.hpp>
 
 #include <aedis/error.hpp>
 #include <aedis/resp3/type.hpp>
@@ -51,7 +51,7 @@ auto parse_double(
 template <class T>
 auto from_bulk(
    T& i,
-   boost::string_view sv,
+   std::string_view sv,
    boost::system::error_code& ec) -> typename std::enable_if<std::is_integral<T>::value, void>::type
 {
    auto const v = resp3::detail::parse_uint(sv.data(), sv.size(), ec);
@@ -61,7 +61,7 @@ auto from_bulk(
 inline
 void from_bulk(
    bool& t,
-   boost::string_view sv,
+   std::string_view sv,
    boost::system::error_code&)
 {
    t = *sv.data() == 't';
@@ -70,7 +70,7 @@ void from_bulk(
 inline
 void from_bulk(
    double& d,
-   boost::string_view sv,
+   std::string_view sv,
    boost::system::error_code& ec)
 {
    d = parse_double(sv.data(), sv.size(), ec);
@@ -80,7 +80,7 @@ template <class CharT, class Traits, class Allocator>
 void
 from_bulk(
    std::basic_string<CharT, Traits, Allocator>& s,
-   boost::string_view sv,
+   std::string_view sv,
    boost::system::error_code&)
 {
   s.append(sv.data(), sv.size());
@@ -106,7 +106,7 @@ private:
 
 public:
    explicit general_aggregate(Result* c = nullptr): result_(c) {}
-   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code&)
+   void operator()(resp3::node<std::string_view> const& n, boost::system::error_code&)
    {
       result_->push_back({n.data_type, n.aggregate_size, n.depth, std::string{std::cbegin(n.value), std::cend(n.value)}});
    }
@@ -120,7 +120,7 @@ private:
 public:
    explicit general_simple(Node* t = nullptr) : result_(t) {}
 
-   void operator()(resp3::node<boost::string_view> const& n, boost::system::error_code& ec)
+   void operator()(resp3::node<std::string_view> const& n, boost::system::error_code& ec)
    {
       result_->data_type = n.data_type;
       result_->aggregate_size = n.aggregate_size;
@@ -138,7 +138,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<boost::string_view> const& n,
+      resp3::node<std::string_view> const& n,
       boost::system::error_code& ec)
    {
       set_on_resp3_error(n.data_type, ec);
@@ -166,7 +166,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       set_on_resp3_error(nd.data_type, ec);
@@ -205,7 +205,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       set_on_resp3_error(nd.data_type, ec);
@@ -247,7 +247,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       set_on_resp3_error(nd.data_type, ec);
@@ -275,7 +275,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       set_on_resp3_error(nd.data_type, ec);
@@ -314,7 +314,7 @@ struct list_impl {
    void
    operator()(
       Result& result,
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       set_on_resp3_error(nd.data_type, ec);
@@ -389,7 +389,7 @@ public:
 
    void
    operator()(
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       BOOST_ASSERT(result_);
@@ -408,7 +408,7 @@ public:
 
    void
    operator()(
-      resp3::node<boost::string_view> const& nd,
+      resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
       if (nd.data_type == resp3::type::null)

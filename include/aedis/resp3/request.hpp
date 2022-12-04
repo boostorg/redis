@@ -10,9 +10,6 @@
 #include <string>
 #include <tuple>
 #include <memory_resource>
-
-#include <boost/utility/string_view.hpp>
-
 #include <aedis/resp3/type.hpp>
 
 // NOTE: Consider detecting tuples in the type in the parameter pack
@@ -45,7 +42,7 @@ constexpr char const* separator = "\r\n";
  *  See more in @ref serialization.
  */
 template <class Request>
-void to_bulk(Request& to, boost::string_view data)
+void to_bulk(Request& to, std::string_view data)
 {
    auto const str = std::to_string(data.size());
 
@@ -60,14 +57,14 @@ template <class Request, class T, typename = typename std::enable_if<std::is_int
 void to_bulk(Request& to, T n)
 {
    auto const s = std::to_string(n);
-   to_bulk(to, boost::string_view{s});
+   to_bulk(to, std::string_view{s});
 }
 
 namespace detail {
 
-auto has_push_response(boost::string_view cmd) -> bool;
+auto has_push_response(std::string_view cmd) -> bool;
 
-auto is_hello(boost::string_view cmd) -> bool;
+auto is_hello(std::string_view cmd) -> bool;
 
 template <class T>
 struct add_bulk_impl {
@@ -135,7 +132,7 @@ struct bulk_counter<std::pair<T, U>> {
 };
 
 template <class Request>
-void add_blob(Request& to, boost::string_view blob)
+void add_blob(Request& to, std::string_view blob)
 {
    to.append(std::cbegin(blob), std::cend(blob));
    to += separator;
@@ -259,7 +256,7 @@ public:
     *  \param args Command arguments.
     */
    template <class... Ts>
-   void push(boost::string_view cmd, Ts const&... args)
+   void push(std::string_view cmd, Ts const&... args)
    {
       using resp3::type;
 
@@ -293,7 +290,7 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class Key, class ForwardIterator>
-   void push_range(boost::string_view cmd, Key const& key, ForwardIterator begin, ForwardIterator end,
+   void push_range(std::string_view cmd, Key const& key, ForwardIterator begin, ForwardIterator end,
                     typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
@@ -332,7 +329,7 @@ public:
     *  \param end Iterator to the end of the range.
     */
    template <class ForwardIterator>
-   void push_range(boost::string_view cmd, ForwardIterator begin, ForwardIterator end,
+   void push_range(std::string_view cmd, ForwardIterator begin, ForwardIterator end,
                    typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
@@ -361,7 +358,7 @@ public:
     *  \param range Range to send e.g. and \c std::map.
     */
    template <class Key, class Range>
-   void push_range(boost::string_view cmd, Key const& key, Range const& range,
+   void push_range(std::string_view cmd, Key const& key, Range const& range,
                    decltype(std::begin(range)) * = nullptr)
    {
       using std::begin;
@@ -377,7 +374,7 @@ public:
     *  \param range Range to send e.g. and \c std::map.
     */
    template <class Range>
-   void push_range(boost::string_view cmd, Range const& range,
+   void push_range(std::string_view cmd, Range const& range,
                    decltype(std::begin(range)) * = nullptr)
    {
       using std::begin;
@@ -386,7 +383,7 @@ public:
    }
 
 private:
-   void check_cmd(boost::string_view cmd)
+   void check_cmd(std::string_view cmd)
    {
       if (!detail::has_push_response(cmd))
          ++commands_;

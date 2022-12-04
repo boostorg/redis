@@ -9,6 +9,7 @@
 
 #include <array>
 #include <algorithm>
+#include <string_view>
 
 #include <boost/assert.hpp>
 #include <boost/system.hpp>
@@ -118,7 +119,7 @@ struct exec_read_op {
             resp3::async_read(
                conn->next_layer(),
                conn->make_dynamic_buffer(adapter.get_max_read_size(index)),
-                  [i = index, adpt = adapter] (resp3::node<boost::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, nd, ec); },
+                  [i = index, adpt = adapter] (resp3::node<std::string_view> const& nd, boost::system::error_code& ec) mutable { adpt(i, nd, ec); },
                   std::move(self));
 
             ++index;

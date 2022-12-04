@@ -4,11 +4,12 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <string_view>
 #include <aedis/resp3/request.hpp>
 
 namespace aedis::resp3::detail {
 
-auto has_push_response(boost::string_view cmd) -> bool
+auto has_push_response(std::string_view cmd) -> bool
 {
    if (cmd == "SUBSCRIBE") return true;
    if (cmd == "PSUBSCRIBE") return true;
@@ -16,7 +17,7 @@ auto has_push_response(boost::string_view cmd) -> bool
    return false;
 }
 
-auto is_hello(boost::string_view cmd) -> bool
+auto is_hello(std::string_view cmd) -> bool
 {
    return cmd == "HELLO";
 }

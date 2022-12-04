@@ -57,7 +57,7 @@ void tag_invoke(value_from_tag, value& jv, user const& u)
 }
 
 template<class T>
-void extract(object const& obj, T& t, boost::string_view key)
+void extract(object const& obj, T& t, std::string_view key)
 {
    t = value_to<T>(obj.at(key));
 }
@@ -78,7 +78,7 @@ void to_bulk(std::pmr::string& to, user const& u)
    aedis::resp3::to_bulk(to, serialize(value_from(u)));
 }
 
-void from_bulk(user& u, boost::string_view sv, boost::system::error_code&)
+void from_bulk(user& u, std::string_view sv, boost::system::error_code&)
 {
    value jv = parse(sv);
    u = value_to<user>(jv);

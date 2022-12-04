@@ -7,12 +7,12 @@
 #ifndef AEDIS_RESP3_READ_OPS_HPP
 #define AEDIS_RESP3_READ_OPS_HPP
 
+#include <string_view>
 #include <boost/assert.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/core/ignore_unused.hpp>
-#include <boost/utility/string_view.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 
 #include <boost/asio/yield.hpp>
@@ -43,7 +43,7 @@ auto is_cancelled(T const& self)
 namespace aedis::resp3::detail {
 
 struct ignore_response {
-   void operator()(node<boost::string_view> nd, boost::system::error_code& ec)
+   void operator()(node<std::string_view> nd, boost::system::error_code& ec)
    {
       switch (nd.data_type) {
          case resp3::type::simple_error: ec = error::resp3_simple_error; return;

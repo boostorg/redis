@@ -878,6 +878,7 @@ Acknowledgement to people that helped shape Aedis
 ### master
 
 * Removes dependency on Boost.Hana.
+* Removes dependency on `boost::string_view`, now using `std::string_view`.
 
 ### v1.3.0-1
 
