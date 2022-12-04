@@ -22,20 +22,25 @@ target_include_directories(aedis INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(aedis
+target_link_libraries(
+  aedis
   INTERFACE
     Boost::asio
     Boost::assert
     Boost::config
     Boost::core
     Boost::mp11
-    Boost::optional
     Boost::system
     Boost::utility
-    Boost::winapi
 )
 
 target_compile_features(aedis INTERFACE cxx_std_17)
+
+# Asio bases C++ feature detection on __cplusplus. Make MSVC
+# define it correctly
+if (MSVC)
+    target_compile_options(aedis INTERFACE /Zc:__cplusplus)
+endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(

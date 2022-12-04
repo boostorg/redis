@@ -45,7 +45,7 @@ struct receive_op {
       reenter (coro)
       {
          yield conn->push_channel_.async_receive(std::move(self));
-         AEDIS_CHECK_OP1();
+         AEDIS_CHECK_OP1(;);
 
          yield
          resp3::async_read(
@@ -56,12 +56,12 @@ struct receive_op {
          // cancel(receive) is needed to cancel the channel, otherwise
          // the read operation will be blocked forever see
          // test_push_adapter.
-         AEDIS_CHECK_OP1(conn->cancel(operation::run); conn->cancel(operation::receive));
+         AEDIS_CHECK_OP1(conn->cancel(operation::run); conn->cancel(operation::receive););
 
          read_size = n;
 
          yield conn->push_channel_.async_send({}, 0, std::move(self));
-         AEDIS_CHECK_OP1();
+         AEDIS_CHECK_OP1(;);
 
          self.complete({}, read_size);
          return;
@@ -101,7 +101,7 @@ struct exec_read_op {
                   conn->next_layer(),
                   conn->make_dynamic_buffer(),
                   "\r\n", std::move(self));
-               AEDIS_CHECK_OP1(conn->cancel(operation::run));
+               AEDIS_CHECK_OP1(conn->cancel(operation::run););
             }
 
             // If the next request is a push we have to handle it to
@@ -109,7 +109,7 @@ struct exec_read_op {
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
                yield
                async_send_receive(conn->push_channel_, std::move(self));
-               AEDIS_CHECK_OP1(conn->cancel(operation::run));
+               AEDIS_CHECK_OP1(conn->cancel(operation::run););
                continue;
             }
             //-----------------------------------
@@ -123,7 +123,7 @@ struct exec_read_op {
 
             ++index;
 
-            AEDIS_CHECK_OP1(conn->cancel(operation::run));
+            AEDIS_CHECK_OP1(conn->cancel(operation::run););
 
             read_size += n;
 
@@ -285,7 +285,7 @@ struct writer_op {
             conn->coalesce_requests();
             yield
             boost::asio::async_write(conn->next_layer(), boost::asio::buffer(conn->write_buffer_), std::move(self));
-            AEDIS_CHECK_OP0(conn->cancel(operation::run));
+            AEDIS_CHECK_OP0(conn->cancel(operation::run););
 
             conn->on_write();
 
@@ -335,7 +335,7 @@ struct reader_op {
             return self.complete({}); // EOFINAE: EOF is not an error.
          }
 
-         AEDIS_CHECK_OP0(conn->cancel(operation::run));
+         AEDIS_CHECK_OP0(conn->cancel(operation::run););
 
          // We handle unsolicited events in the following way
          //

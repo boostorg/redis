@@ -54,7 +54,8 @@ auto from_bulk(
    boost::string_view sv,
    boost::system::error_code& ec) -> typename std::enable_if<std::is_integral<T>::value, void>::type
 {
-   i = resp3::detail::parse_uint(sv.data(), sv.size(), ec);
+   auto const v = resp3::detail::parse_uint(sv.data(), sv.size(), ec);
+   i = static_cast<T>(v);
 }
 
 inline

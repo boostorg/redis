@@ -160,7 +160,9 @@ jobs:
         cmake -T "${{matrix.toolset}}" \
               -G "${{matrix.generator}}" \
               ${{matrix.config_args}} \
-              ${BOOST_COMPILER_ARG} \
+              ${BOOST_COMPILER_ARG}\
+              -D_WIN32_WINNT=0x0601\
+              -DCMAKE_CXX_FLAGS="/bigobj"\
               "${GITHUB_WORKSPACE}"
       env:
         BOOST_ROOT: ${{env.BOOST_INSTALL_PATH}}/boost
@@ -168,10 +170,7 @@ jobs:
     - name: Build
       working-directory: build
       run: |
-        cmake --build . \
-        -j \
-        ${BUILD_CONFIG_ARG} \
-        ${{matrix.build_args}}
+        cmake --build . ${BUILD_CONFIG_ARG} ${{matrix.build_args}}
 
     - name: Run tests
       working-directory: build

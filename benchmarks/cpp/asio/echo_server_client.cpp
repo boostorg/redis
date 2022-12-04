@@ -14,8 +14,7 @@ using net::ip::tcp;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using timer_type = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 
-net::awaitable<void>
-example(boost::asio::ip::tcp::endpoint ep, std::string msg, int n)
+auto example(boost::asio::ip::tcp::endpoint ep, std::string msg, int n) -> net::awaitable<void>
 {
    try {
       auto ex = co_await net::this_coro::executor;
