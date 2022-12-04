@@ -26,16 +26,6 @@ jobs:
           - { os: windows-2022, generator: "Visual Studio 16 2019" }
           # The following combinations are not available through install-boost
           - { boost_version: "1.80.0", toolset: v143 }
-          - { boost_version: "1.80.0", toolset: v143 }
-          - { boost_version: "1.80.0", toolset: v143 }
-        include:
-          - boost_version: "1.80.0"
-            os: windows-2019
-            toolset: ""
-            build_type: ""
-            generator: "MinGW Makefiles"
-            config_args: ""
-            name_args: ""
 
     steps:
     - name: Checkout
@@ -45,20 +35,19 @@ jobs:
 
     - name: Add boost toolset to environment
       if: contains(fromJson('["1.80.0"]'), matrix.boost_version)
-      run: echo BOOST_TOOLSET=$([[ "${{matrix.generator}}" == "MinGW Makefiles" ]] && echo "mingw" || echo "msvc") >> $GITHUB_ENV
+      run: echo BOOST_TOOLSET=$(echo "msvc") >> $GITHUB_ENV
 
     # The platform_version passed to boost-install determines the msvc toolset version for which static libs are installed.
     - name: Add boost platform version to environment
       run: |
-        declare -A toolset_to_platform_version=( [mingw]="2019" [v142]="2019" [v143]="2022" )
-        key=$([[ "${{matrix.generator}}" == "MinGW Makefiles" ]] && echo "mingw" || echo "${{matrix.toolset}}")
+        declare -A toolset_to_platform_version=( [v142]="2019" [v143]="2022" )
+        key=$(echo "${{matrix.toolset}}")
         echo BOOST_PLATFORM_VERSION="${toolset_to_platform_version[$key]}" >> $GITHUB_ENV
 
     - name: Add boost install path to environment
       run: echo BOOST_INSTALL_PATH="${GITHUB_WORKSPACE}/boost-${{matrix.boost_version}}${BOOST_TOOLSET}${BOOST_PLATFORM_VERSION}" >> $GITHUB_ENV
 
     - name: Add build type configuration to environment
-      if: matrix.generator != 'MinGW Makefiles'
       run: echo BUILD_CONFIG_ARG="--config ${{matrix.build_type}}" >> $GITHUB_ENV
 
     - name: Cache Boost installation
