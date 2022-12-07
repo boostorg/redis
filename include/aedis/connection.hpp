@@ -18,9 +18,8 @@ namespace aedis {
 /** @brief A connection to the Redis server.
  *  @ingroup high-level-api
  *
- *  This class keeps a healthy connection to the Redis instance where
- *  commands can be sent at any time. For more details, please see the
- *  documentation of each individual function.
+ *  For more details, please see the documentation of each individual
+ *  function.
  *
  *  @tparam AsyncReadWriteStream A stream that supports reading and
  *  writing.
@@ -98,9 +97,9 @@ public:
     *  void f(boost::system::error_code);
     *  @endcode
     *
-    *  This function will complete when the connection is lost as
-    *  follows. If the error is boost::asio::error::eof this function
-    *  will complete without error.
+    *  This function will complete when the connection is lost. If the
+    *  error is boost::asio::error::eof this function will complete
+    *  without error.
     */
    template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
    auto async_run(CompletionToken token = CompletionToken{})
@@ -110,7 +109,7 @@ public:
 
    /** @brief Executes a command on the Redis server asynchronously.
     *
-    *  This function will send a request to the Redis server and
+    *  This function sends a request to the Redis server and
     *  complete after the response has been processed. If the request
     *  contains only commands that don't expect a response, the
     *  completion occurs after it has been written to the underlying
@@ -146,7 +145,7 @@ public:
     *
     *  Users that expect server pushes should call this function in a
     *  loop. If a push arrives and there is no reader, the connection
-    *  will hang and eventually timeout.
+    *  will hang.
     *
     *  @param adapter The response adapter.
     *  @param token The Asio completion token.
@@ -193,7 +192,6 @@ private:
    template <class, class> friend class detail::connection_base;
    template <class, class> friend struct detail::exec_read_op;
    template <class, class> friend struct detail::exec_op;
-   template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
    template <class> friend struct detail::run_op;

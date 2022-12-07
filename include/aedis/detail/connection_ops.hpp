@@ -31,46 +31,6 @@
 namespace aedis::detail {
 
 template <class Conn, class Adapter>
-struct receive_op {
-   Conn* conn = nullptr;
-   Adapter adapter;
-   std::size_t read_size = 0;
-   boost::asio::coroutine coro{};
-
-   template <class Self>
-   void
-   operator()( Self& self
-             , boost::system::error_code ec = {}
-             , std::size_t n = 0)
-   {
-      reenter (coro)
-      {
-         yield conn->push_channel_.async_receive(std::move(self));
-         AEDIS_CHECK_OP1(;);
-
-         yield
-         resp3::async_read(
-            conn->next_layer(),
-            conn->make_dynamic_buffer(adapter.get_max_read_size(0)),
-            adapter, std::move(self));
-
-         // cancel(receive) is needed to cancel the channel, otherwise
-         // the read operation will be blocked forever see
-         // test_push_adapter.
-         AEDIS_CHECK_OP1(conn->cancel(operation::run); conn->cancel(operation::receive););
-
-         read_size = n;
-
-         yield conn->push_channel_.async_send({}, 0, std::move(self));
-         AEDIS_CHECK_OP1(;);
-
-         self.complete({}, read_size);
-         return;
-      }
-   }
-};
-
-template <class Conn, class Adapter>
 struct exec_read_op {
    Conn* conn;
    Adapter adapter;
@@ -108,8 +68,7 @@ struct exec_read_op {
             // If the next request is a push we have to handle it to
             // the receive_op wait for it to be done and continue.
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
-               yield
-               async_send_receive(conn->push_channel_, std::move(self));
+               yield conn->guarded_op_.async_run(std::move(self));
                AEDIS_CHECK_OP1(conn->cancel(operation::run););
                continue;
             }
@@ -359,25 +318,20 @@ struct reader_op {
          if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push
              || conn->reqs_.empty()
              || (!conn->reqs_.empty() && conn->reqs_.front()->get_number_of_commands() == 0)) {
-            yield async_send_receive(conn->push_channel_, std::move(self));
-            if (!conn->is_open() || ec || is_cancelled(self)) {
-               conn->cancel(operation::run);
-               self.complete(boost::asio::error::basic_errors::operation_aborted);
-               return;
-            }
+            yield conn->guarded_op_.async_run(std::move(self));
          } else {
             BOOST_ASSERT(conn->cmds_ != 0);
             BOOST_ASSERT(!conn->reqs_.empty());
             BOOST_ASSERT(conn->reqs_.front()->get_number_of_commands() != 0);
             conn->reqs_.front()->proceed();
             yield conn->read_timer_.async_wait(std::move(self));
-            if (!conn->is_open() || is_cancelled(self)) {
-               // Added this cancel here to make sure any outstanding
-               // ping is cancelled.
-               conn->cancel(operation::run);
-               self.complete(boost::asio::error::basic_errors::operation_aborted);
-               return;
-            }
+            ec = {};
+         }
+
+         if (!conn->is_open() || ec || is_cancelled(self)) {
+            conn->cancel(operation::run);
+            self.complete(boost::asio::error::basic_errors::operation_aborted);
+            return;
          }
       }
    }

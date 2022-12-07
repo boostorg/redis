@@ -19,6 +19,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/bind_executor.hpp>
+#include <boost/asio/deferred.hpp>
 #include <boost/asio/experimental/channel.hpp>
 
 #include <aedis/adapt.hpp>
@@ -47,7 +48,7 @@ public:
    connection_base(executor_type ex, std::pmr::memory_resource* resource)
    : writer_timer_{ex}
    , read_timer_{ex}
-   , push_channel_{ex}
+   , guarded_op_{ex}
    , read_buffer_{resource}
    , write_buffer_{resource}
    , reqs_{resource}
@@ -76,7 +77,7 @@ public:
          }
          case operation::receive:
          {
-            push_channel_.cancel();
+            guarded_op_.cancel();
             return 1U;
          }
          default: BOOST_ASSERT(false); return 0;
@@ -154,10 +155,10 @@ public:
       CompletionToken token = CompletionToken{})
    {
       auto f = detail::make_adapter_wrapper(adapter);
-      return boost::asio::async_compose
-         < CompletionToken
-         , void(boost::system::error_code, std::size_t)
-         >(detail::receive_op<Derived, decltype(f)>{&derived(), f}, token, writer_timer_);
+
+      return guarded_op_.async_wait(
+         resp3::async_read(derived().next_layer(), make_dynamic_buffer(adapter.get_max_read_size(0)), f, boost::asio::deferred),
+         std::move(token));
    }
 
    template <class CompletionToken>
@@ -276,7 +277,6 @@ private:
 
    using reqs_type = std::pmr::deque<std::shared_ptr<req_info>>;
 
-   template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
    template <class> friend struct detail::run_op;
@@ -371,7 +371,7 @@ private:
    // IO objects
    timer_type writer_timer_;
    timer_type read_timer_;
-   push_channel_type push_channel_;
+   detail::guarded_operation<executor_type> guarded_op_;
 
    std::pmr::string read_buffer_;
    std::pmr::string write_buffer_;

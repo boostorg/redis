@@ -50,18 +50,25 @@ auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 
 // Retrieves a Redis hash as an std::map.
-auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto hgetall() -> net::awaitable<void>
 {
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+
+   // Resolves and connects (from examples/common.hpp to avoid vebosity)
+   co_await connect(conn, "127.0.0.1", "6379");
+
+   // A request contains multiple Redis commands.
    request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
+   // Tuple elements will hold the response to each command in the request.
    std::tuple<aedis::ignore, std::map<std::string, std::string>, aedis::ignore> resp;
 
-   co_await conn->async_exec(req, adapt(resp));
-
+   // Executes the request and reads the response.
+   co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
    print(std::get<1>(resp));
 }
 
@@ -102,9 +109,9 @@ net::awaitable<void> async_main()
    co_await connect(conn, "127.0.0.1", "6379");
    co_await (conn->async_run() || store(conn));
 
-   co_await connect(conn, "127.0.0.1", "6379");
-   co_await (conn->async_run() || hgetall(conn));
+   co_await hgetall();
 
+   // Resused the connection object.
    co_await connect(conn, "127.0.0.1", "6379");
    co_await (conn->async_run() || transaction(conn));
 }

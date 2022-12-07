@@ -23,14 +23,21 @@ with three library entities
 * `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
 * `aedis::connection`: A connection to the Redis server.
 
-For example, the coroutine below reads Redis [hashes](https://redis.io/docs/data-types/hashes/)
-in a `std::map` and quits the connection (see containers.cpp)
+For example, the coroutine below uses a short-lived connection to read Redis
+[hashes](https://redis.io/docs/data-types/hashes/)
+in a `std::map` (see containers.cpp)
 
 ```cpp
-auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto hgetall() -> net::awaitable<void>
 {
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+
+   // Resolves and connects (from examples/common.hpp to avoid vebosity)
+   co_await connect(conn, "127.0.0.1", "6379");
+
    // A request contains multiple Redis commands.
    request req;
+   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
@@ -39,46 +46,29 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
    std::tuple<aedis::ignore, std::map<std::string, std::string>, aedis::ignore> resp;
 
    // Executes the request and reads the response.
-   co_await conn->async_exec(req, adapt(resp));
+   co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
 
-   // Uses the map ...
+   // Use the map ...
 }
 ```
 
-The execution of `connection::async_exec` as shown above must
-still be triggered by the `connection::async_run` member function. For
-example, the code below uses a short-lived connection to execute the
-coroutine above
-
-```cpp
-net::awaitable<void> async_main()
-{
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-
-   // Resolves and connects (from examples/common.hpp to avoid vebosity)
-   co_await connect(conn, "127.0.0.1", "6379");
-
-   // Runs hgetall (previous example).
-   co_await (conn->async_run() || hgetall(conn));
-}
-```
-
-Long-lived connections follow the same principle (see the examples
-below) and will be discussed in more detail later.  The role of the
-`async_run` is to coordinate IO and ensure the connection is always
-reading from the socket. The reationale behind this design is
+The execution of `connection::async_exec` as shown above is triggered
+by the `connection::async_run` member function, whose role is to
+coordinate IO and ensure the connection is always reading from the
+socket. The rationale behind this design is
 
 * Provide quick reaction to disconnections and hence faster failovers.
 * Support server pushes and requests in the same connection object,
   concurrently.
 
-Before we see with more detail how connections, requests and responses
-work, users might find it useful to skim over the examples in order to
-gain a better feeling about the library capabilities.
+Long-lived connections follow the same principle and will be discussed
+more later. Before we go to the next sections, users might find it
+useful to skim over the examples in order to gain a better feeling
+about the library capabilities.
 
 * intro.cpp: The Aedis hello-world program. Sends one command and quits the connection.
 * intro_tls.cpp: Same as intro.cpp but over TLS.
-* intro_sync.cpp: Shows how to use the conneciton class synchronously.
+* intro_sync.cpp: Shows how to use the connection class synchronously.
 * containers.cpp: Shows how to send and receive STL containers and how to use transactions.
 * serialization.cpp: Shows how to serialize types using Boost.Json.
 * resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
@@ -88,14 +78,14 @@ gain a better feeling about the library capabilities.
 * low_level_sync.cpp: Sends a ping synchronously using the low-level API.
 * low_level_async.cpp: Sends a ping asynchronously using the low-level API.
 
-To avoid repetition code that is common to all examples have been
+To avoid repetition code that is common to all examples has been
 grouped in common.hpp. The main function used in some async examples
 has been factored out in the main.cpp file.
 
 <a name="requests"></a>
-### Requests
+## Requests
 
-Redis requests are composed of one or more Redis commands (in
+Redis requests are composed of one or more commands (in the
 Redis documentation they are called
 [pipelines](https://redis.io/topics/pipelining)). For example
 
@@ -152,11 +142,11 @@ std::map<std::string, mystruct> map {...};
 req.push_range("HSET", "key", map);
 ```
 
-Example serialization.cpp shows how store json string in Redis.
+Example serialization.cpp shows how store json strings in Redis.
 
 <a name="responses"></a>
 
-### Responses
+## Responses
 
 Aedis uses the following strategy to support Redis responses
 
@@ -182,7 +172,7 @@ std::tuple<std::string, int, std::string>
 The pattern might have become apparent to the reader: the tuple must
 have as many elements as the request has commands (exceptions below).
 It is also necessary that each tuple element is capable of storing the
-response to the command it refers to, otherwise an error will ocurr.
+response to the command it refers to, otherwise an error will occur.
 To ignore responses to individual commands in the request use the tag
 `aedis::ignore`
 
@@ -425,7 +415,7 @@ containers. The same reasoning also applies to sets e.g. `SMEMBERS`
 and other data structures in general.
 
 <a name="connection"></a>
-### Connection
+## Connection
 
 The `aedis::connection` is a class that provides async-only
 communication with a Redis server by means of three member
@@ -452,7 +442,7 @@ the points above with more detail.
 
 #### Run
 
-The code snipet in the overview section has shown us an example that
+The code snippet in the overview section has shown us an example that
 used `connection::async_run` in short-lived connection, in the general
 case however, applications will connect to a Redis server and hang
 around for as long as possible, until the connection is lost for some
@@ -495,7 +485,7 @@ auto async_main() -> net::awaitable<void>
 
 It is important to emphasize that Redis servers use the old
 communication protocol RESP2 by default, therefore it is necessary to
-send a `HELLO 3` command everytime a connection is established.
+send a `HELLO 3` command every time a connection is established.
 Another common scenario for reconnection is, for example, a failover
 with sentinels, covered in `resolve_with_sentinel.cpp` example.
 
@@ -624,12 +614,12 @@ co_await (conn.async_run(...) || time.async_wait(...))
 co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
 ```
 
-* This works but is considered an antipattern. Unless
+* This works but is considered an anti-pattern. Unless
   the user has set `aedis::resp3::request::config::coalesce` to
   `false`, and he shouldn't, the connection will automatically merge
   the individual requests into a single payload anyway.
 
-## Why Aedis
+## Comparison
 
 The main reason for why I started writing Aedis was to have a client
 compatible with the Asio asynchronous model. As I made progresses I could
@@ -641,6 +631,8 @@ instead I will focus on the most popular C++ client on github in number of
 stars, namely
 
 * https://github.com/sewenew/redis-plus-plus
+
+### Aedis vs Redis-plus-plus
 
 Before we start it is important to mentioning some of the things
 redis-plus-plus does not support
@@ -738,7 +730,7 @@ enqueueing a message and triggering a write when it can be sent.
 It is also not clear how are pipelines realised with this design
 (if at all).
 
-### Echo server benchmark
+## Echo server benchmark
 
 This document benchmarks the performance of TCP echo servers I
 implemented in different languages using different Redis clients.  The
@@ -860,8 +852,9 @@ The requirements for using Aedis are
 
 The following compilers are supported
 
-- Tested with gcc: 10, 11, 12.
-- Tested with clang: 11, 13, 14.
+- Gcc: 10, 11, 12.
+- Clang: 11, 13, 14.
+- Visual Studio 17 2022, Visual Studio 16 2019.
 
 ## Acknowledgement
 
@@ -875,10 +868,11 @@ Acknowledgement to people that helped shape Aedis
 
 ## Changelog
 
-### master
+### 1.4.0
 
 * Removes dependency on Boost.Hana.
 * Removes dependency on `boost::string_view`, now using `std::string_view`.
+* Fixes build and setup CI on windows.
 
 ### v1.3.0-1
 
@@ -886,7 +880,7 @@ Acknowledgement to people that helped shape Aedis
 
 * Removes automatic sending of the `HELLO` command. This can't be
   implemented properly without bloating the connection class. It is
-  now a user responsability to send HELLO. Requests that contain it have
+  now a user responsibility to send HELLO. Requests that contain it have
   priority over other requests and will be moved to the front of the
   queue, see `aedis::resp3::request::config` 
 
@@ -999,7 +993,7 @@ Acknowledgement to people that helped shape Aedis
   is possible in simple reconnection strategies but bloats the class
   in more complex scenarios, for example, with sentinel,
   authentication and TLS. This is trivial to implement in a separate
-  coroutine. As a result the enum `event` and `async_receive_event`
+  coroutine. As a result the `enum event` and `async_receive_event`
   have been removed from the class too.
 
 * Fixes a bug in `connection::async_receive_push` that prevented
