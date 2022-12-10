@@ -14,7 +14,6 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <aedis.hpp>
-#include <aedis/detail/net.hpp>
 #include <aedis/src.hpp>
 #include "common.hpp"
 

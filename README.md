@@ -17,7 +17,7 @@ Some of its distinctive features are
 
 In addition to that, Aedis hides most of the low-level Asio code away
 from the user, which in the majority of the cases will be concerned
-with three library entities
+with only three library entities
 
 * `aedis::resp3::request`: A container of Redis commands.
 * `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
@@ -36,7 +36,7 @@ auto hgetall() -> net::awaitable<void>
    co_await connect(conn, "127.0.0.1", "6379");
 
    // A request contains multiple Redis commands.
-   request req;
+   resp3::request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
@@ -61,8 +61,9 @@ socket. The rationale behind this design is
 * Support server pushes and requests in the same connection object,
   concurrently.
 
-Long-lived connections follow the same principle and will be discussed
-more later. Before we go to the next sections, users might find it
+The need for this design becomes more apparent in long-lived
+connections which we will discuss later (see subscriber.cpp for an
+example). Before we go to the next sections, users might find it
 useful to skim over the examples in order to gain a better feeling
 about the library capabilities.
 
@@ -113,7 +114,7 @@ Sending a request to Redis is performed with `aedis::connection::async_exec` as 
 
 <a name="serialization"></a>
 
-#### Serialization
+### Serialization
 
 The `resp3::request::push` and `resp3::request::push_range` member functions work
 with integer data types e.g. `int` and `std::string` out of the box.
@@ -145,6 +146,12 @@ req.push_range("HSET", "key", map);
 Example serialization.cpp shows how store json strings in Redis.
 
 <a name="responses"></a>
+
+### Config flags
+
+The `aedis::resp3::request::config` object inside the request dictates how the
+`aedis::connection` should handle the request in some important situations. The
+reader is advised to have a read it carefully.
 
 ## Responses
 
@@ -258,7 +265,7 @@ of this writing, not all RESP3 types are used by the Redis server,
 which means in practice users will be concerned with a reduced
 subset of the RESP3 specification.
 
-#### Pushes
+### Pushes
 
 Commands that have push response like
 
@@ -278,7 +285,7 @@ req.push("QUIT");
 must be read in this tuple `std::tuple<std::string, std::string>`,
 that has size two.
 
-#### Null
+### Null
 
 It is not uncommon for apps to access keys that do not exist or
 that have already expired in the Redis server, to deal with these
@@ -297,7 +304,7 @@ co_await conn->async_exec(req, adapt(resp));
 
 Everything else stays pretty much the same.
 
-#### Transactions
+### Transactions
 
 To read responses to transactions we must first observe that Redis will
 queue the transaction commands and send their individual responses as elements
@@ -337,14 +344,14 @@ co_await conn->async_exec(req, adapt(resp));
 
 For a complete example see containers.cpp.
 
-#### Deserialization
+### Deserialization
 
-As mentioned in \ref serialization, it is common practice to
-serialize data before sending it to Redis e.g. as json strings.
-For performance and convenience reasons, we may also want to
-deserialize responses directly in their final data structure. Aedis
-supports this use case by calling a user provided `from_bulk` function
-while parsing the response. For example
+As mentioned in the serialization section, it is common practice to
+serialize data before sending it to Redis e.g. as json strings.  For
+performance and convenience reasons, we may also want to deserialize
+responses directly in their final data structure. Aedis supports this
+use case by calling a user provided `from_bulk` function while parsing
+the response. For example
 
 ```cpp
 void from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
@@ -358,7 +365,7 @@ types e.g. `mystruct`, `std::map<std::string, mystruct>` etc.
 
 <a name="the-general-case"></a>
 
-#### The general case
+### The general case
 
 There are cases where responses to Redis
 commands won't fit in the model presented above, some examples are
@@ -440,7 +447,7 @@ Each of these operations can be performed without regards to the
 others as they are independent from each other. Below we will cover
 the points above with more detail.
 
-#### Run
+### Run
 
 The code snippet in the overview section has shown us an example that
 used `connection::async_run` in short-lived connection, in the general
@@ -489,7 +496,7 @@ send a `HELLO 3` command every time a connection is established.
 Another common scenario for reconnection is, for example, a failover
 with sentinels, covered in `resolve_with_sentinel.cpp` example.
 
-#### Execute
+### Execute
 
 The basic idea about `async_exec` was stated above already: execute
 Redis commands. One of the most important things about it however is
@@ -548,7 +555,7 @@ Notice also how the session above provides back-pressure as the
 coroutine won't read the next message from the socket until a cycle is
 complete.
 
-#### Receive
+### Receive
 
 Receiving Redis pushes works similar to the `async_exec` discussed
 above but without the request.  The example below was taken from
@@ -570,7 +577,7 @@ In general, it is advisable to all apps to keep a coroutine calling
 and eventually timeout.  Notice that the same connection that is being
 used to send requests can be also used to receive server-side pushes.
 
-#### Cancellation
+### Cancellation
 
 Aedis supports both implicit and explicit cancellation of connection
 operations. Explicit cancellation is supported by means of the
@@ -752,7 +759,7 @@ terminal and the
 [echo-server-client](https://github.com/mzimbres/aedis/blob/42880e788bec6020dd018194075a211ad9f339e8/benchmarks/cpp/asio/echo_server_client.cpp)
 in another.
 
-#### Without Redis
+### Without Redis
 
 First I tested a pure TCP echo server, i.e. one that sends the messages
 directly to the client without interacting with Redis. The result can
@@ -779,7 +786,7 @@ The code used in the benchmarks can be found at
    * [Nodejs](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_direct)
    * [Go](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_direct.go)
 
-#### With Redis
+### With Redis
 
 This is similar to the echo server described above but messages are
 echoed by Redis and not by the echo-server itself, which acts
@@ -816,7 +823,7 @@ The code used in the benchmarks can be found at
 
 <a name="api-reference"></a>
 
-#### Conclusion
+### Conclusion
 
 Redis clients have to support automatic pipelining to have competitive performance. For updates to this document follow https://github.com/mzimbres/aedis.
 
@@ -870,8 +877,7 @@ Acknowledgement to people that helped shape Aedis
 
 ### 1.4.0
 
-* Removes dependency on Boost.Hana.
-* Removes dependency on `boost::string_view`, now using `std::string_view`.
+* Removes dependency on Boost.Hana, boost::string_view, Boost.Variant2 and Boost.Spirit.
 * Fixes build and setup CI on windows.
 
 ### v1.3.0-1

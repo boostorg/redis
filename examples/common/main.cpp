@@ -17,6 +17,10 @@ auto main() -> int
    try {
       net::io_context ioc;
       net::co_spawn(ioc, async_main(), net::detached);
+      net::co_spawn(ioc, async_main(), [](std::exception_ptr p) {
+         if (p)
+            std::rethrow_exception(p);
+      });
       ioc.run();
    } catch (std::exception const& e) {
       std::cerr << "Error: " << e.what() << std::endl;

@@ -11,16 +11,16 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
+namespace resp3 = aedis::resp3;
 using namespace net::experimental::awaitable_operators;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using signal_set_type = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
+using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
 using aedis::adapt;
-using aedis::resp3::request;
 
 auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   request req;
+   resp3::request req;
    std::string resp;
 
    for (std::string buffer;;) {
@@ -49,9 +49,9 @@ auto async_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   signal_set_type sig{ex, SIGINT, SIGTERM};
+   signal_set sig{ex, SIGINT, SIGTERM};
 
-   request req;
+   resp3::request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
 

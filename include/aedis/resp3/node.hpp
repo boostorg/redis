@@ -9,9 +9,6 @@
 
 #include <aedis/resp3/type.hpp>
 
-#include <string>
-#include <vector>
-
 namespace aedis::resp3 {
 
 /** \brief A node in the response tree.
@@ -38,27 +35,6 @@ struct node {
    String value{};
 };
 
-/** \brief Converts the node to a string.
- *  \relates node
- *
- *  \param in The node object.
- */
-template <class String>
-auto to_string(node<String> const& in)
-{
-   std::string out;
-   out += std::to_string(in.depth);
-   out += '\t';
-   out += to_string(in.data_type);
-   out += '\t';
-   out += std::to_string(in.aggregate_size);
-   out += '\t';
-   if (!is_aggregate(in.data_type))
-      out.append(in.value.data(), in.value.size());
-
-   return out;
-}
-
 /** @brief Compares a node for equality.
  *  @relates node
  *
@@ -73,21 +49,6 @@ auto operator==(node<String> const& a, node<String> const& b)
        && a.data_type == b.data_type
        && a.value == b.value;
 };
-
-/** @brief Writes the node string to the stream.
- *  @relates node
- *
- *  @param os Output stream.
- *  @param node Node object.
- *
- *  \remark Binary data is not converted to text.
- */
-template <class String>
-auto operator<<(std::ostream& os, node<String> const& node) -> std::ostream&
-{
-   os << to_string(node);
-   return os;
-}
 
 } // aedis::resp3
 

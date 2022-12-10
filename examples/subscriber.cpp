@@ -12,12 +12,11 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
+namespace resp3 = aedis::resp3;
 using namespace net::experimental::awaitable_operators;
-using signal_set_type = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
-using timer_type = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
+using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
+using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using aedis::adapt;
-using aedis::resp3::request;
-using aedis::resp3::node;
 
 /* This example will subscribe and read pushes indefinitely.
  *
@@ -38,7 +37,7 @@ using aedis::resp3::node;
 // Receives pushes.
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   for (std::vector<node<std::string>> resp;;) {
+   for (std::vector<resp3::node<std::string>> resp;;) {
       co_await conn->async_receive(adapt(resp));
       std::cout << resp.at(1).value << " " << resp.at(2).value << " " << resp.at(3).value << std::endl;
       resp.clear();
@@ -47,7 +46,7 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   request req;
+   resp3::request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
@@ -59,8 +58,8 @@ auto async_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   signal_set_type sig{ex, SIGINT, SIGTERM};
-   timer_type timer{ex};
+   signal_set sig{ex, SIGINT, SIGTERM};
+   steady_timer timer{ex};
 
    // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
    for (;;) {

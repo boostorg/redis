@@ -17,10 +17,10 @@
 #include <aedis/ssl/connection.hpp>
 
 namespace net = boost::asio;
+namespace resp3 = aedis::resp3;
 using namespace net::experimental::awaitable_operators;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using aedis::adapt;
-using aedis::resp3::request;
 using connection = net::use_awaitable_t<>::as_default_on_t<aedis::ssl::connection>;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
@@ -31,7 +31,7 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 
 net::awaitable<void> async_main()
 {
-   request req;
+   resp3::request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3, "AUTH", "aedis", "aedis");
    req.push("PING");

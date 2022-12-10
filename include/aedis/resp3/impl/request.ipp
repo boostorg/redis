@@ -17,9 +17,4 @@ auto has_push_response(std::string_view cmd) -> bool
    return false;
 }
 
-auto is_hello(std::string_view cmd) -> bool
-{
-   return cmd == "HELLO";
-}
-
 } // aedis::resp3::detail

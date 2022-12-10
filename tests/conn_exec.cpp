@@ -20,15 +20,72 @@
 // been already writen.
 
 namespace net = boost::asio;
-
-using aedis::resp3::request;
-using aedis::adapt;
-using connection = aedis::connection;
+namespace resp3 = aedis::resp3;
 using error_code = boost::system::error_code;
+using connection = aedis::connection;
+using aedis::adapt;
+
+BOOST_AUTO_TEST_CASE(hello_priority)
+{
+   resp3::request req1;
+   req1.get_config().coalesce = false;
+   req1.push("PING", "req1");
+
+   resp3::request req2;
+   req2.get_config().coalesce = false;
+   req2.get_config().hello_with_priority = false;
+   req2.push("HELLO", 3);
+   req2.push("PING", "req2");
+   req2.push("QUIT");
+
+   resp3::request req3;
+   req3.get_config().coalesce = false;
+   req3.get_config().hello_with_priority = true;
+   req3.push("HELLO", 3);
+   req3.push("PING", "req3");
+
+   net::io_context ioc;
+
+   auto const endpoints = resolve();
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
+
+   bool seen1 = false;
+   bool seen2 = false;
+   bool seen3 = false;
+
+   conn.async_exec(req1, adapt(), [&](auto ec, auto){
+      std::cout << "bbb" << std::endl;
+      BOOST_TEST(!ec);
+      BOOST_TEST(!seen2);
+      BOOST_TEST(seen3);
+      seen1 = true;
+   });
+   conn.async_exec(req2, adapt(), [&](auto ec, auto){
+      std::cout << "ccc" << std::endl;
+      BOOST_TEST(!ec);
+      BOOST_TEST(seen1);
+      BOOST_TEST(seen3);
+      seen2 = true;
+   });
+   conn.async_exec(req3, adapt(), [&](auto ec, auto){
+      std::cout << "ddd" << std::endl;
+      BOOST_TEST(!ec);
+      BOOST_TEST(!seen1);
+      BOOST_TEST(!seen2);
+      seen3 = true;
+   });
+
+   conn.async_run([](auto ec){
+      BOOST_TEST(!ec);
+   });
+
+   ioc.run();
+}
 
 BOOST_AUTO_TEST_CASE(wrong_response_data_type)
 {
-   request req;
+   resp3::request req;
    req.push("HELLO", 3);
    req.push("QUIT");
 
@@ -52,7 +109,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
 
 BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 {
-   request req;
+   resp3::request req;
    req.get_config().cancel_if_not_connected = true;
    req.push("HELLO", 3);
    req.push("PING");
@@ -68,12 +125,12 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 
 BOOST_AUTO_TEST_CASE(request_retry)
 {
-   request req1;
+   resp3::request req1;
    req1.get_config().cancel_on_connection_lost = true;
    req1.push("HELLO", 3);
    req1.push("CLIENT", "PAUSE", 7000);
 
-   request req2;
+   resp3::request req2;
    req2.get_config().cancel_on_connection_lost = false;
    req2.get_config().retry = false;
    req2.push("PING");

@@ -4,18 +4,10 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_NET_HPP
-#define AEDIS_NET_HPP
+#ifndef AEDIS_DETAIL_GUARDED_OPERATION_HPP
+#define AEDIS_DETAIL_GUARDED_OPERATION_HPP
 
-#include <array>
-
-#include <boost/system.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/connect.hpp>
-#include <boost/assert.hpp>
 #include <boost/asio/experimental/channel.hpp>
-#include <boost/asio/experimental/parallel_group.hpp>
-
 #include <boost/asio/yield.hpp>
 
 namespace aedis::detail {
@@ -113,4 +105,4 @@ private:
 } // aedis::detail
 
 #include <boost/asio/unyield.hpp>
-#endif // AEDIS_NET_HPP
+#endif // AEDIS_DETAIL_GUARDED_OPERATION_HPP

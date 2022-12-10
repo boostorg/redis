@@ -10,9 +10,9 @@
 #include <vector>
 #include <tuple>
 #include <string_view>
+#include <variant>
 
 #include <boost/mp11.hpp>
-#include <boost/variant2.hpp>
 
 #include <aedis/error.hpp>
 #include <aedis/resp3/type.hpp>
@@ -75,7 +75,7 @@ struct assigner {
   template <class T1, class T2>
   static void assign(T1& dest, T2& from)
   {
-     dest[N] = internal_adapt(std::get<N>(from));
+     dest[N].template emplace<N>(internal_adapt(std::get<N>(from)));
      assigner<N - 1>::assign(dest, from);
   }
 };
@@ -85,7 +85,7 @@ struct assigner<0> {
   template <class T1, class T2>
   static void assign(T1& dest, T2& from)
   {
-     dest[0] = internal_adapt(std::get<0>(from));
+     dest[0].template emplace<0>(internal_adapt(std::get<0>(from)));
   }
 };
 
@@ -97,7 +97,7 @@ private:
          boost::mp11::mp_rename<
             boost::mp11::mp_transform<
                adapter_t, Tuple>,
-               boost::variant2::variant>,
+               std::variant>,
          std::tuple_size<Tuple>::value>;
 
    std::size_t i_ = 0;
@@ -130,7 +130,7 @@ public:
       resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
-      using boost::variant2::visit;
+      using std::visit;
 
       if (nd.depth == 0) {
          auto const real_aggr_size = nd.aggregate_size * element_multiplicity(nd.data_type);

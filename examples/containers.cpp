@@ -14,9 +14,9 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
+namespace resp3 = aedis::resp3;
 using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
-using aedis::resp3::request;
 
 void print(std::map<std::string, std::string> const& cont)
 {
@@ -31,22 +31,27 @@ void print(std::vector<int> const& cont)
 }
 
 // Stores the content of some STL containers in Redis.
-auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto store() -> net::awaitable<void>
 {
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+
+   // Resolves and connects (from examples/common.hpp to avoid vebosity)
+   co_await connect(conn, "127.0.0.1", "6379");
+
    std::vector<int> vec
       {1, 2, 3, 4, 5, 6};
 
    std::map<std::string, std::string> map
       {{"key1", "value1"}, {"key2", "value2"}, {"key3", "value3"}};
 
-   request req;
+   resp3::request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);
    req.push("QUIT");
 
-   co_await conn->async_exec(req);
+   co_await (conn->async_run() || conn->async_exec(req));
 }
 
 // Retrieves a Redis hash as an std::map.
@@ -58,7 +63,7 @@ auto hgetall() -> net::awaitable<void>
    co_await connect(conn, "127.0.0.1", "6379");
 
    // A request contains multiple Redis commands.
-   request req;
+   resp3::request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
@@ -73,9 +78,14 @@ auto hgetall() -> net::awaitable<void>
 }
 
 // Retrieves in a transaction.
-auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto transaction() -> net::awaitable<void>
 {
-   request req;
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+
+   // Resolves and connects (from examples/common.hpp to avoid vebosity)
+   co_await connect(conn, "127.0.0.1", "6379");
+
+   resp3::request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("MULTI");
@@ -93,7 +103,7 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
       aedis::ignore  // quit
    > resp;
 
-   co_await conn->async_exec(req, adapt(resp));
+   co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
 
    print(std::get<0>(std::get<4>(resp)).value());
    print(std::get<1>(std::get<4>(resp)).value());
@@ -102,18 +112,9 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
 // Called from the main function (see main.cpp)
 net::awaitable<void> async_main()
 {
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-
-   // Uses short-lived connections to store and retrieve the
-   // containers.
-   co_await connect(conn, "127.0.0.1", "6379");
-   co_await (conn->async_run() || store(conn));
-
+   co_await store();
    co_await hgetall();
-
-   // Resused the connection object.
-   co_await connect(conn, "127.0.0.1", "6379");
-   co_await (conn->async_run() || transaction(conn));
+   co_await transaction();
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

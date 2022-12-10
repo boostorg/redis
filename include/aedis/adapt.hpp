@@ -10,9 +10,9 @@
 #include <tuple>
 #include <limits>
 #include <string_view>
+#include <variant>
 
 #include <boost/mp11.hpp>
-#include <boost/variant2.hpp>
 #include <boost/system.hpp>
 
 #include <aedis/resp3/node.hpp>
@@ -63,7 +63,7 @@ class static_adapter {
 private:
    static constexpr auto size = std::tuple_size<Tuple>::value;
    using adapter_tuple = boost::mp11::mp_transform<adapter::adapter_t, Tuple>;
-   using variant_type = boost::mp11::mp_rename<adapter_tuple, boost::variant2::variant>;
+   using variant_type = boost::mp11::mp_rename<adapter_tuple, std::variant>;
    using adapters_array_type = std::array<variant_type, size>;
 
    adapters_array_type adapters_;
@@ -90,7 +90,7 @@ public:
       resp3::node<std::string_view> const& nd,
       boost::system::error_code& ec)
    {
-      using boost::variant2::visit;
+      using std::visit;
       // I am usure whether this should be an error or an assertion.
       BOOST_ASSERT(i < adapters_.size());
       visit([&](auto& arg){arg(nd, ec);}, adapters_.at(i));

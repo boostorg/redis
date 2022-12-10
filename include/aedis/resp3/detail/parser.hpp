@@ -10,7 +10,9 @@
 #include <array>
 #include <limits>
 #include <system_error>
+#include <charconv>
 #include <string_view>
+#include <cstdint>
 
 #include <boost/assert.hpp>
 #include <aedis/error.hpp>
@@ -18,7 +20,16 @@
 
 namespace aedis::resp3::detail {
 
-auto parse_uint(char const* data, std::size_t size, boost::system::error_code& ec) -> std::size_t;
+using int_type = std::uint64_t;
+
+inline
+void to_int(int_type& i, std::string_view sv, boost::system::error_code& ec)
+{
+   auto const res = std::from_chars(sv.data(), sv.data() + std::size(sv), i);
+   if (res.ec != std::errc())
+      ec = error::not_a_number;
+}
+
 
 template <class ResponseAdapter>
 class parser {
@@ -39,7 +50,7 @@ private:
    std::array<std::size_t, max_embedded_depth + 1> sizes_ = {{1}};
 
    // Contains the length expected in the next bulk read.
-   std::size_t bulk_length_ = (std::numeric_limits<std::size_t>::max)();
+   int_type bulk_length_ = (std::numeric_limits<unsigned long>::max)();
 
    // The type of the next bulk. Contains type::invalid if no bulk is
    // expected.
@@ -82,7 +93,7 @@ public:
          switch (t) {
             case type::streamed_string_part:
             {
-               bulk_length_ = parse_uint(data + 1, n - 2, ec);
+               to_int(bulk_length_ , std::string_view{data + 1, n - 3}, ec);
 	       if (ec)
 		  return 0;
 
@@ -105,7 +116,7 @@ public:
 		  // 0.
                   sizes_[++depth_] = (std::numeric_limits<std::size_t>::max)();
                } else {
-                  bulk_length_ = parse_uint(data + 1, n - 2, ec);
+                  to_int(bulk_length_ , std::string_view{data + 1, n - 3} , ec);
                   if (ec)
                      return 0;
 
@@ -168,7 +179,8 @@ public:
             case type::attribute:
             case type::map:
             {
-	       auto const l = parse_uint(data + 1, n - 2, ec);
+               int_type l = -1;
+               to_int(l, std::string_view{data + 1, n - 3}, ec);
                if (ec)
                   return 0;
 

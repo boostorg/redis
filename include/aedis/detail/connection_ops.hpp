@@ -19,7 +19,7 @@
 
 #include <aedis/adapt.hpp>
 #include <aedis/error.hpp>
-#include <aedis/detail/net.hpp>
+#include <aedis/detail/guarded_operation.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/detail/parser.hpp>
 #include <aedis/resp3/read.hpp>

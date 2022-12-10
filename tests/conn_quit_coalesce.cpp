@@ -31,7 +31,6 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
    net::connect(conn.next_layer(), endpoints);
 
    request req1{{false, true}};
-   req1.push("HELLO", 3);
    req1.push("PING");
 
    request req2{{false, true}};

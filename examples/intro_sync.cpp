@@ -7,6 +7,7 @@
 #include <tuple>
 #include <string>
 #include <thread>
+#include <iostream>
 #include <boost/asio.hpp>
 #include <aedis.hpp>
 
@@ -14,12 +15,12 @@
 #include <aedis/src.hpp>
 
 namespace net = boost::asio;
+namespace resp3 = aedis::resp3;
 using aedis::adapt;
-using aedis::resp3::request;
 using connection = aedis::connection;
 
 template <class Adapter>
-auto exec(std::shared_ptr<connection> conn, request const& req, Adapter adapter)
+auto exec(std::shared_ptr<connection> conn, resp3::request const& req, Adapter adapter)
 {
    net::dispatch(
       conn->get_executor(),
@@ -44,7 +45,7 @@ int main()
          ioc.run();
       }};
 
-      request req;
+      resp3::request req;
       req.get_config().cancel_on_connection_lost = true;
       req.push("HELLO", 3);
       req.push("PING");

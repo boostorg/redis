@@ -174,9 +174,6 @@ private:
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = boost::asio::wait_traits<clock_type>;
    using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
-   using resolver_type = boost::asio::ip::basic_resolver<boost::asio::ip::tcp, executor_type>;
-   using push_channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
-   using time_point_type = std::chrono::time_point<std::chrono::steady_clock>;
 
    auto derived() -> Derived& { return static_cast<Derived&>(*this); }
 
@@ -368,7 +365,9 @@ private:
       }
    }
 
-   // IO objects
+   // Notice we use a timer to simulate a condition-variable. It is
+   // also more suitable than a channel and the notify operation does
+   // not suspend.
    timer_type writer_timer_;
    timer_type read_timer_;
    detail::guarded_operation<executor_type> guarded_op_;

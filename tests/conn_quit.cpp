@@ -32,11 +32,14 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
-   request req1{{false, false}};
-   req1.push("HELLO", 3);
+   request req1;
+   req1.get_config().cancel_on_connection_lost = false;
+   req1.get_config().coalesce = false;
    req1.push("PING");
 
-   request req2{{false, false}};
+   request req2;
+   req2.get_config().cancel_on_connection_lost = false;
+   req2.get_config().coalesce = false;
    req2.push("QUIT");
 
    conn.async_exec(req1, adapt(), [](auto ec, auto){

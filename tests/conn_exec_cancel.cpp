@@ -62,7 +62,7 @@ auto async_cancel_exec(std::shared_ptr<connection> conn) -> net::awaitable<void>
    req2.push("PING", "second");
 
    // Should be canceled.
-   conn->async_exec(req1, adapt(), [](auto ec, auto){
+   conn->async_exec(req2, adapt(), [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
    });
 

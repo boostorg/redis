@@ -19,10 +19,9 @@
 #include <vector>
 #include <array>
 #include <string_view>
+#include <charconv>
 
 #include <boost/assert.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/home/x3.hpp>
 
 #include <aedis/error.hpp>
 #include <aedis/resp3/type.hpp>
@@ -32,48 +31,28 @@
 
 namespace aedis::adapter::detail {
 
-inline
-auto parse_double(
-   char const* data,
-   std::size_t size,
-   boost::system::error_code& ec) -> double
-{
-   static constexpr boost::spirit::x3::real_parser<double> p{};
-   double ret = 0;
-   if (!parse(data, data + size, p, ret))
-      ec = error::not_a_double;
-
-   return ret;
-}
-
 // Serialization.
 
 template <class T>
-auto from_bulk(
-   T& i,
-   std::string_view sv,
-   boost::system::error_code& ec) -> typename std::enable_if<std::is_integral<T>::value, void>::type
+auto from_bulk(T& i, std::string_view sv, boost::system::error_code& ec) -> typename std::enable_if<std::is_integral<T>::value, void>::type
 {
-   auto const v = resp3::detail::parse_uint(sv.data(), sv.size(), ec);
-   i = static_cast<T>(v);
+   auto const res = std::from_chars(sv.data(), sv.data() + std::size(sv), i);
+   if (res.ec != std::errc())
+      ec = error::not_a_number;
 }
 
 inline
-void from_bulk(
-   bool& t,
-   std::string_view sv,
-   boost::system::error_code&)
+void from_bulk(bool& t, std::string_view sv, boost::system::error_code&)
 {
    t = *sv.data() == 't';
 }
 
 inline
-void from_bulk(
-   double& d,
-   std::string_view sv,
-   boost::system::error_code& ec)
+void from_bulk(double& d, std::string_view sv, boost::system::error_code& ec)
 {
-   d = parse_double(sv.data(), sv.size(), ec);
+   auto const res = std::from_chars(sv.data(), sv.data() + std::size(sv), d);
+   if (res.ec != std::errc())
+      ec = error::not_a_double;
 }
 
 template <class CharT, class Traits, class Allocator>

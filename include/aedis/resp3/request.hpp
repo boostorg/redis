@@ -64,8 +64,6 @@ namespace detail {
 
 auto has_push_response(std::string_view cmd) -> bool;
 
-auto is_hello(std::string_view cmd) -> bool;
-
 template <class T>
 struct add_bulk_impl {
    template <class Request>
@@ -388,7 +386,8 @@ private:
       if (!detail::has_push_response(cmd))
          ++commands_;
 
-      has_hello_priority_ = detail::is_hello(cmd) && cfg_.hello_with_priority;
+      if (cmd == "HELLO")
+         has_hello_priority_ = cfg_.hello_with_priority;
    }
 
    config cfg_;

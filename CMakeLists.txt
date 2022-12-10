@@ -65,6 +65,10 @@ add_library(common STATIC
    examples/common/aedis.cpp
 )
 target_compile_features(common PUBLIC cxx_std_20)
+if (MSVC)
+    target_compile_options(common PRIVATE /bigobj)
+    target_compile_definitions(common PRIVATE _WIN32_WINNT=0x0601)
+endif()
 
 # Executables
 #=======================================================================
@@ -115,7 +119,7 @@ endif()
 add_executable(resolve_with_sentinel examples/resolve_with_sentinel.cpp)
 target_compile_features(resolve_with_sentinel PUBLIC cxx_std_20)
 target_link_libraries(resolve_with_sentinel common)
-add_test(resolve_with_sentinel resolve_with_sentinel)
+#add_test(resolve_with_sentinel resolve_with_sentinel)
 if (MSVC)
     target_compile_options(resolve_with_sentinel PRIVATE /bigobj)
     target_compile_definitions(resolve_with_sentinel PRIVATE _WIN32_WINNT=0x0601)

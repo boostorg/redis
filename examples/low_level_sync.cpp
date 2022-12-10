@@ -14,22 +14,19 @@
 
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
-
-using aedis::resp3::request;
 using aedis::adapter::adapt2;
-using net::ip::tcp;
 
 int main()
 {
    try {
       net::io_context ioc;
-      tcp::resolver resv{ioc};
+      net::ip::tcp::resolver resv{ioc};
       auto const res = resv.resolve("127.0.0.1", "6379");
-      tcp::socket socket{ioc};
+      net::ip::tcp::socket socket{ioc};
       net::connect(socket, res);
 
       // Creates the request and writes to the socket.
-      request req;
+      resp3::request req;
       req.push("HELLO", 3);
       req.push("PING", "Hello world");
       req.push("QUIT");

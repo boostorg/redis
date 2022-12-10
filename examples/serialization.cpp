@@ -23,10 +23,10 @@
 #include <boost/json/src.hpp>
 
 namespace net = boost::asio;
+namespace resp3 = aedis::resp3;
 using namespace net::experimental::awaitable_operators;
-using aedis::resp3::request;
-using aedis::adapt;
 using namespace boost::json;
+using aedis::adapt;
 
 struct user {
    std::string name;
@@ -91,7 +91,7 @@ net::awaitable<void> async_main()
    std::set<user> users
       {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
 
-   request req;
+   resp3::request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push_range("SADD", "sadd-key", users); // Sends

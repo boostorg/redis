@@ -14,7 +14,6 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using aedis::resp3::request;
 using aedis::adapter::adapt2;
 using net::ip::tcp;
 
@@ -28,7 +27,7 @@ auto async_main() -> net::awaitable<void>
    co_await net::async_connect(socket, addrs);
 
    // Creates the request and writes to the socket.
-   request req;
+   resp3::request req;
    req.push("HELLO", 3);
    req.push("PING", "Hello world");
    req.push("QUIT");

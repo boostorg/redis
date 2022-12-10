@@ -98,7 +98,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { toolset: gcc,   compiler: g++-10,     install: g++-10,   os: ubuntu-22.04, cxxstd: 'c++17' }
           - { toolset: gcc,   compiler: g++-11,     install: g++-11,   os: ubuntu-22.04, cxxstd: 'c++17' }
           - { toolset: gcc,   compiler: g++-11,     install: g++-11,   os: ubuntu-22.04, cxxstd: 'c++20' }
           - { toolset: clang, compiler: clang++-11, install: clang-11, os: ubuntu-22.04, cxxstd: 'c++17' }

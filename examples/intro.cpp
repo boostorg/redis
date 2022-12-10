@@ -11,14 +11,14 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
+namespace resp3 = aedis::resp3;
 using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
-using aedis::resp3::request;
 
 // Called from the main function (see main.cpp)
 auto async_main() -> net::awaitable<void>
 {
-   request req;
+   resp3::request req;
    req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("PING", "Hello world");
