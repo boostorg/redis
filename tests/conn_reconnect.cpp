@@ -14,12 +14,12 @@
 #include <aedis.hpp>
 #include <aedis/src.hpp>
 #include "common.hpp"
+#include "../examples/common/common.hpp"
 
 namespace net = boost::asio;
+namespace resp3 = aedis::resp3;
 
-using aedis::resp3::request;
 using aedis::adapt;
-using connection = aedis::connection;
 using error_code = boost::system::error_code;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
@@ -29,7 +29,7 @@ net::awaitable<void> test_reconnect_impl()
 {
    auto ex = co_await net::this_coro::executor;
 
-   request req;
+   resp3::request req;
    req.push("QUIT");
 
    auto const endpoints = resolve();
@@ -68,41 +68,42 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    net::steady_timer st{ex};
 
    auto conn = std::make_shared<connection>(ex);
-   auto const endpoints = resolve();
-
    boost::system::error_code ec1, ec2, ec3;
 
-   request req1;
+   resp3::request req1;
    req1.get_config().cancel_if_not_connected = false;
    req1.get_config().cancel_on_connection_lost = true;
+   req1.get_config().retry_on_connection_lost = false;
    req1.push("HELLO", 3);
-   req1.push("CLIENT", "PAUSE", 7000);
+   req1.push("BLPOP", "any", 0);
 
-   net::connect(conn->next_layer(), endpoints);
+   co_await connect(conn, "127.0.0.1", "6379");
    st.expires_after(std::chrono::seconds{1});
    co_await (
-      conn->async_exec(req1, adapt(), net::redirect_error(net::use_awaitable, ec1)) ||
-      conn->async_run(net::redirect_error(net::use_awaitable, ec2)) ||
-      st.async_wait(net::redirect_error(net::use_awaitable, ec3))
+      conn->async_exec(req1, adapt(), redir(ec1)) ||
+      conn->async_run(redir(ec2)) ||
+      st.async_wait(redir(ec3))
    );
 
-   BOOST_TEST(!ec1);
+   //BOOST_TEST(!ec1);
    BOOST_CHECK_EQUAL(ec2, boost::system::errc::errc_t::operation_canceled);
    //BOOST_TEST(!ec3);
 
-   request req2;
+   resp3::request req2;
    req2.get_config().cancel_if_not_connected = false;
    req2.get_config().cancel_on_connection_lost = true;
+   req2.get_config().retry_on_connection_lost= false;
    req2.push("HELLO", 3);
    req2.push("QUIT");
 
-   net::connect(conn->next_layer(), endpoints);
+   co_await connect(conn, "127.0.0.1", "6379");
    st.expires_after(std::chrono::seconds{1});
    co_await (
       conn->async_exec(req1, adapt(), net::redirect_error(net::use_awaitable, ec1)) ||
       conn->async_run(net::redirect_error(net::use_awaitable, ec2)) ||
       st.async_wait(net::redirect_error(net::use_awaitable, ec3))
    );
+   std::cout << "ccc" << std::endl;
 
    BOOST_CHECK_EQUAL(ec1, boost::system::errc::errc_t::operation_canceled);
    BOOST_CHECK_EQUAL(ec2, boost::asio::error::basic_errors::operation_aborted);
@@ -110,9 +111,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 
 BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
 {
-   net::io_context ioc;
-   net::co_spawn(ioc, async_test_reconnect_timeout(), net::detached);
-   ioc.run();
+   run(async_test_reconnect_timeout());
 }
 #else
 int main(){}

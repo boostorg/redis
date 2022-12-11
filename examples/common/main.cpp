@@ -4,30 +4,27 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
 #include <boost/asio.hpp>
+
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-namespace net = boost::asio;
-extern net::awaitable<void> async_main();
+#include "common.hpp"
 
-// The main function used in our examples.
+extern boost::asio::awaitable<void> async_main();
+
 auto main() -> int
 {
-   try {
-      net::io_context ioc;
-      net::co_spawn(ioc, async_main(), net::detached);
-      net::co_spawn(ioc, async_main(), [](std::exception_ptr p) {
-         if (p)
-            std::rethrow_exception(p);
-      });
-      ioc.run();
-   } catch (std::exception const& e) {
-      std::cerr << "Error: " << e.what() << std::endl;
-      return 1;
-   }
+   return run(async_main());
 }
 
 #else // defined(BOOST_ASIO_HAS_CO_AWAIT)
-auto main() -> int {std::cout << "Requires coroutine support." << std::endl; return 0;}
+
+#include <iostream>
+
+auto main() -> int
+{
+   std::cout << "Requires coroutine support." << std::endl;
+   return 0;
+}
+
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

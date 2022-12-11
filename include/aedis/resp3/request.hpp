@@ -169,29 +169,30 @@ class request {
 public:
    /// Request configuration options.
    struct config {
-      /** \brief If true the request will complete with error if the
-       * connection is lost while the request is pending. The default
-       * behaviour is not to close requests.
+      /** \brief Setting it to true will cause
+       * `aedis::connection::async_exec` to complete with error if the
+       * connection is lost. Affects only requests that haven't been
+       * sent yet.
        */
       bool cancel_on_connection_lost = false;
 
-      /** \brief If true the request will be coalesced with other requests,
-       *  see https://redis.io/topics/pipelining. Otherwise the
-       *  request is sent individually.
+      /** \brief If true the request will be coalesced with other
+       * requests, see https://redis.io/topics/pipelining. Otherwise
+       * the request is sent individually.
        */
       bool coalesce = true;
 
       /** \brief If true, the request will complete with error if the
-       * call happens before the connection with Redis was stablished.
+       * call happens before the connection with Redis was established.
        */
       bool cancel_if_not_connected = false;
 
-      /** \brief If true, the implementation will resend this
-       * request if it remains unresponded when
-       * `aedis::connection::async_run` completes. Has effect only if
-       * cancel_on_connection_lost is true.
+      /** \brief If true `aedis::connection::async_exec` will not
+       * cancel this request if the connection is lost. Affects only
+       * requests that have been written to the socket but remained
+       * unresponded when `aedis::connection::async_run` completed.
        */
-      bool retry = true;
+      bool retry_on_connection_lost = true;
 
       /** \brief If this request has a HELLO command and this flag is
        * true, the `aedis::connection` will move it to the front of

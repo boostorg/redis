@@ -8,27 +8,20 @@
 #include <boost/asio.hpp>
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/system/errc.hpp>
-
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
-
 #include <aedis.hpp>
 #include <aedis/src.hpp>
-
 #include "common.hpp"
+#include "../examples/common/common.hpp"
 
 namespace net = boost::asio;
+namespace resp3 = aedis::resp3;
 using error_code = boost::system::error_code;
-
-using aedis::resp3::request;
 using aedis::operation;
 using aedis::adapt;
-using connection = net::use_awaitable_t<>::as_default_on_t<aedis::connection>;
 
-#include <boost/asio/experimental/awaitable_operators.hpp>
-using namespace net::experimental::awaitable_operators;
-
-net::awaitable<void> push_consumer(std::shared_ptr<connection> conn, int expected)
+auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
    int c = 0;
    for (;;) {
@@ -37,7 +30,7 @@ net::awaitable<void> push_consumer(std::shared_ptr<connection> conn, int expecte
          break;
    }
 
-   request req;
+   resp3::request req;
    req.push("HELLO", 3);
    req.push("QUIT");
    co_await conn->async_exec(req, adapt());
@@ -47,7 +40,7 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
 {
    auto ex = co_await net::this_coro::executor;
 
-   request req;
+   resp3::request req;
    std::tuple<aedis::ignore, std::string> resp;
 
    for (auto i = 0; i < n; ++i) {
@@ -57,7 +50,7 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
       req.push("PING", msg);
       req.push("SUBSCRIBE", "channel");
       boost::system::error_code ec;
-      co_await conn->async_exec(req, adapt(resp), net::redirect_error(net::use_awaitable, ec));
+      co_await conn->async_exec(req, adapt(resp), redir(ec));
       BOOST_TEST(!ec);
       BOOST_CHECK_EQUAL(msg, std::get<1>(resp));
       req.clear();
@@ -79,16 +72,13 @@ auto async_echo_stress() -> net::awaitable<void>
    for (int i = 0; i < sessions; ++i) 
       net::co_spawn(ex, echo_session(conn, std::to_string(i), msgs), net::detached);
 
-   auto const addrs = resolve();
-   co_await net::async_connect(conn->next_layer(), addrs);
+   co_await connect(conn, "127.0.0.1", "6379");
    co_await conn->async_run();
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)
 {
-   net::io_context ioc;
-   net::co_spawn(ioc, async_echo_stress(), net::detached);
-   ioc.run();
+   run(async_echo_stress());
 }
 
 #else

@@ -72,4 +72,23 @@ connect(
       throw std::runtime_error("Connect timeout");
 }
 
+auto run(net::awaitable<void> op) -> int
+{
+   try {
+      net::io_context ioc;
+      net::co_spawn(ioc, std::move(op), [](std::exception_ptr p) {
+         if (p)
+            std::rethrow_exception(p);
+      });
+      ioc.run();
+
+      return 0;
+
+   } catch (std::exception const& e) {
+      std::cerr << "Error: " << e.what() << std::endl;
+   }
+
+   return 1;
+}
+
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

@@ -28,5 +28,7 @@ connect(
 
 auto healthy_checker(std::shared_ptr<connection> conn) -> boost::asio::awaitable<void>;
 
+auto run(boost::asio::awaitable<void> op) -> int;
+
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
 #endif // AEDIS_EXAMPLES_COMMON_HPP

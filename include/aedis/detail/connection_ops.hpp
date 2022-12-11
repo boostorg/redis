@@ -161,14 +161,7 @@ EXEC_OP_WAIT:
          BOOST_ASSERT(conn->cmds_ != 0);
          yield
          conn->async_exec_read(adapter, conn->reqs_.front()->get_number_of_commands(), std::move(self));
-         if (is_cancelled(self)) {
-            conn->remove_request(info);
-            return self.complete(boost::asio::error::operation_aborted, {});
-         }
-
-         if (ec) {
-            return self.complete(ec, {});
-         }
+         AEDIS_CHECK_OP1(;);
 
          read_size = n;
 

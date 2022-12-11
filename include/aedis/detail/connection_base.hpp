@@ -104,16 +104,19 @@ public:
       return ret;
    }
 
+   // Remove requests that have the flag cancel_if_not_sent_when_connection_lost set
    auto cancel_on_conn_lost() -> std::size_t
    {
+      // Must return false if the request should be removed.
       auto cond = [](auto const& ptr)
       {
          BOOST_ASSERT(ptr != nullptr);
 
-         if (ptr->get_request().get_config().cancel_on_connection_lost)
-            return false;
-
-         return !(!ptr->get_request().get_config().retry && ptr->is_written());
+         if (ptr->is_written()) {
+            return ptr->get_request().get_config().retry_on_connection_lost;
+         } else {
+            return !ptr->get_request().get_config().cancel_on_connection_lost;
+         }
       };
 
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), cond);
@@ -128,6 +131,7 @@ public:
       std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
          return ptr->reset_status();
       });
+
       return ret;
    }
 

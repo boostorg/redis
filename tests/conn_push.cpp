@@ -49,7 +49,6 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
    });
 
    conn.async_run([](auto ec){
-      std::cout << "===> " << ec.message() << std::endl;
       BOOST_TEST(!ec);
    });
 

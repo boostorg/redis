@@ -15,3 +15,9 @@ resolve(
    net::ip::tcp::resolver resv{ioc};
    return resv.resolve(host, port);
 }
+
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
+inline
+auto redir(boost::system::error_code& ec)
+   { return net::redirect_error(net::use_awaitable, ec); }
+#endif // BOOST_ASIO_HAS_CO_AWAIT
