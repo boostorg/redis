@@ -46,15 +46,6 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
    }
 }
 
-auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   resp3::request req;
-   req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "chat-channel");
-
-   co_await conn->async_exec(req);
-}
-
 // Called from the main function (see main.cpp)
 auto async_main() -> net::awaitable<void>
 {
@@ -63,9 +54,13 @@ auto async_main() -> net::awaitable<void>
    auto stream = std::make_shared<stream_descriptor>(ex, ::dup(STDIN_FILENO));
    signal_set sig{ex, SIGINT, SIGTERM};
 
+   resp3::request req;
+   req.push("HELLO", 3);
+   req.push("SUBSCRIBE", "chat-channel");
+
    co_await connect(conn, "127.0.0.1", "6379");
    co_await ((conn->async_run() || publisher(stream, conn) || receiver(conn) ||
-         healthy_checker(conn) || sig.async_wait()) && subscriber(conn));
+         healthy_checker(conn) || sig.async_wait()) && conn->async_exec(req));
 }
 
 #else // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)

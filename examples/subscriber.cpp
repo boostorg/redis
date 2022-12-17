@@ -44,15 +44,6 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    }
 }
 
-auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   resp3::request req;
-   req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "channel");
-
-   co_await conn->async_exec(req);
-}
-
 auto async_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
@@ -60,11 +51,15 @@ auto async_main() -> net::awaitable<void>
    signal_set sig{ex, SIGINT, SIGTERM};
    steady_timer timer{ex};
 
+   resp3::request req;
+   req.push("HELLO", 3);
+   req.push("SUBSCRIBE", "channel");
+
    // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
    for (;;) {
       co_await connect(conn, "127.0.0.1", "6379");
       co_await ((conn->async_run() || healthy_checker(conn) || sig.async_wait() ||
-               receiver(conn)) && subscriber(conn));
+               receiver(conn)) && conn->async_exec(req));
 
       conn->reset_stream();
       timer.expires_after(std::chrono::seconds{1});

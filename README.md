@@ -1,5 +1,5 @@
 
-# Documentation
+# Aedis
 
 ## Overview
 
@@ -50,7 +50,7 @@ that ensures that  one operation is cancelled as soon as the other
 completes, these functions play the following roles
 
 * `connection::async_exec`: Execute commands (i.e. write the request and reads the response).
-* `connection::async_run`: Start read and write operations and remains suspended until the connection is lost.
+* `connection::async_run`: Coordinate read and write operations and remains suspended until the connection is lost.
 
 Let us dig in.
 
@@ -126,7 +126,7 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 The definition of `receiver` and `healthy_checker` above can be found
 in subscriber.cpp.  Adding a loop around `async_run` produces a simple
-way to support reconnection _while there are pending operations on the connection_
+way to support reconnection _while there are pending operations on the connection_,
 for example, to reconnect to the same address
 
 ```cpp
@@ -155,7 +155,7 @@ For failover with sentinels see `resolve_with_sentinel.cpp`.  At
 this point the reasons for why `async_run` was introduced in Aedis
 might have become apparent to the reader
 
-* Provide a quick reaction to disconnections and hence faster failovers.
+* Provide quick reaction to disconnections and hence faster failovers.
 * Support server pushes and requests in the same connection object, concurrently.
 * Separate requests, handling of server pushes and reconnection operations.
 
@@ -171,9 +171,7 @@ like those that may happen when using Asio awaitable operators && and
 co_await (conn.async_run(...) && conn.async_exec(...))
 ```
 
-* Useful when implementing reconnection.
-* `async_exec` is responsible for sending the `HELLO` command and
-  optionally for subscribing to channels.
+* Provide a simple way to send HELLO and perform channel subscription.
 
 ```cpp
 co_await (conn.async_run(...) || conn.async_exec(...))
@@ -203,10 +201,10 @@ co_await (conn.async_run(...) || time.async_wait(...))
 co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
 ```
 
-* This works but is considered an anti-pattern. Unless
-  the user has set `aedis::resp3::request::config::coalesce` to
-  `false`, and he shouldn't, the connection will automatically merge
-  the individual requests into a single payload anyway.
+* This works but is unnecessary. Unless the user has set
+  `aedis::resp3::request::config::coalesce` to `false`, and he
+  shouldn't, the connection will automatically merge the individual
+  requests into a single payload anyway.
 
 <a name="requests"></a>
 ## Requests
