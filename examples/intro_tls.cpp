@@ -32,7 +32,6 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 net::awaitable<void> async_main()
 {
    resp3::request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3, "AUTH", "aedis", "aedis");
    req.push("PING");
    req.push("QUIT");

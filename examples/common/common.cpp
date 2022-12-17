@@ -29,7 +29,6 @@ auto healthy_checker(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    try {
       request req;
-      req.get_config().cancel_on_connection_lost = true;
       req.push("PING");
 
       timer_type timer{co_await net::this_coro::executor};

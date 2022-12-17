@@ -47,7 +47,6 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    resp3::request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
 

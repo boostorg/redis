@@ -1,87 +1,212 @@
 
 # Documentation
 
-[TOC]
-
 ## Overview
 
-Aedis is a high-level [Redis](https://redis.io/) client library
-built on top of
-[Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html).
-Some of its distinctive features are
+Aedis is a [Redis](https://redis.io/) client library built on top of
+[Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
+that implements the latest version of the Redis communication
+protocol
+[RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
+It makes communication with a Redis server easy by hidding most of
+the low-level Asio-related code away from the user, which in the majority of
+the cases will be concerned with only three library entities
 
-* Support for the latest version of the Redis communication protocol [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-* Support for STL containers, TLS and Redis sentinel.
-* Serialization and deserialization of your own data types.
-* Back pressure, cancellation and low latency.
-
-In addition to that, Aedis hides most of the low-level Asio code away
-from the user, which in the majority of the cases will be concerned
-with only three library entities
-
-* `aedis::resp3::request`: A container of Redis commands.
-* `aedis::adapt()`: A function that adapts data structures to receive Redis responses.
 * `aedis::connection`: A connection to the Redis server.
+* `aedis::resp3::request`: A container of Redis commands.
+* `aedis::adapt()`: Adapts data structures to receive responses.
 
 For example, the coroutine below uses a short-lived connection to read Redis
 [hashes](https://redis.io/docs/data-types/hashes/)
-in a `std::map` (see containers.cpp)
+in a `std::map` (see intro.cpp and containers.cpp)
 
 ```cpp
-auto hgetall() -> net::awaitable<void>
+auto async_main() -> net::awaitable<void>
 {
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
-   // Resolves and connects (from examples/common.hpp to avoid vebosity)
+   // From examples/common.hpp to avoid vebosity
    co_await connect(conn, "127.0.0.1", "6379");
 
-   // A request contains multiple Redis commands.
+   // A request contains multiple commands.
    resp3::request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   // Tuple elements will hold the response to each command in the request.
+   // Responses as tuple elements.
    std::tuple<aedis::ignore, std::map<std::string, std::string>, aedis::ignore> resp;
 
    // Executes the request and reads the response.
    co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
 
-   // Use the map ...
+   // Use the map from std::get<1>(resp) ...
 }
 ```
 
-The execution of `connection::async_exec` as shown above is triggered
-by the `connection::async_run` member function, whose role is to
-coordinate IO and ensure the connection is always reading from the
-socket. The rationale behind this design is
+The execution of `connection::async_exec` above is composed with
+`connection::async_run` with the aid of the Asio awaitable operator ||
+that ensures that  one operation is cancelled as soon as the other
+completes, these functions play the following roles
 
-* Provide quick reaction to disconnections and hence faster failovers.
-* Support server pushes and requests in the same connection object,
-  concurrently.
+* `connection::async_exec`: Execute commands (i.e. write the request and reads the response).
+* `connection::async_run`: Start read and write operations and remains suspended until the connection is lost.
 
-The need for this design becomes more apparent in long-lived
-connections which we will discuss later (see subscriber.cpp for an
-example). Before we go to the next sections, users might find it
-useful to skim over the examples in order to gain a better feeling
-about the library capabilities.
+Let us dig in.
 
-* intro.cpp: The Aedis hello-world program. Sends one command and quits the connection.
-* intro_tls.cpp: Same as intro.cpp but over TLS.
-* intro_sync.cpp: Shows how to use the connection class synchronously.
-* containers.cpp: Shows how to send and receive STL containers and how to use transactions.
-* serialization.cpp: Shows how to serialize types using Boost.Json.
-* resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
-* subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
-* echo_server.cpp: A simple TCP echo server.
-* chat_room.cpp: A command line chat built on Redis pubsub.
-* low_level_sync.cpp: Sends a ping synchronously using the low-level API.
-* low_level_async.cpp: Sends a ping asynchronously using the low-level API.
+<a name="connection"></a>
+## Connection
 
-To avoid repetition code that is common to all examples has been
-grouped in common.hpp. The main function used in some async examples
-has been factored out in the main.cpp file.
+In general we will want to reuse the same connection for multiple
+requests, we can do this with the example above by decoupling the
+HELLO command and the call to `async_run` in a separate coroutine
+
+```cpp
+auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   co_await connect(conn, "127.0.0.1", "6379");
+
+   resp3::request req;
+   req.push("HELLO", 3); // Upgrade to RESP3
+
+   // Notice we use && instead of || so async_run is not cancelled
+   // when the response to HELLO comes.
+   co_await (conn->async_run() && conn->async_exec(req));
+}
+```
+We can now let `run` run detached in the background while other
+coroutines perform requests on the connection
+
+```cpp
+auto async_main() -> net::awaitable<void>
+{
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+
+   // Calls async_run detached.
+   net::co_spawn(ex, run(conn), net::detached)
+
+   // Here we can pass conn around to other coroutines so they can make requests.
+   ...
+}
+```
+
+With this separation, it is now easy to incorporate other operations
+in our application, for example, to cancel the connection on `SIGINT`
+and `SIGTERM` we can extend `run` as follows
+
+```cpp
+auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   co_await connect(conn, "127.0.0.1", "6379");
+   signal_set sig{ex, SIGINT, SIGTERM};
+
+   resp3::request req;
+   req.push("HELLO", 3);
+
+   co_await ((conn->async_run() || sig.async_wait()) && conn->async_exec(req));
+}
+```
+
+Likewise we can incorporate support for server pushes, healthy checks and pubsub
+
+```cpp
+auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   co_await connect(conn, "127.0.0.1", "6379");
+   signal_set sig{ex, SIGINT, SIGTERM};
+
+   resp3::request req;
+   req.push("HELLO", 3);
+   req.push("SUBSCRIBE", "channel1", "channel2");
+
+   co_await ((conn->async_run() || sig.async_wait() || receiver(conn) || healthy_checker(conn))
+             && conn->async_exec(req));
+}
+```
+
+The definition of `receiver` and `healthy_checker` above can be found
+in subscriber.cpp.  Adding a loop around `async_run` produces a simple
+way to support reconnection _while there are pending operations on the connection_
+for example, to reconnect to the same address
+
+```cpp
+auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   auto ex = co_await net::this_coro::executor;
+   steady_timer timer{ex};
+
+   resp3::request req;
+   req.push("HELLO", 3);
+   req.push("SUBSCRIBE", "channel1", "channel2");
+
+   for (;;) {
+      co_await connect(conn, "127.0.0.1", "6379");
+      co_await ((conn->async_run() || healthy_checker(conn) || receiver(conn))
+                && conn->async_exec(req));
+
+      conn->reset_stream();
+      timer.expires_after(std::chrono::seconds{1});
+      co_await timer.async_wait();
+   }
+}
+```
+
+For failover with sentinels see `resolve_with_sentinel.cpp`.  At
+this point the reasons for why `async_run` was introduced in Aedis
+might have become apparent to the reader
+
+* Provide a quick reaction to disconnections and hence faster failovers.
+* Support server pushes and requests in the same connection object, concurrently.
+* Separate requests, handling of server pushes and reconnection operations.
+
+### Cancellation
+
+Aedis supports both implicit and explicit cancellation of connection
+operations. Explicit cancellation is supported by means of the
+`aedis::connection::cancel` member function. Implicit cancellation,
+like those that may happen when using Asio awaitable operators && and
+|| will be discussed with more detail below.
+
+```cpp
+co_await (conn.async_run(...) && conn.async_exec(...))
+```
+
+* Useful when implementing reconnection.
+* `async_exec` is responsible for sending the `HELLO` command and
+  optionally for subscribing to channels.
+
+```cpp
+co_await (conn.async_run(...) || conn.async_exec(...))
+```
+
+* Useful for short-lived connections that are meant to be closed after
+  a command has been executed.
+
+```cpp
+co_await (conn.async_exec(...) || time.async_wait(...))
+```
+
+* Provides a way to limit how long the execution of a single request
+  should last.
+* The cancellation will be ignored if the request has already
+  been written to the socket.
+* It is usually a better idea to have a healthy checker than adding
+  per request timeout, see subscriber.cpp for an example.
+
+```cpp
+co_await (conn.async_run(...) || time.async_wait(...))
+```
+
+* Sets a limit on how long the connection should live.
+
+```cpp
+co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
+```
+
+* This works but is considered an anti-pattern. Unless
+  the user has set `aedis::resp3::request::config::coalesce` to
+  `false`, and he shouldn't, the connection will automatically merge
+  the individual requests into a single payload anyway.
 
 <a name="requests"></a>
 ## Requests
@@ -151,7 +276,7 @@ Example serialization.cpp shows how store json strings in Redis.
 
 The `aedis::resp3::request::config` object inside the request dictates how the
 `aedis::connection` should handle the request in some important situations. The
-reader is advised to have a read it carefully.
+reader is advised to read it carefully.
 
 ## Responses
 
@@ -421,210 +546,113 @@ In addition to the above users can also use unordered versions of the
 containers. The same reasoning also applies to sets e.g. `SMEMBERS`
 and other data structures in general.
 
-<a name="connection"></a>
-## Connection
+## Examples
 
-The `aedis::connection` is a class that provides async-only
-communication with a Redis server by means of three member
-functions
+These examples demonstrate what has been discussed so far.
 
-* `connection::async_run`: Starts read and write operations and remains suspended until the connection is lost.
-* `connection::async_exec`: Executes commands.
-* `connection::async_receive`: Receives server-side pushes.
+* intro.cpp: The Aedis hello-world program. Sends one command and quits the connection.
+* intro_tls.cpp: Same as intro.cpp but over TLS.
+* intro_sync.cpp: Shows how to use the connection class synchronously.
+* containers.cpp: Shows how to send and receive STL containers and how to use transactions.
+* serialization.cpp: Shows how to serialize types using Boost.Json.
+* resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
+* subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
+* echo_server.cpp: A simple TCP echo server.
+* chat_room.cpp: A command line chat built on Redis pubsub.
+* low_level_sync.cpp: Sends a ping synchronously using the low-level API.
+* low_level_async.cpp: Sends a ping asynchronously using the low-level API.
 
-In general, these operations will be running concurrently in user
-application, where, for example
+To avoid repetition code that is common to all examples has been
+grouped in common.hpp. The main function used in some async examples
+has been factored out in the main.cpp file.
 
-1. **Run**: One coroutine will call `async_run`, perhaps with other
-   operations like healthy checks and in a loop to implement
-   reconnection.
-2. **Execute**: Multiple coroutines will call `async_exec` independently
-   and without coordination (e.g. queuing).
-3. **Receive**: One coroutine will loop on `async_receive` to receive
-   server-side pushes (required only if the app expects server pushes).
+## Echo server benchmark
 
-Each of these operations can be performed without regards to the
-others as they are independent from each other. Below we will cover
-the points above with more detail.
+This document benchmarks the performance of TCP echo servers I
+implemented in different languages using different Redis clients.  The
+main motivations for choosing an echo server are
 
-### Run
+   * Simple to implement and does not require expertise level in most languages.
+   * I/O bound: Echo servers have very low CPU consumption in general
+     and  therefore are excelent to  measure how a program handles concurrent requests.
+   * It simulates very well a typical backend in regard to concurrency.
 
-The code snippet in the overview section has shown us an example that
-used `connection::async_run` in short-lived connection, in the general
-case however, applications will connect to a Redis server and hang
-around for as long as possible, until the connection is lost for some
-reason.  When that happens, simple setups will want to wait for a
-short period of time and try to reconnect. To support this usage
-pattern Aedis connections can be reconnected _while there are pending
-requests and receive operations_.  The general form of a reconnect
-loop looks like this (see subscriber.cpp)
+I also imposed some constraints on the implementations
 
-```cpp
-auto async_main() -> net::awaitable<void>
-{
-   auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
-   signal_set_type sig{ex, SIGINT, SIGTERM};
-   timer_type timer{ex};
+   * It should be simple enough and not require writing too much code.
+   * Favor the use standard idioms and avoid optimizations that require expert level.
+   * Avoid the use of complex things like connection and thread pool.
 
-   request req;
-   req.get_config().cancel_on_connection_lost = true;
-   req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "channel");
+To reproduce these results run one of the echo-server programs in one
+terminal and the
+[echo-server-client](https://github.com/mzimbres/aedis/blob/42880e788bec6020dd018194075a211ad9f339e8/benchmarks/cpp/asio/echo_server_client.cpp)
+in another.
 
-   // Loop to reconnect on connection lost. To exit type Ctrl-C twice.
-   for (;;) {
-      co_await connect(conn, "127.0.0.1", "6379");
+### Without Redis
 
-      // Starts async_run and other operations.
-      co_await ((conn->async_run() || healthy_checker(conn) || sig.async_wait() ||
-               receiver(conn)) && conn->async_exec(req));
+First I tested a pure TCP echo server, i.e. one that sends the messages
+directly to the client without interacting with Redis. The result can
+be seen below
 
-      // Prepare for a reconnect.
-      conn->reset_stream();
+![](https://mzimbres.github.io/aedis/tcp-echo-direct.png)
 
-      // Waits some time before reconnecting.
-      timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait();
-   }
-}
-```
+The tests were performed with a 1000 concurrent TCP connections on the
+localhost where latency is 0.07ms on average on my machine. On higher
+latency networks the difference among libraries is expected to
+decrease. 
 
-It is important to emphasize that Redis servers use the old
-communication protocol RESP2 by default, therefore it is necessary to
-send a `HELLO 3` command every time a connection is established.
-Another common scenario for reconnection is, for example, a failover
-with sentinels, covered in `resolve_with_sentinel.cpp` example.
+   * I expected Libuv to have similar performance to Asio and Tokio.
+   * I did expect nodejs to come a little behind given it is is
+     javascript code. Otherwise I did expect it to have similar
+     performance to libuv since it is the framework behind it.
+   * Go did surprise me: faster than nodejs and libuv!
 
-### Execute
+The code used in the benchmarks can be found at
 
-The basic idea about `async_exec` was stated above already: execute
-Redis commands. One of the most important things about it however is
-that it can be called multiple times without coordination, for
-example, in a HTTP or Websocket server where each session calls it
-independently to communicate with Redis. The benefits of this feature
-are manifold
+   * [Asio](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/cpp/asio/echo_server_direct.cpp): A variation of [this](https://github.com/chriskohlhoff/asio/blob/4915cfd8a1653c157a1480162ae5601318553eb8/asio/src/examples/cpp20/coroutines/echo_server.cpp) Asio example.
+   * [Libuv](https://github.com/mzimbres/aedis/tree/835a1decf477b09317f391eddd0727213cdbe12b/benchmarks/c/libuv): Taken from [here](https://github.com/libuv/libuv/blob/06948c6ee502862524f233af4e2c3e4ca876f5f6/docs/code/tcp-echo-server/main.c) Libuv example .
+   * [Tokio](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/rust/echo_server_direct): Taken from [here](https://docs.rs/tokio/latest/tokio/).
+   * [Nodejs](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_direct)
+   * [Go](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_direct.go)
 
-* Reduces code complexity as users won't have to implement queues
-  every time e.g. different HTTP sessions want to share a connection to Redis.
-* A small number of connections improves the performance associated
-  with [pipelines](https://redis.io/topics/pipelining). A single
-  connection will be indeed enough in most of cases.
+### With Redis
 
-There are some important things about `connection::async_exec` that
-are worth stating here
+This is similar to the echo server described above but messages are
+echoed by Redis and not by the echo-server itself, which acts
+as a proxy between the client and the Redis server. The results
+can be seen below
 
-* `connection::async_exec` will write a request and read the response
-  directly in the data structure passed by the user, avoiding
-  temporaries altogether.
-* Requests belonging to different `async_exec` will be coalesced in a single payload
-  (pipelined) and written only once, improving performance massively.
-* Users have full control whether `async_exec` should remain suspended
-  if a connection is lost, (among other things). See
-  `aedis::resp3::request::config`.
+![](https://mzimbres.github.io/aedis/tcp-echo-over-redis.png)
 
-The code below illustrates this concepts in a TCP session of the
-`echo_server.cpp` example
+The tests were performed on a network where latency is 35ms on
+average, otherwise it uses the same number of TCP connections
+as the previous example.
 
-```cpp
-auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> db) -> net::awaitable<void>
-{
-   request req;
-   std::tuple<std::string> response;
+As the reader can see, the Libuv and the Rust test are not depicted
+in the graph, the reasons are
 
-   for (std::string buffer;;) {
-      // Reads a user message.
-      auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
+   * [redis-rs](https://github.com/redis-rs/redis-rs): This client
+     comes so far behind that it can't even be represented together
+     with the other benchmarks without making them look insignificant.
+     I don't know for sure why it is so slow, I suppose it has
+     something to do with its lack of automatic
+     [pipelining](https://redis.io/docs/manual/pipelining/) support.
+     In fact, the more TCP connections I lauch the worse its
+     performance gets.
 
-      // Echos it through Redis.
-      req.push("PING", buffer);
-      co_await conn->async_exec(req, adapt(response));
+   * Libuv: I left it out because it would require me writing to much
+     c code. More specifically, I would have to use hiredis and
+     implement support for pipelines manually.
 
-      // Writes is back to the user.
-      co_await net::async_write(socket, net::buffer(std::get<0>(response)));
+The code used in the benchmarks can be found at
 
-      // Cleanup
-      std::get<0>(response).clear();
-      req.clear();
-      buffer.erase(0, n);
-   }
-}
-```
+   * [Aedis](https://github.com/mzimbres/aedis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/examples/echo_server.cpp)
+   * [node-redis](https://github.com/redis/node-redis): [code](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_over_redis)
+   * [go-redis](https://github.com/go-redis/redis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go)
 
-Notice also how the session above provides back-pressure as the
-coroutine won't read the next message from the socket until a cycle is
-complete.
+### Conclusion
 
-### Receive
-
-Receiving Redis pushes works similar to the `async_exec` discussed
-above but without the request.  The example below was taken from
-subscriber.cpp
-
-```cpp
-net::awaitable<void> push_receiver(std::shared_ptr<connection> conn)
-{
-   for (std::vector<node<std::string>> resp;;) {
-      co_await conn->async_receive(adapt(resp));
-      print_push(resp);
-      resp.clear();
-   }
-}
-```
-
-In general, it is advisable to all apps to keep a coroutine calling
-`async_receive` as an unread push will cause the connection to stall
-and eventually timeout.  Notice that the same connection that is being
-used to send requests can be also used to receive server-side pushes.
-
-### Cancellation
-
-Aedis supports both implicit and explicit cancellation of connection
-operations. Explicit cancellation is supported by means of the
-`aedis::connection::cancel` member function. Implicit cancellation,
-like those that may happen when using Asio awaitable operators && and
-|| will be discussed with more detail below.
-
-```cpp
-co_await (conn.async_run(...) && conn.async_exec(...))
-```
-
-* Useful when implementing reconnection.
-* `async_exec` is responsible for sending the `HELLO` command and
-  optionally for subscribing to channels.
-
-```cpp
-co_await (conn.async_run(...) || conn.async_exec(...))
-```
-
-* Useful for short-lived connections that are meant to be closed after
-  a command has been executed.
-
-```cpp
-co_await (conn.async_exec(...) || time.async_wait(...))
-```
-
-* Provides a way to limit how long the execution of a single request
-  should last.
-* The cancellation will be ignored if the request has already
-  been written to the socket.
-* It is usually a better idea to have a healthy checker than adding
-  per request timeout, see subscriber.cpp for an example.
-
-```cpp
-co_await (conn.async_run(...) || time.async_wait(...))
-```
-
-* Sets a limit on how long the connection should live.
-
-```cpp
-co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
-```
-
-* This works but is considered an anti-pattern. Unless
-  the user has set `aedis::resp3::request::config::coalesce` to
-  `false`, and he shouldn't, the connection will automatically merge
-  the individual requests into a single payload anyway.
+Redis clients have to support automatic pipelining to have competitive performance. For updates to this document follow https://github.com/mzimbres/aedis.
 
 ## Comparison
 
@@ -737,96 +765,7 @@ enqueueing a message and triggering a write when it can be sent.
 It is also not clear how are pipelines realised with this design
 (if at all).
 
-## Echo server benchmark
-
-This document benchmarks the performance of TCP echo servers I
-implemented in different languages using different Redis clients.  The
-main motivations for choosing an echo server are
-
-   * Simple to implement and does not require expertise level in most languages.
-   * I/O bound: Echo servers have very low CPU consumption in general
-     and  therefore are excelent to  measure how a program handles concurrent requests.
-   * It simulates very well a typical backend in regard to concurrency.
-
-I also imposed some constraints on the implementations
-
-   * It should be simple enough and not require writing too much code.
-   * Favor the use standard idioms and avoid optimizations that require expert level.
-   * Avoid the use of complex things like connection and thread pool.
-
-To reproduce these results run one of the echo-server programs in one
-terminal and the
-[echo-server-client](https://github.com/mzimbres/aedis/blob/42880e788bec6020dd018194075a211ad9f339e8/benchmarks/cpp/asio/echo_server_client.cpp)
-in another.
-
-### Without Redis
-
-First I tested a pure TCP echo server, i.e. one that sends the messages
-directly to the client without interacting with Redis. The result can
-be seen below
-
-![](https://mzimbres.github.io/aedis/tcp-echo-direct.png)
-
-The tests were performed with a 1000 concurrent TCP connections on the
-localhost where latency is 0.07ms on average on my machine. On higher
-latency networks the difference among libraries is expected to
-decrease. 
-
-   * I expected Libuv to have similar performance to Asio and Tokio.
-   * I did expect nodejs to come a little behind given it is is
-     javascript code. Otherwise I did expect it to have similar
-     performance to libuv since it is the framework behind it.
-   * Go did surprise me: faster than nodejs and libuv!
-
-The code used in the benchmarks can be found at
-
-   * [Asio](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/cpp/asio/echo_server_direct.cpp): A variation of [this](https://github.com/chriskohlhoff/asio/blob/4915cfd8a1653c157a1480162ae5601318553eb8/asio/src/examples/cpp20/coroutines/echo_server.cpp) Asio example.
-   * [Libuv](https://github.com/mzimbres/aedis/tree/835a1decf477b09317f391eddd0727213cdbe12b/benchmarks/c/libuv): Taken from [here](https://github.com/libuv/libuv/blob/06948c6ee502862524f233af4e2c3e4ca876f5f6/docs/code/tcp-echo-server/main.c) Libuv example .
-   * [Tokio](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/rust/echo_server_direct): Taken from [here](https://docs.rs/tokio/latest/tokio/).
-   * [Nodejs](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_direct)
-   * [Go](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_direct.go)
-
-### With Redis
-
-This is similar to the echo server described above but messages are
-echoed by Redis and not by the echo-server itself, which acts
-as a proxy between the client and the Redis server. The results
-can be seen below
-
-![](https://mzimbres.github.io/aedis/tcp-echo-over-redis.png)
-
-The tests were performed on a network where latency is 35ms on
-average, otherwise it uses the same number of TCP connections
-as the previous example.
-
-As the reader can see, the Libuv and the Rust test are not depicted
-in the graph, the reasons are
-
-   * [redis-rs](https://github.com/redis-rs/redis-rs): This client
-     comes so far behind that it can't even be represented together
-     with the other benchmarks without making them look insignificant.
-     I don't know for sure why it is so slow, I suppose it has
-     something to do with its lack of automatic
-     [pipelining](https://redis.io/docs/manual/pipelining/) support.
-     In fact, the more TCP connections I lauch the worse its
-     performance gets.
-
-   * Libuv: I left it out because it would require me writing to much
-     c code. More specifically, I would have to use hiredis and
-     implement support for pipelines manually.
-
-The code used in the benchmarks can be found at
-
-   * [Aedis](https://github.com/mzimbres/aedis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/examples/echo_server.cpp)
-   * [node-redis](https://github.com/redis/node-redis): [code](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_over_redis)
-   * [go-redis](https://github.com/go-redis/redis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go)
-
 <a name="api-reference"></a>
-
-### Conclusion
-
-Redis clients have to support automatic pipelining to have competitive performance. For updates to this document follow https://github.com/mzimbres/aedis.
-
 ## Reference
 
 * [High-Level](#high-level-api): Covers the topics discussed in this document.
@@ -875,7 +814,7 @@ Acknowledgement to people that helped shape Aedis
 
 ## Changelog
 
-### 1.4.0
+### v1.4.0
 
 * Removes dependency on Boost.Hana, boost::string_view, Boost.Variant2 and Boost.Spirit.
 * Fixes build and setup CI on windows.

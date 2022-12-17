@@ -174,7 +174,7 @@ public:
        * connection is lost. Affects only requests that haven't been
        * sent yet.
        */
-      bool cancel_on_connection_lost = false;
+      bool cancel_on_connection_lost = true;
 
       /** \brief If true the request will be coalesced with other
        * requests, see https://redis.io/topics/pipelining. Otherwise
@@ -192,7 +192,7 @@ public:
        * requests that have been written to the socket but remained
        * unresponded when `aedis::connection::async_run` completed.
        */
-      bool retry_on_connection_lost = true;
+      bool retry_on_connection_lost = false;
 
       /** \brief If this request has a HELLO command and this flag is
        * true, the `aedis::connection` will move it to the front of
@@ -208,7 +208,7 @@ public:
     *  \param resource Memory resource.
     */
     explicit
-    request(config cfg = config{false, true, false, true, true},
+    request(config cfg = config{true, true, false, false, true},
             std::pmr::memory_resource* resource = std::pmr::get_default_resource())
     : cfg_{cfg}, payload_(resource) {}
 

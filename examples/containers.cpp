@@ -45,7 +45,6 @@ auto store() -> net::awaitable<void>
       {{"key1", "value1"}, {"key2", "value2"}, {"key3", "value3"}};
 
    resp3::request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);
@@ -54,27 +53,25 @@ auto store() -> net::awaitable<void>
    co_await (conn->async_run() || conn->async_exec(req));
 }
 
-// Retrieves a Redis hash as an std::map.
-auto hgetall() -> net::awaitable<void>
+auto hgetall() -> net::awaitable<std::map<std::string, std::string>>
 {
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
-   // Resolves and connects (from examples/common.hpp to avoid vebosity)
+   // From examples/common.hpp to avoid vebosity
    co_await connect(conn, "127.0.0.1", "6379");
 
-   // A request contains multiple Redis commands.
+   // A request contains multiple commands.
    resp3::request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   // Tuple elements will hold the response to each command in the request.
+   // Responses as tuple elements.
    std::tuple<aedis::ignore, std::map<std::string, std::string>, aedis::ignore> resp;
 
    // Executes the request and reads the response.
    co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
-   print(std::get<1>(resp));
+   co_return std::get<1>(resp);
 }
 
 // Retrieves in a transaction.
@@ -86,7 +83,6 @@ auto transaction() -> net::awaitable<void>
    co_await connect(conn, "127.0.0.1", "6379");
 
    resp3::request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("MULTI");
    req.push("LRANGE", "rpush-key", 0, -1); // Retrieves
@@ -113,8 +109,9 @@ auto transaction() -> net::awaitable<void>
 net::awaitable<void> async_main()
 {
    co_await store();
-   co_await hgetall();
    co_await transaction();
+   auto const map = co_await hgetall();
+   print(map);
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

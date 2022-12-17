@@ -31,7 +31,6 @@ struct address {
 auto resolve_master_address(std::vector<address> const& endpoints) -> net::awaitable<address>
 {
    resp3::request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("SENTINEL", "get-master-addr-by-name", "mymaster");
    req.push("QUIT");
 

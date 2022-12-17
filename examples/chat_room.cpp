@@ -49,7 +49,6 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
 auto subscriber(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    resp3::request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "chat-channel");
 

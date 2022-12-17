@@ -52,7 +52,6 @@ auto async_main() -> net::awaitable<void>
    signal_set sig{ex, SIGINT, SIGTERM};
 
    resp3::request req;
-   req.get_config().cancel_on_connection_lost = true;
    req.push("HELLO", 3);
 
    co_await connect(conn, "127.0.0.1", "6379");
