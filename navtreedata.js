@@ -25,17 +25,49 @@
 var NAVTREE =
 [
   [ "Aedis", "index.html", [
-    [ "Documentation", "index.html", null ],
-    [ "node", "structaedis_1_1resp3_1_1node.html", "structaedis_1_1resp3_1_1node" ],
-    [ "request", "classaedis_1_1resp3_1_1request.html", "classaedis_1_1resp3_1_1request" ],
-    [ "connection", "classaedis_1_1connection.html", "classaedis_1_1connection" ],
-    [ "Class Index", "classes.html", null ]
+    [ "Connection", "index.html#autotoc_md1", [
+      [ "Cancellation", "index.html#autotoc_md2", null ]
+    ] ],
+    [ "Requests", "index.html#autotoc_md3", [
+      [ "Serialization", "index.html#autotoc_md4", null ],
+      [ "Config flags", "index.html#autotoc_md5", null ]
+    ] ],
+    [ "Responses", "index.html#autotoc_md6", [
+      [ "Pushes", "index.html#autotoc_md7", null ],
+      [ "Null", "index.html#autotoc_md8", null ],
+      [ "Transactions", "index.html#autotoc_md9", null ],
+      [ "Deserialization", "index.html#autotoc_md10", null ],
+      [ "The general case", "index.html#autotoc_md11", null ]
+    ] ],
+    [ "Examples", "index.html#autotoc_md12", null ],
+    [ "Echo server benchmark", "index.html#autotoc_md13", [
+      [ "Without Redis", "index.html#autotoc_md14", null ],
+      [ "With Redis", "index.html#autotoc_md15", null ],
+      [ "Conclusion", "index.html#autotoc_md16", null ]
+    ] ],
+    [ "Comparison", "index.html#autotoc_md17", [
+      [ "Aedis vs Redis-plus-plus", "index.html#autotoc_md18", null ]
+    ] ],
+    [ "Reference", "index.html#autotoc_md19", null ],
+    [ "Installation", "index.html#autotoc_md20", null ],
+    [ "Acknowledgement", "index.html#autotoc_md21", null ],
+    [ "Changelog", "index.html#autotoc_md22", [
+      [ "v1.4.0", "index.html#autotoc_md23", null ],
+      [ "v1.3.0-1", "index.html#autotoc_md24", null ],
+      [ "v1.2.0", "index.html#autotoc_md25", null ],
+      [ "v1.1.0-1", "index.html#autotoc_md26", null ],
+      [ "v1.0.0", "index.html#autotoc_md27", null ],
+      [ "v0.3.0", "index.html#autotoc_md28", null ],
+      [ "v0.2.0-1", "index.html#autotoc_md29", null ],
+      [ "v0.1.0-2", "index.html#autotoc_md30", null ],
+      [ "v0.0.1", "index.html#autotoc_md31", null ]
+    ] ]
   ] ]
 ];
 
 var NAVTREEINDEX =
 [
-"classes.html"
+"index.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

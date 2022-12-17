@@ -1,48 +1,43 @@
-<!-- HTML header for doxygen 1.8.14-->
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Aedis: Member List</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
-<script type="text/javascript">
-/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
-  $(document).ready(function() { init_search(); });
-/* @license-end */
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
 </script>
+<script type="text/javascript" async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
-<link href="aedis.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome-sidebar-only.css" rel="stylesheet" type="text/css"/>
 </head>
 <body>
 <div id="top"><!-- do not remove this div, it is closed by doxygen! -->
 <div id="titlearea">
-<table bgcolor="#346295" cellspacing="0" cellpadding="6">
+<table cellspacing="0" cellpadding="0">
  <tbody>
- <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.1</font> &#160; <br> A redis client designed for performance and scalability </td>
-  <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
-        <span class="left">
-          <img id="MSearchSelect" src="search/mag_sel.svg"
-               onmouseover="return searchBox.OnSearchSelectShow()"
-               onmouseout="return searchBox.OnSearchSelectHide()"
-               alt=""/>
-          <input type="text" id="MSearchField" value="Search" accesskey="S"
-               onfocus="searchBox.OnSearchFieldFocus(true)" 
-               onblur="searchBox.OnSearchFieldFocus(false)" 
-               onkeyup="searchBox.OnSearchFieldChange(event)"/>
-          </span><span class="right">
-            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><img id="MSearchCloseImg" border="0" src="search/close.svg" alt=""/></a>
-          </span>
-        </div>
- </td>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.0</span>
+   </div>
+   <div id="projectbrief">A redis client library</div>
+  </td>
  </tr>
  </tbody>
 </table>
@@ -54,6 +49,34 @@
 var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 /* @license-end */
 </script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('classaedis_1_1resp3_1_1request.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -68,11 +91,6 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 </iframe>
 </div>
 
-<div id="nav-path" class="navpath">
-  <ul>
-<li class="navelem"><b>aedis</b></li><li class="navelem"><b>resp3</b></li><li class="navelem"><a class="el" href="classaedis_1_1resp3_1_1request.html">request</a></li>  </ul>
-</div>
-</div><!-- top -->
 <div class="header">
   <div class="headertitle"><div class="title">aedis::resp3::request Member List</div></div>
 </div><!--header-->
@@ -83,19 +101,21 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
   <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1">clear</a>()</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
   <tr class="odd"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a202320ac3ef896036ec1048a87e9d06c">get_config</a>() const noexcept -&gt; auto const &amp;</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
   <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a7888d68eadc7ba89c059e0e18433bf06">get_config</a>() noexcept -&gt; auto &amp;</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr class="odd"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(boost::string_view cmd, Ts const &amp;... args)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a3c4321c7c14eb92a977c48b0433c424e">push_range</a>(boost::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr class="odd"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a9c72e26c2ea7346d52733645ac98d948">push_range</a>(boost::string_view cmd, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a94040d747bd9ee970a5ecc32d4f4a84d">push_range</a>(boost::string_view cmd, Key const &amp;key, Range const &amp;range, decltype(std::begin(range)) *=nullptr)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr class="odd"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#aec6ece292eee4590694c20f75b28e39a">push_range</a>(boost::string_view cmd, Range const &amp;range, decltype(std::begin(range)) *=nullptr)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a3e2cd2720b326d4b786726fed260e3c3">request</a>(config cfg=config{false, true, false, true, true}, std::pmr::memory_resource *resource=std::pmr::get_default_resource())</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span><span class="mlabel">explicit</span></td></tr>
+  <tr class="odd"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(std::string_view cmd, Ts const &amp;... args)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#acfdc2a284c938a7cba37cd4d69b006b7">push_range</a>(std::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
+  <tr class="odd"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a7afbb983bf5d4d76b7c51a3b74e727a6">push_range</a>(std::string_view cmd, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#ae4871bd47e48dfa33e65fc27e2edeb88">push_range</a>(std::string_view cmd, Key const &amp;key, Range const &amp;range, decltype(std::begin(range)) *=nullptr)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
+  <tr class="odd"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a64b1cf3eb33c8c2a9eb0a6b87a2bb472">push_range</a>(std::string_view cmd, Range const &amp;range, decltype(std::begin(range)) *=nullptr)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#aea51c6ff2b6cce855b8b8bc21c749dde">request</a>(config cfg=config{true, true, false, false, true}, std::pmr::memory_resource *resource=std::pmr::get_default_resource())</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span><span class="mlabel">explicit</span></td></tr>
   <tr class="odd"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a97e05ff085646e18e15092bbd560b8e7">reserve</a>(std::size_t new_cap=0)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">to_bulk</a>(Request &amp;to, boost::string_view data)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">related</span></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html#a9951b16b0c2a2677852ffe2e0778a539">to_bulk</a>(Request &amp;to, std::string_view data)</td><td class="entry"><a class="el" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></td><td class="entry"><span class="mlabel">related</span></td></tr>
 </table></div><!-- contents -->
-<!-- HTML footer for doxygen 1.8.14-->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer">
-Author: Marcelo Zimbres Silva.
-</address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">Generated on Fri Dec 23 2022 09:19:17 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+  </ul>
+</div>
 </body>
 </html>

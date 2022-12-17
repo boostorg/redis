@@ -1,48 +1,43 @@
-<!-- HTML header for doxygen 1.8.14-->
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Aedis: aedis::basic_connection&lt; AsyncReadWriteStream &gt; Class Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
-<script type="text/javascript">
-/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
-  $(document).ready(function() { init_search(); });
-/* @license-end */
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
 </script>
+<script type="text/javascript" async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
-<link href="aedis.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome-sidebar-only.css" rel="stylesheet" type="text/css"/>
 </head>
 <body>
 <div id="top"><!-- do not remove this div, it is closed by doxygen! -->
 <div id="titlearea">
-<table bgcolor="#346295" cellspacing="0" cellpadding="6">
+<table cellspacing="0" cellpadding="0">
  <tbody>
- <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.1</font> &#160; <br> A redis client designed for performance and scalability </td>
-  <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
-        <span class="left">
-          <img id="MSearchSelect" src="search/mag_sel.svg"
-               onmouseover="return searchBox.OnSearchSelectShow()"
-               onmouseout="return searchBox.OnSearchSelectHide()"
-               alt=""/>
-          <input type="text" id="MSearchField" value="Search" accesskey="S"
-               onfocus="searchBox.OnSearchFieldFocus(true)" 
-               onblur="searchBox.OnSearchFieldFocus(false)" 
-               onkeyup="searchBox.OnSearchFieldChange(event)"/>
-          </span><span class="right">
-            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><img id="MSearchCloseImg" border="0" src="search/close.svg" alt=""/></a>
-          </span>
-        </div>
- </td>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.0</span>
+   </div>
+   <div id="projectbrief">A redis client library</div>
+  </td>
  </tr>
  </tbody>
 </table>
@@ -54,6 +49,34 @@
 var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 /* @license-end */
 </script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('classaedis_1_1basic__connection.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -68,11 +91,6 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 </iframe>
 </div>
 
-<div id="nav-path" class="navpath">
-  <ul>
-<li class="navelem"><b>aedis</b></li><li class="navelem"><a class="el" href="classaedis_1_1basic__connection.html">basic_connection</a></li>  </ul>
-</div>
-</div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
@@ -150,7 +168,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>reset_stream</b> ()</
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;class AsyncReadWriteStream&gt;<br />
 class aedis::basic_connection&lt; AsyncReadWriteStream &gt;</div><p >A connection to the Redis server. </p>
-<p >This class keeps a healthy connection to the Redis instance where commands can be sent at any time. For more details, please see the documentation of each individual function.</p>
+<p >For more details, please see the documentation of each individual function.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">AsyncReadWriteStream</td><td>A stream that supports reading and writing. </td></tr>
@@ -158,7 +176,7 @@ class aedis::basic_connection&lt; AsyncReadWriteStream &gt;</div><p >A connectio
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00029">29</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00028">28</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 </div><hr/><h2 class="groupheader">Class Documentation</h2>
 <a name="structaedis_1_1basic__connection_1_1rebind__executor" id="structaedis_1_1basic__connection_1_1rebind__executor"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#structaedis_1_1basic__connection_1_1rebind__executor">&#9670;&nbsp;</a></span>aedis::basic_connection::rebind_executor</h2>
@@ -175,7 +193,7 @@ class aedis::basic_connection&lt; AsyncReadWriteStream &gt;</div><p >A connectio
 template&lt;class Executor1&gt;<br />
 struct aedis::basic_connection&lt; AsyncReadWriteStream &gt;::rebind_executor&lt; Executor1 &gt;</div><p >Rebinds the socket type to another executor. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00042">42</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00041">41</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 </div><table class="fieldtable">
 <tr><th colspan="3">Class Members</th></tr>
 <tr><td class="fieldtype">
@@ -234,7 +252,7 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 </div><div class="memdoc">
 
 <p>Executes a command on the Redis server asynchronously. </p>
-<p >This function will send a request to the Redis server and complete after the response has been processed. If the request contains only commands that don't expect a response, the completion occurs after it has been written to the underlying stream. Multiple concurrent calls to this function will be automatically queued by the implementation.</p>
+<p >This function sends a request to the Redis server and complete after the response has been processed. If the request contains only commands that don't expect a response, the completion occurs after it has been written to the underlying stream. Multiple concurrent calls to this function will be automatically queued by the implementation.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">req</td><td>Request object. </td></tr>
@@ -247,7 +265,7 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code, std::size_t);</div>
 </div><!-- fragment --><p >Where the second parameter is the size of the response in bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00137">137</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00136">136</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -290,7 +308,7 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 </div><div class="memdoc">
 
 <p>Receives server side pushes asynchronously. </p>
-<p >Users that expect server pushes should call this function in a loop. If a push arrives and there is no reader, the connection will hang and eventually timeout.</p>
+<p >Users that expect server pushes should call this function in a loop. If a push arrives and there is no reader, the connection will hang.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">adapter</td><td>The response adapter. </td></tr>
@@ -302,7 +320,7 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code, std::size_t);</div>
 </div><!-- fragment --><p >Where the second parameter is the size of the push in bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00167">167</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00166">166</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -344,9 +362,9 @@ template&lt;class CompletionToken  = boost::asio::default_completion_token_t&lt;
 </dl>
 <p>The completion token must have the following signature</p>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code);</div>
-</div><!-- fragment --><p >This function will complete when the connection is lost as follows. If the error is boost::asio::error::eof this function will complete without error. </p>
+</div><!-- fragment --><p >This function will complete when the connection is lost. If the error is boost::asio::error::eof this function will complete without error. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00106">106</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00105">105</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -391,7 +409,7 @@ template&lt;class AsyncReadWriteStream &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The number of operations that have been canceled. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00187">187</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00186">186</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -399,10 +417,13 @@ template&lt;class AsyncReadWriteStream &gt; </div>
 <li>aedis/<a class="el" href="connection_8hpp_source.html">connection.hpp</a></li>
 </ul>
 </div><!-- contents -->
-<!-- HTML footer for doxygen 1.8.14-->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer">
-Author: Marcelo Zimbres Silva.
-</address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><b>aedis</b></li><li class="navelem"><a class="el" href="classaedis_1_1basic__connection.html">basic_connection</a></li>
+    <li class="footer">Generated on Fri Dec 23 2022 09:19:17 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+  </ul>
+</div>
 </body>
 </html>

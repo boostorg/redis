@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['retry_0',['retry',['../classaedis_1_1resp3_1_1request.html#a653d47ba62bd2b3f84f424a2b2b35b9a',1,'aedis::resp3::request::config']]]
+  ['retry_5fon_5fconnection_5flost_0',['retry_on_connection_lost',['../classaedis_1_1resp3_1_1request.html#a235a34377763bb06f15aa8019b8a2fce',1,'aedis::resp3::request::config']]]
 ];

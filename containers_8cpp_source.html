@@ -1,48 +1,43 @@
-<!-- HTML header for doxygen 1.8.14-->
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Aedis: examples/containers.cpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
-<script type="text/javascript">
-/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
-  $(document).ready(function() { init_search(); });
-/* @license-end */
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
 </script>
+<script type="text/javascript" async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
-<link href="aedis.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome-sidebar-only.css" rel="stylesheet" type="text/css"/>
 </head>
 <body>
 <div id="top"><!-- do not remove this div, it is closed by doxygen! -->
 <div id="titlearea">
-<table bgcolor="#346295" cellspacing="0" cellpadding="6">
+<table cellspacing="0" cellpadding="0">
  <tbody>
- <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.1</font> &#160; <br> A redis client designed for performance and scalability </td>
-  <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
-        <span class="left">
-          <img id="MSearchSelect" src="search/mag_sel.svg"
-               onmouseover="return searchBox.OnSearchSelectShow()"
-               onmouseout="return searchBox.OnSearchSelectHide()"
-               alt=""/>
-          <input type="text" id="MSearchField" value="Search" accesskey="S"
-               onfocus="searchBox.OnSearchFieldFocus(true)" 
-               onblur="searchBox.OnSearchFieldFocus(false)" 
-               onkeyup="searchBox.OnSearchFieldChange(event)"/>
-          </span><span class="right">
-            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><img id="MSearchCloseImg" border="0" src="search/close.svg" alt=""/></a>
-          </span>
-        </div>
- </td>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.0</span>
+   </div>
+   <div id="projectbrief">A redis client library</div>
+  </td>
  </tr>
  </tbody>
 </table>
@@ -54,6 +49,34 @@
 var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 /* @license-end */
 </script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('containers_8cpp_source.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -68,11 +91,6 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 </iframe>
 </div>
 
-<div id="nav-path" class="navpath">
-  <ul>
-<li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li>  </ul>
-</div>
-</div><!-- top -->
 <div class="header">
   <div class="headertitle"><div class="title">containers.cpp</div></div>
 </div><!--header-->
@@ -93,9 +111,9 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &quot;common/common.hpp&quot;</span></div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span> </div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keyword">namespace </span>net = boost::asio;</div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="keyword">using namespace </span>net::experimental::awaitable_operators;</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="keyword">using </span><a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a>;</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="keyword">using </span><a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a>;</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="keyword">namespace </span>resp3 = aedis::resp3;</div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="keyword">using namespace </span>net::experimental::awaitable_operators;</div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="keyword">using </span><a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a>;</div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span> </div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="keywordtype">void</span> print(std::map&lt;std::string, std::string&gt; <span class="keyword">const</span>&amp; cont)</div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>{</div>
@@ -110,94 +128,104 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>}</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span> </div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="comment">// Stores the content of some STL containers in Redis.</span></div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keyword">auto</span> store(std::shared_ptr&lt;connection&gt; conn) -&gt; net::awaitable&lt;void&gt;</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keyword">auto</span> store() -&gt; net::awaitable&lt;void&gt;</div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>{</div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>   std::vector&lt;int&gt; vec</div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>      {1, 2, 3, 4, 5, 6};</div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>   std::map&lt;std::string, std::string&gt; <a class="code hl_enumvalue" href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a></div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>      {{<span class="stringliteral">&quot;key1&quot;</span>, <span class="stringliteral">&quot;value1&quot;</span>}, {<span class="stringliteral">&quot;key2&quot;</span>, <span class="stringliteral">&quot;value2&quot;</span>}, {<span class="stringliteral">&quot;key3&quot;</span>, <span class="stringliteral">&quot;value3&quot;</span>}};</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span> </div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>   request req;</div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>   req.get_config().cancel_on_connection_lost = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>   req.push(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>   req.push_range(<span class="stringliteral">&quot;RPUSH&quot;</span>, <span class="stringliteral">&quot;rpush-key&quot;</span>, vec);</div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>   req.push_range(<span class="stringliteral">&quot;HSET&quot;</span>, <span class="stringliteral">&quot;hset-key&quot;</span>, map);</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>   req.push(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span> </div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>   <span class="keyword">co_await</span> conn-&gt;async_exec(req);</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>}</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span> </div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span><span class="comment">// Retrieves a Redis hash as an std::map.</span></div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="keyword">auto</span> hgetall(std::shared_ptr&lt;connection&gt; conn) -&gt; net::awaitable&lt;void&gt;</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>{</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>   request req;</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>   req.get_config().cancel_on_connection_lost = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>   req.push(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>   req.push(<span class="stringliteral">&quot;HGETALL&quot;</span>, <span class="stringliteral">&quot;hset-key&quot;</span>);</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>   req.push(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>   std::tuple&lt;aedis::ignore, std::map&lt;std::string, std::string&gt;, <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>&gt; resp;</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>   <span class="keyword">auto</span> conn = std::make_shared&lt;connection&gt;(<span class="keyword">co_await</span> net::this_coro::executor);</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>   <span class="comment">// Resolves and connects (from examples/common.hpp to avoid vebosity)</span></div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>   <span class="keyword">co_await</span> connect(conn, <span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>);</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span> </div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>   std::vector&lt;int&gt; vec</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>      {1, 2, 3, 4, 5, 6};</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>   std::map&lt;std::string, std::string&gt; <a class="code hl_enumvalue" href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a></div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>      {{<span class="stringliteral">&quot;key1&quot;</span>, <span class="stringliteral">&quot;value1&quot;</span>}, {<span class="stringliteral">&quot;key2&quot;</span>, <span class="stringliteral">&quot;value2&quot;</span>}, {<span class="stringliteral">&quot;key3&quot;</span>, <span class="stringliteral">&quot;value3&quot;</span>}};</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>   <a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">resp3::request</a> req;</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#acfdc2a284c938a7cba37cd4d69b006b7">push_range</a>(<span class="stringliteral">&quot;RPUSH&quot;</span>, <span class="stringliteral">&quot;rpush-key&quot;</span>, vec);</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#acfdc2a284c938a7cba37cd4d69b006b7">push_range</a>(<span class="stringliteral">&quot;HSET&quot;</span>, <span class="stringliteral">&quot;hset-key&quot;</span>, map);</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>   <span class="keyword">co_await</span> (conn-&gt;async_run() || conn-&gt;async_exec(req));</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>}</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span> </div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="keyword">auto</span> hgetall() -&gt; net::awaitable&lt;std::map&lt;std::string, std::string&gt;&gt;</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>{</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>   <span class="keyword">auto</span> conn = std::make_shared&lt;connection&gt;(<span class="keyword">co_await</span> net::this_coro::executor);</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span> </div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>   <span class="comment">// From examples/common.hpp to avoid vebosity</span></div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>   <span class="keyword">co_await</span> connect(conn, <span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>);</div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span> </div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>   <span class="keyword">co_await</span> conn-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span> </div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>   print(std::get&lt;1&gt;(resp));</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>}</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span> </div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="comment">// Retrieves in a transaction.</span></div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="keyword">auto</span> transaction(std::shared_ptr&lt;connection&gt; conn) -&gt; net::awaitable&lt;void&gt;</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>{</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>   request req;</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>   req.get_config().cancel_on_connection_lost = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>   req.push(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>   req.push(<span class="stringliteral">&quot;MULTI&quot;</span>);</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>   req.push(<span class="stringliteral">&quot;LRANGE&quot;</span>, <span class="stringliteral">&quot;rpush-key&quot;</span>, 0, -1); <span class="comment">// Retrieves</span></div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>   req.push(<span class="stringliteral">&quot;HGETALL&quot;</span>, <span class="stringliteral">&quot;hset-key&quot;</span>); <span class="comment">// Retrieves</span></div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>   req.push(<span class="stringliteral">&quot;EXEC&quot;</span>);</div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>   req.push(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span> </div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>   std::tuple&lt;</div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>, <span class="comment">// hello</span></div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>, <span class="comment">// multi</span></div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>, <span class="comment">// lrange</span></div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>, <span class="comment">// hgetall</span></div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>      std::tuple&lt;std::optional&lt;std::vector&lt;int&gt;&gt;, std::optional&lt;std::map&lt;std::string, std::string&gt;&gt;&gt;, <span class="comment">// exec</span></div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>  <span class="comment">// quit</span></div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>   &gt; resp;</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>   <span class="keyword">co_await</span> conn-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span> </div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>   print(std::get&lt;0&gt;(std::get&lt;4&gt;(resp)).value());</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>   print(std::get&lt;1&gt;(std::get&lt;4&gt;(resp)).value());</div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>}</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="comment">// Called from the main function (see main.cpp)</span></div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>net::awaitable&lt;void&gt; async_main()</div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>{</div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>   <span class="keyword">auto</span> conn = std::make_shared&lt;connection&gt;(<span class="keyword">co_await</span> net::this_coro::executor);</div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span> </div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>   <span class="comment">// Uses short-lived connections to store and retrieve the</span></div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>   <span class="comment">// containers.</span></div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>   <span class="keyword">co_await</span> connect(conn, <span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>);</div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>   <span class="keyword">co_await</span> (conn-&gt;async_run() || store(conn));</div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span> </div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>   <span class="keyword">co_await</span> connect(conn, <span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>);</div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>   <span class="keyword">co_await</span> (conn-&gt;async_run() || hgetall(conn));</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>   <span class="comment">// A request contains multiple commands.</span></div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>   <a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">resp3::request</a> req;</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;HGETALL&quot;</span>, <span class="stringliteral">&quot;hset-key&quot;</span>);</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span> </div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>   <span class="comment">// Responses as tuple elements.</span></div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>   std::tuple&lt;aedis::ignore, std::map&lt;std::string, std::string&gt;, <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>&gt; resp;</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span> </div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>   <span class="comment">// Executes the request and reads the response.</span></div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>   <span class="keyword">co_await</span> (conn-&gt;async_run() || conn-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp)));</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>   <span class="keyword">co_return</span> std::get&lt;1&gt;(resp);</div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>}</div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span> </div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span><span class="comment">// Retrieves in a transaction.</span></div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><span class="keyword">auto</span> transaction() -&gt; net::awaitable&lt;void&gt;</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>{</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>   <span class="keyword">auto</span> conn = std::make_shared&lt;connection&gt;(<span class="keyword">co_await</span> net::this_coro::executor);</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span> </div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>   <span class="comment">// Resolves and connects (from examples/common.hpp to avoid vebosity)</span></div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>   <span class="keyword">co_await</span> connect(conn, <span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>);</div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>   <a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">resp3::request</a> req;</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;MULTI&quot;</span>);</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;LRANGE&quot;</span>, <span class="stringliteral">&quot;rpush-key&quot;</span>, 0, -1); <span class="comment">// Retrieves</span></div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;HGETALL&quot;</span>, <span class="stringliteral">&quot;hset-key&quot;</span>); <span class="comment">// Retrieves</span></div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;EXEC&quot;</span>);</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>   req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span> </div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>   std::tuple&lt;</div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>, <span class="comment">// hello</span></div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>, <span class="comment">// multi</span></div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>, <span class="comment">// lrange</span></div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>, <span class="comment">// hgetall</span></div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>      std::tuple&lt;std::optional&lt;std::vector&lt;int&gt;&gt;, std::optional&lt;std::map&lt;std::string, std::string&gt;&gt;&gt;, <span class="comment">// exec</span></div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>      <a class="code hl_typedef" href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a>  <span class="comment">// quit</span></div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>   &gt; resp;</div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>   <span class="keyword">co_await</span> (conn-&gt;async_run() || conn-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp)));</div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span> </div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>   print(std::get&lt;0&gt;(std::get&lt;4&gt;(resp)).value());</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>   print(std::get&lt;1&gt;(std::get&lt;4&gt;(resp)).value());</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>}</div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span> </div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>   <span class="keyword">co_await</span> connect(conn, <span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>);</div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>   <span class="keyword">co_await</span> (conn-&gt;async_run() || transaction(conn));</div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>}</div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span> </div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="preprocessor">#endif </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00176">request.hpp:176</a></div></div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span><span class="comment">// Called from the main function (see main.cpp)</span></div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>net::awaitable&lt;void&gt; async_main()</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>{</div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>   <span class="keyword">co_await</span> store();</div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>   <span class="keyword">co_await</span> transaction();</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>   <span class="keyword">auto</span> <span class="keyword">const</span> <a class="code hl_enumvalue" href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">map</a> = <span class="keyword">co_await</span> hgetall();</div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>   print(map);</div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>}</div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span> </div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="preprocessor">#endif </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00168">request.hpp:168</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a1a7b7e58ed214bcd962d20b65ed35eca"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">aedis::resp3::request::push</a></div><div class="ttdeci">void push(std::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00258">request.hpp:258</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_acfdc2a284c938a7cba37cd4d69b006b7"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#acfdc2a284c938a7cba37cd4d69b006b7">aedis::resp3::request::push_range</a></div><div class="ttdeci">void push_range(std::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00292">request.hpp:292</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_ga0d619e51ab37f7854e7218a061900820"><div class="ttname"><a href="group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820">aedis::ignore</a></div><div class="ttdeci">adapter::detail::ignore ignore</div><div class="ttdoc">Tag used to ignore responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00036">adapt.hpp:36</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_gac56bb1a8df93445853a4b9dae2d97b6e"><div class="ttname"><a href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a></div><div class="ttdeci">auto adapt(std::size_t max_read_size=(std::numeric_limits&lt; std::size_t &gt;::max)()) noexcept</div><div class="ttdoc">Creates an adapter that ignores responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00199">adapt.hpp:199</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae"><div class="ttname"><a href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">aedis::resp3::type::map</a></div><div class="ttdeci">@ map</div><div class="ttdoc">Aggregate.</div></div>
 </div><!-- fragment --></div><!-- contents -->
-<!-- HTML footer for doxygen 1.8.14-->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer">
-Author: Marcelo Zimbres Silva.
-</address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><b>containers.cpp</b></li>
+    <li class="footer">Generated on Fri Dec 23 2022 09:19:17 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+  </ul>
+</div>
 </body>
 </html>

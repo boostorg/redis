@@ -1,48 +1,43 @@
-<!-- HTML header for doxygen 1.8.14-->
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Aedis: aedis::resp3::request Class Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
-<script type="text/javascript">
-/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
-  $(document).ready(function() { init_search(); });
-/* @license-end */
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
 </script>
+<script type="text/javascript" async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
-<link href="aedis.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome-sidebar-only.css" rel="stylesheet" type="text/css"/>
 </head>
 <body>
 <div id="top"><!-- do not remove this div, it is closed by doxygen! -->
 <div id="titlearea">
-<table bgcolor="#346295" cellspacing="0" cellpadding="6">
+<table cellspacing="0" cellpadding="0">
  <tbody>
- <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.1</font> &#160; <br> A redis client designed for performance and scalability </td>
-  <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
-        <span class="left">
-          <img id="MSearchSelect" src="search/mag_sel.svg"
-               onmouseover="return searchBox.OnSearchSelectShow()"
-               onmouseout="return searchBox.OnSearchSelectHide()"
-               alt=""/>
-          <input type="text" id="MSearchField" value="Search" accesskey="S"
-               onfocus="searchBox.OnSearchFieldFocus(true)" 
-               onblur="searchBox.OnSearchFieldFocus(false)" 
-               onkeyup="searchBox.OnSearchFieldChange(event)"/>
-          </span><span class="right">
-            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><img id="MSearchCloseImg" border="0" src="search/close.svg" alt=""/></a>
-          </span>
-        </div>
- </td>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.0</span>
+   </div>
+   <div id="projectbrief">A redis client library</div>
+  </td>
  </tr>
  </tbody>
 </table>
@@ -54,6 +49,34 @@
 var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 /* @license-end */
 </script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('classaedis_1_1resp3_1_1request.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -68,11 +91,6 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 </iframe>
 </div>
 
-<div id="nav-path" class="navpath">
-  <ul>
-<li class="navelem"><b>aedis</b></li><li class="navelem"><b>resp3</b></li><li class="navelem"><a class="el" href="classaedis_1_1resp3_1_1request.html">request</a></li>  </ul>
-</div>
-</div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
@@ -96,9 +114,9 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a3e2cd2720b326d4b786726fed260e3c3"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a3e2cd2720b326d4b786726fed260e3c3">request</a> (<a class="el" href="classaedis_1_1resp3_1_1request.html#structaedis_1_1resp3_1_1request_1_1config">config</a> cfg=<a class="el" href="classaedis_1_1resp3_1_1request.html#structaedis_1_1resp3_1_1request_1_1config">config</a>{false, true, false, true, true}, std::pmr::memory_resource *resource=std::pmr::get_default_resource())</td></tr>
-<tr class="memdesc:a3e2cd2720b326d4b786726fed260e3c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor.  <a href="classaedis_1_1resp3_1_1request.html#a3e2cd2720b326d4b786726fed260e3c3">More...</a><br /></td></tr>
-<tr class="separator:a3e2cd2720b326d4b786726fed260e3c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea51c6ff2b6cce855b8b8bc21c749dde"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#aea51c6ff2b6cce855b8b8bc21c749dde">request</a> (<a class="el" href="classaedis_1_1resp3_1_1request.html#structaedis_1_1resp3_1_1request_1_1config">config</a> cfg=<a class="el" href="classaedis_1_1resp3_1_1request.html#structaedis_1_1resp3_1_1request_1_1config">config</a>{true, true, false, false, true}, std::pmr::memory_resource *resource=std::pmr::get_default_resource())</td></tr>
+<tr class="memdesc:aea51c6ff2b6cce855b8b8bc21c749dde"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor.  <a href="classaedis_1_1resp3_1_1request.html#aea51c6ff2b6cce855b8b8bc21c749dde">More...</a><br /></td></tr>
+<tr class="separator:aea51c6ff2b6cce855b8b8bc21c749dde"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a92da0407e160354a4d81510f098cecd1"><td class="memItemLeft" align="right" valign="top"><a id="a92da0407e160354a4d81510f098cecd1" name="a92da0407e160354a4d81510f098cecd1"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> ()</td></tr>
 <tr class="memdesc:a92da0407e160354a4d81510f098cecd1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clears the request preserving allocated memory. <br /></td></tr>
@@ -111,26 +129,26 @@ auto&#160;</td><td class="memItemRight" valign="bottom"><b>get_config</b> () con
 auto&#160;</td><td class="memItemRight" valign="bottom"><b>get_config</b> () noexcept -&gt; auto &amp;</td></tr>
 <tr class="memdesc:a7888d68eadc7ba89c059e0e18433bf06"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a reference to the config object. <br /></td></tr>
 <tr class="separator:a7888d68eadc7ba89c059e0e18433bf06"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae9cfe90ea55427d5345846f80b70be1b"><td class="memTemplParams" colspan="2">template&lt;class... Ts&gt; </td></tr>
-<tr class="memitem:ae9cfe90ea55427d5345846f80b70be1b"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a> (boost::string_view cmd, Ts const &amp;... args)</td></tr>
-<tr class="memdesc:ae9cfe90ea55427d5345846f80b70be1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">More...</a><br /></td></tr>
-<tr class="separator:ae9cfe90ea55427d5345846f80b70be1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9c72e26c2ea7346d52733645ac98d948"><td class="memTemplParams" colspan="2">template&lt;class ForwardIterator &gt; </td></tr>
-<tr class="memitem:a9c72e26c2ea7346d52733645ac98d948"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a9c72e26c2ea7346d52733645ac98d948">push_range</a> (boost::string_view cmd, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</td></tr>
-<tr class="memdesc:a9c72e26c2ea7346d52733645ac98d948"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#a9c72e26c2ea7346d52733645ac98d948">More...</a><br /></td></tr>
-<tr class="separator:a9c72e26c2ea7346d52733645ac98d948"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3c4321c7c14eb92a977c48b0433c424e"><td class="memTemplParams" colspan="2">template&lt;class Key , class ForwardIterator &gt; </td></tr>
-<tr class="memitem:a3c4321c7c14eb92a977c48b0433c424e"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a3c4321c7c14eb92a977c48b0433c424e">push_range</a> (boost::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</td></tr>
-<tr class="memdesc:a3c4321c7c14eb92a977c48b0433c424e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#a3c4321c7c14eb92a977c48b0433c424e">More...</a><br /></td></tr>
-<tr class="separator:a3c4321c7c14eb92a977c48b0433c424e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a94040d747bd9ee970a5ecc32d4f4a84d"><td class="memTemplParams" colspan="2">template&lt;class Key , class Range &gt; </td></tr>
-<tr class="memitem:a94040d747bd9ee970a5ecc32d4f4a84d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a94040d747bd9ee970a5ecc32d4f4a84d">push_range</a> (boost::string_view cmd, Key const &amp;key, Range const &amp;range, decltype(std::begin(range)) *=nullptr)</td></tr>
-<tr class="memdesc:a94040d747bd9ee970a5ecc32d4f4a84d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#a94040d747bd9ee970a5ecc32d4f4a84d">More...</a><br /></td></tr>
-<tr class="separator:a94040d747bd9ee970a5ecc32d4f4a84d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aec6ece292eee4590694c20f75b28e39a"><td class="memTemplParams" colspan="2">template&lt;class Range &gt; </td></tr>
-<tr class="memitem:aec6ece292eee4590694c20f75b28e39a"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#aec6ece292eee4590694c20f75b28e39a">push_range</a> (boost::string_view cmd, Range const &amp;range, decltype(std::begin(range)) *=nullptr)</td></tr>
-<tr class="memdesc:aec6ece292eee4590694c20f75b28e39a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#aec6ece292eee4590694c20f75b28e39a">More...</a><br /></td></tr>
-<tr class="separator:aec6ece292eee4590694c20f75b28e39a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1a7b7e58ed214bcd962d20b65ed35eca"><td class="memTemplParams" colspan="2">template&lt;class... Ts&gt; </td></tr>
+<tr class="memitem:a1a7b7e58ed214bcd962d20b65ed35eca"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a> (std::string_view cmd, Ts const &amp;... args)</td></tr>
+<tr class="memdesc:a1a7b7e58ed214bcd962d20b65ed35eca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">More...</a><br /></td></tr>
+<tr class="separator:a1a7b7e58ed214bcd962d20b65ed35eca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7afbb983bf5d4d76b7c51a3b74e727a6"><td class="memTemplParams" colspan="2">template&lt;class ForwardIterator &gt; </td></tr>
+<tr class="memitem:a7afbb983bf5d4d76b7c51a3b74e727a6"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a7afbb983bf5d4d76b7c51a3b74e727a6">push_range</a> (std::string_view cmd, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</td></tr>
+<tr class="memdesc:a7afbb983bf5d4d76b7c51a3b74e727a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#a7afbb983bf5d4d76b7c51a3b74e727a6">More...</a><br /></td></tr>
+<tr class="separator:a7afbb983bf5d4d76b7c51a3b74e727a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acfdc2a284c938a7cba37cd4d69b006b7"><td class="memTemplParams" colspan="2">template&lt;class Key , class ForwardIterator &gt; </td></tr>
+<tr class="memitem:acfdc2a284c938a7cba37cd4d69b006b7"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#acfdc2a284c938a7cba37cd4d69b006b7">push_range</a> (std::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</td></tr>
+<tr class="memdesc:acfdc2a284c938a7cba37cd4d69b006b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#acfdc2a284c938a7cba37cd4d69b006b7">More...</a><br /></td></tr>
+<tr class="separator:acfdc2a284c938a7cba37cd4d69b006b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae4871bd47e48dfa33e65fc27e2edeb88"><td class="memTemplParams" colspan="2">template&lt;class Key , class Range &gt; </td></tr>
+<tr class="memitem:ae4871bd47e48dfa33e65fc27e2edeb88"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#ae4871bd47e48dfa33e65fc27e2edeb88">push_range</a> (std::string_view cmd, Key const &amp;key, Range const &amp;range, decltype(std::begin(range)) *=nullptr)</td></tr>
+<tr class="memdesc:ae4871bd47e48dfa33e65fc27e2edeb88"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#ae4871bd47e48dfa33e65fc27e2edeb88">More...</a><br /></td></tr>
+<tr class="separator:ae4871bd47e48dfa33e65fc27e2edeb88"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a64b1cf3eb33c8c2a9eb0a6b87a2bb472"><td class="memTemplParams" colspan="2">template&lt;class Range &gt; </td></tr>
+<tr class="memitem:a64b1cf3eb33c8c2a9eb0a6b87a2bb472"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a64b1cf3eb33c8c2a9eb0a6b87a2bb472">push_range</a> (std::string_view cmd, Range const &amp;range, decltype(std::begin(range)) *=nullptr)</td></tr>
+<tr class="memdesc:a64b1cf3eb33c8c2a9eb0a6b87a2bb472"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a new command to the end of the request.  <a href="classaedis_1_1resp3_1_1request.html#a64b1cf3eb33c8c2a9eb0a6b87a2bb472">More...</a><br /></td></tr>
+<tr class="separator:a64b1cf3eb33c8c2a9eb0a6b87a2bb472"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a97e05ff085646e18e15092bbd560b8e7"><td class="memItemLeft" align="right" valign="top"><a id="a97e05ff085646e18e15092bbd560b8e7" name="a97e05ff085646e18e15092bbd560b8e7"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>reserve</b> (std::size_t new_cap=0)</td></tr>
 <tr class="memdesc:a97e05ff085646e18e15092bbd560b8e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calls std::pmr::string::reserve on the internal storage. <br /></td></tr>
@@ -140,29 +158,29 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>reserve</b> (std::siz
 Related Functions</h2></td></tr>
 <tr><td class="ititle" colspan="2"><p >(Note that these are not member functions.) </p>
 </td></tr>
-<tr class="memitem:a30ed6048af1b522f52d7e0e53eac4332"><td class="memTemplParams" colspan="2">template&lt;class Request &gt; </td></tr>
-<tr class="memitem:a30ed6048af1b522f52d7e0e53eac4332"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">to_bulk</a> (Request &amp;to, boost::string_view data)</td></tr>
-<tr class="memdesc:a30ed6048af1b522f52d7e0e53eac4332"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a bulk to the request.  <a href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">More...</a><br /></td></tr>
-<tr class="separator:a30ed6048af1b522f52d7e0e53eac4332"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9951b16b0c2a2677852ffe2e0778a539"><td class="memTemplParams" colspan="2">template&lt;class Request &gt; </td></tr>
+<tr class="memitem:a9951b16b0c2a2677852ffe2e0778a539"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classaedis_1_1resp3_1_1request.html#a9951b16b0c2a2677852ffe2e0778a539">to_bulk</a> (Request &amp;to, std::string_view data)</td></tr>
+<tr class="memdesc:a9951b16b0c2a2677852ffe2e0778a539"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a bulk to the request.  <a href="classaedis_1_1resp3_1_1request.html#a9951b16b0c2a2677852ffe2e0778a539">More...</a><br /></td></tr>
+<tr class="separator:a9951b16b0c2a2677852ffe2e0778a539"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p >Creates Redis requests. </p>
 <p >A request is composed of one or more Redis commands and is referred to in the redis documentation as a pipeline, see <a href="https://redis.io/topics/pipelining">https://redis.io/topics/pipelining</a>. For example</p>
 <div class="fragment"><div class="line"><a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">request</a> r;</div>
-<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
-<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;FLUSHALL&quot;</span>);</div>
-<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;PING&quot;</span>);</div>
-<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;PING&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>);</div>
-<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00176">request.hpp:176</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_ae9cfe90ea55427d5345846f80b70be1b"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">aedis::resp3::request::push</a></div><div class="ttdeci">void push(boost::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00265">request.hpp:265</a></div></div>
+<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
+<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;FLUSHALL&quot;</span>);</div>
+<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;PING&quot;</span>);</div>
+<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;PING&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>);</div>
+<div class="line">r.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00168">request.hpp:168</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a1a7b7e58ed214bcd962d20b65ed35eca"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">aedis::resp3::request::push</a></div><div class="ttdeci">void push(std::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00258">request.hpp:258</a></div></div>
 </div><!-- fragment --><dl class="section remark"><dt>Remarks</dt><dd></dd></dl>
 <ul>
 <li>Non-string types will be converted to string by using <code>to_bulk</code>, which must be made available over ADL. </li>
 <li>Uses a std::pmr::string for internal storage. </li>
 </ul>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00176">176</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00168">168</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 </div><hr/><h2 class="groupheader">Class Documentation</h2>
 <a name="structaedis_1_1resp3_1_1request_1_1config" id="structaedis_1_1resp3_1_1request_1_1config"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#structaedis_1_1resp3_1_1request_1_1config">&#9670;&nbsp;</a></span>aedis::resp3::request::config</h2>
@@ -177,7 +195,7 @@ Related Functions</h2></td></tr>
 </div><div class="memdoc">
 <div class="textblock"><p >Request configuration options. </p>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00179">179</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00171">171</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 </div><table class="fieldtable">
 <tr><th colspan="3">Class Members</th></tr>
 <tr><td class="fieldtype">
@@ -185,13 +203,13 @@ Related Functions</h2></td></tr>
 <td class="fieldname">
 cancel_if_not_connected</td>
 <td class="fielddoc">
-If true, the request will complete with error if the call happens before the connection with Redis was stablished. </td></tr>
+If true, the request will complete with error if the call happens before the connection with Redis was established. </td></tr>
 <tr><td class="fieldtype">
 <a id="aab978e56c202631d2fea293b73725e69" name="aab978e56c202631d2fea293b73725e69"></a>bool</td>
 <td class="fieldname">
 cancel_on_connection_lost</td>
 <td class="fielddoc">
-If true the request will complete with error if the connection is lost while the request is pending. The default behaviour is not to close requests. </td></tr>
+Setting it to true will cause <code><a class="el" href="classaedis_1_1basic__connection.html#a4d7f180e64db5d4e07f7c62b3aa931d4" title="Executes a command on the Redis server asynchronously.">aedis::connection::async_exec</a></code> to complete with error if the connection is lost. Affects only requests that haven't been sent yet. </td></tr>
 <tr><td class="fieldtype">
 <a id="a253cef2ca5d60b1b319019fafb3d27b3" name="a253cef2ca5d60b1b319019fafb3d27b3"></a>bool</td>
 <td class="fieldname">
@@ -205,18 +223,18 @@ hello_with_priority</td>
 <td class="fielddoc">
 If this request has a HELLO command and this flag is true, the <code>aedis::connection</code> will move it to the front of the queue of awaiting requests. This makes it possible to send HELLO and authenticate before other commands are sent. </td></tr>
 <tr><td class="fieldtype">
-<a id="a653d47ba62bd2b3f84f424a2b2b35b9a" name="a653d47ba62bd2b3f84f424a2b2b35b9a"></a>bool</td>
+<a id="a235a34377763bb06f15aa8019b8a2fce" name="a235a34377763bb06f15aa8019b8a2fce"></a>bool</td>
 <td class="fieldname">
-retry</td>
+retry_on_connection_lost</td>
 <td class="fielddoc">
-If true, the implementation will resend this request if it remains unresponded when <code><a class="el" href="classaedis_1_1basic__connection.html#a821df744a8c7e63f98e73608329fa1d7" title="Starts read and write operations.">aedis::connection::async_run</a></code> completes. Has effect only if cancel_on_connection_lost is true. </td></tr>
+If true <code><a class="el" href="classaedis_1_1basic__connection.html#a4d7f180e64db5d4e07f7c62b3aa931d4" title="Executes a command on the Redis server asynchronously.">aedis::connection::async_exec</a></code> will not cancel this request if the connection is lost. Affects only requests that have been written to the socket but remained unresponded when <code><a class="el" href="classaedis_1_1basic__connection.html#a821df744a8c7e63f98e73608329fa1d7" title="Starts read and write operations.">aedis::connection::async_run</a></code> completed. </td></tr>
 </table>
 
 </div>
 </div>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a3e2cd2720b326d4b786726fed260e3c3" name="a3e2cd2720b326d4b786726fed260e3c3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3e2cd2720b326d4b786726fed260e3c3">&#9670;&nbsp;</a></span>request()</h2>
+<a id="aea51c6ff2b6cce855b8b8bc21c749dde" name="aea51c6ff2b6cce855b8b8bc21c749dde"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aea51c6ff2b6cce855b8b8bc21c749dde">&#9670;&nbsp;</a></span>request()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -228,7 +246,7 @@ If true, the implementation will resend this request if it remains unresponded w
           <td class="memname">aedis::resp3::request::request </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classaedis_1_1resp3_1_1request.html#structaedis_1_1resp3_1_1request_1_1config">config</a>&#160;</td>
-          <td class="paramname"><em>cfg</em> = <code><a class="el" href="classaedis_1_1resp3_1_1request.html#structaedis_1_1resp3_1_1request_1_1config">config</a>{false,&#160;true,&#160;false,&#160;true,&#160;true}</code>, </td>
+          <td class="paramname"><em>cfg</em> = <code><a class="el" href="classaedis_1_1resp3_1_1request.html#structaedis_1_1resp3_1_1request_1_1config">config</a>{true,&#160;true,&#160;false,&#160;false,&#160;true}</code>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -258,13 +276,13 @@ If true, the implementation will resend this request if it remains unresponded w
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00218">218</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00211">211</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="ae9cfe90ea55427d5345846f80b70be1b" name="ae9cfe90ea55427d5345846f80b70be1b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae9cfe90ea55427d5345846f80b70be1b">&#9670;&nbsp;</a></span>push()</h2>
+<a id="a1a7b7e58ed214bcd962d20b65ed35eca" name="a1a7b7e58ed214bcd962d20b65ed35eca"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1a7b7e58ed214bcd962d20b65ed35eca">&#9670;&nbsp;</a></span>push()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -277,7 +295,7 @@ template&lt;class... Ts&gt; </div>
         <tr>
           <td class="memname">void aedis::resp3::request::push </td>
           <td>(</td>
-          <td class="paramtype">boost::string_view&#160;</td>
+          <td class="paramtype">std::string_view&#160;</td>
           <td class="paramname"><em>cmd</em>, </td>
         </tr>
         <tr>
@@ -302,7 +320,7 @@ template&lt;class... Ts&gt; </div>
 <p>Appends a new command to the end of the request. </p>
 <p >For example</p>
 <div class="fragment"><div class="line"><a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
-<div class="line">req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;SET&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;some string&quot;</span>, <span class="stringliteral">&quot;EX&quot;</span>, <span class="stringliteral">&quot;2&quot;</span>);</div>
+<div class="line">req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;SET&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;some string&quot;</span>, <span class="stringliteral">&quot;EX&quot;</span>, <span class="stringliteral">&quot;2&quot;</span>);</div>
 </div><!-- fragment --><p >will add the <code>set</code> command with value "some string" and an expiration of 2 seconds.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -312,12 +330,12 @@ template&lt;class... Ts&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00265">265</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00258">258</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a9c72e26c2ea7346d52733645ac98d948" name="a9c72e26c2ea7346d52733645ac98d948"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9c72e26c2ea7346d52733645ac98d948">&#9670;&nbsp;</a></span>push_range() <span class="overload">[1/4]</span></h2>
+<a id="a7afbb983bf5d4d76b7c51a3b74e727a6" name="a7afbb983bf5d4d76b7c51a3b74e727a6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7afbb983bf5d4d76b7c51a3b74e727a6">&#9670;&nbsp;</a></span>push_range() <span class="overload">[1/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -330,7 +348,7 @@ template&lt;class ForwardIterator &gt; </div>
         <tr>
           <td class="memname">void aedis::resp3::request::push_range </td>
           <td>(</td>
-          <td class="paramtype">boost::string_view&#160;</td>
+          <td class="paramtype">std::string_view&#160;</td>
           <td class="paramname"><em>cmd</em>, </td>
         </tr>
         <tr>
@@ -370,7 +388,7 @@ template&lt;class ForwardIterator &gt; </div>
 <div class="line">   { <span class="stringliteral">&quot;channel1&quot;</span> , <span class="stringliteral">&quot;channel2&quot;</span> , <span class="stringliteral">&quot;channel3&quot;</span> }</div>
 <div class="line"> </div>
 <div class="line"><a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">request</a> req;</div>
-<div class="line">req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#ae9cfe90ea55427d5345846f80b70be1b">push</a>(<span class="stringliteral">&quot;SUBSCRIBE&quot;</span>, std::cbegin(channels), std::cend(channels));</div>
+<div class="line">req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;SUBSCRIBE&quot;</span>, std::cbegin(channels), std::cend(channels));</div>
 </div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">cmd</td><td>The Redis command </td></tr>
@@ -380,12 +398,12 @@ template&lt;class ForwardIterator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00340">340</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00331">331</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a3c4321c7c14eb92a977c48b0433c424e" name="a3c4321c7c14eb92a977c48b0433c424e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3c4321c7c14eb92a977c48b0433c424e">&#9670;&nbsp;</a></span>push_range() <span class="overload">[2/4]</span></h2>
+<a id="acfdc2a284c938a7cba37cd4d69b006b7" name="acfdc2a284c938a7cba37cd4d69b006b7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acfdc2a284c938a7cba37cd4d69b006b7">&#9670;&nbsp;</a></span>push_range() <span class="overload">[2/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -398,7 +416,7 @@ template&lt;class Key , class ForwardIterator &gt; </div>
         <tr>
           <td class="memname">void aedis::resp3::request::push_range </td>
           <td>(</td>
-          <td class="paramtype">boost::string_view&#160;</td>
+          <td class="paramtype">std::string_view&#160;</td>
           <td class="paramname"><em>cmd</em>, </td>
         </tr>
         <tr>
@@ -446,9 +464,9 @@ template&lt;class Key , class ForwardIterator &gt; </div>
 <div class="line">   , {<span class="stringliteral">&quot;key3&quot;</span>, <span class="stringliteral">&quot;value3&quot;</span>}</div>
 <div class="line">   };</div>
 <div class="line"> </div>
-<div class="line"><a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a3e2cd2720b326d4b786726fed260e3c3">request</a> req;</div>
+<div class="line"><a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#aea51c6ff2b6cce855b8b8bc21c749dde">request</a> req;</div>
 <div class="line">req.push_range(<span class="stringliteral">&quot;HSET&quot;</span>, <span class="stringliteral">&quot;key&quot;</span>, std::cbegin(map), std::cend(map));</div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a3e2cd2720b326d4b786726fed260e3c3"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a3e2cd2720b326d4b786726fed260e3c3">aedis::resp3::request::request</a></div><div class="ttdeci">request(config cfg=config{false, true, false, true, true}, std::pmr::memory_resource *resource=std::pmr::get_default_resource())</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00218">request.hpp:218</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_aea51c6ff2b6cce855b8b8bc21c749dde"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#aea51c6ff2b6cce855b8b8bc21c749dde">aedis::resp3::request::request</a></div><div class="ttdeci">request(config cfg=config{true, true, false, false, true}, std::pmr::memory_resource *resource=std::pmr::get_default_resource())</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00211">request.hpp:211</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae"><div class="ttname"><a href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a1d78dc8ed51214e518b5114fe24490ae">aedis::resp3::type::map</a></div><div class="ttdeci">@ map</div><div class="ttdoc">Aggregate.</div></div>
 </div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -460,12 +478,12 @@ template&lt;class Key , class ForwardIterator &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00301">301</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00292">292</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a94040d747bd9ee970a5ecc32d4f4a84d" name="a94040d747bd9ee970a5ecc32d4f4a84d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a94040d747bd9ee970a5ecc32d4f4a84d">&#9670;&nbsp;</a></span>push_range() <span class="overload">[3/4]</span></h2>
+<a id="ae4871bd47e48dfa33e65fc27e2edeb88" name="ae4871bd47e48dfa33e65fc27e2edeb88"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae4871bd47e48dfa33e65fc27e2edeb88">&#9670;&nbsp;</a></span>push_range() <span class="overload">[3/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -478,7 +496,7 @@ template&lt;class Key , class Range &gt; </div>
         <tr>
           <td class="memname">void aedis::resp3::request::push_range </td>
           <td>(</td>
-          <td class="paramtype">boost::string_view&#160;</td>
+          <td class="paramtype">std::string_view&#160;</td>
           <td class="paramname"><em>cmd</em>, </td>
         </tr>
         <tr>
@@ -523,12 +541,12 @@ template&lt;class Key , class Range &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00369">369</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00360">360</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
-<a id="aec6ece292eee4590694c20f75b28e39a" name="aec6ece292eee4590694c20f75b28e39a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aec6ece292eee4590694c20f75b28e39a">&#9670;&nbsp;</a></span>push_range() <span class="overload">[4/4]</span></h2>
+<a id="a64b1cf3eb33c8c2a9eb0a6b87a2bb472" name="a64b1cf3eb33c8c2a9eb0a6b87a2bb472"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a64b1cf3eb33c8c2a9eb0a6b87a2bb472">&#9670;&nbsp;</a></span>push_range() <span class="overload">[4/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -541,7 +559,7 @@ template&lt;class Range &gt; </div>
         <tr>
           <td class="memname">void aedis::resp3::request::push_range </td>
           <td>(</td>
-          <td class="paramtype">boost::string_view&#160;</td>
+          <td class="paramtype">std::string_view&#160;</td>
           <td class="paramname"><em>cmd</em>, </td>
         </tr>
         <tr>
@@ -579,13 +597,13 @@ template&lt;class Range &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00385">385</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00376">376</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Friends And Related Function Documentation</h2>
-<a id="a30ed6048af1b522f52d7e0e53eac4332" name="a30ed6048af1b522f52d7e0e53eac4332"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a30ed6048af1b522f52d7e0e53eac4332">&#9670;&nbsp;</a></span>to_bulk()</h2>
+<a id="a9951b16b0c2a2677852ffe2e0778a539" name="a9951b16b0c2a2677852ffe2e0778a539"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9951b16b0c2a2677852ffe2e0778a539">&#9670;&nbsp;</a></span>to_bulk()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -604,7 +622,7 @@ template&lt;class Request &gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">boost::string_view&#160;</td>
+          <td class="paramtype">std::string_view&#160;</td>
           <td class="paramname"><em>data</em>&#160;</td>
         </tr>
         <tr>
@@ -622,12 +640,12 @@ template&lt;class Request &gt; </div>
 
 <p>Adds a bulk to the request. </p>
 <p >This function is useful in serialization of your own data structures in a request. For example</p>
-<div class="fragment"><div class="line"><span class="keywordtype">void</span> <a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">to_bulk</a>(std::string&amp; to, mystruct <span class="keyword">const</span>&amp; obj)</div>
+<div class="fragment"><div class="line"><span class="keywordtype">void</span> <a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a9951b16b0c2a2677852ffe2e0778a539">to_bulk</a>(std::string&amp; to, mystruct <span class="keyword">const</span>&amp; obj)</div>
 <div class="line">{</div>
 <div class="line">   <span class="keyword">auto</span> <span class="keyword">const</span> str = <span class="comment">// Convert obj to a string.</span></div>
 <div class="line">   resp3::to_bulk(to, str);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a30ed6048af1b522f52d7e0e53eac4332"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a30ed6048af1b522f52d7e0e53eac4332">aedis::resp3::request::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, boost::string_view data)</div><div class="ttdoc">Adds a bulk to the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00049">request.hpp:49</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a9951b16b0c2a2677852ffe2e0778a539"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a9951b16b0c2a2677852ffe2e0778a539">aedis::resp3::request::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, std::string_view data)</div><div class="ttdoc">Adds a bulk to the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00045">request.hpp:45</a></div></div>
 </div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">to</td><td>Storage on which data will be copied into. </td></tr>
@@ -637,7 +655,7 @@ template&lt;class Request &gt; </div>
 </dl>
 <p>See more in <a class="el" href="index.html#serialization">serialization</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00049">49</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="request_8hpp_source.html#l00045">45</a> of file <a class="el" href="request_8hpp_source.html">request.hpp</a>.</p>
 
 </div>
 </div>
@@ -645,10 +663,13 @@ template&lt;class Request &gt; </div>
 <li>aedis/resp3/<a class="el" href="request_8hpp_source.html">request.hpp</a></li>
 </ul>
 </div><!-- contents -->
-<!-- HTML footer for doxygen 1.8.14-->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer">
-Author: Marcelo Zimbres Silva.
-</address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><b>aedis</b></li><li class="navelem"><b>resp3</b></li><li class="navelem"><a class="el" href="classaedis_1_1resp3_1_1request.html">request</a></li>
+    <li class="footer">Generated on Fri Dec 23 2022 09:19:17 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+  </ul>
+</div>
 </body>
 </html>

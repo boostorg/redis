@@ -1,48 +1,43 @@
-<!-- HTML header for doxygen 1.8.14-->
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Aedis: aedis/resp3/node.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
-<script type="text/javascript">
-/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
-  $(document).ready(function() { init_search(); });
-/* @license-end */
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
 </script>
+<script type="text/javascript" async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
-<link href="aedis.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<link href="doxygen-awesome-sidebar-only.css" rel="stylesheet" type="text/css"/>
 </head>
 <body>
 <div id="top"><!-- do not remove this div, it is closed by doxygen! -->
 <div id="titlearea">
-<table bgcolor="#346295" cellspacing="0" cellpadding="6">
+<table cellspacing="0" cellpadding="0">
  <tbody>
- <tr>
-  <td valign="middle" style="color: #FFFFFF" nowrap="nowrap"><font size="6">Aedis 1.3.1</font> &#160; <br> A redis client designed for performance and scalability </td>
-  <td style="width:100%">         <div id="MSearchBox" class="MSearchBoxInactive">
-        <span class="left">
-          <img id="MSearchSelect" src="search/mag_sel.svg"
-               onmouseover="return searchBox.OnSearchSelectShow()"
-               onmouseout="return searchBox.OnSearchSelectHide()"
-               alt=""/>
-          <input type="text" id="MSearchField" value="Search" accesskey="S"
-               onfocus="searchBox.OnSearchFieldFocus(true)" 
-               onblur="searchBox.OnSearchFieldFocus(false)" 
-               onkeyup="searchBox.OnSearchFieldChange(event)"/>
-          </span><span class="right">
-            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><img id="MSearchCloseImg" border="0" src="search/close.svg" alt=""/></a>
-          </span>
-        </div>
- </td>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.0</span>
+   </div>
+   <div id="projectbrief">A redis client library</div>
+  </td>
  </tr>
  </tbody>
 </table>
@@ -54,6 +49,34 @@
 var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 /* @license-end */
 </script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('node_8hpp_source.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -68,11 +91,6 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 </iframe>
 </div>
 
-<div id="nav-path" class="navpath">
-  <ul>
-<li class="navelem"><a class="el" href="dir_fc21780ef7622f597daa202227f08e20.html">aedis</a></li><li class="navelem"><a class="el" href="dir_c182dba47daf15664f6962aa16cc85fb.html">resp3</a></li>  </ul>
-</div>
-</div><!-- top -->
 <div class="header">
   <div class="headertitle"><div class="title">node.hpp</div></div>
 </div><!--header-->
@@ -88,73 +106,47 @@ var searchBox = new SearchBox("searchBox", "search",'Search','.html');
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span> </div>
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &lt;aedis/resp3/type.hpp&gt;</span></div>
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span> </div>
-<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#include &lt;string&gt;</span></div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#include &lt;vector&gt;</span></div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span> </div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">namespace </span>aedis::resp3 {</div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span> </div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> String&gt;</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html">   27</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node</a> {</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">   29</a></span>   <a class="code hl_enumeration" href="group__high-level-api.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> <a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a> = <a class="code hl_enumvalue" href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">type::invalid</a>;</div>
+<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="keyword">namespace </span>aedis::resp3 {</div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> String&gt;</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html">   24</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node</a> {</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">   26</a></span>   <a class="code hl_enumeration" href="group__high-level-api.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">type</a> <a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a> = <a class="code hl_enumvalue" href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">type::invalid</a>;</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span> </div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">   29</a></span>   std::size_t <a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a>{};</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">   32</a></span>   std::size_t <a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a>{};</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">   32</a></span>   std::size_t <a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">depth</a>{};</div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span> </div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">   35</a></span>   std::size_t <a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">depth</a>{};</div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span> </div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">   38</a></span>   String <a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">value</a>{};</div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>};</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span> </div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> String&gt;</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a4b734db09861d882dc81a04ac487c581">   47</a></span><span class="keyword">auto</span> <a class="code hl_function" href="structaedis_1_1resp3_1_1node.html#a4b734db09861d882dc81a04ac487c581">to_string</a>(<a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node&lt;String&gt;</a> <span class="keyword">const</span>&amp; in)</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>{</div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>   std::string out;</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>   out += <a class="code hl_function" href="group__high-level-api.html#ga15cc319092490ad5f20aeaf53bb779fb">std::to_string</a>(in.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">depth</a>);</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>   out += <span class="charliteral">&#39;\t&#39;</span>;</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>   out += <a class="code hl_function" href="group__high-level-api.html#ga15cc319092490ad5f20aeaf53bb779fb">to_string</a>(in.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a>);</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>   out += <span class="charliteral">&#39;\t&#39;</span>;</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>   out += <a class="code hl_function" href="group__high-level-api.html#ga15cc319092490ad5f20aeaf53bb779fb">std::to_string</a>(in.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a>);</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>   out += <span class="charliteral">&#39;\t&#39;</span>;</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>   <span class="keywordflow">if</span> (!is_aggregate(in.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a>))</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>      out.append(in.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">value</a>.data(), in.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">value</a>.size());</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span> </div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>   <span class="keywordflow">return</span> out;</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>}</div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span> </div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> String&gt;</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a2ffd7c2ffcf18e82ac771609e6899541">   69</a></span><span class="keyword">auto</span> <a class="code hl_function" href="structaedis_1_1resp3_1_1node.html#a2ffd7c2ffcf18e82ac771609e6899541">operator==</a>(<a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node&lt;String&gt;</a> <span class="keyword">const</span>&amp; a, <a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node&lt;String&gt;</a> <span class="keyword">const</span>&amp; b)</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>{</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>   <span class="keywordflow">return</span> a.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a> == b.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a></div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>       &amp;&amp; a.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">depth</a> == b.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">depth</a></div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>       &amp;&amp; a.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a> == b.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a></div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>       &amp;&amp; a.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">value</a> == b.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">value</a>;</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>};</div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span> </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> String&gt;</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#af9ae33068af7e76d1e3605adb40ef762">   86</a></span><span class="keyword">auto</span> <a class="code hl_function" href="structaedis_1_1resp3_1_1node.html#af9ae33068af7e76d1e3605adb40ef762">operator&lt;&lt;</a>(std::ostream&amp; os, <a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node&lt;String&gt;</a> <span class="keyword">const</span>&amp; <a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node</a>) -&gt; std::ostream&amp;</div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>{</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>   os &lt;&lt; <a class="code hl_function" href="group__high-level-api.html#ga15cc319092490ad5f20aeaf53bb779fb">to_string</a>(<a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node</a>);</div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>   <span class="keywordflow">return</span> os;</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>}</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>} <span class="comment">// aedis::resp3</span></div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span> </div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span><span class="preprocessor">#endif </span><span class="comment">// AEDIS_RESP3_NODE_HPP</span></div>
-<div class="ttc" id="agroup__high-level-api_html_ga15cc319092490ad5f20aeaf53bb779fb"><div class="ttname"><a href="group__high-level-api.html#ga15cc319092490ad5f20aeaf53bb779fb">aedis::resp3::to_string</a></div><div class="ttdeci">auto to_string(type t) -&gt; char const *</div><div class="ttdoc">Converts the data type to a string.</div></div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">   35</a></span>   String <a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">value</a>{};</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>};</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> String&gt;</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno"><a class="line" href="structaedis_1_1resp3_1_1node.html#a2ffd7c2ffcf18e82ac771609e6899541">   45</a></span><span class="keyword">auto</span> <a class="code hl_function" href="structaedis_1_1resp3_1_1node.html#a2ffd7c2ffcf18e82ac771609e6899541">operator==</a>(<a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node&lt;String&gt;</a> <span class="keyword">const</span>&amp; a, <a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">node&lt;String&gt;</a> <span class="keyword">const</span>&amp; b)</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>{</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>   <span class="keywordflow">return</span> a.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a> == b.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aggregate_size</a></div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>       &amp;&amp; a.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">depth</a> == b.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">depth</a></div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>       &amp;&amp; a.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a> == b.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">data_type</a></div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>       &amp;&amp; a.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">value</a> == b.<a class="code hl_variable" href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">value</a>;</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>};</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>} <span class="comment">// aedis::resp3</span></div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span> </div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="preprocessor">#endif </span><span class="comment">// AEDIS_RESP3_NODE_HPP</span></div>
 <div class="ttc" id="agroup__high-level-api_html_gabdb6bdf6f96b4a7a91ed63d2324cef57"><div class="ttname"><a href="group__high-level-api.html#gabdb6bdf6f96b4a7a91ed63d2324cef57">aedis::resp3::type</a></div><div class="ttdeci">type</div><div class="ttdoc">RESP3 data types.</div><div class="ttdef"><b>Definition:</b> <a href="type_8hpp_source.html#l00021">type.hpp:22</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3"><div class="ttname"><a href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57afedb2d84cafe20862cb4399751a8a7e3">aedis::resp3::type::invalid</a></div><div class="ttdeci">@ invalid</div><div class="ttdoc">Invalid.</div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00027">node.hpp:27</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a2ffd7c2ffcf18e82ac771609e6899541"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a2ffd7c2ffcf18e82ac771609e6899541">aedis::resp3::node::operator==</a></div><div class="ttdeci">auto operator==(node&lt; String &gt; const &amp;a, node&lt; String &gt; const &amp;b)</div><div class="ttdoc">Compares a node for equality.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00069">node.hpp:69</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a49cc8e665a20c071d7355c230f1268ac"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aedis::resp3::node::aggregate_size</a></div><div class="ttdeci">std::size_t aggregate_size</div><div class="ttdoc">The number of elements of an aggregate.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00032">node.hpp:32</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a4b734db09861d882dc81a04ac487c581"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a4b734db09861d882dc81a04ac487c581">aedis::resp3::node::to_string</a></div><div class="ttdeci">auto to_string(node&lt; String &gt; const &amp;in)</div><div class="ttdoc">Converts the node to a string.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00047">node.hpp:47</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a7fcf8b9f1afb4f602119e5a17209d093"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">aedis::resp3::node::data_type</a></div><div class="ttdeci">type data_type</div><div class="ttdoc">The RESP3 type of the data in this node.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00029">node.hpp:29</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a829e2bf6551568a60406fad87e44804d"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">aedis::resp3::node::depth</a></div><div class="ttdeci">std::size_t depth</div><div class="ttdoc">The depth of this node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00035">node.hpp:35</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a923b33182800f271bad3155a36231da3"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">aedis::resp3::node::value</a></div><div class="ttdeci">String value</div><div class="ttdoc">The actual data. For aggregate types this is usually empty.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00038">node.hpp:38</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_af9ae33068af7e76d1e3605adb40ef762"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#af9ae33068af7e76d1e3605adb40ef762">aedis::resp3::node::operator&lt;&lt;</a></div><div class="ttdeci">auto operator&lt;&lt;(std::ostream &amp;os, node&lt; String &gt; const &amp;node) -&gt; std::ostream &amp;</div><div class="ttdoc">Writes the node string to the stream.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00086">node.hpp:86</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00024">node.hpp:24</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a2ffd7c2ffcf18e82ac771609e6899541"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a2ffd7c2ffcf18e82ac771609e6899541">aedis::resp3::node::operator==</a></div><div class="ttdeci">auto operator==(node&lt; String &gt; const &amp;a, node&lt; String &gt; const &amp;b)</div><div class="ttdoc">Compares a node for equality.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00045">node.hpp:45</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a49cc8e665a20c071d7355c230f1268ac"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aedis::resp3::node::aggregate_size</a></div><div class="ttdeci">std::size_t aggregate_size</div><div class="ttdoc">The number of elements of an aggregate.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00029">node.hpp:29</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a7fcf8b9f1afb4f602119e5a17209d093"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">aedis::resp3::node::data_type</a></div><div class="ttdeci">type data_type</div><div class="ttdoc">The RESP3 type of the data in this node.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00026">node.hpp:26</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a829e2bf6551568a60406fad87e44804d"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">aedis::resp3::node::depth</a></div><div class="ttdeci">std::size_t depth</div><div class="ttdoc">The depth of this node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00032">node.hpp:32</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a923b33182800f271bad3155a36231da3"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">aedis::resp3::node::value</a></div><div class="ttdeci">String value</div><div class="ttdoc">The actual data. For aggregate types this is usually empty.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00035">node.hpp:35</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
-<!-- HTML footer for doxygen 1.8.14-->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer">
-Author: Marcelo Zimbres Silva.
-</address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_fc21780ef7622f597daa202227f08e20.html">aedis</a></li><li class="navelem"><a class="el" href="dir_c182dba47daf15664f6962aa16cc85fb.html">resp3</a></li><li class="navelem"><b>node.hpp</b></li>
+    <li class="footer">Generated on Fri Dec 23 2022 09:19:17 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+  </ul>
+</div>
 </body>
 </html>
