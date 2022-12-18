@@ -51,7 +51,7 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
       req.push("SUBSCRIBE", "channel");
       boost::system::error_code ec;
       co_await conn->async_exec(req, adapt(resp), redir(ec));
-      BOOST_TEST(!ec);
+      BOOST_CHECK_EQUAL(ec, boost::system::error_code{});
       BOOST_CHECK_EQUAL(msg, std::get<1>(resp));
       req.clear();
       std::get<1>(resp).clear();
@@ -63,8 +63,8 @@ auto async_echo_stress() -> net::awaitable<void>
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
 
-   int const sessions = 1000;
-   int const msgs = 100;
+   int const sessions = 500;
+   int const msgs = 1000;
    int total = sessions * msgs;
 
    net::co_spawn(ex, push_consumer(conn, total), net::detached);

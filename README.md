@@ -8,7 +8,7 @@ Aedis is a [Redis](https://redis.io/) client library built on top of
 that implements the latest version of the Redis communication
 protocol
 [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-It makes communication with a Redis server easy by hidding most of
+It makes communication with a Redis server easy by hiding most of
 the low-level Asio-related code away from the user, which in the majority of
 the cases will be concerned with only three library entities
 
@@ -155,7 +155,7 @@ For failover with sentinels see `resolve_with_sentinel.cpp`.  At
 this point the reasons for why `async_run` was introduced in Aedis
 might have become apparent to the reader
 
-* Provide quick reaction to disconnections and hence faster failovers.
+* Provide quick reaction to disconnections and hence faster failover.
 * Support server pushes and requests in the same connection object, concurrently.
 * Separate requests, handling of server pushes and reconnection operations.
 
