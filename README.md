@@ -1,7 +1,4 @@
-
 # Aedis
-
-## Overview
 
 Aedis is a [Redis](https://redis.io/) client library built on top of
 [Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
