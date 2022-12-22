@@ -42,21 +42,30 @@ auto async_main() -> net::awaitable<void>
 ```
 
 The execution of `connection::async_exec` above is composed with
-`connection::async_run` with the aid of the Asio awaitable operator ||
+`connection::async_run` with the aid of the Asio awaitable `operator ||`
 that ensures that  one operation is cancelled as soon as the other
 completes, these functions play the following roles
 
-* `connection::async_exec`: Execute commands (i.e. write the request and reads the response).
-* `connection::async_run`: Coordinate read and write operations and remains suspended until the connection is lost.
+* `connection::async_exec`: Execute commands by writing the request payload to the underlying stream and reading the response sent back by Redis. It can be called from multiple places in your code concurrently.
+* `connection::async_run`: Coordinate the low-level IO (read and write) operations and remains suspended until the connection is lost.
 
-Let us dig in.
+When a connection is lost, the `async_exec` calls won't automatically
+fail, instead, they will remain suspended until they are either all
+canceled with a call to `connection::cancel(operation::exec)` or a new
+connection is established and `async_run` is called again, in which
+case they will be resent automatically. Users can customise this
+behaviour by carefully choosing the values of
+`aedis::resp3::request::config`.  The role played by `async_run`
+becomes clearer with long-lived connections, which we will cover
+in the next section.
 
 <a name="connection"></a>
 ## Connection
 
-In general we will want to reuse the same connection for multiple
-requests, we can do this with the example above by decoupling the
-HELLO command and the call to `async_run` in a separate coroutine
+For performance reasons we will usually want to perform multiple
+requests on the same connection. We can do this with the example above
+by decoupling the HELLO command and the call to `async_run` in a
+separate coroutine
 
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -67,23 +76,33 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
    req.push("HELLO", 3); // Upgrade to RESP3
 
    // Notice we use && instead of || so async_run is not cancelled
-   // when the response to HELLO comes.
+   // when the HELLO response arrives. We are also ignoring the
+   // response for simplicity.
    co_await (conn->async_run() && conn->async_exec(req));
 }
 ```
 We can now let `run` run detached in the background while other
-coroutines perform requests on the connection
+coroutines perform requests on the connection, for example
 
 ```cpp
 auto async_main() -> net::awaitable<void>
 {
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
-   // Calls async_run detached.
-   net::co_spawn(ex, run(conn), net::detached)
+   // Run detached.
+   net::co_spawn(ex, run(conn), net::detached);
 
-   // Here we can pass conn around to other coroutines so they can make requests.
+   // Here we can use the connection to perform requests and pass it
+   // around to other coroutines so they can make requests.
+
+   resp3::request req;
+   req.push("PING", "Hello world");
+   co_await conn->async_exec(req);
+
    ...
+
+   // Cancels the run operation so we can exit.
+   conn->cancel(operation::run);
 }
 ```
 
@@ -138,10 +157,12 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
    for (;;) {
       co_await connect(conn, "127.0.0.1", "6379");
-      co_await ((conn->async_run() || healthy_checker(conn) || receiver(conn))
-                && conn->async_exec(req));
+      co_await ((conn->async_run() || healthy_checker(conn) || receiver(conn)) && conn->async_exec(req));
 
+      // Prepare the stream to a new connection.
       conn->reset_stream();
+
+      // Waits one second before trying to reconnect.
       timer.expires_after(std::chrono::seconds{1});
       co_await timer.async_wait();
    }
@@ -152,23 +173,23 @@ For failover with sentinels see `resolve_with_sentinel.cpp`.  At
 this point the reasons for why `async_run` was introduced in Aedis
 might have become apparent to the reader
 
-* Provide quick reaction to disconnections and hence faster failover.
+* Provide quick reaction to disconnections and hence faster failovers.
 * Support server pushes and requests in the same connection object, concurrently.
-* Separate requests, handling of server pushes and reconnection operations.
+* Separate requests, handling of server pushes and reconnect operations.
 
 ### Cancellation
 
 Aedis supports both implicit and explicit cancellation of connection
 operations. Explicit cancellation is supported by means of the
 `aedis::connection::cancel` member function. Implicit cancellation,
-like those that may happen when using Asio awaitable operators && and
-|| will be discussed with more detail below.
+like those that may happen when using Asio awaitable operators `&&` and
+`||` will be discussed with more detail below.
 
 ```cpp
 co_await (conn.async_run(...) && conn.async_exec(...))
 ```
 
-* Provide a simple way to send HELLO and perform channel subscription.
+* Provides a simple way to send HELLO and perform channel subscription.
 
 ```cpp
 co_await (conn.async_run(...) || conn.async_exec(...))
@@ -185,7 +206,7 @@ co_await (conn.async_exec(...) || time.async_wait(...))
   should last.
 * The cancellation will be ignored if the request has already
   been written to the socket.
-* It is usually a better idea to have a healthy checker than adding
+* NOTE: It is usually a better idea to have a healthy checker than adding
   per request timeout, see subscriber.cpp for an example.
 
 ```cpp

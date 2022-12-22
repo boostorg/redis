@@ -61,7 +61,8 @@ class parse_op {
 private:
    AsyncReadStream& stream_;
    DynamicBuffer buf_;
-   parser<ResponseAdapter> parser_;
+   parser parser_;
+   ResponseAdapter adapter_;
    std::size_t consumed_ = 0;
    std::size_t buffer_size_ = 0;
    boost::asio::coroutine coro_{};
@@ -70,7 +71,7 @@ public:
    parse_op(AsyncReadStream& stream, DynamicBuffer buf, ResponseAdapter adapter)
    : stream_ {stream}
    , buf_ {std::move(buf)}
-   , parser_ {std::move(adapter)}
+   , adapter_ {std::move(adapter)}
    { }
 
    template <class Self>
@@ -79,7 +80,7 @@ public:
                   , std::size_t n = 0)
    {
       reenter (coro_) for (;;) {
-         if (parser_.bulk() == type::invalid) {
+         if (!parser_.bulk_expected()) {
             yield
             boost::asio::async_read_until(stream_, buf_, "\r\n", std::move(self));
             AEDIS_CHECK_OP1(;);
@@ -108,14 +109,18 @@ public:
             BOOST_ASSERT(buf_.size() >= n);
          }
 
-         n = parser_.consume(static_cast<char const*>(buf_.data(0, n).data()), n, ec);
-         if (ec) {
-            self.complete(ec, 0);
-            return;
+         auto const res = parser_.consume(static_cast<char const*>(buf_.data(0, n).data()), n, ec);
+         if (ec)
+            return self.complete(ec, 0);
+
+         if (!parser_.bulk_expected()) {
+            adapter_(res.first, ec);
+            if (ec)
+               return self.complete(ec, 0);
          }
 
-         buf_.consume(n);
-         consumed_ += n;
+         buf_.consume(res.second);
+         consumed_ += res.second;
          if (parser_.done()) {
             self.complete({}, consumed_);
             return;

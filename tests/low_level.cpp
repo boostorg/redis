@@ -121,13 +121,14 @@ std::optional<bool> op_bool_ok = true;
 // TODO: Test a streamed string that is not finished with a string of
 // size 0 but other command comes in.
 std::vector<node_type> streamed_string_e1
-{ {aedis::resp3::type::streamed_string_part, 1, 1, "Hell"}
+{ {aedis::resp3::type::streamed_string, 0, 1, ""}
+, {aedis::resp3::type::streamed_string_part, 1, 1, "Hell"}
 , {aedis::resp3::type::streamed_string_part, 1, 1, "o wor"}
 , {aedis::resp3::type::streamed_string_part, 1, 1, "d"}
 , {aedis::resp3::type::streamed_string_part, 1, 1, ""}
 };
 
-std::vector<node_type> streamed_string_e2 { {resp3::type::streamed_string_part, 1UL, 1UL, {}} };
+std::vector<node_type> streamed_string_e2 { {resp3::type::streamed_string, 0UL, 1UL, {}}, {resp3::type::streamed_string_part, 1UL, 1UL, {}} };
 
 #define S01 "#11\r\n"
 #define S02 "#f\r\n"

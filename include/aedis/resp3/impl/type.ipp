@@ -27,6 +27,7 @@ auto to_string(type t) -> char const*
       case type::blob_error: return "blob_error";
       case type::verbatim_string: return "verbatim_string";
       case type::blob_string: return "blob_string";
+      case type::streamed_string: return "streamed_string";
       case type::streamed_string_part: return "streamed_string_part";
       default: return "invalid";
    }

@@ -50,6 +50,8 @@ enum class type
   /// Simple
   blob_string,
   /// Simple
+  streamed_string,
+  /// Simple
   streamed_string_part,
   /// Invalid
   invalid

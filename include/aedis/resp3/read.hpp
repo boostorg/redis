@@ -59,11 +59,11 @@ read(
    ResponseAdapter adapter,
    boost::system::error_code& ec) -> std::size_t
 {
-   detail::parser<ResponseAdapter> p {adapter};
+   detail::parser p;
    std::size_t n = 0;
    std::size_t consumed = 0;
    do {
-      if (p.bulk() == type::invalid) {
+      if (!p.bulk_expected()) {
 	 n = boost::asio::read_until(stream, buf, "\r\n", ec);
 	 if (ec)
 	    return 0;
@@ -81,12 +81,18 @@ read(
       }
 
       auto const* data = static_cast<char const*>(buf.data(0, n).data());
-      n = p.consume(data, n, ec);
+      auto const res = p.consume(data, n, ec);
       if (ec)
          return 0;
 
-      buf.consume(n);
-      consumed += n;
+      if (!p.bulk_expected()) {
+         adapter(res.first, ec);
+         if (ec)
+            return 0;
+      }
+
+      buf.consume(res.second);
+      consumed += res.second;
    } while (!p.done());
 
    return consumed;
