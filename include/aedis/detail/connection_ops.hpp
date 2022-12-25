@@ -139,9 +139,18 @@ EXEC_OP_WAIT:
 
          if (is_cancelled(self)) {
             if (info->is_written()) {
-               self.get_cancellation_state().clear();
-               goto EXEC_OP_WAIT; // Too late, can't cancel.
+               if (self.get_cancellation_state().cancelled() == boost::asio::cancellation_type_t::terminal) {
+                  // Cancellation requires closing the connection
+                  // otherwise it stays in inconsistent state.
+                  conn->cancel(operation::run);
+                  return self.complete(ec, 0);
+               } else {
+                  // Can't implement other cancelation types, ignoring.
+                  self.get_cancellation_state().clear();
+                  goto EXEC_OP_WAIT;
+               }
             } else {
+               // Cancelation can be honored.
                conn->remove_request(info);
                self.complete(ec, 0);
                return;

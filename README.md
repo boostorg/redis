@@ -47,17 +47,16 @@ that ensures that  one operation is cancelled as soon as the other
 completes, these functions play the following roles
 
 * `connection::async_exec`: Execute commands by writing the request payload to the underlying stream and reading the response sent back by Redis. It can be called from multiple places in your code concurrently.
-* `connection::async_run`: Coordinate the low-level IO (read and write) operations and remains suspended until the connection is lost.
+* `connection::async_run`: Coordinate the low-level IO (read and write) operations. It remains suspended until the connection is lost.
 
-When a connection is lost, the `async_exec` calls won't automatically
-fail, instead, they will remain suspended until they are either all
-canceled with a call to `connection::cancel(operation::exec)` or a new
-connection is established and `async_run` is called again, in which
-case they will be resent automatically. Users can customise this
-behaviour by carefully choosing the values of
+The `async_exec` calls won't automatically fail when the connection is
+lost, instead, they will remain suspended until either
+`connection::cancel(operation::exec)` is called to cancel them all or
+a new connection is established and `async_run` is called again.
+Users can customise the desired behaviour by carefully choosing
 `aedis::resp3::request::config`.  The role played by `async_run`
-becomes clearer with long-lived connections, which we will cover
-in the next section.
+becomes clearer with long-lived connections, which we will cover in
+the next section.
 
 <a name="connection"></a>
 ## Connection

@@ -110,7 +110,7 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
    // Will be cancelled before it is written.
    resp3::request req2;
    req2.get_config().coalesce = false;
-   //req2.get_config().cancel_on_connection_lost = true;
+   req2.get_config().cancel_on_connection_lost = true;
    req2.push("PING");
 
    net::steady_timer st{ex};
@@ -123,11 +123,9 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
       st.async_wait(redir(ec3))
    );
 
-   BOOST_TEST(!ec1);
+   BOOST_CHECK_EQUAL(ec1, net::error::basic_errors::operation_aborted);
    BOOST_CHECK_EQUAL(ec2, net::error::basic_errors::operation_aborted);
    BOOST_TEST(!ec3);
-
-   conn->cancel(operation::run);
 }
 
 auto cancel_of_req_written_on_run_canceled() -> net::awaitable<void>
