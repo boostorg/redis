@@ -139,7 +139,9 @@ EXEC_OP_WAIT:
 
          if (is_cancelled(self)) {
             if (info->is_written()) {
-               if (self.get_cancellation_state().cancelled() == boost::asio::cancellation_type_t::terminal) {
+               using c_t = boost::asio::cancellation_type;
+               auto const c = self.get_cancellation_state().cancelled();
+               if ((c & (c_t::total | c_t::terminal)) != c_t::none) {
                   // Cancellation requires closing the connection
                   // otherwise it stays in inconsistent state.
                   conn->cancel(operation::run);
