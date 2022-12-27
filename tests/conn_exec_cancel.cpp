@@ -136,7 +136,7 @@ auto cancel_of_req_written_on_run_canceled() -> net::awaitable<void>
 
    resp3::request req1;
    req1.get_config().cancel_on_connection_lost = true;
-   req1.get_config().retry_on_connection_lost = false;
+   req1.get_config().cancel_if_unresponded = true;
    req1.push("BLPOP", "any", 0);
 
    auto ex = co_await net::this_coro::executor;

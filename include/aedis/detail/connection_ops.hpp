@@ -131,7 +131,7 @@ EXEC_OP_WAIT:
          yield info->async_wait(std::move(self));
          BOOST_ASSERT(ec == boost::asio::error::operation_aborted);
 
-         if (info->get_action() == Conn::req_info::action::stop) {
+         if (info->stop_requested()) {
             // Don't have to call remove_request as it has already
             // been by cancel(exec).
             return self.complete(ec, 0);
@@ -141,7 +141,7 @@ EXEC_OP_WAIT:
             if (info->is_written()) {
                using c_t = boost::asio::cancellation_type;
                auto const c = self.get_cancellation_state().cancelled();
-               if ((c & (c_t::total | c_t::terminal)) != c_t::none) {
+               if ((c & c_t::terminal) != c_t::none) {
                   // Cancellation requires closing the connection
                   // otherwise it stays in inconsistent state.
                   conn->cancel(operation::run);

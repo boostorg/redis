@@ -73,7 +73,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    resp3::request req1;
    req1.get_config().cancel_if_not_connected = false;
    req1.get_config().cancel_on_connection_lost = true;
-   req1.get_config().retry_on_connection_lost = false;
+   req1.get_config().cancel_if_unresponded = true;
    req1.push("HELLO", 3);
    req1.push("BLPOP", "any", 0);
 
@@ -92,7 +92,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    resp3::request req2;
    req2.get_config().cancel_if_not_connected = false;
    req2.get_config().cancel_on_connection_lost = true;
-   req2.get_config().retry_on_connection_lost= false;
+   req2.get_config().cancel_if_unresponded= true;
    req2.push("HELLO", 3);
    req2.push("QUIT");
 

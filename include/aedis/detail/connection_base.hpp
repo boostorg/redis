@@ -104,7 +104,6 @@ public:
       return ret;
    }
 
-   // Remove requests that have the flag cancel_if_not_sent_when_connection_lost set
    auto cancel_on_conn_lost() -> std::size_t
    {
       // Must return false if the request should be removed.
@@ -113,7 +112,7 @@ public:
          BOOST_ASSERT(ptr != nullptr);
 
          if (ptr->is_written()) {
-            return ptr->get_request().get_config().retry_on_connection_lost;
+            return !ptr->get_request().get_config().cancel_if_unresponded;
          } else {
             return !ptr->get_request().get_config().cancel_on_connection_lost;
          }
@@ -248,8 +247,8 @@ private:
       [[nodiscard]] auto get_request() const noexcept -> auto const&
          { return *req_; }
 
-      [[nodiscard]] auto get_action() const noexcept
-         { return action_;}
+      [[nodiscard]] auto stop_requested() const noexcept
+         { return action_ == action::stop;}
 
       template <class CompletionToken>
       auto async_wait(CompletionToken token)
