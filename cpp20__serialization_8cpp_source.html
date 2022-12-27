@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: examples/serialization.cpp Source File</title>
+<title>Aedis: examples/cpp20_serialization.cpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -73,7 +73,7 @@ $(function() {
 </div>
 <script type="text/javascript">
 /* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
-$(document).ready(function(){initNavTree('serialization_8cpp_source.html',''); initResizable(); });
+$(document).ready(function(){initNavTree('cpp20__serialization_8cpp_source.html',''); initResizable(); });
 /* @license-end */
 </script>
 <div id="doc-content">
@@ -92,7 +92,7 @@ $(document).ready(function(){initNavTree('serialization_8cpp_source.html',''); i
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">serialization.cpp</div></div>
+  <div class="headertitle"><div class="title">cpp20_serialization.cpp</div></div>
 </div><!--header-->
 <div class="contents">
 <div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="comment">/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
@@ -183,7 +183,7 @@ $(document).ready(function(){initNavTree('serialization_8cpp_source.html',''); i
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>   u = value_to&lt;user&gt;(jv);</div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>}</div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>net::awaitable&lt;void&gt; async_main()</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>net::awaitable&lt;void&gt; co_main(std::string host, std::string port)</div>
 <div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>{</div>
 <div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>   std::set&lt;user&gt; users</div>
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>      {{<span class="stringliteral">&quot;Joao&quot;</span>, <span class="stringliteral">&quot;58&quot;</span>, <span class="stringliteral">&quot;Brazil&quot;</span>} , {<span class="stringliteral">&quot;Serge&quot;</span>, <span class="stringliteral">&quot;60&quot;</span>, <span class="stringliteral">&quot;France&quot;</span>}};</div>
@@ -198,7 +198,7 @@ $(document).ready(function(){initNavTree('serialization_8cpp_source.html',''); i
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>   <span class="keyword">auto</span> conn = std::make_shared&lt;connection&gt;(<span class="keyword">co_await</span> net::this_coro::executor);</div>
 <div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span> </div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>   <span class="keyword">co_await</span> connect(conn, <span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>);</div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>   <span class="keyword">co_await</span> connect(conn, host, port);</div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>   <span class="keyword">co_await</span> (conn-&gt;async_run() || conn-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp)));</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span> </div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>   <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; e: std::get&lt;2&gt;(resp))</div>
@@ -206,10 +206,10 @@ $(document).ready(function(){initNavTree('serialization_8cpp_source.html',''); i
 <div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>}</div>
 <div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span> </div>
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span><span class="preprocessor">#endif </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00168">request.hpp:168</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a1a7b7e58ed214bcd962d20b65ed35eca"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">aedis::resp3::request::push</a></div><div class="ttdeci">void push(std::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00260">request.hpp:260</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a9951b16b0c2a2677852ffe2e0778a539"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a9951b16b0c2a2677852ffe2e0778a539">aedis::resp3::request::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, std::string_view data)</div><div class="ttdoc">Adds a bulk to the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00045">request.hpp:45</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_acfdc2a284c938a7cba37cd4d69b006b7"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#acfdc2a284c938a7cba37cd4d69b006b7">aedis::resp3::request::push_range</a></div><div class="ttdeci">void push_range(std::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00294">request.hpp:294</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00169">request.hpp:169</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a1a7b7e58ed214bcd962d20b65ed35eca"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">aedis::resp3::request::push</a></div><div class="ttdeci">void push(std::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00261">request.hpp:261</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a9951b16b0c2a2677852ffe2e0778a539"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a9951b16b0c2a2677852ffe2e0778a539">aedis::resp3::request::to_bulk</a></div><div class="ttdeci">void to_bulk(Request &amp;to, std::string_view data)</div><div class="ttdoc">Adds a bulk to the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00046">request.hpp:46</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_acfdc2a284c938a7cba37cd4d69b006b7"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#acfdc2a284c938a7cba37cd4d69b006b7">aedis::resp3::request::push_range</a></div><div class="ttdeci">void push_range(std::string_view cmd, Key const &amp;key, ForwardIterator begin, ForwardIterator end, typename std::iterator_traits&lt; ForwardIterator &gt;::value_type *=nullptr)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00295">request.hpp:295</a></div></div>
 <div class="ttc" id="agroup__high-level-api_html_ga59a01d6e56b2afb270a045e2b79cb64b"><div class="ttname"><a href="group__high-level-api.html#ga59a01d6e56b2afb270a045e2b79cb64b">aedis::resp3::operator&lt;&lt;</a></div><div class="ttdeci">auto operator&lt;&lt;(std::ostream &amp;os, type t) -&gt; std::ostream &amp;</div><div class="ttdoc">Writes the type to the output stream.</div></div>
 <div class="ttc" id="agroup__high-level-api_html_gac56bb1a8df93445853a4b9dae2d97b6e"><div class="ttname"><a href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a></div><div class="ttdeci">auto adapt(std::size_t max_read_size=(std::numeric_limits&lt; std::size_t &gt;::max)()) noexcept</div><div class="ttdoc">Creates an adapter that ignores responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00199">adapt.hpp:199</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
@@ -217,8 +217,8 @@ $(document).ready(function(){initNavTree('serialization_8cpp_source.html',''); i
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><b>serialization.cpp</b></li>
-    <li class="footer">Generated on Tue Dec 27 2022 21:20:52 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+    <li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><b>cpp20_serialization.cpp</b></li>
+    <li class="footer">Generated on Sat Jan 14 2023 18:40:26 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
   </ul>
 </div>
 </body>

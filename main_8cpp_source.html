@@ -34,7 +34,7 @@ MathJax.Hub.Config({
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.0</span>
+   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.1</span>
    </div>
    <div id="projectbrief">A redis client library</div>
   </td>
@@ -107,24 +107,32 @@ $(document).ready(function(){initNavTree('main_8cpp_source.html',''); initResiza
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span> </div>
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &quot;common.hpp&quot;</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">extern</span> boost::asio::awaitable&lt;void&gt; async_main();</div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">extern</span> boost::asio::awaitable&lt;void&gt; co_main(std::string, std::string);</div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span> </div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">auto</span> main() -&gt; <span class="keywordtype">int</span></div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">auto</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> * argv[]) -&gt; <span class="keywordtype">int</span></div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>{</div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>   <span class="keywordflow">return</span> <a class="code hl_enumvalue" href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6">run</a>(async_main());</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>}</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>   std::string host = <span class="stringliteral">&quot;127.0.0.1&quot;</span>;</div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>   std::string port = <span class="stringliteral">&quot;6379&quot;</span>;</div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span> </div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="preprocessor">#else </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="preprocessor">#include &lt;iostream&gt;</span></div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span> </div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="keyword">auto</span> main() -&gt; <span class="keywordtype">int</span></div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>{</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>   std::cout &lt;&lt; <span class="stringliteral">&quot;Requires coroutine support.&quot;</span> &lt;&lt; std::endl;</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>   <span class="keywordflow">return</span> 0;</div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>}</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>   <span class="keywordflow">if</span> (argc == 3) {</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>      host = argv[1];</div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>      port = argv[2];</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>   }</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>   <span class="keywordflow">return</span> <a class="code hl_enumvalue" href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6">run</a>(co_main(host, port));</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>}</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span> </div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="preprocessor">#else </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span> </div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="preprocessor">#endif </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span> </div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="keyword">auto</span> main() -&gt; <span class="keywordtype">int</span></div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>{</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>   std::cout &lt;&lt; <span class="stringliteral">&quot;Requires coroutine support.&quot;</span> &lt;&lt; std::endl;</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>   <span class="keywordflow">return</span> 0;</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>}</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="preprocessor">#endif </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
 <div class="ttc" id="agroup__high-level-api_html_ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6"><div class="ttname"><a href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6">aedis::operation::run</a></div><div class="ttdeci">@ run</div><div class="ttdoc">Refers to connection::async_run operations.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
@@ -132,7 +140,7 @@ $(document).ready(function(){initNavTree('main_8cpp_source.html',''); initResiza
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><a class="el" href="dir_d697700341b5bc9df88e7bd81cbb1008.html">common</a></li><li class="navelem"><b>main.cpp</b></li>
-    <li class="footer">Generated on Fri Dec 23 2022 09:19:17 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+    <li class="footer">Generated on Sat Jan 14 2023 18:40:26 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
   </ul>
 </div>
 </body>

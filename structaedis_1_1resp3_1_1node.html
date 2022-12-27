@@ -34,7 +34,7 @@ MathJax.Hub.Config({
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.0</span>
+   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.1</span>
    </div>
    <div id="projectbrief">A redis client library</div>
   </td>
@@ -136,10 +136,23 @@ Related Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;class String&gt;<br />
 struct aedis::resp3::node&lt; String &gt;</div><p >A node in the response tree. </p>
-<p >Redis responses are the pre-order view of the response tree (see <a href="https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR">https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR</a>).</p>
-<dl class="section remark"><dt>Remarks</dt><dd>Any Redis response can be received in an array of nodes, for example <code>std::vector&lt;node&lt;std::string&gt;&gt;</code>. </dd></dl>
+<p >RESP3 can contain recursive data structures: A map of sets of vector of etc. As it is parsed each element is passed to user callbacks (push parser), the <code>aedis::adapt</code> function. The signature of this callback is <code>f(<a class="el" href="structaedis_1_1resp3_1_1node.html" title="A node in the response tree.">resp3::node</a>&lt;std::string_view)</code>. This class is called a node because it can be seen as the element of the response tree. It is a template so that users can use it with owing strings e.g. <code>std::string</code> or <code>boost::static_string</code> etc. if they decide to use a node as response type, for example, to read a non-aggregate data-type use</p>
+<div class="fragment"><div class="line"><a class="code hl_struct" href="structaedis_1_1resp3_1_1node.html">resp3::node&lt;std::string&gt;</a> resp;</div>
+<div class="line"><span class="keyword">co_await</span> conn-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
+<div class="ttc" id="agroup__high-level-api_html_gac56bb1a8df93445853a4b9dae2d97b6e"><div class="ttname"><a href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">aedis::adapt</a></div><div class="ttdeci">auto adapt(std::size_t max_read_size=(std::numeric_limits&lt; std::size_t &gt;::max)()) noexcept</div><div class="ttdoc">Creates an adapter that ignores responses.</div><div class="ttdef"><b>Definition:</b> <a href="adapt_8hpp_source.html#l00199">adapt.hpp:199</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00046">node.hpp:46</a></div></div>
+</div><!-- fragment --><p >for an aggregate use instead</p>
+<div class="fragment"><div class="line">std::vector&lt;resp3::node&lt;std::string&gt;&gt; resp; <span class="keyword">co_await</span></div>
+<div class="line">conn-&gt;async_exec(req, <a class="code hl_function" href="group__high-level-api.html#gac56bb1a8df93445853a4b9dae2d97b6e">adapt</a>(resp));</div>
+</div><!-- fragment --><p >The vector will contain the <a href="https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR">pre-order</a> view of the response tree. Any Redis response can be received in an array of nodes as shown above.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">String</td><td>A <code>std::string</code>-like type. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00024">24</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00046">46</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 </div><h2 class="groupheader">Friends And Related Function Documentation</h2>
 <a id="a2ffd7c2ffcf18e82ac771609e6899541" name="a2ffd7c2ffcf18e82ac771609e6899541"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2ffd7c2ffcf18e82ac771609e6899541">&#9670;&nbsp;</a></span>operator==()</h2>
@@ -186,7 +199,7 @@ template&lt;class String &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00045">45</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="node_8hpp_source.html#l00067">67</a> of file <a class="el" href="node_8hpp_source.html">node.hpp</a>.</p>
 
 </div>
 </div>
@@ -199,7 +212,7 @@ template&lt;class String &gt; </div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><b>aedis</b></li><li class="navelem"><b>resp3</b></li><li class="navelem"><a class="el" href="structaedis_1_1resp3_1_1node.html">node</a></li>
-    <li class="footer">Generated on Fri Dec 23 2022 09:19:17 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+    <li class="footer">Generated on Sat Jan 14 2023 18:40:26 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
   </ul>
 </div>
 </body>

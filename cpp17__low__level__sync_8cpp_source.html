@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: examples/low_level_sync.cpp Source File</title>
+<title>Aedis: examples/cpp17_low_level_sync.cpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -73,7 +73,7 @@ $(function() {
 </div>
 <script type="text/javascript">
 /* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
-$(document).ready(function(){initNavTree('low__level__sync_8cpp_source.html',''); initResizable(); });
+$(document).ready(function(){initNavTree('cpp17__low__level__sync_8cpp_source.html',''); initResizable(); });
 /* @license-end */
 </script>
 <div id="doc-content">
@@ -92,7 +92,7 @@ $(document).ready(function(){initNavTree('low__level__sync_8cpp_source.html','')
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">low_level_sync.cpp</div></div>
+  <div class="headertitle"><div class="title">cpp17_low_level_sync.cpp</div></div>
 </div><!--header-->
 <div class="contents">
 <div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="comment">/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)</span></div>
@@ -113,40 +113,48 @@ $(document).ready(function(){initNavTree('low__level__sync_8cpp_source.html','')
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keyword">namespace </span>resp3 = aedis::resp3;</div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="keyword">using </span><a class="code hl_function" href="group__low-level-api.html#ga49a01c937e62d5f9916a0c60c4abbc1c">aedis::adapter::adapt2</a>;</div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span> </div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="keywordtype">int</span> main()</div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="keyword">auto</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> * argv[]) -&gt; <span class="keywordtype">int</span></div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>{</div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>   <span class="keywordflow">try</span> {</div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>      net::io_context ioc;</div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>      net::ip::tcp::resolver resv{ioc};</div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>      <span class="keyword">auto</span> <span class="keyword">const</span> res = resv.resolve(<span class="stringliteral">&quot;127.0.0.1&quot;</span>, <span class="stringliteral">&quot;6379&quot;</span>);</div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>      net::ip::tcp::socket socket{ioc};</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>      net::connect(socket, res);</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span> </div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>      <span class="comment">// Creates the request and writes to the socket.</span></div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>      <a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">resp3::request</a> req;</div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;PING&quot;</span>, <span class="stringliteral">&quot;Hello world&quot;</span>);</div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>      <a class="code hl_function" href="group__low-level-api.html#gacbd6128072528430cb2e95782410258c">resp3::write</a>(socket, req);</div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span> </div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>      <span class="comment">// Responses</span></div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>      std::string buffer, resp;</div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>      <span class="comment">// Reads the responses to all commands in the request.</span></div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>      <span class="keyword">auto</span> dbuffer = net::dynamic_buffer(buffer);</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>      <a class="code hl_function" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">resp3::read</a>(socket, dbuffer);</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>      <a class="code hl_function" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">resp3::read</a>(socket, dbuffer, <a class="code hl_function" href="group__low-level-api.html#ga49a01c937e62d5f9916a0c60c4abbc1c">adapt2</a>(resp));</div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>      <a class="code hl_function" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">resp3::read</a>(socket, dbuffer);</div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>      std::cout &lt;&lt; <span class="stringliteral">&quot;Ping: &quot;</span> &lt;&lt; resp &lt;&lt; std::endl;</div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>      std::string host = <span class="stringliteral">&quot;127.0.0.1&quot;</span>;</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>      std::string port = <span class="stringliteral">&quot;6379&quot;</span>;</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>      <span class="keywordflow">if</span> (argc == 3) {</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>         host = argv[1];</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>         port = argv[2];</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>      }</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span> </div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>      net::io_context ioc;</div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>      net::ip::tcp::resolver resv{ioc};</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>      <span class="keyword">auto</span> <span class="keyword">const</span> res = resv.resolve(host, port);</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>      net::ip::tcp::socket socket{ioc};</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>      net::connect(socket, res);</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>      <span class="comment">// Creates the request and writes to the socket.</span></div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>      <a class="code hl_class" href="classaedis_1_1resp3_1_1request.html">resp3::request</a> req;</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;HELLO&quot;</span>, 3);</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;PING&quot;</span>, <span class="stringliteral">&quot;Hello world&quot;</span>);</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>      req.<a class="code hl_function" href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">push</a>(<span class="stringliteral">&quot;QUIT&quot;</span>);</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>      <a class="code hl_function" href="group__low-level-api.html#gacbd6128072528430cb2e95782410258c">resp3::write</a>(socket, req);</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span> </div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>      <span class="comment">// Responses</span></div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>      std::string buffer, resp;</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>      std::cerr &lt;&lt; e.what() &lt;&lt; std::endl;</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>      exit(EXIT_FAILURE);</div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>   }</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>}</div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00168">request.hpp:168</a></div></div>
-<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a1a7b7e58ed214bcd962d20b65ed35eca"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">aedis::resp3::request::push</a></div><div class="ttdeci">void push(std::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00260">request.hpp:260</a></div></div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>      <span class="comment">// Reads the responses to all commands in the request.</span></div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>      <span class="keyword">auto</span> dbuffer = net::dynamic_buffer(buffer);</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>      <a class="code hl_function" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">resp3::read</a>(socket, dbuffer);</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>      <a class="code hl_function" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">resp3::read</a>(socket, dbuffer, <a class="code hl_function" href="group__low-level-api.html#ga49a01c937e62d5f9916a0c60c4abbc1c">adapt2</a>(resp));</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>      <a class="code hl_function" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">resp3::read</a>(socket, dbuffer);</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span> </div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>      std::cout &lt;&lt; <span class="stringliteral">&quot;Ping: &quot;</span> &lt;&lt; resp &lt;&lt; std::endl;</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span> </div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>      std::cerr &lt;&lt; e.what() &lt;&lt; std::endl;</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>      exit(EXIT_FAILURE);</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>   }</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>}</div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html">aedis::resp3::request</a></div><div class="ttdoc">Creates Redis requests.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00169">request.hpp:169</a></div></div>
+<div class="ttc" id="aclassaedis_1_1resp3_1_1request_html_a1a7b7e58ed214bcd962d20b65ed35eca"><div class="ttname"><a href="classaedis_1_1resp3_1_1request.html#a1a7b7e58ed214bcd962d20b65ed35eca">aedis::resp3::request::push</a></div><div class="ttdeci">void push(std::string_view cmd, Ts const &amp;... args)</div><div class="ttdoc">Appends a new command to the end of the request.</div><div class="ttdef"><b>Definition:</b> <a href="request_8hpp_source.html#l00261">request.hpp:261</a></div></div>
 <div class="ttc" id="agroup__low-level-api_html_ga49a01c937e62d5f9916a0c60c4abbc1c"><div class="ttname"><a href="group__low-level-api.html#ga49a01c937e62d5f9916a0c60c4abbc1c">aedis::adapter::adapt2</a></div><div class="ttdeci">auto adapt2() noexcept</div><div class="ttdoc">Creates a dummy response adapter.</div><div class="ttdef"><b>Definition:</b> <a href="adapter_2adapt_8hpp_source.html#l00040">adapt.hpp:40</a></div></div>
 <div class="ttc" id="agroup__low-level-api_html_gacbd6128072528430cb2e95782410258c"><div class="ttname"><a href="group__low-level-api.html#gacbd6128072528430cb2e95782410258c">aedis::resp3::write</a></div><div class="ttdeci">auto write(SyncWriteStream &amp;stream, Request const &amp;req)</div><div class="ttdoc">Writes a request synchronously.</div><div class="ttdef"><b>Definition:</b> <a href="write_8hpp_source.html#l00024">write.hpp:24</a></div></div>
 <div class="ttc" id="agroup__low-level-api_html_gad7df3a165405aef64f72618d45d100cb"><div class="ttname"><a href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">aedis::resp3::read</a></div><div class="ttdeci">auto read(SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter, boost::system::error_code &amp;ec) -&gt; std::size_t</div><div class="ttdoc">Reads a complete response to a command sychronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00056">read.hpp:56</a></div></div>
@@ -155,8 +163,8 @@ $(document).ready(function(){initNavTree('low__level__sync_8cpp_source.html','')
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><b>low_level_sync.cpp</b></li>
-    <li class="footer">Generated on Tue Dec 27 2022 21:20:52 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+    <li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><b>cpp17_low_level_sync.cpp</b></li>
+    <li class="footer">Generated on Sat Jan 14 2023 18:40:26 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
   </ul>
 </div>
 </body>

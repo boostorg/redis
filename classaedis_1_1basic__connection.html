@@ -34,7 +34,7 @@ MathJax.Hub.Config({
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.0</span>
+   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.1</span>
    </div>
    <div id="projectbrief">A redis client library</div>
   </td>
@@ -176,7 +176,7 @@ class aedis::basic_connection&lt; AsyncReadWriteStream &gt;</div><p >A connectio
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00028">28</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00029">29</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 </div><hr/><h2 class="groupheader">Class Documentation</h2>
 <a name="structaedis_1_1basic__connection_1_1rebind__executor" id="structaedis_1_1basic__connection_1_1rebind__executor"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#structaedis_1_1basic__connection_1_1rebind__executor">&#9670;&nbsp;</a></span>aedis::basic_connection::rebind_executor</h2>
@@ -193,7 +193,7 @@ class aedis::basic_connection&lt; AsyncReadWriteStream &gt;</div><p >A connectio
 template&lt;class Executor1&gt;<br />
 struct aedis::basic_connection&lt; AsyncReadWriteStream &gt;::rebind_executor&lt; Executor1 &gt;</div><p >Rebinds the socket type to another executor. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00041">41</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00042">42</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 </div><table class="fieldtable">
 <tr><th colspan="3">Class Members</th></tr>
 <tr><td class="fieldtype">
@@ -261,11 +261,11 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
   </table>
   </dd>
 </dl>
-<p>For an example see <a class="el" href="echo__server_8cpp_source.html">echo_server.cpp</a>. The completion token must have the following signature</p>
+<p>For an example see <a class="el" href="cpp20__echo__server_8cpp_source.html">cpp20_echo_server.cpp</a>. The completion token must have the following signature</p>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code, std::size_t);</div>
 </div><!-- fragment --><p >Where the second parameter is the size of the response in bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00136">136</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00137">137</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -316,11 +316,11 @@ template&lt;class Adapter  = detail::response_traits&lt;void&gt;::adapter_type, 
   </table>
   </dd>
 </dl>
-<p>For an example see <a class="el" href="subscriber_8cpp_source.html">subscriber.cpp</a>. The completion token must have the following signature</p>
+<p>For an example see <a class="el" href="cpp20__subscriber_8cpp_source.html">cpp20_subscriber.cpp</a>. The completion token must have the following signature</p>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code, std::size_t);</div>
 </div><!-- fragment --><p >Where the second parameter is the size of the push in bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00166">166</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00167">167</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -364,7 +364,7 @@ template&lt;class CompletionToken  = boost::asio::default_completion_token_t&lt;
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> f(boost::system::error_code);</div>
 </div><!-- fragment --><p >This function will complete when the connection is lost. If the error is boost::asio::error::eof this function will complete without error. </p>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00105">105</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00106">106</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -409,7 +409,7 @@ template&lt;class AsyncReadWriteStream &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The number of operations that have been canceled. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00186">186</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="connection_8hpp_source.html#l00187">187</a> of file <a class="el" href="connection_8hpp_source.html">connection.hpp</a>.</p>
 
 </div>
 </div>
@@ -422,7 +422,7 @@ template&lt;class AsyncReadWriteStream &gt; </div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><b>aedis</b></li><li class="navelem"><a class="el" href="classaedis_1_1basic__connection.html">basic_connection</a></li>
-    <li class="footer">Generated on Fri Dec 23 2022 09:19:17 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+    <li class="footer">Generated on Sat Jan 14 2023 18:40:26 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
   </ul>
 </div>
 </body>

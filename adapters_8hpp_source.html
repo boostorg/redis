@@ -34,7 +34,7 @@ MathJax.Hub.Config({
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.0</span>
+   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.1</span>
    </div>
    <div id="projectbrief">A redis client library</div>
   </td>
@@ -104,27 +104,27 @@ $(document).ready(function(){initNavTree('adapters_8hpp_source.html',''); initRe
 <div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#ifndef AEDIS_ADAPTER_ADAPTERS_HPP</span></div>
 <div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#define AEDIS_ADAPTER_ADAPTERS_HPP</span></div>
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span> </div>
-<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &lt;set&gt;</span></div>
-<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &lt;optional&gt;</span></div>
-<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#include &lt;unordered_set&gt;</span></div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#include &lt;forward_list&gt;</span></div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &lt;system_error&gt;</span></div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="preprocessor">#include &lt;map&gt;</span></div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="preprocessor">#include &lt;unordered_map&gt;</span></div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="preprocessor">#include &lt;list&gt;</span></div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="preprocessor">#include &lt;deque&gt;</span></div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="preprocessor">#include &lt;vector&gt;</span></div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="preprocessor">#include &lt;array&gt;</span></div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="preprocessor">#include &lt;string_view&gt;</span></div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="preprocessor">#include &lt;charconv&gt;</span></div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span> </div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="preprocessor">#include &lt;boost/assert.hpp&gt;</span></div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span> </div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="preprocessor">#include &lt;aedis/error.hpp&gt;</span></div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="preprocessor">#include &lt;aedis/resp3/type.hpp&gt;</span></div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="preprocessor">#include &lt;aedis/resp3/request.hpp&gt;</span></div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="preprocessor">#include &lt;aedis/resp3/detail/parser.hpp&gt;</span></div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="preprocessor">#include &lt;aedis/resp3/node.hpp&gt;</span></div>
+<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &lt;aedis/error.hpp&gt;</span></div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &lt;aedis/resp3/type.hpp&gt;</span></div>
+<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#include &lt;aedis/resp3/request.hpp&gt;</span></div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#include &lt;aedis/resp3/detail/parser.hpp&gt;</span></div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &lt;aedis/resp3/node.hpp&gt;</span></div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span> </div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="preprocessor">#include &lt;boost/assert.hpp&gt;</span></div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span> </div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="preprocessor">#include &lt;set&gt;</span></div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="preprocessor">#include &lt;optional&gt;</span></div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="preprocessor">#include &lt;unordered_set&gt;</span></div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="preprocessor">#include &lt;forward_list&gt;</span></div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="preprocessor">#include &lt;system_error&gt;</span></div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="preprocessor">#include &lt;map&gt;</span></div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="preprocessor">#include &lt;unordered_map&gt;</span></div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="preprocessor">#include &lt;list&gt;</span></div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="preprocessor">#include &lt;deque&gt;</span></div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="preprocessor">#include &lt;vector&gt;</span></div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="preprocessor">#include &lt;array&gt;</span></div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="preprocessor">#include &lt;string_view&gt;</span></div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="preprocessor">#include &lt;charconv&gt;</span></div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span> </div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="keyword">namespace </span>aedis::adapter::detail {</div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span> </div>
@@ -520,18 +520,18 @@ $(document).ready(function(){initNavTree('adapters_8hpp_source.html',''); initRe
 <div class="ttc" id="agroup__high-level-api_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5"><div class="ttname"><a href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57ab7f2a05d1d80e9f8a04926d67dd1aba5">aedis::resp3::type::blob_error</a></div><div class="ttdeci">@ blob_error</div><div class="ttdoc">Simple.</div></div>
 <div class="ttc" id="agroup__high-level-api_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e"><div class="ttname"><a href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57acdaeeeba9b4a4c5ebf042c0215a7bb0e">aedis::resp3::type::set</a></div><div class="ttdeci">@ set</div><div class="ttdoc">Aggregate.</div></div>
 <div class="ttc" id="agroup__high-level-api_html_ggabdb6bdf6f96b4a7a91ed63d2324cef57af1f713c9e000f5d3f280adbd124df4f5"><div class="ttname"><a href="group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57af1f713c9e000f5d3f280adbd124df4f5">aedis::resp3::type::array</a></div><div class="ttdeci">@ array</div><div class="ttdoc">Aggregate.</div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00024">node.hpp:24</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a49cc8e665a20c071d7355c230f1268ac"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aedis::resp3::node::aggregate_size</a></div><div class="ttdeci">std::size_t aggregate_size</div><div class="ttdoc">The number of elements of an aggregate.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00029">node.hpp:29</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a7fcf8b9f1afb4f602119e5a17209d093"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">aedis::resp3::node::data_type</a></div><div class="ttdeci">type data_type</div><div class="ttdoc">The RESP3 type of the data in this node.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00026">node.hpp:26</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a829e2bf6551568a60406fad87e44804d"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">aedis::resp3::node::depth</a></div><div class="ttdeci">std::size_t depth</div><div class="ttdoc">The depth of this node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00032">node.hpp:32</a></div></div>
-<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a923b33182800f271bad3155a36231da3"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">aedis::resp3::node::value</a></div><div class="ttdeci">String value</div><div class="ttdoc">The actual data. For aggregate types this is usually empty.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00035">node.hpp:35</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html">aedis::resp3::node</a></div><div class="ttdoc">A node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00046">node.hpp:46</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a49cc8e665a20c071d7355c230f1268ac"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a49cc8e665a20c071d7355c230f1268ac">aedis::resp3::node::aggregate_size</a></div><div class="ttdeci">std::size_t aggregate_size</div><div class="ttdoc">The number of elements of an aggregate.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00051">node.hpp:51</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a7fcf8b9f1afb4f602119e5a17209d093"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a7fcf8b9f1afb4f602119e5a17209d093">aedis::resp3::node::data_type</a></div><div class="ttdeci">type data_type</div><div class="ttdoc">The RESP3 type of the data in this node.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00048">node.hpp:48</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a829e2bf6551568a60406fad87e44804d"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a829e2bf6551568a60406fad87e44804d">aedis::resp3::node::depth</a></div><div class="ttdeci">std::size_t depth</div><div class="ttdoc">The depth of this node in the response tree.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00054">node.hpp:54</a></div></div>
+<div class="ttc" id="astructaedis_1_1resp3_1_1node_html_a923b33182800f271bad3155a36231da3"><div class="ttname"><a href="structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3">aedis::resp3::node::value</a></div><div class="ttdeci">String value</div><div class="ttdoc">The actual data. For aggregate types this is usually empty.</div><div class="ttdef"><b>Definition:</b> <a href="node_8hpp_source.html#l00057">node.hpp:57</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_fc21780ef7622f597daa202227f08e20.html">aedis</a></li><li class="navelem"><a class="el" href="dir_1f4b4de7ce79899a391e7214696c20ae.html">adapter</a></li><li class="navelem"><a class="el" href="dir_2d8c70af17709e157e30cd5eaaba06e2.html">detail</a></li><li class="navelem"><b>adapters.hpp</b></li>
-    <li class="footer">Generated on Fri Dec 23 2022 09:19:17 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+    <li class="footer">Generated on Sat Jan 14 2023 18:40:26 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
   </ul>
 </div>
 </body>
