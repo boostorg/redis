@@ -46,24 +46,46 @@ The execution of `connection::async_exec` above is composed with
 that ensures that  one operation is cancelled as soon as the other
 completes, these functions play the following roles
 
-* `connection::async_exec`: Execute commands by writing the request payload to the underlying stream and reading the response sent back by Redis. It can be called from multiple places in your code concurrently.
-* `connection::async_run`: Coordinate the low-level IO (read and write) operations. It remains suspended until the connection is lost.
+* `connection::async_exec`: Execute commands by queuing the request
+  for writing and wait for the response sent back by Redis. It can be
+     called from multiple places in your code concurrently.
+* `connection::async_run`: Coordinate low-level read and write
+  operations. More specifically, it will hand IO control to
+  `async_exec` when a response arrives and to
+  `aedis::connection::async_receive` when a server-push is received.
+  It will also trigger writes of pending requests when a reconnection
+  occurs. It remains suspended until the connection is lost.
 
-The `async_exec` calls won't automatically fail when the connection is
-lost, instead, they will remain suspended until either
-`connection::cancel(operation::exec)` is called to cancel them all or
-a new connection is established and `async_run` is called again.
-Users can customise the desired behaviour by carefully choosing
-`aedis::resp3::request::config`.  The role played by `async_run`
-becomes clearer with long-lived connections, which we will cover in
-the next section.
+By carefully choosing the flags `aedis::resp3::request::config` users
+can also express their desire to not automatically cancel pending
+requests when the connection is lost, giving the opportunity to
+reconnect and call `async_run` again after a failover to trigger their
+execution, perhaps in another Redis instance.  Before we approach
+long-lived connections in the next section users will find it helpful
+to skim over the examples
+
+* intro.cpp: The Aedis hello-world program. Sends one command and quits the connection.
+* intro_tls.cpp: Same as intro.cpp but over TLS.
+* intro_sync.cpp: Shows how to use the connection class synchronously.
+* containers.cpp: Shows how to send and receive STL containers and how to use transactions.
+* serialization.cpp: Shows how to serialize types using Boost.Json.
+* resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
+* subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
+* echo_server.cpp: A simple TCP echo server.
+* chat_room.cpp: A command line chat built on Redis pubsub.
+* low_level_sync.cpp: Sends a ping synchronously using the low-level API.
+* low_level_async.cpp: Sends a ping asynchronously using the low-level API.
+
+To avoid repetition code that is common to some examples has been
+grouped in common.hpp. The main function used in some async examples
+has been factored out in the main.cpp file.
 
 <a name="connection"></a>
 ## Connection
 
 For performance reasons we will usually want to perform multiple
 requests on the same connection. We can do this with the example above
-by decoupling the HELLO command and the call to `async_run` in a
+by decoupling the `HELLO` command and the call to `async_run` in a
 separate coroutine
 
 ```cpp
@@ -561,26 +583,6 @@ In addition to the above users can also use unordered versions of the
 containers. The same reasoning also applies to sets e.g. `SMEMBERS`
 and other data structures in general.
 
-## Examples
-
-These examples demonstrate what has been discussed so far.
-
-* intro.cpp: The Aedis hello-world program. Sends one command and quits the connection.
-* intro_tls.cpp: Same as intro.cpp but over TLS.
-* intro_sync.cpp: Shows how to use the connection class synchronously.
-* containers.cpp: Shows how to send and receive STL containers and how to use transactions.
-* serialization.cpp: Shows how to serialize types using Boost.Json.
-* resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
-* subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
-* echo_server.cpp: A simple TCP echo server.
-* chat_room.cpp: A command line chat built on Redis pubsub.
-* low_level_sync.cpp: Sends a ping synchronously using the low-level API.
-* low_level_async.cpp: Sends a ping asynchronously using the low-level API.
-
-To avoid repetition code that is common to all examples has been
-grouped in common.hpp. The main function used in some async examples
-has been factored out in the main.cpp file.
-
 ## Echo server benchmark
 
 This document benchmarks the performance of TCP echo servers I
@@ -829,8 +831,9 @@ Acknowledgement to people that helped shape Aedis
 
 ## Changelog
 
-### v1.4.0
+### v1.4.0-1
 
+* Renames `retry_on_connection_lost` to `cancel_if_unresponded`.  (v1.4.1)
 * Removes dependency on Boost.Hana, boost::string_view, Boost.Variant2 and Boost.Spirit.
 * Fixes build and setup CI on windows.
 

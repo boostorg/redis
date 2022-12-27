@@ -169,35 +169,37 @@ class request {
 public:
    /// Request configuration options.
    struct config {
-      /** \brief Setting it to true will cause
-       * `aedis::connection::async_exec` to complete with error if the
+      /** \brief If `true` 
+       * `aedis::connection::async_exec` will complete with error if the
        * connection is lost. Affects only requests that haven't been
        * sent yet.
        */
       bool cancel_on_connection_lost = true;
 
-      /** \brief If true the request will be coalesced with other
+      /** \brief If `true` the request will be coalesced with other
        * requests, see https://redis.io/topics/pipelining. Otherwise
        * the request is sent individually.
        */
       bool coalesce = true;
 
-      /** \brief If true, the request will complete with error if the
-       * call happens before the connection with Redis was established.
+      /** \brief If `true` the request will complete with
+       * aedis::error::not_connected if `async_exec` is called before
+       * the connection with Redis was established.
        */
       bool cancel_if_not_connected = false;
 
-      /** \brief If true `aedis::connection::async_exec` will not
-       * cancel this request if the connection is lost. Affects only
-       * requests that have been written to the socket but remained
-       * unresponded when `aedis::connection::async_run` completed.
+      /** \brief If `false` `aedis::connection::async_exec` will not
+       * automatically cancel this request if the connection is lost.
+       * Affects only requests that have been written to the socket
+       * but remained unresponded when `aedis::connection::async_run`
+       * completed.
        */
       bool cancel_if_unresponded = true;
 
-      /** \brief If this request has a HELLO command and this flag is
-       * true, the `aedis::connection` will move it to the front of
+      /** \brief If this request has a `HELLO` command and this flag is
+       * `true`, the `aedis::connection` will move it to the front of
        * the queue of awaiting requests. This makes it possible to
-       * send HELLO and authenticate before other commands are sent.
+       * send `HELLO` and authenticate before other commands are sent.
        */
       bool hello_with_priority = true;
    };
