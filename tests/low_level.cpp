@@ -37,6 +37,38 @@ using test_stream = boost::beast::test::stream;
 using aedis::adapter::adapt2;
 using node_type = aedis::resp3::node<std::string>;
 using vec_node_type = std::vector<node_type>;
+using vec_type = std::vector<std::string>;
+using op_vec_type = std::optional<std::vector<std::string>>;
+
+// Set
+using set_type = std::set<std::string>;
+using mset_type = std::multiset<std::string>;
+using uset_type = std::unordered_set<std::string>;
+using muset_type = std::unordered_multiset<std::string>;
+
+// Array
+using tuple_int_2 = std::tuple<int, int>;
+using array_type = std::array<int, 3>;
+using array_type2 = std::array<int, 1>;
+
+// Map
+using map_type = std::map<std::string, std::string>;
+using mmap_type = std::multimap<std::string, std::string>;
+using umap_type = std::unordered_map<std::string, std::string>;
+using mumap_type = std::unordered_multimap<std::string, std::string>;
+using op_map_type = std::optional<std::map<std::string, std::string>>;
+using tuple8_type = std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string>;
+
+// Null
+using op_type_01 = std::optional<bool>;
+using op_type_02 = std::optional<int>;
+using op_type_03 = std::optional<std::string>;
+using op_type_04 = std::optional<std::vector<std::string>>;
+using op_type_05 = std::optional<std::list<std::string>>;
+using op_type_06 = std::optional<std::map<std::string, std::string>>;
+using op_type_07 = std::optional<std::unordered_map<std::string, std::string>>;
+using op_type_08 = std::optional<std::set<std::string>>;
+using op_type_09 = std::optional<std::unordered_set<std::string>>;
 
 //-------------------------------------------------------------------
 
@@ -44,20 +76,18 @@ template <class Result>
 struct expect {
    std::string in;
    Result expected;
-   std::string name;
    boost::system::error_code ec{};
 };
 
 template <class Result>
-auto make_expected(std::string in, Result expected, std::string name, boost::system::error_code ec = {})
+auto make_expected(std::string in, Result expected, boost::system::error_code ec = {})
 {
-   return expect<Result>{in, expected, name, ec};
+   return expect<Result>{in, expected, ec};
 }
 
 template <class Result>
 void test_sync(net::any_io_executor ex, expect<Result> e)
 {
-   std::cout << e.name << std::endl;
    std::string rbuffer;
    test_stream ts {ex};
    ts.append(e.in);
@@ -115,6 +145,30 @@ void test_async(net::any_io_executor ex, expect<Result> e)
    std::make_shared<async_test<Result>>(ex, e)->run();
 }
 
+auto make_blob()
+{
+   std::string str(100000, 'a');
+   str[1000] = '\r';
+   str[1001] = '\n';
+   return str;
+
+   return str;
+}
+
+auto const blob = make_blob();
+
+auto make_blob_string(std::string const& b)
+{
+   std::string wire;
+   wire += '$';
+   wire += std::to_string(b.size());
+   wire += "\r\n";
+   wire += b;
+   wire += "\r\n";
+
+   return wire;
+}
+
 std::optional<int> op_int_ok = 11;
 std::optional<bool> op_bool_ok = true;
 
@@ -129,6 +183,117 @@ std::vector<node_type> streamed_string_e1
 };
 
 std::vector<node_type> streamed_string_e2 { {resp3::type::streamed_string, 0UL, 1UL, {}}, {resp3::type::streamed_string_part, 1UL, 1UL, {}} };
+
+std::vector<node_type> const push_e1a
+   { {resp3::type::push,          4UL, 0UL, {}}
+   , {resp3::type::simple_string, 1UL, 1UL, "pubsub"}
+   , {resp3::type::simple_string, 1UL, 1UL, "message"}
+   , {resp3::type::simple_string, 1UL, 1UL, "some-channel"}
+   , {resp3::type::simple_string, 1UL, 1UL, "some message"}
+   };
+
+std::vector<node_type> const push_e1b
+   { {resp3::type::push, 0UL, 0UL, {}} };
+
+std::vector<node_type> const set_expected1a
+   { {resp3::type::set,            6UL, 0UL, {}}
+   , {resp3::type::simple_string,  1UL, 1UL, {"orange"}}
+   , {resp3::type::simple_string,  1UL, 1UL, {"apple"}}
+   , {resp3::type::simple_string,  1UL, 1UL, {"one"}}
+   , {resp3::type::simple_string,  1UL, 1UL, {"two"}}
+   , {resp3::type::simple_string,  1UL, 1UL, {"three"}}
+   , {resp3::type::simple_string,  1UL, 1UL, {"orange"}}
+   };
+
+mset_type const set_e1f{"apple", "one", "orange", "orange", "three", "two"};
+uset_type const set_e1c{"apple", "one", "orange", "three", "two"};
+muset_type const set_e1g{"apple", "one", "orange", "orange", "three", "two"};
+vec_type const set_e1d = {"orange", "apple", "one", "two", "three", "orange"};
+op_vec_type const set_expected_1e = set_e1d;
+
+std::vector<node_type> const array_e1a
+   { {resp3::type::array,       3UL, 0UL, {}}
+   , {resp3::type::blob_string, 1UL, 1UL, {"11"}}
+   , {resp3::type::blob_string, 1UL, 1UL, {"22"}}
+   , {resp3::type::blob_string, 1UL, 1UL, {"3"}}
+   };
+
+std::vector<int> const array_e1b{11, 22, 3};
+std::vector<std::string> const array_e1c{"11", "22", "3"};
+std::vector<std::string> const array_e1d{};
+std::vector<node_type> const array_e1e{{resp3::type::array, 0UL, 0UL, {}}};
+array_type const array_e1f{11, 22, 3};
+std::list<int> const array_e1g{11, 22, 3};
+std::deque<int> const array_e1h{11, 22, 3};
+
+std::vector<node_type> const map_expected_1a
+{ {resp3::type::map,         4UL, 0UL, {}}
+, {resp3::type::blob_string, 1UL, 1UL, {"key1"}}
+, {resp3::type::blob_string, 1UL, 1UL, {"value1"}}
+, {resp3::type::blob_string, 1UL, 1UL, {"key2"}}
+, {resp3::type::blob_string, 1UL, 1UL, {"value2"}}
+, {resp3::type::blob_string, 1UL, 1UL, {"key3"}}
+, {resp3::type::blob_string, 1UL, 1UL, {"value3"}}
+, {resp3::type::blob_string, 1UL, 1UL, {"key3"}}
+, {resp3::type::blob_string, 1UL, 1UL, {"value3"}}
+};
+
+map_type const map_expected_1b
+{ {"key1", "value1"}
+, {"key2", "value2"}
+, {"key3", "value3"}
+};
+
+umap_type const map_e1g
+{ {"key1", "value1"}
+, {"key2", "value2"}
+, {"key3", "value3"}
+};
+
+mmap_type const map_e1k
+{ {"key1", "value1"}
+, {"key2", "value2"}
+, {"key3", "value3"}
+, {"key3", "value3"}
+};
+
+mumap_type const map_e1l
+{ {"key1", "value1"}
+, {"key2", "value2"}
+, {"key3", "value3"}
+, {"key3", "value3"}
+};
+
+std::vector<std::string> const map_expected_1c
+{ "key1", "value1"
+, "key2", "value2"
+, "key3", "value3"
+, "key3", "value3"
+};
+
+op_map_type const map_expected_1d = map_expected_1b;
+
+op_vec_type const map_expected_1e = map_expected_1c;
+
+tuple8_type const map_e1f
+{ std::string{"key1"}, std::string{"value1"}
+, std::string{"key2"}, std::string{"value2"}
+, std::string{"key3"}, std::string{"value3"}
+, std::string{"key3"}, std::string{"value3"}
+};
+
+std::vector<node_type> const attr_e1a
+   { {resp3::type::attribute,     1UL, 0UL, {}}
+   , {resp3::type::simple_string, 1UL, 1UL, "key-popularity"}
+   , {resp3::type::map,           2UL, 1UL, {}}
+   , {resp3::type::blob_string,   1UL, 2UL, "a"}
+   , {resp3::type::doublean,      1UL, 2UL, "0.1923"}
+   , {resp3::type::blob_string,   1UL, 2UL, "b"}
+   , {resp3::type::doublean,      1UL, 2UL, "0.0012"}
+   };
+
+std::vector<node_type> const attr_e1b
+   { {resp3::type::attribute, 0UL, 0UL, {}} };
 
 #define S01 "#11\r\n"
 #define S02 "#f\r\n"
@@ -159,632 +324,147 @@ std::vector<node_type> streamed_string_e2 { {resp3::type::streamed_string, 0UL, 
 #define S27 "~0\r\n"
 #define S28 "-Error\r\n"
 #define S29 "-\r\n"
+#define S30 "%0\r\n"
+#define S31 ",1.23\r\n"
+#define S32 ",inf\r\n"
+#define S33 ",-inf\r\n" 
+#define S34 ",1.23\r\n"
+#define S35 ",er\r\n"
+#define S36 "!21\r\nSYNTAX invalid syntax\r\n"
+#define S37 "!0\r\n\r\n"
+#define S38 "!3\r\nfoo\r\n"
+#define S39 "=15\r\ntxt:Some string\r\n"
+#define S40 "=0\r\n\r\n"
+#define S41 "(3492890328409238509324850943850943825024385\r\n"
+#define S42 "(\r\n"
+#define S43 "+OK\r\n"
+#define S44 "+\r\n"
+#define S45 "s11\r\n"
+#define S46 ":adf\r\n"
+#define S47 "%rt\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n"
+#define S48 "$?\r\n;d\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"
+#define S49 "$l\r\nhh\r\n"
+#define S50 ":\r\n"
+#define S51 "#\r\n"
+#define S52 ",\r\n"
+#define S53 "$2\r\nhh\r\n"
+#define S54 "$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"
+#define S55 "$0\r\n\r\n" 
 
 #define NUMBER_TEST_CONDITIONS(test) \
-   test(ex, make_expected(S01, std::optional<bool>{}, "bool.error", aedis::error::unexpected_bool_value)); \
-   test(ex, make_expected(S02, bool{false}, "bool.bool (true)")); \
-   test(ex, make_expected(S02, node_type{resp3::type::boolean, 1UL, 0UL, {"f"}}, "bool.node (false)")); \
-   test(ex, make_expected(S03, bool{true}, "bool.bool (true)")); \
-   test(ex, make_expected(S03, node_type{resp3::type::boolean, 1UL, 0UL, {"t"}}, "bool.node (true)")); \
-   test(ex, make_expected(S03, op_bool_ok, "optional.int")); \
-   test(ex, make_expected(S03, std::map<int, int>{}, "bool.error", aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S03, std::set<int>{}, "bool.error", aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S03, std::unordered_map<int, int>{}, "bool.error", aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S03, std::unordered_set<int>{}, "bool.error", aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S04, streamed_string_e2, "streamed_string.node.empty")); \
-   test(ex, make_expected(S05, std::optional<int>{}, "number.optional.int.error", aedis::error::expects_resp3_simple_type));; \
-   test(ex, make_expected(S06, int{}, "streamed_string.string", aedis::error::not_a_number)); \
-   test(ex, make_expected(S06, std::string{"Hello word"}, "streamed_string.string")); \
-   test(ex, make_expected(S06, streamed_string_e1, "streamed_string.node")); \
-   test(ex, make_expected(S07, std::string{}, "streamed_string.error", aedis::error::not_a_number)); \
-   test(ex, make_expected(S08, std::tuple<int>{11}, "number.tuple.int")); \
-   test(ex, make_expected(S09, node_type{resp3::type::number, 1UL, 0UL, {"-3"}}, "number.node (negative)")); \
-   test(ex, make_expected(S10, int{11}, "number.int")); \
-   test(ex, make_expected(S10, op_int_ok, "number.optional.int")); \
-   test(ex, make_expected(S10, std::list<std::string>{}, "number.optional.int", aedis::error::expects_resp3_aggregate)); \
-   test(ex, make_expected(S10, std::map<std::string, std::string>{}, "number.optional.int", aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S10, std::set<std::string>{}, "number.optional.int", aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S10, std::unordered_map<std::string, std::string>{}, "number.optional.int", aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S10, std::unordered_set<std::string>{}, "number.optional.int", aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S11, node_type{resp3::type::number, 1UL, 0UL, {"3"}}, "number.node (positive)")); \
-   test(ex, make_expected(S12, int{0}, "number.int.error.null", aedis::error::resp3_null)); \
-
-BOOST_AUTO_TEST_CASE(test_push)
-{
-   net::io_context ioc;
-
-   std::vector<node_type> e1a
-      { {resp3::type::push,          4UL, 0UL, {}}
-      , {resp3::type::simple_string, 1UL, 1UL, "pubsub"}
-      , {resp3::type::simple_string, 1UL, 1UL, "message"}
-      , {resp3::type::simple_string, 1UL, 1UL, "some-channel"}
-      , {resp3::type::simple_string, 1UL, 1UL, "some message"}
-      };
-
-   std::vector<node_type> e1b { {resp3::type::push, 0UL, 0UL, {}} };
-
-   auto const in01 = expect<std::vector<node_type>>{S13, e1a, "push.node"};
-   auto const in02 = expect<std::vector<node_type>>{S14, e1b, "push.node.empty"};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_map)
-{
-   net::io_context ioc;
-   using map_type = std::map<std::string, std::string>;
-   using mmap_type = std::multimap<std::string, std::string>;
-   using umap_type = std::unordered_map<std::string, std::string>;
-   using mumap_type = std::unordered_multimap<std::string, std::string>;
-   using vec_type = std::vector<std::string>;
-   using op_map_type = std::optional<std::map<std::string, std::string>>;
-   using op_vec_type = std::optional<std::vector<std::string>>;
-   using tuple_type = std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string>;
-
-   std::vector<node_type> expected_1a
-   { {resp3::type::map,         4UL, 0UL, {}}
-   , {resp3::type::blob_string, 1UL, 1UL, {"key1"}}
-   , {resp3::type::blob_string, 1UL, 1UL, {"value1"}}
-   , {resp3::type::blob_string, 1UL, 1UL, {"key2"}}
-   , {resp3::type::blob_string, 1UL, 1UL, {"value2"}}
-   , {resp3::type::blob_string, 1UL, 1UL, {"key3"}}
-   , {resp3::type::blob_string, 1UL, 1UL, {"value3"}}
-   , {resp3::type::blob_string, 1UL, 1UL, {"key3"}}
-   , {resp3::type::blob_string, 1UL, 1UL, {"value3"}}
-   };
-
-   map_type expected_1b
-   { {"key1", "value1"}
-   , {"key2", "value2"}
-   , {"key3", "value3"}
-   };
-
-   umap_type e1g
-   { {"key1", "value1"}
-   , {"key2", "value2"}
-   , {"key3", "value3"}
-   };
-
-   mmap_type e1k
-   { {"key1", "value1"}
-   , {"key2", "value2"}
-   , {"key3", "value3"}
-   , {"key3", "value3"}
-   };
-
-   mumap_type e1l
-   { {"key1", "value1"}
-   , {"key2", "value2"}
-   , {"key3", "value3"}
-   , {"key3", "value3"}
-   };
-
-   std::vector<std::string> expected_1c
-   { "key1", "value1"
-   , "key2", "value2"
-   , "key3", "value3"
-   , "key3", "value3"
-   };
-
-   op_map_type expected_1d;
-   expected_1d = expected_1b;
-
-   op_vec_type expected_1e;
-   expected_1e = expected_1c;
-
-   tuple_type e1f
-   { std::string{"key1"}, std::string{"value1"}
-   , std::string{"key2"}, std::string{"value2"}
-   , std::string{"key3"}, std::string{"value3"}
-   , std::string{"key3"}, std::string{"value3"}
-   };
-
-   auto const in00 = expect<std::vector<node_type>>{S16, expected_1a, "map.node"};
-   auto const in01 = expect<map_type>{"%0\r\n", map_type{}, "map.map.empty"};
-   auto const in02 = expect<map_type>{S16, expected_1b, "map.map"};
-   auto const in03 = expect<mmap_type>{S16, e1k, "map.multimap"};
-   auto const in04 = expect<umap_type>{S16, e1g, "map.unordered_map"};
-   auto const in05 = expect<mumap_type>{S16, e1l, "map.unordered_multimap"};
-   auto const in06 = expect<vec_type>{S16, expected_1c, "map.vector"};
-   auto const in07 = expect<op_map_type>{S16, expected_1d, "map.optional.map"};
-   auto const in08 = expect<op_vec_type>{S16, expected_1e, "map.optional.vector"};
-   auto const in09 = expect<std::tuple<op_map_type>>{S17, std::tuple<op_map_type>{expected_1d}, "map.transaction.optional.map"};
-   auto const in10 = expect<int>{"%11\r\n", int{}, "map.invalid.int", aedis::error::expects_resp3_simple_type};
-   auto const in11 = expect<tuple_type>{S16, e1f, "map.tuple"};
-   auto const in12 = expect<map_type>{S15, map_type{}, "map.error", aedis::error::expects_resp3_map};
-   auto const in13 = expect<map_type>{S12, map_type{}, "map.null", aedis::error::resp3_null};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in00);
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-   test_sync(ex, in04);
-   test_sync(ex, in05);
-   test_sync(ex, in06);
-   test_sync(ex, in07);
-   test_sync(ex, in08);
-   test_sync(ex, in09);
-   test_sync(ex, in10);
-   test_sync(ex, in11);
-   test_sync(ex, in12);
-   test_sync(ex, in13);
-
-   test_async(ex, in00);
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   test_async(ex, in04);
-   test_async(ex, in05);
-   test_async(ex, in06);
-   test_async(ex, in07);
-   test_async(ex, in08);
-   test_async(ex, in09);
-   test_async(ex, in10);
-   test_async(ex, in11);
-   test_async(ex, in12);
-   test_async(ex, in13);
-   ioc.run();
-}
-
-void test_attribute(net::io_context& ioc)
-{
-   std::vector<node_type> e1a
-      { {resp3::type::attribute,     1UL, 0UL, {}}
-      , {resp3::type::simple_string, 1UL, 1UL, "key-popularity"}
-      , {resp3::type::map,           2UL, 1UL, {}}
-      , {resp3::type::blob_string,   1UL, 2UL, "a"}
-      , {resp3::type::doublean,      1UL, 2UL, "0.1923"}
-      , {resp3::type::blob_string,   1UL, 2UL, "b"}
-      , {resp3::type::doublean,      1UL, 2UL, "0.0012"}
-      };
-
-   std::vector<node_type> e1b;
-
-   auto const in01 = expect<std::vector<node_type>>{S18, e1a, "attribute.node"};
-   auto const in02 = expect<std::vector<node_type>>{S19, e1b, "attribute.node.empty"};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-}
-
-BOOST_AUTO_TEST_CASE(test_array)
-{
-   using tuple_type = std::tuple<int, int>;
-   using array_type = std::array<int, 3>;
-   using array_type2 = std::array<int, 1>;
-
-   net::io_context ioc;
-
-   std::vector<node_type> e1a
-      { {resp3::type::array,       3UL, 0UL, {}}
-      , {resp3::type::blob_string, 1UL, 1UL, {"11"}}
-      , {resp3::type::blob_string, 1UL, 1UL, {"22"}}
-      , {resp3::type::blob_string, 1UL, 1UL, {"3"}}
-      };
-
-   std::vector<int> const e1b{11, 22, 3};
-   std::vector<std::string> const e1c{"11", "22", "3"};
-   std::vector<std::string> const e1d{};
-   std::vector<node_type> const e1e{{resp3::type::array, 0UL, 0UL, {}}};
-   array_type const e1f{11, 22, 3};
-   std::list<int> const e1g{11, 22, 3};
-   std::deque<int> const e1h{11, 22, 3};
-
-   auto const in01 = expect<std::vector<node_type>>{S20, e1a, "array.node"};
-   auto const in02 = expect<std::vector<int>>{S20, e1b, "array.int"};
-   auto const in03 = expect<std::vector<node_type>>{S23, e1e, "array.node.empty"};
-   auto const in04 = expect<std::vector<std::string>>{S23, e1d, "array.string.empty"};
-   auto const in05 = expect<std::vector<std::string>>{S20, e1c, "array.string"};
-   auto const in06 = expect<array_type>{S20, e1f, "array.array"};
-   auto const in07 = expect<std::list<int>>{S20, e1g, "array.list"};
-   auto const in08 = expect<std::deque<int>>{S20, e1h, "array.deque"};
-   auto const in09 = expect<std::vector<int>>{S12, std::vector<int>{}, "array.vector", aedis::error::resp3_null};
-   auto const in10 = expect<std::list<int>>{S12, std::list<int>{}, "array.list", aedis::error::resp3_null};
-   auto const in11 = expect<array_type>{S12, array_type{}, "array.null", aedis::error::resp3_null};
-   auto const in12 = expect<tuple_type>{S20, tuple_type{}, "array.list", aedis::error::incompatible_size};
-   auto const in13 = expect<array_type2>{S21, array_type2{}, "array.nested", aedis::error::nested_aggregate_not_supported};
-   auto const in14 = expect<array_type2>{S20, array_type2{}, "array.null", aedis::error::incompatible_size};
-   auto const in15 = expect<array_type2>{S11, array_type2{}, "array.array", aedis::error::expects_resp3_aggregate};
-   auto const in16 = expect<vec_node_type>{S22, vec_node_type{}, "array.depth.exceeds", aedis::error::exceeeds_max_nested_depth};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-   test_sync(ex, in04);
-   test_sync(ex, in05);
-   test_sync(ex, in06);
-   test_sync(ex, in07);
-   test_sync(ex, in08);
-   test_sync(ex, in09);
-   test_sync(ex, in10);
-   test_sync(ex, in11);
-   test_sync(ex, in12);
-   test_sync(ex, in13);
-   test_sync(ex, in14);
-   test_sync(ex, in15);
-   test_sync(ex, in16);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   test_async(ex, in04);
-   test_async(ex, in05);
-   test_async(ex, in06);
-   test_async(ex, in07);
-   test_async(ex, in08);
-   test_async(ex, in09);
-   test_async(ex, in10);
-   test_async(ex, in11);
-   test_async(ex, in12);
-   test_async(ex, in13);
-   test_async(ex, in14);
-   test_async(ex, in15);
-   test_async(ex, in16);
-
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_set)
-{
-   net::io_context ioc;
-   using set_type = std::set<std::string>;
-   using mset_type = std::multiset<std::string>;
-   using uset_type = std::unordered_set<std::string>;
-   using muset_type = std::unordered_multiset<std::string>;
-   using vec_type = std::vector<std::string>;
-   using op_vec_type = std::optional<std::vector<std::string>>;
-
-   std::vector<node_type> const expected1a
-   { {resp3::type::set,            6UL, 0UL, {}}
-   , {resp3::type::simple_string,  1UL, 1UL, {"orange"}}
-   , {resp3::type::simple_string,  1UL, 1UL, {"apple"}}
-   , {resp3::type::simple_string,  1UL, 1UL, {"one"}}
-   , {resp3::type::simple_string,  1UL, 1UL, {"two"}}
-   , {resp3::type::simple_string,  1UL, 1UL, {"three"}}
-   , {resp3::type::simple_string,  1UL, 1UL, {"orange"}}
-   };
-
-   mset_type const e1f{"apple", "one", "orange", "orange", "three", "two"};
-   uset_type const e1c{"apple", "one", "orange", "three", "two"};
-   muset_type const e1g{"apple", "one", "orange", "orange", "three", "two"};
-   vec_type const e1d = {"orange", "apple", "one", "two", "three", "orange"};
-   op_vec_type expected_1e;
-   expected_1e = e1d;
-
-   auto const in00 = expect<std::vector<node_type>>{S25, expected1a, "set.node"};
-   auto const in01 = expect<std::vector<node_type>>{S27, std::vector<node_type>{ {resp3::type::set,  0UL, 0UL, {}} }, "set.node (empty)"};
-   auto const in02 = expect<set_type>{S25, set_type{"apple", "one", "orange", "three", "two"}, "set.set"};
-   auto const in03 = expect<mset_type>{S25, e1f, "set.multiset"};
-   auto const in04 = expect<vec_type>{S25, e1d, "set.vector "};
-   auto const in05 = expect<op_vec_type>{S25, expected_1e, "set.vector "};
-   auto const in06 = expect<uset_type>{S25, e1c, "set.unordered_set"};
-   auto const in07 = expect<muset_type>{S25, e1g, "set.unordered_multiset"};
-   auto const in08 = expect<std::tuple<uset_type>>{S26, std::tuple<uset_type>{e1c}, "set.tuple"};
-   auto const in09 = expect<set_type>{S24, set_type{}, "set.error", aedis::error::expects_resp3_set};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in00);
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-   test_sync(ex, in04);
-   test_sync(ex, in05);
-   test_sync(ex, in06);
-   test_sync(ex, in07);
-   test_sync(ex, in08);
-   test_sync(ex, in09);
-
-   test_async(ex, in00);
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   test_async(ex, in04);
-   test_async(ex, in05);
-   test_async(ex, in06);
-   test_async(ex, in07);
-   test_async(ex, in08);
-   test_async(ex, in09);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_simple_error)
-{
-   net::io_context ioc;
-   auto const in01 = expect<node_type>{S28, node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, "simple_error.node", aedis::error::resp3_simple_error};
-   auto const in02 = expect<node_type>{S29, node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, "simple_error.node.empty", aedis::error::resp3_simple_error};
-   auto const in03 = expect<aedis::ignore>{S28, aedis::ignore{}, "simple_error.not.ignore.error", aedis::error::resp3_simple_error};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_blob_string)
-{
-   net::io_context ioc;
-   std::string str(100000, 'a');
-   str[1000] = '\r';
-   str[1001] = '\n';
-
-   std::string wire;
-   wire += '$';
-   wire += std::to_string(str.size());
-   wire += "\r\n";
-   wire += str;
-   wire += "\r\n";
-
-   auto const in01 = expect<node_type>{"$2\r\nhh\r\n", node_type{resp3::type::blob_string, 1UL, 0UL, {"hh"}}, "blob_string.node"};
-   auto const in02 = expect<node_type>{"$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n", node_type{resp3::type::blob_string, 1UL, 0UL, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}}, "blob_string.node (with separator)"};
-   auto const in03 = expect<node_type>{"$0\r\n\r\n", node_type{resp3::type::blob_string, 1UL, 0UL, {}}, "blob_string.node.empty"};
-   auto const in04 = expect<node_type>{wire, node_type{resp3::type::blob_string, 1UL, 0UL, {str}}, "blob_string.node (long string)"};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-   test_sync(ex, in04);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   test_async(ex, in04);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_double)
-{
-   net::io_context ioc;
-   auto const in01 = expect<node_type>{",1.23\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"1.23"}}, "double.node"};
-   auto const in02 = expect<node_type>{",inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}, "double.node (inf)"};
-   auto const in03 = expect<node_type>{",-inf\r\n", node_type{resp3::type::doublean, 1UL, 0UL, {"-inf"}}, "double.node (-inf)"};
-   auto const in04 = expect<double>{",1.23\r\n", double{1.23}, "double.double"};
-   auto const in05 = expect<double>{",er\r\n", double{0}, "double.double", aedis::error::not_a_double};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-   test_sync(ex, in04);
-   test_sync(ex, in05);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   test_async(ex, in04);
-   test_async(ex, in05);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_blob_error)
-{
-   net::io_context ioc;
-   auto const in01 = expect<node_type>{"!21\r\nSYNTAX invalid syntax\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, "blob_error", aedis::error::resp3_blob_error};
-   auto const in02 = expect<node_type>{"!0\r\n\r\n", node_type{resp3::type::blob_error, 1UL, 0UL, {}}, "blob_error.empty", aedis::error::resp3_blob_error};
-   auto const in03 = expect<aedis::ignore>{"!3\r\nfoo\r\n", aedis::ignore{}, "blob_error.ignore.adapter.error", aedis::error::resp3_blob_error};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_verbatim_string)
-{
-   net::io_context ioc;
-   auto const in01 = expect<node_type>{"=15\r\ntxt:Some string\r\n", node_type{resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}}, "verbatim_string"};
-   auto const in02 = expect<node_type>{"=0\r\n\r\n", node_type{resp3::type::verbatim_string, 1UL, 0UL, {}}, "verbatim_string.empty"};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_big_number)
-{
-   net::io_context ioc;
-   auto const in01 = expect<node_type>{"(3492890328409238509324850943850943825024385\r\n", node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}, "big_number.node"};
-   auto const in02 = expect<int>{"(\r\n", int{}, "big_number.error (empty field)", aedis::error::empty_field};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_simple_string)
-{
-   net::io_context ioc;
-   std::optional<std::string> ok1, ok2;
-   ok1 = "OK";
-   ok2 = "";
-
-   auto in00 = expect<std::string>{"+OK\r\n", std::string{"OK"}, "simple_string.string"};
-   auto in01 = expect<std::string>{"+\r\n", std::string{""}, "simple_string.string.empty"};
-   auto in02 = expect<std::optional<std::string>>{"+OK\r\n", std::optional<std::string>{"OK"}, "simple_string.optional"};
-   auto in03 = expect<std::optional<std::string>>{"+\r\n", std::optional<std::string>{""}, "simple_string.optional.empty"};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in00);
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-
-   test_async(ex, in00);
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_resp3)
-{
-   using map_type = std::map<std::string, std::string>;
-   std::string const wire_map = "%rt\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n";
-
-   std::string const wire_ssp = "$?\r\n;d\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n";
-
-   net::io_context ioc;
-   auto const in01 = expect<int>{"s11\r\n", int{}, "number.error", aedis::error::invalid_data_type};
-   auto const in02 = expect<int>{":adf\r\n", int{11}, "number.int", aedis::error::not_a_number};
-   auto const in03 = expect<map_type>{wire_map, map_type{}, "map.error", aedis::error::not_a_number};
-   auto const in04 = expect<std::string>{wire_ssp, std::string{}, "streamed_string_part.error", aedis::error::not_a_number};
-   auto const in05 = expect<std::string>{"$l\r\nhh\r\n", std::string{}, "blob_string.error", aedis::error::not_a_number};
-   auto const in06 = expect<int>{":\r\n", int{}, "number.error (empty field)", aedis::error::empty_field};
-   auto const in07 = expect<std::optional<bool>>{"#\r\n", std::optional<bool>{}, "bool.error", aedis::error::empty_field};
-   auto const in08 = expect<std::string>{",\r\n", std::string{}, "double.error (empty field)", aedis::error::empty_field};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-   test_sync(ex, in04);
-   test_sync(ex, in05);
-   test_sync(ex, in06);
-   test_sync(ex, in07);
-   test_sync(ex, in08);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   test_async(ex, in04);
-   test_async(ex, in05);
-   test_async(ex, in06);
-   test_async(ex, in07);
-   test_async(ex, in08);
-
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_null)
-{
-   net::io_context ioc;
-   using op_type_01 = std::optional<bool>;
-   using op_type_02 = std::optional<int>;
-   using op_type_03 = std::optional<std::string>;
-   using op_type_04 = std::optional<std::vector<std::string>>;
-   using op_type_05 = std::optional<std::list<std::string>>;
-   using op_type_06 = std::optional<std::map<std::string, std::string>>;
-   using op_type_07 = std::optional<std::unordered_map<std::string, std::string>>;
-   using op_type_08 = std::optional<std::set<std::string>>;
-   using op_type_09 = std::optional<std::unordered_set<std::string>>;
-
-   auto const in01 = expect<op_type_01>{S12, op_type_01{}, "null.optional.bool"};
-   auto const in02 = expect<op_type_02>{S12, op_type_02{}, "null.optional.int"};
-   auto const in03 = expect<op_type_03>{S12, op_type_03{}, "null.optional.string"};
-   auto const in04 = expect<op_type_04>{S12, op_type_04{}, "null.optional.vector"};
-   auto const in05 = expect<op_type_05>{S12, op_type_05{}, "null.optional.list"};
-   auto const in06 = expect<op_type_06>{S12, op_type_06{}, "null.optional.map"};
-   auto const in07 = expect<op_type_07>{S12, op_type_07{}, "null.optional.unordered_map"};
-   auto const in08 = expect<op_type_08>{S12, op_type_08{}, "null.optional.set"};
-   auto const in09 = expect<op_type_09>{S12, op_type_09{}, "null.optional.unordered_set"};
-
-   auto ex = ioc.get_executor();
-
-   test_sync(ex, in01);
-   test_sync(ex, in02);
-   test_sync(ex, in03);
-   test_sync(ex, in04);
-   test_sync(ex, in05);
-   test_sync(ex, in06);
-   test_sync(ex, in07);
-   test_sync(ex, in08);
-   test_sync(ex, in09);
-
-   test_async(ex, in01);
-   test_async(ex, in02);
-   test_async(ex, in03);
-   test_async(ex, in04);
-   test_async(ex, in05);
-   test_async(ex, in06);
-   test_async(ex, in07);
-   test_async(ex, in08);
-   test_async(ex, in09);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(ignore_adapter_simple_error)
-{
-   net::io_context ioc;
-   std::string rbuffer;
-
-   boost::system::error_code ec;
-
-   test_stream ts {ioc};
-   ts.append("-Error\r\n");
-   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
-   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_simple_error);
-   BOOST_TEST(!rbuffer.empty());
-}
-
-BOOST_AUTO_TEST_CASE(ignore_adapter_blob_error)
-{
-   net::io_context ioc;
-   std::string rbuffer;
-   boost::system::error_code ec;
-
-   test_stream ts {ioc};
-   ts.append("!21\r\nSYNTAX invalid syntax\r\n");
-   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
-   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_blob_error);
-   BOOST_TEST(!rbuffer.empty());
-}
-
-BOOST_AUTO_TEST_CASE(ignore_adapter_no_error)
-{
-   net::io_context ioc;
-   std::string rbuffer;
-   boost::system::error_code ec;
-   test_stream ts {ioc};
-   ts.append(":10\r\n");
-   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
-   BOOST_TEST(!ec);
-   BOOST_TEST(rbuffer.empty());
-}
-
-BOOST_AUTO_TEST_CASE(all_tests)
+   test(ex, make_expected(S01, std::optional<bool>{}, aedis::error::unexpected_bool_value)); \
+   test(ex, make_expected(S02, bool{false})); \
+   test(ex, make_expected(S02, node_type{resp3::type::boolean, 1UL, 0UL, {"f"}})); \
+   test(ex, make_expected(S03, bool{true})); \
+   test(ex, make_expected(S03, node_type{resp3::type::boolean, 1UL, 0UL, {"t"}})); \
+   test(ex, make_expected(S03, op_bool_ok)); \
+   test(ex, make_expected(S03, std::map<int, int>{}, aedis::error::expects_resp3_map)); \
+   test(ex, make_expected(S03, std::set<int>{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S03, std::unordered_map<int, int>{}, aedis::error::expects_resp3_map)); \
+   test(ex, make_expected(S03, std::unordered_set<int>{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S04, streamed_string_e2)); \
+   test(ex, make_expected(S05, int{}, aedis::error::expects_resp3_simple_type));\
+   test(ex, make_expected(S05, std::optional<int>{}, aedis::error::expects_resp3_simple_type));; \
+   test(ex, make_expected(S06, int{}, aedis::error::not_a_number)); \
+   test(ex, make_expected(S06, std::string{"Hello word"})); \
+   test(ex, make_expected(S06, streamed_string_e1)); \
+   test(ex, make_expected(S07, std::string{}, aedis::error::not_a_number)); \
+   test(ex, make_expected(S08, std::tuple<int>{11})); \
+   test(ex, make_expected(S09, node_type{resp3::type::number, 1UL, 0UL, {"-3"}})); \
+   test(ex, make_expected(S10, int{11})); \
+   test(ex, make_expected(S10, op_int_ok)); \
+   test(ex, make_expected(S10, std::list<std::string>{}, aedis::error::expects_resp3_aggregate)); \
+   test(ex, make_expected(S10, std::map<std::string, std::string>{}, aedis::error::expects_resp3_map)); \
+   test(ex, make_expected(S10, std::set<std::string>{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S10, std::unordered_map<std::string, std::string>{}, aedis::error::expects_resp3_map)); \
+   test(ex, make_expected(S10, std::unordered_set<std::string>{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S11, array_type2{}, aedis::error::expects_resp3_aggregate));\
+   test(ex, make_expected(S11, node_type{resp3::type::number, 1UL, 0UL, {"3"}})); \
+   test(ex, make_expected(S12, array_type{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S12, int{0}, aedis::error::resp3_null)); \
+   test(ex, make_expected(S12, map_type{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S12, op_type_01{}));\
+   test(ex, make_expected(S12, op_type_02{}));\
+   test(ex, make_expected(S12, op_type_03{}));\
+   test(ex, make_expected(S12, op_type_04{}));\
+   test(ex, make_expected(S12, op_type_05{}));\
+   test(ex, make_expected(S12, op_type_06{}));\
+   test(ex, make_expected(S12, op_type_07{}));\
+   test(ex, make_expected(S12, op_type_08{}));\
+   test(ex, make_expected(S12, op_type_09{}));\
+   test(ex, make_expected(S12, std::list<int>{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S12, std::vector<int>{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S13, push_e1a)); \
+   test(ex, make_expected(S14, push_e1b)); \
+   test(ex, make_expected(S15, map_type{}, aedis::error::expects_resp3_map));\
+   test(ex, make_expected(S16, map_e1f));\
+   test(ex, make_expected(S16, map_e1g));\
+   test(ex, make_expected(S16, map_e1k));\
+   test(ex, make_expected(S16, map_e1l));\
+   test(ex, make_expected(S16, map_expected_1a));\
+   test(ex, make_expected(S16, map_expected_1b));\
+   test(ex, make_expected(S16, map_expected_1c));\
+   test(ex, make_expected(S16, map_expected_1d));\
+   test(ex, make_expected(S16, map_expected_1e));\
+   test(ex, make_expected(S17, std::tuple<op_map_type>{map_expected_1d}));\
+   test(ex, make_expected(S18, attr_e1a)); \
+   test(ex, make_expected(S19, attr_e1b)); \
+   test(ex, make_expected(S20, array_e1a));\
+   test(ex, make_expected(S20, array_e1b));\
+   test(ex, make_expected(S20, array_e1c));\
+   test(ex, make_expected(S20, array_e1f));\
+   test(ex, make_expected(S20, array_e1g));\
+   test(ex, make_expected(S20, array_e1h));\
+   test(ex, make_expected(S20, array_type2{}, aedis::error::incompatible_size));\
+   test(ex, make_expected(S20, tuple_int_2{}, aedis::error::incompatible_size));\
+   test(ex, make_expected(S21, array_type2{}, aedis::error::nested_aggregate_not_supported));\
+   test(ex, make_expected(S22, vec_node_type{}, aedis::error::exceeeds_max_nested_depth));\
+   test(ex, make_expected(S23, array_e1d));\
+   test(ex, make_expected(S23, array_e1e));\
+   test(ex, make_expected(S24, set_type{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S25, set_e1c)); \
+   test(ex, make_expected(S25, set_e1d)); \
+   test(ex, make_expected(S25, set_e1f)); \
+   test(ex, make_expected(S25, set_e1g)); \
+   test(ex, make_expected(S25, set_expected1a)); \
+   test(ex, make_expected(S25, set_expected_1e)); \
+   test(ex, make_expected(S25, set_type{"apple", "one", "orange", "three", "two"})); \
+   test(ex, make_expected(S26, std::tuple<uset_type>{set_e1c})); \
+   test(ex, make_expected(S27, std::vector<node_type>{ {resp3::type::set,  0UL, 0UL, {}} })); \
+   test(ex, make_expected(S28, aedis::ignore{}, aedis::error::resp3_simple_error)); \
+   test(ex, make_expected(S28, node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, aedis::error::resp3_simple_error)); \
+   test(ex, make_expected(S29, node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, aedis::error::resp3_simple_error)); \
+   test(ex, make_expected(S30, map_type{}));\
+   test(ex, make_expected(S31, node_type{resp3::type::doublean, 1UL, 0UL, {"1.23"}}));\
+   test(ex, make_expected(S32, node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}));\
+   test(ex, make_expected(S33, node_type{resp3::type::doublean, 1UL, 0UL, {"-inf"}}));\
+   test(ex, make_expected(S34, double{1.23}));\
+   test(ex, make_expected(S35, double{0}, aedis::error::not_a_double));\
+   test(ex, make_expected(S36, node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, aedis::error::resp3_blob_error));\
+   test(ex, make_expected(S37, node_type{resp3::type::blob_error, 1UL, 0UL, {}}, aedis::error::resp3_blob_error));\
+   test(ex, make_expected(S38, aedis::ignore{}, aedis::error::resp3_blob_error));\
+   test(ex, make_expected(S39, node_type{resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}}));\
+   test(ex, make_expected(S40, node_type{resp3::type::verbatim_string, 1UL, 0UL, {}}));\
+   test(ex, make_expected(S41, node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}));\
+   test(ex, make_expected(S42, int{}, aedis::error::empty_field));\
+   test(ex, make_expected(S43, std::optional<std::string>{"OK"}));\
+   test(ex, make_expected(S43, std::string{"OK"}));\
+   test(ex, make_expected(S44, std::optional<std::string>{""}));\
+   test(ex, make_expected(S44, std::string{""}));\
+   test(ex, make_expected(S45, int{}, aedis::error::invalid_data_type));\
+   test(ex, make_expected(S46, int{11}, aedis::error::not_a_number));\
+   test(ex, make_expected(S47, map_type{}, aedis::error::not_a_number));\
+   test(ex, make_expected(S48, std::string{}, aedis::error::not_a_number));\
+   test(ex, make_expected(S49, std::string{}, aedis::error::not_a_number));\
+   test(ex, make_expected(S50, int{}, aedis::error::empty_field));\
+   test(ex, make_expected(S51, std::optional<bool>{}, aedis::error::empty_field));\
+   test(ex, make_expected(S52, std::string{}, aedis::error::empty_field));\
+   test(ex, make_expected(S53, node_type{resp3::type::blob_string, 1UL, 0UL, {"hh"}}));\
+   test(ex, make_expected(S54, node_type{resp3::type::blob_string, 1UL, 0UL, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}}));\
+   test(ex, make_expected(S55, node_type{resp3::type::blob_string, 1UL, 0UL, {}}));\
+   test(ex, make_expected(make_blob_string(blob), node_type{resp3::type::blob_string, 1UL, 0UL, {blob}}));\
+
+BOOST_AUTO_TEST_CASE(parser)
 {
    net::io_context ioc;
 
@@ -799,6 +479,46 @@ BOOST_AUTO_TEST_CASE(all_tests)
 #undef TEST
 
    ioc.run();
+}
+
+BOOST_AUTO_TEST_CASE(ignore_adapter_simple_error)
+{
+   net::io_context ioc;
+   std::string rbuffer;
+
+   boost::system::error_code ec;
+
+   test_stream ts {ioc};
+   ts.append(S28);
+   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
+   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_simple_error);
+   BOOST_TEST(!rbuffer.empty());
+}
+
+BOOST_AUTO_TEST_CASE(ignore_adapter_blob_error)
+{
+   net::io_context ioc;
+   std::string rbuffer;
+   boost::system::error_code ec;
+
+   test_stream ts {ioc};
+   ts.append(S36);
+   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
+   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_blob_error);
+   BOOST_TEST(!rbuffer.empty());
+}
+
+BOOST_AUTO_TEST_CASE(ignore_adapter_no_error)
+{
+   net::io_context ioc;
+   std::string rbuffer;
+   boost::system::error_code ec;
+
+   test_stream ts {ioc};
+   ts.append(S10);
+   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
+   BOOST_TEST(!ec);
+   BOOST_TEST(rbuffer.empty());
 }
 
 //-----------------------------------------------------------------------------------

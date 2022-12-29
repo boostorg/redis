@@ -15,7 +15,7 @@ the cases will be concerned with only three library entities
 
 For example, the coroutine below uses a short-lived connection to read Redis
 [hashes](https://redis.io/docs/data-types/hashes/)
-in a `std::map` (see intro.cpp and containers.cpp)
+in a `std::map` (see cpp20_intro.cpp, cpp17_intro.cpp and containers.cpp)
 
 ```cpp
 auto async_main() -> net::awaitable<void>
@@ -51,30 +51,27 @@ completes, these functions play the following roles
      called from multiple places in your code concurrently.
 * `connection::async_run`: Coordinate low-level read and write
   operations. More specifically, it will hand IO control to
-  `async_exec` when a response arrives and to
-  `aedis::connection::async_receive` when a server-push is received.
-  It will also trigger writes of pending requests when a reconnection
-  occurs. It remains suspended until the connection is lost.
+  `async_exec` when a response arrives, to
+  `aedis::connection::async_receive` when a server-push is received
+  and will trigger writes of pending requests when a reconnection
+  occurs.
 
-By carefully choosing the flags `aedis::resp3::request::config` users
-can also express their desire to not automatically cancel pending
-requests when the connection is lost, giving the opportunity to
-reconnect and call `async_run` again after a failover to trigger their
-execution, perhaps in another Redis instance.  Before we approach
-long-lived connections in the next section users will find it helpful
-to skim over the examples
+The role played by `async_run` can be better understood in the context
+of long-lived connections, which we will cover in the next section.
+Before that however, the reader might want to skim over the examples
 
-* intro.cpp: The Aedis hello-world program. Sends one command and quits the connection.
-* intro_tls.cpp: Same as intro.cpp but over TLS.
-* intro_sync.cpp: Shows how to use the connection class synchronously.
-* containers.cpp: Shows how to send and receive STL containers and how to use transactions.
-* serialization.cpp: Shows how to serialize types using Boost.Json.
-* resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
-* subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
-* echo_server.cpp: A simple TCP echo server.
-* chat_room.cpp: A command line chat built on Redis pubsub.
-* low_level_sync.cpp: Sends a ping synchronously using the low-level API.
-* low_level_async.cpp: Sends a ping asynchronously using the low-level API.
+* cpp17_intro.cpp:  The Aedis hello-world program. Sends one command and quits the connection.
+* cpp17_intro_sync.cpp: Shows how to use the connection class synchronously.
+* cpp17_low_level_sync.cpp: Sends a ping synchronously using the low-level API.
+* cpp20_intro.cpp: Like cpp17_intro.cpp but uses awaitable operators.
+* cpp20_intro_tls.cpp: Same as intro.cpp but over TLS.
+* cpp20_containers.cpp: Shows how to send and receive STL containers and how to use transactions.
+* cpp20_serialization.cpp: Shows how to serialize types using Boost.Json.
+* cpp20_resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
+* cpp20_subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
+* cpp20_echo_server.cpp: A simple TCP echo server.
+* cpp20_chat_room.cpp: A command line chat built on Redis pubsub.
+* cpp20_low_level_async.cpp: Sends a ping asynchronously using the low-level API.
 
 To avoid repetition code that is common to some examples has been
 grouped in common.hpp. The main function used in some async examples
