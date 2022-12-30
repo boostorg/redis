@@ -45,7 +45,7 @@ auto main() -> int
       auto on_run = [](auto ec)
       {
          if (ec)
-            return log(ec, "on_exec: ");
+            return log(ec, "on_run: ");
       };
 
       // async_exec callback.

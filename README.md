@@ -15,7 +15,7 @@ the cases will be concerned with only three library entities
 
 For example, the coroutine below uses a short-lived connection to read Redis
 [hashes](https://redis.io/docs/data-types/hashes/)
-in a `std::map` (see cpp20_intro.cpp, cpp17_intro.cpp and containers.cpp)
+in a `std::map`
 
 ```cpp
 auto async_main() -> net::awaitable<void>
@@ -41,30 +41,32 @@ auto async_main() -> net::awaitable<void>
 }
 ```
 
+For different versions of this example using different styles see
+
+* cpp20_intro.cpp: Does not use awaitable operators
+* cpp20_intro_awaitable_ops.cpp: The version above.
+* cpp17_intro.cpp: Requires C++17 only.
+* cpp20_intro_tls.cpp: Communicates over TLS.
+
 The execution of `connection::async_exec` above is composed with
 `connection::async_run` with the aid of the Asio awaitable `operator ||`
 that ensures that  one operation is cancelled as soon as the other
 completes, these functions play the following roles
 
 * `connection::async_exec`: Execute commands by queuing the request
-  for writing and wait for the response sent back by Redis. It can be
-     called from multiple places in your code concurrently.
+  for writing. It will wait for the response sent back by Redis and
+     can be called from multiple places in your code concurrently.
 * `connection::async_run`: Coordinate low-level read and write
   operations. More specifically, it will hand IO control to
   `async_exec` when a response arrives, to
-  `aedis::connection::async_receive` when a server-push is received
+  `async_receive` when a server-push is received
   and will trigger writes of pending requests when a reconnection
   occurs.
 
 The role played by `async_run` can be better understood in the context
 of long-lived connections, which we will cover in the next section.
-Before that however, the reader might want to skim over the examples
+Before that however, the reader might want to skim over some further examples
 
-* cpp17_intro.cpp:  The Aedis hello-world program. Sends one command and quits the connection.
-* cpp17_intro_sync.cpp: Shows how to use the connection class synchronously.
-* cpp17_low_level_sync.cpp: Sends a ping synchronously using the low-level API.
-* cpp20_intro.cpp: Like cpp17_intro.cpp but uses awaitable operators.
-* cpp20_intro_tls.cpp: Same as intro.cpp but over TLS.
 * cpp20_containers.cpp: Shows how to send and receive STL containers and how to use transactions.
 * cpp20_serialization.cpp: Shows how to serialize types using Boost.Json.
 * cpp20_resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
@@ -72,6 +74,7 @@ Before that however, the reader might want to skim over the examples
 * cpp20_echo_server.cpp: A simple TCP echo server.
 * cpp20_chat_room.cpp: A command line chat built on Redis pubsub.
 * cpp20_low_level_async.cpp: Sends a ping asynchronously using the low-level API.
+* cpp17_low_level_sync.cpp: Sends a ping synchronously using the low-level API.
 
 To avoid repetition code that is common to some examples has been
 grouped in common.hpp. The main function used in some async examples
@@ -159,7 +162,7 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 ```
 
 The definition of `receiver` and `healthy_checker` above can be found
-in subscriber.cpp.  Adding a loop around `async_run` produces a simple
+in cpp20_subscriber.cpp.  Adding a loop around `async_run` produces a simple
 way to support reconnection _while there are pending operations on the connection_,
 for example, to reconnect to the same address
 
@@ -187,7 +190,7 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 ```
 
-For failover with sentinels see `resolve_with_sentinel.cpp`.  At
+For failover with sentinels see `cpp20_resolve_with_sentinel.cpp`.  At
 this point the reasons for why `async_run` was introduced in Aedis
 might have become apparent to the reader
 
@@ -225,7 +228,7 @@ co_await (conn.async_exec(...) || time.async_wait(...))
 * The cancellation will be ignored if the request has already
   been written to the socket.
 * NOTE: It is usually a better idea to have a healthy checker than adding
-  per request timeout, see subscriber.cpp for an example.
+  per request timeout, see cpp20_subscriber.cpp for an example.
 
 ```cpp
 co_await (conn.async_run(...) || time.async_wait(...))
@@ -302,7 +305,7 @@ std::map<std::string, mystruct> map {...};
 req.push_range("HSET", "key", map);
 ```
 
-Example serialization.cpp shows how store json strings in Redis.
+Example cpp20_serialization.cpp shows how store json strings in Redis.
 
 <a name="responses"></a>
 
@@ -1006,7 +1009,7 @@ Acknowledgement to people that helped shape Aedis
 
 * `connection::async_receive_event` is now being used to communicate
   internal events to the user, such as resolve, connect, push etc. For
-  examples see subscriber.cpp and `connection::event`.
+  examples see cpp20_subscriber.cpp and `connection::event`.
 
 * The `aedis` directory has been moved to `include` to look more
   similar to Boost libraries. Users should now replace `-I/aedis-path`

@@ -62,7 +62,7 @@ void to_bulk(Request& to, T n)
 
 namespace detail {
 
-auto has_push_response(std::string_view cmd) -> bool;
+auto has_response(std::string_view cmd) -> bool;
 
 template <class T>
 struct add_bulk_impl {
@@ -386,7 +386,7 @@ public:
 private:
    void check_cmd(std::string_view cmd)
    {
-      if (!detail::has_push_response(cmd))
+      if (!detail::has_response(cmd))
          ++commands_;
 
       if (cmd == "HELLO")

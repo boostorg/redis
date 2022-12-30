@@ -6,18 +6,14 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <aedis.hpp>
 #include "common/common.hpp"
 
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
+using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
-
-auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   co_await connect(conn, "127.0.0.1", "6379");
-   co_await conn->async_run();
-}
 
 // Called from the main function (see main.cpp)
 auto async_main() -> net::awaitable<void>
@@ -29,10 +25,9 @@ auto async_main() -> net::awaitable<void>
 
    std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
 
-   auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn), net::detached);
-   co_await conn->async_exec(req, adapt(resp));
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   co_await connect(conn, "127.0.0.1", "6379");
+   co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
 
    std::cout << "PING: " << std::get<1>(resp) << std::endl;
 }

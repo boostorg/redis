@@ -295,173 +295,189 @@ std::vector<node_type> const attr_e1a
 std::vector<node_type> const attr_e1b
    { {resp3::type::attribute, 0UL, 0UL, {}} };
 
-#define S01 "#11\r\n"
-#define S02 "#f\r\n"
-#define S03 "#t\r\n"
-#define S04 "$?\r\n;0\r\n"
-#define S05 "%11\r\n"
-#define S06 "$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"
-#define S07 "$?\r\n;b\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"
-#define S08 "*1\r\n:11\r\n"
-#define S09 ":-3\r\n"
-#define S10 ":11\r\n"
-#define S11 ":3\r\n"
-#define S12 "_\r\n"
-#define S13 ">4\r\n+pubsub\r\n+message\r\n+some-channel\r\n+some message\r\n"
-#define S14 ">0\r\n"
-#define S15 "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n"
-#define S16 "%4\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n$4\r\nkey3\r\n$6\r\nvalue3\r\n$4\r\nkey3\r\n$6\r\nvalue3\r\n"
-#define S17 "*1\r\n" S16
-#define S18 "|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"
-#define S19 "|0\r\n"
-#define S20 "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n"
-#define S21 "*1\r\n*1\r\n$2\r\nab\r\n"
-#define S22 "*1\r\n*1\r\n*1\r\n*1\r\n*1\r\n*1\r\na\r\n"
-#define S23 "*0\r\n"
-#define S24 "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n"
-#define S25 "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n"
-#define S26 "*1\r\n" S25
-#define S27 "~0\r\n"
-#define S28 "-Error\r\n"
-#define S29 "-\r\n"
-#define S30 "%0\r\n"
-#define S31 ",1.23\r\n"
-#define S32 ",inf\r\n"
-#define S33 ",-inf\r\n" 
-#define S34 ",1.23\r\n"
-#define S35 ",er\r\n"
-#define S36 "!21\r\nSYNTAX invalid syntax\r\n"
-#define S37 "!0\r\n\r\n"
-#define S38 "!3\r\nfoo\r\n"
-#define S39 "=15\r\ntxt:Some string\r\n"
-#define S40 "=0\r\n\r\n"
-#define S41 "(3492890328409238509324850943850943825024385\r\n"
-#define S42 "(\r\n"
-#define S43 "+OK\r\n"
-#define S44 "+\r\n"
-#define S45 "s11\r\n"
-#define S46 ":adf\r\n"
-#define S47 "%rt\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n"
-#define S48 "$?\r\n;d\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"
-#define S49 "$l\r\nhh\r\n"
-#define S50 ":\r\n"
-#define S51 "#\r\n"
-#define S52 ",\r\n"
-#define S53 "$2\r\nhh\r\n"
-#define S54 "$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"
-#define S55 "$0\r\n\r\n" 
+#define S01a  "#11\r\n"
+#define S01b  "#f\r\n"
+#define S01c  "#t\r\n"
+#define S01d  "#\r\n"
+
+#define S02a  "$?\r\n;0\r\n"
+#define S02b  "$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"
+#define S02c  "$?\r\n;b\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"
+#define S02d  "$?\r\n;d\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"
+
+#define S03a  "%11\r\n"
+#define S03b  "%4\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n$4\r\nkey3\r\n$6\r\nvalue3\r\n$4\r\nkey3\r\n$6\r\nvalue3\r\n"
+#define S03c  "%0\r\n"
+#define S03d  "%rt\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n"
+
+#define S04a  "*1\r\n:11\r\n"
+#define S04b  "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n"
+#define S04c  "*1\r\n" S03b
+#define S04d  "*1\r\n" S09a
+#define S04e  "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n"
+#define S04f  "*1\r\n*1\r\n$2\r\nab\r\n"
+#define S04g  "*1\r\n*1\r\n*1\r\n*1\r\n*1\r\n*1\r\na\r\n"
+#define S04h  "*0\r\n"
+#define S04i  "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n"
+
+#define S05a  ":-3\r\n"
+#define S05b  ":11\r\n"
+#define s05c  ":3\r\n"
+#define S05d  ":adf\r\n"
+#define S05e  ":\r\n"
+
+#define S06a  "_\r\n"
+
+#define S07a  ">4\r\n+pubsub\r\n+message\r\n+some-channel\r\n+some message\r\n"
+#define S07b  ">0\r\n"
+
+#define S08a  "|1\r\n+key-popularity\r\n%2\r\n$1\r\na\r\n,0.1923\r\n$1\r\nb\r\n,0.0012\r\n"
+#define S08b  "|0\r\n"
+
+#define S09a  "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n"
+#define S09b  "~0\r\n"
+
+#define S10a  "-Error\r\n"
+#define S10b  "-\r\n"
+
+#define S11a  ",1.23\r\n"
+#define S11b  ",inf\r\n"
+#define S11c  ",-inf\r\n" 
+#define S11d  ",1.23\r\n"
+#define S11e  ",er\r\n"
+#define S11f  ",\r\n"
+
+#define S12a  "!21\r\nSYNTAX invalid syntax\r\n"
+#define S12b  "!0\r\n\r\n"
+#define S12c  "!3\r\nfoo\r\n"
+
+#define S13a  "=15\r\ntxt:Some string\r\n"
+#define S13b  "=0\r\n\r\n"
+
+#define S14a  "(3492890328409238509324850943850943825024385\r\n"
+#define S14b  "(\r\n"
+
+#define S15a  "+OK\r\n"
+#define S15b  "+\r\n"
+
+#define S16a  "s11\r\n"
+
+#define S17a  "$l\r\nhh\r\n"
+#define S17b  "$2\r\nhh\r\n"
+#define S18c  "$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n"
+#define S18d  "$0\r\n\r\n" 
 
 #define NUMBER_TEST_CONDITIONS(test) \
-   test(ex, make_expected(S01, std::optional<bool>{}, aedis::error::unexpected_bool_value)); \
-   test(ex, make_expected(S02, bool{false})); \
-   test(ex, make_expected(S02, node_type{resp3::type::boolean, 1UL, 0UL, {"f"}})); \
-   test(ex, make_expected(S03, bool{true})); \
-   test(ex, make_expected(S03, node_type{resp3::type::boolean, 1UL, 0UL, {"t"}})); \
-   test(ex, make_expected(S03, op_bool_ok)); \
-   test(ex, make_expected(S03, std::map<int, int>{}, aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S03, std::set<int>{}, aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S03, std::unordered_map<int, int>{}, aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S03, std::unordered_set<int>{}, aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S04, streamed_string_e2)); \
-   test(ex, make_expected(S05, int{}, aedis::error::expects_resp3_simple_type));\
-   test(ex, make_expected(S05, std::optional<int>{}, aedis::error::expects_resp3_simple_type));; \
-   test(ex, make_expected(S06, int{}, aedis::error::not_a_number)); \
-   test(ex, make_expected(S06, std::string{"Hello word"})); \
-   test(ex, make_expected(S06, streamed_string_e1)); \
-   test(ex, make_expected(S07, std::string{}, aedis::error::not_a_number)); \
-   test(ex, make_expected(S08, std::tuple<int>{11})); \
-   test(ex, make_expected(S09, node_type{resp3::type::number, 1UL, 0UL, {"-3"}})); \
-   test(ex, make_expected(S10, int{11})); \
-   test(ex, make_expected(S10, op_int_ok)); \
-   test(ex, make_expected(S10, std::list<std::string>{}, aedis::error::expects_resp3_aggregate)); \
-   test(ex, make_expected(S10, std::map<std::string, std::string>{}, aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S10, std::set<std::string>{}, aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S10, std::unordered_map<std::string, std::string>{}, aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S10, std::unordered_set<std::string>{}, aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S11, array_type2{}, aedis::error::expects_resp3_aggregate));\
-   test(ex, make_expected(S11, node_type{resp3::type::number, 1UL, 0UL, {"3"}})); \
-   test(ex, make_expected(S12, array_type{}, aedis::error::resp3_null));\
-   test(ex, make_expected(S12, int{0}, aedis::error::resp3_null)); \
-   test(ex, make_expected(S12, map_type{}, aedis::error::resp3_null));\
-   test(ex, make_expected(S12, op_type_01{}));\
-   test(ex, make_expected(S12, op_type_02{}));\
-   test(ex, make_expected(S12, op_type_03{}));\
-   test(ex, make_expected(S12, op_type_04{}));\
-   test(ex, make_expected(S12, op_type_05{}));\
-   test(ex, make_expected(S12, op_type_06{}));\
-   test(ex, make_expected(S12, op_type_07{}));\
-   test(ex, make_expected(S12, op_type_08{}));\
-   test(ex, make_expected(S12, op_type_09{}));\
-   test(ex, make_expected(S12, std::list<int>{}, aedis::error::resp3_null));\
-   test(ex, make_expected(S12, std::vector<int>{}, aedis::error::resp3_null));\
-   test(ex, make_expected(S13, push_e1a)); \
-   test(ex, make_expected(S14, push_e1b)); \
-   test(ex, make_expected(S15, map_type{}, aedis::error::expects_resp3_map));\
-   test(ex, make_expected(S16, map_e1f));\
-   test(ex, make_expected(S16, map_e1g));\
-   test(ex, make_expected(S16, map_e1k));\
-   test(ex, make_expected(S16, map_e1l));\
-   test(ex, make_expected(S16, map_expected_1a));\
-   test(ex, make_expected(S16, map_expected_1b));\
-   test(ex, make_expected(S16, map_expected_1c));\
-   test(ex, make_expected(S16, map_expected_1d));\
-   test(ex, make_expected(S16, map_expected_1e));\
-   test(ex, make_expected(S17, std::tuple<op_map_type>{map_expected_1d}));\
-   test(ex, make_expected(S18, attr_e1a)); \
-   test(ex, make_expected(S19, attr_e1b)); \
-   test(ex, make_expected(S20, array_e1a));\
-   test(ex, make_expected(S20, array_e1b));\
-   test(ex, make_expected(S20, array_e1c));\
-   test(ex, make_expected(S20, array_e1f));\
-   test(ex, make_expected(S20, array_e1g));\
-   test(ex, make_expected(S20, array_e1h));\
-   test(ex, make_expected(S20, array_type2{}, aedis::error::incompatible_size));\
-   test(ex, make_expected(S20, tuple_int_2{}, aedis::error::incompatible_size));\
-   test(ex, make_expected(S21, array_type2{}, aedis::error::nested_aggregate_not_supported));\
-   test(ex, make_expected(S22, vec_node_type{}, aedis::error::exceeeds_max_nested_depth));\
-   test(ex, make_expected(S23, array_e1d));\
-   test(ex, make_expected(S23, array_e1e));\
-   test(ex, make_expected(S24, set_type{}, aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S25, set_e1c)); \
-   test(ex, make_expected(S25, set_e1d)); \
-   test(ex, make_expected(S25, set_e1f)); \
-   test(ex, make_expected(S25, set_e1g)); \
-   test(ex, make_expected(S25, set_expected1a)); \
-   test(ex, make_expected(S25, set_expected_1e)); \
-   test(ex, make_expected(S25, set_type{"apple", "one", "orange", "three", "two"})); \
-   test(ex, make_expected(S26, std::tuple<uset_type>{set_e1c})); \
-   test(ex, make_expected(S27, std::vector<node_type>{ {resp3::type::set,  0UL, 0UL, {}} })); \
-   test(ex, make_expected(S28, aedis::ignore{}, aedis::error::resp3_simple_error)); \
-   test(ex, make_expected(S28, node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, aedis::error::resp3_simple_error)); \
-   test(ex, make_expected(S29, node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, aedis::error::resp3_simple_error)); \
-   test(ex, make_expected(S30, map_type{}));\
-   test(ex, make_expected(S31, node_type{resp3::type::doublean, 1UL, 0UL, {"1.23"}}));\
-   test(ex, make_expected(S32, node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}));\
-   test(ex, make_expected(S33, node_type{resp3::type::doublean, 1UL, 0UL, {"-inf"}}));\
-   test(ex, make_expected(S34, double{1.23}));\
-   test(ex, make_expected(S35, double{0}, aedis::error::not_a_double));\
-   test(ex, make_expected(S36, node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, aedis::error::resp3_blob_error));\
-   test(ex, make_expected(S37, node_type{resp3::type::blob_error, 1UL, 0UL, {}}, aedis::error::resp3_blob_error));\
-   test(ex, make_expected(S38, aedis::ignore{}, aedis::error::resp3_blob_error));\
-   test(ex, make_expected(S39, node_type{resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}}));\
-   test(ex, make_expected(S40, node_type{resp3::type::verbatim_string, 1UL, 0UL, {}}));\
-   test(ex, make_expected(S41, node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}));\
-   test(ex, make_expected(S42, int{}, aedis::error::empty_field));\
-   test(ex, make_expected(S43, std::optional<std::string>{"OK"}));\
-   test(ex, make_expected(S43, std::string{"OK"}));\
-   test(ex, make_expected(S44, std::optional<std::string>{""}));\
-   test(ex, make_expected(S44, std::string{""}));\
-   test(ex, make_expected(S45, int{}, aedis::error::invalid_data_type));\
-   test(ex, make_expected(S46, int{11}, aedis::error::not_a_number));\
-   test(ex, make_expected(S47, map_type{}, aedis::error::not_a_number));\
-   test(ex, make_expected(S48, std::string{}, aedis::error::not_a_number));\
-   test(ex, make_expected(S49, std::string{}, aedis::error::not_a_number));\
-   test(ex, make_expected(S50, int{}, aedis::error::empty_field));\
-   test(ex, make_expected(S51, std::optional<bool>{}, aedis::error::empty_field));\
-   test(ex, make_expected(S52, std::string{}, aedis::error::empty_field));\
-   test(ex, make_expected(S53, node_type{resp3::type::blob_string, 1UL, 0UL, {"hh"}}));\
-   test(ex, make_expected(S54, node_type{resp3::type::blob_string, 1UL, 0UL, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}}));\
-   test(ex, make_expected(S55, node_type{resp3::type::blob_string, 1UL, 0UL, {}}));\
+   test(ex, make_expected(S01a, std::optional<bool>{}, aedis::error::unexpected_bool_value)); \
+   test(ex, make_expected(S01b, bool{false})); \
+   test(ex, make_expected(S01b, node_type{resp3::type::boolean, 1UL, 0UL, {"f"}})); \
+   test(ex, make_expected(S01c, bool{true})); \
+   test(ex, make_expected(S01c, node_type{resp3::type::boolean, 1UL, 0UL, {"t"}})); \
+   test(ex, make_expected(S01c, op_bool_ok)); \
+   test(ex, make_expected(S01c, std::map<int, int>{}, aedis::error::expects_resp3_map)); \
+   test(ex, make_expected(S01c, std::set<int>{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S01c, std::unordered_map<int, int>{}, aedis::error::expects_resp3_map)); \
+   test(ex, make_expected(S01c, std::unordered_set<int>{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S02a, streamed_string_e2)); \
+   test(ex, make_expected(S03a, int{}, aedis::error::expects_resp3_simple_type));\
+   test(ex, make_expected(S03a, std::optional<int>{}, aedis::error::expects_resp3_simple_type));; \
+   test(ex, make_expected(S02b, int{}, aedis::error::not_a_number)); \
+   test(ex, make_expected(S02b, std::string{"Hello word"})); \
+   test(ex, make_expected(S02b, streamed_string_e1)); \
+   test(ex, make_expected(S02c, std::string{}, aedis::error::not_a_number)); \
+   test(ex, make_expected(S04a, std::tuple<int>{11})); \
+   test(ex, make_expected(S05a, node_type{resp3::type::number, 1UL, 0UL, {"-3"}})); \
+   test(ex, make_expected(S05b, int{11})); \
+   test(ex, make_expected(S05b, op_int_ok)); \
+   test(ex, make_expected(S05b, std::list<std::string>{}, aedis::error::expects_resp3_aggregate)); \
+   test(ex, make_expected(S05b, std::map<std::string, std::string>{}, aedis::error::expects_resp3_map)); \
+   test(ex, make_expected(S05b, std::set<std::string>{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S05b, std::unordered_map<std::string, std::string>{}, aedis::error::expects_resp3_map)); \
+   test(ex, make_expected(S05b, std::unordered_set<std::string>{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(s05c, array_type2{}, aedis::error::expects_resp3_aggregate));\
+   test(ex, make_expected(s05c, node_type{resp3::type::number, 1UL, 0UL, {"3"}})); \
+   test(ex, make_expected(S06a, array_type{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S06a, int{0}, aedis::error::resp3_null)); \
+   test(ex, make_expected(S06a, map_type{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S06a, op_type_01{}));\
+   test(ex, make_expected(S06a, op_type_02{}));\
+   test(ex, make_expected(S06a, op_type_03{}));\
+   test(ex, make_expected(S06a, op_type_04{}));\
+   test(ex, make_expected(S06a, op_type_05{}));\
+   test(ex, make_expected(S06a, op_type_06{}));\
+   test(ex, make_expected(S06a, op_type_07{}));\
+   test(ex, make_expected(S06a, op_type_08{}));\
+   test(ex, make_expected(S06a, op_type_09{}));\
+   test(ex, make_expected(S06a, std::list<int>{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S06a, std::vector<int>{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S07a, push_e1a)); \
+   test(ex, make_expected(S07b, push_e1b)); \
+   test(ex, make_expected(S04b, map_type{}, aedis::error::expects_resp3_map));\
+   test(ex, make_expected(S03b, map_e1f));\
+   test(ex, make_expected(S03b, map_e1g));\
+   test(ex, make_expected(S03b, map_e1k));\
+   test(ex, make_expected(S03b, map_e1l));\
+   test(ex, make_expected(S03b, map_expected_1a));\
+   test(ex, make_expected(S03b, map_expected_1b));\
+   test(ex, make_expected(S03b, map_expected_1c));\
+   test(ex, make_expected(S03b, map_expected_1d));\
+   test(ex, make_expected(S03b, map_expected_1e));\
+   test(ex, make_expected(S04c, std::tuple<op_map_type>{map_expected_1d}));\
+   test(ex, make_expected(S08a, attr_e1a)); \
+   test(ex, make_expected(S08b, attr_e1b)); \
+   test(ex, make_expected(S04e, array_e1a));\
+   test(ex, make_expected(S04e, array_e1b));\
+   test(ex, make_expected(S04e, array_e1c));\
+   test(ex, make_expected(S04e, array_e1f));\
+   test(ex, make_expected(S04e, array_e1g));\
+   test(ex, make_expected(S04e, array_e1h));\
+   test(ex, make_expected(S04e, array_type2{}, aedis::error::incompatible_size));\
+   test(ex, make_expected(S04e, tuple_int_2{}, aedis::error::incompatible_size));\
+   test(ex, make_expected(S04f, array_type2{}, aedis::error::nested_aggregate_not_supported));\
+   test(ex, make_expected(S04g, vec_node_type{}, aedis::error::exceeeds_max_nested_depth));\
+   test(ex, make_expected(S04h, array_e1d));\
+   test(ex, make_expected(S04h, array_e1e));\
+   test(ex, make_expected(S04i, set_type{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S09a, set_e1c)); \
+   test(ex, make_expected(S09a, set_e1d)); \
+   test(ex, make_expected(S09a, set_e1f)); \
+   test(ex, make_expected(S09a, set_e1g)); \
+   test(ex, make_expected(S09a, set_expected1a)); \
+   test(ex, make_expected(S09a, set_expected_1e)); \
+   test(ex, make_expected(S09a, set_type{"apple", "one", "orange", "three", "two"})); \
+   test(ex, make_expected(S04d, std::tuple<uset_type>{set_e1c})); \
+   test(ex, make_expected(S09b, std::vector<node_type>{ {resp3::type::set,  0UL, 0UL, {}} })); \
+   test(ex, make_expected(S10a, aedis::ignore{}, aedis::error::resp3_simple_error)); \
+   test(ex, make_expected(S10a, node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, aedis::error::resp3_simple_error)); \
+   test(ex, make_expected(S10b, node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, aedis::error::resp3_simple_error)); \
+   test(ex, make_expected(S03c, map_type{}));\
+   test(ex, make_expected(S11a, node_type{resp3::type::doublean, 1UL, 0UL, {"1.23"}}));\
+   test(ex, make_expected(S11b, node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}));\
+   test(ex, make_expected(S11c, node_type{resp3::type::doublean, 1UL, 0UL, {"-inf"}}));\
+   test(ex, make_expected(S11d, double{1.23}));\
+   test(ex, make_expected(S11e, double{0}, aedis::error::not_a_double));\
+   test(ex, make_expected(S12a, node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, aedis::error::resp3_blob_error));\
+   test(ex, make_expected(S12b, node_type{resp3::type::blob_error, 1UL, 0UL, {}}, aedis::error::resp3_blob_error));\
+   test(ex, make_expected(S12c, aedis::ignore{}, aedis::error::resp3_blob_error));\
+   test(ex, make_expected(S13a, node_type{resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}}));\
+   test(ex, make_expected(S13b, node_type{resp3::type::verbatim_string, 1UL, 0UL, {}}));\
+   test(ex, make_expected(S14a, node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}));\
+   test(ex, make_expected(S14b, int{}, aedis::error::empty_field));\
+   test(ex, make_expected(S15a, std::optional<std::string>{"OK"}));\
+   test(ex, make_expected(S15a, std::string{"OK"}));\
+   test(ex, make_expected(S15b, std::optional<std::string>{""}));\
+   test(ex, make_expected(S15b, std::string{""}));\
+   test(ex, make_expected(S16a, int{}, aedis::error::invalid_data_type));\
+   test(ex, make_expected(S05d, int{11}, aedis::error::not_a_number));\
+   test(ex, make_expected(S03d, map_type{}, aedis::error::not_a_number));\
+   test(ex, make_expected(S02d, std::string{}, aedis::error::not_a_number));\
+   test(ex, make_expected(S17a, std::string{}, aedis::error::not_a_number));\
+   test(ex, make_expected(S05e, int{}, aedis::error::empty_field));\
+   test(ex, make_expected(S01d, std::optional<bool>{}, aedis::error::empty_field));\
+   test(ex, make_expected(S11f, std::string{}, aedis::error::empty_field));\
+   test(ex, make_expected(S17b, node_type{resp3::type::blob_string, 1UL, 0UL, {"hh"}}));\
+   test(ex, make_expected(S18c, node_type{resp3::type::blob_string, 1UL, 0UL, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}}));\
+   test(ex, make_expected(S18d, node_type{resp3::type::blob_string, 1UL, 0UL, {}}));\
    test(ex, make_expected(make_blob_string(blob), node_type{resp3::type::blob_string, 1UL, 0UL, {blob}}));\
 
 BOOST_AUTO_TEST_CASE(parser)
@@ -489,7 +505,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_simple_error)
    boost::system::error_code ec;
 
    test_stream ts {ioc};
-   ts.append(S28);
+   ts.append(S10a);
    resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
    BOOST_CHECK_EQUAL(ec, aedis::error::resp3_simple_error);
    BOOST_TEST(!rbuffer.empty());
@@ -502,7 +518,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_blob_error)
    boost::system::error_code ec;
 
    test_stream ts {ioc};
-   ts.append(S36);
+   ts.append(S12a);
    resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
    BOOST_CHECK_EQUAL(ec, aedis::error::resp3_blob_error);
    BOOST_TEST(!rbuffer.empty());
@@ -515,7 +531,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_no_error)
    boost::system::error_code ec;
 
    test_stream ts {ioc};
-   ts.append(S10);
+   ts.append(S05b);
    resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
    BOOST_TEST(!ec);
    BOOST_TEST(rbuffer.empty());

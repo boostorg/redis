@@ -9,7 +9,7 @@
 
 namespace aedis::resp3::detail {
 
-auto has_push_response(std::string_view cmd) -> bool
+auto has_response(std::string_view cmd) -> bool
 {
    if (cmd == "SUBSCRIBE") return true;
    if (cmd == "PSUBSCRIBE") return true;
