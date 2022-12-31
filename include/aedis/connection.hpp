@@ -120,7 +120,7 @@ public:
     *  @param adapter Response adapter.
     *  @param token Asio completion token.
     *
-    *  For an example see echo_server.cpp. The completion token must
+    *  For an example see cpp20_echo_server.cpp. The completion token must
     *  have the following signature
     *
     *  @code
@@ -150,7 +150,7 @@ public:
     *  @param adapter The response adapter.
     *  @param token The Asio completion token.
     *
-    *  For an example see subscriber.cpp. The completion token must
+    *  For an example see cpp20_subscriber.cpp. The completion token must
     *  have the following signature
     *
     *  @code

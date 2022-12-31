@@ -32,7 +32,7 @@ auto async_main() -> net::awaitable<void>
    req.push("QUIT");
 
    // Responses as tuple elements.
-   std::tuple<aedis::ignore, std::map<std::string, std::string>, aedis::ignore> resp;
+   std::tuple<ignore, std::map<std::string, std::string>, ignore> resp;
 
    // Executes the request and reads the response.
    co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
@@ -41,129 +41,135 @@ auto async_main() -> net::awaitable<void>
 }
 ```
 
-For different versions of this example using different styles see
+For other versions of this example that use different styles see
 
-* cpp20_intro.cpp: Does not use awaitable operators
-* cpp20_intro_awaitable_ops.cpp: The version above.
-* cpp17_intro.cpp: Requires C++17 only.
+* cpp20_intro.cpp: Does not use awaitable operators.
+* cpp20_intro_awaitable_ops.cpp: The version from above.
+* cpp17_intro.cpp: Uses callbacks and requires C++17.
 * cpp20_intro_tls.cpp: Communicates over TLS.
 
 The execution of `connection::async_exec` above is composed with
 `connection::async_run` with the aid of the Asio awaitable `operator ||`
 that ensures that  one operation is cancelled as soon as the other
-completes, these functions play the following roles
+completes. These functions play the following roles
 
 * `connection::async_exec`: Execute commands by queuing the request
   for writing. It will wait for the response sent back by Redis and
      can be called from multiple places in your code concurrently.
 * `connection::async_run`: Coordinate low-level read and write
   operations. More specifically, it will hand IO control to
-  `async_exec` when a response arrives, to
-  `async_receive` when a server-push is received
-  and will trigger writes of pending requests when a reconnection
-  occurs.
+  `async_exec` when a response arrives and to `async_receive` when a
+  server-push is received. It will also trigger writes of pending
+  requests when a reconnection occurs.
 
 The role played by `async_run` can be better understood in the context
 of long-lived connections, which we will cover in the next section.
-Before that however, the reader might want to skim over some further examples
-
-* cpp20_containers.cpp: Shows how to send and receive STL containers and how to use transactions.
-* cpp20_serialization.cpp: Shows how to serialize types using Boost.Json.
-* cpp20_resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
-* cpp20_subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
-* cpp20_echo_server.cpp: A simple TCP echo server.
-* cpp20_chat_room.cpp: A command line chat built on Redis pubsub.
-* cpp20_low_level_async.cpp: Sends a ping asynchronously using the low-level API.
-* cpp17_low_level_sync.cpp: Sends a ping synchronously using the low-level API.
-
-To avoid repetition code that is common to some examples has been
-grouped in common.hpp. The main function used in some async examples
-has been factored out in the main.cpp file.
 
 <a name="connection"></a>
 ## Connection
 
 For performance reasons we will usually want to perform multiple
-requests on the same connection. We can do this with the example above
-by decoupling the `HELLO` command and the call to `async_run` in a
-separate coroutine
+requests in the same connection. We can do this in the example above
+by letting `async_run` run detached in a separate coroutine, for
+example (see cpp20_intro.cpp)
 
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    co_await connect(conn, "127.0.0.1", "6379");
-
-   resp3::request req;
-   req.push("HELLO", 3); // Upgrade to RESP3
-
-   // Notice we use && instead of || so async_run is not cancelled
-   // when the HELLO response arrives. We are also ignoring the
-   // response for simplicity.
-   co_await (conn->async_run() && conn->async_exec(req));
+   co_await conn->async_run();
 }
-```
-We can now let `run` run detached in the background while other
-coroutines perform requests on the connection, for example
 
-```cpp
-auto async_main() -> net::awaitable<void>
+auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   resp3::request req;
+   req.push("HELLO", 3);
 
-   // Run detached.
-   net::co_spawn(ex, run(conn), net::detached);
+   co_await conn->async_exec(req);
+}
 
-   // Here we can use the connection to perform requests and pass it
-   // around to other coroutines so they can make requests.
-
+auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
    resp3::request req;
    req.push("PING", "Hello world");
-   co_await conn->async_exec(req);
+   req.push("QUIT");
 
-   ...
+   std::tuple<std::string, aedis::ignore> resp;
+   co_await conn->async_exec(req, adapt(resp));
+   // Use the response ...
+}
 
-   // Cancels the run operation so we can exit.
-   conn->cancel(operation::run);
+auto async_main() -> net::awaitable<void>
+{
+   auto ex = co_await net::this_coro::executor;
+   auto conn = std::make_shared<connection>(ex);
+   net::co_spawn(ex, run(conn), net::detached);
+   co_await hello(conn);
+   co_await ping(conn);
+
+   // Here we can pass conn to other coroutines that need to
+   // communicate with Redis.
 }
 ```
 
-With this separation, it is now easy to incorporate other operations
-in our application, for example, to cancel the connection on `SIGINT`
-and `SIGTERM` we can extend `run` as follows
+With this separation, it is now easy to incorporate other long-running
+operations in our application, for example, the run coroutine below
+adds signal handling and a healthy checker
 
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   co_await connect(conn, "127.0.0.1", "6379");
    signal_set sig{ex, SIGINT, SIGTERM};
-
-   resp3::request req;
-   req.push("HELLO", 3);
-
-   co_await ((conn->async_run() || sig.async_wait()) && conn->async_exec(req));
+   co_await connect(conn, "127.0.0.1", "6379");
+   co_await (conn->async_run() || sig.async_wait() || healthy_checker(conn));
 }
 ```
 
-Likewise we can incorporate support for server pushes, healthy checks and pubsub
+Here we use Asio awaitable operator for simplicity, the same
+functionality can be achieved by means of the
+`aedis::connection::cancel` function. The definition of the
+`healthy_checker` used above can be found in common.cpp.
+
+### Server pushes
+
+Redis servers can also send a variety of pushes to the client, some of
+them are
+
+* [Pubsub](https://redis.io/docs/manual/pubsub/)
+* [Keyspace notification](https://redis.io/docs/manual/keyspace-notifications/)
+* [Client-side caching](https://redis.io/docs/manual/client-side-caching/)
+
+The connection class supports that by means of the
+`aedis::connection::async_receive` function
+
+```cpp
+auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   using resp_type = std::vector<resp3::node<std::string>>;
+   for (resp_type resp;;) {
+      co_await conn->async_receive(adapt(resp));
+      // Use resp and clear the response for a new push.
+      resp.clear();
+   }
+}
+```
+
+This function can be also easily incorporated in the run function from
+above, for example
 
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   co_await connect(conn, "127.0.0.1", "6379");
    signal_set sig{ex, SIGINT, SIGTERM};
-
-   resp3::request req;
-   req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "channel1", "channel2");
-
-   co_await ((conn->async_run() || sig.async_wait() || receiver(conn) || healthy_checker(conn))
-             && conn->async_exec(req));
+   co_await connect(conn, "127.0.0.1", "6379");
+   co_await (conn->async_run() || sig.async_wait() || healthy_checker(conn) || receiver(conn));
 }
 ```
 
-The definition of `receiver` and `healthy_checker` above can be found
-in cpp20_subscriber.cpp.  Adding a loop around `async_run` produces a simple
-way to support reconnection _while there are pending operations on the connection_,
+### Reconnecting
+
+Adding a loop around `async_run` produces a simple way to support
+reconnection _while there are pending operations on the connection_,
 for example, to reconnect to the same address
 
 ```cpp
@@ -172,15 +178,11 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
    auto ex = co_await net::this_coro::executor;
    steady_timer timer{ex};
 
-   resp3::request req;
-   req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "channel1", "channel2");
-
    for (;;) {
       co_await connect(conn, "127.0.0.1", "6379");
-      co_await ((conn->async_run() || healthy_checker(conn) || receiver(conn)) && conn->async_exec(req));
+      co_await (conn->async_run() || healthy_checker(conn) || receiver(conn);
 
-      // Prepare the stream to a new connection.
+      // Prepare the stream for a new connection.
       conn->reset_stream();
 
       // Waits one second before trying to reconnect.
@@ -225,8 +227,6 @@ co_await (conn.async_exec(...) || time.async_wait(...))
 
 * Provides a way to limit how long the execution of a single request
   should last.
-* The cancellation will be ignored if the request has already
-  been written to the socket.
 * NOTE: It is usually a better idea to have a healthy checker than adding
   per request timeout, see cpp20_subscriber.cpp for an example.
 
@@ -242,8 +242,8 @@ co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec
 
 * This works but is unnecessary. Unless the user has set
   `aedis::resp3::request::config::coalesce` to `false`, and he
-  shouldn't, the connection will automatically merge the individual
-  requests into a single payload anyway.
+  usually shouldn't, the connection will automatically merge the
+  individual requests into a single payload anyway.
 
 <a name="requests"></a>
 ## Requests
@@ -582,6 +582,23 @@ from Redis with `HGETALL`, some of the options are
 In addition to the above users can also use unordered versions of the
 containers. The same reasoning also applies to sets e.g. `SMEMBERS`
 and other data structures in general.
+
+## Examples
+
+The examples below show how to use the features discussed so far
+
+* cpp20_containers.cpp: Shows how to send and receive STL containers and how to use transactions.
+* cpp20_serialization.cpp: Shows how to serialize types using Boost.Json.
+* cpp20_resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
+* cpp20_subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
+* cpp20_echo_server.cpp: A simple TCP echo server.
+* cpp20_chat_room.cpp: A command line chat built on Redis pubsub.
+* cpp20_low_level_async.cpp: Sends a ping asynchronously using the low-level API.
+* cpp17_low_level_sync.cpp: Sends a ping synchronously using the low-level API.
+
+To avoid repetition code that is common to some examples has been
+grouped in common.hpp. The main function used in some async examples
+has been factored out in the main.cpp file.
 
 ## Echo server benchmark
 

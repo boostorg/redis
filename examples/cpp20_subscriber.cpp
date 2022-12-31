@@ -14,7 +14,6 @@
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 using namespace net::experimental::awaitable_operators;
-using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
 using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using aedis::adapt;
 
@@ -37,7 +36,8 @@ using aedis::adapt;
 // Receives pushes.
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   for (std::vector<resp3::node<std::string>> resp;;) {
+   using resp_type = std::vector<resp3::node<std::string>>;
+   for (resp_type resp;;) {
       co_await conn->async_receive(adapt(resp));
       std::cout << resp.at(1).value << " " << resp.at(2).value << " " << resp.at(3).value << std::endl;
       resp.clear();
@@ -48,7 +48,6 @@ auto async_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   signal_set sig{ex, SIGINT, SIGTERM};
    steady_timer timer{ex};
 
    resp3::request req;
@@ -58,8 +57,7 @@ auto async_main() -> net::awaitable<void>
    // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
    for (;;) {
       co_await connect(conn, "127.0.0.1", "6379");
-      co_await ((conn->async_run() || healthy_checker(conn) || sig.async_wait() ||
-               receiver(conn)) && conn->async_exec(req));
+      co_await ((conn->async_run() || healthy_checker(conn) || receiver(conn)) && conn->async_exec(req));
 
       conn->reset_stream();
       timer.expires_after(std::chrono::seconds{1});

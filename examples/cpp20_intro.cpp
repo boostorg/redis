@@ -12,6 +12,7 @@
 namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 using aedis::adapt;
+using aedis::operation;
 
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
@@ -19,22 +20,35 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
    co_await conn->async_run();
 }
 
-// Called from the main function (see main.cpp)
-auto async_main() -> net::awaitable<void>
+auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    resp3::request req;
    req.push("HELLO", 3);
+
+   co_await conn->async_exec(req);
+}
+
+auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   resp3::request req;
    req.push("PING", "Hello world");
    req.push("QUIT");
 
-   std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+   std::tuple<std::string, aedis::ignore> resp;
 
+   co_await conn->async_exec(req, adapt(resp));
+
+   std::cout << "PING: " << std::get<0>(resp) << std::endl;
+}
+
+// Called from the main function (see main.cpp)
+auto async_main() -> net::awaitable<void>
+{
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
    net::co_spawn(ex, run(conn), net::detached);
-   co_await conn->async_exec(req, adapt(resp));
-
-   std::cout << "PING: " << std::get<1>(resp) << std::endl;
+   co_await hello(conn);
+   co_await ping(conn);
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
