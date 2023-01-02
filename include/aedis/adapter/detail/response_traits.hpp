@@ -7,17 +7,17 @@
 #ifndef AEDIS_ADAPTER_RESPONSE_TRAITS_HPP
 #define AEDIS_ADAPTER_RESPONSE_TRAITS_HPP
 
-#include <vector>
-#include <tuple>
-#include <string_view>
-#include <variant>
-
-#include <boost/mp11.hpp>
-
 #include <aedis/error.hpp>
 #include <aedis/resp3/type.hpp>
 #include <aedis/resp3/read.hpp>
 #include <aedis/adapter/detail/adapters.hpp>
+
+#include <boost/mp11.hpp>
+
+#include <vector>
+#include <tuple>
+#include <string_view>
+#include <variant>
 
 namespace aedis::adapter::detail {
 

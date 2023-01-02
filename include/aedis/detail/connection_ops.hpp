@@ -7,16 +7,6 @@
 #ifndef AEDIS_CONNECTION_OPS_HPP
 #define AEDIS_CONNECTION_OPS_HPP
 
-#include <array>
-#include <algorithm>
-#include <string_view>
-
-#include <boost/assert.hpp>
-#include <boost/system.hpp>
-#include <boost/asio/write.hpp>
-#include <boost/core/ignore_unused.hpp>
-#include <boost/asio/experimental/parallel_group.hpp>
-
 #include <aedis/adapt.hpp>
 #include <aedis/error.hpp>
 #include <aedis/detail/guarded_operation.hpp>
@@ -26,7 +16,15 @@
 #include <aedis/resp3/write.hpp>
 #include <aedis/resp3/request.hpp>
 
-#include <boost/asio/yield.hpp>
+#include <boost/assert.hpp>
+#include <boost/system.hpp>
+#include <boost/asio/write.hpp>
+#include <boost/core/ignore_unused.hpp>
+#include <boost/asio/experimental/parallel_group.hpp>
+
+#include <array>
+#include <algorithm>
+#include <string_view>
 
 namespace aedis::detail {
 
@@ -45,7 +43,7 @@ struct exec_read_op {
              , boost::system::error_code ec = {}
              , std::size_t n = 0)
    {
-      reenter (coro)
+      BOOST_ASIO_CORO_REENTER (coro)
       {
          // Loop reading the responses to this request.
          BOOST_ASSERT(!conn->reqs_.empty());
@@ -57,7 +55,7 @@ struct exec_read_op {
             // to hand it to the push consumer. To do that we need
             // some data in the read bufer.
             if (conn->read_buffer_.empty()) {
-               yield
+               BOOST_ASIO_CORO_YIELD
                boost::asio::async_read_until(
                   conn->next_layer(),
                   conn->make_dynamic_buffer(),
@@ -68,13 +66,14 @@ struct exec_read_op {
             // If the next request is a push we have to handle it to
             // the receive_op wait for it to be done and continue.
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
-               yield conn->guarded_op_.async_run(std::move(self));
+               BOOST_ASIO_CORO_YIELD
+               conn->guarded_op_.async_run(std::move(self));
                AEDIS_CHECK_OP1(conn->cancel(operation::run););
                continue;
             }
             //-----------------------------------
 
-            yield
+            BOOST_ASIO_CORO_YIELD
             resp3::async_read(
                conn->next_layer(),
                conn->make_dynamic_buffer(adapter.get_max_read_size(index)),
@@ -116,7 +115,7 @@ struct exec_op {
              , boost::system::error_code ec = {}
              , std::size_t n = 0)
    {
-      reenter (coro)
+      BOOST_ASIO_CORO_REENTER (coro)
       {
          // Check whether the user wants to wait for the connection to
          // be stablished.
@@ -128,7 +127,8 @@ struct exec_op {
 
          conn->add_request_info(info);
 EXEC_OP_WAIT:
-         yield info->async_wait(std::move(self));
+         BOOST_ASIO_CORO_YIELD
+         info->async_wait(std::move(self));
          BOOST_ASSERT(ec == boost::asio::error::operation_aborted);
 
          if (info->stop_requested()) {
@@ -170,7 +170,7 @@ EXEC_OP_WAIT:
          BOOST_ASSERT(!conn->reqs_.empty());
          BOOST_ASSERT(conn->reqs_.front() != nullptr);
          BOOST_ASSERT(conn->cmds_ != 0);
-         yield
+         BOOST_ASIO_CORO_YIELD
          conn->async_exec_read(adapter, conn->reqs_.front()->get_number_of_commands(), std::move(self));
          AEDIS_CHECK_OP1(;);
 
@@ -204,12 +204,12 @@ struct run_op {
                   , boost::system::error_code ec0 = {}
                   , boost::system::error_code ec1 = {})
    {
-      reenter (coro)
+      BOOST_ASIO_CORO_REENTER (coro)
       {
          conn->write_buffer_.clear();
          conn->cmds_ = 0;
 
-         yield
+         BOOST_ASIO_CORO_YIELD
          boost::asio::experimental::make_parallel_group(
             [this](auto token) { return conn->reader(token);},
             [this](auto token) { return conn->writer(token);}
@@ -243,11 +243,11 @@ struct writer_op {
    {
       boost::ignore_unused(n);
 
-      reenter (coro) for (;;)
+      BOOST_ASIO_CORO_REENTER (coro) for (;;)
       {
          while (!conn->reqs_.empty() && conn->cmds_ == 0 && conn->write_buffer_.empty()) {
             conn->coalesce_requests();
-            yield
+            BOOST_ASIO_CORO_YIELD
             boost::asio::async_write(conn->next_layer(), boost::asio::buffer(conn->write_buffer_), std::move(self));
             AEDIS_CHECK_OP0(conn->cancel(operation::run););
 
@@ -262,7 +262,8 @@ struct writer_op {
             }
          }
 
-         yield conn->writer_timer_.async_wait(std::move(self));
+         BOOST_ASIO_CORO_YIELD
+         conn->writer_timer_.async_wait(std::move(self));
          if (!conn->is_open() || is_cancelled(self)) {
             // Notice this is not an error of the op, stoping was
             // requested from the outside, so we complete with
@@ -286,9 +287,9 @@ struct reader_op {
    {
       boost::ignore_unused(n);
 
-      reenter (coro) for (;;)
+      BOOST_ASIO_CORO_REENTER (coro) for (;;)
       {
-         yield
+         BOOST_ASIO_CORO_YIELD
          boost::asio::async_read_until(
             conn->next_layer(),
             conn->make_dynamic_buffer(),
@@ -322,13 +323,15 @@ struct reader_op {
          if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push
              || conn->reqs_.empty()
              || (!conn->reqs_.empty() && conn->reqs_.front()->get_number_of_commands() == 0)) {
-            yield conn->guarded_op_.async_run(std::move(self));
+            BOOST_ASIO_CORO_YIELD
+            conn->guarded_op_.async_run(std::move(self));
          } else {
             BOOST_ASSERT(conn->cmds_ != 0);
             BOOST_ASSERT(!conn->reqs_.empty());
             BOOST_ASSERT(conn->reqs_.front()->get_number_of_commands() != 0);
             conn->reqs_.front()->proceed();
-            yield conn->read_timer_.async_wait(std::move(self));
+            BOOST_ASIO_CORO_YIELD
+            conn->read_timer_.async_wait(std::move(self));
             ec = {};
          }
 
@@ -343,5 +346,4 @@ struct reader_op {
 
 } // aedis::detail
 
-#include <boost/asio/unyield.hpp>
 #endif // AEDIS_CONNECTION_OPS_HPP

@@ -7,13 +7,10 @@
 #ifndef AEDIS_CONNECTION_BASE_HPP
 #define AEDIS_CONNECTION_BASE_HPP
 
-#include <vector>
-#include <queue>
-#include <limits>
-#include <chrono>
-#include <memory>
-#include <type_traits>
-#include <memory_resource>
+#include <aedis/adapt.hpp>
+#include <aedis/operation.hpp>
+#include <aedis/resp3/request.hpp>
+#include <aedis/detail/connection_ops.hpp>
 
 #include <boost/assert.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -22,10 +19,13 @@
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/experimental/channel.hpp>
 
-#include <aedis/adapt.hpp>
-#include <aedis/operation.hpp>
-#include <aedis/resp3/request.hpp>
-#include <aedis/detail/connection_ops.hpp>
+#include <vector>
+#include <queue>
+#include <limits>
+#include <chrono>
+#include <memory>
+#include <type_traits>
+#include <memory_resource>
 
 namespace aedis::detail {
 
@@ -44,7 +44,6 @@ public:
    using executor_type = Executor;
    using this_type = connection_base<Executor, Derived>;
 
-   explicit
    connection_base(executor_type ex, std::pmr::memory_resource* resource)
    : writer_timer_{ex}
    , read_timer_{ex}
@@ -134,13 +133,8 @@ public:
       return ret;
    }
 
-   template <
-      class Adapter = detail::response_traits<void>::adapter_type,
-      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_exec(
-      resp3::request const& req,
-      Adapter adapter = adapt(),
-      CompletionToken token = CompletionToken{})
+   template <class Adapter, class CompletionToken>
+   auto async_exec(resp3::request const& req, Adapter adapter, CompletionToken token)
    {
       BOOST_ASSERT_MSG(req.size() <= adapter.get_supported_response_size(), "Request and adapter have incompatible sizes.");
 
@@ -150,12 +144,8 @@ public:
          >(detail::exec_op<Derived, Adapter>{&derived(), &req, adapter}, token, writer_timer_);
    }
 
-   template <
-      class Adapter = detail::response_traits<void>::adapter_type,
-      class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_receive(
-      Adapter adapter = adapt(),
-      CompletionToken token = CompletionToken{})
+   template <class Adapter, class CompletionToken>
+   auto async_receive(Adapter adapter, CompletionToken token)
    {
       auto f = detail::make_adapter_wrapper(adapter);
 

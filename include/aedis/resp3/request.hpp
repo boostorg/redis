@@ -7,10 +7,11 @@
 #ifndef AEDIS_RESP3_REQUEST_HPP
 #define AEDIS_RESP3_REQUEST_HPP
 
+#include <aedis/resp3/type.hpp>
+
 #include <string>
 #include <tuple>
 #include <memory_resource>
-#include <aedis/resp3/type.hpp>
 
 // NOTE: Consider detecting tuples in the type in the parameter pack
 // to calculate the header size correctly.

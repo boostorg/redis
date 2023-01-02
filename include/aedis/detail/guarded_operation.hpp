@@ -8,7 +8,6 @@
 #define AEDIS_DETAIL_GUARDED_OPERATION_HPP
 
 #include <boost/asio/experimental/channel.hpp>
-#include <boost/asio/yield.hpp>
 
 namespace aedis::detail {
 
@@ -21,12 +20,14 @@ struct send_receive_op {
    template <class Self>
    void operator()(Self& self, boost::system::error_code ec = {})
    {
-      reenter (coro)
+      BOOST_ASIO_CORO_REENTER (coro)
       {
-         yield channel->async_send(boost::system::error_code{}, 0, std::move(self));
+         BOOST_ASIO_CORO_YIELD
+         channel->async_send(boost::system::error_code{}, 0, std::move(self));
          AEDIS_CHECK_OP0(;);
 
-         yield channel->async_send(boost::system::error_code{}, 0, std::move(self));
+         BOOST_ASIO_CORO_YIELD
+         channel->async_send(boost::system::error_code{}, 0, std::move(self));
          AEDIS_CHECK_OP0(;);
 
          self.complete({});
@@ -48,17 +49,20 @@ struct wait_op {
              , boost::system::error_code ec = {}
              , std::size_t n = 0)
    {
-      reenter (coro)
+      BOOST_ASIO_CORO_REENTER (coro)
       {
-         yield channel->async_receive(std::move(self));
+         BOOST_ASIO_CORO_YIELD
+         channel->async_receive(std::move(self));
          AEDIS_CHECK_OP1(;);
 
-         yield std::move(op)(std::move(self));
+         BOOST_ASIO_CORO_YIELD
+         std::move(op)(std::move(self));
          AEDIS_CHECK_OP1(channel->cancel(););
 
          res = n;
 
-         yield channel->async_receive(std::move(self));
+         BOOST_ASIO_CORO_YIELD
+         channel->async_receive(std::move(self));
          AEDIS_CHECK_OP1(;);
 
          self.complete({}, res);
@@ -67,14 +71,14 @@ struct wait_op {
    }
 };
 
-template <class Executor = boost::asio::any_io_executor>
+template <class Executor>
 class guarded_operation {
 public:
    using executor_type = Executor;
    guarded_operation(executor_type ex) : channel_{ex} {}
 
-   template <class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_run(CompletionToken&& token = CompletionToken{})
+   template <class CompletionToken>
+   auto async_run(CompletionToken&& token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -82,8 +86,8 @@ public:
          >(send_receive_op<executor_type>{&channel_}, token, channel_);
    }
 
-   template <class Op, class CompletionToken = boost::asio::default_completion_token_t<executor_type>>
-   auto async_wait(Op&& op, CompletionToken token = CompletionToken{})
+   template <class Op, class CompletionToken>
+   auto async_wait(Op&& op, CompletionToken token)
    {
       return boost::asio::async_compose
          < CompletionToken
@@ -104,5 +108,4 @@ private:
 
 } // aedis::detail
 
-#include <boost/asio/unyield.hpp>
 #endif // AEDIS_DETAIL_GUARDED_OPERATION_HPP

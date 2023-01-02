@@ -32,13 +32,19 @@ auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    resp3::request req;
    req.push("PING", "Hello world");
-   req.push("QUIT");
 
-   std::tuple<std::string, aedis::ignore> resp;
-
+   std::tuple<std::string> resp;
    co_await conn->async_exec(req, adapt(resp));
 
    std::cout << "PING: " << std::get<0>(resp) << std::endl;
+}
+
+auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   resp3::request req;
+   req.push("QUIT");
+
+   co_await conn->async_exec(req);
 }
 
 // Called from the main function (see main.cpp)
@@ -49,6 +55,7 @@ auto async_main() -> net::awaitable<void>
    net::co_spawn(ex, run(conn), net::detached);
    co_await hello(conn);
    co_await ping(conn);
+   co_await quit(conn);
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

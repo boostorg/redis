@@ -7,11 +7,12 @@
 #ifndef AEDIS_CONNECTION_HPP
 #define AEDIS_CONNECTION_HPP
 
-#include <chrono>
-#include <memory>
+#include <aedis/detail/connection_base.hpp>
 
 #include <boost/asio/io_context.hpp>
-#include <aedis/detail/connection_base.hpp>
+
+#include <chrono>
+#include <memory>
 
 namespace aedis {
 

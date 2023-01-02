@@ -7,15 +7,15 @@
 #ifndef AEDIS_RESP3_READ_OPS_HPP
 #define AEDIS_RESP3_READ_OPS_HPP
 
-#include <string_view>
+#include <aedis/resp3/detail/parser.hpp>
+
 #include <boost/assert.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/core/ignore_unused.hpp>
-#include <aedis/resp3/detail/parser.hpp>
 
-#include <boost/asio/yield.hpp>
+#include <string_view>
 
 namespace aedis::detail
 {
@@ -79,9 +79,9 @@ public:
                   , boost::system::error_code ec = {}
                   , std::size_t n = 0)
    {
-      reenter (coro_) for (;;) {
+      BOOST_ASIO_CORO_REENTER (coro_) for (;;) {
          if (!parser_.bulk_expected()) {
-            yield
+            BOOST_ASIO_CORO_YIELD
             boost::asio::async_read_until(stream_, buf_, "\r\n", std::move(self));
             AEDIS_CHECK_OP1(;);
          } else {
@@ -96,7 +96,7 @@ public:
                buffer_size_ = buf_.size();
                buf_.grow(parser_.bulk_length() + 2 - buffer_size_);
 
-               yield
+               BOOST_ASIO_CORO_YIELD
                boost::asio::async_read(
                   stream_,
                   buf_.data(buffer_size_, parser_.bulk_length() + 2 - buffer_size_),
@@ -131,5 +131,4 @@ public:
 
 } // aedis::resp3::detail
 
-#include <boost/asio/unyield.hpp>
 #endif // AEDIS_RESP3_READ_OPS_HPP

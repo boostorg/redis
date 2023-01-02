@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/assert.hpp>
 #include <aedis/resp3/type.hpp>
+#include <boost/assert.hpp>
 
 namespace aedis::resp3 {
 

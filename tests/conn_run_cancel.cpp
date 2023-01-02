@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(reset_before_run_completes)
    ioc.run();
 }
 
-using slave_operation = aedis::detail::guarded_operation<>;
+using slave_operation = aedis::detail::guarded_operation<net::any_io_executor>;
 
 auto master(std::shared_ptr<slave_operation> op) -> net::awaitable<void>
 {

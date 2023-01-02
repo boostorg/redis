@@ -5,7 +5,7 @@ Aedis is a [Redis](https://redis.io/) client library built on top of
 that implements the latest version of the Redis communication
 protocol
 [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-It makes communication with a Redis server easy by hiding most of
+It makes communication with a Redis server easy by hiding some of
 the low-level Asio-related code away from the user, which in the majority of
 the cases will be concerned with only three library entities
 
@@ -48,14 +48,14 @@ For other versions of this example that use different styles see
 * cpp17_intro.cpp: Uses callbacks and requires C++17.
 * cpp20_intro_tls.cpp: Communicates over TLS.
 
-The execution of `connection::async_exec` above is composed with
+The execution of `connection::async_exec` in the example above is composed with
 `connection::async_run` with the aid of the Asio awaitable `operator ||`
 that ensures that  one operation is cancelled as soon as the other
 completes. These functions play the following roles
 
 * `connection::async_exec`: Execute commands by queuing the request
-  for writing. It will wait for the response sent back by Redis and
-     can be called from multiple places in your code concurrently.
+  for writing and wait for the response sent back by
+  Redis. Can be called from multiple places in your code concurrently.
 * `connection::async_run`: Coordinate low-level read and write
   operations. More specifically, it will hand IO control to
   `async_exec` when a response arrives and to `async_receive` when a
@@ -92,11 +92,18 @@ auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    resp3::request req;
    req.push("PING", "Hello world");
-   req.push("QUIT");
 
-   std::tuple<std::string, aedis::ignore> resp;
+   std::tuple<std::string> resp;
    co_await conn->async_exec(req, adapt(resp));
    // Use the response ...
+}
+
+auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   resp3::request req;
+   req.push("QUIT");
+
+   co_await conn->async_exec(req);
 }
 
 auto async_main() -> net::awaitable<void>
@@ -106,9 +113,9 @@ auto async_main() -> net::awaitable<void>
    net::co_spawn(ex, run(conn), net::detached);
    co_await hello(conn);
    co_await ping(conn);
+   co_await quit(conn);
 
-   // Here we can pass conn to other coroutines that need to
-   // communicate with Redis.
+   // Pass conn around to other coroutines that need to communicate with Redis.
 }
 ```
 
@@ -125,7 +132,7 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 ```
 
-Here we use Asio awaitable operator for simplicity, the same
+Here we use Asio awaitable operators for simplicity, the same
 functionality can be achieved by means of the
 `aedis::connection::cancel` function. The definition of the
 `healthy_checker` used above can be found in common.cpp.
@@ -170,7 +177,7 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 Adding a loop around `async_run` produces a simple way to support
 reconnection _while there are pending operations on the connection_,
-for example, to reconnect to the same address
+for example, to reconnect to the same address (see cpp20_subscriber.cpp)
 
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -192,8 +199,15 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 ```
 
-For failover with sentinels see `cpp20_resolve_with_sentinel.cpp`.  At
-this point the reasons for why `async_run` was introduced in Aedis
+This feature results in considerable simplification of backend code
+and makes it easier to write failover-safe applications. For example,
+a HTTP server might have a 100 sessions communicating with Redis at
+the time the connection is lost (or maybe killed by the server admin
+to force a failover). It would be annoying if each individual section
+were to throw exceptions and handle error.  With the pattern shown
+above the only place that has to managed is the run function.
+
+At this point the reasons for why `async_run` was introduced in Aedis
 might have become apparent to the reader
 
 * Provide quick reaction to disconnections and hence faster failovers.
@@ -845,6 +859,7 @@ Acknowledgement to people that helped shape Aedis
 * Petr Dannhofer ([Eddie-cz](https://github.com/Eddie-cz)): For helping me understand how the `AUTH` and `HELLO` command can influence each other.
 * Mohammad Nejati ([ashtum](https://github.com/ashtum)): For pointing out scenarios where calls to `async_exec` should fail when the connection is lost.
 * Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, cancellation, synchronous interfaces and general help with Asio.
+* Vinnie Falco ([vinniefalco](https://github.com/vinniefalco)): For general suggestions about how to improve the code and the documentation.
 
 ## Changelog
 

@@ -7,6 +7,14 @@
 #ifndef AEDIS_ADAPTER_ADAPTERS_HPP
 #define AEDIS_ADAPTER_ADAPTERS_HPP
 
+#include <aedis/error.hpp>
+#include <aedis/resp3/type.hpp>
+#include <aedis/resp3/request.hpp>
+#include <aedis/resp3/detail/parser.hpp>
+#include <aedis/resp3/node.hpp>
+
+#include <boost/assert.hpp>
+
 #include <set>
 #include <optional>
 #include <unordered_set>
@@ -20,14 +28,6 @@
 #include <array>
 #include <string_view>
 #include <charconv>
-
-#include <boost/assert.hpp>
-
-#include <aedis/error.hpp>
-#include <aedis/resp3/type.hpp>
-#include <aedis/resp3/request.hpp>
-#include <aedis/resp3/detail/parser.hpp>
-#include <aedis/resp3/node.hpp>
 
 namespace aedis::adapter::detail {
 

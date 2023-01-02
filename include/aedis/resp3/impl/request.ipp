@@ -4,8 +4,9 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <string_view>
 #include <aedis/resp3/request.hpp>
+
+#include <string_view>
 
 namespace aedis::resp3::detail {
 
