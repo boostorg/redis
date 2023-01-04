@@ -1,21 +1,43 @@
 # Aedis
 
 Aedis is a [Redis](https://redis.io/) client library built on top of
-[Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
+[Boost.Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
 that implements the latest version of the Redis communication
 protocol
 [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-It makes communication with a Redis server easy by hiding some of
-the low-level Asio-related code away from the user, which in the majority of
-the cases will be concerned with only three library entities
+It makes communication with a Redis server easy by hiding low-level
+Asio-related code away from the user, which, in the majority of the
+cases will be concerned with only three library entities
 
 * `aedis::connection`: A connection to the Redis server.
 * `aedis::resp3::request`: A container of Redis commands.
-* `aedis::adapt()`: Adapts data structures to receive responses.
+* `aedis::adapt()`: A function that adapts data structures to receive responses.
 
-For example, the coroutine below uses a short-lived connection to read Redis
-[hashes](https://redis.io/docs/data-types/hashes/)
-in a `std::map`
+The requirements for using Aedis are
+
+* Boost 1.80 or greater.
+* C++17 minimum.
+* Redis 6 or higher (must support RESP3).
+* Have basic-level knowledge about Redis and understand Asio and its asynchronous model.
+
+Readers that are not familiar with Redis can learn more about
+it on https://redis.io/docs/, in essence
+
+> Redis is an open source (BSD licensed), in-memory data structure
+> store used as a database, cache, message broker, and streaming
+> engine. Redis provides data structures such as strings, hashes,
+> lists, sets, sorted sets with range queries, bitmaps, hyperloglogs,
+> geospatial indexes, and streams. Redis has built-in replication, Lua
+> scripting, LRU eviction, transactions, and different levels of
+> on-disk persistence, and provides high availability via Redis
+> Sentinel and automatic partitioning with Redis Cluster.
+
+<a name="connection"></a>
+## Connection
+
+Let us start with a simple application that uses a short-lived
+connection to read Redis
+[hashes](https://redis.io/docs/data-types/hashes/) in a `std::map`
 
 ```cpp
 auto async_main() -> net::awaitable<void>
@@ -31,27 +53,21 @@ auto async_main() -> net::awaitable<void>
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   // Responses as tuple elements.
+   // The tuple elements below will store the response to each
+   // individual command. The responses to HELLO and QUIT are being
+   // ignored for simplicity.
    std::tuple<ignore, std::map<std::string, std::string>, ignore> resp;
 
-   // Executes the request and reads the response.
+   // Executes the request. See below why we are using operator ||.
    co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
-
    // Use the map from std::get<1>(resp) ...
 }
 ```
 
-For other versions of this example that use different styles see
-
-* cpp20_intro.cpp: Does not use awaitable operators.
-* cpp20_intro_awaitable_ops.cpp: The version from above.
-* cpp17_intro.cpp: Uses callbacks and requires C++17.
-* cpp20_intro_tls.cpp: Communicates over TLS.
-
-The execution of `connection::async_exec` in the example above is composed with
-`connection::async_run` with the aid of the Asio awaitable `operator ||`
-that ensures that  one operation is cancelled as soon as the other
-completes. These functions play the following roles
+The example above uses the Asio awaitable `operator ||` to launch
+`connection::async_exec` and `connection::async_run` in parallel and
+to cancel one of the operations when the other completes.  The role
+played by these functions are
 
 * `connection::async_exec`: Execute commands by queuing the request
   for writing and wait for the response sent back by
@@ -62,11 +78,12 @@ completes. These functions play the following roles
   server-push is received. It will also trigger writes of pending
   requests when a reconnection occurs.
 
-The role played by `async_run` can be better understood in the context
-of long-lived connections, which we will cover in the next section.
+The example above is also available in other programming styles for comparison
 
-<a name="connection"></a>
-## Connection
+* cpp20_intro.cpp: Does not use awaitable operators.
+* cpp20_intro_awaitable_ops.cpp: The version from above.
+* cpp17_intro.cpp: Uses callbacks and requires C++17.
+* cpp20_intro_tls.cpp: Communicates over TLS.
 
 For performance reasons we will usually want to perform multiple
 requests in the same connection. We can do this in the example above
@@ -132,10 +149,7 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 ```
 
-Here we use Asio awaitable operators for simplicity, the same
-functionality can be achieved by means of the
-`aedis::connection::cancel` function. The definition of the
-`healthy_checker` used above can be found in common.cpp.
+The definition of the `healthy_checker` used above can be found in common.cpp.
 
 ### Server pushes
 
@@ -146,8 +160,8 @@ them are
 * [Keyspace notification](https://redis.io/docs/manual/keyspace-notifications/)
 * [Client-side caching](https://redis.io/docs/manual/client-side-caching/)
 
-The connection class supports that by means of the
-`aedis::connection::async_receive` function
+The connection class supports server pushes by means of the
+`aedis::connection::async_receive` function, for example
 
 ```cpp
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -161,8 +175,8 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 ```
 
-This function can be also easily incorporated in the run function from
-above, for example
+The `receiver` defined above can be run detached or incorporated
+in the `run` function as we did for the `healthy_checker`
 
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -207,26 +221,13 @@ to force a failover). It would be annoying if each individual section
 were to throw exceptions and handle error.  With the pattern shown
 above the only place that has to managed is the run function.
 
-At this point the reasons for why `async_run` was introduced in Aedis
-might have become apparent to the reader
-
-* Provide quick reaction to disconnections and hence faster failovers.
-* Support server pushes and requests in the same connection object, concurrently.
-* Separate requests, handling of server pushes and reconnect operations.
-
 ### Cancellation
 
 Aedis supports both implicit and explicit cancellation of connection
 operations. Explicit cancellation is supported by means of the
-`aedis::connection::cancel` member function. Implicit cancellation,
-like those that may happen when using Asio awaitable operators `&&` and
-`||` will be discussed with more detail below.
-
-```cpp
-co_await (conn.async_run(...) && conn.async_exec(...))
-```
-
-* Provides a simple way to send HELLO and perform channel subscription.
+`aedis::connection::cancel` member function. Implicit
+terminal-cancellation, like those that happen when using Asio
+awaitable `operator ||` will be discussed with more detail below.
 
 ```cpp
 co_await (conn.async_run(...) || conn.async_exec(...))
@@ -245,19 +246,13 @@ co_await (conn.async_exec(...) || time.async_wait(...))
   per request timeout, see cpp20_subscriber.cpp for an example.
 
 ```cpp
-co_await (conn.async_run(...) || time.async_wait(...))
-```
-
-* Sets a limit on how long the connection should live.
-
-```cpp
 co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
 ```
 
 * This works but is unnecessary. Unless the user has set
   `aedis::resp3::request::config::coalesce` to `false`, and he
   usually shouldn't, the connection will automatically merge the
-  individual requests into a single payload anyway.
+  individual requests into a single payload.
 
 <a name="requests"></a>
 ## Requests
@@ -334,7 +329,7 @@ reader is advised to read it carefully.
 Aedis uses the following strategy to support Redis responses
 
 * **Static**: For `aedis::resp3::request` whose sizes are known at compile time
-  std::tuple is supported.
+  `std::tuple` is supported.
 * **Dynamic**: Otherwise use `std::vector<aedis::resp3::node<std::string>>`.
 
 For example, below is a request with a compile time size
@@ -717,10 +712,10 @@ stars, namely
 
 ### Aedis vs Redis-plus-plus
 
-Before we start it is important to mentioning some of the things
+Before we start it is important to mention some of the things
 redis-plus-plus does not support
 
-* The latest version of the communication protocol RESP3. Without it it is impossible to support some important Redis features like client side caching, among other things.
+* The latest version of the communication protocol RESP3. Without that it is impossible to support some important Redis features like client side caching, among other things.
 * Coroutines.
 * Reading responses directly in user data structures to avoid creating temporaries.
 * Error handling with support for error-code.
@@ -817,7 +812,7 @@ It is also not clear how are pipelines realised with this design
 ## Reference
 
 * [High-Level](#high-level-api): Covers the topics discussed in this document.
-* [Low-Level](#low-level-api): Covers low-level building blocks. Provided mostly for developers, most users won't need any information provided here.
+* [Low-Level](#low-level-api): Covers low-level building blocks. Provided mostly for developers, users won't usually need any information provided here.
 
 ## Installation
 
@@ -836,13 +831,6 @@ examples and test cmake is supported, for example
 ```cpp
 BOOST_ROOT=/opt/boost_1_80_0 cmake --preset dev
 ```
-
-The requirements for using Aedis are
-
-- Boost 1.80 or greater.
-- C++17 minimum.
-- Redis 6 or higher (must support RESP3).
-- Optionally also redis-cli and Redis Sentinel.
 
 The following compilers are supported
 
