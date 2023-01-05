@@ -47,7 +47,7 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
 }
 
 // Called from the main function (see main.cpp)
-auto async_main() -> net::awaitable<void>
+auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
@@ -58,13 +58,13 @@ auto async_main() -> net::awaitable<void>
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "chat-channel");
 
-   co_await connect(conn, "127.0.0.1", "6379");
+   co_await connect(conn, host, port);
    co_await ((conn->async_run() || publisher(stream, conn) || receiver(conn) ||
          healthy_checker(conn) || sig.async_wait()) && conn->async_exec(req));
 }
 
 #else // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
-auto async_main() -> net::awaitable<void>
+auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
    std::cout << "Requires support for posix streams." << std::endl;
    co_return;

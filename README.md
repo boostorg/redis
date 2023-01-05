@@ -18,6 +18,7 @@ The requirements for using Aedis are
 * Boost 1.80 or greater.
 * C++17 minimum.
 * Redis 6 or higher (must support RESP3).
+* Gcc (10, 11, 12), Clang (11, 13, 14) and Visual Studio (16 2019, 17 2022).
 * Have basic-level knowledge about Redis and understand Asio and its asynchronous model.
 
 Readers that are not familiar with Redis can learn more about
@@ -40,20 +41,20 @@ connection to read Redis
 [hashes](https://redis.io/docs/data-types/hashes/) in a `std::map`
 
 ```cpp
-auto async_main() -> net::awaitable<void>
+auto co_main() -> net::awaitable<void>
 {
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
    // From examples/common.hpp to avoid vebosity
    co_await connect(conn, "127.0.0.1", "6379");
 
-   // A request contains multiple commands.
+   // A request can contains multiple commands.
    resp3::request req;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   // The tuple elements below will store the response to each
+   // The tuple elements below will store the responses to each
    // individual command. The responses to HELLO and QUIT are being
    // ignored for simplicity.
    std::tuple<ignore, std::map<std::string, std::string>, ignore> resp;
@@ -75,18 +76,18 @@ played by these functions are
 * `connection::async_run`: Coordinate low-level read and write
   operations. More specifically, it will hand IO control to
   `async_exec` when a response arrives and to `async_receive` when a
-  server-push is received. It will also trigger writes of pending
-  requests when a reconnection occurs.
+  server-push is received. It is also responsible for triggering writes of pending
+  requests.
 
 The example above is also available in other programming styles for comparison
 
+* cpp20_intro_awaitable_ops.cpp: The version shown above.
 * cpp20_intro.cpp: Does not use awaitable operators.
-* cpp20_intro_awaitable_ops.cpp: The version from above.
-* cpp17_intro.cpp: Uses callbacks and requires C++17.
 * cpp20_intro_tls.cpp: Communicates over TLS.
+* cpp17_intro.cpp: Uses callbacks and requires C++17.
 
 For performance reasons we will usually want to perform multiple
-requests in the same connection. We can do this in the example above
+requests with the same connection. We can do this in the example above
 by letting `async_run` run detached in a separate coroutine, for
 example (see cpp20_intro.cpp)
 
@@ -123,7 +124,7 @@ auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
    co_await conn->async_exec(req);
 }
 
-auto async_main() -> net::awaitable<void>
+auto co_main() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
@@ -132,18 +133,21 @@ auto async_main() -> net::awaitable<void>
    co_await ping(conn);
    co_await quit(conn);
 
-   // Pass conn around to other coroutines that need to communicate with Redis.
+   // conn can be passed around to other coroutines that need to
+   // communicate with Redis.  For example, sessions in a HTTP and
+   // Websocket server.
 }
 ```
 
 With this separation, it is now easy to incorporate other long-running
 operations in our application, for example, the run coroutine below
-adds signal handling and a healthy checker
+adds signal handling and a healthy checker (see cpp20_echo_server.cpp
+for example)
 
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   signal_set sig{ex, SIGINT, SIGTERM};
+   signal_set sig{co_await net::this_coro::executor, SIGINT, SIGTERM};
    co_await connect(conn, "127.0.0.1", "6379");
    co_await (conn->async_run() || sig.async_wait() || healthy_checker(conn));
 }
@@ -161,7 +165,8 @@ them are
 * [Client-side caching](https://redis.io/docs/manual/client-side-caching/)
 
 The connection class supports server pushes by means of the
-`aedis::connection::async_receive` function, for example
+`aedis::connection::async_receive` function, the coroutine shows how
+to used it
 
 ```cpp
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -181,7 +186,7 @@ in the `run` function as we did for the `healthy_checker`
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   signal_set sig{ex, SIGINT, SIGTERM};
+   signal_set sig{co_await net::this_coro::executor, SIGINT, SIGTERM};
    co_await connect(conn, "127.0.0.1", "6379");
    co_await (conn->async_run() || sig.async_wait() || healthy_checker(conn) || receiver(conn));
 }
@@ -196,12 +201,11 @@ for example, to reconnect to the same address (see cpp20_subscriber.cpp)
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   auto ex = co_await net::this_coro::executor;
-   steady_timer timer{ex};
+   steady_timer timer{co_await net::this_coro::executor};
 
    for (;;) {
       co_await connect(conn, "127.0.0.1", "6379");
-      co_await (conn->async_run() || healthy_checker(conn) || receiver(conn);
+      co_await (conn->async_run() || healthy_checker(conn) || receiver(conn));
 
       // Prepare the stream for a new connection.
       conn->reset_stream();
@@ -242,7 +246,7 @@ co_await (conn.async_exec(...) || time.async_wait(...))
 
 * Provides a way to limit how long the execution of a single request
   should last.
-* NOTE: It is usually a better idea to have a healthy checker than adding
+* WARNING: It is usually a better idea to have a healthy checker than adding
   per request timeout, see cpp20_subscriber.cpp for an example.
 
 ```cpp
@@ -266,6 +270,7 @@ Redis documentation they are called
 std::list<std::string> list {...};
 std::map<std::string, mystruct> map { ...};
 
+// The request can contains multiple commands.
 request req;
 
 // Command with variable length of arguments.
@@ -292,10 +297,10 @@ with integer data types e.g. `int` and `std::string` out of the box.
 To send your own data type define a `to_bulk` function like this
 
 ```cpp
-// Example struct.
+// User defined type.
 struct mystruct {...};
 
-// Serialize your data structure here.
+// Serialize it in to_bulk.
 void to_bulk(std::pmr::string& to, mystruct const& obj)
 {
    std::string dummy = "Dummy serializaiton string.";
@@ -438,13 +443,13 @@ subset of the RESP3 specification.
 
 ### Pushes
 
-Commands that have push response like
+Commands that have no response like
 
 * `"SUBSCRIBE"`
 * `"PSUBSCRIBE"`
 * `"UNSUBSCRIBE"`
 
-must be **NOT** be included in the tuple. For example, the request below
+must be **NOT** be included in the response tuple. For example, the request below
 
 ```cpp
 request req;
@@ -513,7 +518,7 @@ std::tuple<
 co_await conn->async_exec(req, adapt(resp));
 ```
 
-For a complete example see containers.cpp.
+For a complete example see cpp20_containers.cpp.
 
 ### Deserialization
 
@@ -589,7 +594,7 @@ from Redis with `HGETALL`, some of the options are
 * `std::map<U, V>`: Efficient if you are storing serialized data. Avoids temporaries and requires `from_bulk` for `U` and `V`.
 
 In addition to the above users can also use unordered versions of the
-containers. The same reasoning also applies to sets e.g. `SMEMBERS`
+containers. The same reasoning applies to sets e.g. `SMEMBERS`
 and other data structures in general.
 
 ## Examples
@@ -826,18 +831,11 @@ library, so you can starting using it right away by adding the
 ```
 
 in no more than one source file in your applications. To build the
-examples and test cmake is supported, for example
+examples and tests cmake is supported, for example
 
 ```cpp
 BOOST_ROOT=/opt/boost_1_80_0 cmake --preset dev
 ```
-
-The following compilers are supported
-
-- Gcc: 10, 11, 12.
-- Clang: 11, 13, 14.
-- Visual Studio 17 2022, Visual Studio 16 2019.
-
 ## Acknowledgement
 
 Acknowledgement to people that helped shape Aedis

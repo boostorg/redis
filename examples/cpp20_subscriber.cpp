@@ -44,7 +44,7 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    }
 }
 
-auto async_main() -> net::awaitable<void>
+auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
@@ -56,7 +56,7 @@ auto async_main() -> net::awaitable<void>
 
    // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
    for (;;) {
-      co_await connect(conn, "127.0.0.1", "6379");
+      co_await connect(conn, host, port);
       co_await ((conn->async_run() || healthy_checker(conn) || receiver(conn)) && conn->async_exec(req));
 
       conn->reset_stream();

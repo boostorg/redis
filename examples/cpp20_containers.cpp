@@ -30,14 +30,15 @@ void print(std::vector<int> const& cont)
    std::cout << "\n";
 }
 
-// Stores the content of some STL containers in Redis.
-auto store() -> net::awaitable<void>
+auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   co_await connect(conn, host, port);
+   co_await conn->async_run();
+}
 
-   // Resolves and connects (from examples/common.hpp to avoid vebosity)
-   co_await connect(conn, "127.0.0.1", "6379");
-
+// Stores the content of some STL containers in Redis.
+auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
    std::vector<int> vec
       {1, 2, 3, 4, 5, 6};
 
@@ -48,70 +49,68 @@ auto store() -> net::awaitable<void>
    req.push("HELLO", 3);
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);
-   req.push("QUIT");
 
-   co_await (conn->async_run() || conn->async_exec(req));
+   co_await conn->async_exec(req);
 }
 
-auto hgetall() -> net::awaitable<std::map<std::string, std::string>>
+auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-
-   // From examples/common.hpp to avoid vebosity
-   co_await connect(conn, "127.0.0.1", "6379");
-
    // A request contains multiple commands.
    resp3::request req;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
-   req.push("QUIT");
 
    // Responses as tuple elements.
-   std::tuple<aedis::ignore, std::map<std::string, std::string>, aedis::ignore> resp;
+   std::tuple<aedis::ignore, std::map<std::string, std::string>> resp;
 
    // Executes the request and reads the response.
-   co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
-   co_return std::get<1>(resp);
+   co_await conn->async_exec(req, adapt(resp));
+
+   print(std::get<1>(resp));
 }
 
 // Retrieves in a transaction.
-auto transaction() -> net::awaitable<void>
+auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-
-   // Resolves and connects (from examples/common.hpp to avoid vebosity)
-   co_await connect(conn, "127.0.0.1", "6379");
-
    resp3::request req;
    req.push("HELLO", 3);
    req.push("MULTI");
    req.push("LRANGE", "rpush-key", 0, -1); // Retrieves
    req.push("HGETALL", "hset-key"); // Retrieves
    req.push("EXEC");
-   req.push("QUIT");
 
    std::tuple<
       aedis::ignore, // hello
       aedis::ignore, // multi
       aedis::ignore, // lrange
       aedis::ignore, // hgetall
-      std::tuple<std::optional<std::vector<int>>, std::optional<std::map<std::string, std::string>>>, // exec
-      aedis::ignore  // quit
+      std::tuple<std::optional<std::vector<int>>, std::optional<std::map<std::string, std::string>>> // exec
    > resp;
 
-   co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
+   co_await conn->async_exec(req, adapt(resp));
 
    print(std::get<0>(std::get<4>(resp)).value());
    print(std::get<1>(std::get<4>(resp)).value());
 }
 
-// Called from the main function (see main.cpp)
-net::awaitable<void> async_main()
+auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   co_await store();
-   co_await transaction();
-   auto const map = co_await hgetall();
-   print(map);
+   resp3::request req;
+   req.push("QUIT");
+
+   co_await conn->async_exec(req);
+}
+
+// Called from the main function (see main.cpp)
+net::awaitable<void> co_main(std::string host, std::string port)
+{
+   auto ex = co_await net::this_coro::executor;
+   auto conn = std::make_shared<connection>(ex);
+   net::co_spawn(ex, run(conn, host, port), net::detached);
+   co_await store(conn);
+   co_await transaction(conn);
+   co_await hgetall(conn);
+   co_await quit(conn);
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

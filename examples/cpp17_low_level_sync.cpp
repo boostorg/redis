@@ -16,12 +16,20 @@ namespace net = boost::asio;
 namespace resp3 = aedis::resp3;
 using aedis::adapter::adapt2;
 
-int main()
+auto main(int argc, char * argv[]) -> int
 {
    try {
+      std::string host = "127.0.0.1";
+      std::string port = "6379";
+
+      if (argc == 3) {
+         host = argv[1];
+         port = argv[2];
+      }
+
       net::io_context ioc;
       net::ip::tcp::resolver resv{ioc};
-      auto const res = resv.resolve("127.0.0.1", "6379");
+      auto const res = resv.resolve(host, port);
       net::ip::tcp::socket socket{ioc};
       net::connect(socket, res);
 

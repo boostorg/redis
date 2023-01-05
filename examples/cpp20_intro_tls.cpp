@@ -29,7 +29,7 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
    return true;
 }
 
-net::awaitable<void> async_main()
+net::awaitable<void> co_main(std::string, std::string)
 {
    resp3::request req;
    req.push("HELLO", 3, "AUTH", "aedis", "aedis");

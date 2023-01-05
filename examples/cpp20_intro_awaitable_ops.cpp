@@ -16,7 +16,7 @@ using namespace net::experimental::awaitable_operators;
 using aedis::adapt;
 
 // Called from the main function (see main.cpp)
-auto async_main() -> net::awaitable<void>
+auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
    resp3::request req;
    req.push("HELLO", 3);
@@ -26,7 +26,7 @@ auto async_main() -> net::awaitable<void>
    std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-   co_await connect(conn, "127.0.0.1", "6379");
+   co_await connect(conn, host, port);
    co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
 
    std::cout << "PING: " << std::get<1>(resp) << std::endl;

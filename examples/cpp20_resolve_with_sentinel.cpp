@@ -49,14 +49,14 @@ auto resolve_master_address(std::vector<address> const& endpoints) -> net::await
    co_return address{};
 }
 
-auto async_main() -> net::awaitable<void>
+auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
-   // A list of sentinel addresses from which only one is responsive
-   // to simulate sentinels that are down.
+   // A list of sentinel addresses from which only one is responsive.
+   // This simulates sentinels that are down.
    std::vector<address> const endpoints
    { {"foo", "26379"}
    , {"bar", "26379"}
-   , {"127.0.0.1", "26379"}
+   , {host, port}
    };
 
    auto const ep = co_await resolve_master_address(endpoints);

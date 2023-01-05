@@ -14,9 +14,9 @@ namespace resp3 = aedis::resp3;
 using aedis::adapt;
 using aedis::operation;
 
-auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
-   co_await connect(conn, "127.0.0.1", "6379");
+   co_await connect(conn, host, port);
    co_await conn->async_run();
 }
 
@@ -48,11 +48,11 @@ auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 
 // Called from the main function (see main.cpp)
-auto async_main() -> net::awaitable<void>
+auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn), net::detached);
+   net::co_spawn(ex, run(conn, host, port), net::detached);
    co_await hello(conn);
    co_await ping(conn);
    co_await quit(conn);

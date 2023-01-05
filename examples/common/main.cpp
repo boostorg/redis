@@ -10,11 +10,19 @@
 
 #include "common.hpp"
 
-extern boost::asio::awaitable<void> async_main();
+extern boost::asio::awaitable<void> co_main(std::string, std::string);
 
-auto main() -> int
+auto main(int argc, char * argv[]) -> int
 {
-   return run(async_main());
+   std::string host = "127.0.0.1";
+   std::string port = "6379";
+
+   if (argc == 3) {
+      host = argv[1];
+      port = argv[2];
+   }
+
+   return run(co_main(host, port));
 }
 
 #else // defined(BOOST_ASIO_HAS_CO_AWAIT)

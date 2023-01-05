@@ -17,12 +17,12 @@ using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>
 using aedis::adapter::adapt2;
 using net::ip::tcp;
 
-auto async_main() -> net::awaitable<void>
+auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
 
    resolver resv{ex};
-   auto const addrs = co_await resv.async_resolve("127.0.0.1", "6379");
+   auto const addrs = co_await resv.async_resolve(host, port);
    tcp_socket socket{ex};
    co_await net::async_connect(socket, addrs);
 

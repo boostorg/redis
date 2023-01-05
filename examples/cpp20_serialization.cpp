@@ -86,7 +86,7 @@ void from_bulk(user& u, std::string_view sv, boost::system::error_code&)
    u = value_to<user>(jv);
 }
 
-net::awaitable<void> async_main()
+net::awaitable<void> co_main(std::string host, std::string port)
 {
    std::set<user> users
       {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
@@ -101,7 +101,7 @@ net::awaitable<void> async_main()
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
-   co_await connect(conn, "127.0.0.1", "6379");
+   co_await connect(conn, host, port);
    co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
 
    for (auto const& e: std::get<2>(resp))

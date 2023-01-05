@@ -31,14 +31,22 @@ auto exec(std::shared_ptr<connection> conn, resp3::request const& req, Adapter a
 auto logger = [](auto const& ec)
    { std::clog << "Run: " << ec.message() << std::endl; };
 
-int main()
+auto main(int argc, char * argv[]) -> int
 {
    try {
+      std::string host = "127.0.0.1";
+      std::string port = "6379";
+
+      if (argc == 3) {
+         host = argv[1];
+         port = argv[2];
+      }
+
       net::io_context ioc{1};
 
       auto conn = std::make_shared<connection>(ioc);
       net::ip::tcp::resolver resv{ioc};
-      auto const res = resv.resolve("127.0.0.1", "6379");
+      auto const res = resv.resolve(host, port);
       net::connect(conn->next_layer(), res);
       std::thread t{[conn, &ioc]() {
          conn->async_run(logger);

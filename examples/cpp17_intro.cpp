@@ -20,9 +20,17 @@ void log(boost::system::error_code const& ec, char const* prefix)
    std::clog << prefix << ec.message() << std::endl;
 }
 
-auto main() -> int
+auto main(int argc, char * argv[]) -> int
 {
    try {
+      std::string host = "127.0.0.1";
+      std::string port = "6379";
+
+      if (argc == 3) {
+         host = argv[1];
+         port = argv[2];
+      }
+
       // The request
       resp3::request req;
       req.push("HELLO", 3);
@@ -79,7 +87,7 @@ auto main() -> int
          net::async_connect(conn.next_layer(), endpoints, on_connect);
       };
 
-      resv.async_resolve("127.0.0.1", "6379", on_resolve);
+      resv.async_resolve(host, port, on_resolve);
 
       ioc.run();
       return 0;

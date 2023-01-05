@@ -45,7 +45,7 @@ auto listener(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 
 // Called from the main function (see main.cpp)
-auto async_main() -> net::awaitable<void>
+auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
@@ -54,7 +54,7 @@ auto async_main() -> net::awaitable<void>
    resp3::request req;
    req.push("HELLO", 3);
 
-   co_await connect(conn, "127.0.0.1", "6379");
+   co_await connect(conn, host, port);
    co_await ((conn->async_run() || listener(conn) || healthy_checker(conn) ||
             sig.async_wait()) && conn->async_exec(req));
 }
