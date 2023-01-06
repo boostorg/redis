@@ -4,5 +4,4 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <aedis.hpp>
 #include <aedis/src.hpp>

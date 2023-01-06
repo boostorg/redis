@@ -5,6 +5,7 @@
  */
 
 #include <aedis/error.hpp>
+#include <boost/assert.hpp>
 
 namespace aedis {
 namespace detail {
