@@ -45,9 +45,16 @@ auto main(int argc, char * argv[]) -> int
       net::io_context ioc{1};
 
       auto conn = std::make_shared<connection>(ioc);
+
+      // Resolves the address
       net::ip::tcp::resolver resv{ioc};
       auto const res = resv.resolve(host, port);
+
+      // Connect to Redis
       net::connect(conn->next_layer(), res);
+
+      // Starts a thread that will can io_context::run on which
+      // the connection will run.
       std::thread t{[conn, &ioc]() {
          conn->async_run(logger);
          ioc.run();
@@ -59,6 +66,8 @@ auto main(int argc, char * argv[]) -> int
       req.push("QUIT");
 
       std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+
+      // Executes commands synchronously.
       exec(conn, req, adapt(resp));
 
       std::cout << "Response: " << std::get<1>(resp) << std::endl;

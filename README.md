@@ -9,11 +9,16 @@ It makes communication with a Redis server easy by hiding low-level
 Asio-related code away from the user, which, in the majority of the
 cases will be concerned with only three library entities
 
-* `aedis::connection`: A connection to the Redis server.
-* `aedis::resp3::request`: A container of Redis commands.
+* `aedis::connection`: A connection to the Redis server that
+  implements automatic
+  [pipelining](https://redis.io/docs/manual/pipelining/) and which can
+  handle requests and server pushes concurrently.
+* `aedis::resp3::request`: A container of Redis commands that supports
+  STL containers and user defined data types.
 * `aedis::adapt()`: A function that adapts data structures to receive responses.
 
-The requirements for using Aedis are
+In the next sections we will cover all those points in detail and with
+examples. The requirements for using Aedis are
 
 * Boost 1.80 or greater.
 * C++17 minimum.
@@ -54,9 +59,9 @@ auto co_main() -> net::awaitable<void>
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
 
-   // The tuple elements below will store the responses to each
-   // individual command. The responses to HELLO and QUIT are being
-   // ignored for simplicity.
+   // The tuple elements will store the responses to each individual
+   // command. The responses to HELLO and QUIT are being ignored for
+   // simplicity.
    std::tuple<ignore, std::map<std::string, std::string>, ignore> resp;
 
    // Executes the request. See below why we are using operator ||.
@@ -65,10 +70,11 @@ auto co_main() -> net::awaitable<void>
 }
 ```
 
-The example above uses the Asio awaitable `operator ||` to launch
-`connection::async_exec` and `connection::async_run` in parallel and
-to cancel one of the operations when the other completes.  The role
-played by these functions are
+The example above uses the Asio awaitable `operator ||` to compose
+`connection::async_exec` and `connection::async_run` in a single
+operation we can `co_await` on. It also provides cancelation one of
+the operations when the other completes.  The role played by these
+functions are
 
 * `connection::async_exec`: Execute commands by queuing the request
   for writing and wait for the response sent back by
@@ -85,6 +91,8 @@ The example above is also available in other programming styles for comparison
 * cpp20_intro.cpp: Does not use awaitable operators.
 * cpp20_intro_tls.cpp: Communicates over TLS.
 * cpp17_intro.cpp: Uses callbacks and requires C++17.
+* cpp17_intro_sync.cpp: Runs `async_run` in a separate thread and
+  performs synchronous calls to `async_exec`.
 
 For performance reasons we will usually want to perform multiple
 requests with the same connection. We can do this in the example above
@@ -141,8 +149,7 @@ auto co_main() -> net::awaitable<void>
 
 With this separation, it is now easy to incorporate other long-running
 operations in our application, for example, the run coroutine below
-adds signal handling and a healthy checker (see cpp20_echo_server.cpp
-for example)
+adds signal handling and a healthy checker (see cpp20_echo_server.cpp)
 
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -219,11 +226,11 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 This feature results in considerable simplification of backend code
 and makes it easier to write failover-safe applications. For example,
-a HTTP server might have a 100 sessions communicating with Redis at
+a Websocket server might have a 10k sessions communicating with Redis at
 the time the connection is lost (or maybe killed by the server admin
-to force a failover). It would be annoying if each individual section
+to force a failover). It would be concerning if each individual section
 were to throw exceptions and handle error.  With the pattern shown
-above the only place that has to managed is the run function.
+above the only place that has to manage the error is the run function.
 
 ### Cancellation
 
@@ -246,7 +253,9 @@ co_await (conn.async_exec(...) || time.async_wait(...))
 
 * Provides a way to limit how long the execution of a single request
   should last.
-* WARNING: It is usually a better idea to have a healthy checker than adding
+* WARNING: If the timer fires after the request has been sent but before the
+  response has been received, the connection will be closed.
+* It is usually a better idea to have a healthy checker than adding
   per request timeout, see cpp20_subscriber.cpp for an example.
 
 ```cpp
@@ -601,6 +610,9 @@ and other data structures in general.
 
 The examples below show how to use the features discussed so far
 
+* cpp20_intro_awaitable_ops.cpp: The version shown above.
+* cpp20_intro.cpp: Does not use awaitable operators.
+* cpp20_intro_tls.cpp: Communicates over TLS.
 * cpp20_containers.cpp: Shows how to send and receive STL containers and how to use transactions.
 * cpp20_serialization.cpp: Shows how to serialize types using Boost.Json.
 * cpp20_resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
@@ -609,6 +621,8 @@ The examples below show how to use the features discussed so far
 * cpp20_chat_room.cpp: A command line chat built on Redis pubsub.
 * cpp20_low_level_async.cpp: Sends a ping asynchronously using the low-level API.
 * cpp17_low_level_sync.cpp: Sends a ping synchronously using the low-level API.
+* cpp17_intro.cpp: Uses callbacks and requires C++17.
+* cpp17_intro_sync.cpp: Runs `async_run` in a separate thread and performs synchronous calls to `async_exec`.
 
 To avoid repetition code that is common to some examples has been
 grouped in common.hpp. The main function used in some async examples
