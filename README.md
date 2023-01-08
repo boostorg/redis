@@ -6,18 +6,18 @@ that implements the latest version of the Redis communication
 protocol
 [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
 It makes communication with a Redis server easy by hiding low-level
-Asio-related code away from the user, which, in the majority of the
-cases will be concerned with only three library entities
+code away from the user, which, in the majority of the cases will be
+concerned with only three library entities
 
-* `aedis::connection`: A connection to the Redis server that
-  implements automatic
-  [pipelining](https://redis.io/docs/manual/pipelining/) and which can
-  handle requests and server pushes concurrently.
+* `aedis::connection`: A connection to the Redis server with
+  high-level functions to execute Redis commands, receive server
+  pushes and support for automatic command
+  [pipelines](https://redis.io/docs/manual/pipelining/).
 * `aedis::resp3::request`: A container of Redis commands that supports
   STL containers and user defined data types.
 * `aedis::adapt()`: A function that adapts data structures to receive responses.
 
-In the next sections we will cover all those points in detail and with
+In the next sections we will cover all those points in detail with
 examples. The requirements for using Aedis are
 
 * Boost 1.80 or greater.
@@ -53,7 +53,7 @@ auto co_main() -> net::awaitable<void>
    // From examples/common.hpp to avoid vebosity
    co_await connect(conn, "127.0.0.1", "6379");
 
-   // A request can contains multiple commands.
+   // A request can contain multiple commands.
    resp3::request req;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
@@ -71,8 +71,8 @@ auto co_main() -> net::awaitable<void>
 ```
 
 The example above uses the Asio awaitable `operator ||` to compose
-`connection::async_exec` and `connection::async_run` in a single
-operation we can `co_await` on. It also provides cancelation one of
+`connection::async_exec` and `connection::async_run` in an
+operation we can `co_await` on. It also provides cancelation of one of
 the operations when the other completes.  The role played by these
 functions are
 
