@@ -6,14 +6,15 @@
 
 #include <iostream>
 #include <boost/asio.hpp>
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
-using aedis::resp3::request;
-using aedis::adapt;
-using aedis::operation;
+namespace redis = boost::redis;
+namespace resp3 = boost::redis::resp3;
+using resp3::request;
+using redis::adapt;
+using redis::operation;
 
 void log(boost::system::error_code const& ec, char const* prefix)
 {
@@ -38,13 +39,13 @@ auto main(int argc, char * argv[]) -> int
       req.push("QUIT");
 
       // The response.
-      std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+      std::tuple<redis::ignore, std::string, redis::ignore> resp;
 
       net::io_context ioc;
 
       // IO objects.
       net::ip::tcp::resolver resv{ioc};
-      aedis::connection conn{ioc};
+      redis::connection conn{ioc};
 
       // Resolve endpoints.
       net::ip::tcp::resolver::results_type endpoints;

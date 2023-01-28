@@ -11,17 +11,17 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 #include "common.hpp"
 
 namespace net = boost::asio;
 
-using aedis::adapt;
-using aedis::resp3::request;
-using connection = aedis::connection;
+using boost::redis::adapt;
+using boost::redis::resp3::request;
+using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
-using operation = aedis::operation;
+using operation = boost::redis::operation;
 
 // Test if quit causes async_run to exit.
 BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)

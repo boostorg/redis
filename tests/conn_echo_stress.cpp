@@ -10,16 +10,16 @@
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 #include "common.hpp"
 #include "../examples/common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using error_code = boost::system::error_code;
-using aedis::operation;
-using aedis::adapt;
+using boost::redis::operation;
+using boost::redis::adapt;
 
 auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
@@ -41,7 +41,7 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
    auto ex = co_await net::this_coro::executor;
 
    resp3::request req;
-   std::tuple<aedis::ignore, std::string> resp;
+   std::tuple<boost::redis::ignore, std::string> resp;
 
    for (auto i = 0; i < n; ++i) {
       auto const msg = id + "/" + std::to_string(i);

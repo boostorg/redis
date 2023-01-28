@@ -6,13 +6,13 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
-using aedis::adapt;
-using aedis::operation;
+namespace resp3 = boost::redis::resp3;
+using boost::redis::adapt;
+using boost::redis::operation;
 
 auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {

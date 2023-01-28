@@ -13,16 +13,16 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 #include "common.hpp"
 
 namespace net = boost::asio;
 
-using aedis::resp3::request;
-using aedis::adapt;
-using aedis::operation;
-using connection = aedis::connection;
+using boost::redis::resp3::request;
+using boost::redis::adapt;
+using boost::redis::operation;
+using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   std::tuple<aedis::ignore, std::string, std::string> resp;
+   std::tuple<boost::redis::ignore, std::string, std::string> resp;
    conn.async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_TEST(!ec);
    });
@@ -75,7 +75,7 @@ void receive_wrong_syntax(request const& req)
 
    conn.async_receive(adapt(), [&](auto ec, auto){
       BOOST_TEST(!ec);
-      conn.cancel(aedis::operation::run);
+      conn.cancel(boost::redis::operation::run);
    });
 
    ioc.run();
@@ -100,9 +100,9 @@ net::awaitable<void> push_consumer1(connection& conn, bool& push_received)
 struct adapter_error {
    void
    operator()(
-      std::size_t, aedis::resp3::node<std::string_view> const&, boost::system::error_code& ec)
+      std::size_t, boost::redis::resp3::node<std::string_view> const&, boost::system::error_code& ec)
    {
-      ec = aedis::error::incompatible_size;
+      ec = boost::redis::error::incompatible_size;
    }
 
    [[nodiscard]]
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    req.push("PING");
 
    conn.async_receive(adapter_error{}, [](auto ec, auto) {
-      BOOST_CHECK_EQUAL(ec, aedis::error::incompatible_size);
+      BOOST_CHECK_EQUAL(ec, boost::redis::error::incompatible_size);
    });
 
    conn.async_exec(req, adapt(), [](auto ec, auto){

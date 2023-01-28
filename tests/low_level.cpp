@@ -19,23 +19,23 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 
 // TODO: Test with empty strings.
 
 namespace std
 {
-auto operator==(aedis::ignore, aedis::ignore) noexcept {return true;}
-auto operator!=(aedis::ignore, aedis::ignore) noexcept {return false;}
+auto operator==(boost::redis::ignore, boost::redis::ignore) noexcept {return true;}
+auto operator!=(boost::redis::ignore, boost::redis::ignore) noexcept {return false;}
 }
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 
 using test_stream = boost::beast::test::stream;
-using aedis::adapter::adapt2;
-using node_type = aedis::resp3::node<std::string>;
+using boost::redis::adapter::adapt2;
+using node_type = boost::redis::resp3::node<std::string>;
 using vec_node_type = std::vector<node_type>;
 using vec_type = std::vector<std::string>;
 using op_vec_type = std::optional<std::vector<std::string>>;
@@ -175,11 +175,11 @@ std::optional<bool> op_bool_ok = true;
 // TODO: Test a streamed string that is not finished with a string of
 // size 0 but other command comes in.
 std::vector<node_type> streamed_string_e1
-{ {aedis::resp3::type::streamed_string, 0, 1, ""}
-, {aedis::resp3::type::streamed_string_part, 1, 1, "Hell"}
-, {aedis::resp3::type::streamed_string_part, 1, 1, "o wor"}
-, {aedis::resp3::type::streamed_string_part, 1, 1, "d"}
-, {aedis::resp3::type::streamed_string_part, 1, 1, ""}
+{ {boost::redis::resp3::type::streamed_string, 0, 1, ""}
+, {boost::redis::resp3::type::streamed_string_part, 1, 1, "Hell"}
+, {boost::redis::resp3::type::streamed_string_part, 1, 1, "o wor"}
+, {boost::redis::resp3::type::streamed_string_part, 1, 1, "d"}
+, {boost::redis::resp3::type::streamed_string_part, 1, 1, ""}
 };
 
 std::vector<node_type> streamed_string_e2 { {resp3::type::streamed_string, 0UL, 1UL, {}}, {resp3::type::streamed_string_part, 1UL, 1UL, {}} };
@@ -368,37 +368,37 @@ std::vector<node_type> const attr_e1b
 #define S18d  "$0\r\n\r\n" 
 
 #define NUMBER_TEST_CONDITIONS(test) \
-   test(ex, make_expected(S01a, std::optional<bool>{}, aedis::error::unexpected_bool_value)); \
+   test(ex, make_expected(S01a, std::optional<bool>{}, boost::redis::error::unexpected_bool_value)); \
    test(ex, make_expected(S01b, bool{false})); \
    test(ex, make_expected(S01b, node_type{resp3::type::boolean, 1UL, 0UL, {"f"}})); \
    test(ex, make_expected(S01c, bool{true})); \
    test(ex, make_expected(S01c, node_type{resp3::type::boolean, 1UL, 0UL, {"t"}})); \
    test(ex, make_expected(S01c, op_bool_ok)); \
-   test(ex, make_expected(S01c, std::map<int, int>{}, aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S01c, std::set<int>{}, aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S01c, std::unordered_map<int, int>{}, aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S01c, std::unordered_set<int>{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S01c, std::map<int, int>{}, boost::redis::error::expects_resp3_map)); \
+   test(ex, make_expected(S01c, std::set<int>{}, boost::redis::error::expects_resp3_set)); \
+   test(ex, make_expected(S01c, std::unordered_map<int, int>{}, boost::redis::error::expects_resp3_map)); \
+   test(ex, make_expected(S01c, std::unordered_set<int>{}, boost::redis::error::expects_resp3_set)); \
    test(ex, make_expected(S02a, streamed_string_e2)); \
-   test(ex, make_expected(S03a, int{}, aedis::error::expects_resp3_simple_type));\
-   test(ex, make_expected(S03a, std::optional<int>{}, aedis::error::expects_resp3_simple_type));; \
-   test(ex, make_expected(S02b, int{}, aedis::error::not_a_number)); \
+   test(ex, make_expected(S03a, int{}, boost::redis::error::expects_resp3_simple_type));\
+   test(ex, make_expected(S03a, std::optional<int>{}, boost::redis::error::expects_resp3_simple_type));; \
+   test(ex, make_expected(S02b, int{}, boost::redis::error::not_a_number)); \
    test(ex, make_expected(S02b, std::string{"Hello word"})); \
    test(ex, make_expected(S02b, streamed_string_e1)); \
-   test(ex, make_expected(S02c, std::string{}, aedis::error::not_a_number)); \
+   test(ex, make_expected(S02c, std::string{}, boost::redis::error::not_a_number)); \
    test(ex, make_expected(S04a, std::tuple<int>{11})); \
    test(ex, make_expected(S05a, node_type{resp3::type::number, 1UL, 0UL, {"-3"}})); \
    test(ex, make_expected(S05b, int{11})); \
    test(ex, make_expected(S05b, op_int_ok)); \
-   test(ex, make_expected(S05b, std::list<std::string>{}, aedis::error::expects_resp3_aggregate)); \
-   test(ex, make_expected(S05b, std::map<std::string, std::string>{}, aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S05b, std::set<std::string>{}, aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(S05b, std::unordered_map<std::string, std::string>{}, aedis::error::expects_resp3_map)); \
-   test(ex, make_expected(S05b, std::unordered_set<std::string>{}, aedis::error::expects_resp3_set)); \
-   test(ex, make_expected(s05c, array_type2{}, aedis::error::expects_resp3_aggregate));\
+   test(ex, make_expected(S05b, std::list<std::string>{}, boost::redis::error::expects_resp3_aggregate)); \
+   test(ex, make_expected(S05b, std::map<std::string, std::string>{}, boost::redis::error::expects_resp3_map)); \
+   test(ex, make_expected(S05b, std::set<std::string>{}, boost::redis::error::expects_resp3_set)); \
+   test(ex, make_expected(S05b, std::unordered_map<std::string, std::string>{}, boost::redis::error::expects_resp3_map)); \
+   test(ex, make_expected(S05b, std::unordered_set<std::string>{}, boost::redis::error::expects_resp3_set)); \
+   test(ex, make_expected(s05c, array_type2{}, boost::redis::error::expects_resp3_aggregate));\
    test(ex, make_expected(s05c, node_type{resp3::type::number, 1UL, 0UL, {"3"}})); \
-   test(ex, make_expected(S06a, array_type{}, aedis::error::resp3_null));\
-   test(ex, make_expected(S06a, int{0}, aedis::error::resp3_null)); \
-   test(ex, make_expected(S06a, map_type{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S06a, array_type{}, boost::redis::error::resp3_null));\
+   test(ex, make_expected(S06a, int{0}, boost::redis::error::resp3_null)); \
+   test(ex, make_expected(S06a, map_type{}, boost::redis::error::resp3_null));\
    test(ex, make_expected(S06a, op_type_01{}));\
    test(ex, make_expected(S06a, op_type_02{}));\
    test(ex, make_expected(S06a, op_type_03{}));\
@@ -408,11 +408,11 @@ std::vector<node_type> const attr_e1b
    test(ex, make_expected(S06a, op_type_07{}));\
    test(ex, make_expected(S06a, op_type_08{}));\
    test(ex, make_expected(S06a, op_type_09{}));\
-   test(ex, make_expected(S06a, std::list<int>{}, aedis::error::resp3_null));\
-   test(ex, make_expected(S06a, std::vector<int>{}, aedis::error::resp3_null));\
+   test(ex, make_expected(S06a, std::list<int>{}, boost::redis::error::resp3_null));\
+   test(ex, make_expected(S06a, std::vector<int>{}, boost::redis::error::resp3_null));\
    test(ex, make_expected(S07a, push_e1a)); \
    test(ex, make_expected(S07b, push_e1b)); \
-   test(ex, make_expected(S04b, map_type{}, aedis::error::expects_resp3_map));\
+   test(ex, make_expected(S04b, map_type{}, boost::redis::error::expects_resp3_map));\
    test(ex, make_expected(S03b, map_e1f));\
    test(ex, make_expected(S03b, map_e1g));\
    test(ex, make_expected(S03b, map_e1k));\
@@ -431,13 +431,13 @@ std::vector<node_type> const attr_e1b
    test(ex, make_expected(S04e, array_e1f));\
    test(ex, make_expected(S04e, array_e1g));\
    test(ex, make_expected(S04e, array_e1h));\
-   test(ex, make_expected(S04e, array_type2{}, aedis::error::incompatible_size));\
-   test(ex, make_expected(S04e, tuple_int_2{}, aedis::error::incompatible_size));\
-   test(ex, make_expected(S04f, array_type2{}, aedis::error::nested_aggregate_not_supported));\
-   test(ex, make_expected(S04g, vec_node_type{}, aedis::error::exceeeds_max_nested_depth));\
+   test(ex, make_expected(S04e, array_type2{}, boost::redis::error::incompatible_size));\
+   test(ex, make_expected(S04e, tuple_int_2{}, boost::redis::error::incompatible_size));\
+   test(ex, make_expected(S04f, array_type2{}, boost::redis::error::nested_aggregate_not_supported));\
+   test(ex, make_expected(S04g, vec_node_type{}, boost::redis::error::exceeeds_max_nested_depth));\
    test(ex, make_expected(S04h, array_e1d));\
    test(ex, make_expected(S04h, array_e1e));\
-   test(ex, make_expected(S04i, set_type{}, aedis::error::expects_resp3_set)); \
+   test(ex, make_expected(S04i, set_type{}, boost::redis::error::expects_resp3_set)); \
    test(ex, make_expected(S09a, set_e1c)); \
    test(ex, make_expected(S09a, set_e1d)); \
    test(ex, make_expected(S09a, set_e1f)); \
@@ -447,34 +447,34 @@ std::vector<node_type> const attr_e1b
    test(ex, make_expected(S09a, set_type{"apple", "one", "orange", "three", "two"})); \
    test(ex, make_expected(S04d, std::tuple<uset_type>{set_e1c})); \
    test(ex, make_expected(S09b, std::vector<node_type>{ {resp3::type::set,  0UL, 0UL, {}} })); \
-   test(ex, make_expected(S10a, aedis::ignore{}, aedis::error::resp3_simple_error)); \
-   test(ex, make_expected(S10a, node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, aedis::error::resp3_simple_error)); \
-   test(ex, make_expected(S10b, node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, aedis::error::resp3_simple_error)); \
+   test(ex, make_expected(S10a, boost::redis::ignore{}, boost::redis::error::resp3_simple_error)); \
+   test(ex, make_expected(S10a, node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, boost::redis::error::resp3_simple_error)); \
+   test(ex, make_expected(S10b, node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, boost::redis::error::resp3_simple_error)); \
    test(ex, make_expected(S03c, map_type{}));\
    test(ex, make_expected(S11a, node_type{resp3::type::doublean, 1UL, 0UL, {"1.23"}}));\
    test(ex, make_expected(S11b, node_type{resp3::type::doublean, 1UL, 0UL, {"inf"}}));\
    test(ex, make_expected(S11c, node_type{resp3::type::doublean, 1UL, 0UL, {"-inf"}}));\
    test(ex, make_expected(S11d, double{1.23}));\
-   test(ex, make_expected(S11e, double{0}, aedis::error::not_a_double));\
-   test(ex, make_expected(S12a, node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, aedis::error::resp3_blob_error));\
-   test(ex, make_expected(S12b, node_type{resp3::type::blob_error, 1UL, 0UL, {}}, aedis::error::resp3_blob_error));\
-   test(ex, make_expected(S12c, aedis::ignore{}, aedis::error::resp3_blob_error));\
+   test(ex, make_expected(S11e, double{0}, boost::redis::error::not_a_double));\
+   test(ex, make_expected(S12a, node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, boost::redis::error::resp3_blob_error));\
+   test(ex, make_expected(S12b, node_type{resp3::type::blob_error, 1UL, 0UL, {}}, boost::redis::error::resp3_blob_error));\
+   test(ex, make_expected(S12c, boost::redis::ignore{}, boost::redis::error::resp3_blob_error));\
    test(ex, make_expected(S13a, node_type{resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}}));\
    test(ex, make_expected(S13b, node_type{resp3::type::verbatim_string, 1UL, 0UL, {}}));\
    test(ex, make_expected(S14a, node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}));\
-   test(ex, make_expected(S14b, int{}, aedis::error::empty_field));\
+   test(ex, make_expected(S14b, int{}, boost::redis::error::empty_field));\
    test(ex, make_expected(S15a, std::optional<std::string>{"OK"}));\
    test(ex, make_expected(S15a, std::string{"OK"}));\
    test(ex, make_expected(S15b, std::optional<std::string>{""}));\
    test(ex, make_expected(S15b, std::string{""}));\
-   test(ex, make_expected(S16a, int{}, aedis::error::invalid_data_type));\
-   test(ex, make_expected(S05d, int{11}, aedis::error::not_a_number));\
-   test(ex, make_expected(S03d, map_type{}, aedis::error::not_a_number));\
-   test(ex, make_expected(S02d, std::string{}, aedis::error::not_a_number));\
-   test(ex, make_expected(S17a, std::string{}, aedis::error::not_a_number));\
-   test(ex, make_expected(S05e, int{}, aedis::error::empty_field));\
-   test(ex, make_expected(S01d, std::optional<bool>{}, aedis::error::empty_field));\
-   test(ex, make_expected(S11f, std::string{}, aedis::error::empty_field));\
+   test(ex, make_expected(S16a, int{}, boost::redis::error::invalid_data_type));\
+   test(ex, make_expected(S05d, int{11}, boost::redis::error::not_a_number));\
+   test(ex, make_expected(S03d, map_type{}, boost::redis::error::not_a_number));\
+   test(ex, make_expected(S02d, std::string{}, boost::redis::error::not_a_number));\
+   test(ex, make_expected(S17a, std::string{}, boost::redis::error::not_a_number));\
+   test(ex, make_expected(S05e, int{}, boost::redis::error::empty_field));\
+   test(ex, make_expected(S01d, std::optional<bool>{}, boost::redis::error::empty_field));\
+   test(ex, make_expected(S11f, std::string{}, boost::redis::error::empty_field));\
    test(ex, make_expected(S17b, node_type{resp3::type::blob_string, 1UL, 0UL, {"hh"}}));\
    test(ex, make_expected(S18c, node_type{resp3::type::blob_string, 1UL, 0UL, {"hhaa\aaaa\raaaaa\r\naaaaaaaaaa"}}));\
    test(ex, make_expected(S18d, node_type{resp3::type::blob_string, 1UL, 0UL, {}}));\
@@ -507,7 +507,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_simple_error)
    test_stream ts {ioc};
    ts.append(S10a);
    resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
-   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_simple_error);
+   BOOST_CHECK_EQUAL(ec, boost::redis::error::resp3_simple_error);
    BOOST_TEST(!rbuffer.empty());
 }
 
@@ -520,7 +520,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_blob_error)
    test_stream ts {ioc};
    ts.append(S12a);
    resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(), ec);
-   BOOST_CHECK_EQUAL(ec, aedis::error::resp3_blob_error);
+   BOOST_CHECK_EQUAL(ec, boost::redis::error::resp3_blob_error);
    BOOST_TEST(!rbuffer.empty());
 }
 
@@ -538,41 +538,41 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_no_error)
 }
 
 //-----------------------------------------------------------------------------------
-void check_error(char const* name, aedis::error ev)
+void check_error(char const* name, boost::redis::error ev)
 {
-   auto const ec = aedis::make_error_code(ev);
+   auto const ec = boost::redis::make_error_code(ev);
    auto const& cat = ec.category();
    BOOST_TEST(std::string(ec.category().name()) == name);
    BOOST_TEST(!ec.message().empty());
    BOOST_TEST(cat.equivalent(
-      static_cast<std::underlying_type<aedis::error>::type>(ev),
+      static_cast<std::underlying_type<boost::redis::error>::type>(ev),
           ec.category().default_error_condition(
-              static_cast<std::underlying_type<aedis::error>::type>(ev))));
+              static_cast<std::underlying_type<boost::redis::error>::type>(ev))));
    BOOST_TEST(cat.equivalent(ec,
-      static_cast<std::underlying_type<aedis::error>::type>(ev)));
+      static_cast<std::underlying_type<boost::redis::error>::type>(ev)));
 }
 
 BOOST_AUTO_TEST_CASE(error)
 {
-   check_error("aedis", aedis::error::invalid_data_type);
-   check_error("aedis", aedis::error::not_a_number);
-   check_error("aedis", aedis::error::exceeeds_max_nested_depth);
-   check_error("aedis", aedis::error::unexpected_bool_value);
-   check_error("aedis", aedis::error::empty_field);
-   check_error("aedis", aedis::error::expects_resp3_simple_type);
-   check_error("aedis", aedis::error::expects_resp3_aggregate);
-   check_error("aedis", aedis::error::expects_resp3_map);
-   check_error("aedis", aedis::error::expects_resp3_set);
-   check_error("aedis", aedis::error::nested_aggregate_not_supported);
-   check_error("aedis", aedis::error::resp3_simple_error);
-   check_error("aedis", aedis::error::resp3_blob_error);
-   check_error("aedis", aedis::error::incompatible_size);
-   check_error("aedis", aedis::error::not_a_double);
-   check_error("aedis", aedis::error::resp3_null);
-   check_error("aedis", aedis::error::not_connected);
+   check_error("boost.redis", boost::redis::error::invalid_data_type);
+   check_error("boost.redis", boost::redis::error::not_a_number);
+   check_error("boost.redis", boost::redis::error::exceeeds_max_nested_depth);
+   check_error("boost.redis", boost::redis::error::unexpected_bool_value);
+   check_error("boost.redis", boost::redis::error::empty_field);
+   check_error("boost.redis", boost::redis::error::expects_resp3_simple_type);
+   check_error("boost.redis", boost::redis::error::expects_resp3_aggregate);
+   check_error("boost.redis", boost::redis::error::expects_resp3_map);
+   check_error("boost.redis", boost::redis::error::expects_resp3_set);
+   check_error("boost.redis", boost::redis::error::nested_aggregate_not_supported);
+   check_error("boost.redis", boost::redis::error::resp3_simple_error);
+   check_error("boost.redis", boost::redis::error::resp3_blob_error);
+   check_error("boost.redis", boost::redis::error::incompatible_size);
+   check_error("boost.redis", boost::redis::error::not_a_double);
+   check_error("boost.redis", boost::redis::error::resp3_null);
+   check_error("boost.redis", boost::redis::error::not_connected);
 }
 
-std::string get_type_as_str(aedis::resp3::type t)
+std::string get_type_as_str(boost::redis::resp3::type t)
 {
    std::ostringstream ss;
    ss << t;
@@ -581,30 +581,30 @@ std::string get_type_as_str(aedis::resp3::type t)
 
 BOOST_AUTO_TEST_CASE(type_string)
 {
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::array).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::push).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::set).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::map).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::attribute).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::simple_string).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::simple_error).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::number).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::doublean).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::boolean).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::big_number).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::null).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::blob_error).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::verbatim_string).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::blob_string).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::streamed_string_part).empty());
-   BOOST_TEST(!get_type_as_str(aedis::resp3::type::invalid).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::array).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::push).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::set).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::map).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::attribute).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::simple_string).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::simple_error).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::number).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::doublean).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::boolean).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::big_number).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::null).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::blob_error).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::verbatim_string).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::blob_string).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::streamed_string_part).empty());
+   BOOST_TEST(!get_type_as_str(boost::redis::resp3::type::invalid).empty());
 }
 
 BOOST_AUTO_TEST_CASE(type_convert)
 {
-   using aedis::resp3::to_code;
-   using aedis::resp3::to_type;
-   using aedis::resp3::type;
+   using boost::redis::resp3::to_code;
+   using boost::redis::resp3::to_type;
+   using boost::redis::resp3::type;
 
 #define CHECK_CASE(A) BOOST_CHECK_EQUAL(to_type(to_code(type::A)), type::A);
    CHECK_CASE(array);
@@ -628,7 +628,7 @@ BOOST_AUTO_TEST_CASE(type_convert)
 
 BOOST_AUTO_TEST_CASE(adapter)
 {
-   using aedis::adapt;
+   using boost::redis::adapt;
    using resp3::type;
 
    boost::system::error_code ec;

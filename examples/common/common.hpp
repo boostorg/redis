@@ -8,7 +8,7 @@
 #define AEDIS_EXAMPLES_COMMON_HPP
 
 #include <boost/asio.hpp>
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 #include <memory>
 #include <iostream>
 #include <vector>
@@ -18,7 +18,7 @@
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-using connection = boost::asio::use_awaitable_t<>::as_default_on_t<aedis::connection>;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 auto
 connect(

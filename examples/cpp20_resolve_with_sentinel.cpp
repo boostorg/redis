@@ -7,15 +7,15 @@
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using endpoints = net::ip::tcp::resolver::results_type;
-using aedis::adapt;
+using boost::redis::adapt;
 
 auto redir(boost::system::error_code& ec)
    { return net::redirect_error(net::use_awaitable, ec); }
@@ -36,7 +36,7 @@ auto resolve_master_address(std::vector<address> const& endpoints) -> net::await
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
-   std::tuple<std::optional<std::array<std::string, 2>>, aedis::ignore> addr;
+   std::tuple<std::optional<std::array<std::string, 2>>, boost::redis::ignore> addr;
    for (auto ep : endpoints) {
       boost::system::error_code ec;
       co_await connect(conn, ep.host, ep.port);

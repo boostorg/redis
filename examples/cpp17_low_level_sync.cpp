@@ -8,13 +8,13 @@
 #include <iostream>
 
 #include <boost/asio/connect.hpp>
-
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
-using aedis::adapter::adapt2;
+namespace redis = boost::redis;
+namespace resp3 = redis::resp3;
+using redis::adapter::adapt2;
 
 auto main(int argc, char * argv[]) -> int
 {

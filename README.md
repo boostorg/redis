@@ -1,6 +1,6 @@
-# Aedis
+# Boost.Redis
 
-Aedis is a [Redis](https://redis.io/) client library built on top of
+Boost.Redis is a [Redis](https://redis.io/) client library built on top of
 [Boost.Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
 that implements the latest version of the Redis communication
 protocol
@@ -9,16 +9,16 @@ It makes communication with a Redis server easy by hiding low-level
 code away from the user, which, in the majority of the cases will be
 concerned with only three library entities
 
-* `aedis::connection`: A connection to the Redis server with
+* `boost::redis::connection`: A connection to the Redis server with
   high-level functions to execute Redis commands, receive server
   pushes and support for automatic command
   [pipelines](https://redis.io/docs/manual/pipelining/).
-* `aedis::resp3::request`: A container of Redis commands that supports
+* `boost::redis::resp3::request`: A container of Redis commands that supports
   STL containers and user defined data types.
-* `aedis::adapt()`: A function that adapts data structures to receive responses.
+* `boost::redis::adapt()`: A function that adapts data structures to receive responses.
 
 In the next sections we will cover all those points in detail with
-examples. The requirements for using Aedis are
+examples. The requirements for using Boost.Redis are
 
 * Boost 1.80 or greater.
 * C++17 minimum.
@@ -172,7 +172,7 @@ them are
 * [Client-side caching](https://redis.io/docs/manual/client-side-caching/)
 
 The connection class supports server pushes by means of the
-`aedis::connection::async_receive` function, the coroutine shows how
+`boost::redis::connection::async_receive` function, the coroutine shows how
 to used it
 
 ```cpp
@@ -234,9 +234,9 @@ above the only place that has to manage the error is the run function.
 
 ### Cancellation
 
-Aedis supports both implicit and explicit cancellation of connection
+Boost.Redis supports both implicit and explicit cancellation of connection
 operations. Explicit cancellation is supported by means of the
-`aedis::connection::cancel` member function. Implicit
+`boost::redis::connection::cancel` member function. Implicit
 terminal-cancellation, like those that happen when using Asio
 awaitable `operator ||` will be discussed with more detail below.
 
@@ -263,7 +263,7 @@ co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec
 ```
 
 * This works but is unnecessary. Unless the user has set
-  `aedis::resp3::request::config::coalesce` to `false`, and he
+  `boost::redis::resp3::request::config::coalesce` to `false`, and he
   usually shouldn't, the connection will automatically merge the
   individual requests into a single payload.
 
@@ -295,7 +295,7 @@ req.push_range("SUBSCRIBE", std::cbegin(list), std::cend(list));
 req.push_range("HSET", "key", map);
 ```
 
-Sending a request to Redis is performed with `aedis::connection::async_exec` as already stated.
+Sending a request to Redis is performed with `boost::redis::connection::async_exec` as already stated.
 
 <a name="serialization"></a>
 
@@ -313,7 +313,7 @@ struct mystruct {...};
 void to_bulk(std::pmr::string& to, mystruct const& obj)
 {
    std::string dummy = "Dummy serializaiton string.";
-   aedis::resp3::to_bulk(to, dummy);
+   boost::redis::resp3::to_bulk(to, dummy);
 }
 ```
 
@@ -334,17 +334,17 @@ Example cpp20_serialization.cpp shows how store json strings in Redis.
 
 ### Config flags
 
-The `aedis::resp3::request::config` object inside the request dictates how the
-`aedis::connection` should handle the request in some important situations. The
+The `boost::redis::resp3::request::config` object inside the request dictates how the
+`boost::redis::connection` should handle the request in some important situations. The
 reader is advised to read it carefully.
 
 ## Responses
 
-Aedis uses the following strategy to support Redis responses
+Boost.Redis uses the following strategy to support Redis responses
 
-* **Static**: For `aedis::resp3::request` whose sizes are known at compile time
+* **Static**: For `boost::redis::resp3::request` whose sizes are known at compile time
   `std::tuple` is supported.
-* **Dynamic**: Otherwise use `std::vector<aedis::resp3::node<std::string>>`.
+* **Dynamic**: Otherwise use `std::vector<boost::redis::resp3::node<std::string>>`.
 
 For example, below is a request with a compile time size
 
@@ -366,11 +366,11 @@ have as many elements as the request has commands (exceptions below).
 It is also necessary that each tuple element is capable of storing the
 response to the command it refers to, otherwise an error will occur.
 To ignore responses to individual commands in the request use the tag
-`aedis::ignore`
+`boost::redis::ignore`
 
 ```cpp
 // Ignore the second and last responses.
-std::tuple<std::string, aedis::ignore, std::string, aedis::ignore>
+std::tuple<std::string, boost::redis::ignore, std::string, boost::redis::ignore>
 ```
 
 The following table provides the resp3-types returned by some Redis
@@ -418,7 +418,7 @@ can be read in the tuple below
 
 ```cpp
 std::tuple<
-   aedis::ignore,  // hello
+   redis::ignore,  // hello
    int,            // rpush
    int,            // hset
    std::vector<T>, // lrange
@@ -474,7 +474,7 @@ that has size two.
 
 It is not uncommon for apps to access keys that do not exist or
 that have already expired in the Redis server, to deal with these
-cases Aedis provides support for `std::optional`. To use it,
+cases Boost.Redis provides support for `std::optional`. To use it,
 wrap your type around `std::optional` like this
 
 ```cpp
@@ -507,7 +507,7 @@ req.push("EXEC");
 use the following response type
 
 ```cpp
-using aedis::ignore;
+using boost::redis::ignore;
 
 using exec_resp_type = 
    std::tuple<
@@ -517,11 +517,11 @@ using exec_resp_type =
    >;
 
 std::tuple<
-   aedis::ignore,  // multi
-   aedis::ignore,  // get
-   aedis::ignore,  // lrange
-   aedis::ignore,  // hgetall
-   exec_resp_type, // exec
+   boost::redis::ignore,  // multi
+   boost::redis::ignore,  // get
+   boost::redis::ignore,  // lrange
+   boost::redis::ignore,  // hgetall
+   exec_resp_type,        // exec
 > resp;
 
 co_await conn->async_exec(req, adapt(resp));
@@ -534,7 +534,7 @@ For a complete example see cpp20_containers.cpp.
 As mentioned in the serialization section, it is common practice to
 serialize data before sending it to Redis e.g. as json strings.  For
 performance and convenience reasons, we may also want to deserialize
-responses directly in their final data structure. Aedis supports this
+responses directly in their final data structure. Boost.Redis supports this
 use case by calling a user provided `from_bulk` function while parsing
 the response. For example
 
@@ -561,7 +561,7 @@ will result in error.
 * RESP3 aggregates that contain nested aggregates can't be read in STL containers.
 * Transactions with a dynamic number of commands can't be read in a `std::tuple`.
 
-To deal with these cases Aedis provides the `aedis::resp3::node` type
+To deal with these cases Boost.Redis provides the `boost::redis::resp3::node` type
 abstraction, that is the most general form of an element in a
 response, be it a simple RESP3 type or the element of an aggregate. It
 is defined like this
@@ -647,7 +647,7 @@ I also imposed some constraints on the implementations
 
 To reproduce these results run one of the echo-server programs in one
 terminal and the
-[echo-server-client](https://github.com/mzimbres/aedis/blob/42880e788bec6020dd018194075a211ad9f339e8/benchmarks/cpp/asio/echo_server_client.cpp)
+[echo-server-client](https://github.com/boostorg/redis/blob/42880e788bec6020dd018194075a211ad9f339e8/benchmarks/cpp/asio/echo_server_client.cpp)
 in another.
 
 ### Without Redis
@@ -656,7 +656,7 @@ First I tested a pure TCP echo server, i.e. one that sends the messages
 directly to the client without interacting with Redis. The result can
 be seen below
 
-![](https://mzimbres.github.io/aedis/tcp-echo-direct.png)
+![](https://boostorg.github.io/redis/tcp-echo-direct.png)
 
 The tests were performed with a 1000 concurrent TCP connections on the
 localhost where latency is 0.07ms on average on my machine. On higher
@@ -671,11 +671,11 @@ decrease.
 
 The code used in the benchmarks can be found at
 
-   * [Asio](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/cpp/asio/echo_server_direct.cpp): A variation of [this](https://github.com/chriskohlhoff/asio/blob/4915cfd8a1653c157a1480162ae5601318553eb8/asio/src/examples/cpp20/coroutines/echo_server.cpp) Asio example.
-   * [Libuv](https://github.com/mzimbres/aedis/tree/835a1decf477b09317f391eddd0727213cdbe12b/benchmarks/c/libuv): Taken from [here](https://github.com/libuv/libuv/blob/06948c6ee502862524f233af4e2c3e4ca876f5f6/docs/code/tcp-echo-server/main.c) Libuv example .
-   * [Tokio](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/rust/echo_server_direct): Taken from [here](https://docs.rs/tokio/latest/tokio/).
-   * [Nodejs](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_direct)
-   * [Go](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_direct.go)
+   * [Asio](https://github.com/boostorg/redis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/cpp/asio/echo_server_direct.cpp): A variation of [this](https://github.com/chriskohlhoff/asio/blob/4915cfd8a1653c157a1480162ae5601318553eb8/asio/src/examples/cpp20/coroutines/echo_server.cpp) Asio example.
+   * [Libuv](https://github.com/boostorg/redis/tree/835a1decf477b09317f391eddd0727213cdbe12b/benchmarks/c/libuv): Taken from [here](https://github.com/libuv/libuv/blob/06948c6ee502862524f233af4e2c3e4ca876f5f6/docs/code/tcp-echo-server/main.c) Libuv example .
+   * [Tokio](https://github.com/boostorg/redis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/rust/echo_server_direct): Taken from [here](https://docs.rs/tokio/latest/tokio/).
+   * [Nodejs](https://github.com/boostorg/redis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_direct)
+   * [Go](https://github.com/boostorg/redis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_direct.go)
 
 ### With Redis
 
@@ -684,7 +684,7 @@ echoed by Redis and not by the echo-server itself, which acts
 as a proxy between the client and the Redis server. The results
 can be seen below
 
-![](https://mzimbres.github.io/aedis/tcp-echo-over-redis.png)
+![](https://boostorg.github.io/redis/tcp-echo-over-redis.png)
 
 The tests were performed on a network where latency is 35ms on
 average, otherwise it uses the same number of TCP connections
@@ -708,17 +708,17 @@ in the graph, the reasons are
 
 The code used in the benchmarks can be found at
 
-   * [Aedis](https://github.com/mzimbres/aedis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/examples/echo_server.cpp)
-   * [node-redis](https://github.com/redis/node-redis): [code](https://github.com/mzimbres/aedis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_over_redis)
-   * [go-redis](https://github.com/go-redis/redis): [code](https://github.com/mzimbres/aedis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go)
+   * [Boost.Redis](https://github.com/boostorg/redis): [code](https://github.com/boostorg/redis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/examples/echo_server.cpp)
+   * [node-redis](https://github.com/redis/node-redis): [code](https://github.com/boostorg/redis/tree/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/nodejs/echo_server_over_redis)
+   * [go-redis](https://github.com/go-redis/redis): [code](https://github.com/boostorg/redis/blob/3fb018ccc6138d310ac8b73540391cdd8f2fdad6/benchmarks/go/echo_server_over_redis.go)
 
 ### Conclusion
 
-Redis clients have to support automatic pipelining to have competitive performance. For updates to this document follow https://github.com/mzimbres/aedis.
+Redis clients have to support automatic pipelining to have competitive performance. For updates to this document follow https://github.com/boostorg/redis.
 
 ## Comparison
 
-The main reason for why I started writing Aedis was to have a client
+The main reason for why I started writing Boost.Redis was to have a client
 compatible with the Asio asynchronous model. As I made progresses I could
 also address what I considered weaknesses in other libraries.  Due to
 time constraints I won't be able to give a detailed comparison with
@@ -729,7 +729,7 @@ stars, namely
 
 * https://github.com/sewenew/redis-plus-plus
 
-### Aedis vs Redis-plus-plus
+### Boost.Redis vs Redis-plus-plus
 
 Before we start it is important to mention some of the things
 redis-plus-plus does not support
@@ -799,7 +799,7 @@ Transactions also suffer from the very same problem.
 > NOTE: Creating a Transaction object is NOT cheap, since it
 > creates a new connection.
 
-In Aedis there is no difference between sending one command, a
+In Boost.Redis there is no difference between sending one command, a
 pipeline or a transaction because requests are decoupled
 from the IO objects.
 
@@ -836,12 +836,12 @@ It is also not clear how are pipelines realised with this design
 ## Installation
 
 Download the latest release on
-https://github.com/mzimbres/aedis/releases.  Aedis is a header only
+https://github.com/boostorg/redis/releases.  Boost.Redis is a header only
 library, so you can starting using it right away by adding the
 `include` subdirectory to your project and including
 
 ```cpp
-#include <aedis/src.hpp>
+#include <boost/redis/src.hpp>
 ```
 
 in no more than one source file in your applications. To build the
@@ -852,10 +852,10 @@ BOOST_ROOT=/opt/boost_1_80_0 cmake --preset dev
 ```
 ## Acknowledgement
 
-Acknowledgement to people that helped shape Aedis
+Acknowledgement to people that helped shape Boost.Redis
 
 * Richard Hodges ([madmongo1](https://github.com/madmongo1)): For very helpful support with Asio, the design of asynchronous programs, etc.
-* Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Aedis consumes buffers in the read operation.
+* Vinícius dos Santos Oliveira ([vinipsmaker](https://github.com/vinipsmaker)): For useful discussion about how Boost.Redis consumes buffers in the read operation.
 * Petr Dannhofer ([Eddie-cz](https://github.com/Eddie-cz)): For helping me understand how the `AUTH` and `HELLO` command can influence each other.
 * Mohammad Nejati ([ashtum](https://github.com/ashtum)): For pointing out scenarios where calls to `async_exec` should fail when the connection is lost.
 * Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, cancellation, synchronous interfaces and general help with Asio.

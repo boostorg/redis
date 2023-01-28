@@ -7,16 +7,17 @@
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 #include <map>
 #include <vector>
 
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace redis = boost::redis;
+namespace resp3 = redis::resp3;
 using namespace net::experimental::awaitable_operators;
-using aedis::adapt;
+using redis::adapt;
 
 void print(std::map<std::string, std::string> const& cont)
 {
@@ -61,7 +62,7 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
    req.push("HGETALL", "hset-key");
 
    // Responses as tuple elements.
-   std::tuple<aedis::ignore, std::map<std::string, std::string>> resp;
+   std::tuple<redis::ignore, std::map<std::string, std::string>> resp;
 
    // Executes the request and reads the response.
    co_await conn->async_exec(req, adapt(resp));
@@ -80,10 +81,10 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
    req.push("EXEC");
 
    std::tuple<
-      aedis::ignore, // hello
-      aedis::ignore, // multi
-      aedis::ignore, // lrange
-      aedis::ignore, // hgetall
+      redis::ignore, // hello
+      redis::ignore, // multi
+      redis::ignore, // lrange
+      redis::ignore, // hgetall
       std::tuple<std::optional<std::vector<int>>, std::optional<std::map<std::string, std::string>>> // exec
    > resp;
 

@@ -11,8 +11,8 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 #include "common.hpp"
 #include "../examples/common/common.hpp"
 
@@ -22,11 +22,11 @@
 // separately here.
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using error_code = boost::system::error_code;
 using namespace net::experimental::awaitable_operators;
-using aedis::operation;
-using aedis::adapt;
+using boost::redis::operation;
+using boost::redis::adapt;
 
 auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 {

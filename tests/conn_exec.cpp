@@ -11,8 +11,8 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 
 #include "common.hpp"
 
@@ -20,10 +20,10 @@
 // been already writen.
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using error_code = boost::system::error_code;
-using connection = aedis::connection;
-using aedis::adapt;
+using connection = boost::redis::connection;
+using boost::redis::adapt;
 
 BOOST_AUTO_TEST_CASE(hello_priority)
 {
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    req.push("QUIT");
 
    // Wrong data type.
-   std::tuple<aedis::ignore, int> resp;
+   std::tuple<boost::redis::ignore, int> resp;
    net::io_context ioc;
 
    auto const endpoints = resolve();
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    net::connect(conn.next_layer(), endpoints);
 
    conn.async_exec(req, adapt(resp), [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, aedis::error::not_a_number);
+      BOOST_CHECK_EQUAL(ec, boost::redis::error::not_a_number);
    });
    conn.async_run([](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
    conn->async_exec(req, adapt(), [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, aedis::error::not_connected);
+      BOOST_CHECK_EQUAL(ec, boost::redis::error::not_connected);
    });
 
    ioc.run();
