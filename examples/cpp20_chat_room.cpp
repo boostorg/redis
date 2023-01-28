@@ -10,16 +10,16 @@
 namespace net = boost::asio;
 #if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 #include <boost/asio/experimental/awaitable_operators.hpp>
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 #include <unistd.h>
 
 #include "common/common.hpp"
 
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::stream_descriptor>;
 using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
-using aedis::adapt;
+using boost::redis::adapt;
 
 // Chat over Redis pubsub. To test, run this program from multiple
 // terminals and type messages to stdin.

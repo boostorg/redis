@@ -11,16 +11,16 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 
 #include "common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using error_code = boost::system::error_code;
-using connection = aedis::connection;
-using aedis::adapt;
+using connection = boost::redis::connection;
+using boost::redis::adapt;
 
 BOOST_AUTO_TEST_CASE(request_retry_false)
 {
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
       // although it has cancel_on_connection_lost = false. The reason
       // being is has already been written so
       // cancel_on_connection_lost does not apply.
-      conn.cancel(aedis::operation::run);
+      conn.cancel(boost::redis::operation::run);
    });
 
    auto const endpoints = resolve();
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
       // should cause the thrid request to not complete with error
       // since it has cancel_if_unresponded = true and cancellation commes
       // after it was written.
-      conn.cancel(aedis::operation::run);
+      conn.cancel(boost::redis::operation::run);
    });
 
    auto const endpoints = resolve();

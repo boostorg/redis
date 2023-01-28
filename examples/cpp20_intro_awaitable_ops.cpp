@@ -7,13 +7,13 @@
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
-using aedis::adapt;
+using boost::redis::adapt;
 
 // Called from the main function (see main.cpp)
 auto co_main(std::string host, std::string port) -> net::awaitable<void>
@@ -23,7 +23,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    req.push("PING", "Hello world");
    req.push("QUIT");
 
-   std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+   std::tuple<boost::redis::ignore, std::string, boost::redis::ignore> resp;
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
    co_await connect(conn, host, port);

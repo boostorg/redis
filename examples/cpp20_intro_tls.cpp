@@ -13,15 +13,16 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/asio/ssl.hpp>
 
-#include <aedis.hpp>
-#include <aedis/ssl/connection.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/ssl/connection.hpp>
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace redis = boost::redis;
+namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
-using aedis::adapt;
-using connection = net::use_awaitable_t<>::as_default_on_t<aedis::ssl::connection>;
+using redis::adapt;
+using connection = net::use_awaitable_t<>::as_default_on_t<redis::ssl::connection>;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {
@@ -36,7 +37,7 @@ net::awaitable<void> co_main(std::string, std::string)
    req.push("PING");
    req.push("QUIT");
 
-   std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+   std::tuple<redis::ignore, std::string, redis::ignore> resp;
 
    // Resolve
    auto ex = co_await net::this_coro::executor;

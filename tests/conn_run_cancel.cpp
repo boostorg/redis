@@ -13,16 +13,16 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 #include "common.hpp"
 
 namespace net = boost::asio;
 
-using aedis::resp3::request;
-using aedis::operation;
-using aedis::adapt;
-using connection = aedis::connection;
+using boost::redis::resp3::request;
+using boost::redis::operation;
+using boost::redis::adapt;
+using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 

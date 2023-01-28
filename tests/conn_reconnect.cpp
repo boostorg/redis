@@ -11,15 +11,15 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 #include "common.hpp"
 #include "../examples/common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 
-using aedis::adapt;
+using boost::redis::adapt;
 using error_code = boost::system::error_code;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>

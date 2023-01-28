@@ -7,15 +7,15 @@
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
-using aedis::adapt;
+using boost::redis::adapt;
 
 /* This example will subscribe and read pushes indefinitely.
  *

@@ -7,16 +7,16 @@
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
-using aedis::adapt;
+using boost::redis::adapt;
 
 auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) -> net::awaitable<void>
 {

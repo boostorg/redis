@@ -6,15 +6,15 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 #include <string>
 #include <iostream>
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace resp3 = boost::redis::resp3;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using aedis::adapter::adapt2;
+using boost::redis::adapter::adapt2;
 using net::ip::tcp;
 
 auto co_main(std::string host, std::string port) -> net::awaitable<void>

@@ -15,9 +15,9 @@ namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using timer_type = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
-using aedis::resp3::request;
-using aedis::adapt;
-using aedis::operation;
+using boost::redis::resp3::request;
+using boost::redis::adapt;
+using boost::redis::operation;
 
 namespace
 {

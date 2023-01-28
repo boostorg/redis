@@ -10,10 +10,10 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis/resp3/request.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis/resp3/request.hpp>
+#include <boost/redis/src.hpp>
 
-using aedis::resp3::request;
+using boost::redis::resp3::request;
 
 // TODO: Serialization.
 

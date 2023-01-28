@@ -11,16 +11,16 @@
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
 
-#include <aedis.hpp>
-#include <aedis/ssl/connection.hpp>
-#include <aedis/src.hpp>
+#include <boost/redis.hpp>
+#include <boost/redis/ssl/connection.hpp>
+#include <boost/redis/src.hpp>
 #include "common.hpp"
 
 namespace net = boost::asio;
 
-using aedis::adapt;
-using aedis::resp3::request;
-using connection = aedis::ssl::connection;
+using boost::redis::adapt;
+using boost::redis::resp3::request;
+using connection = boost::redis::ssl::connection;
 
 struct endpoint {
    std::string host;

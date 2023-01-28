@@ -1,29 +1,22 @@
-# At the moment the official build system is still autotools and this
-# file is meant to support Aedis on windows.
-
-# BOOST_ROOT=/opt/boost_1_79/ cmake -DCMAKE_CXX_FLAGS="-g -O0
-# -std=c++20 -Wall -Wextra --coverage -fkeep-inline-functions
-# -fkeep-static-functions" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
-# ~/my/aedis
-
 cmake_minimum_required(VERSION 3.14)
 
 project(
-    Aedis
+    boost_redis
     VERSION 1.4.1
     DESCRIPTION "A redis client library"
-    HOMEPAGE_URL "https://mzimbres.github.io/aedis"
+    HOMEPAGE_URL "https://boostorg.github.io/redis/"
     LANGUAGES CXX
 )
 
-add_library(aedis INTERFACE)
-target_include_directories(aedis INTERFACE
+add_library(boost_redis INTERFACE)
+add_library(Boost::redis ALIAS boost_redis)
+target_include_directories(boost_redis INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(
-  aedis
+  boost_redis
   INTERFACE
     Boost::asio
     Boost::assert
@@ -34,17 +27,17 @@ target_link_libraries(
     Boost::utility
 )
 
-target_compile_features(aedis INTERFACE cxx_std_17)
+target_compile_features(boost_redis INTERFACE cxx_std_17)
 
 # Asio bases C++ feature detection on __cplusplus. Make MSVC
 # define it correctly
 if (MSVC)
-    target_compile_options(aedis INTERFACE /Zc:__cplusplus)
+    target_compile_options(boost_redis INTERFACE /Zc:__cplusplus)
 endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/AedisConfigVersion.cmake"
+    "${PROJECT_BINARY_DIR}/BoostRedisConfigVersion.cmake"
     COMPATIBILITY AnyNewerVersion
 )
 
@@ -62,7 +55,7 @@ include_directories(include)
 add_library(common STATIC
    examples/common/common.cpp
    examples/common/main.cpp
-   examples/common/aedis.cpp
+   examples/common/boost_redis.cpp
 )
 target_compile_features(common PUBLIC cxx_std_20)
 if (MSVC)
@@ -311,23 +304,23 @@ endif()
 # Install
 #=======================================================================
 
-install(TARGETS aedis
-    EXPORT aedis
+install(TARGETS boost_redis
+    EXPORT boost_redis
     PUBLIC_HEADER DESTINATION include COMPONENT Development
 )
 
 include(CMakePackageConfigHelpers)
 
 configure_package_config_file(
-   "${PROJECT_SOURCE_DIR}/cmake/AedisConfig.cmake.in"
-   "${PROJECT_BINARY_DIR}/AedisConfig.cmake"
-    INSTALL_DESTINATION lib/cmake/aedis
+   "${PROJECT_SOURCE_DIR}/cmake/BoostRedisConfig.cmake.in"
+   "${PROJECT_BINARY_DIR}/BoostRedisConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/boost/redis
 )
 
-install(EXPORT aedis DESTINATION lib/cmake/aedis)
-install(FILES "${PROJECT_BINARY_DIR}/AedisConfigVersion.cmake"
-    "${PROJECT_BINARY_DIR}/AedisConfig.cmake"
-     DESTINATION lib/cmake/aedis)
+install(EXPORT boost_redis DESTINATION lib/cmake/boost/redis)
+install(FILES "${PROJECT_BINARY_DIR}/BoostRedisConfigVersion.cmake"
+   "${PROJECT_BINARY_DIR}/BoostRedisConfig.cmake"
+     DESTINATION lib/cmake/boost/redis)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 

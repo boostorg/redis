@@ -9,15 +9,16 @@
 #include <thread>
 #include <iostream>
 #include <boost/asio.hpp>
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 
 // Include this in no more than one .cpp file.
-#include <aedis/src.hpp>
+#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
-using aedis::adapt;
-using connection = aedis::connection;
+namespace redis = boost::redis;
+namespace resp3 = redis::resp3;
+using redis::adapt;
+using connection = redis::connection;
 
 template <class Adapter>
 auto exec(std::shared_ptr<connection> conn, resp3::request const& req, Adapter adapter)
@@ -65,7 +66,7 @@ auto main(int argc, char * argv[]) -> int
       req.push("PING");
       req.push("QUIT");
 
-      std::tuple<aedis::ignore, std::string, aedis::ignore> resp;
+      std::tuple<boost::redis::ignore, std::string, boost::redis::ignore> resp;
 
       // Executes commands synchronously.
       exec(conn, req, adapt(resp));

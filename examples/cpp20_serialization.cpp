@@ -10,7 +10,7 @@
 #define BOOST_JSON_NO_LIB
 #define BOOST_CONTAINER_NO_LIB
 #include <boost/json.hpp>
-#include <aedis.hpp>
+#include <boost/redis.hpp>
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
@@ -23,10 +23,11 @@
 #include <boost/json/src.hpp>
 
 namespace net = boost::asio;
-namespace resp3 = aedis::resp3;
+namespace redis = boost::redis;
+namespace resp3 = redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using namespace boost::json;
-using aedis::adapt;
+using redis::adapt;
 
 struct user {
    std::string name;
@@ -74,10 +75,10 @@ auto tag_invoke(value_to_tag<user>, value const& jv)
    return u;
 }
 
-// Aedis serialization
+// Serialization
 void to_bulk(std::pmr::string& to, user const& u)
 {
-   aedis::resp3::to_bulk(to, serialize(value_from(u)));
+   redis::resp3::to_bulk(to, serialize(value_from(u)));
 }
 
 void from_bulk(user& u, std::string_view sv, boost::system::error_code&)
@@ -97,7 +98,7 @@ net::awaitable<void> co_main(std::string host, std::string port)
    req.push("SMEMBERS", "sadd-key"); // Retrieves
    req.push("QUIT");
 
-   std::tuple<aedis::ignore, int, std::set<user>, std::string> resp;
+   std::tuple<redis::ignore, int, std::set<user>, std::string> resp;
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
