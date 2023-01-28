@@ -168,31 +168,6 @@ BOOST_AUTO_TEST_CASE(reset_before_run_completes)
    ioc.run();
 }
 
-using slave_operation = aedis::detail::guarded_operation<net::any_io_executor>;
-
-auto master(std::shared_ptr<slave_operation> op) -> net::awaitable<void>
-{
-   co_await op->async_run(net::use_awaitable);
-}
-
-auto slave(std::shared_ptr<slave_operation> op) -> net::awaitable<void>
-{
-   net::steady_timer timer{co_await net::this_coro::executor};
-   timer.expires_after(std::chrono::seconds{1});
-
-   co_await op->async_wait(timer.async_wait(net::deferred), net::use_awaitable);
-   std::cout << "Kabuf" << std::endl;
-}
-
-BOOST_AUTO_TEST_CASE(slave_op)
-{
-   net::io_context ioc;
-   auto op = std::make_shared<slave_operation>(ioc.get_executor());
-   net::co_spawn(ioc, master(op), net::detached);
-   net::co_spawn(ioc, slave(op), net::detached);
-   ioc.run();
-}
-
 #else
 int main(){}
 #endif

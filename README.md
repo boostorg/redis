@@ -48,7 +48,7 @@ connection to read Redis
 ```cpp
 auto co_main() -> net::awaitable<void>
 {
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   connection conn{co_await net::this_coro::executor};
 
    // From examples/common.hpp to avoid vebosity
    co_await connect(conn, "127.0.0.1", "6379");
@@ -65,7 +65,7 @@ auto co_main() -> net::awaitable<void>
    std::tuple<ignore, std::map<std::string, std::string>, ignore> resp;
 
    // Executes the request. See below why we are using operator ||.
-   co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
+   co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
    // Use the map from std::get<1>(resp) ...
 }
 ```

@@ -299,6 +299,15 @@ if (MSVC)
     target_compile_definitions(test_request PRIVATE _WIN32_WINNT=0x0601)
 endif()
 
+add_executable(test_issue_50 tests/issue_50.cpp)
+target_compile_features(test_issue_50 PUBLIC cxx_std_20)
+target_link_libraries(test_issue_50 common)
+add_test(test_issue_50 test_issue_50)
+if (MSVC)
+    target_compile_options(test_issue_50 PRIVATE /bigobj)
+    target_compile_definitions(test_issue_50 PRIVATE _WIN32_WINNT=0x0601)
+endif()
+
 # Install
 #=======================================================================
 

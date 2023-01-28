@@ -47,7 +47,7 @@ public:
    connection_base(executor_type ex, std::pmr::memory_resource* resource)
    : writer_timer_{ex}
    , read_timer_{ex}
-   , guarded_op_{ex}
+   , channel_{ex}
    , read_buffer_{resource}
    , write_buffer_{resource}
    , reqs_{resource}
@@ -76,7 +76,7 @@ public:
          }
          case operation::receive:
          {
-            guarded_op_.cancel();
+            channel_.cancel();
             return 1U;
          }
          default: BOOST_ASSERT(false); return 0;
@@ -136,7 +136,7 @@ public:
    template <class Adapter, class CompletionToken>
    auto async_exec(resp3::request const& req, Adapter adapter, CompletionToken token)
    {
-      BOOST_ASSERT_MSG(req.size() <= adapter.get_supported_response_size(), "Request and adapter have incompatible sizes.");
+      BOOST_ASSERT_MSG(req.size() <= adapter.get_supported_response_size(), "Request and response have incompatible sizes.");
 
       return boost::asio::async_compose
          < CompletionToken
@@ -149,9 +149,10 @@ public:
    {
       auto f = detail::make_adapter_wrapper(adapter);
 
-      return guarded_op_.async_wait(
-         resp3::async_read(derived().next_layer(), make_dynamic_buffer(adapter.get_max_read_size(0)), f, boost::asio::deferred),
-         std::move(token));
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code, std::size_t)
+         >(detail::receive_op<Derived, decltype(f)>{&derived(), f}, token, channel_);
    }
 
    template <class CompletionToken>
@@ -163,10 +164,14 @@ public:
          >(detail::run_op<Derived>{&derived()}, token, writer_timer_);
    }
 
+   void set_max_buffer_read_size(std::size_t max_read_size) noexcept
+      {max_read_size_ = max_read_size;}
+
 private:
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = boost::asio::wait_traits<clock_type>;
    using timer_type = boost::asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
+   using channel_type = boost::asio::experimental::channel<executor_type, void(boost::system::error_code, std::size_t)>;
 
    auto derived() -> Derived& { return static_cast<Derived&>(*this); }
 
@@ -272,7 +277,17 @@ private:
    template <class> friend struct detail::run_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::exec_read_op;
-   template <class> friend struct detail::send_receive_op;
+   template <class, class> friend struct detail::receive_op;
+   template <class> friend struct detail::wait_receive_op;
+
+   template <class CompletionToken>
+   auto async_wait_receive(CompletionToken token)
+   {
+      return boost::asio::async_compose
+         < CompletionToken
+         , void(boost::system::error_code)
+         >(wait_receive_op<Derived>{&derived()}, token, channel_);
+   }
 
    void cancel_push_requests()
    {
@@ -299,12 +314,12 @@ private:
          std::rotate(std::rbegin(reqs_), std::rbegin(reqs_) + 1, rend);
       }
 
-      if (derived().is_open() && cmds_ == 0 && write_buffer_.empty())
+      if (derived().is_open() && !is_waiting_response() && write_buffer_.empty())
          writer_timer_.cancel();
    }
 
-   auto make_dynamic_buffer(std::size_t max_read_size = 512)
-      { return boost::asio::dynamic_buffer(read_buffer_, max_read_size); }
+   auto make_dynamic_buffer()
+      { return boost::asio::dynamic_buffer(read_buffer_, max_read_size_); }
 
    template <class CompletionToken>
    auto reader(CompletionToken&& token)
@@ -336,7 +351,6 @@ private:
    void stage_request(req_info& ri)
    {
       write_buffer_ += ri.get_request().payload();
-      cmds_ += ri.get_request().size();
       ri.mark_staged();
    }
 
@@ -358,17 +372,22 @@ private:
       }
    }
 
+   bool is_waiting_response() const noexcept
+   {
+      return !std::empty(reqs_) && reqs_.front()->is_written();
+   }
+
    // Notice we use a timer to simulate a condition-variable. It is
    // also more suitable than a channel and the notify operation does
    // not suspend.
    timer_type writer_timer_;
    timer_type read_timer_;
-   detail::guarded_operation<executor_type> guarded_op_;
+   channel_type channel_;
 
    std::pmr::string read_buffer_;
    std::pmr::string write_buffer_;
-   std::size_t cmds_ = 0;
    reqs_type reqs_;
+   std::size_t max_read_size_ = (std::numeric_limits<std::size_t>::max)();
 };
 
 } // aedis

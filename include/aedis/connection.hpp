@@ -187,15 +187,21 @@ public:
    auto cancel(operation op) -> std::size_t
       { return base_type::cancel(op); }
 
+   /// Sets the maximum size of the read buffer.
+   void set_max_buffer_read_size(std::size_t max_read_size) noexcept
+      { base_type::set_max_buffer_read_size(max_read_size); }
+
 private:
    using this_type = basic_connection<next_layer_type>;
 
    template <class, class> friend class detail::connection_base;
    template <class, class> friend struct detail::exec_read_op;
    template <class, class> friend struct detail::exec_op;
+   template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
    template <class> friend struct detail::run_op;
+   template <class> friend struct detail::wait_receive_op;
 
    void close() { stream_.close(); }
    auto is_open() const noexcept { return stream_.is_open(); }

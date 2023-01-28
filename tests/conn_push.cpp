@@ -108,10 +108,6 @@ struct adapter_error {
    [[nodiscard]]
    auto get_supported_response_size() const noexcept
       { return static_cast<std::size_t>(-1);}
-
-   [[nodiscard]]
-   auto get_max_read_size(std::size_t) const noexcept
-      { return static_cast<std::size_t>(-1);}
 };
 
 BOOST_AUTO_TEST_CASE(test_push_adapter)

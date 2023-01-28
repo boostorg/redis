@@ -134,15 +134,21 @@ public:
 
    auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
 
+   /// Sets the maximum size of the read buffer.
+   void set_max_buffer_read_size(std::size_t max_read_size) noexcept
+      { base_type::set_max_buffer_read_size(max_read_size); }
+
 private:
    using this_type = basic_connection<next_layer_type>;
 
    template <class, class> friend class aedis::detail::connection_base;
    template <class, class> friend struct aedis::detail::exec_op;
    template <class, class> friend struct aedis::detail::exec_read_op;
+   template <class, class> friend struct detail::receive_op;
    template <class> friend struct aedis::detail::run_op;
    template <class> friend struct aedis::detail::writer_op;
    template <class> friend struct aedis::detail::reader_op;
+   template <class> friend struct detail::wait_receive_op;
 
    auto is_open() const noexcept { return stream_.next_layer().is_open(); }
    void close() { stream_.next_layer().close(); }
