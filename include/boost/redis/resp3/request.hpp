@@ -11,7 +11,6 @@
 
 #include <string>
 #include <tuple>
-#include <memory_resource>
 
 // NOTE: Consider detecting tuples in the type in the parameter pack
 // to calculate the header size correctly.
@@ -164,7 +163,7 @@ void add_separator(Request& to)
  *
  *  \li Non-string types will be converted to string by using \c
  *  to_bulk, which must be made available over ADL.
- *  \li Uses a std::pmr::string for internal storage.
+ *  \li Uses a std::string for internal storage.
  */
 class request {
 public:
@@ -211,9 +210,8 @@ public:
     *  \param resource Memory resource.
     */
     explicit
-    request(config cfg = config{true, true, false, true, true},
-            std::pmr::memory_resource* resource = std::pmr::get_default_resource())
-    : cfg_{cfg}, payload_(resource) {}
+    request(config cfg = config{true, true, false, true, true})
+    : cfg_{cfg} {}
 
     //// Returns the number of commands contained in this request.
    [[nodiscard]] auto size() const noexcept -> std::size_t
@@ -232,7 +230,7 @@ public:
       commands_ = 0;
    }
 
-   /// Calls std::pmr::string::reserve on the internal storage.
+   /// Calls std::string::reserve on the internal storage.
    void reserve(std::size_t new_cap = 0)
       { payload_.reserve(new_cap); }
 
@@ -395,7 +393,7 @@ private:
    }
 
    config cfg_;
-   std::pmr::string payload_;
+   std::string payload_;
    std::size_t commands_ = 0;
    bool has_hello_priority_ = false;
 };
