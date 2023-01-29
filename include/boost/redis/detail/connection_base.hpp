@@ -24,7 +24,6 @@
 #include <chrono>
 #include <memory>
 #include <type_traits>
-#include <memory_resource>
 
 namespace boost::redis::detail {
 
@@ -43,13 +42,10 @@ public:
    using executor_type = Executor;
    using this_type = connection_base<Executor, Derived>;
 
-   connection_base(executor_type ex, std::pmr::memory_resource* resource)
+   connection_base(executor_type ex)
    : writer_timer_{ex}
    , read_timer_{ex}
    , channel_{ex}
-   , read_buffer_{resource}
-   , write_buffer_{resource}
-   , reqs_{resource}
    {
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
@@ -166,6 +162,13 @@ public:
    void set_max_buffer_read_size(std::size_t max_read_size) noexcept
       {max_read_size_ = max_read_size;}
 
+   // Reserves memory in the read and write buffer.
+   void reserve(std::size_t read, std::size_t write)
+   {
+      read_buffer_.reserve(read);
+      write_buffer_.reserve(write);
+   }
+
 private:
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = asio::wait_traits<clock_type>;
@@ -269,7 +272,7 @@ private:
       reqs_.erase(std::remove(std::begin(reqs_), std::end(reqs_), info));
    }
 
-   using reqs_type = std::pmr::deque<std::shared_ptr<req_info>>;
+   using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
@@ -383,8 +386,8 @@ private:
    timer_type read_timer_;
    channel_type channel_;
 
-   std::pmr::string read_buffer_;
-   std::pmr::string write_buffer_;
+   std::string read_buffer_;
+   std::string write_buffer_;
    reqs_type reqs_;
    std::size_t max_read_size_ = (std::numeric_limits<std::size_t>::max)();
 };

@@ -5,7 +5,6 @@
  */
 
 #include <iostream>
-#include <memory_resource>
 
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
@@ -19,18 +18,16 @@ using boost::redis::resp3::request;
 
 BOOST_AUTO_TEST_CASE(single_arg_allocator)
 {
-   char buf[4096];
-   std::pmr::monotonic_buffer_resource resource{buf, 4096};
-   request req1{{}, &resource};
+   request req1;
    req1.push("PING");
-   BOOST_CHECK_EQUAL(req1.payload(), std::pmr::string{"*1\r\n$4\r\nPING\r\n"});
+   BOOST_CHECK_EQUAL(req1.payload(), std::string{"*1\r\n$4\r\nPING\r\n"});
 }
 
 BOOST_AUTO_TEST_CASE(arg_int)
 {
    request req;
    req.push("PING", 42);
-   BOOST_CHECK_EQUAL(req.payload(), std::pmr::string{"*2\r\n$4\r\nPING\r\n$2\r\n42\r\n"});
+   BOOST_CHECK_EQUAL(req.payload(), std::string{"*2\r\n$4\r\nPING\r\n$2\r\n42\r\n"});
 }
 
 BOOST_AUTO_TEST_CASE(multiple_args)
@@ -38,7 +35,7 @@ BOOST_AUTO_TEST_CASE(multiple_args)
    char const* res = "*5\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n$2\r\nEX\r\n$1\r\n2\r\n";
    request req;
    req.push("SET", "key", "value", "EX", "2");
-   BOOST_CHECK_EQUAL(req.payload(), std::pmr::string{res});
+   BOOST_CHECK_EQUAL(req.payload(), std::string{res});
 }
 
 BOOST_AUTO_TEST_CASE(container_and_range)
@@ -49,9 +46,9 @@ BOOST_AUTO_TEST_CASE(container_and_range)
 
    request req1;
    req1.push_range("HSET", "key", in);
-   BOOST_CHECK_EQUAL(req1.payload(), std::pmr::string{res});
+   BOOST_CHECK_EQUAL(req1.payload(), std::string{res});
 
    request req2;
    req2.push_range("HSET", "key", std::cbegin(in), std::cend(in));
-   BOOST_CHECK_EQUAL(req2.payload(), std::pmr::string{res});
+   BOOST_CHECK_EQUAL(req2.payload(), std::string{res});
 }

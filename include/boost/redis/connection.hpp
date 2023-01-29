@@ -21,20 +21,19 @@ namespace boost::redis {
  *  For more details, please see the documentation of each individual
  *  function.
  *
- *  @tparam AsyncReadWriteStream A stream that supports reading and
- *  writing.
+ *  @tparam Socket The socket type e.g. asio::ip::tcp::socket.
  */
-template <class AsyncReadWriteStream>
+template <class Socket>
 class basic_connection :
    private detail::connection_base<
-      typename AsyncReadWriteStream::executor_type,
-      basic_connection<AsyncReadWriteStream>> {
+      typename Socket::executor_type,
+      basic_connection<Socket>> {
 public:
    /// Executor type.
-   using executor_type = typename AsyncReadWriteStream::executor_type;
+   using executor_type = typename Socket::executor_type;
 
    /// Type of the next layer
-   using next_layer_type = AsyncReadWriteStream;
+   using next_layer_type = Socket;
 
    /// Rebinds the socket type to another executor.
    template <class Executor1>
@@ -44,23 +43,19 @@ public:
       using other = basic_connection<typename next_layer_type::template rebind_executor<Executor1>::other>;
    };
 
-   using base_type = detail::connection_base<executor_type, basic_connection<AsyncReadWriteStream>>;
+   using base_type = detail::connection_base<executor_type, basic_connection<Socket>>;
 
    /// Contructs from an executor.
    explicit
-   basic_connection(
-      executor_type ex,
-      std::pmr::memory_resource* resource = std::pmr::get_default_resource())
-   : base_type{ex, resource}
+   basic_connection(executor_type ex)
+   : base_type{ex}
    , stream_{ex}
    {}
 
    /// Contructs from a context.
    explicit
-   basic_connection(
-      asio::io_context& ioc,
-      std::pmr::memory_resource* resource = std::pmr::get_default_resource())
-   : basic_connection(ioc.get_executor(), resource)
+   basic_connection(asio::io_context& ioc)
+   : basic_connection(ioc.get_executor())
    { }
 
    /// Returns the associated executor.
@@ -190,6 +185,17 @@ public:
    void set_max_buffer_read_size(std::size_t max_read_size) noexcept
       { base_type::set_max_buffer_read_size(max_read_size); }
 
+   /** @brief Reserve memory on the read and write internal buffers.
+    *
+    *  This function will call `std::string::reserve` on the
+    *  underlying buffers.
+    *  
+    *  @param read The new capacity of the read buffer.
+    *  @param write The new capacity of the write buffer.
+    */
+   void reserve(std::size_t read, std::size_t write)
+      { base_type::reserve(read, write); }
+
 private:
    using this_type = basic_connection<next_layer_type>;
 
@@ -206,7 +212,7 @@ private:
    auto is_open() const noexcept { return stream_.is_open(); }
    auto lowest_layer() noexcept -> auto& { return stream_.lowest_layer(); }
 
-   AsyncReadWriteStream stream_;
+   Socket stream_;
 };
 
 /** \brief A connection that uses a asio::ip::tcp::socket.

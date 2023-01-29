@@ -25,18 +25,17 @@ class basic_connection;
  *  commands can be sent at any time. For more details, please see the
  *  documentation of each individual function.
  *
- *  @tparam AsyncReadWriteStream A stream that supports reading and
- *  writing.
+ *  @tparam Socket The socket type e.g. asio::ip::tcp::socket.
  *
  */
-template <class AsyncReadWriteStream>
-class basic_connection<asio::ssl::stream<AsyncReadWriteStream>> :
+template <class Socket>
+class basic_connection<asio::ssl::stream<Socket>> :
    private redis::detail::connection_base<
-      typename asio::ssl::stream<AsyncReadWriteStream>::executor_type,
-      basic_connection<asio::ssl::stream<AsyncReadWriteStream>>> {
+      typename asio::ssl::stream<Socket>::executor_type,
+      basic_connection<asio::ssl::stream<Socket>>> {
 public:
    /// Type of the next layer
-   using next_layer_type = asio::ssl::stream<AsyncReadWriteStream>;
+   using next_layer_type = asio::ssl::stream<Socket>;
 
    /// Executor type.
    using executor_type = typename next_layer_type::executor_type;
@@ -46,28 +45,22 @@ public:
    struct rebind_executor
    {
       /// The socket type when rebound to the specified executor.
-      using other = basic_connection<asio::ssl::stream<typename AsyncReadWriteStream::template rebind_executor<Executor1>::other>>;
+      using other = basic_connection<asio::ssl::stream<typename Socket::template rebind_executor<Executor1>::other>>;
    };
 
-   using base_type = redis::detail::connection_base<executor_type, basic_connection<asio::ssl::stream<AsyncReadWriteStream>>>;
+   using base_type = redis::detail::connection_base<executor_type, basic_connection<asio::ssl::stream<Socket>>>;
 
    /// Constructor
    explicit
-   basic_connection(
-      executor_type ex,
-      asio::ssl::context& ctx,
-      std::pmr::memory_resource* resource = std::pmr::get_default_resource())
-   : base_type{ex, resource}
+   basic_connection(executor_type ex, asio::ssl::context& ctx)
+   : base_type{ex}
    , stream_{ex, ctx}
    { }
 
    /// Constructor
    explicit
-   basic_connection(
-      asio::io_context& ioc,
-      asio::ssl::context& ctx,
-      std::pmr::memory_resource* resource = std::pmr::get_default_resource())
-   : basic_connection(ioc.get_executor(), ctx, resource)
+   basic_connection(asio::io_context& ioc, asio::ssl::context& ctx)
+   : basic_connection(ioc.get_executor(), ctx)
    { }
 
    /// Returns the associated executor.
@@ -136,6 +129,17 @@ public:
    /// Sets the maximum size of the read buffer.
    void set_max_buffer_read_size(std::size_t max_read_size) noexcept
       { base_type::set_max_buffer_read_size(max_read_size); }
+
+   /** @brief Reserve memory on the read and write internal buffers.
+    *
+    *  This function will call `std::string::reserve` on the
+    *  underlying buffers.
+    *  
+    *  @param read The new capacity of the read buffer.
+    *  @param write The new capacity of the write buffer.
+    */
+   void reserve(std::size_t read, std::size_t write)
+      { base_type::reserve(read, write); }
 
 private:
    using this_type = basic_connection<next_layer_type>;
