@@ -76,12 +76,12 @@ auto tag_invoke(value_to_tag<user>, value const& jv)
 }
 
 // Serialization
-void to_bulk(std::string& to, user const& u)
+void boost_redis_to_bulk(std::string& to, user const& u)
 {
-   redis::resp3::to_bulk(to, serialize(value_from(u)));
+   redis::resp3::boost_redis_to_bulk(to, serialize(value_from(u)));
 }
 
-void from_bulk(user& u, std::string_view sv, boost::system::error_code&)
+void boost_redis_from_bulk(user& u, std::string_view sv, boost::system::error_code&)
 {
    value jv = parse(sv);
    u = value_to<user>(jv);

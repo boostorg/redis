@@ -19,7 +19,6 @@
 // the value type is a pair.
 
 namespace boost::redis::resp3 {
-
 constexpr char const* separator = "\r\n";
 
 /** @brief Adds a bulk to the request.
@@ -29,10 +28,10 @@ constexpr char const* separator = "\r\n";
  *  structures in a request. For example
  *
  *  @code
- *  void to_bulk(std::string& to, mystruct const& obj)
+ *  void boost_redis_to_bulk(std::string& to, mystruct const& obj)
  *  {
  *     auto const str = // Convert obj to a string.
- *     resp3::to_bulk(to, str);
+ *     boost_redis_to_bulk(to, str);
  *  }
  *  @endcode
  *
@@ -42,7 +41,7 @@ constexpr char const* separator = "\r\n";
  *  See more in @ref serialization.
  */
 template <class Request>
-void to_bulk(Request& to, std::string_view data)
+void boost_redis_to_bulk(Request& to, std::string_view data)
 {
    auto const str = std::to_string(data.size());
 
@@ -54,10 +53,10 @@ void to_bulk(Request& to, std::string_view data)
 }
 
 template <class Request, class T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
-void to_bulk(Request& to, T n)
+void boost_redis_to_bulk(Request& to, T n)
 {
    auto const s = std::to_string(n);
-   to_bulk(to, std::string_view{s});
+   boost_redis_to_bulk(to, std::string_view{s});
 }
 
 namespace detail {
@@ -70,7 +69,7 @@ struct add_bulk_impl {
    static void add(Request& to, T const& from)
    {
       using namespace boost::redis::resp3;
-      to_bulk(to, from);
+      boost_redis_to_bulk(to, from);
    }
 };
 
@@ -82,7 +81,7 @@ struct add_bulk_impl<std::tuple<Ts...>> {
       auto f = [&](auto const&... vs)
       {
          using namespace boost::redis::resp3;
-         (to_bulk(to, vs), ...);
+         (boost_redis_to_bulk(to, vs), ...);
       };
 
       std::apply(f, t);
@@ -95,8 +94,8 @@ struct add_bulk_impl<std::pair<U, V>> {
    static void add(Request& to, std::pair<U, V> const& from)
    {
       using namespace boost::redis::resp3;
-      to_bulk(to, from.first);
-      to_bulk(to, from.second);
+      boost_redis_to_bulk(to, from.first);
+      boost_redis_to_bulk(to, from.second);
    }
 };
 
@@ -162,7 +161,7 @@ void add_separator(Request& to)
  *  \remarks
  *
  *  \li Non-string types will be converted to string by using \c
- *  to_bulk, which must be made available over ADL.
+ *  boost_redis_to_bulk, which must be made available over ADL.
  *  \li Uses a std::string for internal storage.
  */
 class request {
