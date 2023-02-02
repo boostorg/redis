@@ -33,7 +33,7 @@ namespace boost::redis::adapter::detail {
 // Serialization.
 
 template <class T>
-auto from_bulk(T& i, std::string_view sv, system::error_code& ec) -> typename std::enable_if<std::is_integral<T>::value, void>::type
+auto boost_redis_from_bulk(T& i, std::string_view sv, system::error_code& ec) -> typename std::enable_if<std::is_integral<T>::value, void>::type
 {
    auto const res = std::from_chars(sv.data(), sv.data() + std::size(sv), i);
    if (res.ec != std::errc())
@@ -41,13 +41,13 @@ auto from_bulk(T& i, std::string_view sv, system::error_code& ec) -> typename st
 }
 
 inline
-void from_bulk(bool& t, std::string_view sv, system::error_code&)
+void boost_redis_from_bulk(bool& t, std::string_view sv, system::error_code&)
 {
    t = *sv.data() == 't';
 }
 
 inline
-void from_bulk(double& d, std::string_view sv, system::error_code& ec)
+void boost_redis_from_bulk(double& d, std::string_view sv, system::error_code& ec)
 {
    auto const res = std::from_chars(sv.data(), sv.data() + std::size(sv), d);
    if (res.ec != std::errc())
@@ -56,7 +56,7 @@ void from_bulk(double& d, std::string_view sv, system::error_code& ec)
 
 template <class CharT, class Traits, class Allocator>
 void
-from_bulk(
+boost_redis_from_bulk(
    std::basic_string<CharT, Traits, Allocator>& s,
    std::string_view sv,
    system::error_code&)
@@ -128,7 +128,7 @@ public:
          return;
       }
 
-      from_bulk(result, n.value, ec);
+      boost_redis_from_bulk(result, n.value, ec);
    }
 };
 
@@ -165,7 +165,7 @@ public:
       }
 
       typename Result::key_type obj;
-      from_bulk(obj, nd.value, ec);
+      boost_redis_from_bulk(obj, nd.value, ec);
       hint_ = result.insert(hint_, std::move(obj));
    }
 };
@@ -205,11 +205,11 @@ public:
 
       if (on_key_) {
          typename Result::key_type obj;
-         from_bulk(obj, nd.value, ec);
+         boost_redis_from_bulk(obj, nd.value, ec);
          current_ = result.insert(current_, {std::move(obj), {}});
       } else {
          typename Result::mapped_type obj;
-         from_bulk(obj, nd.value, ec);
+         boost_redis_from_bulk(obj, nd.value, ec);
          current_->second = std::move(obj);
       }
 
@@ -237,7 +237,7 @@ public:
          result.reserve(result.size() + m * nd.aggregate_size);
       } else {
          result.push_back({});
-         from_bulk(result.back(), nd.value, ec);
+         boost_redis_from_bulk(result.back(), nd.value, ec);
       }
    }
 };
@@ -277,7 +277,7 @@ public:
          }
 
          BOOST_ASSERT(nd.aggregate_size == 1);
-         from_bulk(result.at(i_), nd.value, ec);
+         boost_redis_from_bulk(result.at(i_), nd.value, ec);
       }
 
       ++i_;
@@ -307,7 +307,7 @@ struct list_impl {
         }
 
         result.push_back({});
-        from_bulk(result.back(), nd.value, ec);
+        boost_redis_from_bulk(result.back(), nd.value, ec);
       }
    }
 };

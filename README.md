@@ -303,21 +303,21 @@ Sending a request to Redis is performed with `boost::redis::connection::async_ex
 
 The `resp3::request::push` and `resp3::request::push_range` member functions work
 with integer data types e.g. `int` and `std::string` out of the box.
-To send your own data type define a `to_bulk` function like this
+To send your own data type define a `boost_redis_to_bulk` function like this
 
 ```cpp
 // User defined type.
 struct mystruct {...};
 
-// Serialize it in to_bulk.
-void to_bulk(std::pmr::string& to, mystruct const& obj)
+// Serialize it in boost_redis_to_bulk.
+void boost_redis_to_bulk(std::pmr::string& to, mystruct const& obj)
 {
    std::string dummy = "Dummy serializaiton string.";
-   boost::redis::resp3::to_bulk(to, dummy);
+   boost::redis::resp3::boost_redis_to_bulk(to, dummy);
 }
 ```
 
-Once `to_bulk` is defined and visible over ADL `mystruct` can
+Once `boost_redis_to_bulk` is defined and visible over ADL `mystruct` can
 be passed to the `request`
 
 ```cpp
@@ -535,11 +535,11 @@ As mentioned in the serialization section, it is common practice to
 serialize data before sending it to Redis e.g. as json strings.  For
 performance and convenience reasons, we may also want to deserialize
 responses directly in their final data structure. Boost.Redis supports this
-use case by calling a user provided `from_bulk` function while parsing
+use case by calling a user provided `boost_redis_from_bulk` function while parsing
 the response. For example
 
 ```cpp
-void from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
+void boost_redis_from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
 {
    // Deserializes p into obj.
 }
@@ -600,7 +600,7 @@ from Redis with `HGETALL`, some of the options are
 * `std::vector<node<std::string>`: Works always.
 * `std::vector<std::string>`: Efficient and flat, all elements as string.
 * `std::map<std::string, std::string>`: Efficient if you need the data as a `std::map`.
-* `std::map<U, V>`: Efficient if you are storing serialized data. Avoids temporaries and requires `from_bulk` for `U` and `V`.
+* `std::map<U, V>`: Efficient if you are storing serialized data. Avoids temporaries and requires `boost_redis_from_bulk` for `U` and `V`.
 
 In addition to the above users can also use unordered versions of the
 containers. The same reasoning applies to sets e.g. `SMEMBERS`
@@ -862,6 +862,12 @@ Acknowledgement to people that helped shape Boost.Redis
 * Vinnie Falco ([vinniefalco](https://github.com/vinniefalco)): For general suggestions about how to improve the code and the documentation.
 
 ## Changelog
+
+### master
+
+* Renames the project to Boost.Redis and moves the code into namespace `boost::redis`.
+* As pointed out in the reviews `to_buld` and `from_buld` were too generic
+  for ADL customization. They gained the prefix `boost_redis_`.
 
 ### v1.4.0-1
 
