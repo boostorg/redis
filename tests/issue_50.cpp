@@ -12,10 +12,11 @@
 #include "../examples/common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using boost::redis::adapt;
+using boost::redis::request;
+using boost::redis::response;
 
 // Push consumer
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -34,9 +35,9 @@ auto periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
     // Key is not set so it will cause an error since we are passing
     // an adapter that does not accept null, this will cause an error
     // that result in the connection being closed.
-    resp3::request req;
+    request req;
     req.push("GET", "mykey");
-    std::tuple<std::string> response;
+    response<std::string> response;
     auto [ec, u] = co_await conn->async_exec(req, adapt(response),
                                              net::as_tuple(net::use_awaitable));
     if (ec) {
@@ -55,7 +56,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
   auto conn = std::make_shared<connection>(ex);
   steady_timer timer{ex};
 
-  resp3::request req;
+  request req;
   req.push("HELLO", 3);
   req.push("SUBSCRIBE", "channel");
 

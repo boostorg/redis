@@ -16,6 +16,7 @@ using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using boost::redis::adapter::adapt2;
 using net::ip::tcp;
+using boost::redis::request;
 
 auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
@@ -27,7 +28,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    co_await net::async_connect(socket, addrs);
 
    // Creates the request and writes to the socket.
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
    req.push("PING", "Hello world");
    req.push("QUIT");

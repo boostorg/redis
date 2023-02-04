@@ -18,10 +18,11 @@
 namespace net = boost::asio;
 
 using boost::redis::adapt;
-using boost::redis::resp3::request;
 using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
 using operation = boost::redis::operation;
+using boost::redis::request;
+using boost::redis::response;
 
 // Test if quit causes async_run to exit.
 BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)

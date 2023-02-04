@@ -32,6 +32,8 @@ auto operator!=(boost::redis::ignore, boost::redis::ignore) noexcept {return fal
 
 namespace net = boost::asio;
 namespace resp3 = boost::redis::resp3;
+using boost::redis::request;
+using boost::redis::response;
 
 using test_stream = boost::beast::test::stream;
 using boost::redis::adapter::adapt2;
@@ -47,7 +49,7 @@ using uset_type = std::unordered_set<std::string>;
 using muset_type = std::unordered_multiset<std::string>;
 
 // Array
-using tuple_int_2 = std::tuple<int, int>;
+using tuple_int_2 = response<int, int>;
 using array_type = std::array<int, 3>;
 using array_type2 = std::array<int, 1>;
 
@@ -57,7 +59,7 @@ using mmap_type = std::multimap<std::string, std::string>;
 using umap_type = std::unordered_map<std::string, std::string>;
 using mumap_type = std::unordered_multimap<std::string, std::string>;
 using op_map_type = std::optional<std::map<std::string, std::string>>;
-using tuple8_type = std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string>;
+using tuple8_type = response<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::string>;
 
 // Null
 using op_type_01 = std::optional<bool>;
@@ -385,7 +387,7 @@ std::vector<node_type> const attr_e1b
    test(ex, make_expected(S02b, std::string{"Hello word"})); \
    test(ex, make_expected(S02b, streamed_string_e1)); \
    test(ex, make_expected(S02c, std::string{}, boost::redis::error::not_a_number)); \
-   test(ex, make_expected(S04a, std::tuple<int>{11})); \
+   test(ex, make_expected(S04a, response<int>{11})); \
    test(ex, make_expected(S05a, node_type{resp3::type::number, 1UL, 0UL, {"-3"}})); \
    test(ex, make_expected(S05b, int{11})); \
    test(ex, make_expected(S05b, op_int_ok)); \
@@ -422,7 +424,7 @@ std::vector<node_type> const attr_e1b
    test(ex, make_expected(S03b, map_expected_1c));\
    test(ex, make_expected(S03b, map_expected_1d));\
    test(ex, make_expected(S03b, map_expected_1e));\
-   test(ex, make_expected(S04c, std::tuple<op_map_type>{map_expected_1d}));\
+   test(ex, make_expected(S04c, response<op_map_type>{map_expected_1d}));\
    test(ex, make_expected(S08a, attr_e1a)); \
    test(ex, make_expected(S08b, attr_e1b)); \
    test(ex, make_expected(S04e, array_e1a));\
@@ -445,7 +447,7 @@ std::vector<node_type> const attr_e1b
    test(ex, make_expected(S09a, set_expected1a)); \
    test(ex, make_expected(S09a, set_expected_1e)); \
    test(ex, make_expected(S09a, set_type{"apple", "one", "orange", "three", "two"})); \
-   test(ex, make_expected(S04d, std::tuple<uset_type>{set_e1c})); \
+   test(ex, make_expected(S04d, response<uset_type>{set_e1c})); \
    test(ex, make_expected(S09b, std::vector<node_type>{ {resp3::type::set,  0UL, 0UL, {}} })); \
    test(ex, make_expected(S10a, boost::redis::ignore{}, boost::redis::error::resp3_simple_error)); \
    test(ex, make_expected(S10a, node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, boost::redis::error::resp3_simple_error)); \

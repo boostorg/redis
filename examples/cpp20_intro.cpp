@@ -10,9 +10,10 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
 using boost::redis::adapt;
 using boost::redis::operation;
+using boost::redis::request;
+using boost::redis::response;
 
 auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
@@ -22,7 +23,7 @@ auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -
 
 auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
 
    co_await conn->async_exec(req);
@@ -30,10 +31,10 @@ auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    req.push("PING", "Hello world");
 
-   std::tuple<std::string> resp;
+   response<std::string> resp;
    co_await conn->async_exec(req, adapt(resp));
 
    std::cout << "PING: " << std::get<0>(resp) << std::endl;
@@ -41,7 +42,7 @@ auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    req.push("QUIT");
 
    co_await conn->async_exec(req);

@@ -22,11 +22,12 @@
 // separately here.
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
 using error_code = boost::system::error_code;
 using namespace net::experimental::awaitable_operators;
 using boost::redis::operation;
 using boost::redis::adapt;
+using boost::redis::request;
+using boost::redis::response;
 
 auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 {
@@ -43,12 +44,12 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    st.expires_after(std::chrono::seconds{1});
 
    // See NOTE1.
-   resp3::request req0;
+   request req0;
    req0.get_config().coalesce = false;
    req0.push("HELLO", 3);
    std::ignore = co_await conn->async_exec(req0, adapt(), net::use_awaitable);
 
-   resp3::request req1;
+   request req1;
    req1.get_config().coalesce = false;
    req1.push("BLPOP", "any", 3);
 
@@ -57,7 +58,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
       BOOST_TEST(!ec);
    });
 
-   resp3::request req2;
+   request req2;
    req2.get_config().coalesce = false;
    req2.push("PING", "second");
 
@@ -73,7 +74,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 
    BOOST_TEST(!ec1);
 
-   resp3::request req3;
+   request req3;
    req3.push("QUIT");
 
    // Test whether the connection remains usable after a call to
@@ -96,19 +97,19 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
    });
 
    // See NOTE1.
-   resp3::request req0;
+   request req0;
    req0.get_config().coalesce = false;
    req0.push("HELLO", 3);
    std::ignore = co_await conn->async_exec(req0, adapt(), net::use_awaitable);
 
    // Will be cancelled after it has been written but before the
    // response arrives.
-   resp3::request req1;
+   request req1;
    req1.get_config().coalesce = false;
    req1.push("BLPOP", "any", 3);
 
    // Will be cancelled before it is written.
-   resp3::request req2;
+   request req2;
    req2.get_config().coalesce = false;
    req2.get_config().cancel_on_connection_lost = true;
    req2.push("PING");
@@ -130,11 +131,11 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
 
 auto cancel_of_req_written_on_run_canceled() -> net::awaitable<void>
 {
-   resp3::request req0;
+   request req0;
    req0.get_config().coalesce = false;
    req0.push("HELLO", 3);
 
-   resp3::request req1;
+   request req1;
    req1.get_config().cancel_on_connection_lost = true;
    req1.get_config().cancel_if_unresponded = true;
    req1.push("BLPOP", "any", 0);

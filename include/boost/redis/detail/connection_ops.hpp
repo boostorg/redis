@@ -13,7 +13,7 @@
 #include <boost/redis/resp3/detail/parser.hpp>
 #include <boost/redis/resp3/read.hpp>
 #include <boost/redis/resp3/write.hpp>
-#include <boost/redis/resp3/request.hpp>
+#include <boost/redis/request.hpp>
 #include <boost/assert.hpp>
 #include <boost/system.hpp>
 #include <boost/asio/write.hpp>
@@ -162,7 +162,7 @@ struct exec_op {
    using req_info_type = typename Conn::req_info;
 
    Conn* conn = nullptr;
-   resp3::request const* req = nullptr;
+   request const* req = nullptr;
    Adapter adapter{};
    std::shared_ptr<req_info_type> info = nullptr;
    std::size_t read_size = 0;

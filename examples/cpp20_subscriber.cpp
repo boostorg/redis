@@ -12,10 +12,11 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using boost::redis::adapt;
+using boost::redis::request;
+using boost::redis::generic_response;
 
 /* This example will subscribe and read pushes indefinitely.
  *
@@ -36,8 +37,7 @@ using boost::redis::adapt;
 // Receives pushes.
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   using resp_type = std::vector<resp3::node<std::string>>;
-   for (resp_type resp;;) {
+   for (generic_response resp;;) {
       co_await conn->async_receive(adapt(resp));
       std::cout << resp.at(1).value << " " << resp.at(2).value << " " << resp.at(3).value << std::endl;
       resp.clear();
@@ -50,7 +50,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    auto conn = std::make_shared<connection>(ex);
    steady_timer timer{ex};
 
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
 

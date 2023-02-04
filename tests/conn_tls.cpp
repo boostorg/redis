@@ -19,8 +19,9 @@
 namespace net = boost::asio;
 
 using boost::redis::adapt;
-using boost::redis::resp3::request;
 using connection = boost::redis::ssl::connection;
+using boost::redis::request;
+using boost::redis::response;
 
 struct endpoint {
    std::string host;

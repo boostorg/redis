@@ -15,9 +15,10 @@
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-namespace resp3 = redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using redis::adapt;
+using boost::redis::request;
+using boost::redis::response;
 
 void print(std::map<std::string, std::string> const& cont)
 {
@@ -46,7 +47,7 @@ auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
    std::map<std::string, std::string> map
       {{"key1", "value1"}, {"key2", "value2"}, {"key3", "value3"}};
 
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);
@@ -57,12 +58,12 @@ auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
 auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    // A request contains multiple commands.
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
 
    // Responses as tuple elements.
-   std::tuple<redis::ignore, std::map<std::string, std::string>> resp;
+   response<redis::ignore, std::map<std::string, std::string>> resp;
 
    // Executes the request and reads the response.
    co_await conn->async_exec(req, adapt(resp));
@@ -73,19 +74,19 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
 // Retrieves in a transaction.
 auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
    req.push("MULTI");
    req.push("LRANGE", "rpush-key", 0, -1); // Retrieves
    req.push("HGETALL", "hset-key"); // Retrieves
    req.push("EXEC");
 
-   std::tuple<
+   response<
       redis::ignore, // hello
       redis::ignore, // multi
       redis::ignore, // lrange
       redis::ignore, // hgetall
-      std::tuple<std::optional<std::vector<int>>, std::optional<std::map<std::string, std::string>>> // exec
+      response<std::optional<std::vector<int>>, std::optional<std::map<std::string, std::string>>> // exec
    > resp;
 
    co_await conn->async_exec(req, adapt(resp));
@@ -96,7 +97,7 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    req.push("QUIT");
 
    co_await conn->async_exec(req);

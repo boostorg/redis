@@ -12,10 +12,11 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using endpoints = net::ip::tcp::resolver::results_type;
 using boost::redis::adapt;
+using boost::redis::request;
+using boost::redis::response;
 
 auto redir(boost::system::error_code& ec)
    { return net::redirect_error(net::use_awaitable, ec); }
@@ -30,13 +31,13 @@ struct address {
 // - https://redis.io/docs/reference/sentinel-clients.
 auto resolve_master_address(std::vector<address> const& endpoints) -> net::awaitable<address>
 {
-   resp3::request req;
+   request req;
    req.push("SENTINEL", "get-master-addr-by-name", "mymaster");
    req.push("QUIT");
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
-   std::tuple<std::optional<std::array<std::string, 2>>, boost::redis::ignore> addr;
+   response<std::optional<std::array<std::string, 2>>, boost::redis::ignore> addr;
    for (auto ep : endpoints) {
       boost::system::error_code ec;
       co_await connect(conn, ep.host, ep.port);

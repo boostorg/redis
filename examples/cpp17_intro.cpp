@@ -11,10 +11,10 @@
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-namespace resp3 = boost::redis::resp3;
-using resp3::request;
 using redis::adapt;
 using redis::operation;
+using redis::request;
+using redis::response;
 
 void log(boost::system::error_code const& ec, char const* prefix)
 {
@@ -33,13 +33,13 @@ auto main(int argc, char * argv[]) -> int
       }
 
       // The request
-      resp3::request req;
+      request req;
       req.push("HELLO", 3);
       req.push("PING", "Hello world");
       req.push("QUIT");
 
       // The response.
-      std::tuple<redis::ignore, std::string, redis::ignore> resp;
+      response<redis::ignore, std::string, redis::ignore> resp;
 
       net::io_context ioc;
 

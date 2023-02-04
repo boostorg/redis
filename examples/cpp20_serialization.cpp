@@ -24,10 +24,11 @@
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-namespace resp3 = redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using namespace boost::json;
 using redis::adapt;
+using boost::redis::request;
+using boost::redis::response;
 
 struct user {
    std::string name;
@@ -92,13 +93,13 @@ net::awaitable<void> co_main(std::string host, std::string port)
    std::set<user> users
       {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
 
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
    req.push_range("SADD", "sadd-key", users); // Sends
    req.push("SMEMBERS", "sadd-key"); // Retrieves
    req.push("QUIT");
 
-   std::tuple<redis::ignore, int, std::set<user>, std::string> resp;
+   response<redis::ignore, int, std::set<user>, std::string> resp;
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 

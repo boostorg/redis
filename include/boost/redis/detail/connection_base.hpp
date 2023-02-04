@@ -9,7 +9,7 @@
 
 #include <boost/redis/adapt.hpp>
 #include <boost/redis/operation.hpp>
-#include <boost/redis/resp3/request.hpp>
+#include <boost/redis/request.hpp>
 #include <boost/redis/detail/connection_ops.hpp>
 #include <boost/assert.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -129,7 +129,7 @@ public:
    }
 
    template <class Adapter, class CompletionToken>
-   auto async_exec(resp3::request const& req, Adapter adapter, CompletionToken token)
+   auto async_exec(request const& req, Adapter adapter, CompletionToken token)
    {
       BOOST_ASSERT_MSG(req.size() <= adapter.get_supported_response_size(), "Request and response have incompatible sizes.");
 
@@ -201,7 +201,7 @@ private:
          none,
       };
 
-      explicit req_info(resp3::request const& req, executor_type ex)
+      explicit req_info(request const& req, executor_type ex)
       : timer_{ex}
       , action_{action::none}
       , req_{&req}
@@ -262,7 +262,7 @@ private:
 
       timer_type timer_;
       action action_;
-      resp3::request const* req_;
+      request const* req_;
       std::size_t cmds_;
       status status_;
    };
