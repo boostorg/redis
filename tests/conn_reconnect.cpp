@@ -17,10 +17,10 @@
 #include "../examples/common/common.hpp"
 
 namespace net = boost::asio;
-using boost::redis::adapt;
 using error_code = boost::system::error_code;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace boost::asio::experimental::awaitable_operators;
@@ -40,7 +40,7 @@ net::awaitable<void> test_reconnect_impl()
       boost::system::error_code ec1, ec2;
       net::connect(conn.next_layer(), endpoints);
       co_await (
-         conn.async_exec(req, adapt(), net::redirect_error(net::use_awaitable, ec1)) &&
+         conn.async_exec(req, ignore, net::redirect_error(net::use_awaitable, ec1)) &&
          conn.async_run(net::redirect_error(net::use_awaitable, ec2))
       );
 
@@ -80,7 +80,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    co_await connect(conn, "127.0.0.1", "6379");
    st.expires_after(std::chrono::seconds{1});
    co_await (
-      conn->async_exec(req1, adapt(), redir(ec1)) ||
+      conn->async_exec(req1, ignore, redir(ec1)) ||
       conn->async_run(redir(ec2)) ||
       st.async_wait(redir(ec3))
    );
@@ -99,7 +99,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    co_await connect(conn, "127.0.0.1", "6379");
    st.expires_after(std::chrono::seconds{1});
    co_await (
-      conn->async_exec(req1, adapt(), net::redirect_error(net::use_awaitable, ec1)) ||
+      conn->async_exec(req1, ignore, net::redirect_error(net::use_awaitable, ec1)) ||
       conn->async_run(net::redirect_error(net::use_awaitable, ec2)) ||
       st.async_wait(net::redirect_error(net::use_awaitable, ec3))
    );

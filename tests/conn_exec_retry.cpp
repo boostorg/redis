@@ -19,9 +19,9 @@
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
 using connection = boost::redis::connection;
-using boost::redis::adapt;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 BOOST_AUTO_TEST_CASE(request_retry_false)
 {
@@ -58,15 +58,15 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
    auto const endpoints = resolve();
    net::connect(conn.next_layer(), endpoints);
 
-   conn.async_exec(req0, adapt(), [](auto ec, auto){
+   conn.async_exec(req0, ignore, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn.async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   conn.async_exec(req2, adapt(), [](auto ec, auto){
+   conn.async_exec(req2, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -117,17 +117,17 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
    auto const endpoints = resolve();
    net::connect(conn.next_layer(), endpoints);
 
-   conn.async_exec(req0, adapt(), [](auto ec, auto){
+   conn.async_exec(req0, ignore, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn.async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   conn.async_exec(req2, adapt(), [&](auto ec, auto){
+   conn.async_exec(req2, ignore, [&](auto ec, auto){
       BOOST_TEST(!ec);
-      conn.async_exec(req3, adapt(), [&](auto ec, auto){
+      conn.async_exec(req3, ignore, [&](auto ec, auto){
          BOOST_TEST(!ec);
       });
    });

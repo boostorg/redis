@@ -16,31 +16,13 @@ namespace boost::redis::resp3 {
  *
  *  RESP3 can contain recursive data structures: A map of sets of
  *  vector of etc. As it is parsed each element is passed to user
- *  callbacks (push parser), the `boost::redis::adapt` function. The signature of this
+ *  callbacks (push parser). The signature of this
  *  callback is `f(resp3::node<std::string_view)`. This class is called a node
  *  because it can be seen as the element of the response tree. It
  *  is a template so that users can use it with owing strings e.g.
- *  `std::string` or `boost::static_string` etc. if they decide to use a node as
- *  response type, for example, to read a non-aggregate data-type use
+ *  `std::string` or `boost::static_string` etc.
  *
- *  ```cpp
- *  resp3::node<std::string> resp;
- *  co_await conn->async_exec(req, adapt(resp));
- *  ```
- *
- *  for an aggregate use instead
- *
- *  ```cpp
- *  std::vector<resp3::node<std::string>> resp; co_await
- *  conn->async_exec(req, adapt(resp));
- *  ```
- *
- *  The vector will contain the
- *  [pre-order](https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR)
- *  view of the response tree.  Any Redis response can be received in
- *  an array of nodes as shown above.
- *
- *  \tparam String A `std::string`-like type.
+ *  @tparam String A `std::string`-like type.
  */
 template <class String>
 struct node {

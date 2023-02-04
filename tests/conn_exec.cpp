@@ -22,9 +22,9 @@
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
 using connection = boost::redis::connection;
-using boost::redis::adapt;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 BOOST_AUTO_TEST_CASE(hello_priority)
 {
@@ -55,21 +55,21 @@ BOOST_AUTO_TEST_CASE(hello_priority)
    bool seen2 = false;
    bool seen3 = false;
 
-   conn.async_exec(req1, adapt(), [&](auto ec, auto){
+   conn.async_exec(req1, ignore, [&](auto ec, auto){
       std::cout << "bbb" << std::endl;
       BOOST_TEST(!ec);
       BOOST_TEST(!seen2);
       BOOST_TEST(seen3);
       seen1 = true;
    });
-   conn.async_exec(req2, adapt(), [&](auto ec, auto){
+   conn.async_exec(req2, ignore, [&](auto ec, auto){
       std::cout << "ccc" << std::endl;
       BOOST_TEST(!ec);
       BOOST_TEST(seen1);
       BOOST_TEST(seen3);
       seen2 = true;
    });
-   conn.async_exec(req3, adapt(), [&](auto ec, auto){
+   conn.async_exec(req3, ignore, [&](auto ec, auto){
       std::cout << "ddd" << std::endl;
       BOOST_TEST(!ec);
       BOOST_TEST(!seen1);
@@ -91,14 +91,14 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    req.push("QUIT");
 
    // Wrong data type.
-   response<boost::redis::ignore, int> resp;
+   response<boost::redis::ignore_t, int> resp;
    net::io_context ioc;
 
    auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
-   conn.async_exec(req, adapt(resp), [](auto ec, auto){
+   conn.async_exec(req, resp, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_a_number);
    });
    conn.async_run([](auto ec){
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
-   conn->async_exec(req, adapt(), [](auto ec, auto){
+   conn->async_exec(req, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_connected);
    });
 

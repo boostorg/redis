@@ -17,12 +17,12 @@
 
 namespace net = boost::asio;
 
-using boost::redis::adapt;
 using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
 using operation = boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 // Test if quit causes async_run to exit.
 BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
@@ -43,19 +43,19 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
    req2.get_config().coalesce = false;
    req2.push("QUIT");
 
-   conn.async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, ignore, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
-   conn.async_exec(req2, adapt(), [](auto ec, auto) {
+   conn.async_exec(req2, ignore, [](auto ec, auto) {
       BOOST_TEST(!ec);
    });
-   conn.async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
-   conn.async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, ignore, [](auto ec, auto){
          BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
-   conn.async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -79,7 +79,7 @@ void test_quit2(bool coalesce)
    net::connect(conn.next_layer(), endpoints);
 
 
-   conn.async_exec(req, adapt(), [](auto ec, auto) {
+   conn.async_exec(req, ignore, [](auto ec, auto) {
       BOOST_TEST(!ec);
    });
 

@@ -7,7 +7,7 @@
 #ifndef BOOST_REDIS_CONNECTION_OPS_HPP
 #define BOOST_REDIS_CONNECTION_OPS_HPP
 
-#include <boost/redis/adapt.hpp>
+#include <boost/redis/detail/adapt.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/resp3/detail/parser.hpp>

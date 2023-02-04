@@ -25,9 +25,9 @@ namespace net = boost::asio;
 using error_code = boost::system::error_code;
 using namespace net::experimental::awaitable_operators;
 using boost::redis::operation;
-using boost::redis::adapt;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 {
@@ -47,14 +47,14 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    request req0;
    req0.get_config().coalesce = false;
    req0.push("HELLO", 3);
-   std::ignore = co_await conn->async_exec(req0, adapt(), net::use_awaitable);
+   std::ignore = co_await conn->async_exec(req0, ignore, net::use_awaitable);
 
    request req1;
    req1.get_config().coalesce = false;
    req1.push("BLPOP", "any", 3);
 
    // Should not be canceled.
-   conn->async_exec(req1, adapt(), [](auto ec, auto){
+   conn->async_exec(req1, ignore, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -63,7 +63,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    req2.push("PING", "second");
 
    // Should be canceled.
-   conn->async_exec(req2, adapt(), [](auto ec, auto){
+   conn->async_exec(req2, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
    });
 
@@ -79,7 +79,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 
    // Test whether the connection remains usable after a call to
    // cancel(exec).
-   co_await conn->async_exec(req3, adapt(), net::redirect_error(net::use_awaitable, ec1));
+   co_await conn->async_exec(req3, ignore, net::redirect_error(net::use_awaitable, ec1));
 
    BOOST_TEST(!ec1);
 }
@@ -100,7 +100,7 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
    request req0;
    req0.get_config().coalesce = false;
    req0.push("HELLO", 3);
-   std::ignore = co_await conn->async_exec(req0, adapt(), net::use_awaitable);
+   std::ignore = co_await conn->async_exec(req0, ignore, net::use_awaitable);
 
    // Will be cancelled after it has been written but before the
    // response arrives.
@@ -119,8 +119,8 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
 
    boost::system::error_code ec1, ec2, ec3;
    co_await (
-      conn->async_exec(req1, adapt(), redir(ec1)) ||
-      conn->async_exec(req2, adapt(), redir(ec2)) ||
+      conn->async_exec(req1, ignore, redir(ec1)) ||
+      conn->async_exec(req2, ignore, redir(ec2)) ||
       st.async_wait(redir(ec3))
    );
 
@@ -149,8 +149,8 @@ auto cancel_of_req_written_on_run_canceled() -> net::awaitable<void>
 
    boost::system::error_code ec0, ec1, ec2, ec3;
    co_await (
-      conn->async_exec(req0, adapt(), redir(ec0)) &&
-      (conn->async_exec(req1, adapt(), redir(ec1)) ||
+      conn->async_exec(req0, ignore, redir(ec0)) &&
+      (conn->async_exec(req1, ignore, redir(ec1)) ||
       conn->async_run(redir(ec2)) ||
       st.async_wait(redir(ec3)))
    );

@@ -14,7 +14,6 @@
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using endpoints = net::ip::tcp::resolver::results_type;
-using boost::redis::adapt;
 using boost::redis::request;
 using boost::redis::response;
 
@@ -37,11 +36,11 @@ auto resolve_master_address(std::vector<address> const& endpoints) -> net::await
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
-   response<std::optional<std::array<std::string, 2>>, boost::redis::ignore> addr;
+   response<std::optional<std::array<std::string, 2>>, boost::redis::ignore_t> addr;
    for (auto ep : endpoints) {
       boost::system::error_code ec;
       co_await connect(conn, ep.host, ep.port);
-      co_await (conn->async_run() && conn->async_exec(req, adapt(addr), redir(ec)));
+      co_await (conn->async_run() && conn->async_exec(req, addr, redir(ec)));
       conn->reset_stream();
       if (std::get<0>(addr))
          co_return address{std::get<0>(addr).value().at(0), std::get<0>(addr).value().at(1)};

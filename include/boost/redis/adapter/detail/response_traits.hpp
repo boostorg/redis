@@ -20,7 +20,7 @@
 
 namespace boost::redis::adapter::detail {
 
-using ignore = std::decay_t<decltype(std::ignore)>;
+using ignore_t = std::decay_t<decltype(std::ignore)>;
 
 /* Traits class for response objects.
  *
@@ -34,8 +34,8 @@ struct response_traits {
 };
 
 template <>
-struct response_traits<ignore> {
-   using response_type = ignore;
+struct response_traits<ignore_t> {
+   using response_type = ignore_t;
    using adapter_type = resp3::detail::ignore_response;
    static auto adapt(response_type) noexcept { return adapter_type{}; }
 };

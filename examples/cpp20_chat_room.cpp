@@ -18,7 +18,6 @@ namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::stream_descriptor>;
 using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
-using boost::redis::adapt;
 using boost::redis::request;
 using boost::redis::generic_response;
 
@@ -29,7 +28,7 @@ using boost::redis::generic_response;
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    for (generic_response resp;;) {
-      co_await conn->async_receive(adapt(resp));
+      co_await conn->async_receive(resp);
       std::cout << resp.at(1).value << " " << resp.at(2).value << " " << resp.at(3).value << std::endl;
       resp.clear();
    }

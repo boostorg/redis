@@ -15,22 +15,20 @@ using namespace net::experimental::awaitable_operators;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
-using boost::redis::adapt;
 using boost::redis::request;
 using boost::redis::response;
 
 auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    request req;
-   std::string resp;
+   response<std::string> resp;
 
    for (std::string buffer;;) {
       auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
       req.push("PING", buffer);
-      auto tmp = std::tie(resp);
-      co_await conn->async_exec(req, adapt(tmp));
-      co_await net::async_write(socket, net::buffer(resp));
-      resp.clear();
+      co_await conn->async_exec(req, resp);
+      co_await net::async_write(socket, net::buffer(std::get<0>(resp)));
+      std::get<0>(resp).clear();
       req.clear();
       buffer.erase(0, n);
    }

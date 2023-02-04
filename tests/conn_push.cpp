@@ -20,13 +20,13 @@
 namespace net = boost::asio;
 namespace resp3 = boost::redis::resp3;
 
-using boost::redis::adapt;
 using boost::redis::operation;
 using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 BOOST_AUTO_TEST_CASE(push_filtered_out)
 {
@@ -41,12 +41,12 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   response<boost::redis::ignore, std::string, std::string> resp;
-   conn.async_exec(req, adapt(resp), [](auto ec, auto){
+   response<boost::redis::ignore_t, std::string, std::string> resp;
+   conn.async_exec(req, resp, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
-   conn.async_receive(adapt(), [](auto ec, auto){
+   conn.async_receive(ignore, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -67,7 +67,7 @@ void receive_wrong_syntax(request const& req)
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
-   conn.async_exec(req, adapt(), [](auto ec, auto){
+   conn.async_exec(req, ignore, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -75,7 +75,7 @@ void receive_wrong_syntax(request const& req)
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 
-   conn.async_receive(adapt(), [&](auto ec, auto){
+   conn.async_receive(ignore, [&](auto ec, auto){
       BOOST_TEST(!ec);
       conn.cancel(boost::redis::operation::run);
    });
@@ -87,19 +87,22 @@ void receive_wrong_syntax(request const& req)
 net::awaitable<void> push_consumer1(connection& conn, bool& push_received)
 {
    {
-      auto [ec, ev] = co_await conn.async_receive(adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await conn.async_receive(ignore, as_tuple(net::use_awaitable));
       BOOST_TEST(!ec);
    }
 
    {
-      auto [ec, ev] = co_await conn.async_receive(adapt(), as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await conn.async_receive(ignore, as_tuple(net::use_awaitable));
       BOOST_CHECK_EQUAL(ec, net::experimental::channel_errc::channel_cancelled);
    }
 
    push_received = true;
 }
 
-struct adapter_error {
+struct response_error_tag{};
+response_error_tag error_tag_obj;
+
+struct response_error_adapter {
    void
    operator()(
       std::size_t, boost::redis::resp3::node<std::string_view> const&, boost::system::error_code& ec)
@@ -111,6 +114,11 @@ struct adapter_error {
    auto get_supported_response_size() const noexcept
       { return static_cast<std::size_t>(-1);}
 };
+
+auto boost_redis_adapt(response_error_tag&)
+{
+   return response_error_adapter{};
+}
 
 BOOST_AUTO_TEST_CASE(test_push_adapter)
 {
@@ -125,11 +133,11 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   conn.async_receive(adapter_error{}, [](auto ec, auto) {
+   conn.async_receive(error_tag_obj, [](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, boost::redis::error::incompatible_size);
    });
 
-   conn.async_exec(req, adapt(), [](auto ec, auto){
+   conn.async_exec(req, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, net::experimental::error::channel_errors::channel_cancelled);
    });
 
@@ -156,7 +164,7 @@ void test_push_is_received1(bool coalesce)
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   conn.async_exec(req, adapt(), [](auto ec, auto){
+   conn.async_exec(req, ignore, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
 
@@ -201,9 +209,9 @@ void test_push_is_received2(bool coalesce)
       BOOST_TEST(!ec);
    };
 
-   conn.async_exec(req1, adapt(), handler);
-   conn.async_exec(req2, adapt(), handler);
-   conn.async_exec(req3, adapt(), handler);
+   conn.async_exec(req1, ignore, handler);
+   conn.async_exec(req2, ignore, handler);
+   conn.async_exec(req3, ignore, handler);
 
    conn.async_run([&](auto ec) {
       BOOST_TEST(!ec);
@@ -224,7 +232,7 @@ void test_push_is_received2(bool coalesce)
 net::awaitable<void> push_consumer3(connection& conn)
 {
    for (;;)
-      co_await conn.async_receive(adapt(), net::use_awaitable);
+      co_await conn.async_receive(ignore, net::use_awaitable);
 }
 
 // Test many subscribe requests.
@@ -252,18 +260,18 @@ void test_push_many_subscribes(bool coalesce)
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
-   conn.async_exec(req0, adapt(), handler);
-   conn.async_exec(req1, adapt(), handler);
-   conn.async_exec(req2, adapt(), handler);
-   conn.async_exec(req2, adapt(), handler);
-   conn.async_exec(req1, adapt(), handler);
-   conn.async_exec(req2, adapt(), handler);
-   conn.async_exec(req1, adapt(), handler);
-   conn.async_exec(req2, adapt(), handler);
-   conn.async_exec(req2, adapt(), handler);
-   conn.async_exec(req1, adapt(), handler);
-   conn.async_exec(req2, adapt(), handler);
-   conn.async_exec(req3, adapt(), handler);
+   conn.async_exec(req0, ignore, handler);
+   conn.async_exec(req1, ignore, handler);
+   conn.async_exec(req2, ignore, handler);
+   conn.async_exec(req2, ignore, handler);
+   conn.async_exec(req1, ignore, handler);
+   conn.async_exec(req2, ignore, handler);
+   conn.async_exec(req1, ignore, handler);
+   conn.async_exec(req2, ignore, handler);
+   conn.async_exec(req2, ignore, handler);
+   conn.async_exec(req1, ignore, handler);
+   conn.async_exec(req2, ignore, handler);
+   conn.async_exec(req3, ignore, handler);
 
    conn.async_run([&](auto ec) {
       BOOST_TEST(!ec);

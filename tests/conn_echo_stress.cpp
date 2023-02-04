@@ -18,15 +18,15 @@
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
 using boost::redis::operation;
-using boost::redis::adapt;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
    int c = 0;
    for (;;) {
-      co_await conn->async_receive(adapt(), net::use_awaitable);
+      co_await conn->async_receive(ignore, net::use_awaitable);
       if (++c == expected)
          break;
    }
@@ -34,7 +34,7 @@ auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::await
    request req;
    req.push("HELLO", 3);
    req.push("QUIT");
-   co_await conn->async_exec(req, adapt());
+   co_await conn->async_exec(req, ignore);
 }
 
 auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> net::awaitable<void>
@@ -42,7 +42,7 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
    auto ex = co_await net::this_coro::executor;
 
    request req;
-   response<boost::redis::ignore, std::string> resp;
+   response<boost::redis::ignore_t, std::string> resp;
 
    for (auto i = 0; i < n; ++i) {
       auto const msg = id + "/" + std::to_string(i);
@@ -51,7 +51,7 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
       req.push("PING", msg);
       req.push("SUBSCRIBE", "channel");
       boost::system::error_code ec;
-      co_await conn->async_exec(req, adapt(resp), redir(ec));
+      co_await conn->async_exec(req, resp, redir(ec));
       BOOST_CHECK_EQUAL(ec, boost::system::error_code{});
       BOOST_CHECK_EQUAL(msg, std::get<1>(resp));
       req.clear();

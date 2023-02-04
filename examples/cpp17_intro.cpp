@@ -11,7 +11,6 @@
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-using redis::adapt;
 using redis::operation;
 using redis::request;
 using redis::response;
@@ -39,7 +38,7 @@ auto main(int argc, char * argv[]) -> int
       req.push("QUIT");
 
       // The response.
-      response<redis::ignore, std::string, redis::ignore> resp;
+      response<redis::ignore_t, std::string, redis::ignore_t> resp;
 
       net::io_context ioc;
 
@@ -75,7 +74,7 @@ auto main(int argc, char * argv[]) -> int
             return log(ec, "on_connect: ");
 
          conn.async_run(on_run);
-         conn.async_exec(req, adapt(resp), on_exec);
+         conn.async_exec(req, resp, on_exec);
       };
 
       // Resolve callback.

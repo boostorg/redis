@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_ADAPT_HPP
-#define BOOST_REDIS_ADAPT_HPP
+#ifndef BOOST_REDIS_DETAIL_ADAPT_HPP
+#define BOOST_REDIS_DETAIL_ADAPT_HPP
 
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/response.hpp>
@@ -19,23 +19,7 @@
 #include <string_view>
 #include <variant>
 
-namespace boost::redis {
-
-/** @brief Tag used to ignore responses.
- *  @ingroup high-level-api
- *
- *  For example
- *
- *  @code
- *  response<boost::redis::ignore, std::string, boost::redis::ignore> resp;
- *  @endcode
- *
- *  will cause only the second tuple type to be parsed, the others
- *  will be ignored.
- */
-using ignore = adapter::detail::ignore;
-
-namespace detail
+namespace boost::redis::detail
 {
 
 class ignore_adapter {
@@ -112,11 +96,11 @@ template <class>
 struct response_traits;
 
 template <>
-struct response_traits<void> {
+struct response_traits<ignore_t> {
    using response_type = void;
    using adapter_type = detail::ignore_adapter;
 
-   static auto adapt() noexcept
+   static auto adapt(ignore_t&) noexcept
       { return detail::ignore_adapter{}; }
 };
 
@@ -160,21 +144,7 @@ auto make_adapter_wrapper(Adapter adapter)
    return wrapper{adapter};
 }
 
-} // detail
-
-/** @brief Creates an adapter that ignores responses.
- *  @ingroup high-level-api
- *
- *  This function can be used to create adapters that ignores
- *  responses.
- */
-inline auto adapt() noexcept
-{
-   return detail::response_traits<void>::adapt();
-}
-
 /** @brief Adapts a type to be used as a response.
- *  @ingroup high-level-api
  *
  *  The type T must be either
  *
@@ -187,11 +157,11 @@ inline auto adapt() noexcept
  *  @param t Tuple containing the responses.
  */
 template<class T>
-auto adapt(T& t) noexcept
+auto boost_redis_adapt(T& t) noexcept
 {
    return detail::response_traits<T>::adapt(t);
 }
 
-} // boost::redis
+} // boost::redis::detail
 
-#endif // BOOST_REDIS_ADAPT_HPP
+#endif // BOOST_REDIS_DETAIL_ADAPT_HPP

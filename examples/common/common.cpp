@@ -16,7 +16,6 @@ using namespace net::experimental::awaitable_operators;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using timer_type = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using boost::redis::request;
-using boost::redis::adapt;
 using boost::redis::operation;
 
 namespace
@@ -35,7 +34,7 @@ auto healthy_checker(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
       for (boost::system::error_code ec;;) {
          timer.expires_after(std::chrono::seconds{1});
-         co_await (conn->async_exec(req, adapt()) || timer.async_wait(redir(ec)));
+         co_await (conn->async_exec(req) || timer.async_wait(redir(ec)));
 
          if (!ec) {
             co_return;
