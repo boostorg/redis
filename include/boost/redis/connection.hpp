@@ -129,7 +129,7 @@ public:
       class Adapter = detail::response_traits<void>::adapter_type,
       class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(
-      resp3::request const& req,
+      request const& req,
       Adapter adapter = adapt(),
       CompletionToken token = CompletionToken{})
    {

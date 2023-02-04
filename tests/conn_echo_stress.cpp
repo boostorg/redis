@@ -16,10 +16,11 @@
 #include "../examples/common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
 using error_code = boost::system::error_code;
 using boost::redis::operation;
 using boost::redis::adapt;
+using boost::redis::request;
+using boost::redis::response;
 
 auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
@@ -30,7 +31,7 @@ auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::await
          break;
    }
 
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
    req.push("QUIT");
    co_await conn->async_exec(req, adapt());
@@ -40,8 +41,8 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
 {
    auto ex = co_await net::this_coro::executor;
 
-   resp3::request req;
-   std::tuple<boost::redis::ignore, std::string> resp;
+   request req;
+   response<boost::redis::ignore, std::string> resp;
 
    for (auto i = 0; i < n; ++i) {
       auto const msg = id + "/" + std::to_string(i);

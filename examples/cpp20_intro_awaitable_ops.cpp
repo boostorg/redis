@@ -11,19 +11,20 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using boost::redis::adapt;
+using boost::redis::request;
+using boost::redis::response;
 
 // Called from the main function (see main.cpp)
 auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
    req.push("PING", "Hello world");
    req.push("QUIT");
 
-   std::tuple<boost::redis::ignore, std::string, boost::redis::ignore> resp;
+   response<boost::redis::ignore, std::string, boost::redis::ignore> resp;
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
    co_await connect(conn, host, port);

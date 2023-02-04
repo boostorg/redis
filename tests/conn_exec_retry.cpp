@@ -17,24 +17,25 @@
 #include "common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
 using error_code = boost::system::error_code;
 using connection = boost::redis::connection;
 using boost::redis::adapt;
+using boost::redis::request;
+using boost::redis::response;
 
 BOOST_AUTO_TEST_CASE(request_retry_false)
 {
-   resp3::request req0;
+   request req0;
    req0.get_config().coalesce = false;
    req0.get_config().cancel_on_connection_lost = true;
    req0.push("HELLO", 3);
 
-   resp3::request req1;
+   request req1;
    req1.get_config().coalesce = true;
    req1.get_config().cancel_on_connection_lost = true;
    req1.push("BLPOP", "any", 0);
 
-   resp3::request req2;
+   request req2;
    req2.get_config().coalesce = true;
    req2.get_config().cancel_on_connection_lost = false;
    req2.get_config().cancel_if_unresponded = true;
@@ -78,23 +79,23 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
 
 BOOST_AUTO_TEST_CASE(request_retry_true)
 {
-   resp3::request req0;
+   request req0;
    req0.get_config().coalesce = false;
    req0.get_config().cancel_on_connection_lost = true;
    req0.push("HELLO", 3);
 
-   resp3::request req1;
+   request req1;
    req1.get_config().coalesce = true;
    req1.get_config().cancel_on_connection_lost = true;
    req1.push("BLPOP", "any", 0);
 
-   resp3::request req2;
+   request req2;
    req2.get_config().coalesce = true;
    req2.get_config().cancel_on_connection_lost = false;
    req2.get_config().cancel_if_unresponded = false;
    req2.push("PING");
 
-   resp3::request req3;
+   request req3;
    req3.get_config().coalesce = true;
    req3.get_config().cancel_on_connection_lost = true;
    req3.get_config().cancel_if_unresponded = true;

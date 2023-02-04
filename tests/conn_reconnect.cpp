@@ -17,10 +17,10 @@
 #include "../examples/common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
-
 using boost::redis::adapt;
 using error_code = boost::system::error_code;
+using boost::redis::request;
+using boost::redis::response;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace boost::asio::experimental::awaitable_operators;
@@ -29,7 +29,7 @@ net::awaitable<void> test_reconnect_impl()
 {
    auto ex = co_await net::this_coro::executor;
 
-   resp3::request req;
+   request req;
    req.push("QUIT");
 
    auto const endpoints = resolve();
@@ -70,7 +70,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    auto conn = std::make_shared<connection>(ex);
    boost::system::error_code ec1, ec2, ec3;
 
-   resp3::request req1;
+   request req1;
    req1.get_config().cancel_if_not_connected = false;
    req1.get_config().cancel_on_connection_lost = true;
    req1.get_config().cancel_if_unresponded = true;
@@ -89,7 +89,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    BOOST_CHECK_EQUAL(ec2, boost::system::errc::errc_t::operation_canceled);
    //BOOST_TEST(!ec3);
 
-   resp3::request req2;
+   request req2;
    req2.get_config().cancel_if_not_connected = false;
    req2.get_config().cancel_on_connection_lost = true;
    req2.get_config().cancel_if_unresponded= true;

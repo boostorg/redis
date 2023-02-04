@@ -43,7 +43,7 @@ auto adapt2() noexcept
 /** \brief Adapts user data to read operations.
  *  \ingroup low-level-api
  *
- *  STL containers, \c std::tuple and built-in types are supported and
+ *  STL containers, \c resp3::response and built-in types are supported and
  *  can be used in conjunction with \c std::optional<T>.
  *
  *  Example usage:
@@ -67,7 +67,7 @@ auto adapt2() noexcept
  *  co_await async_write(socket, buffer(request));
  *
  *  // Reads the response to a transaction
- *  std::tuple<std::string, int, int, std::vector<std::string>, int> execs;
+ *  resp3::response<std::string, int, int, std::vector<std::string>, int> execs;
  *  co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(execs));
  *  @endcode
  */

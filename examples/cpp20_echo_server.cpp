@@ -11,16 +11,17 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
 using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
 using boost::redis::adapt;
+using boost::redis::request;
+using boost::redis::response;
 
 auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    std::string resp;
 
    for (std::string buffer;;) {
@@ -51,7 +52,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    auto conn = std::make_shared<connection>(ex);
    signal_set sig{ex, SIGINT, SIGTERM};
 
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
 
    co_await connect(conn, host, port);

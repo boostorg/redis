@@ -18,13 +18,15 @@
 #include "common.hpp"
 
 namespace net = boost::asio;
+namespace resp3 = boost::redis::resp3;
 
-using boost::redis::resp3::request;
 using boost::redis::adapt;
 using boost::redis::operation;
 using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
+using boost::redis::request;
+using boost::redis::response;
 
 BOOST_AUTO_TEST_CASE(push_filtered_out)
 {
@@ -39,7 +41,7 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   std::tuple<boost::redis::ignore, std::string, std::string> resp;
+   response<boost::redis::ignore, std::string, std::string> resp;
    conn.async_exec(req, adapt(resp), [](auto ec, auto){
       BOOST_TEST(!ec);
    });

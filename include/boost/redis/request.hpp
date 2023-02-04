@@ -4,143 +4,23 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_RESP3_REQUEST_HPP
-#define BOOST_REDIS_RESP3_REQUEST_HPP
+#ifndef BOOST_REDIS_REQUEST_HPP
+#define BOOST_REDIS_REQUEST_HPP
 
 #include <boost/redis/resp3/type.hpp>
+#include <boost/redis/resp3/serialization.hpp>
 
 #include <string>
 #include <tuple>
 
-// NOTE: Consider detecting tuples in the type in the parameter pack
-// to calculate the header size correctly.
-//
 // NOTE: For some commands like hset it would be a good idea to assert
 // the value type is a pair.
 
-namespace boost::redis::resp3 {
-constexpr char const* separator = "\r\n";
+namespace boost::redis {
 
-/** @brief Adds a bulk to the request.
- *  @relates request
- *
- *  This function is useful in serialization of your own data
- *  structures in a request. For example
- *
- *  @code
- *  void boost_redis_to_bulk(std::string& to, mystruct const& obj)
- *  {
- *     auto const str = // Convert obj to a string.
- *     boost_redis_to_bulk(to, str);
- *  }
- *  @endcode
- *
- *  @param to Storage on which data will be copied into.
- *  @param data Data that will be serialized and stored in @c to.
- *
- *  See more in @ref serialization.
- */
-template <class Request>
-void boost_redis_to_bulk(Request& to, std::string_view data)
-{
-   auto const str = std::to_string(data.size());
-
-   to += to_code(type::blob_string);
-   to.append(std::cbegin(str), std::cend(str));
-   to += separator;
-   to.append(std::cbegin(data), std::cend(data));
-   to += separator;
-}
-
-template <class Request, class T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
-void boost_redis_to_bulk(Request& to, T n)
-{
-   auto const s = std::to_string(n);
-   boost_redis_to_bulk(to, std::string_view{s});
-}
-
-namespace detail {
-
+namespace detail{
 auto has_response(std::string_view cmd) -> bool;
-
-template <class T>
-struct add_bulk_impl {
-   template <class Request>
-   static void add(Request& to, T const& from)
-   {
-      using namespace boost::redis::resp3;
-      boost_redis_to_bulk(to, from);
-   }
-};
-
-template <class ...Ts>
-struct add_bulk_impl<std::tuple<Ts...>> {
-   template <class Request>
-   static void add(Request& to, std::tuple<Ts...> const& t)
-   {
-      auto f = [&](auto const&... vs)
-      {
-         using namespace boost::redis::resp3;
-         (boost_redis_to_bulk(to, vs), ...);
-      };
-
-      std::apply(f, t);
-   }
-};
-
-template <class U, class V>
-struct add_bulk_impl<std::pair<U, V>> {
-   template <class Request>
-   static void add(Request& to, std::pair<U, V> const& from)
-   {
-      using namespace boost::redis::resp3;
-      boost_redis_to_bulk(to, from.first);
-      boost_redis_to_bulk(to, from.second);
-   }
-};
-
-template <class Request>
-void add_header(Request& to, type t, std::size_t size)
-{
-   auto const str = std::to_string(size);
-
-   to += to_code(t);
-   to.append(std::cbegin(str), std::cend(str));
-   to += separator;
 }
-
-template <class Request, class T>
-void add_bulk(Request& to, T const& data)
-{
-   detail::add_bulk_impl<T>::add(to, data);
-}
-
-template <class>
-struct bulk_counter;
-
-template <class>
-struct bulk_counter {
-  static constexpr auto size = 1U;
-};
-
-template <class T, class U>
-struct bulk_counter<std::pair<T, U>> {
-  static constexpr auto size = 2U;
-};
-
-template <class Request>
-void add_blob(Request& to, std::string_view blob)
-{
-   to.append(std::cbegin(blob), std::cend(blob));
-   to += separator;
-}
-
-template <class Request>
-void add_separator(Request& to)
-{
-   to += separator;
-}
-} // detail
 
 /** \brief Creates Redis requests.
  *  \ingroup high-level-api
@@ -206,7 +86,6 @@ public:
    /** \brief Constructor
     *  
     *  \param cfg Configuration options.
-    *  \param resource Memory resource.
     */
     explicit
     request(config cfg = config{true, true, false, true, true})
@@ -260,9 +139,9 @@ public:
       using resp3::type;
 
       auto constexpr pack_size = sizeof...(Ts);
-      detail::add_header(payload_, type::array, 1 + pack_size);
-      detail::add_bulk(payload_, cmd);
-      detail::add_bulk(payload_, std::tie(std::forward<Ts const&>(args)...));
+      resp3::add_header(payload_, type::array, 1 + pack_size);
+      resp3::add_bulk(payload_, cmd);
+      resp3::add_bulk(payload_, std::tie(std::forward<Ts const&>(args)...));
 
       check_cmd(cmd);
    }
@@ -298,14 +177,14 @@ public:
       if (begin == end)
          return;
 
-      auto constexpr size = detail::bulk_counter<value_type>::size;
+      auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(payload_, type::array, 2 + size * distance);
-      detail::add_bulk(payload_, cmd);
-      detail::add_bulk(payload_, key);
+      resp3::add_header(payload_, type::array, 2 + size * distance);
+      resp3::add_bulk(payload_, cmd);
+      resp3::add_bulk(payload_, key);
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(payload_, *begin);
+	 resp3::add_bulk(payload_, *begin);
 
       check_cmd(cmd);
    }
@@ -337,13 +216,13 @@ public:
       if (begin == end)
          return;
 
-      auto constexpr size = detail::bulk_counter<value_type>::size;
+      auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      detail::add_header(payload_, type::array, 1 + size * distance);
-      detail::add_bulk(payload_, cmd);
+      resp3::add_header(payload_, type::array, 1 + size * distance);
+      resp3::add_bulk(payload_, cmd);
 
       for (; begin != end; ++begin)
-	 detail::add_bulk(payload_, *begin);
+	 resp3::add_bulk(payload_, *begin);
 
       check_cmd(cmd);
    }
@@ -397,6 +276,11 @@ private:
    bool has_hello_priority_ = false;
 };
 
-} // boost::redis::redis::resp3
+/** @brief The response to a request.
+ */
+template <class... Ts>
+using response = std::tuple<Ts...>;
 
-#endif // BOOST_REDIS_RESP3_REQUEST_HPP
+} // boost::redis::resp3
+
+#endif // BOOST_REDIS_REQUEST_HPP

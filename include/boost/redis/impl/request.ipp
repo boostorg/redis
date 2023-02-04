@@ -4,11 +4,11 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/resp3/request.hpp>
+#include <boost/redis/request.hpp>
 
 #include <string_view>
 
-namespace boost::redis::resp3::detail {
+namespace boost::redis::detail {
 
 auto has_response(std::string_view cmd) -> bool
 {
@@ -18,4 +18,4 @@ auto has_response(std::string_view cmd) -> bool
    return false;
 }
 
-} // boost:redis::resp3::detail
+} // boost:redis::detail

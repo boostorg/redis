@@ -8,6 +8,7 @@
 #define BOOST_REDIS_ADAPT_HPP
 
 #include <boost/redis/resp3/node.hpp>
+#include <boost/redis/response.hpp>
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/detail/response_traits.hpp>
 #include <boost/mp11.hpp>
@@ -26,7 +27,7 @@ namespace boost::redis {
  *  For example
  *
  *  @code
- *  std::tuple<boost::redis::ignore, std::string, boost::redis::ignore> resp;
+ *  response<boost::redis::ignore, std::string, boost::redis::ignore> resp;
  *  @endcode
  *
  *  will cause only the second tuple type to be parsed, the others
@@ -129,8 +130,8 @@ struct response_traits<std::vector<resp3::node<String>, Allocator>> {
 };
 
 template <class ...Ts>
-struct response_traits<std::tuple<Ts...>> {
-   using response_type = std::tuple<Ts...>;
+struct response_traits<response<Ts...>> {
+   using response_type = response<Ts...>;
    using adapter_type = static_adapter<response_type>;
 
    static auto adapt(response_type& r) noexcept
@@ -177,7 +178,7 @@ inline auto adapt() noexcept
  *
  *  The type T must be either
  *
- *  1. a std::tuple<T1, T2, T3, ...> or
+ *  1. a response<T1, T2, T3, ...> or
  *  2. std::vector<node<String>>
  *
  *  The types T1, T2, etc can be any STL container, any integer type

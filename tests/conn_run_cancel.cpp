@@ -19,12 +19,13 @@
 
 namespace net = boost::asio;
 
-using boost::redis::resp3::request;
 using boost::redis::operation;
 using boost::redis::adapt;
 using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
+using boost::redis::request;
+using boost::redis::response;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;

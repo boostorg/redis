@@ -18,11 +18,12 @@
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-namespace resp3 = boost::redis::resp3;
 using namespace net::experimental::awaitable_operators;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using redis::adapt;
 using connection = net::use_awaitable_t<>::as_default_on_t<redis::ssl::connection>;
+using boost::redis::request;
+using boost::redis::response;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {
@@ -32,12 +33,12 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 
 net::awaitable<void> co_main(std::string, std::string)
 {
-   resp3::request req;
+   request req;
    req.push("HELLO", 3, "AUTH", "aedis", "aedis");
    req.push("PING");
    req.push("QUIT");
 
-   std::tuple<redis::ignore, std::string, redis::ignore> resp;
+   response<redis::ignore, std::string, redis::ignore> resp;
 
    // Resolve
    auto ex = co_await net::this_coro::executor;

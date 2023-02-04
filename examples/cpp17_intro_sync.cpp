@@ -16,12 +16,13 @@
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-namespace resp3 = redis::resp3;
 using redis::adapt;
 using connection = redis::connection;
+using boost::redis::request;
+using boost::redis::response;
 
 template <class Adapter>
-auto exec(std::shared_ptr<connection> conn, resp3::request const& req, Adapter adapter)
+auto exec(std::shared_ptr<connection> conn, request const& req, Adapter adapter)
 {
    net::dispatch(
       conn->get_executor(),
@@ -61,12 +62,12 @@ auto main(int argc, char * argv[]) -> int
          ioc.run();
       }};
 
-      resp3::request req;
+      request req;
       req.push("HELLO", 3);
       req.push("PING");
       req.push("QUIT");
 
-      std::tuple<boost::redis::ignore, std::string, boost::redis::ignore> resp;
+      response<boost::redis::ignore, std::string, boost::redis::ignore> resp;
 
       // Executes commands synchronously.
       exec(conn, req, adapt(resp));

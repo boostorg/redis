@@ -1,4 +1,4 @@
-# Boost.Redis
+# boost_redis
 
 Boost.Redis is a [Redis](https://redis.io/) client library built on top of
 [Boost.Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
@@ -13,7 +13,7 @@ concerned with only three library entities
   high-level functions to execute Redis commands, receive server
   pushes and support for automatic command
   [pipelines](https://redis.io/docs/manual/pipelining/).
-* `boost::redis::resp3::request`: A container of Redis commands that supports
+* `boost::redis::request`: A container of Redis commands that supports
   STL containers and user defined data types.
 * `boost::redis::adapt()`: A function that adapts data structures to receive responses.
 
@@ -54,7 +54,7 @@ auto co_main() -> net::awaitable<void>
    co_await connect(conn, "127.0.0.1", "6379");
 
    // A request can contain multiple commands.
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
    req.push("QUIT");
@@ -62,7 +62,7 @@ auto co_main() -> net::awaitable<void>
    // The tuple elements will store the responses to each individual
    // command. The responses to HELLO and QUIT are being ignored for
    // simplicity.
-   std::tuple<ignore, std::map<std::string, std::string>, ignore> resp;
+   response<ignore, std::map<std::string, std::string>, ignore> resp;
 
    // Executes the request. See below why we are using operator ||.
    co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
@@ -108,7 +108,7 @@ auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    req.push("HELLO", 3);
 
    co_await conn->async_exec(req);
@@ -116,17 +116,17 @@ auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    req.push("PING", "Hello world");
 
-   std::tuple<std::string> resp;
+   response<std::string> resp;
    co_await conn->async_exec(req, adapt(resp));
    // Use the response ...
 }
 
 auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   resp3::request req;
+   request req;
    req.push("QUIT");
 
    co_await conn->async_exec(req);
@@ -178,8 +178,7 @@ to used it
 ```cpp
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   using resp_type = std::vector<resp3::node<std::string>>;
-   for (resp_type resp;;) {
+   for (generic_response resp;;) {
       co_await conn->async_receive(adapt(resp));
       // Use resp and clear the response for a new push.
       resp.clear();
@@ -263,7 +262,7 @@ co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec
 ```
 
 * This works but is unnecessary. Unless the user has set
-  `boost::redis::resp3::request::config::coalesce` to `false`, and he
+  `boost::redis::request::config::coalesce` to `false`, and he
   usually shouldn't, the connection will automatically merge the
   individual requests into a single payload.
 
@@ -301,7 +300,7 @@ Sending a request to Redis is performed with `boost::redis::connection::async_ex
 
 ### Serialization
 
-The `resp3::request::push` and `resp3::request::push_range` member functions work
+The `request::push` and `request::push_range` member functions work
 with integer data types e.g. `int` and `std::string` out of the box.
 To send your own data type define a `boost_redis_to_bulk` function like this
 
@@ -334,7 +333,7 @@ Example cpp20_serialization.cpp shows how store json strings in Redis.
 
 ### Config flags
 
-The `boost::redis::resp3::request::config` object inside the request dictates how the
+The `boost::redis::request::config` object inside the request dictates how the
 `boost::redis::connection` should handle the request in some important situations. The
 reader is advised to read it carefully.
 
@@ -342,9 +341,8 @@ reader is advised to read it carefully.
 
 Boost.Redis uses the following strategy to support Redis responses
 
-* **Static**: For `boost::redis::resp3::request` whose sizes are known at compile time
-  `std::tuple` is supported.
-* **Dynamic**: Otherwise use `std::vector<boost::redis::resp3::node<std::string>>`.
+* **Static**: For `boost::redis::request` whose sizes are known at compile time use the `response` type.
+* **Dynamic**: Otherwise use `boost::redis::generic_response`.
 
 For example, below is a request with a compile time size
 
@@ -358,7 +356,7 @@ req.push("QUIT");
 To read the response to this request users can use the following tuple
 
 ```cpp
-std::tuple<std::string, int, std::string>
+response<std::string, int, std::string>
 ```
 
 The pattern might have become apparent to the reader: the tuple must
@@ -370,7 +368,7 @@ To ignore responses to individual commands in the request use the tag
 
 ```cpp
 // Ignore the second and last responses.
-std::tuple<std::string, boost::redis::ignore, std::string, boost::redis::ignore>
+response<std::string, boost::redis::ignore, std::string, boost::redis::ignore>
 ```
 
 The following table provides the resp3-types returned by some Redis
@@ -417,7 +415,7 @@ req.push("QUIT");
 can be read in the tuple below
 
 ```cpp
-std::tuple<
+response<
    redis::ignore,  // hello
    int,            // rpush
    int,            // hset
@@ -467,7 +465,7 @@ req.push("SUBSCRIBE", "channel");
 req.push("QUIT");
 ```
 
-must be read in this tuple `std::tuple<std::string, std::string>`,
+must be read in this tuple `response<std::string, std::string>`,
 that has size two.
 
 ### Null
@@ -478,7 +476,7 @@ cases Boost.Redis provides support for `std::optional`. To use it,
 wrap your type around `std::optional` like this
 
 ```cpp
-std::tuple<
+response<
    std::optional<A>,
    std::optional<B>,
    ...
@@ -510,13 +508,13 @@ use the following response type
 using boost::redis::ignore;
 
 using exec_resp_type = 
-   std::tuple<
+   response<
       std::optional<std::string>, // get
       std::optional<std::vector<std::string>>, // lrange
       std::optional<std::map<std::string, std::string>> // hgetall
    >;
 
-std::tuple<
+response<
    boost::redis::ignore,  // multi
    boost::redis::ignore,  // get
    boost::redis::ignore,  // lrange
@@ -559,7 +557,7 @@ commands won't fit in the model presented above, some examples are
 RESP3 type. Expecting an `int` and receiving a blob-string
 will result in error.
 * RESP3 aggregates that contain nested aggregates can't be read in STL containers.
-* Transactions with a dynamic number of commands can't be read in a `std::tuple`.
+* Transactions with a dynamic number of commands can't be read in a `response`.
 
 To deal with these cases Boost.Redis provides the `boost::redis::resp3::node` type
 abstraction, that is the most general form of an element in a
@@ -584,20 +582,20 @@ struct node {
 ```
 
 Any response to a Redis command can be received in a
-`std::vector<node<std::string>>`.  The vector can be seen as a
+`boost::redis::generic_response`.  The vector can be seen as a
 pre-order view of the response tree.  Using it is not different than
 using other types
 
 ```cpp
 // Receives any RESP3 simple or aggregate data type.
-std::vector<node<std::string>> resp;
+boost::redis::generic_response resp;
 co_await conn->async_exec(req, adapt(resp));
 ```
 
 For example, suppose we want to retrieve a hash data structure
 from Redis with `HGETALL`, some of the options are
 
-* `std::vector<node<std::string>`: Works always.
+* `boost::redis::generic_response`: Works always.
 * `std::vector<std::string>`: Efficient and flat, all elements as string.
 * `std::map<std::string, std::string>`: Efficient if you need the data as a `std::map`.
 * `std::map<U, V>`: Efficient if you are storing serialized data. Avoids temporaries and requires `boost_redis_from_bulk` for `U` and `V`.
@@ -863,11 +861,13 @@ Acknowledgement to people that helped shape Boost.Redis
 
 ## Changelog
 
-### master
+### master (incorporates many suggestions from the boost review)
 
 * Renames the project to Boost.Redis and moves the code into namespace `boost::redis`.
-* As pointed out in the reviews `to_buld` and `from_buld` were too generic
-  for ADL customization. They gained the prefix `boost_redis_`.
+* As pointed out in the reviews `to_buld` and `from_buld` were too generic for ADL customization. They gained the prefix `boost_redis_`.
+* Moves `boost::redis::resp3::request` to `boost::redis::request`.
+* Adds new typedef `boost::redis::response` that should be used instead of `std::tuple`.
+* Adds new typedef `boost::redis::generic_response` that should be used instead of `std::vector<resp3::node<std::string>>`.
 
 ### v1.4.0-1
 
@@ -883,7 +883,7 @@ Acknowledgement to people that helped shape Boost.Redis
   implemented properly without bloating the connection class. It is
   now a user responsibility to send HELLO. Requests that contain it have
   priority over other requests and will be moved to the front of the
-  queue, see `aedis::resp3::request::config` 
+  queue, see `aedis::request::config` 
 
 * Automatic name resolving and connecting have been removed from
   `aedis::connection::async_run`. Users have to do this step manually
@@ -914,21 +914,21 @@ Acknowledgement to people that helped shape Boost.Redis
   asio::error::eof is received. This makes it easier to  write
   composed operations with awaitable operators.
 
-* Adds allocator support in the `aedis::resp3::request` (a
+* Adds allocator support in the `aedis::request` (a
   contribution from Klemens Morgenstern).
 
-* Renames `aedis::resp3::request::push_range2` to `push_range`. The
+* Renames `aedis::request::push_range2` to `push_range`. The
   suffix 2 was used for disambiguation. Klemens fixed it with SFINAE.
 
 * Renames `fail_on_connection_lost` to
-  `aedis::resp3::request::config::cancel_on_connection_lost`. Now, it will
+  `aedis::request::config::cancel_on_connection_lost`. Now, it will
   only cause connections to be canceled when `async_run` completes.
 
-* Introduces `aedis::resp3::request::config::cancel_if_not_connected` which will
+* Introduces `aedis::request::config::cancel_if_not_connected` which will
   cause a request to be canceled if `async_exec` is called before a
   connection has been established.
 
-* Introduces new request flag `aedis::resp3::request::config::retry` that if
+* Introduces new request flag `aedis::request::config::retry` that if
   set to true will cause the request to not be canceled when it was
   sent to Redis but remained unresponded after `async_run` completed.
   It provides a way to avoid executing commands twice.
@@ -958,7 +958,7 @@ Acknowledgement to people that helped shape Boost.Redis
 ### v1.1.0-1
 
 * Removes `coalesce_requests` from the `aedis::connection::config`, it
-  became a request property now, see `aedis::resp3::request::config::coalesce`.
+  became a request property now, see `aedis::request::config::coalesce`.
 
 * Removes `max_read_size` from the `aedis::connection::config`. The maximum
   read size can be specified now as a parameter of the

@@ -15,6 +15,7 @@ namespace net = boost::asio;
 namespace redis = boost::redis;
 namespace resp3 = redis::resp3;
 using redis::adapter::adapt2;
+using boost::redis::request;
 
 auto main(int argc, char * argv[]) -> int
 {
@@ -34,7 +35,7 @@ auto main(int argc, char * argv[]) -> int
       net::connect(socket, res);
 
       // Creates the request and writes to the socket.
-      resp3::request req;
+      request req;
       req.push("HELLO", 3);
       req.push("PING", "Hello world");
       req.push("QUIT");
