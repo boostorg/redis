@@ -9,39 +9,14 @@
 
 #include <boost/redis/adapter/detail/response_traits.hpp>
 
-namespace boost::redis::adapter {
+namespace boost::redis::adapter
+{
 
 template <class T>
 using adapter_t = typename detail::adapter_t<T>;
 
-/** \brief Creates a dummy response adapter.
-    \ingroup low-level-api
-  
-    The adapter returned by this function ignores responses. It is
-    useful to avoid wasting time with responses which are not needed.
-
-    Example:
-
-    @code
-    // Pushes and writes some commands to the server.
-    sr.push(command::hello, 3);
-    sr.push(command::ping);
-    sr.push(command::quit);
-    net::write(socket, net::buffer(request));
-
-    // Ignores all responses except for the response to ping.
-    std::string buffer;
-    resp3::read(socket, dynamic_buffer(buffer), adapt2());     // hello
-    resp3::read(socket, dynamic_buffer(buffer), adapt2(resp)); // ping
-    resp3::read(socket, dynamic_buffer(buffer, adapt2()));     // quit
-    @endcode
- */
-inline
-auto adapt2() noexcept
-   { return detail::response_traits<void>::adapt(); }
-
-/** \brief Adapts user data to read operations.
- *  \ingroup low-level-api
+/** @brief Adapts user data to read operations.
+ *  @ingroup low-level-api
  *
  *  STL containers, \c resp3::response and built-in types are supported and
  *  can be used in conjunction with \c std::optional<T>.
@@ -72,7 +47,7 @@ auto adapt2() noexcept
  *  @endcode
  */
 template<class T>
-auto adapt2(T& t) noexcept
+auto adapt2(T& t = redis::ignore) noexcept
    { return detail::response_traits<T>::adapt(t); }
 
 } // boost::redis::adapter

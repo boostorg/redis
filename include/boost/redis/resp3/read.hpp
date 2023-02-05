@@ -10,6 +10,7 @@
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/resp3/detail/parser.hpp>
 #include <boost/redis/resp3/detail/read_ops.hpp>
+#include <boost/redis/adapter/ignore.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/async_result.hpp>
@@ -47,8 +48,8 @@ namespace boost::redis::resp3 {
  *  the bytes after it returns.
  */
 template <
-  class SyncReadStream,
-  class DynamicBuffer,
+     class SyncReadStream,
+     class DynamicBuffer,
   class ResponseAdapter
   >
 auto
@@ -105,7 +106,7 @@ read(
 template<
    class SyncReadStream,
    class DynamicBuffer,
-   class ResponseAdapter = detail::ignore_response>
+   class ResponseAdapter = adapter::ignore>
 auto
 read(
    SyncReadStream& stream,
@@ -162,7 +163,7 @@ read(
 template <
    class AsyncReadStream,
    class DynamicBuffer,
-   class ResponseAdapter = detail::ignore_response,
+   class ResponseAdapter = adapter::ignore,
    class CompletionToken = asio::default_completion_token_t<typename AsyncReadStream::executor_type>
    >
 auto async_read(

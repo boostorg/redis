@@ -14,6 +14,7 @@ namespace redis = boost::redis;
 using redis::operation;
 using redis::request;
 using redis::response;
+using redis::ignore_t;
 
 void log(boost::system::error_code const& ec, char const* prefix)
 {
@@ -38,7 +39,7 @@ auto main(int argc, char * argv[]) -> int
       req.push("QUIT");
 
       // The response.
-      response<redis::ignore_t, std::string, redis::ignore_t> resp;
+      response<ignore_t, std::string, ignore_t> resp;
 
       net::io_context ioc;
 
@@ -64,7 +65,7 @@ auto main(int argc, char * argv[]) -> int
             return log(ec, "on_exec: ");
          }
 
-         std::cout << "PING: " << std::get<1>(resp) << std::endl;
+         std::cout << "PING: " << std::get<1>(resp).value() << std::endl;
       };
 
       // Connect callback.

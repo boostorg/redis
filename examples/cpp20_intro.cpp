@@ -36,7 +36,7 @@ auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
    response<std::string> resp;
    co_await conn->async_exec(req, resp);
 
-   std::cout << "PING: " << std::get<0>(resp) << std::endl;
+   std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
 }
 
 auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>

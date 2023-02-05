@@ -276,11 +276,6 @@ private:
    bool has_hello_priority_ = false;
 };
 
-/** @brief The response to a request.
- */
-template <class... Ts>
-using response = std::tuple<Ts...>;
-
 } // boost::redis::resp3
 
 #endif // BOOST_REDIS_REQUEST_HPP

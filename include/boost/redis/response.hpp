@@ -8,7 +8,7 @@
 #define BOOST_REDIS_RESPONSE_HPP
 
 #include <boost/redis/resp3/node.hpp>
-#include <boost/redis/adapter/adapt.hpp>
+#include <boost/redis/adapter/result.hpp>
 
 #include <vector>
 #include <string>
@@ -16,46 +16,21 @@
 
 namespace boost::redis {
 
-/** @brief The response to a request.
+/** @brief Response with compile-time size.
  *  @ingroup high-level-api
  */
 template <class... Ts>
-using response = std::tuple<Ts...>;
+using response = std::tuple<adapter::result<Ts>...>;
 
 /** @brief A generic response to a request
  *  @ingroup high-level-api
  *
- *  It contains the
+ *  This response type can store any type of RESP3 data structure.  It
+ *  contains the
  *  [pre-order](https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR)
- *  view of the response tree.  Any Redis response can be received in
- *  an array of nodes.
+ *  view of the response tree.
  */
-using generic_response = std::vector<resp3::node<std::string>>;
-
-/** @brief Type used to ignore responses.
- *  @ingroup high-level-api
- *
- *  For example
- *
- *  @code
- *  response<boost::redis::ignore_t, std::string, boost::redis::ignore_t> resp;
- *  @endcode
- *
- *  will cause only the second tuple type to be parsed, the others
- *  will be ignored.
- */
-using ignore_t = adapter::detail::ignore_t;
-
-/** @brief Global ignore object.
- *  @ingroup high-level-api
- *
- *  Can be used to ignore responses to a request
- *
- *  @code
- *  conn->async_exec(req, ignore, ...);
- *  @endcode
- */
-extern ignore_t ignore;
+using generic_response = adapter::result<std::vector<resp3::node<std::string>>>;
 
 } // boost::redis::resp3
 

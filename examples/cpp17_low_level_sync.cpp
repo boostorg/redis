@@ -12,10 +12,10 @@
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
-namespace redis = boost::redis;
-namespace resp3 = redis::resp3;
-using redis::adapter::adapt2;
+namespace resp3 = boost::redis::resp3;
+using boost::redis::adapter::adapt2;
 using boost::redis::request;
+using boost::redis::adapter::result;
 
 auto main(int argc, char * argv[]) -> int
 {
@@ -41,8 +41,8 @@ auto main(int argc, char * argv[]) -> int
       req.push("QUIT");
       resp3::write(socket, req);
 
-      // Responses
-      std::string buffer, resp;
+      std::string buffer;
+      result<std::string> resp;
 
       // Reads the responses to all commands in the request.
       auto dbuffer = net::dynamic_buffer(buffer);
@@ -50,7 +50,7 @@ auto main(int argc, char * argv[]) -> int
       resp3::read(socket, dbuffer, adapt2(resp));
       resp3::read(socket, dbuffer);
 
-      std::cout << "Ping: " << resp << std::endl;
+      std::cout << "Ping: " << resp.value() << std::endl;
 
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;

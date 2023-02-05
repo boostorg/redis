@@ -15,10 +15,10 @@
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
-namespace redis = boost::redis;
-using connection = redis::connection;
+using connection = boost::redis::connection;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore_t;
 
 template <class Response>
 auto exec(std::shared_ptr<connection> conn, request const& req, Response& resp)
@@ -66,12 +66,12 @@ auto main(int argc, char * argv[]) -> int
       req.push("PING");
       req.push("QUIT");
 
-      response<boost::redis::ignore_t, std::string, boost::redis::ignore_t> resp;
+      response<ignore_t, std::string, ignore_t> resp;
 
       // Executes commands synchronously.
       exec(conn, req, resp);
 
-      std::cout << "Response: " << std::get<1>(resp) << std::endl;
+      std::cout << "Response: " << std::get<1>(resp).value() << std::endl;
 
       t.join();
    } catch (std::exception const& e) {

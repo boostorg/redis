@@ -41,17 +41,6 @@ auto is_cancelled(T const& self)
 
 namespace boost::redis::resp3::detail {
 
-struct ignore_response {
-   void operator()(node<std::string_view> nd, system::error_code& ec)
-   {
-      switch (nd.data_type) {
-         case resp3::type::simple_error: ec = error::resp3_simple_error; return;
-         case resp3::type::blob_error: ec = error::resp3_blob_error; return;
-         default: return;
-      }
-   }
-};
-
 template <
    class AsyncReadStream,
    class DynamicBuffer,

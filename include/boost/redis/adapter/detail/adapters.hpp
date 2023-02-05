@@ -12,6 +12,8 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/detail/parser.hpp>
 #include <boost/redis/resp3/node.hpp>
+#include <boost/redis/adapter/result.hpp>
+#include <boost/redis/adapter/ignore.hpp>
 #include <boost/assert.hpp>
 
 #include <set>
@@ -28,7 +30,8 @@
 #include <string_view>
 #include <charconv>
 
-namespace boost::redis::adapter::detail {
+namespace boost::redis::adapter::detail
+{
 
 // Serialization.
 
@@ -37,7 +40,7 @@ auto boost_redis_from_bulk(T& i, std::string_view sv, system::error_code& ec) ->
 {
    auto const res = std::from_chars(sv.data(), sv.data() + std::size(sv), i);
    if (res.ec != std::errc())
-      ec = error::not_a_number;
+      ec = redis::error::not_a_number;
 }
 
 inline
@@ -51,7 +54,7 @@ void boost_redis_from_bulk(double& d, std::string_view sv, system::error_code& e
 {
    auto const res = std::from_chars(sv.data(), sv.data() + std::size(sv), d);
    if (res.ec != std::errc())
-      ec = error::not_a_double;
+      ec = redis::error::not_a_double;
 }
 
 template <class CharT, class Traits, class Allocator>
@@ -66,17 +69,6 @@ boost_redis_from_bulk(
 
 //================================================
 
-inline
-void set_on_resp3_error(resp3::type t, system::error_code& ec)
-{
-   switch (t) {
-      case resp3::type::simple_error: ec = error::resp3_simple_error; return;
-      case resp3::type::blob_error: ec = error::resp3_blob_error; return;
-      case resp3::type::null: ec = error::resp3_null; return;
-      default: return;
-   }
-}
-
 template <class Result>
 class general_aggregate {
 private:
@@ -84,9 +76,17 @@ private:
 
 public:
    explicit general_aggregate(Result* c = nullptr): result_(c) {}
-   void operator()(resp3::node<std::string_view> const& n, system::error_code&)
+   void operator()(resp3::node<std::string_view> const& nd, system::error_code&)
    {
-      result_->push_back({n.data_type, n.aggregate_size, n.depth, std::string{std::cbegin(n.value), std::cend(n.value)}});
+      BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
+      switch (nd.data_type) {
+         case resp3::type::blob_error:
+         case resp3::type::simple_error:
+            *result_ = error{nd.data_type, std::string{std::cbegin(nd.value), std::cend(nd.value)}};
+            break;
+         default:
+            result_->value().push_back({nd.data_type, nd.aggregate_size, nd.depth, std::string{std::cbegin(nd.value), std::cend(nd.value)}});
+      }
    }
 };
 
@@ -98,13 +98,20 @@ private:
 public:
    explicit general_simple(Node* t = nullptr) : result_(t) {}
 
-   void operator()(resp3::node<std::string_view> const& n, system::error_code& ec)
+   void operator()(resp3::node<std::string_view> const& nd, system::error_code&)
    {
-      result_->data_type = n.data_type;
-      result_->aggregate_size = n.aggregate_size;
-      result_->depth = n.depth;
-      result_->value.assign(n.value.data(), n.value.size());
-      set_on_resp3_error(n.data_type, ec);
+      BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
+      switch (nd.data_type) {
+         case resp3::type::blob_error:
+         case resp3::type::simple_error:
+            *result_ = error{nd.data_type, std::string{std::cbegin(nd.value), std::cend(nd.value)}};
+            break;
+         default:
+            result_->value().data_type = nd.data_type;
+            result_->value().aggregate_size = nd.aggregate_size;
+            result_->value().depth = nd.depth;
+            result_->value().value.assign(nd.value.data(), nd.value.size());
+      }
    }
 };
 
@@ -119,12 +126,8 @@ public:
       resp3::node<std::string_view> const& n,
       system::error_code& ec)
    {
-      set_on_resp3_error(n.data_type, ec);
-      if (ec)
-         return;
-
       if (is_aggregate(n.data_type)) {
-         ec = error::expects_resp3_simple_type;
+         ec = redis::error::expects_resp3_simple_type;
          return;
       }
 
@@ -147,20 +150,16 @@ public:
       resp3::node<std::string_view> const& nd,
       system::error_code& ec)
    {
-      set_on_resp3_error(nd.data_type, ec);
-      if (ec)
-         return;
-
       if (is_aggregate(nd.data_type)) {
          if (nd.data_type != resp3::type::set)
-            ec = error::expects_resp3_set;
+            ec = redis::error::expects_resp3_set;
          return;
       }
 
       BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
-	 ec = error::expects_resp3_set;
+	 ec = redis::error::expects_resp3_set;
 	 return;
       }
 
@@ -186,20 +185,16 @@ public:
       resp3::node<std::string_view> const& nd,
       system::error_code& ec)
    {
-      set_on_resp3_error(nd.data_type, ec);
-      if (ec)
-         return;
-
       if (is_aggregate(nd.data_type)) {
          if (element_multiplicity(nd.data_type) != 2)
-           ec = error::expects_resp3_map;
+           ec = redis::error::expects_resp3_map;
          return;
       }
 
       BOOST_ASSERT(nd.aggregate_size == 1);
 
       if (nd.depth < 1) {
-	 ec = error::expects_resp3_map;
+	 ec = redis::error::expects_resp3_map;
 	 return;
       }
 
@@ -228,10 +223,6 @@ public:
       resp3::node<std::string_view> const& nd,
       system::error_code& ec)
    {
-      set_on_resp3_error(nd.data_type, ec);
-      if (ec)
-         return;
-
       if (is_aggregate(nd.data_type)) {
          auto const m = element_multiplicity(nd.data_type);
          result.reserve(result.size() + m * nd.aggregate_size);
@@ -256,23 +247,19 @@ public:
       resp3::node<std::string_view> const& nd,
       system::error_code& ec)
    {
-      set_on_resp3_error(nd.data_type, ec);
-      if (ec)
-         return;
-
       if (is_aggregate(nd.data_type)) {
 	 if (i_ != -1) {
-            ec = error::nested_aggregate_not_supported;
+            ec = redis::error::nested_aggregate_not_supported;
             return;
          }
 
          if (result.size() != nd.aggregate_size * element_multiplicity(nd.data_type)) {
-            ec = error::incompatible_size;
+            ec = redis::error::incompatible_size;
             return;
          }
       } else {
          if (i_ == -1) {
-            ec = error::expects_resp3_aggregate;
+            ec = redis::error::expects_resp3_aggregate;
             return;
          }
 
@@ -295,14 +282,10 @@ struct list_impl {
       resp3::node<std::string_view> const& nd,
       system::error_code& ec)
    {
-      set_on_resp3_error(nd.data_type, ec);
-      if (ec)
-         return;
-
       if (!is_aggregate(nd.data_type)) {
         BOOST_ASSERT(nd.aggregate_size == 1);
         if (nd.depth < 1) {
-           ec = error::expects_resp3_aggregate;
+           ec = redis::error::expects_resp3_aggregate;
            return;
         }
 
@@ -355,49 +338,103 @@ struct impl_map<std::deque<T, Allocator>> { using type = list_impl<std::deque<T,
 
 //---------------------------------------------------
 
+template <class>
+class wrapper;
+
 template <class Result>
-class wrapper {
+class wrapper<result<Result>> {
+public:
+   using response_type = result<Result>;
 private:
-   Result* result_;
+   response_type* result_;
    typename impl_map<Result>::type impl_;
 
+   bool set_if_resp3_error(resp3::node<std::string_view> const& nd) noexcept
+   {
+      switch (nd.data_type) {
+         case resp3::type::null:
+         case resp3::type::simple_error:
+         case resp3::type::blob_error:
+            *result_ = error{nd.data_type, {std::cbegin(nd.value), std::cend(nd.value)}};
+            return true;
+         default:
+            return false;
+      }
+   }
+
 public:
-   explicit wrapper(Result* t = nullptr) : result_(t)
-      { impl_.on_value_available(*result_); }
+   explicit wrapper(response_type* t = nullptr) : result_(t)
+   {
+      if (result_) {
+         result_->value() = Result{};
+         impl_.on_value_available(result_->value());
+      }
+   }
 
    void
    operator()(
       resp3::node<std::string_view> const& nd,
       system::error_code& ec)
    {
+      BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
+
+      if (result_->has_error())
+         return;
+
+      if (set_if_resp3_error(nd))
+         return;
+
       BOOST_ASSERT(result_);
-      impl_(*result_, nd, ec);
+      impl_(result_->value(), nd, ec);
    }
 };
 
 template <class T>
-class wrapper<std::optional<T>> {
+class wrapper<result<std::optional<T>>> {
+public:
+   using response_type = result<std::optional<T>>;
+
 private:
-   std::optional<T>* result_;
+   response_type* result_;
    typename impl_map<T>::type impl_{};
 
+   bool set_if_resp3_error(resp3::node<std::string_view> const& nd) noexcept
+   {
+      switch (nd.data_type) {
+         case resp3::type::blob_error:
+         case resp3::type::simple_error:
+            *result_ = error{nd.data_type, {std::cbegin(nd.value), std::cend(nd.value)}};
+            return true;
+         default:
+            return false;
+      }
+   }
+
 public:
-   explicit wrapper(std::optional<T>* o = nullptr) : result_(o) {}
+   explicit wrapper(response_type* o = nullptr) : result_(o) {}
 
    void
    operator()(
       resp3::node<std::string_view> const& nd,
       system::error_code& ec)
    {
+      BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
+
+      if (result_->has_error())
+         return;
+
+      if (set_if_resp3_error(nd))
+         return;
+
       if (nd.data_type == resp3::type::null)
          return;
 
-      if (!result_->has_value()) {
-        *result_ = T{};
-        impl_.on_value_available(result_->value());
+      if (!result_->value().has_value()) {
+        result_->value() = T{};
+        impl_.on_value_available(result_->value().value());
       }
 
-      impl_(result_->value(), nd, ec);
+      impl_(result_->value().value(), nd, ec);
    }
 };
 

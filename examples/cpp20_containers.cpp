@@ -18,6 +18,7 @@ namespace redis = boost::redis;
 using namespace net::experimental::awaitable_operators;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore_t;
 
 void print(std::map<std::string, std::string> const& cont)
 {
@@ -62,12 +63,12 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
    req.push("HGETALL", "hset-key");
 
    // Responses as tuple elements.
-   response<redis::ignore_t, std::map<std::string, std::string>> resp;
+   response<ignore_t, std::map<std::string, std::string>> resp;
 
    // Executes the request and reads the response.
    co_await conn->async_exec(req, resp);
 
-   print(std::get<1>(resp));
+   print(std::get<1>(resp).value());
 }
 
 // Retrieves in a transaction.
@@ -81,17 +82,17 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
    req.push("EXEC");
 
    response<
-      redis::ignore_t, // hello
-      redis::ignore_t, // multi
-      redis::ignore_t, // lrange
-      redis::ignore_t, // hgetall
+      ignore_t, // hello
+      ignore_t, // multi
+      ignore_t, // lrange
+      ignore_t, // hgetall
       response<std::optional<std::vector<int>>, std::optional<std::map<std::string, std::string>>> // exec
    > resp;
 
    co_await conn->async_exec(req, resp);
 
-   print(std::get<0>(std::get<4>(resp)).value());
-   print(std::get<1>(std::get<4>(resp)).value());
+   print(std::get<0>(std::get<4>(resp).value()).value().value());
+   print(std::get<1>(std::get<4>(resp).value()).value().value());
 }
 
 auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>

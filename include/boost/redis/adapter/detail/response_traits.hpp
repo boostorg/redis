@@ -9,8 +9,9 @@
 
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/type.hpp>
-#include <boost/redis/resp3/read.hpp>
+#include <boost/redis/ignore.hpp>
 #include <boost/redis/adapter/detail/adapters.hpp>
+#include <boost/redis/adapter/result.hpp>
 #include <boost/mp11.hpp>
 
 #include <vector>
@@ -18,53 +19,51 @@
 #include <string_view>
 #include <variant>
 
-namespace boost::redis::adapter::detail {
-
-using ignore_t = std::decay_t<decltype(std::ignore)>;
+namespace boost::redis::adapter::detail
+{
 
 /* Traits class for response objects.
  *
  * Provides traits for all supported response types i.e. all STL
  * containers and C++ buil-in types.
  */
-template <class ResponseType>
+template <class Response>
 struct response_traits {
-   using adapter_type = adapter::detail::wrapper<typename std::decay<ResponseType>::type>;
-   static auto adapt(ResponseType& r) noexcept { return adapter_type{&r}; }
+   using adapter_type = adapter::detail::wrapper<typename std::decay<Response>::type>;
+   static auto adapt(Response& r) noexcept { return adapter_type{&r}; }
+};
+
+template <>
+struct response_traits<result<ignore_t>> {
+   using response_type = result<ignore_t>;
+   using adapter_type = ignore;
+   static auto adapt(response_type) noexcept { return adapter_type{}; }
 };
 
 template <>
 struct response_traits<ignore_t> {
    using response_type = ignore_t;
-   using adapter_type = resp3::detail::ignore_response;
+   using adapter_type = ignore;
    static auto adapt(response_type) noexcept { return adapter_type{}; }
 };
 
 template <class T>
-struct response_traits<resp3::node<T>> {
-   using response_type = resp3::node<T>;
+struct response_traits<result<resp3::node<T>>> {
+   using response_type = result<resp3::node<T>>;
    using adapter_type = adapter::detail::general_simple<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 
 template <class String, class Allocator>
-struct response_traits<std::vector<resp3::node<String>, Allocator>> {
-   using response_type = std::vector<resp3::node<String>, Allocator>;
+struct response_traits<result<std::vector<resp3::node<String>, Allocator>>> {
+   using response_type = result<std::vector<resp3::node<String>, Allocator>>;
    using adapter_type = adapter::detail::general_aggregate<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
-};
-
-template <>
-struct response_traits<void> {
-   using response_type = void;
-   using adapter_type = resp3::detail::ignore_response;
-   static auto adapt() noexcept { return adapter_type{}; }
 };
 
 template <class T>
 using adapter_t = typename response_traits<std::decay_t<T>>::adapter_type;
 
-// Duplicated here to avoid circular include dependency.
 template<class T>
 auto internal_adapt(T& t) noexcept
    { return response_traits<std::decay_t<T>>::adapt(t); }
@@ -89,7 +88,10 @@ struct assigner<0> {
 };
 
 template <class Tuple>
-class static_aggregate_adapter {
+class static_aggregate_adapter;
+
+template <class Tuple>
+class static_aggregate_adapter<result<Tuple>> {
 private:
    using adapters_array_type = 
       std::array<
@@ -102,11 +104,15 @@ private:
    std::size_t i_ = 0;
    std::size_t aggregate_size_ = 0;
    adapters_array_type adapters_;
+   result<Tuple>* res_ = nullptr;
 
 public:
-   explicit static_aggregate_adapter(Tuple* r = nullptr)
+   explicit static_aggregate_adapter(result<Tuple>* r = nullptr)
    {
-      detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, *r);
+      if (r) {
+         res_ = r;
+         detail::assigner<std::tuple_size<Tuple>::value - 1>::assign(adapters_, r->value());
+      }
    }
 
    void count(resp3::node<std::string_view> const& nd)
@@ -124,17 +130,14 @@ public:
          ++i_;
    }
 
-   void
-   operator()(
-      resp3::node<std::string_view> const& nd,
-      system::error_code& ec)
+   void operator()(resp3::node<std::string_view> const& nd, system::error_code& ec)
    {
       using std::visit;
 
       if (nd.depth == 0) {
          auto const real_aggr_size = nd.aggregate_size * element_multiplicity(nd.data_type);
          if (real_aggr_size != std::tuple_size<Tuple>::value)
-	    ec = error::incompatible_size;
+            ec = redis::error::incompatible_size;
 
          return;
       }
@@ -145,9 +148,9 @@ public:
 };
 
 template <class... Ts>
-struct response_traits<std::tuple<Ts...>>
+struct response_traits<result<std::tuple<Ts...>>>
 {
-   using response_type = std::tuple<Ts...>;
+   using response_type = result<std::tuple<Ts...>>;
    using adapter_type = static_aggregate_adapter<response_type>;
    static auto adapt(response_type& r) noexcept { return adapter_type{&r}; }
 };

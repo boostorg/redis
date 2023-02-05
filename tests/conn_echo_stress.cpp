@@ -21,6 +21,7 @@ using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
+using boost::redis::ignore_t;
 
 auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
@@ -42,7 +43,7 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
    auto ex = co_await net::this_coro::executor;
 
    request req;
-   response<boost::redis::ignore_t, std::string> resp;
+   response<ignore_t, std::string> resp;
 
    for (auto i = 0; i < n; ++i) {
       auto const msg = id + "/" + std::to_string(i);
@@ -53,9 +54,9 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
       boost::system::error_code ec;
       co_await conn->async_exec(req, resp, redir(ec));
       BOOST_CHECK_EQUAL(ec, boost::system::error_code{});
-      BOOST_CHECK_EQUAL(msg, std::get<1>(resp));
+      BOOST_CHECK_EQUAL(msg, std::get<1>(resp).value());
       req.clear();
-      std::get<1>(resp).clear();
+      std::get<1>(resp).value().clear();
    }
 }
 

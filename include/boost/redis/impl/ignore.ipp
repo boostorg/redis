@@ -4,7 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/response.hpp>
+#include <boost/redis/ignore.hpp>
 
 namespace boost::redis
 {

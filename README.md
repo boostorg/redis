@@ -870,6 +870,10 @@ Acknowledgement to people that helped shape Boost.Redis
 * Adds new typedef `boost::redis::generic_response` that should be used instead of `std::vector<resp3::node<std::string>>`.
 * Renames `redis::ignore` to `redis::ignore_t`.
 * Changes the signature from `async_exec` to receive a `redis::response` instead of an adapter.
+* Adds `boost::redis::adapter::result` to store responses to commands
+  including possible resp3 errors without losing the error diagnostic
+  part. Basicaly instead of accessing values as `std::get<N>(resp)`
+  users have to type `std::get<N>(resp).value()`
 
 ### v1.4.0-1
 
