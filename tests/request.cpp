@@ -10,7 +10,8 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <boost/redis/request.hpp>
-#include <boost/redis/src.hpp>
+#include <boost/redis/impl/request.ipp>
+#include <boost/redis/resp3/impl/type.ipp>
 
 using boost::redis::request;
 

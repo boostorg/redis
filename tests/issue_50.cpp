@@ -14,7 +14,6 @@
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
-using boost::redis::adapt;
 using boost::redis::request;
 using boost::redis::response;
 
@@ -38,8 +37,7 @@ auto periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
     request req;
     req.push("GET", "mykey");
     response<std::string> response;
-    auto [ec, u] = co_await conn->async_exec(req, adapt(response),
-                                             net::as_tuple(net::use_awaitable));
+    auto [ec, u] = co_await conn->async_exec(req, response, net::as_tuple(net::use_awaitable));
     if (ec) {
       std::cout << "Error: " << ec << std::endl;
     } else {

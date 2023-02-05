@@ -8,7 +8,6 @@
 #define BOOST_REDIS_HPP
 
 #include <boost/redis/error.hpp>
-#include <boost/redis/adapt.hpp>
 #include <boost/redis/connection.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>

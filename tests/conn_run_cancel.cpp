@@ -20,12 +20,12 @@
 namespace net = boost::asio;
 
 using boost::redis::operation;
-using boost::redis::adapt;
 using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
 using net::experimental::as_tuple;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(reset_before_run_completes)
    req.push("HELLO", 3);
    req.push("PING");
 
-   conn.async_exec(req, adapt(), [&](auto ec, auto){
+   conn.async_exec(req, ignore, [&](auto ec, auto){
       BOOST_TEST(!ec);
       conn.reset_stream();
    });

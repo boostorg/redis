@@ -10,7 +10,6 @@
 #include "common/common.hpp"
 
 namespace net = boost::asio;
-using boost::redis::adapt;
 using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
@@ -35,7 +34,7 @@ auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
    req.push("PING", "Hello world");
 
    response<std::string> resp;
-   co_await conn->async_exec(req, adapt(resp));
+   co_await conn->async_exec(req, resp);
 
    std::cout << "PING: " << std::get<0>(resp) << std::endl;
 }

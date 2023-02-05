@@ -26,8 +26,8 @@
 
 namespace std
 {
-auto operator==(boost::redis::ignore, boost::redis::ignore) noexcept {return true;}
-auto operator!=(boost::redis::ignore, boost::redis::ignore) noexcept {return false;}
+auto operator==(boost::redis::ignore_t, boost::redis::ignore_t) noexcept {return true;}
+auto operator!=(boost::redis::ignore_t, boost::redis::ignore_t) noexcept {return false;}
 }
 
 namespace net = boost::asio;
@@ -449,7 +449,7 @@ std::vector<node_type> const attr_e1b
    test(ex, make_expected(S09a, set_type{"apple", "one", "orange", "three", "two"})); \
    test(ex, make_expected(S04d, response<uset_type>{set_e1c})); \
    test(ex, make_expected(S09b, std::vector<node_type>{ {resp3::type::set,  0UL, 0UL, {}} })); \
-   test(ex, make_expected(S10a, boost::redis::ignore{}, boost::redis::error::resp3_simple_error)); \
+   test(ex, make_expected(S10a, boost::redis::ignore, boost::redis::error::resp3_simple_error)); \
    test(ex, make_expected(S10a, node_type{resp3::type::simple_error, 1UL, 0UL, {"Error"}}, boost::redis::error::resp3_simple_error)); \
    test(ex, make_expected(S10b, node_type{resp3::type::simple_error, 1UL, 0UL, {""}}, boost::redis::error::resp3_simple_error)); \
    test(ex, make_expected(S03c, map_type{}));\
@@ -460,7 +460,7 @@ std::vector<node_type> const attr_e1b
    test(ex, make_expected(S11e, double{0}, boost::redis::error::not_a_double));\
    test(ex, make_expected(S12a, node_type{resp3::type::blob_error, 1UL, 0UL, {"SYNTAX invalid syntax"}}, boost::redis::error::resp3_blob_error));\
    test(ex, make_expected(S12b, node_type{resp3::type::blob_error, 1UL, 0UL, {}}, boost::redis::error::resp3_blob_error));\
-   test(ex, make_expected(S12c, boost::redis::ignore{}, boost::redis::error::resp3_blob_error));\
+   test(ex, make_expected(S12c, boost::redis::ignore, boost::redis::error::resp3_blob_error));\
    test(ex, make_expected(S13a, node_type{resp3::type::verbatim_string, 1UL, 0UL, {"txt:Some string"}}));\
    test(ex, make_expected(S13b, node_type{resp3::type::verbatim_string, 1UL, 0UL, {}}));\
    test(ex, make_expected(S14a, node_type{resp3::type::big_number, 1UL, 0UL, {"3492890328409238509324850943850943825024385"}}));\
@@ -630,7 +630,7 @@ BOOST_AUTO_TEST_CASE(type_convert)
 
 BOOST_AUTO_TEST_CASE(adapter)
 {
-   using boost::redis::adapt;
+   using boost::redis::detail::boost_redis_adapt;
    using resp3::type;
 
    boost::system::error_code ec;
@@ -639,7 +639,7 @@ BOOST_AUTO_TEST_CASE(adapter)
    int b;
    auto resp = std::tie(a, b, std::ignore);
 
-   auto f = adapt(resp);
+   auto f = boost_redis_adapt(resp);
    f(0, resp3::node<std::string_view>{type::simple_string, 1, 0, "Hello"}, ec);
    f(1, resp3::node<std::string_view>{type::number, 1, 0, "42"}, ec);
 

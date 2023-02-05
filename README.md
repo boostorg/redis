@@ -15,7 +15,7 @@ concerned with only three library entities
   [pipelines](https://redis.io/docs/manual/pipelining/).
 * `boost::redis::request`: A container of Redis commands that supports
   STL containers and user defined data types.
-* `boost::redis::adapt()`: A function that adapts data structures to receive responses.
+* `boost::redis::response`: Container of Redis responses.
 
 In the next sections we will cover all those points in detail with
 examples. The requirements for using Boost.Redis are
@@ -62,7 +62,7 @@ auto co_main() -> net::awaitable<void>
    // The tuple elements will store the responses to each individual
    // command. The responses to HELLO and QUIT are being ignored for
    // simplicity.
-   response<ignore, std::map<std::string, std::string>, ignore> resp;
+   response<ignore_t, std::map<std::string, std::string>, ignore_t> resp;
 
    // Executes the request. See below why we are using operator ||.
    co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
@@ -364,11 +364,11 @@ have as many elements as the request has commands (exceptions below).
 It is also necessary that each tuple element is capable of storing the
 response to the command it refers to, otherwise an error will occur.
 To ignore responses to individual commands in the request use the tag
-`boost::redis::ignore`
+`boost::redis::ignore_t`
 
 ```cpp
 // Ignore the second and last responses.
-response<std::string, boost::redis::ignore, std::string, boost::redis::ignore>
+response<std::string, boost::redis::ignore_t, std::string, boost::redis::ignore_t>
 ```
 
 The following table provides the resp3-types returned by some Redis
@@ -416,12 +416,12 @@ can be read in the tuple below
 
 ```cpp
 response<
-   redis::ignore,  // hello
-   int,            // rpush
-   int,            // hset
-   std::vector<T>, // lrange
-   std::map<U, V>, // hgetall
-   std::string     // quit
+   redis::ignore_t,  // hello
+   int,              // rpush
+   int,              // hset
+   std::vector<T>,   // lrange
+   std::map<U, V>,   // hgetall
+   std::string       // quit
 > resp;
 ```
 
@@ -515,10 +515,10 @@ using exec_resp_type =
    >;
 
 response<
-   boost::redis::ignore,  // multi
-   boost::redis::ignore,  // get
-   boost::redis::ignore,  // lrange
-   boost::redis::ignore,  // hgetall
+   boost::redis::ignore_t,  // multi
+   boost::redis::ignore_t,  // get
+   boost::redis::ignore_t,  // lrange
+   boost::redis::ignore_t,  // hgetall
    exec_resp_type,        // exec
 > resp;
 
@@ -868,6 +868,8 @@ Acknowledgement to people that helped shape Boost.Redis
 * Moves `boost::redis::resp3::request` to `boost::redis::request`.
 * Adds new typedef `boost::redis::response` that should be used instead of `std::tuple`.
 * Adds new typedef `boost::redis::generic_response` that should be used instead of `std::vector<resp3::node<std::string>>`.
+* Renames `redis::ignore` to `redis::ignore_t`.
+* Changes the signature from `async_exec` to receive a `redis::response` instead of an adapter.
 
 ### v1.4.0-1
 

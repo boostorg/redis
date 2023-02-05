@@ -12,7 +12,6 @@
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
-using boost::redis::adapt;
 using boost::redis::request;
 using boost::redis::response;
 
@@ -24,11 +23,11 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    req.push("PING", "Hello world");
    req.push("QUIT");
 
-   response<boost::redis::ignore, std::string, boost::redis::ignore> resp;
+   response<boost::redis::ignore_t, std::string, boost::redis::ignore_t> resp;
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
    co_await connect(conn, host, port);
-   co_await (conn->async_run() || conn->async_exec(req, adapt(resp)));
+   co_await (conn->async_run() || conn->async_exec(req, resp));
 
    std::cout << "PING: " << std::get<1>(resp) << std::endl;
 }

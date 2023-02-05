@@ -7,7 +7,7 @@
 #ifndef BOOST_REDIS_CONNECTION_BASE_HPP
 #define BOOST_REDIS_CONNECTION_BASE_HPP
 
-#include <boost/redis/adapt.hpp>
+#include <boost/redis/detail/adapt.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/detail/connection_ops.hpp>
@@ -128,20 +128,24 @@ public:
       return ret;
    }
 
-   template <class Adapter, class CompletionToken>
-   auto async_exec(request const& req, Adapter adapter, CompletionToken token)
+   template <class Response, class CompletionToken>
+   auto async_exec(request const& req, Response& resp, CompletionToken token)
    {
+      using namespace boost::redis;
+      auto adapter = boost_redis_adapt(resp);
       BOOST_ASSERT_MSG(req.size() <= adapter.get_supported_response_size(), "Request and response have incompatible sizes.");
 
       return asio::async_compose
          < CompletionToken
          , void(system::error_code, std::size_t)
-         >(detail::exec_op<Derived, Adapter>{&derived(), &req, adapter}, token, writer_timer_);
+         >(detail::exec_op<Derived, decltype(adapter)>{&derived(), &req, adapter}, token, writer_timer_);
    }
 
-   template <class Adapter, class CompletionToken>
-   auto async_receive(Adapter adapter, CompletionToken token)
+   template <class Response, class CompletionToken>
+   auto async_receive(Response& response, CompletionToken token)
    {
+      using namespace boost::redis;
+      auto adapter = boost_redis_adapt(response);
       auto f = detail::make_adapter_wrapper(adapter);
 
       return asio::async_compose

@@ -17,12 +17,12 @@
 
 namespace net = boost::asio;
 
-using boost::redis::adapt;
 using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
 using operation = boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 BOOST_AUTO_TEST_CASE(test_quit_coalesce)
 {
@@ -37,16 +37,16 @@ BOOST_AUTO_TEST_CASE(test_quit_coalesce)
    request req2{{false, true}};
    req2.push("QUIT");
 
-   conn.async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, ignore, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
-   conn.async_exec(req2, adapt(), [](auto ec, auto){
+   conn.async_exec(req2, ignore, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
-   conn.async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, net::error::misc_errors::eof);
    });
-   conn.async_exec(req1, adapt(), [](auto ec, auto){
+   conn.async_exec(req1, ignore, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 

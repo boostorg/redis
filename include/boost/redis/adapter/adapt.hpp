@@ -31,9 +31,9 @@ using adapter_t = typename detail::adapter_t<T>;
 
     // Ignores all responses except for the response to ping.
     std::string buffer;
-    resp3::read(socket, dynamic_buffer(buffer), adapt());     // hello
-    resp3::read(socket, dynamic_buffer(buffer), adapt(resp)); // ping
-    resp3::read(socket, dynamic_buffer(buffer, adapt()));     // quit
+    resp3::read(socket, dynamic_buffer(buffer), adapt2());     // hello
+    resp3::read(socket, dynamic_buffer(buffer), adapt2(resp)); // ping
+    resp3::read(socket, dynamic_buffer(buffer, adapt2()));     // quit
     @endcode
  */
 inline

@@ -16,17 +16,16 @@
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-using redis::adapt;
 using connection = redis::connection;
 using boost::redis::request;
 using boost::redis::response;
 
-template <class Adapter>
-auto exec(std::shared_ptr<connection> conn, request const& req, Adapter adapter)
+template <class Response>
+auto exec(std::shared_ptr<connection> conn, request const& req, Response& resp)
 {
    net::dispatch(
       conn->get_executor(),
-      net::deferred([&]() { return conn->async_exec(req, adapter, net::deferred); }))
+      net::deferred([&]() { return conn->async_exec(req, resp, net::deferred); }))
       (net::use_future).get();
 }
 
@@ -67,10 +66,10 @@ auto main(int argc, char * argv[]) -> int
       req.push("PING");
       req.push("QUIT");
 
-      response<boost::redis::ignore, std::string, boost::redis::ignore> resp;
+      response<boost::redis::ignore_t, std::string, boost::redis::ignore_t> resp;
 
       // Executes commands synchronously.
-      exec(conn, req, adapt(resp));
+      exec(conn, req, resp);
 
       std::cout << "Response: " << std::get<1>(resp) << std::endl;
 

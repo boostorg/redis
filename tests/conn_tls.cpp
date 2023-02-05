@@ -18,7 +18,6 @@
 
 namespace net = boost::asio;
 
-using boost::redis::adapt;
 using connection = boost::redis::ssl::connection;
 using boost::redis::request;
 using boost::redis::response;
@@ -58,7 +57,7 @@ BOOST_AUTO_TEST_CASE(ping)
    net::connect(conn.lowest_layer(), endpoints);
    conn.next_layer().handshake(net::ssl::stream_base::client);
 
-   conn.async_exec(req, adapt(resp), [](auto ec, auto) {
+   conn.async_exec(req, resp, [](auto ec, auto) {
       BOOST_TEST(!ec);
    });
 

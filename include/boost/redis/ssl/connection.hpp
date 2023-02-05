@@ -8,6 +8,7 @@
 #define BOOST_REDIS_SSL_CONNECTION_HPP
 
 #include <boost/redis/detail/connection_base.hpp>
+#include <boost/redis/response.hpp>
 #include <boost/asio/io_context.hpp>
 
 #include <chrono>
@@ -93,14 +94,14 @@ public:
     *  See redis::connection::async_exec for more information.
     */
    template <
-      class Adapter = redis::detail::response_traits<void>::adapter_type,
+      class Response = ignore_t,
       class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(
       request const& req,
-      Adapter adapter = adapt(),
+      Response& response = ignore,
       CompletionToken token = CompletionToken{})
    {
-      return base_type::async_exec(req, adapter, std::move(token));
+      return base_type::async_exec(req, response, std::move(token));
    }
 
    /** @brief Receives server side pushes asynchronously.
@@ -108,13 +109,13 @@ public:
     *  See redis::connection::async_receive for detailed information.
     */
    template <
-      class Adapter = redis::detail::response_traits<void>::adapter_type,
+      class Response = ignore_t,
       class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_receive(
-      Adapter adapter = adapt(),
+      Response& response = ignore,
       CompletionToken token = CompletionToken{})
    {
-      return base_type::async_receive(adapter, std::move(token));
+      return base_type::async_receive(response, std::move(token));
    }
 
    /** @brief Cancel operations.

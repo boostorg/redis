@@ -20,7 +20,6 @@ namespace net = boost::asio;
 namespace redis = boost::redis;
 using namespace net::experimental::awaitable_operators;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
-using redis::adapt;
 using connection = net::use_awaitable_t<>::as_default_on_t<redis::ssl::connection>;
 using boost::redis::request;
 using boost::redis::response;
@@ -38,7 +37,7 @@ net::awaitable<void> co_main(std::string, std::string)
    req.push("PING");
    req.push("QUIT");
 
-   response<redis::ignore, std::string, redis::ignore> resp;
+   response<redis::ignore_t, std::string, redis::ignore_t> resp;
 
    // Resolve
    auto ex = co_await net::this_coro::executor;
@@ -52,7 +51,7 @@ net::awaitable<void> co_main(std::string, std::string)
 
    co_await net::async_connect(conn.lowest_layer(), endpoints);
    co_await conn.next_layer().async_handshake(net::ssl::stream_base::client);
-   co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
+   co_await (conn.async_run() || conn.async_exec(req, resp));
 
    std::cout << "Response: " << std::get<1>(resp) << std::endl;
 }

@@ -8,6 +8,7 @@
 #define BOOST_REDIS_CONNECTION_HPP
 
 #include <boost/redis/detail/connection_base.hpp>
+#include <boost/redis/response.hpp>
 #include <boost/asio/io_context.hpp>
 
 #include <chrono>
@@ -112,7 +113,7 @@ public:
     *  automatically queued by the implementation.
     *
     *  @param req Request object.
-    *  @param adapter Response adapter.
+    *  @param response Response object.
     *  @param token Asio completion token.
     *
     *  For an example see cpp20_echo_server.cpp. The completion token must
@@ -126,14 +127,14 @@ public:
     *  bytes.
     */
    template <
-      class Adapter = detail::response_traits<void>::adapter_type,
+      class Response = ignore_t,
       class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(
       request const& req,
-      Adapter adapter = adapt(),
+      Response& response = ignore,
       CompletionToken token = CompletionToken{})
    {
-      return base_type::async_exec(req, adapter, std::move(token));
+      return base_type::async_exec(req, response, std::move(token));
    }
 
    /** @brief Receives server side pushes asynchronously.
@@ -142,7 +143,7 @@ public:
     *  loop. If a push arrives and there is no reader, the connection
     *  will hang.
     *
-    *  @param adapter The response adapter.
+    *  @param response The response object.
     *  @param token The Asio completion token.
     *
     *  For an example see cpp20_subscriber.cpp. The completion token must
@@ -156,13 +157,13 @@ public:
     *  bytes.
     */
    template <
-      class Adapter = detail::response_traits<void>::adapter_type,
+      class Response = ignore_t,
       class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_receive(
-      Adapter adapter = adapt(),
+      Response& response = ignore,
       CompletionToken token = CompletionToken{})
    {
-      return base_type::async_receive(adapter, std::move(token));
+      return base_type::async_receive(response, std::move(token));
    }
 
    /** @brief Cancel operations.
