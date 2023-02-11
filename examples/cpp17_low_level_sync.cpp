@@ -9,10 +9,11 @@
 
 #include <boost/asio/connect.hpp>
 #include <boost/redis.hpp>
+#include <boost/redis/write.hpp>
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
+namespace redis = boost::redis;
 using boost::redis::adapter::adapt2;
 using boost::redis::request;
 using boost::redis::adapter::result;
@@ -39,16 +40,16 @@ auto main(int argc, char * argv[]) -> int
       req.push("HELLO", 3);
       req.push("PING", "Hello world");
       req.push("QUIT");
-      resp3::write(socket, req);
+      redis::write(socket, req);
 
       std::string buffer;
       result<std::string> resp;
 
       // Reads the responses to all commands in the request.
       auto dbuffer = net::dynamic_buffer(buffer);
-      resp3::read(socket, dbuffer);
-      resp3::read(socket, dbuffer, adapt2(resp));
-      resp3::read(socket, dbuffer);
+      redis::read(socket, dbuffer);
+      redis::read(socket, dbuffer, adapt2(resp));
+      redis::read(socket, dbuffer);
 
       std::cout << "Ping: " << resp.value() << std::endl;
 

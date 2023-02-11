@@ -4,18 +4,18 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_RESP3_READ_HPP
-#define BOOST_REDIS_RESP3_READ_HPP
+#ifndef BOOST_REDIS_READ_HPP
+#define BOOST_REDIS_READ_HPP
 
 #include <boost/redis/resp3/type.hpp>
-#include <boost/redis/resp3/detail/parser.hpp>
-#include <boost/redis/resp3/detail/read_ops.hpp>
+#include <boost/redis/resp3/parser.hpp>
+#include <boost/redis/detail/read_ops.hpp>
 #include <boost/redis/adapter/ignore.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/async_result.hpp>
 
-namespace boost::redis::resp3 {
+namespace boost::redis {
 
 /** \brief Reads a complete response to a command sychronously.
  *  \ingroup low-level-api
@@ -59,7 +59,7 @@ read(
    ResponseAdapter adapter,
    system::error_code& ec) -> std::size_t
 {
-   detail::parser p;
+   resp3::parser p;
    std::size_t n = 0;
    std::size_t consumed = 0;
    do {
@@ -114,7 +114,7 @@ read(
    ResponseAdapter adapter = ResponseAdapter{})
 {
    system::error_code ec;
-   auto const n = resp3::read(stream, buf, adapter, ec);
+   auto const n = redis::read(stream, buf, adapter, ec);
 
    if (ec)
        BOOST_THROW_EXCEPTION(system::system_error{ec});
@@ -181,6 +181,6 @@ auto async_read(
         stream);
 }
 
-} // boost::redis::resp3
+} // boost::redis
 
-#endif // BOOST_REDIS_RESP3_READ_HPP
+#endif // BOOST_REDIS_READ_HPP

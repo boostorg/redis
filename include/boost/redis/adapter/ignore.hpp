@@ -14,6 +14,11 @@
 namespace boost::redis::adapter
 {
 
+/** @brief An adapter that ignores responses
+ *  @ingroup high-level-api
+ *
+ *  RESP3 errors won't be ignored.
+ */
 struct ignore {
    void operator()(resp3::node<std::string_view> const& nd, system::error_code& ec)
    {

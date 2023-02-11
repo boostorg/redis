@@ -7,12 +7,10 @@
 #ifndef BOOST_REDIS_CONNECTION_OPS_HPP
 #define BOOST_REDIS_CONNECTION_OPS_HPP
 
-#include <boost/redis/detail/adapt.hpp>
+#include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/type.hpp>
-#include <boost/redis/resp3/detail/parser.hpp>
-#include <boost/redis/resp3/read.hpp>
-#include <boost/redis/resp3/write.hpp>
+#include <boost/redis/read.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/assert.hpp>
 #include <boost/system.hpp>
@@ -96,7 +94,7 @@ struct exec_read_op {
             //-----------------------------------
 
             BOOST_ASIO_CORO_YIELD
-            resp3::async_read(
+            redis::async_read(
                conn->next_layer(),
                conn->make_dynamic_buffer(),
                   [i = index, adpt = adapter] (resp3::node<std::string_view> const& nd, system::error_code& ec) mutable { adpt(i, nd, ec); },
@@ -137,7 +135,7 @@ struct receive_op {
          AEDIS_CHECK_OP1(;);
 
          BOOST_ASIO_CORO_YIELD
-         resp3::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
+         redis::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
          if (ec || is_cancelled(self)) {
             conn->cancel(operation::run);
             conn->cancel(operation::receive);

@@ -31,6 +31,7 @@ auto operator!=(boost::redis::ignore_t, boost::redis::ignore_t) noexcept {return
 }
 
 namespace net = boost::asio;
+namespace redis = boost::redis;
 namespace resp3 = boost::redis::resp3;
 using boost::redis::request;
 using boost::redis::response;
@@ -40,8 +41,8 @@ using boost::redis::adapter::result;
 
 using test_stream = boost::beast::test::stream;
 using boost::redis::adapter::adapt2;
-using node_type = result<boost::redis::resp3::node<std::string>>;
-using vec_node_type = result<std::vector<boost::redis::resp3::node<std::string>>>;
+using node_type = result<resp3::node<std::string>>;
+using vec_node_type = result<std::vector<resp3::node<std::string>>>;
 using vec_type = result<std::vector<std::string>>;
 using op_vec_type = result<std::optional<std::vector<std::string>>>;
 
@@ -99,7 +100,7 @@ void test_sync(net::any_io_executor ex, expect<Result> e)
    ts.append(e.in);
    Result result;
    boost::system::error_code ec;
-   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(result), ec);
+   redis::read(ts, net::dynamic_buffer(rbuffer), adapt2(result), ec);
    if (e.ec) {
       BOOST_CHECK_EQUAL(ec, e.ec);
       return;
@@ -155,7 +156,7 @@ public:
          }
       };
 
-      resp3::async_read(
+      redis::async_read(
          ts_,
          net::dynamic_buffer(rbuffer_),
          adapt2(result_),
@@ -531,7 +532,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_simple_error)
 
    test_stream ts {ioc};
    ts.append(S10a);
-   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
+   redis::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
    BOOST_CHECK_EQUAL(ec, boost::redis::error::resp3_simple_error);
    BOOST_TEST(!rbuffer.empty());
 }
@@ -544,7 +545,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_blob_error)
 
    test_stream ts {ioc};
    ts.append(S12a);
-   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
+   redis::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
    BOOST_CHECK_EQUAL(ec, boost::redis::error::resp3_blob_error);
    BOOST_TEST(!rbuffer.empty());
 }
@@ -557,7 +558,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_no_error)
 
    test_stream ts {ioc};
    ts.append(S05b);
-   resp3::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
+   redis::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
    BOOST_TEST(!ec);
    BOOST_TEST(rbuffer.empty());
 }
@@ -653,7 +654,7 @@ BOOST_AUTO_TEST_CASE(type_convert)
 
 BOOST_AUTO_TEST_CASE(adapter)
 {
-   using boost::redis::detail::boost_redis_adapt;
+   using boost::redis::adapter::boost_redis_adapt;
    using resp3::type;
 
    boost::system::error_code ec;

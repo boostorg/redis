@@ -4,12 +4,12 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_RESP3_WRITE_HPP
-#define BOOST_REDIS_RESP3_WRITE_HPP
+#ifndef BOOST_REDIS_WRITE_HPP
+#define BOOST_REDIS_WRITE_HPP
 
 #include <boost/asio/write.hpp>
 
-namespace boost::redis::resp3 {
+namespace boost::redis {
 
 /** \brief Writes a request synchronously.
  *  \ingroup low-level-api
@@ -59,6 +59,6 @@ auto async_write(
    return asio::async_write(stream, asio::buffer(req.payload()), token);
 }
 
-} // boost::redis::resp3
+} // boost::redis
 
-#endif // BOOST_REDIS_RESP3_WRITE_HPP
+#endif // BOOST_REDIS_WRITE_HPP

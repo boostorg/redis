@@ -14,7 +14,7 @@
 #include <string_view>
 #include <cstdint>
 
-namespace boost::redis::resp3::detail {
+namespace boost::redis::resp3 {
 
 using int_type = std::uint64_t;
 
@@ -64,6 +64,6 @@ public:
       { return bulk_length_; }
 };
 
-} // boost::redis::detail::resp3
+} // boost::redis::resp3
 
 #endif // BOOST_REDIS_RESP3_PARSER_HPP
