@@ -27,16 +27,20 @@ using namespace net::experimental::awaitable_operators;
 using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::generic_response;
 using boost::redis::ignore;
+using boost::redis::ignore_t;
 
 auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
 
+   generic_response gresp;
    auto conn = std::make_shared<connection>(ex);
    co_await connect(conn, "127.0.0.1", "6379");
 
    conn->async_run([conn](auto ec) {
+      std::cout << "async_run: " << ec.message() << std::endl;
       BOOST_TEST(!ec);
    });
 
@@ -47,14 +51,15 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    request req0;
    req0.get_config().coalesce = false;
    req0.push("HELLO", 3);
-   std::ignore = co_await conn->async_exec(req0, ignore, net::use_awaitable);
+   co_await conn->async_exec(req0, gresp, net::use_awaitable);
 
    request req1;
    req1.get_config().coalesce = false;
    req1.push("BLPOP", "any", 3);
 
    // Should not be canceled.
-   conn->async_exec(req1, ignore, [](auto ec, auto){
+   conn->async_exec(req1, gresp, [](auto ec, auto){
+      std::cout << "async_exec (1): " << ec.message() << std::endl;
       BOOST_TEST(!ec);
    });
 
@@ -63,7 +68,8 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    req2.push("PING", "second");
 
    // Should be canceled.
-   conn->async_exec(req2, ignore, [](auto ec, auto){
+   conn->async_exec(req2, gresp, [](auto ec, auto){
+      std::cout << "async_exec (2): " << ec.message() << std::endl;
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
    });
 
@@ -79,7 +85,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 
    // Test whether the connection remains usable after a call to
    // cancel(exec).
-   co_await conn->async_exec(req3, ignore, net::redirect_error(net::use_awaitable, ec1));
+   co_await conn->async_exec(req3, gresp, net::redirect_error(net::use_awaitable, ec1));
 
    BOOST_TEST(!ec1);
 }

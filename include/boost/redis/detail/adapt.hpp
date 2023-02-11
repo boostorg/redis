@@ -25,26 +25,33 @@ namespace boost::redis::detail
 class ignore_adapter {
 public:
    void
-   operator()(
-      std::size_t, resp3::node<std::string_view> const&, system::error_code&) { }
+   operator()(std::size_t, resp3::node<std::string_view> const& nd, system::error_code& ec)
+   {
+      switch (nd.data_type) {
+         case resp3::type::simple_error: ec = redis::error::resp3_simple_error; break;
+         case resp3::type::blob_error: ec = redis::error::resp3_blob_error; break;
+         case resp3::type::null: ec = redis::error::resp3_null; break;
+         default:;
+      }
+   }
 
    [[nodiscard]]
    auto get_supported_response_size() const noexcept
       { return static_cast<std::size_t>(-1);}
 };
 
-template <class Tuple>
+template <class Response>
 class static_adapter {
 private:
-   static constexpr auto size = std::tuple_size<Tuple>::value;
-   using adapter_tuple = mp11::mp_transform<adapter::adapter_t, Tuple>;
+   static constexpr auto size = std::tuple_size<Response>::value;
+   using adapter_tuple = mp11::mp_transform<adapter::adapter_t, Response>;
    using variant_type = mp11::mp_rename<adapter_tuple, std::variant>;
    using adapters_array_type = std::array<variant_type, size>;
 
    adapters_array_type adapters_;
 
 public:
-   explicit static_adapter(Tuple& r)
+   explicit static_adapter(Response& r)
    {
       adapter::detail::assigner<size - 1>::assign(adapters_, r);
    }
@@ -97,16 +104,25 @@ struct response_traits;
 
 template <>
 struct response_traits<ignore_t> {
-   using response_type = void;
+   using response_type = ignore_t;
    using adapter_type = detail::ignore_adapter;
 
-   static auto adapt(ignore_t&) noexcept
+   static auto adapt(response_type&) noexcept
+      { return detail::ignore_adapter{}; }
+};
+
+template <>
+struct response_traits<adapter::result<ignore_t>> {
+   using response_type = adapter::result<ignore_t>;
+   using adapter_type = detail::ignore_adapter;
+
+   static auto adapt(response_type&) noexcept
       { return detail::ignore_adapter{}; }
 };
 
 template <class String, class Allocator>
-struct response_traits<std::vector<resp3::node<String>, Allocator>> {
-   using response_type = std::vector<resp3::node<String>, Allocator>;
+struct response_traits<adapter::result<std::vector<resp3::node<String>, Allocator>>> {
+   using response_type = adapter::result<std::vector<resp3::node<String>, Allocator>>;
    using adapter_type = vector_adapter<response_type>;
 
    static auto adapt(response_type& v) noexcept
@@ -159,7 +175,7 @@ auto make_adapter_wrapper(Adapter adapter)
 template<class T>
 auto boost_redis_adapt(T& t) noexcept
 {
-   return detail::response_traits<T>::adapt(t);
+   return response_traits<T>::adapt(t);
 }
 
 } // boost::redis::detail

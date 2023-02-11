@@ -16,6 +16,7 @@ using namespace net::experimental::awaitable_operators;
 using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore;
 
 // Push consumer
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -36,12 +37,11 @@ auto periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
     // that result in the connection being closed.
     request req;
     req.push("GET", "mykey");
-    response<std::string> response;
-    auto [ec, u] = co_await conn->async_exec(req, response, net::as_tuple(net::use_awaitable));
+    auto [ec, u] = co_await conn->async_exec(req, ignore, net::as_tuple(net::use_awaitable));
     if (ec) {
       std::cout << "Error: " << ec << std::endl;
     } else {
-      std::cout << "Response is: " << std::get<0>(response) << std::endl;
+      std::cout << "no error: " << std::endl;
     }
   }
 

@@ -28,6 +28,7 @@ using namespace net::experimental::awaitable_operators;
 using namespace boost::json;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore_t;
 
 struct user {
    std::string name;
@@ -98,14 +99,14 @@ net::awaitable<void> co_main(std::string host, std::string port)
    req.push("SMEMBERS", "sadd-key"); // Retrieves
    req.push("QUIT");
 
-   response<redis::ignore_t, int, std::set<user>, std::string> resp;
+   response<ignore_t, int, std::set<user>, std::string> resp;
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
    co_await connect(conn, host, port);
    co_await (conn->async_run() || conn->async_exec(req, resp));
 
-   for (auto const& e: std::get<2>(resp))
+   for (auto const& e: std::get<2>(resp).value())
       std::cout << e << "\n";
 }
 

@@ -27,8 +27,8 @@ auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) ->
       auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
       req.push("PING", buffer);
       co_await conn->async_exec(req, resp);
-      co_await net::async_write(socket, net::buffer(std::get<0>(resp)));
-      std::get<0>(resp).clear();
+      co_await net::async_write(socket, net::buffer(std::get<0>(resp).value()));
+      std::get<0>(resp).value().clear();
       req.clear();
       buffer.erase(0, n);
    }

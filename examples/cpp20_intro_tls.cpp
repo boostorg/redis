@@ -23,6 +23,7 @@ using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>
 using connection = net::use_awaitable_t<>::as_default_on_t<redis::ssl::connection>;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore_t;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {
@@ -37,7 +38,7 @@ net::awaitable<void> co_main(std::string, std::string)
    req.push("PING");
    req.push("QUIT");
 
-   response<redis::ignore_t, std::string, redis::ignore_t> resp;
+   response<ignore_t, std::string, ignore_t> resp;
 
    // Resolve
    auto ex = co_await net::this_coro::executor;
@@ -53,7 +54,7 @@ net::awaitable<void> co_main(std::string, std::string)
    co_await conn.next_layer().async_handshake(net::ssl::stream_base::client);
    co_await (conn.async_run() || conn.async_exec(req, resp));
 
-   std::cout << "Response: " << std::get<1>(resp) << std::endl;
+   std::cout << "Response: " << std::get<1>(resp).value() << std::endl;
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

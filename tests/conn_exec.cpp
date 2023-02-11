@@ -25,6 +25,7 @@ using connection = boost::redis::connection;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
+using boost::redis::ignore_t;
 
 BOOST_AUTO_TEST_CASE(hello_priority)
 {
@@ -91,7 +92,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    req.push("QUIT");
 
    // Wrong data type.
-   response<boost::redis::ignore_t, int> resp;
+   response<ignore_t, int> resp;
    net::io_context ioc;
 
    auto const endpoints = resolve();

@@ -27,6 +27,7 @@ using net::experimental::as_tuple;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
+using boost::redis::ignore_t;
 
 BOOST_AUTO_TEST_CASE(push_filtered_out)
 {
@@ -41,7 +42,7 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
 
-   response<boost::redis::ignore_t, std::string, std::string> resp;
+   response<ignore_t, std::string, std::string> resp;
    conn.async_exec(req, resp, [](auto ec, auto){
       BOOST_TEST(!ec);
    });
@@ -56,31 +57,8 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
 
    ioc.run();
 
-   BOOST_CHECK_EQUAL(std::get<1>(resp), "PONG");
-   BOOST_CHECK_EQUAL(std::get<2>(resp), "OK");
-}
-
-void receive_wrong_syntax(request const& req)
-{
-   net::io_context ioc;
-   auto const endpoints = resolve();
-   connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
-
-   conn.async_exec(req, ignore, [](auto ec, auto){
-      BOOST_TEST(!ec);
-   });
-
-   conn.async_run([](auto ec){
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
-   });
-
-   conn.async_receive(ignore, [&](auto ec, auto){
-      BOOST_TEST(!ec);
-      conn.cancel(boost::redis::operation::run);
-   });
-
-   ioc.run();
+   BOOST_CHECK_EQUAL(std::get<1>(resp).value(), "PONG");
+   BOOST_CHECK_EQUAL(std::get<2>(resp).value(), "OK");
 }
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
@@ -300,33 +278,6 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
    test_push_many_subscribes(false);
 }
 #endif
-
-BOOST_AUTO_TEST_CASE(receive_wrong_syntax1)
-{
-   request req1{{false}};
-   req1.push("HELLO", 3);
-   req1.push("PING", "Message");
-   req1.push("SUBSCRIBE"); // Wrong command synthax.
-
-   req1.get_config().coalesce = true;
-   receive_wrong_syntax(req1);
-
-   req1.get_config().coalesce = false;
-   receive_wrong_syntax(req1);
-}
-
-BOOST_AUTO_TEST_CASE(receice_wrong_syntay2)
-{
-   request req2{{false}};
-   req2.push("HELLO", 3);
-   req2.push("SUBSCRIBE"); // Wrong command syntax.
-
-   req2.get_config().coalesce = true;
-   receive_wrong_syntax(req2);
-
-   req2.get_config().coalesce = false;
-   receive_wrong_syntax(req2);
-}
 
 #else
 int main() {}

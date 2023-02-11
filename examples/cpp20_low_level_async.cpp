@@ -17,6 +17,7 @@ using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>
 using boost::redis::adapter::adapt2;
 using net::ip::tcp;
 using boost::redis::request;
+using boost::redis::adapter::result;
 
 auto co_main(std::string host, std::string port) -> net::awaitable<void>
 {
@@ -35,7 +36,8 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    co_await resp3::async_write(socket, req);
 
    // Responses
-   std::string buffer, resp;
+   std::string buffer;
+   result<std::string> resp;
 
    // Reads the responses to all commands in the request.
    auto dbuffer = net::dynamic_buffer(buffer);
@@ -43,7 +45,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    co_await resp3::async_read(socket, dbuffer, adapt2(resp));
    co_await resp3::async_read(socket, dbuffer);
 
-   std::cout << "Ping: " << resp << std::endl;
+   std::cout << "Ping: " << resp.value() << std::endl;
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

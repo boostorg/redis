@@ -29,8 +29,8 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    for (generic_response resp;;) {
       co_await conn->async_receive(resp);
-      std::cout << resp.at(1).value << " " << resp.at(2).value << " " << resp.at(3).value << std::endl;
-      resp.clear();
+      std::cout << resp.value().at(1).value << " " << resp.value().at(2).value << " " << resp.value().at(3).value << std::endl;
+      resp.value().clear();
    }
 }
 

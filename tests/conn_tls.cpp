@@ -21,6 +21,7 @@ namespace net = boost::asio;
 using connection = boost::redis::ssl::connection;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore_t;
 
 struct endpoint {
    std::string host;
@@ -43,8 +44,7 @@ BOOST_AUTO_TEST_CASE(ping)
    req.push("PING", in);
    req.push("QUIT");
 
-   std::string out;
-   auto resp = std::tie(std::ignore, out, std::ignore);
+   response<ignore_t, std::string, ignore_t> resp;
 
    auto const endpoints = resolve("db.occase.de", "6380");
 
@@ -67,6 +67,6 @@ BOOST_AUTO_TEST_CASE(ping)
 
    ioc.run();
 
-   BOOST_CHECK_EQUAL(in, out);
+   BOOST_CHECK_EQUAL(in, std::get<1>(resp).value());
 }
 
