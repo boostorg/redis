@@ -7,11 +7,12 @@
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/redis.hpp>
+#include <boost/redis/write.hpp>
 #include <string>
 #include <iostream>
 
 namespace net = boost::asio;
-namespace resp3 = boost::redis::resp3;
+namespace redis = boost::redis;
 using resolver = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::resolver>;
 using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
 using boost::redis::adapter::adapt2;
@@ -33,7 +34,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    req.push("HELLO", 3);
    req.push("PING", "Hello world");
    req.push("QUIT");
-   co_await resp3::async_write(socket, req);
+   co_await redis::async_write(socket, req);
 
    // Responses
    std::string buffer;
@@ -41,9 +42,9 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
 
    // Reads the responses to all commands in the request.
    auto dbuffer = net::dynamic_buffer(buffer);
-   co_await resp3::async_read(socket, dbuffer);
-   co_await resp3::async_read(socket, dbuffer, adapt2(resp));
-   co_await resp3::async_read(socket, dbuffer);
+   co_await redis::async_read(socket, dbuffer);
+   co_await redis::async_read(socket, dbuffer, adapt2(resp));
+   co_await redis::async_read(socket, dbuffer);
 
    std::cout << "Ping: " << resp.value() << std::endl;
 }

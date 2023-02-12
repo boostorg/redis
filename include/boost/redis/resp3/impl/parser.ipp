@@ -4,13 +4,13 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/resp3/detail/parser.hpp>
+#include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/assert.hpp>
 
 #include <charconv>
 
-namespace boost::redis::resp3::detail {
+namespace boost::redis::resp3 {
 
 void to_int(int_type& i, std::string_view sv, system::error_code& ec)
 {
@@ -152,4 +152,4 @@ parser::consume(
    
    return std::make_pair(ret, n);
 }
-} // boost::redis::resp3::detail
+} // boost::redis::resp3

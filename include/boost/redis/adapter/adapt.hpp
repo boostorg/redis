@@ -7,13 +7,38 @@
 #ifndef BOOST_REDIS_ADAPTER_ADAPT_HPP
 #define BOOST_REDIS_ADAPTER_ADAPT_HPP
 
+#include <boost/redis/resp3/node.hpp>
+#include <boost/redis/response.hpp>
+#include <boost/redis/adapter/detail/result_traits.hpp>
 #include <boost/redis/adapter/detail/response_traits.hpp>
+#include <boost/mp11.hpp>
+#include <boost/system.hpp>
+
+#include <tuple>
+#include <limits>
+#include <string_view>
+#include <variant>
 
 namespace boost::redis::adapter
 {
 
-template <class T>
-using adapter_t = typename detail::adapter_t<T>;
+/** @brief Adapts a type to be used as a response.
+ *
+ *  The type T must be either
+ *
+ *  1. a response<T1, T2, T3, ...> or
+ *  2. std::vector<node<String>>
+ *
+ *  The types T1, T2, etc can be any STL container, any integer type
+ *  and `std::string`.
+ *
+ *  @param t Tuple containing the responses.
+ */
+template<class T>
+auto boost_redis_adapt(T& t) noexcept
+{
+   return detail::response_traits<T>::adapt(t);
+}
 
 /** @brief Adapts user data to read operations.
  *  @ingroup low-level-api
@@ -48,7 +73,7 @@ using adapter_t = typename detail::adapter_t<T>;
  */
 template<class T>
 auto adapt2(T& t = redis::ignore) noexcept
-   { return detail::response_traits<T>::adapt(t); }
+   { return detail::result_traits<T>::adapt(t); }
 
 } // boost::redis::adapter
 

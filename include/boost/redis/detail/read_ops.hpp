@@ -4,10 +4,10 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_RESP3_READ_OPS_HPP
-#define BOOST_REDIS_RESP3_READ_OPS_HPP
+#ifndef BOOST_REDIS_READ_OPS_HPP
+#define BOOST_REDIS_READ_OPS_HPP
 
-#include <boost/redis/resp3/detail/parser.hpp>
+#include <boost/redis/resp3/parser.hpp>
 #include <boost/assert.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
@@ -22,7 +22,6 @@ template <class T>
 auto is_cancelled(T const& self)
 {
    return self.get_cancellation_state().cancelled() != asio::cancellation_type_t::none;
-}
 }
 
 #define AEDIS_CHECK_OP0(X)\
@@ -39,8 +38,6 @@ auto is_cancelled(T const& self)
       return;\
    }
 
-namespace boost::redis::resp3::detail {
-
 template <
    class AsyncReadStream,
    class DynamicBuffer,
@@ -49,7 +46,7 @@ class parse_op {
 private:
    AsyncReadStream& stream_;
    DynamicBuffer buf_;
-   parser parser_;
+   resp3::parser parser_;
    ResponseAdapter adapter_;
    std::size_t consumed_ = 0;
    std::size_t buffer_size_ = 0;
@@ -117,6 +114,6 @@ public:
    }
 };
 
-} // boost::redis::resp3::detail
+} // boost::redis::detail
 
-#endif // BOOST_REDIS_RESP3_READ_OPS_HPP
+#endif // BOOST_REDIS_READ_OPS_HPP
