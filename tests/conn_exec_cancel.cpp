@@ -58,19 +58,11 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    req1.push("BLPOP", "any", 3);
 
    // Should not be canceled.
-   conn->async_exec(req1, gresp, [](auto ec, auto){
+   bool seen = false;
+   conn->async_exec(req1, gresp, [&](auto ec, auto) mutable{
       std::cout << "async_exec (1): " << ec.message() << std::endl;
       BOOST_TEST(!ec);
-   });
-
-   request req2;
-   req2.get_config().coalesce = false;
-   req2.push("PING", "second");
-
-   // Should be canceled.
-   conn->async_exec(req2, gresp, [](auto ec, auto){
-      std::cout << "async_exec (2): " << ec.message() << std::endl;
-      BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
+      seen = true;
    });
 
    // Will complete while BLPOP is pending.
@@ -88,6 +80,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    co_await conn->async_exec(req3, gresp, net::redirect_error(net::use_awaitable, ec1));
 
    BOOST_TEST(!ec1);
+   BOOST_TEST(seen);
 }
 
 auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>

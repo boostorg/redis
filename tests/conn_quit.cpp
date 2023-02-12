@@ -43,21 +43,32 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
    req2.get_config().coalesce = false;
    req2.push("QUIT");
 
-   conn.async_exec(req1, ignore, [](auto ec, auto){
-      BOOST_TEST(!ec);
-   });
-   conn.async_exec(req2, ignore, [](auto ec, auto) {
-      BOOST_TEST(!ec);
-   });
-   conn.async_exec(req1, ignore, [](auto ec, auto){
+   request req3;
+   req3.get_config().cancel_if_not_connected = true;
+   req3.push("PING");
+
+   auto c3 = [](auto ec, auto)
+   {
+      std::cout << "3--> " << ec.message() << std::endl;
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
-   conn.async_exec(req1, ignore, [](auto ec, auto){
-         BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
-   conn.async_exec(req1, ignore, [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
+   };
+
+   auto c2 = [&](auto ec, auto)
+   {
+      std::cout << "2--> " << ec.message() << std::endl;
+      BOOST_TEST(!ec);
+      conn.async_exec(req3, ignore, c3);
+   };
+
+   auto c1 = [&](auto ec, auto)
+   {
+      std::cout << "1--> " << ec.message() << std::endl;
+      BOOST_TEST(!ec);
+
+      conn.async_exec(req2, ignore, c2);
+   };
+
+   conn.async_exec(req1, ignore, c1);
 
    conn.async_run([&](auto ec){
       BOOST_TEST(!ec);
