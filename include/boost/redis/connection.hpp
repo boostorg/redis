@@ -139,9 +139,13 @@ public:
 
    /** @brief Receives server side pushes asynchronously.
     *
-    *  Users that expect server pushes should call this function in a
-    *  loop. If a push arrives and there is no reader, the connection
-    *  will hang.
+    *  When pushes arrive and there is no async_receive operation in
+    *  progress, pushed data, requests, and responses will be paused
+    *  until async_receive is called again.  Apps will usually want to
+    *  call `async_receive` in a loop. 
+    *
+    *  To cancel an ongoing receive operation apps should call
+    *  `connection::cancel(operation::receive)`.
     *
     *  @param response The response object.
     *  @param token The Asio completion token.

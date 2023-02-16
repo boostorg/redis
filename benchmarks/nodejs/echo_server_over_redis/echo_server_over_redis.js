@@ -1,7 +1,7 @@
 import { createClient } from 'redis';
 import * as net from 'net';
 
-const client = createClient({url: 'redis://db.occase.de:6379' });
+const client = createClient({url: 'redis://aedis.occase.de:63799' });
 client.on('error', (err) => console.log('Redis Client Error', err));
 await client.connect();
 
