@@ -235,13 +235,11 @@ EXEC_OP_WAIT:
          BOOST_ASSERT(!conn->reqs_.empty());
          conn->reqs_.pop_front();
 
-         if (!conn->is_waiting_response()) {
-            conn->read_timer_.cancel_one();
-            if (!conn->reqs_.empty())
-               conn->writer_timer_.cancel_one();
-         } else {
+         if (conn->is_waiting_response()) {
             BOOST_ASSERT(!conn->reqs_.empty());
             conn->reqs_.front()->proceed();
+         } else {
+            conn->read_timer_.cancel_one();
          }
 
          self.complete({}, read_size);
@@ -301,8 +299,7 @@ struct writer_op {
 
       BOOST_ASIO_CORO_REENTER (coro) for (;;)
       {
-         while (!conn->reqs_.empty() && !conn->is_waiting_response() && conn->write_buffer_.empty()) {
-            conn->coalesce_requests();
+         while (conn->coalesce_requests()) {
             BOOST_ASIO_CORO_YIELD
             asio::async_write(conn->next_layer(), asio::buffer(conn->write_buffer_), std::move(self));
             AEDIS_CHECK_OP0(conn->cancel(operation::run););

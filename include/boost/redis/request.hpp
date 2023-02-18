@@ -55,12 +55,6 @@ public:
        */
       bool cancel_on_connection_lost = true;
 
-      /** \brief If `true` the request will be coalesced with other
-       * requests, see https://redis.io/topics/pipelining. Otherwise
-       * the request is sent individually.
-       */
-      bool coalesce = true;
-
       /** \brief If `true` the request will complete with
        * boost::redis::error::not_connected if `async_exec` is called before
        * the connection with Redis was established.
@@ -88,7 +82,7 @@ public:
     *  \param cfg Configuration options.
     */
     explicit
-    request(config cfg = config{true, true, false, true, true})
+    request(config cfg = config{true, false, true, true})
     : cfg_{cfg} {}
 
     //// Returns the number of commands contained in this request.

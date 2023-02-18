@@ -6,108 +6,82 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/asio/experimental/awaitable_operators.hpp>
-#define BOOST_JSON_NO_LIB
-#define BOOST_CONTAINER_NO_LIB
-#include <boost/json.hpp>
 #include <boost/redis.hpp>
-#include <algorithm>
-#include <cstdint>
 #include <iostream>
 #include <set>
-#include <iterator>
 #include <string>
 #include "common/common.hpp"
+#include "common/serialization.hpp"
 
 // Include this in no more than one .cpp file.
 #include <boost/json/src.hpp>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-using namespace net::experimental::awaitable_operators;
-using namespace boost::json;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
+using boost::redis::operation;
 
 struct user {
    std::string name;
    std::string age;
    std::string country;
 
-   friend auto operator<(user const& a, user const& b)
-   {
-      return std::tie(a.name, a.age, a.country) < std::tie(b.name, b.age, b.country);
-   }
-
-   friend auto operator<<(std::ostream& os, user const& u) -> std::ostream&
-   {
-      os << "Name: " << u.name << "\n"
-         << "Age: " << u.age << "\n"
-         << "Country: " << u.country;
-
-      return os;
-   }
+   friend
+   auto operator<(user const& a, user const& b)
+      { return std::tie(a.name, a.age, a.country) < std::tie(b.name, b.age, b.country); }
 };
 
-// Boost.Json serialization.
-void tag_invoke(value_from_tag, value& jv, user const& u)
+BOOST_DESCRIBE_STRUCT(user, (), (name, age, country))
+
+auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
-   jv =
-   { {"name", u.name}
-   , {"age", u.age}
-   , {"country", u.country}
-   };
+   co_await connect(conn, host, port);
+   co_await conn->async_run();
 }
 
-template<class T>
-void extract(object const& obj, T& t, std::string_view key)
+auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   t = value_to<T>(obj.at(key));
+   request req;
+   req.push("HELLO", 3);
+
+   co_await conn->async_exec(req);
 }
 
-auto tag_invoke(value_to_tag<user>, value const& jv)
-{
-   user u;
-   object const& obj = jv.as_object();
-   extract(obj, u.name, "name");
-   extract(obj, u.age, "age");
-   extract(obj, u.country, "country");
-   return u;
-}
-
-// Serialization
-void boost_redis_to_bulk(std::string& to, user const& u)
-{
-   redis::resp3::boost_redis_to_bulk(to, serialize(value_from(u)));
-}
-
-void boost_redis_from_bulk(user& u, std::string_view sv, boost::system::error_code&)
-{
-   value jv = parse(sv);
-   u = value_to<user>(jv);
-}
-
-net::awaitable<void> co_main(std::string host, std::string port)
+auto sadd(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    std::set<user> users
       {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
 
    request req;
-   req.push("HELLO", 3);
    req.push_range("SADD", "sadd-key", users); // Sends
-   req.push("SMEMBERS", "sadd-key"); // Retrieves
-   req.push("QUIT");
 
-   response<ignore_t, int, std::set<user>, std::string> resp;
+   co_await conn->async_exec(req);
+}
 
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+auto smembers(std::shared_ptr<connection> conn) -> net::awaitable<void>
+{
+   request req;
+   req.push("SMEMBERS", "sadd-key");
 
-   co_await connect(conn, host, port);
-   co_await (conn->async_run() || conn->async_exec(req, resp));
+   response<std::set<user>> resp;
 
-   for (auto const& e: std::get<2>(resp).value())
+   co_await conn->async_exec(req, resp);
+
+   for (auto const& e: std::get<0>(resp).value())
       std::cout << e << "\n";
+}
+
+net::awaitable<void> co_main(std::string host, std::string port)
+{
+   auto ex = co_await net::this_coro::executor;
+   auto conn = std::make_shared<connection>(ex);
+   net::co_spawn(ex, run(conn, host, port), net::detached);
+   co_await hello(conn);
+   co_await sadd(conn);
+   co_await smembers(conn);
+   conn->cancel(operation::run);
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

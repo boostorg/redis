@@ -24,52 +24,10 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 
-// Test if quit causes async_run to exit.
-BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
+BOOST_AUTO_TEST_CASE(test_quit1)
 {
-   net::io_context ioc;
-
-   auto const endpoints = resolve();
-   connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
-
-   request req1;
-   req1.get_config().cancel_on_connection_lost = false;
-   req1.get_config().coalesce = false;
-   req1.push("PING");
-
-   request req2;
-   req2.get_config().cancel_on_connection_lost = false;
-   req2.get_config().coalesce = false;
-   req2.push("QUIT");
-
-   conn.async_exec(req1, ignore, [](auto ec, auto){
-      BOOST_TEST(!ec);
-   });
-   conn.async_exec(req2, ignore, [](auto ec, auto) {
-      BOOST_TEST(!ec);
-   });
-   conn.async_exec(req1, ignore, [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
-   conn.async_exec(req1, ignore, [](auto ec, auto){
-         BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
-   conn.async_exec(req1, ignore, [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
-
-   conn.async_run([&](auto ec){
-      BOOST_TEST(!ec);
-      conn.cancel(operation::exec);
-   });
-
-   ioc.run();
-}
-
-void test_quit2(bool coalesce)
-{
-   request req{{false, coalesce}};
+   request req;
+   req.get_config().cancel_on_connection_lost = false;
    req.push("HELLO", 3);
    req.push("QUIT");
 
@@ -77,7 +35,6 @@ void test_quit2(bool coalesce)
    auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
-
 
    conn.async_exec(req, ignore, [](auto ec, auto) {
       BOOST_TEST(!ec);
@@ -90,8 +47,56 @@ void test_quit2(bool coalesce)
    ioc.run();
 }
 
-BOOST_AUTO_TEST_CASE(test_quit)
+// Test if quit causes async_run to exit.
+BOOST_AUTO_TEST_CASE(test_quit2)
 {
-   test_quit2(true);
-   test_quit2(false);
+   net::io_context ioc;
+
+   auto const endpoints = resolve();
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
+
+   request req1;
+   req1.get_config().cancel_on_connection_lost = false;
+   req1.push("PING");
+
+   request req2;
+   req2.get_config().cancel_on_connection_lost = false;
+   req2.push("QUIT");
+
+   request req3;
+   // Should cause the request to fail since this request will be sent
+   // after quit.
+   req3.get_config().cancel_if_not_connected = true;
+   req3.push("PING");
+
+   auto c3 = [](auto ec, auto)
+   {
+      std::cout << "3--> " << ec.message() << std::endl;
+      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
+   };
+
+   auto c2 = [&](auto ec, auto)
+   {
+      std::cout << "2--> " << ec.message() << std::endl;
+      BOOST_TEST(!ec);
+      conn.async_exec(req3, ignore, c3);
+   };
+
+   auto c1 = [&](auto ec, auto)
+   {
+      std::cout << "1--> " << ec.message() << std::endl;
+      BOOST_TEST(!ec);
+
+      conn.async_exec(req2, ignore, c2);
+   };
+
+   conn.async_exec(req1, ignore, c1);
+
+   conn.async_run([&](auto ec){
+      BOOST_TEST(!ec);
+   });
+
+   ioc.run();
 }
+

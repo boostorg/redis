@@ -129,15 +129,20 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    // reconnection is possible after an error.
 }
 
-void test_push_is_received1(bool coalesce)
+net::awaitable<void> push_consumer3(connection& conn)
+{
+   for (;;)
+      co_await conn.async_receive(ignore, net::use_awaitable);
+}
+
+BOOST_AUTO_TEST_CASE(push_received1)
 {
    net::io_context ioc;
    auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
-
-   request req{{false, coalesce}};
+   request req;
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "channel");
    req.push("QUIT");
@@ -162,16 +167,16 @@ void test_push_is_received1(bool coalesce)
    BOOST_TEST(push_received);
 }
 
-void test_push_is_received2(bool coalesce)
+BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
 {
-   request req1{{false, coalesce}};
+   request req1;
    req1.push("HELLO", 3);
    req1.push("PING", "Message1");
 
-   request req2{{false, coalesce}};
+   request req2;
    req2.push("SUBSCRIBE", "channel");
 
-   request req3{{false, coalesce}};
+   request req3;
    req3.push("PING", "Message2");
    req3.push("QUIT");
 
@@ -181,15 +186,24 @@ void test_push_is_received2(bool coalesce)
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
-
-   auto handler =[](auto ec, auto...)
+   auto c3 =[](auto ec, auto...)
    {
       BOOST_TEST(!ec);
    };
 
-   conn.async_exec(req1, ignore, handler);
-   conn.async_exec(req2, ignore, handler);
-   conn.async_exec(req3, ignore, handler);
+   auto c2 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req3, ignore, c3);
+   };
+
+   auto c1 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req2, ignore, c2);
+   };
+
+   conn.async_exec(req1, ignore, c1);
 
    conn.async_run([&](auto ec) {
       BOOST_TEST(!ec);
@@ -207,49 +221,90 @@ void test_push_is_received2(bool coalesce)
    BOOST_TEST(push_received);
 }
 
-net::awaitable<void> push_consumer3(connection& conn)
+BOOST_AUTO_TEST_CASE(many_subscribers)
 {
-   for (;;)
-      co_await conn.async_receive(ignore, net::use_awaitable);
-}
-
-// Test many subscribe requests.
-void test_push_many_subscribes(bool coalesce)
-{
-   request req0{{false, coalesce}};
+   request req0;
+   req0.get_config().cancel_on_connection_lost = false;
    req0.push("HELLO", 3);
 
-   request req1{{false, coalesce}};
+   request req1;
+   req1.get_config().cancel_on_connection_lost = false;
    req1.push("PING", "Message1");
 
-   request req2{{false, coalesce}};
+   request req2;
+   req2.get_config().cancel_on_connection_lost = false;
    req2.push("SUBSCRIBE", "channel");
 
-   request req3{{false, coalesce}};
+   request req3;
+   req3.get_config().cancel_on_connection_lost = false;
    req3.push("QUIT");
-
-   auto handler =[](auto ec, auto...)
-   {
-      BOOST_TEST(!ec);
-   };
 
    net::io_context ioc;
    auto const endpoints = resolve();
    connection conn{ioc};
    net::connect(conn.next_layer(), endpoints);
 
-   conn.async_exec(req0, ignore, handler);
-   conn.async_exec(req1, ignore, handler);
-   conn.async_exec(req2, ignore, handler);
-   conn.async_exec(req2, ignore, handler);
-   conn.async_exec(req1, ignore, handler);
-   conn.async_exec(req2, ignore, handler);
-   conn.async_exec(req1, ignore, handler);
-   conn.async_exec(req2, ignore, handler);
-   conn.async_exec(req2, ignore, handler);
-   conn.async_exec(req1, ignore, handler);
-   conn.async_exec(req2, ignore, handler);
-   conn.async_exec(req3, ignore, handler);
+   auto c11 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+   };
+   auto c10 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req3, ignore, c11);
+   };
+   auto c9 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req2, ignore, c10);
+   };
+   auto c8 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req1, ignore,  c9);
+   };
+   auto c7 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req2, ignore,  c8);
+   };
+   auto c6 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req2, ignore,  c7);
+   };
+   auto c5 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req1, ignore,  c6);
+   };
+   auto c4 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req2, ignore,  c5);
+   };
+   auto c3 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req1, ignore,  c4);
+   };
+   auto c2 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req2, ignore,  c3);
+   };
+   auto c1 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req2, ignore,  c2);
+   };
+   auto c0 =[&](auto ec, auto...)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req1, ignore,  c1);
+   };
+
+   conn.async_exec(req0, ignore,  c0);
 
    conn.async_run([&](auto ec) {
       BOOST_TEST(!ec);
@@ -258,24 +313,6 @@ void test_push_many_subscribes(bool coalesce)
 
    net::co_spawn(ioc.get_executor(), push_consumer3(conn), net::detached);
    ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(push_received1)
-{
-   test_push_is_received1(true);
-   test_push_is_received1(false);
-}
-
-BOOST_AUTO_TEST_CASE(push_received2)
-{
-   test_push_is_received2(true);
-   test_push_is_received2(false);
-}
-
-BOOST_AUTO_TEST_CASE(many_subscribers)
-{
-   test_push_many_subscribes(true);
-   test_push_many_subscribes(false);
 }
 #endif
 

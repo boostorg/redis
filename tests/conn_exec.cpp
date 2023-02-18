@@ -30,18 +30,15 @@ using boost::redis::ignore_t;
 BOOST_AUTO_TEST_CASE(hello_priority)
 {
    request req1;
-   req1.get_config().coalesce = false;
    req1.push("PING", "req1");
 
    request req2;
-   req2.get_config().coalesce = false;
    req2.get_config().hello_with_priority = false;
    req2.push("HELLO", 3);
    req2.push("PING", "req2");
    req2.push("QUIT");
 
    request req3;
-   req3.get_config().coalesce = false;
    req3.get_config().hello_with_priority = true;
    req3.push("HELLO", 3);
    req3.push("PING", "req3");
