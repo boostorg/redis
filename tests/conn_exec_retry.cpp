@@ -19,6 +19,7 @@
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
 using connection = boost::redis::connection;
+using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
@@ -26,17 +27,14 @@ using boost::redis::ignore;
 BOOST_AUTO_TEST_CASE(request_retry_false)
 {
    request req0;
-   req0.get_config().coalesce = false;
    req0.get_config().cancel_on_connection_lost = true;
    req0.push("HELLO", 3);
 
    request req1;
-   req1.get_config().coalesce = true;
    req1.get_config().cancel_on_connection_lost = true;
    req1.push("BLPOP", "any", 0);
 
    request req2;
-   req2.get_config().coalesce = true;
    req2.get_config().cancel_on_connection_lost = false;
    req2.get_config().cancel_if_unresponded = true;
    req2.push("PING");
@@ -50,25 +48,29 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
       // Cancels the request before receiving the response. This
       // should cause the third request to complete with error
       // although it has cancel_on_connection_lost = false. The reason
-      // being is has already been written so
+      // being it has already been written so
       // cancel_on_connection_lost does not apply.
-      conn.cancel(boost::redis::operation::run);
+      conn.cancel(operation::run);
    });
 
    auto const endpoints = resolve();
    net::connect(conn.next_layer(), endpoints);
 
-   conn.async_exec(req0, ignore, [](auto ec, auto){
+   auto c2 = [&](auto ec, auto){
+      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
+   };
+
+   auto c1 = [&](auto ec, auto){
+      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
+   };
+
+   auto c0 = [&](auto ec, auto){
       BOOST_TEST(!ec);
-   });
+      conn.async_exec(req1, ignore, c1);
+      conn.async_exec(req2, ignore, c2);
+   };
 
-   conn.async_exec(req1, ignore, [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
-
-   conn.async_exec(req2, ignore, [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
+   conn.async_exec(req0, ignore, c0);
 
    conn.async_run([](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
@@ -80,23 +82,19 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
 BOOST_AUTO_TEST_CASE(request_retry_true)
 {
    request req0;
-   req0.get_config().coalesce = false;
    req0.get_config().cancel_on_connection_lost = true;
    req0.push("HELLO", 3);
 
    request req1;
-   req1.get_config().coalesce = true;
    req1.get_config().cancel_on_connection_lost = true;
    req1.push("BLPOP", "any", 0);
 
    request req2;
-   req2.get_config().coalesce = true;
    req2.get_config().cancel_on_connection_lost = false;
    req2.get_config().cancel_if_unresponded = false;
    req2.push("PING");
 
    request req3;
-   req3.get_config().coalesce = true;
    req3.get_config().cancel_on_connection_lost = true;
    req3.get_config().cancel_if_unresponded = true;
    req3.push("QUIT");
@@ -117,20 +115,26 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
    auto const endpoints = resolve();
    net::connect(conn.next_layer(), endpoints);
 
-   conn.async_exec(req0, ignore, [](auto ec, auto){
+   auto c3 = [&](auto ec, auto){
       BOOST_TEST(!ec);
-   });
+   };
 
-   conn.async_exec(req1, ignore, [](auto ec, auto){
+   auto c2 = [&](auto ec, auto){
+      BOOST_TEST(!ec);
+      conn.async_exec(req3, ignore, c3);
+   };
+
+   auto c1 = [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
+   };
 
-   conn.async_exec(req2, ignore, [&](auto ec, auto){
+   auto c0 = [&](auto ec, auto){
       BOOST_TEST(!ec);
-      conn.async_exec(req3, ignore, [&](auto ec, auto){
-         BOOST_TEST(!ec);
-      });
-   });
+      conn.async_exec(req1, ignore, c1);
+      conn.async_exec(req2, ignore, c2);
+   };
+
+   conn.async_exec(req0, ignore, c0);
 
    conn.async_run([&](auto ec){
       // The first cacellation.

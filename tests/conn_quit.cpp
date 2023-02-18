@@ -24,8 +24,31 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 
+BOOST_AUTO_TEST_CASE(test_quit1)
+{
+   request req;
+   req.get_config().cancel_on_connection_lost = false;
+   req.push("HELLO", 3);
+   req.push("QUIT");
+
+   net::io_context ioc;
+   auto const endpoints = resolve();
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
+
+   conn.async_exec(req, ignore, [](auto ec, auto) {
+      BOOST_TEST(!ec);
+   });
+
+   conn.async_run([](auto ec) {
+      BOOST_TEST(!ec);
+   });
+
+   ioc.run();
+}
+
 // Test if quit causes async_run to exit.
-BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
+BOOST_AUTO_TEST_CASE(test_quit2)
 {
    net::io_context ioc;
 
@@ -35,15 +58,15 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 
    request req1;
    req1.get_config().cancel_on_connection_lost = false;
-   req1.get_config().coalesce = false;
    req1.push("PING");
 
    request req2;
    req2.get_config().cancel_on_connection_lost = false;
-   req2.get_config().coalesce = false;
    req2.push("QUIT");
 
    request req3;
+   // Should cause the request to fail since this request will be sent
+   // after quit.
    req3.get_config().cancel_if_not_connected = true;
    req3.push("PING");
 
@@ -72,37 +95,8 @@ BOOST_AUTO_TEST_CASE(test_quit_no_coalesce)
 
    conn.async_run([&](auto ec){
       BOOST_TEST(!ec);
-      conn.cancel(operation::exec);
    });
 
    ioc.run();
 }
 
-void test_quit2(bool coalesce)
-{
-   request req{{false, coalesce}};
-   req.push("HELLO", 3);
-   req.push("QUIT");
-
-   net::io_context ioc;
-   auto const endpoints = resolve();
-   connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
-
-
-   conn.async_exec(req, ignore, [](auto ec, auto) {
-      BOOST_TEST(!ec);
-   });
-
-   conn.async_run([](auto ec) {
-      BOOST_TEST(!ec);
-   });
-
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(test_quit)
-{
-   test_quit2(true);
-   test_quit2(false);
-}

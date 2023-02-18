@@ -261,10 +261,8 @@ co_await (conn.async_exec(...) || time.async_wait(...))
 co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
 ```
 
-* This works but is unnecessary. Unless the user has set
-  `boost::redis::request::config::coalesce` to `false`, and he
-  usually shouldn't, the connection will automatically merge the
-  individual requests into a single payload.
+* This works but is unnecessary, the connection will automatically
+  merge the individual requests into a single payload.
 
 <a name="requests"></a>
 ## Requests
@@ -874,11 +872,16 @@ Acknowledgement to people that helped shape Boost.Redis
   including possible resp3 errors without losing the error diagnostic
   part. Basicaly instead of accessing values as `std::get<N>(resp)`
   users have to type `std::get<N>(resp).value()`
+* Implements full-duplex communication. Before these changes the
+  connection would wait for a response to arrive before sending the
+  next. Now requests are continuously coalesced and written to the
+  socket. This made the request::coalesce unnecessary and threfore it
+  was removed.
 
 ### v1.4.0-1
 
 * Renames `retry_on_connection_lost` to `cancel_if_unresponded`.  (v1.4.1)
-* Removes dependency on Boost.Hana, boost::string_view, Boost.Variant2 and Boost.Spirit.
+* Removes dependency on Boost.Hana, `boost::string_view`, Boost.Variant2 and Boost.Spirit.
 * Fixes build and setup CI on windows.
 
 ### v1.3.0-1

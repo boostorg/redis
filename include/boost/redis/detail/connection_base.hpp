@@ -193,6 +193,7 @@ private:
       // There is small optimization possible here: traverse only the
       // partition of unwritten requests instead of them all.
       std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
+         BOOST_ASSERT_MSG(ptr != nullptr, "Expects non-null pointer.");
          if (ptr->is_staged())
             ptr->mark_written();
       });
@@ -364,35 +365,21 @@ private:
          >(detail::exec_read_op<Derived, Adapter>{&derived(), adapter, cmds}, token, writer_timer_);
    }
 
-   void stage_request(req_info& ri)
-   {
-      write_buffer_ += ri.get_request().payload();
-      ri.mark_staged();
-   }
-
    [[nodiscard]] bool coalesce_requests()
    {
       // Coalesces the requests and marks them staged. After a
       // successful write staged requests will be marked as written.
-      std::size_t pos = 0;
-      for (; pos < std::size(reqs_); ++pos)
-         if (reqs_.at(pos)->is_waiting_write())
-            break;
+      auto const point = std::partition_point(std::cbegin(reqs_), std::cend(reqs_), [](auto const& ri) {
+            return !ri->is_waiting_write();
+      });
 
-      if (pos == std::size(reqs_))
-         return false;
+      std::for_each(point, std::cend(reqs_), [this](auto const& ri) {
+         // Stage the request.
+         write_buffer_ += ri->get_request().payload();
+         ri->mark_staged();
+      });
 
-      stage_request(*reqs_.at(pos));
-
-      for (std::size_t i = pos + 1; i < std::size(reqs_); ++i) {
-         if (!reqs_.at(i - 1)->get_request().get_config().coalesce ||
-             !reqs_.at(i - 0)->get_request().get_config().coalesce) {
-            break;
-         }
-         stage_request(*reqs_.at(i));
-      }
-
-      return true;
+      return point != std::cend(reqs_);
    }
 
    bool is_waiting_response() const noexcept

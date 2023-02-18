@@ -49,12 +49,10 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 
    // See NOTE1.
    request req0;
-   req0.get_config().coalesce = false;
    req0.push("HELLO", 3);
    co_await conn->async_exec(req0, gresp, net::use_awaitable);
 
    request req1;
-   req1.get_config().coalesce = false;
    req1.push("BLPOP", "any", 3);
 
    // Should not be canceled.
@@ -97,67 +95,25 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
 
    // See NOTE1.
    request req0;
-   req0.get_config().coalesce = false;
    req0.push("HELLO", 3);
-   std::ignore = co_await conn->async_exec(req0, ignore, net::use_awaitable);
+   co_await conn->async_exec(req0, ignore, net::use_awaitable);
 
    // Will be cancelled after it has been written but before the
    // response arrives.
    request req1;
-   req1.get_config().coalesce = false;
    req1.push("BLPOP", "any", 3);
 
-   // Will be cancelled before it is written.
-   request req2;
-   req2.get_config().coalesce = false;
-   req2.get_config().cancel_on_connection_lost = true;
-   req2.push("PING");
-
    net::steady_timer st{ex};
    st.expires_after(std::chrono::seconds{1});
 
-   boost::system::error_code ec1, ec2, ec3;
+   boost::system::error_code ec1, ec2;
    co_await (
       conn->async_exec(req1, ignore, redir(ec1)) ||
-      conn->async_exec(req2, ignore, redir(ec2)) ||
-      st.async_wait(redir(ec3))
+      st.async_wait(redir(ec2))
    );
 
    BOOST_CHECK_EQUAL(ec1, net::error::basic_errors::operation_aborted);
-   BOOST_CHECK_EQUAL(ec2, net::error::basic_errors::operation_aborted);
-   BOOST_TEST(!ec3);
-}
-
-auto cancel_of_req_written_on_run_canceled() -> net::awaitable<void>
-{
-   request req0;
-   req0.get_config().coalesce = false;
-   req0.push("HELLO", 3);
-
-   request req1;
-   req1.get_config().cancel_on_connection_lost = true;
-   req1.get_config().cancel_if_unresponded = true;
-   req1.push("BLPOP", "any", 0);
-
-   auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
-   co_await connect(conn, "127.0.0.1", "6379");
-
-   net::steady_timer st{ex};
-   st.expires_after(std::chrono::seconds{1});
-
-   boost::system::error_code ec0, ec1, ec2, ec3;
-   co_await (
-      conn->async_exec(req0, ignore, redir(ec0)) &&
-      (conn->async_exec(req1, ignore, redir(ec1)) ||
-      conn->async_run(redir(ec2)) ||
-      st.async_wait(redir(ec3)))
-   );
-
-   BOOST_TEST(!ec0);
-   BOOST_CHECK_EQUAL(ec1, net::error::basic_errors::operation_aborted);
-   BOOST_CHECK_EQUAL(ec2, net::error::basic_errors::operation_aborted);
-   BOOST_TEST(!ec3);
+   BOOST_TEST(!ec2);
 }
 
 BOOST_AUTO_TEST_CASE(test_ignore_explicit_cancel_of_req_written)
@@ -172,7 +128,46 @@ BOOST_AUTO_TEST_CASE(test_ignore_implicit_cancel_of_req_written)
 
 BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
 {
-   run(cancel_of_req_written_on_run_canceled());
+   net::io_context ioc;
+   auto const endpoints = resolve();
+   connection conn{ioc};
+   net::connect(conn.next_layer(), endpoints);
+
+   request req0;
+   req0.push("HELLO", 3);
+
+   // Sends a request that will be blocked forever, so we can test
+   // canceling it while waiting for a response.
+   request req1;
+   req1.get_config().cancel_on_connection_lost = true;
+   req1.get_config().cancel_if_unresponded = true;
+   req1.push("BLPOP", "any", 0);
+
+   auto c1 = [&](auto ec, auto)
+   {
+      BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
+   };
+
+   auto c0 = [&](auto ec, auto)
+   {
+      BOOST_TEST(!ec);
+      conn.async_exec(req1, ignore, c1);
+   };
+
+   conn.async_exec(req0, ignore, c0);
+
+   conn.async_run([](auto ec){
+      BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
+   });
+
+   net::steady_timer st{ioc};
+   st.expires_after(std::chrono::seconds{1});
+   st.async_wait([&](auto ec){
+      BOOST_TEST(!ec);
+      conn.cancel(operation::run);
+   });
+
+   ioc.run();
 }
 
 #else
