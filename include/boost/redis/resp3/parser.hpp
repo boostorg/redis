@@ -20,7 +20,7 @@ using int_type = std::uint64_t;
 
 class parser {
 private:
-   using node_type = node<std::string_view>;
+   using node_type = basic_node<std::string_view>;
    static constexpr std::size_t max_embedded_depth = 5;
 
    // The current depth. Simple data types will have depth 0, whereas

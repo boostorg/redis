@@ -844,7 +844,11 @@ in no more than one source file in your applications. To build the
 examples and tests cmake is supported, for example
 
 ```cpp
-BOOST_ROOT=/opt/boost_1_80_0 cmake --preset dev
+# Linux
+$ BOOST_ROOT=/opt/boost_1_80_0 cmake --preset dev
+
+# Windows 
+$ cmake -G "Visual Studio 17 2022" -A x64 -B bin64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 ```
 ## Acknowledgement
 

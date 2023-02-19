@@ -18,6 +18,8 @@
 
 // TODO: Test whether HELLO won't be inserted passt commands that have
 // been already writen.
+// TODO: Test async_exec with empty request e.g. hgetall with an empty
+// container.
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;

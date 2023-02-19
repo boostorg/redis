@@ -61,7 +61,7 @@ enum class type
  *  \ingroup high-level-api
  *  \param t RESP3 type.
  */
-auto to_string(type t) -> char const*;
+auto to_string(type t) noexcept -> char const*;
 
 /** \brief Writes the type to the output stream.
  *  \ingroup high-level-api
@@ -72,17 +72,77 @@ auto operator<<(std::ostream& os, type t) -> std::ostream&;
 
 /* Checks whether the data type is an aggregate.
  */
-auto is_aggregate(type t) -> bool;
+constexpr auto is_aggregate(type t) noexcept -> bool
+{
+   switch (t) {
+      case type::array:
+      case type::push:
+      case type::set:
+      case type::map:
+      case type::attribute: return true;
+      default: return false;
+   }
+}
 
 // For map and attribute data types this function returns 2.  All
 // other types have value 1.
-auto element_multiplicity(type t) -> std::size_t;
+constexpr auto element_multiplicity(type t) noexcept -> std::size_t
+{
+   switch (t) {
+      case type::map:
+      case type::attribute: return 2ULL;
+      default: return 1ULL;
+   }
+}
 
 // Returns the wire code of a given type.
-auto to_code(type t) -> char;
+constexpr auto to_code(type t) noexcept -> char
+{
+   switch (t) {
+      case type::blob_error:           return '!';
+      case type::verbatim_string:      return '=';
+      case type::blob_string:          return '$';
+      case type::streamed_string_part: return ';';
+      case type::simple_error:         return '-';
+      case type::number:               return ':';
+      case type::doublean:             return ',';
+      case type::boolean:              return '#';
+      case type::big_number:           return '(';
+      case type::simple_string:        return '+';
+      case type::null:                 return '_';
+      case type::push:                 return '>';
+      case type::set:                  return '~';
+      case type::array:                return '*';
+      case type::attribute:            return '|';
+      case type::map:                  return '%';
+
+      default: BOOST_ASSERT(false); return ' ';
+   }
+}
 
 // Converts a wire-format RESP3 type (char) to a resp3 type.
-auto to_type(char c) -> type;
+constexpr auto to_type(char c) noexcept -> type
+{
+   switch (c) {
+      case '!': return type::blob_error;
+      case '=': return type::verbatim_string;
+      case '$': return type::blob_string;
+      case ';': return type::streamed_string_part;
+      case '-': return type::simple_error;
+      case ':': return type::number;
+      case ',': return type::doublean;
+      case '#': return type::boolean;
+      case '(': return type::big_number;
+      case '+': return type::simple_string;
+      case '_': return type::null;
+      case '>': return type::push;
+      case '~': return type::set;
+      case '*': return type::array;
+      case '|': return type::attribute;
+      case '%': return type::map;
+      default: return type::invalid;
+   }
+}
 
 } // boost::redis::resp3
 

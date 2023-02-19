@@ -75,7 +75,7 @@ private:
 
 public:
    explicit general_aggregate(Result* c = nullptr): result_(c) {}
-   void operator()(resp3::node<std::string_view> const& nd, system::error_code&)
+   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code&)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
       switch (nd.data_type) {
@@ -97,7 +97,7 @@ private:
 public:
    explicit general_simple(Node* t = nullptr) : result_(t) {}
 
-   void operator()(resp3::node<std::string_view> const& nd, system::error_code&)
+   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code&)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
       switch (nd.data_type) {
@@ -122,7 +122,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<std::string_view> const& n,
+      resp3::basic_node<std::string_view> const& n,
       system::error_code& ec)
    {
       if (is_aggregate(n.data_type)) {
@@ -146,7 +146,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<std::string_view> const& nd,
+      resp3::basic_node<std::string_view> const& nd,
       system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
@@ -181,7 +181,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<std::string_view> const& nd,
+      resp3::basic_node<std::string_view> const& nd,
       system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
@@ -219,7 +219,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<std::string_view> const& nd,
+      resp3::basic_node<std::string_view> const& nd,
       system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
@@ -243,7 +243,7 @@ public:
    void
    operator()(
       Result& result,
-      resp3::node<std::string_view> const& nd,
+      resp3::basic_node<std::string_view> const& nd,
       system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
@@ -278,7 +278,7 @@ struct list_impl {
    void
    operator()(
       Result& result,
-      resp3::node<std::string_view> const& nd,
+      resp3::basic_node<std::string_view> const& nd,
       system::error_code& ec)
    {
       if (!is_aggregate(nd.data_type)) {
@@ -348,7 +348,7 @@ private:
    response_type* result_;
    typename impl_map<Result>::type impl_;
 
-   bool set_if_resp3_error(resp3::node<std::string_view> const& nd) noexcept
+   bool set_if_resp3_error(resp3::basic_node<std::string_view> const& nd) noexcept
    {
       switch (nd.data_type) {
          case resp3::type::null:
@@ -372,7 +372,7 @@ public:
 
    void
    operator()(
-      resp3::node<std::string_view> const& nd,
+      resp3::basic_node<std::string_view> const& nd,
       system::error_code& ec)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
@@ -397,7 +397,7 @@ private:
    response_type* result_;
    typename impl_map<T>::type impl_{};
 
-   bool set_if_resp3_error(resp3::node<std::string_view> const& nd) noexcept
+   bool set_if_resp3_error(resp3::basic_node<std::string_view> const& nd) noexcept
    {
       switch (nd.data_type) {
          case resp3::type::blob_error:
@@ -414,7 +414,7 @@ public:
 
    void
    operator()(
-      resp3::node<std::string_view> const& nd,
+      resp3::basic_node<std::string_view> const& nd,
       system::error_code& ec)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");

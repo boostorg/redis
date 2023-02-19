@@ -25,7 +25,7 @@ namespace boost::redis::resp3 {
  *  @tparam String A `std::string`-like type.
  */
 template <class String>
-struct node {
+struct basic_node {
    /// The RESP3 type of the data in this node.
    type data_type = type::invalid;
 
@@ -46,13 +46,18 @@ struct node {
  *  @param b Right hand side node object.
  */
 template <class String>
-auto operator==(node<String> const& a, node<String> const& b)
+auto operator==(basic_node<String> const& a, basic_node<String> const& b)
 {
    return a.aggregate_size == b.aggregate_size
        && a.depth == b.depth
        && a.data_type == b.data_type
        && a.value == b.value;
 };
+
+/** @brief A node in the response tree.
+ *  @ingroup high-level-api
+ */
+using node = basic_node<std::string>;
 
 } // boost::redis::resp3
 

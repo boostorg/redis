@@ -9,7 +9,7 @@
 
 #include <boost/asio/connect.hpp>
 #include <boost/redis.hpp>
-#include <boost/redis/write.hpp>
+#include <boost/redis/detail/write.hpp>
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
@@ -40,16 +40,16 @@ auto main(int argc, char * argv[]) -> int
       req.push("HELLO", 3);
       req.push("PING", "Hello world");
       req.push("QUIT");
-      redis::write(socket, req);
+      redis::detail::write(socket, req);
 
       std::string buffer;
       result<std::string> resp;
 
       // Reads the responses to all commands in the request.
       auto dbuffer = net::dynamic_buffer(buffer);
-      redis::read(socket, dbuffer);
-      redis::read(socket, dbuffer, adapt2(resp));
-      redis::read(socket, dbuffer);
+      redis::detail::read(socket, dbuffer);
+      redis::detail::read(socket, dbuffer, adapt2(resp));
+      redis::detail::read(socket, dbuffer);
 
       std::cout << "Ping: " << resp.value() << std::endl;
 

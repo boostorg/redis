@@ -56,7 +56,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
    for (;;) {
       co_await connect(conn, host, port);
-      co_await ((conn->async_run() || healthy_checker(conn) || receiver(conn)) && conn->async_exec(req));
+      co_await ((conn->async_run() || health_check(conn) || receiver(conn)) && conn->async_exec(req));
 
       conn->reset_stream();
       timer.expires_after(std::chrono::seconds{1});

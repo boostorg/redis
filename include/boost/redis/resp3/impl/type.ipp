@@ -9,7 +9,7 @@
 
 namespace boost::redis::resp3 {
 
-auto to_string(type t) -> char const*
+auto to_string(type t) noexcept -> char const*
 {
    switch (t) {
       case type::array: return "array";
@@ -37,74 +37,6 @@ auto operator<<(std::ostream& os, type t) -> std::ostream&
 {
    os << to_string(t);
    return os;
-}
-
-auto is_aggregate(type t) -> bool
-{
-   switch (t) {
-      case type::array:
-      case type::push:
-      case type::set:
-      case type::map:
-      case type::attribute: return true;
-      default: return false;
-   }
-}
-
-auto element_multiplicity(type t) -> std::size_t
-{
-   switch (t) {
-      case type::map:
-      case type::attribute: return 2ULL;
-      default: return 1ULL;
-   }
-}
-
-auto to_code(type t) -> char
-{
-   switch (t) {
-      case type::blob_error:           return '!';
-      case type::verbatim_string:      return '=';
-      case type::blob_string:          return '$';
-      case type::streamed_string_part: return ';';
-      case type::simple_error:         return '-';
-      case type::number:               return ':';
-      case type::doublean:             return ',';
-      case type::boolean:              return '#';
-      case type::big_number:           return '(';
-      case type::simple_string:        return '+';
-      case type::null:                 return '_';
-      case type::push:                 return '>';
-      case type::set:                  return '~';
-      case type::array:                return '*';
-      case type::attribute:            return '|';
-      case type::map:                  return '%';
-
-      default: BOOST_ASSERT(false); return ' ';
-   }
-}
-
-auto to_type(char c) -> type
-{
-   switch (c) {
-      case '!': return type::blob_error;
-      case '=': return type::verbatim_string;
-      case '$': return type::blob_string;
-      case ';': return type::streamed_string_part;
-      case '-': return type::simple_error;
-      case ':': return type::number;
-      case ',': return type::doublean;
-      case '#': return type::boolean;
-      case '(': return type::big_number;
-      case '+': return type::simple_string;
-      case '_': return type::null;
-      case '>': return type::push;
-      case '~': return type::set;
-      case '*': return type::array;
-      case '|': return type::attribute;
-      case '%': return type::map;
-      default: return type::invalid;
-   }
 }
 
 } // boost::redis::resp3

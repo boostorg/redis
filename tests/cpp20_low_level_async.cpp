@@ -7,7 +7,7 @@
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/redis.hpp>
-#include <boost/redis/write.hpp>
+#include <boost/redis/detail/write.hpp>
 #include <string>
 #include <iostream>
 
@@ -34,7 +34,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    req.push("HELLO", 3);
    req.push("PING", "Hello world");
    req.push("QUIT");
-   co_await redis::async_write(socket, req);
+   co_await redis::detail::async_write(socket, req);
 
    // Responses
    std::string buffer;
@@ -42,9 +42,9 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
 
    // Reads the responses to all commands in the request.
    auto dbuffer = net::dynamic_buffer(buffer);
-   co_await redis::async_read(socket, dbuffer);
-   co_await redis::async_read(socket, dbuffer, adapt2(resp));
-   co_await redis::async_read(socket, dbuffer);
+   co_await redis::detail::async_read(socket, dbuffer);
+   co_await redis::detail::async_read(socket, dbuffer, adapt2(resp));
+   co_await redis::detail::async_read(socket, dbuffer);
 
    std::cout << "Ping: " << resp.value() << std::endl;
 }

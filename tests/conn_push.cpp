@@ -83,7 +83,7 @@ response_error_tag error_tag_obj;
 struct response_error_adapter {
    void
    operator()(
-      std::size_t, boost::redis::resp3::node<std::string_view> const&, boost::system::error_code& ec)
+      std::size_t, boost::redis::resp3::basic_node<std::string_view> const&, boost::system::error_code& ec)
    {
       ec = boost::redis::error::incompatible_size;
    }

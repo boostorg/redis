@@ -24,7 +24,7 @@ namespace boost::redis::adapter::detail
 class ignore_adapter {
 public:
    void
-   operator()(std::size_t, resp3::node<std::string_view> const& nd, system::error_code& ec)
+   operator()(std::size_t, resp3::basic_node<std::string_view> const& nd, system::error_code& ec)
    {
       switch (nd.data_type) {
          case resp3::type::simple_error: ec = redis::error::resp3_simple_error; break;
@@ -62,7 +62,7 @@ public:
    void
    operator()(
       std::size_t i,
-      resp3::node<std::string_view> const& nd,
+      resp3::basic_node<std::string_view> const& nd,
       system::error_code& ec)
    {
       using std::visit;
@@ -91,7 +91,7 @@ public:
    void
    operator()(
       std::size_t,
-      resp3::node<std::string_view> const& nd,
+      resp3::basic_node<std::string_view> const& nd,
       system::error_code& ec)
    {
       adapter_(nd, ec);
@@ -120,8 +120,8 @@ struct response_traits<result<ignore_t>> {
 };
 
 template <class String, class Allocator>
-struct response_traits<result<std::vector<resp3::node<String>, Allocator>>> {
-   using response_type = result<std::vector<resp3::node<String>, Allocator>>;
+struct response_traits<result<std::vector<resp3::basic_node<String>, Allocator>>> {
+   using response_type = result<std::vector<resp3::basic_node<String>, Allocator>>;
    using adapter_type = vector_adapter<response_type>;
 
    static auto adapt(response_type& v) noexcept
@@ -142,8 +142,8 @@ class wrapper {
 public:
    explicit wrapper(Adapter adapter) : adapter_{adapter} {}
 
-   void operator()(resp3::node<std::string_view> const& node, system::error_code& ec)
-      { return adapter_(0, node, ec); }
+   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code& ec)
+      { return adapter_(0, nd, ec); }
 
    [[nodiscard]]
    auto get_supported_response_size() const noexcept
@@ -153,7 +153,6 @@ private:
    Adapter adapter_;
 };
 
-// TODO: Move this to adapt.hpp.
 template <class Adapter>
 auto make_adapter_wrapper(Adapter adapter)
 {

@@ -40,9 +40,7 @@ auto has_response(std::string_view cmd) -> bool;
  *
  *  \remarks
  *
- *  \li Non-string types will be converted to string by using \c
- *  boost_redis_to_bulk, which must be made available over ADL.
- *  \li Uses a std::string for internal storage.
+ *  Uses a std::string for internal storage.
  */
 class request {
 public:
@@ -89,7 +87,7 @@ public:
    [[nodiscard]] auto size() const noexcept -> std::size_t
       { return commands_;};
 
-   [[nodiscard]] auto payload() const noexcept -> auto const&
+   [[nodiscard]] auto payload() const noexcept -> std::string_view
       { return payload_;}
 
    [[nodiscard]] auto has_hello_priority() const noexcept -> auto const&
@@ -121,19 +119,27 @@ public:
     *  req.push("SET", "key", "some string", "EX", "2");
     *  \endcode
     *
-    *  will add the \c set command with value "some string" and an
+    *  will add the `set` command with value "some string" and an
     *  expiration of 2 seconds.
     *
     *  \param cmd The command e.g redis or sentinel command.
     *  \param args Command arguments.
+    *  \tparam Ts Non-string types will be converted to string by calling `boost_redis_to_bulk` on each argument. This function must be made available over ADL and must have the following signature
+    *
+    *  @code
+    *  void boost_redis_to_bulk(std::string& to, T const& t);
+    *  {
+    *     boost::redis::resp3::boost_redis_to_bulk(to, serialize(t));
+    *  }
+    *  @endcode
+    *
+    *  See cpp20_serialization.cpp
     */
    template <class... Ts>
    void push(std::string_view cmd, Ts const&... args)
    {
-      using resp3::type;
-
       auto constexpr pack_size = sizeof...(Ts);
-      resp3::add_header(payload_, type::array, 1 + pack_size);
+      resp3::add_header(payload_, resp3::type::array, 1 + pack_size);
       resp3::add_bulk(payload_, cmd);
       resp3::add_bulk(payload_, std::tie(std::forward<Ts const&>(args)...));
 
@@ -160,20 +166,34 @@ public:
     *  \param key The command key.
     *  \param begin Iterator to the begin of the range.
     *  \param end Iterator to the end of the range.
+    *  \tparam Ts Non-string types will be converted to string by calling `boost_redis_to_bulk` on each argument. This function must be made available over ADL and must have the following signature
+    *
+    *  @code
+    *  void boost_redis_to_bulk(std::string& to, T const& t);
+    *  {
+    *     boost::redis::resp3::boost_redis_to_bulk(to, serialize(t));
+    *  }
+    *  @endcode
+    *
+    *  See cpp20_serialization.cpp
     */
-   template <class Key, class ForwardIterator>
-   void push_range(std::string_view cmd, Key const& key, ForwardIterator begin, ForwardIterator end,
-                    typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
+   template <class ForwardIterator>
+   void
+   push_range(
+      std::string_view const& cmd,
+      std::string_view const& key,
+      ForwardIterator begin,
+      ForwardIterator end,
+      typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
-      using resp3::type;
 
       if (begin == end)
          return;
 
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      resp3::add_header(payload_, type::array, 2 + size * distance);
+      resp3::add_header(payload_, resp3::type::array, 2 + size * distance);
       resp3::add_bulk(payload_, cmd);
       resp3::add_bulk(payload_, key);
 
@@ -199,20 +219,33 @@ public:
     *  \param cmd The Redis command
     *  \param begin Iterator to the begin of the range.
     *  \param end Iterator to the end of the range.
+    *  \tparam ForwardIterator If the value type is not a std::string it will be converted to a string by calling `boost_redis_to_bulk`. This function must be made available over ADL and must have the following signature
+    *
+    *  @code
+    *  void boost_redis_to_bulk(std::string& to, T const& t);
+    *  {
+    *     boost::redis::resp3::boost_redis_to_bulk(to, serialize(t));
+    *  }
+    *  @endcode
+    *
+    *  See cpp20_serialization.cpp
     */
    template <class ForwardIterator>
-   void push_range(std::string_view cmd, ForwardIterator begin, ForwardIterator end,
-                   typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
+   void
+   push_range(
+      std::string_view const& cmd,
+      ForwardIterator begin,
+      ForwardIterator end,
+      typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
-      using resp3::type;
 
       if (begin == end)
          return;
 
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      resp3::add_header(payload_, type::array, 1 + size * distance);
+      resp3::add_header(payload_, resp3::type::array, 1 + size * distance);
       resp3::add_bulk(payload_, cmd);
 
       for (; begin != end; ++begin)
@@ -223,15 +256,21 @@ public:
 
    /** @brief Appends a new command to the end of the request.
     *  
-    *  Equivalent to the overload taking a range (i.e. send_range2).
+    *  Equivalent to the overload taking a range of begin and end
+    *  iterators.
     *
     *  \param cmd Redis command.
     *  \param key Redis key.
-    *  \param range Range to send e.g. and \c std::map.
+    *  \param range Range to send e.g. `std::map`.
+    *  \tparam A type that can be passed to `std::cbegin()` and `std::cend()`.
     */
-   template <class Key, class Range>
-   void push_range(std::string_view cmd, Key const& key, Range const& range,
-                   decltype(std::begin(range)) * = nullptr)
+   template <class Range>
+   void
+   push_range(
+      std::string_view const& cmd,
+      std::string_view const& key,
+      Range const& range,
+      decltype(std::begin(range)) * = nullptr)
    {
       using std::begin;
       using std::end;
@@ -240,18 +279,23 @@ public:
 
    /** @brief Appends a new command to the end of the request.
     *
-    *  Equivalent to the overload taking a range (i.e. send_range2).
+    *  Equivalent to the overload taking a range of begin and end
+    *  iterators.
     *
     *  \param cmd Redis command.
-    *  \param range Range to send e.g. and \c std::map.
+    *  \param range Range to send e.g. `std::map`.
+    *  \tparam A type that can be passed to `std::cbegin()` and `std::cend()`.
     */
    template <class Range>
-   void push_range(std::string_view cmd, Range const& range,
-                   decltype(std::begin(range)) * = nullptr)
+   void
+   push_range(
+      std::string_view cmd,
+      Range const& range,
+      decltype(std::cbegin(range)) * = nullptr)
    {
-      using std::begin;
-      using std::end;
-      push_range(cmd, begin(range), end(range));
+      using std::cbegin;
+      using std::cend;
+      push_range(cmd, cbegin(range), cend(range));
    }
 
 private:

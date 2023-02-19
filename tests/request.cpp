@@ -12,6 +12,7 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/impl/request.ipp>
 #include <boost/redis/resp3/impl/type.ipp>
+#include <boost/redis/resp3/impl/serialization.ipp>
 
 using boost::redis::request;
 

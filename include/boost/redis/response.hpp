@@ -30,7 +30,7 @@ using response = std::tuple<adapter::result<Ts>...>;
  *  [pre-order](https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR)
  *  view of the response tree.
  */
-using generic_response = adapter::result<std::vector<resp3::node<std::string>>>;
+using generic_response = adapter::result<std::vector<resp3::node>>;
 
 } // boost::redis::resp3
 
