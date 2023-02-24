@@ -6,22 +6,26 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#define BOOST_JSON_NO_LIB
+#define BOOST_CONTAINER_NO_LIB
 #include <boost/redis.hpp>
-#include <iostream>
+#include <boost/describe.hpp>
+#include <boost/redis/json.hpp>
 #include <set>
 #include <string>
+#include <iostream>
 #include "common/common.hpp"
-#include "common/serialization.hpp"
 
 // Include this in no more than one .cpp file.
 #include <boost/json/src.hpp>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
+using namespace boost::describe;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::ignore_t;
 using boost::redis::operation;
+using boost::redis::ignore_t;
 
 struct user {
    std::string name;
@@ -41,46 +45,34 @@ auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -
    co_await conn->async_run();
 }
 
-auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.push("HELLO", 3);
-
-   co_await conn->async_exec(req);
-}
-
-auto sadd(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   std::set<user> users
-      {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
-
-   request req;
-   req.push_range("SADD", "sadd-key", users); // Sends
-
-   co_await conn->async_exec(req);
-}
-
-auto smembers(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.push("SMEMBERS", "sadd-key");
-
-   response<std::set<user>> resp;
-
-   co_await conn->async_exec(req, resp);
-
-   for (auto const& e: std::get<0>(resp).value())
-      std::cout << e << "\n";
-}
-
 net::awaitable<void> co_main(std::string host, std::string port)
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
    net::co_spawn(ex, run(conn, host, port), net::detached);
-   co_await hello(conn);
-   co_await sadd(conn);
-   co_await smembers(conn);
+
+   // A set of users that will be automatically serialized to json.
+   std::set<user> users
+      {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
+
+   // To simplify we send the set and retrieve it in the same
+   // resquest.
+   request req;
+   req.push("HELLO", 3);
+   req.push_range("SADD", "sadd-key", users);
+   req.push("SMEMBERS", "sadd-key");
+
+   // The response will contain the deserialized set, which should
+   // match the one we sent.
+   response<ignore_t, ignore_t, std::set<user>> resp;
+
+   // Sends the request and receives the response.
+   co_await conn->async_exec(req, resp);
+
+   // Print.
+   for (auto const& e: std::get<2>(resp).value())
+      std::cout << e.name << " " << e.age << " " << e.country << "\n";
+
    conn->cancel(operation::run);
 }
 

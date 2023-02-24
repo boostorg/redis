@@ -881,6 +881,7 @@ Acknowledgement to people that helped shape Boost.Redis
   next. Now requests are continuously coalesced and written to the
   socket. This made the request::coalesce unnecessary and threfore it
   was removed.
+* Native json support for Boost.Describe'd classes.
 
 ### v1.4.0-1
 

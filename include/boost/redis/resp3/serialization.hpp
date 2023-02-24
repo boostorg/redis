@@ -43,7 +43,7 @@ template <class T, typename = typename std::enable_if<std::is_integral<T>::value
 void boost_redis_to_bulk(std::string& payload, T n)
 {
    auto const s = std::to_string(n);
-   boost_redis_to_bulk(payload, std::string_view{s});
+   boost::redis::resp3::boost_redis_to_bulk(payload, std::string_view{s});
 }
 
 template <class T>
