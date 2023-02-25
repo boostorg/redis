@@ -26,7 +26,7 @@ connect(
    std::string const& host,
    std::string const& port) -> boost::asio::awaitable<void>;
 
-auto healthy_checker(std::shared_ptr<connection> conn) -> boost::asio::awaitable<void>;
+auto health_check(std::shared_ptr<connection> conn) -> boost::asio::awaitable<void>;
 
 auto run(boost::asio::awaitable<void> op) -> int;
 

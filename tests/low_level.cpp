@@ -41,8 +41,8 @@ using boost::redis::adapter::result;
 
 using test_stream = boost::beast::test::stream;
 using boost::redis::adapter::adapt2;
-using node_type = result<resp3::node<std::string>>;
-using vec_node_type = result<std::vector<resp3::node<std::string>>>;
+using node_type = result<resp3::node>;
+using vec_node_type = result<std::vector<resp3::node>>;
 using vec_type = result<std::vector<std::string>>;
 using op_vec_type = result<std::optional<std::vector<std::string>>>;
 
@@ -100,7 +100,7 @@ void test_sync(net::any_io_executor ex, expect<Result> e)
    ts.append(e.in);
    Result result;
    boost::system::error_code ec;
-   redis::read(ts, net::dynamic_buffer(rbuffer), adapt2(result), ec);
+   redis::detail::read(ts, net::dynamic_buffer(rbuffer), adapt2(result), ec);
    if (e.ec) {
       BOOST_CHECK_EQUAL(ec, e.ec);
       return;
@@ -156,7 +156,7 @@ public:
          }
       };
 
-      redis::async_read(
+      redis::detail::async_read(
          ts_,
          net::dynamic_buffer(rbuffer_),
          adapt2(result_),
@@ -532,7 +532,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_simple_error)
 
    test_stream ts {ioc};
    ts.append(S10a);
-   redis::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
+   redis::detail::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
    BOOST_CHECK_EQUAL(ec, boost::redis::error::resp3_simple_error);
    BOOST_TEST(!rbuffer.empty());
 }
@@ -545,7 +545,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_blob_error)
 
    test_stream ts {ioc};
    ts.append(S12a);
-   redis::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
+   redis::detail::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
    BOOST_CHECK_EQUAL(ec, boost::redis::error::resp3_blob_error);
    BOOST_TEST(!rbuffer.empty());
 }
@@ -558,7 +558,7 @@ BOOST_AUTO_TEST_CASE(ignore_adapter_no_error)
 
    test_stream ts {ioc};
    ts.append(S05b);
-   redis::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
+   redis::detail::read(ts, net::dynamic_buffer(rbuffer), adapt2(ignore), ec);
    BOOST_TEST(!ec);
    BOOST_TEST(rbuffer.empty());
 }
@@ -662,8 +662,8 @@ BOOST_AUTO_TEST_CASE(adapter)
    response<std::string, int, ignore_t> resp;
 
    auto f = boost_redis_adapt(resp);
-   f(0, resp3::node<std::string_view>{type::simple_string, 1, 0, "Hello"}, ec);
-   f(1, resp3::node<std::string_view>{type::number, 1, 0, "42"}, ec);
+   f(0, resp3::basic_node<std::string_view>{type::simple_string, 1, 0, "Hello"}, ec);
+   f(1, resp3::basic_node<std::string_view>{type::number, 1, 0, "42"}, ec);
 
    BOOST_CHECK_EQUAL(std::get<0>(resp).value(), "Hello");
    BOOST_TEST(!ec);

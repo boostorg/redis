@@ -15,10 +15,9 @@
 #include <boost/asio/compose.hpp>
 #include <boost/asio/async_result.hpp>
 
-namespace boost::redis {
+namespace boost::redis::detail {
 
 /** \brief Reads a complete response to a command sychronously.
- *  \ingroup low-level-api
  *
  *  This function reads a complete response to a command or a
  *  server push synchronously. For example
@@ -50,7 +49,7 @@ namespace boost::redis {
 template <
      class SyncReadStream,
      class DynamicBuffer,
-  class ResponseAdapter
+     class ResponseAdapter
   >
 auto
 read(
@@ -99,7 +98,6 @@ read(
 }
 
 /** \brief Reads a complete response to a command sychronously.
- *  \ingroup low-level-api
  *  
  *  Same as the error_code overload but throws on error.
  */
@@ -114,7 +112,7 @@ read(
    ResponseAdapter adapter = ResponseAdapter{})
 {
    system::error_code ec;
-   auto const n = redis::read(stream, buf, adapter, ec);
+   auto const n = redis::detail::read(stream, buf, adapter, ec);
 
    if (ec)
        BOOST_THROW_EXCEPTION(system::system_error{ec});
@@ -123,7 +121,6 @@ read(
 }
 
 /** \brief Reads a complete response to a Redis command asynchronously.
- *  \ingroup low-level-api
  *
  *  This function reads a complete response to a command or a
  *  server push asynchronously. For example
@@ -181,6 +178,6 @@ auto async_read(
         stream);
 }
 
-} // boost::redis
+} // boost::redis::detail
 
 #endif // BOOST_REDIS_READ_HPP

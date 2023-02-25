@@ -20,7 +20,7 @@ concerned with only three library entities
 In the next sections we will cover all those points in detail with
 examples. The requirements for using Boost.Redis are
 
-* Boost 1.80 or greater.
+* Boost 1.81 or greater.
 * C++17 minimum.
 * Redis 6 or higher (must support RESP3).
 * Gcc (10, 11, 12), Clang (11, 13, 14) and Visual Studio (16 2019, 17 2022).
@@ -844,7 +844,11 @@ in no more than one source file in your applications. To build the
 examples and tests cmake is supported, for example
 
 ```cpp
-BOOST_ROOT=/opt/boost_1_80_0 cmake --preset dev
+# Linux
+$ BOOST_ROOT=/opt/boost_1_81_0 cmake --preset dev
+
+# Windows 
+$ cmake -G "Visual Studio 17 2022" -A x64 -B bin64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 ```
 ## Acknowledgement
 
@@ -862,21 +866,16 @@ Acknowledgement to people that helped shape Boost.Redis
 ### master (incorporates many suggestions from the boost review)
 
 * Renames the project to Boost.Redis and moves the code into namespace `boost::redis`.
-* As pointed out in the reviews `to_buld` and `from_buld` were too generic for ADL customization. They gained the prefix `boost_redis_`.
+* As pointed out in the reviews the `to_buld` and `from_buld` names were too generic for ADL customization points. They gained the prefix `boost_redis_`.
 * Moves `boost::redis::resp3::request` to `boost::redis::request`.
 * Adds new typedef `boost::redis::response` that should be used instead of `std::tuple`.
 * Adds new typedef `boost::redis::generic_response` that should be used instead of `std::vector<resp3::node<std::string>>`.
 * Renames `redis::ignore` to `redis::ignore_t`.
 * Changes the signature from `async_exec` to receive a `redis::response` instead of an adapter.
-* Adds `boost::redis::adapter::result` to store responses to commands
-  including possible resp3 errors without losing the error diagnostic
-  part. Basicaly instead of accessing values as `std::get<N>(resp)`
-  users have to type `std::get<N>(resp).value()`
-* Implements full-duplex communication. Before these changes the
-  connection would wait for a response to arrive before sending the
-  next. Now requests are continuously coalesced and written to the
-  socket. This made the request::coalesce unnecessary and threfore it
-  was removed.
+* Adds `boost::redis::adapter::result` to store responses to commands including possible resp3 errors without losing the error diagnostic part. Basicaly instead of accessing values as `std::get<N>(resp)` users have to type `std::get<N>(resp).value()`
+* Implements full-duplex communication. Before these changes the connection would wait for a response to arrive before sending the next one. Now requests are continuously coalesced and written to the socket. This made the request::coalesce unnecessary and threfore it was removed.
+* Adds native json support for Boost.Describe'd classes, see cpp20_json_serialization.cpp for how to use it.
+* Upgrades to Boost 1.81.0.
 
 ### v1.4.0-1
 

@@ -54,7 +54,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    req.push("HELLO", 3);
 
    co_await connect(conn, host, port);
-   co_await ((conn->async_run() || listener(conn) || healthy_checker(conn) ||
+   co_await ((conn->async_run() || listener(conn) || health_check(conn) ||
             sig.async_wait()) && conn->async_exec(req));
 }
 

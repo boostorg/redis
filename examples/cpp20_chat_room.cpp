@@ -60,7 +60,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
 
    co_await connect(conn, host, port);
    co_await ((conn->async_run() || publisher(stream, conn) || receiver(conn) ||
-         healthy_checker(conn) || sig.async_wait()) && conn->async_exec(req));
+         health_check(conn) || sig.async_wait()) && conn->async_exec(req));
 }
 
 #else // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)

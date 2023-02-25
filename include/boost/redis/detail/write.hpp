@@ -8,8 +8,9 @@
 #define BOOST_REDIS_WRITE_HPP
 
 #include <boost/asio/write.hpp>
+#include <boost/redis/request.hpp>
 
-namespace boost::redis {
+namespace boost::redis::detail {
 
 /** \brief Writes a request synchronously.
  *  \ingroup low-level-api
@@ -17,23 +18,14 @@ namespace boost::redis {
  *  \param stream Stream to write the request to.
  *  \param req Request to write.
  */
-template<
-   class SyncWriteStream,
-   class Request
-   >
-auto write(SyncWriteStream& stream, Request const& req)
+template<class SyncWriteStream>
+auto write(SyncWriteStream& stream, request const& req)
 {
    return asio::write(stream, asio::buffer(req.payload()));
 }
 
-template<
-    class SyncWriteStream,
-    class Request
-    >
-auto write(
-    SyncWriteStream& stream,
-    Request const& req,
-    system::error_code& ec)
+template<class SyncWriteStream>
+auto write(SyncWriteStream& stream, request const& req, system::error_code& ec)
 {
    return asio::write(stream, asio::buffer(req.payload()), ec);
 }
@@ -47,18 +39,17 @@ auto write(
  */
 template<
    class AsyncWriteStream,
-   class Request,
    class CompletionToken = asio::default_completion_token_t<typename AsyncWriteStream::executor_type>
    >
 auto async_write(
    AsyncWriteStream& stream,
-   Request const& req,
+   request const& req,
    CompletionToken&& token =
       asio::default_completion_token_t<typename AsyncWriteStream::executor_type>{})
 {
    return asio::async_write(stream, asio::buffer(req.payload()), token);
 }
 
-} // boost::redis
+} // boost::redis::detail
 
 #endif // BOOST_REDIS_WRITE_HPP

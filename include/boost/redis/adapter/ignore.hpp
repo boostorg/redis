@@ -20,7 +20,7 @@ namespace boost::redis::adapter
  *  RESP3 errors won't be ignored.
  */
 struct ignore {
-   void operator()(resp3::node<std::string_view> const& nd, system::error_code& ec)
+   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code& ec)
    {
       switch (nd.data_type) {
          case resp3::type::simple_error: ec = redis::error::resp3_simple_error; break;

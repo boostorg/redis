@@ -24,7 +24,7 @@ auto redir(boost::system::error_code& ec)
    { return net::redirect_error(net::use_awaitable, ec); }
 }
 
-auto healthy_checker(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto health_check(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    try {
       request req;

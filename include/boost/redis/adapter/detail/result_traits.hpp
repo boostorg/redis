@@ -48,15 +48,15 @@ struct result_traits<ignore_t> {
 };
 
 template <class T>
-struct result_traits<result<resp3::node<T>>> {
-   using response_type = result<resp3::node<T>>;
+struct result_traits<result<resp3::basic_node<T>>> {
+   using response_type = result<resp3::basic_node<T>>;
    using adapter_type = adapter::detail::general_simple<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 
 template <class String, class Allocator>
-struct result_traits<result<std::vector<resp3::node<String>, Allocator>>> {
-   using response_type = result<std::vector<resp3::node<String>, Allocator>>;
+struct result_traits<result<std::vector<resp3::basic_node<String>, Allocator>>> {
+   using response_type = result<std::vector<resp3::basic_node<String>, Allocator>>;
    using adapter_type = adapter::detail::general_aggregate<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
@@ -115,7 +115,7 @@ public:
       }
    }
 
-   void count(resp3::node<std::string_view> const& nd)
+   void count(resp3::basic_node<std::string_view> const& nd)
    {
       if (nd.depth == 1) {
          if (is_aggregate(nd.data_type))
@@ -130,7 +130,7 @@ public:
          ++i_;
    }
 
-   void operator()(resp3::node<std::string_view> const& nd, system::error_code& ec)
+   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code& ec)
    {
       using std::visit;
 
