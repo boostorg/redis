@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        boost_version: ["1.80.0"]
+        boost_version: ["1.81.0"]
         os: [windows-2019, windows-2022]
         toolset: [v142, v143]
         build_type: [Release]
@@ -25,7 +25,7 @@ jobs:
           - { os: windows-2019, generator: "Visual Studio 17 2022" }
           - { os: windows-2022, generator: "Visual Studio 16 2019" }
           # The following combinations are not available through install-boost
-          - { boost_version: "1.80.0", toolset: v143 }
+          - { boost_version: "1.81.0", toolset: v143 }
 
     steps:
     - name: Checkout
@@ -34,7 +34,7 @@ jobs:
         fetch-depth: 0
 
     - name: Add boost toolset to environment
-      if: contains(fromJson('["1.80.0"]'), matrix.boost_version)
+      if: contains(fromJson('["1.81.0"]'), matrix.boost_version)
       run: echo BOOST_TOOLSET=$(echo "msvc") >> $GITHUB_ENV
 
     # The platform_version passed to boost-install determines the msvc toolset version for which static libs are installed.
@@ -120,7 +120,7 @@ jobs:
       uses: MarkusJx/install-boost@v2.3.0
       id: install-boost
       with:
-        boost_version: 1.80.0
+        boost_version: 1.81.0
         platform_version: 22.04
     - name: Run CMake
       run: |
