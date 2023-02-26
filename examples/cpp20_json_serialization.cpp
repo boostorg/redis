@@ -59,18 +59,35 @@ net::awaitable<void> co_main(std::string host, std::string port)
    // resquest.
    request req;
    req.push("HELLO", 3);
+
+   // Stores a std::set in a Redis set data structure.
    req.push_range("SADD", "sadd-key", users);
+
+   // Sends a ping and retrieves it as a string to show what json
+   // serialization looks like.
+   req.push("PING", *users.begin());
+
+   // Sends another ping and retrieves it directly in a user type.
+   req.push("PING", *users.begin());
+
+   // Retrieves the set we have just stored.
    req.push("SMEMBERS", "sadd-key");
 
-   // The response will contain the deserialized set, which should
-   // match the one we sent.
-   response<ignore_t, ignore_t, std::set<user>> resp;
+   response<ignore_t, ignore_t, std::string, user, std::set<user>> resp;
 
    // Sends the request and receives the response.
    co_await conn->async_exec(req, resp);
 
-   // Print.
-   for (auto const& e: std::get<2>(resp).value())
+   // Prints the first ping
+   auto const& pong1 = std::get<2>(resp).value();
+   std::cout << pong1 << "\n";
+
+   // Prints the second ping.
+   auto const& pong2 = std::get<3>(resp).value();
+   std::cout << pong2.name <<  " " << pong2.age <<  " " << pong2.country <<  "\n";
+
+   // Prints the set.
+   for (auto const& e: std::get<4>(resp).value())
       std::cout << e.name << " " << e.age << " " << e.country << "\n";
 
    conn->cancel(operation::run);

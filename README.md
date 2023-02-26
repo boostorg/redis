@@ -2,17 +2,17 @@
 
 Boost.Redis is a [Redis](https://redis.io/) client library built on top of
 [Boost.Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
-that implements the latest version of the Redis communication
-protocol
-[RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-It makes communication with a Redis server easy by hiding low-level
-code away from the user, which, in the majority of the cases will be
-concerned with only three library entities
+that implements 
+[RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md),
+a plain text protocol which can multiplex any number of client
+requests, responses, and server pushes onto a single active socket
+connection to the Redis server.  The library hides low-level code away
+from the user, which, in the majority of the cases will be concerned
+with only three library entities
 
-* `boost::redis::connection`: A connection to the Redis server with
-  high-level functions to execute Redis commands, receive server
-  pushes and support for automatic command
-  [pipelines](https://redis.io/docs/manual/pipelining/).
+* `boost::redis::connection`: A full-duplex connection to the Redis
+  server with high-level functions to execute Redis commands, receive
+  server pushes and automatic command [pipelines](https://redis.io/docs/manual/pipelining/).
 * `boost::redis::request`: A container of Redis commands that supports
   STL containers and user defined data types.
 * `boost::redis::response`: Container of Redis responses.
@@ -26,8 +26,30 @@ examples. The requirements for using Boost.Redis are
 * Gcc (10, 11, 12), Clang (11, 13, 14) and Visual Studio (16 2019, 17 2022).
 * Have basic-level knowledge about Redis and understand Asio and its asynchronous model.
 
-Readers that are not familiar with Redis can learn more about
-it on https://redis.io/docs/, in essence
+To install Boost.Redis download the latest release on
+https://github.com/boostorg/redis/releases.  Boost.Redis is a header only
+library, so you can starting using it right away by adding the
+`include` subdirectory to your project and including
+
+```cpp
+#include <boost/redis/src.hpp>
+```
+
+in no more than one source file in your applications. To build the
+examples and tests cmake is supported, for example
+
+```cpp
+# Linux
+$ BOOST_ROOT=/opt/boost_1_81_0 cmake --preset dev
+
+# Windows 
+$ cmake -G "Visual Studio 17 2022" -A x64 -B bin64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+```
+<a name="connection"></a>
+## Connection
+
+Readers that are not familiar with Redis are advised to learn more about
+it on https://redis.io/docs/ before we start, in essence
 
 > Redis is an open source (BSD licensed), in-memory data structure
 > store used as a database, cache, message broker, and streaming
@@ -38,129 +60,112 @@ it on https://redis.io/docs/, in essence
 > on-disk persistence, and provides high availability via Redis
 > Sentinel and automatic partitioning with Redis Cluster.
 
-<a name="connection"></a>
-## Connection
-
 Let us start with a simple application that uses a short-lived
-connection to read Redis
-[hashes](https://redis.io/docs/data-types/hashes/) in a `std::map`
+connection to send a [ping](https://redis.io/commands/ping/) command
+to Redis
 
 ```cpp
-auto co_main() -> net::awaitable<void>
+auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
-   connection conn{co_await net::this_coro::executor};
-
    // From examples/common.hpp to avoid vebosity
-   co_await connect(conn, "127.0.0.1", "6379");
+   co_await connect(conn, host, port);
+
+   // async_run coordinates read and write operations.
+   co_await conn->async_run();
+
+   // Cancel pending operations, if any.
+   conn->cancel(operation::exec);
+   conn->cancel(operation::receive);
+}
+
+auto co_main(std::string host, std::string port) -> net::awaitable<void>
+{
+   auto ex = co_await net::this_coro::executor;
+   auto conn = std::make_shared<connection>(ex);
+   net::co_spawn(ex, run(conn, host, port), net::detached);
 
    // A request can contain multiple commands.
    request req;
    req.push("HELLO", 3);
-   req.push("HGETALL", "hset-key");
+   req.push("PING", "Hello world");
    req.push("QUIT");
 
-   // The tuple elements will store the responses to each individual
-   // command. The responses to HELLO and QUIT are being ignored for
-   // simplicity.
-   response<ignore_t, std::map<std::string, std::string>, ignore_t> resp;
+   // Stores responses of each individual command. The responses to
+   // HELLO and QUIT are being ignored for simplicity.
+   response<ignore_t, std::string, ignore_t> resp;
 
-   // Executes the request. See below why we are using operator ||.
-   co_await (conn.async_run() || conn.async_exec(req, adapt(resp)));
-   // Use the map from std::get<1>(resp) ...
+   // Executes the request.
+   co_await conn->async_exec(req, resp);
+
+   std::cout << "PING: " << std::get<1>(resp).value() << std::endl;
 }
 ```
+The roles played by the `async_run` and `async_exec` functions are
 
-The example above uses the Asio awaitable `operator ||` to compose
-`connection::async_exec` and `connection::async_run` in an
-operation we can `co_await` on. It also provides cancelation of one of
-the operations when the other completes.  The role played by these
-functions are
-
-* `connection::async_exec`: Execute commands by queuing the request
-  for writing and wait for the response sent back by
-  Redis. Can be called from multiple places in your code concurrently.
+* `connection::async_exec`: Execute the commands contained in the
+  request and store the individual responses in the `resp` object. Can
+  be called from multiple places in your code concurrently.
 * `connection::async_run`: Coordinate low-level read and write
   operations. More specifically, it will hand IO control to
   `async_exec` when a response arrives and to `async_receive` when a
-  server-push is received. It is also responsible for triggering writes of pending
-  requests.
+  server-push is received. It is also responsible for triggering
+  writes of pending requests.
 
-The example above is also available in other programming styles for comparison
+Depending on the user's requirements, there are different styles of
+calling `async_run`. For example, in a short-lived connection where
+there is only one active client communicating with the server, the
+easiest way to call `async_run` is to only run it simultaneously with
+the `async_exec` call, this is exemplified in
+cpp20_intro_awaitable_ops.cpp.  If there are many in-process clients
+performing simultaneous requests, an alternative is to launch a
+long-running coroutine which calls `async_run` detached from other
+operations as shown in the example above, cpp20_intro.cpp and
+cpp20_echo_server.cpp.  The list of examples below will help users
+comparing different ways of implementing the ping example shown above
 
-* cpp20_intro_awaitable_ops.cpp: The version shown above.
-* cpp20_intro.cpp: Does not use awaitable operators.
+* cpp20_intro_awaitable_ops.cpp: Uses awaitable operators.
+* cpp20_intro.cpp: Calls `async_run` detached from other operations.
 * cpp20_intro_tls.cpp: Communicates over TLS.
 * cpp17_intro.cpp: Uses callbacks and requires C++17.
 * cpp17_intro_sync.cpp: Runs `async_run` in a separate thread and
   performs synchronous calls to `async_exec`.
 
-For performance reasons we will usually want to perform multiple
-requests with the same connection. We can do this in the example above
-by letting `async_run` run detached in a separate coroutine, for
-example (see cpp20_intro.cpp)
+While calling `async_run` is a sufficient condition for maintaining
+active two-way communication with the Redis server, most production
+deployments will want to do more. For example, they may want to
+reconnect if the connection goes down, either to the same server or a
+failover server. They may want to perform health checks and more.  The
+example below shows for example how to use a loop to keep reconnecting
+to the same address when a disconnection occurs (see
+cpp20_subscriber.cpp)
 
 ```cpp
 auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   co_await connect(conn, "127.0.0.1", "6379");
-   co_await conn->async_run();
-}
+   steady_timer timer{co_await net::this_coro::executor};
 
-auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.push("HELLO", 3);
+   for (;;) {
+      co_await connect(conn, "127.0.0.1", "6379");
+      co_await (conn->async_run() || health_check(conn) || receiver(conn));
 
-   co_await conn->async_exec(req);
-}
+      // Prepare the stream for a new connection.
+      conn->reset_stream();
 
-auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.push("PING", "Hello world");
-
-   response<std::string> resp;
-   co_await conn->async_exec(req, adapt(resp));
-   // Use the response ...
-}
-
-auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.push("QUIT");
-
-   co_await conn->async_exec(req);
-}
-
-auto co_main() -> net::awaitable<void>
-{
-   auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn), net::detached);
-   co_await hello(conn);
-   co_await ping(conn);
-   co_await quit(conn);
-
-   // conn can be passed around to other coroutines that need to
-   // communicate with Redis.  For example, sessions in a HTTP and
-   // Websocket server.
+      // Waits one second before trying to reconnect.
+      timer.expires_after(std::chrono::seconds{1});
+      co_await timer.async_wait();
+   }
 }
 ```
 
-With this separation, it is now easy to incorporate other long-running
-operations in our application, for example, the run coroutine below
-adds signal handling and a healthy checker (see cpp20_echo_server.cpp)
-
-```cpp
-auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   signal_set sig{co_await net::this_coro::executor, SIGINT, SIGTERM};
-   co_await connect(conn, "127.0.0.1", "6379");
-   co_await (conn->async_run() || sig.async_wait() || healthy_checker(conn));
-}
-```
-
-The definition of the `healthy_checker` used above can be found in common.cpp.
+The ability to reconnect the same connection object results in
+considerable simplification of backend code and makes it easier to
+write failover-safe applications. For example, a Websocket server
+might have a 10k sessions communicating with Redis at the time the
+connection is lost (or maybe killed by the server admin to force a
+failover). It would be concerning if each individual section were to
+throw exceptions and handle error.  With the pattern shown above the
+only place that has to manage the error is the run function.
 
 ### Server pushes
 
@@ -179,57 +184,12 @@ to used it
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    for (generic_response resp;;) {
-      co_await conn->async_receive(adapt(resp));
+      co_await conn->async_receive(resp);
       // Use resp and clear the response for a new push.
       resp.clear();
    }
 }
 ```
-
-The `receiver` defined above can be run detached or incorporated
-in the `run` function as we did for the `healthy_checker`
-
-```cpp
-auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   signal_set sig{co_await net::this_coro::executor, SIGINT, SIGTERM};
-   co_await connect(conn, "127.0.0.1", "6379");
-   co_await (conn->async_run() || sig.async_wait() || healthy_checker(conn) || receiver(conn));
-}
-```
-
-### Reconnecting
-
-Adding a loop around `async_run` produces a simple way to support
-reconnection _while there are pending operations on the connection_,
-for example, to reconnect to the same address (see cpp20_subscriber.cpp)
-
-```cpp
-auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   steady_timer timer{co_await net::this_coro::executor};
-
-   for (;;) {
-      co_await connect(conn, "127.0.0.1", "6379");
-      co_await (conn->async_run() || healthy_checker(conn) || receiver(conn));
-
-      // Prepare the stream for a new connection.
-      conn->reset_stream();
-
-      // Waits one second before trying to reconnect.
-      timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait();
-   }
-}
-```
-
-This feature results in considerable simplification of backend code
-and makes it easier to write failover-safe applications. For example,
-a Websocket server might have a 10k sessions communicating with Redis at
-the time the connection is lost (or maybe killed by the server admin
-to force a failover). It would be concerning if each individual section
-were to throw exceptions and handle error.  With the pattern shown
-above the only place that has to manage the error is the run function.
 
 ### Cancellation
 
@@ -276,7 +236,7 @@ Redis documentation they are called
 std::list<std::string> list {...};
 std::map<std::string, mystruct> map { ...};
 
-// The request can contains multiple commands.
+// The request can contain multiple commands.
 request req;
 
 // Command with variable length of arguments.
@@ -293,39 +253,6 @@ req.push_range("HSET", "key", map);
 ```
 
 Sending a request to Redis is performed with `boost::redis::connection::async_exec` as already stated.
-
-<a name="serialization"></a>
-
-### Serialization
-
-The `request::push` and `request::push_range` member functions work
-with integer data types e.g. `int` and `std::string` out of the box.
-To send your own data type define a `boost_redis_to_bulk` function like this
-
-```cpp
-// User defined type.
-struct mystruct {...};
-
-// Serialize it in boost_redis_to_bulk.
-void boost_redis_to_bulk(std::pmr::string& to, mystruct const& obj)
-{
-   std::string dummy = "Dummy serializaiton string.";
-   boost::redis::resp3::boost_redis_to_bulk(to, dummy);
-}
-```
-
-Once `boost_redis_to_bulk` is defined and visible over ADL `mystruct` can
-be passed to the `request`
-
-```cpp
-request req;
-
-std::map<std::string, mystruct> map {...};
-
-req.push_range("HSET", "key", map);
-```
-
-Example cpp20_serialization.cpp shows how store json strings in Redis.
 
 <a name="responses"></a>
 
@@ -426,17 +353,17 @@ response<
 Where both are passed to `async_exec` as showed elsewhere
 
 ```cpp
-co_await conn->async_exec(req, adapt(resp));
+co_await conn->async_exec(req, resp);
 ```
 
 If the intention is to ignore the response to all commands altogether
-use `adapt()` without arguments instead
+use `ignore`
 
 ```cpp
-// Uses the ignore adapter explicitly.
-co_await conn->async_exec(req, adapt());
+// Ignores the response
+co_await conn->async_exec(req, ignore);
 
-// Ignore adapter is also the default argument.
+// The default response argument will also ignore responses.
 co_await conn->async_exec(req);
 ```
 
@@ -480,7 +407,7 @@ response<
    ...
    > resp;
 
-co_await conn->async_exec(req, adapt(resp));
+co_await conn->async_exec(req, resp);
 ```
 
 Everything else stays pretty much the same.
@@ -520,29 +447,10 @@ response<
    exec_resp_type,        // exec
 > resp;
 
-co_await conn->async_exec(req, adapt(resp));
+co_await conn->async_exec(req, resp);
 ```
 
 For a complete example see cpp20_containers.cpp.
-
-### Deserialization
-
-As mentioned in the serialization section, it is common practice to
-serialize data before sending it to Redis e.g. as json strings.  For
-performance and convenience reasons, we may also want to deserialize
-responses directly in their final data structure. Boost.Redis supports this
-use case by calling a user provided `boost_redis_from_bulk` function while parsing
-the response. For example
-
-```cpp
-void boost_redis_from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
-{
-   // Deserializes p into obj.
-}
-```
-
-After that, you can start receiving data efficiently in the desired
-types e.g. `mystruct`, `std::map<std::string, mystruct>` etc.
 
 <a name="the-general-case"></a>
 
@@ -564,7 +472,7 @@ is defined like this
 
 ```cpp
 template <class String>
-struct node {
+struct basic_node {
    // The RESP3 type of the data in this node.
    type data_type;
 
@@ -587,7 +495,7 @@ using other types
 ```cpp
 // Receives any RESP3 simple or aggregate data type.
 boost::redis::generic_response resp;
-co_await conn->async_exec(req, adapt(resp));
+co_await conn->async_exec(req, resp);
 ```
 
 For example, suppose we want to retrieve a hash data structure
@@ -602,6 +510,59 @@ In addition to the above users can also use unordered versions of the
 containers. The same reasoning applies to sets e.g. `SMEMBERS`
 and other data structures in general.
 
+<a name="serialization"></a>
+## Serialization
+
+Boost.Redis provides native support for serialization with Boost.Json.
+To use it 
+
+* Include boost/redis/serialization.hpp
+* Describe your class with Boost.Describe.
+
+For example
+
+```cpp
+#include <boost/redis/json.hpp>
+
+struct user {
+   std::string name;
+   std::string age;
+   std::string country;
+};
+
+BOOST_DESCRIBE_STRUCT(user, (), (name, age, country))
+```
+
+After that you will be able to user your described `struct` both in
+requests and responses, for example
+
+```cpp
+user foo{"Joao", "58", "Brazil"}
+
+request req;
+req.push("PING", foo);
+
+response<user> resp;
+
+co_await conn->async_exec(req, resp);
+```
+
+For other serialization formats it is necessary to define the
+serialization functions `boost_redis_to_bulk` and `boost_redis_from_bulk` and
+import them onto the global namespace so they become available over
+ADL. They must have the following signature
+
+```cpp
+
+// Serialize
+void boost_redis_to_bulk(std::string& to, mystruct const& obj);
+
+// Deserialize
+void boost_redis_from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
+```
+
+Example cpp20_json_serialization.cpp shows how store json strings in Redis.
+
 ## Examples
 
 The examples below show how to use the features discussed so far
@@ -610,13 +571,11 @@ The examples below show how to use the features discussed so far
 * cpp20_intro.cpp: Does not use awaitable operators.
 * cpp20_intro_tls.cpp: Communicates over TLS.
 * cpp20_containers.cpp: Shows how to send and receive STL containers and how to use transactions.
-* cpp20_serialization.cpp: Shows how to serialize types using Boost.Json.
+* cpp20_json_serialization.cpp: Shows how to serialize types using Boost.Json.
 * cpp20_resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
 * cpp20_subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
 * cpp20_echo_server.cpp: A simple TCP echo server.
 * cpp20_chat_room.cpp: A command line chat built on Redis pubsub.
-* cpp20_low_level_async.cpp: Sends a ping asynchronously using the low-level API.
-* cpp17_low_level_sync.cpp: Sends a ping synchronously using the low-level API.
 * cpp17_intro.cpp: Uses callbacks and requires C++17.
 * cpp17_intro_sync.cpp: Runs `async_run` in a separate thread and performs synchronous calls to `async_exec`.
 
@@ -826,30 +785,8 @@ It is also not clear how are pipelines realised with this design
 <a name="api-reference"></a>
 ## Reference
 
-* [High-Level](#high-level-api): Covers the topics discussed in this document.
-* [Low-Level](#low-level-api): Covers low-level building blocks. Provided mostly for developers, users won't usually need any information provided here.
+The [High-Level](#high-level-api) page documents all public types.
 
-## Installation
-
-Download the latest release on
-https://github.com/boostorg/redis/releases.  Boost.Redis is a header only
-library, so you can starting using it right away by adding the
-`include` subdirectory to your project and including
-
-```cpp
-#include <boost/redis/src.hpp>
-```
-
-in no more than one source file in your applications. To build the
-examples and tests cmake is supported, for example
-
-```cpp
-# Linux
-$ BOOST_ROOT=/opt/boost_1_81_0 cmake --preset dev
-
-# Windows 
-$ cmake -G "Visual Studio 17 2022" -A x64 -B bin64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-```
 ## Acknowledgement
 
 Acknowledgement to people that helped shape Boost.Redis

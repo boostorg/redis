@@ -93,9 +93,35 @@ public:
     *  void f(system::error_code);
     *  @endcode
     *
-    *  This function will complete when the connection is lost. If the
-    *  error is asio::error::eof this function will complete
+    *  @remarks
+    *
+    *  * This function will complete only when the connection is lost.
+    *  If the error is asio::error::eof this function will complete
     *  without error.
+    *  * It can can be called multiple times on the same connection
+    *  object. This makes it simple to implement reconnection in a way
+    *  that does not require cancelling any pending connections.
+    *
+    *  For examples of how to call this function see the examples. For
+    *  example, if reconnection is not necessary, the coroutine below
+    *  is enough
+    *
+    *  ```cpp
+    *  auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
+    *  {
+    *     // From examples/common.hpp to avoid vebosity
+    *     co_await connect(conn, host, port);
+    *  
+    *     // async_run coordinate read and write operations.
+    *     co_await conn->async_run();
+    *  
+    *     // Cancel pending operations, if any.
+    *     conn->cancel(operation::exec);
+    *     conn->cancel(operation::receive);
+    *  }
+    *  ```
+    *
+    *  For a reconnection example see cpp20_subscriber.cpp.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(CompletionToken token = CompletionToken{})

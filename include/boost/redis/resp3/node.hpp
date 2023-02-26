@@ -40,7 +40,7 @@ struct basic_node {
 };
 
 /** @brief Compares a node for equality.
- *  @relates node
+ *  @relates basic_node
  *
  *  @param a Left hand side node object.
  *  @param b Right hand side node object.
