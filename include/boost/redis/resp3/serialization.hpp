@@ -19,7 +19,7 @@ namespace boost::redis::resp3 {
 constexpr char const* separator = "\r\n";
 
 /** @brief Adds a bulk to the request.
- *  @relates request
+ *  @relates boost::redis::request
  *
  *  This function is useful in serialization of your own data
  *  structures in a request. For example

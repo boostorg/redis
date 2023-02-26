@@ -13,38 +13,19 @@ namespace net = boost::asio;
 using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::ignore_t;
 
 auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
+   // From examples/common.hpp to avoid vebosity
    co_await connect(conn, host, port);
+
+   // async_run coordinate read and write operations.
    co_await conn->async_run();
-}
 
-auto hello(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.push("HELLO", 3);
-
-   co_await conn->async_exec(req);
-}
-
-auto ping(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.push("PING", "Hello world");
-
-   response<std::string> resp;
-   co_await conn->async_exec(req, resp);
-
-   std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
-}
-
-auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.push("QUIT");
-
-   co_await conn->async_exec(req);
+   // Cancel pending operations, if any.
+   conn->cancel(operation::exec);
+   conn->cancel(operation::receive);
 }
 
 // Called from the main function (see main.cpp)
@@ -53,9 +34,21 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
    net::co_spawn(ex, run(conn, host, port), net::detached);
-   co_await hello(conn);
-   co_await ping(conn);
-   co_await quit(conn);
+
+   // A request can contain multiple commands.
+   request req;
+   req.push("HELLO", 3);
+   req.push("PING", "Hello world");
+   req.push("QUIT");
+
+   // Stores responses of each individual command. The responses to
+   // HELLO and QUIT are being ignored for simplicity.
+   response<ignore_t, std::string, ignore_t> resp;
+
+   // Executtes the request.
+   co_await conn->async_exec(req, resp);
+
+   std::cout << "PING: " << std::get<1>(resp).value() << std::endl;
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
