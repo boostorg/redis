@@ -813,6 +813,7 @@ Acknowledgement to people that helped shape Boost.Redis
 * Implements full-duplex communication. Before these changes the connection would wait for a response to arrive before sending the next one. Now requests are continuously coalesced and written to the socket. This made the request::coalesce unnecessary and threfore it was removed.
 * Adds native json support for Boost.Describe'd classes, see cpp20_json_serialization.cpp for how to use it.
 * Upgrades to Boost 1.81.0.
+* Fixes build with libc++.
 
 ### v1.4.0-1
 

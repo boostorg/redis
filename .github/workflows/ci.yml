@@ -98,15 +98,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { toolset: gcc,   compiler: g++-11,     install: g++-11,   os: ubuntu-22.04, cxxstd: 'c++17' }
-          - { toolset: gcc,   compiler: g++-11,     install: g++-11,   os: ubuntu-22.04, cxxstd: 'c++20' }
-          - { toolset: clang, compiler: clang++-11, install: clang-11, os: ubuntu-22.04, cxxstd: 'c++17' }
-          - { toolset: clang, compiler: clang++-11, install: clang-11, os: ubuntu-22.04, cxxstd: 'c++20' }
-          - { toolset: clang, compiler: clang++-13, install: clang-13, os: ubuntu-22.04, cxxstd: 'c++17' }
-          - { toolset: clang, compiler: clang++-13, install: clang-13, os: ubuntu-22.04, cxxstd: 'c++20' }
+          - { toolset: gcc,   compiler: g++-11,     install: g++-11,   os: ubuntu-22.04, cxxflags: '-std=c++17', ldflags: '' }
+          - { toolset: gcc,   compiler: g++-11,     install: g++-11,   os: ubuntu-22.04, cxxflags: '-std=c++20', ldflags: '' }
+          - { toolset: clang, compiler: clang++-11, install: clang-11, os: ubuntu-22.04, cxxflags: '-std=c++17', ldflags: '' }
+          - { toolset: clang, compiler: clang++-11, install: clang-11, os: ubuntu-22.04, cxxflags: '-std=c++20', ldflags: '' }
+          - { toolset: clang, compiler: clang++-13, install: clang-13, os: ubuntu-22.04, cxxflags: '-std=c++17', ldflags: '' }
+          - { toolset: clang, compiler: clang++-13, install: clang-13, os: ubuntu-22.04, cxxflags: '-std=c++20', ldflags: '' }
+          - { toolset: clang, compiler: clang++-14, install: 'clang-14 libc++-14-dev libc++abi-14-dev', os: ubuntu-22.04, cxxflags: '-std=c++17 -stdlib=libc++', ldflags: '-lc++' }
+          - { toolset: clang, compiler: clang++-14, install: 'clang-14 libc++-14-dev libc++abi-14-dev', os: ubuntu-22.04, cxxflags: '-std=c++20 -stdlib=libc++', ldflags: '-lc++' }
     runs-on: ${{ matrix.os }}
     env:
-      CXXFLAGS: -g -O0 -std=${{matrix.cxxstd}} -Wall -Wextra
+      CXXFLAGS: -g -O0 ${{matrix.cxxflags}} -Wall -Wextra
+      LDFLAGS:  ${{matrix.ldflags}}
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -124,7 +127,7 @@ jobs:
         platform_version: 22.04
     - name: Run CMake
       run: |
-        BOOST_ROOT=${{steps.install-boost.outputs.BOOST_ROOT}} cmake -DCMAKE_CXX_COMPILER="${{matrix.compiler}}" -DCMAKE_CXX_FLAGS="${{env.CXXFLAGS}}"
+        BOOST_ROOT=${{steps.install-boost.outputs.BOOST_ROOT}} cmake -DCMAKE_CXX_COMPILER="${{matrix.compiler}}" -DCMAKE_CXX_FLAGS="${{env.CXXFLAGS}}"  -DCMAKE_EXE_LINKER_FLAGS="${{env.LDFLAGS}}"
     - name: Build
       run: make
     - name: Check
