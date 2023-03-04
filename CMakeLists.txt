@@ -302,6 +302,15 @@ if (MSVC)
     target_compile_definitions(test_issue_50 PRIVATE _WIN32_WINNT=0x0601)
 endif()
 
+add_executable(test_conn_check_health tests/conn_check_health.cpp)
+target_compile_features(test_conn_check_health PUBLIC cxx_std_17)
+target_link_libraries(test_conn_check_health common)
+add_test(test_conn_check_health test_conn_check_health)
+if (MSVC)
+    target_compile_options(test_conn_check_health PRIVATE /bigobj)
+    target_compile_definitions(test_conn_check_health PRIVATE _WIN32_WINNT=0x0601)
+endif()
+
 # Install
 #=======================================================================
 

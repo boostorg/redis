@@ -9,7 +9,7 @@
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
-#define BOOST_TEST_MODULE low level
+#define BOOST_TEST_MODULE conn-exec-cancel
 #include <boost/test/included/unit_test.hpp>
 #include <boost/redis.hpp>
 #include <boost/redis/src.hpp>

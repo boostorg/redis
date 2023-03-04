@@ -4,9 +4,10 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef AEDIS_EXAMPLES_COMMON_HPP
-#define AEDIS_EXAMPLES_COMMON_HPP
+#ifndef BOOST_REDIS_EXAMPLES_COMMON_HPP
+#define BOOST_REDIS_EXAMPLES_COMMON_HPP
 
+#include <iostream>
 #include <boost/asio.hpp>
 #include <boost/redis.hpp>
 #include <memory>
@@ -26,9 +27,7 @@ connect(
    std::string const& host,
    std::string const& port) -> boost::asio::awaitable<void>;
 
-auto health_check(std::shared_ptr<connection> conn) -> boost::asio::awaitable<void>;
-
 auto run(boost::asio::awaitable<void> op) -> int;
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
-#endif // AEDIS_EXAMPLES_COMMON_HPP
+#endif // BOOST_REDIS_EXAMPLES_COMMON_HPP

@@ -7,6 +7,7 @@
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/redis.hpp>
+#include <boost/redis/experimental/run.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include "../examples/common/common.hpp"
@@ -17,6 +18,7 @@ using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
+using boost::redis::experimental::async_check_health;
 
 // Push consumer
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -61,7 +63,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
   // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
   for (int i = 0; i < 10; ++i) {
     co_await connect(conn, host, port);
-    co_await ((conn->async_run() || receiver(conn) || health_check(conn) || periodic_task(conn)) &&
+    co_await ((conn->async_run() || receiver(conn) || async_check_health(*conn) || periodic_task(conn)) &&
               conn->async_exec(req));
 
     conn->reset_stream();

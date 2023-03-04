@@ -798,22 +798,69 @@ Acknowledgement to people that helped shape Boost.Redis
 * Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, cancellation, synchronous interfaces and general help with Asio.
 * Vinnie Falco ([vinniefalco](https://github.com/vinniefalco)): For general suggestions about how to improve the code and the documentation.
 
+Also many thanks to all individuals that participated in the Boost
+review
+
+* Zach Laine: https://lists.boost.org/Archives/boost/2023/01/253883.php
+* Vinnie Falco: https://lists.boost.org/Archives/boost/2023/01/253886.php
+* Christian Mazakas: https://lists.boost.org/Archives/boost/2023/01/253900.php
+* Ruben Perez: https://lists.boost.org/Archives/boost/2023/01/253915.php
+* Dmitry Arkhipov: https://lists.boost.org/Archives/boost/2023/01/253925.php
+* Alan de Freitas: https://lists.boost.org/Archives/boost/2023/01/253927.php
+* Mohammad Nejati: https://lists.boost.org/Archives/boost/2023/01/253929.php
+* Sam Hartsfield: https://lists.boost.org/Archives/boost/2023/01/253931.php
+* Miguel Portilla: https://lists.boost.org/Archives/boost/2023/01/253935.php
+* Robert A.H. Leahy: https://lists.boost.org/Archives/boost/2023/01/253928.php
+
+The Reviews can be found at:
+https://lists.boost.org/Archives/boost/2023/01/date.php. The thread
+with the ACCEPT from the review manager can be found here:
+https://lists.boost.org/Archives/boost/2023/01/253944.php.
+
 ## Changelog
 
-### master (incorporates many suggestions from the boost review)
+### master (incorporates changes to conform the boost review and more)
 
-* Renames the project to Boost.Redis and moves the code into namespace `boost::redis`.
-* As pointed out in the reviews the `to_buld` and `from_buld` names were too generic for ADL customization points. They gained the prefix `boost_redis_`.
+* Renames the project to Boost.Redis and moves the code into namespace
+  `boost::redis`.
+
+* As pointed out in the reviews the `to_buld` and `from_buld` names were too
+  generic for ADL customization points. They gained the prefix `boost_redis_`.
+
 * Moves `boost::redis::resp3::request` to `boost::redis::request`.
-* Adds new typedef `boost::redis::response` that should be used instead of `std::tuple`.
-* Adds new typedef `boost::redis::generic_response` that should be used instead of `std::vector<resp3::node<std::string>>`.
+
+* Adds new typedef `boost::redis::response` that should be used instead of
+  `std::tuple`.
+
+* Adds new typedef `boost::redis::generic_response` that should be used instead
+  of `std::vector<resp3::node<std::string>>`.
+
 * Renames `redis::ignore` to `redis::ignore_t`.
-* Changes the signature from `async_exec` to receive a `redis::response` instead of an adapter.
-* Adds `boost::redis::adapter::result` to store responses to commands including possible resp3 errors without losing the error diagnostic part. Basicaly instead of accessing values as `std::get<N>(resp)` users have to type `std::get<N>(resp).value()`
-* Implements full-duplex communication. Before these changes the connection would wait for a response to arrive before sending the next one. Now requests are continuously coalesced and written to the socket. This made the request::coalesce unnecessary and threfore it was removed.
-* Adds native json support for Boost.Describe'd classes, see cpp20_json_serialization.cpp for how to use it.
+
+* Changes `async_exec` to receive a `redis::response` instead of an adapter,
+  namely, instead of passing `adapt(resp)` users should pass `resp` directly.
+
+* Introduces `boost::redis::adapter::result` to store responses to commands
+  including possible resp3 errors without losing the error diagnostic part. To
+  access values now use `std::get<N>(resp).value()` instead of
+  `std::get<N>(resp)`.
+
+* Implements full-duplex communication. Before these changes the connection
+  would wait for a response to arrive before sending the next one. Now requests
+  are continuously coalesced and written to the socket. `request::coalesce`
+  became unnecessary and was removed. I could measure significative performance
+  gains with theses changes.
+
+* Adds native json support for Boost.Describe'd classes. To use it include
+  `<boost/redis/json.hpp>` and decribe you class as of Boost.Describe, see
+  cpp20_json_serialization.cpp for more details.
+
 * Upgrades to Boost 1.81.0.
+
 * Fixes build with libc++.
+
+* Adds a function that performs health checks, see
+  `boost::redis::experimental::async_check_health`.
 
 ### v1.4.0-1
 
