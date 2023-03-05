@@ -27,7 +27,7 @@ jobs:
     - name: Install Redis
       run: sudo apt-get -y install redis-server
     - name: Install boost
-      uses: MarkusJx/install-boost@v2.3.0
+      uses: MarkusJx/install-boost@v2.4.1
       id: install-boost
       with:
         boost_version: 1.81.0

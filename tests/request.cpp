@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-#define BOOST_TEST_MODULE low level
+#define BOOST_TEST_MODULE request
 #include <boost/test/included/unit_test.hpp>
 
 #include <boost/redis/request.hpp>

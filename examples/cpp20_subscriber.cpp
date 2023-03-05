@@ -8,6 +8,7 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/redis.hpp>
+#include <boost/redis/experimental/run.hpp>
 
 #include "common/common.hpp"
 
@@ -16,6 +17,7 @@ using namespace net::experimental::awaitable_operators;
 using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using boost::redis::request;
 using boost::redis::generic_response;
+using boost::redis::experimental::async_check_health;
 
 /* This example will subscribe and read pushes indefinitely.
  *
@@ -56,7 +58,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
    for (;;) {
       co_await connect(conn, host, port);
-      co_await ((conn->async_run() || health_check(conn) || receiver(conn)) && conn->async_exec(req));
+      co_await ((conn->async_run() || async_check_health(*conn) || receiver(conn)) && conn->async_exec(req));
 
       conn->reset_stream();
       timer.expires_after(std::chrono::seconds{1});

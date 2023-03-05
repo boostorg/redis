@@ -10,7 +10,7 @@
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
 
-#define BOOST_TEST_MODULE low level
+#define BOOST_TEST_MODULE conn-run-cancel
 #include <boost/test/included/unit_test.hpp>
 
 #include <boost/redis.hpp>

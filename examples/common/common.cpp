@@ -24,30 +24,6 @@ auto redir(boost::system::error_code& ec)
    { return net::redirect_error(net::use_awaitable, ec); }
 }
 
-auto health_check(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   try {
-      request req;
-      req.push("PING");
-
-      timer_type timer{co_await net::this_coro::executor};
-
-      for (boost::system::error_code ec;;) {
-         timer.expires_after(std::chrono::seconds{1});
-         co_await (conn->async_exec(req) || timer.async_wait(redir(ec)));
-
-         if (!ec) {
-            co_return;
-         }
-
-         // Waits some time before trying the next ping.
-         timer.expires_after(std::chrono::seconds{1});
-         co_await timer.async_wait();
-      }
-   } catch (...) {
-   }
-}
-
 auto
 connect(
    std::shared_ptr<connection> conn,

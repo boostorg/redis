@@ -8,7 +8,7 @@
 #include <boost/asio.hpp>
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 
-#define BOOST_TEST_MODULE low level
+#define BOOST_TEST_MODULE conn-reconnect
 #include <boost/test/included/unit_test.hpp>
 
 #include <boost/redis.hpp>

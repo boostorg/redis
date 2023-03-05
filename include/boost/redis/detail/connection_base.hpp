@@ -15,7 +15,6 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/bind_executor.hpp>
-#include <boost/asio/deferred.hpp>
 #include <boost/asio/experimental/channel.hpp>
 
 #include <vector>
