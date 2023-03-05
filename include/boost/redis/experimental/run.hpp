@@ -8,7 +8,6 @@
 #define BOOST_REDIS_RUN_HPP
 
 // Has to included before promise.hpp to build on msvc.
-#include <tuple>
 #include <boost/asio/experimental/promise.hpp>
 #include <boost/asio/experimental/use_promise.hpp>
 #include <boost/asio/steady_timer.hpp>

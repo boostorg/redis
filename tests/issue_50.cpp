@@ -4,6 +4,9 @@
  * accompanying file LICENSE.txt)
  */
 
+// Must come before any asio header, otherwise build fails on msvc.
+#include <tuple>
+
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/redis.hpp>
