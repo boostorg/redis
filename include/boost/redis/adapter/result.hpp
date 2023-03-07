@@ -9,6 +9,7 @@
 #define BOOST_REDIS_ADAPTER_RESULT_HPP
 
 #include <boost/redis/resp3/type.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/system/result.hpp>
 #include <string>
 
