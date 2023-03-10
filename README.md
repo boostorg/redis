@@ -513,56 +513,24 @@ and other data structures in general.
 <a name="serialization"></a>
 ## Serialization
 
-Boost.Redis provides native support for serialization with Boost.Json.
-To use it 
-
-* Include boost/redis/serialization.hpp
-* Describe your class with Boost.Describe.
-
-For example
-
-```cpp
-#include <boost/redis/json.hpp>
-
-struct user {
-   std::string name;
-   std::string age;
-   std::string country;
-};
-
-BOOST_DESCRIBE_STRUCT(user, (), (name, age, country))
-```
-
-After that you will be able to user your described `struct` both in
-requests and responses, for example
-
-```cpp
-user foo{"Joao", "58", "Brazil"}
-
-request req;
-req.push("PING", foo);
-
-response<user> resp;
-
-co_await conn->async_exec(req, resp);
-```
-
-For other serialization formats it is necessary to define the
-serialization functions `boost_redis_to_bulk` and `boost_redis_from_bulk` and
-import them onto the global namespace so they become available over
-ADL. They must have the following signature
+Boost.Redis supports serialization of user defined types by means of
+the following customization points
 
 ```cpp
 
-// Serialize
+// Serialize.
 void boost_redis_to_bulk(std::string& to, mystruct const& obj);
 
 // Deserialize
 void boost_redis_from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
 ```
 
-Example cpp20_json_serialization.cpp shows how store json strings in Redis.
+These functions are accessed over ADL and therefore they must be
+imported in the global namespace by the user.  In the
+[Examples](#Examples) section the reader can find examples showing how
+to serialize using json and [protobuf](https://protobuf.dev/).
 
+<a name="examples"></a>
 ## Examples
 
 The examples below show how to use the features discussed so far
@@ -571,7 +539,8 @@ The examples below show how to use the features discussed so far
 * cpp20_intro.cpp: Does not use awaitable operators.
 * cpp20_intro_tls.cpp: Communicates over TLS.
 * cpp20_containers.cpp: Shows how to send and receive STL containers and how to use transactions.
-* cpp20_json_serialization.cpp: Shows how to serialize types using Boost.Json.
+* cpp20_json.cpp: Shows how to serialize types using Boost.Json.
+* cpp20_protobuf.cpp: Shows how to serialize types using protobuf.
 * cpp20_resolve_with_sentinel.cpp: Shows how to resolve a master address using sentinels.
 * cpp20_subscriber.cpp: Shows how to implement pubsub with reconnection re-subscription.
 * cpp20_echo_server.cpp: A simple TCP echo server.

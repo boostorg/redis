@@ -42,6 +42,12 @@ write_basic_package_version_file(
 )
 
 find_package(Boost 1.80 REQUIRED)
+
+# We test the protobuf example only on gcc.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+   find_package(Protobuf) # For the protobuf example.
+endif()
+
 include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(OpenSSL REQUIRED)
@@ -130,13 +136,26 @@ if (MSVC)
     target_compile_definitions(cpp20_resolve_with_sentinel PRIVATE _WIN32_WINNT=0x0601)
 endif()
 
-add_executable(cpp20_json_serialization examples/cpp20_json_serialization.cpp)
-target_compile_features(cpp20_json_serialization PUBLIC cxx_std_20)
-target_link_libraries(cpp20_json_serialization common)
-add_test(cpp20_json_serialization cpp20_json_serialization)
+add_executable(cpp20_json examples/cpp20_json.cpp)
+target_compile_features(cpp20_json PUBLIC cxx_std_20)
+target_link_libraries(cpp20_json common)
+add_test(cpp20_json cpp20_json)
 if (MSVC)
-    target_compile_options(cpp20_json_serialization PRIVATE /bigobj)
-    target_compile_definitions(cpp20_json_serialization PRIVATE _WIN32_WINNT=0x0601)
+    target_compile_options(cpp20_json PRIVATE /bigobj)
+    target_compile_definitions(cpp20_json PRIVATE _WIN32_WINNT=0x0601)
+endif()
+
+if (Protobuf_FOUND)
+   protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS examples/person.proto)
+   add_executable(cpp20_protobuf examples/cpp20_protobuf.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+   target_compile_features(cpp20_protobuf PUBLIC cxx_std_20)
+   target_link_libraries(cpp20_protobuf common ${Protobuf_LIBRARIES})
+   target_include_directories(cpp20_protobuf PUBLIC ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+   add_test(cpp20_protobuf cpp20_protobuf)
+   if (MSVC)
+       target_compile_options(cpp20_protobuf PRIVATE /bigobj)
+       target_compile_definitions(cpp20_protobuf PRIVATE _WIN32_WINNT=0x0601)
+   endif()
 endif()
 
 if (NOT MSVC)
