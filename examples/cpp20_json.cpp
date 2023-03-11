@@ -10,11 +10,10 @@
 #define BOOST_CONTAINER_NO_LIB
 #include <boost/redis.hpp>
 #include <boost/describe.hpp>
-#include <boost/redis/json.hpp>
-#include <set>
 #include <string>
 #include <iostream>
 #include "common/common.hpp"
+#include "json.hpp"
 
 // Include this in no more than one .cpp file.
 #include <boost/json/src.hpp>
@@ -27,17 +26,22 @@ using boost::redis::response;
 using boost::redis::operation;
 using boost::redis::ignore_t;
 
+// Struct that will be stored in Redis using json serialization. 
 struct user {
    std::string name;
    std::string age;
    std::string country;
-
-   friend
-   auto operator<(user const& a, user const& b)
-      { return std::tie(a.name, a.age, a.country) < std::tie(b.name, b.age, b.country); }
 };
 
+// The type must be described for serialization to work.
 BOOST_DESCRIBE_STRUCT(user, (), (name, age, country))
+
+// Boost.Redis customization points (examples/json.hpp)
+void boost_redis_to_bulk(std::string& to, user const& u)
+   { boost::redis::json::to_bulk(to, u); }
+
+void boost_redis_from_bulk(user& u, std::string_view sv, boost::system::error_code& ec)
+   { boost::redis::json::from_bulk(u, sv, ec); }
 
 auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
@@ -51,44 +55,24 @@ net::awaitable<void> co_main(std::string host, std::string port)
    auto conn = std::make_shared<connection>(ex);
    net::co_spawn(ex, run(conn, host, port), net::detached);
 
-   // A set of users that will be automatically serialized to json.
-   std::set<user> users
-      {{"Joao", "58", "Brazil"} , {"Serge", "60", "France"}};
+   // user object that will be stored in Redis in json format.
+   user const u{"Joao", "58", "Brazil"};
 
-   // To simplify we send the set and retrieve it in the same
-   // resquest.
+   // Stores and retrieves in the same request.
    request req;
    req.push("HELLO", 3);
+   req.push("SET", "json-key", u); // Stores in Redis.
+   req.push("GET", "json-key"); // Retrieves from Redis.
 
-   // Stores a std::set in a Redis set data structure.
-   req.push_range("SADD", "sadd-key", users);
+   response<ignore_t, ignore_t, user> resp;
 
-   // Sends a ping and retrieves it as a string to show what json
-   // serialization looks like.
-   req.push("PING", *users.begin());
-
-   // Sends another ping and retrieves it directly in a user type.
-   req.push("PING", *users.begin());
-
-   // Retrieves the set we have just stored.
-   req.push("SMEMBERS", "sadd-key");
-
-   response<ignore_t, ignore_t, std::string, user, std::set<user>> resp;
-
-   // Sends the request and receives the response.
    co_await conn->async_exec(req, resp);
 
    // Prints the first ping
-   auto const& pong1 = std::get<2>(resp).value();
-   std::cout << pong1 << "\n";
-
-   // Prints the second ping.
-   auto const& pong2 = std::get<3>(resp).value();
-   std::cout << pong2.name <<  " " << pong2.age <<  " " << pong2.country <<  "\n";
-
-   // Prints the set.
-   for (auto const& e: std::get<4>(resp).value())
-      std::cout << e.name << " " << e.age << " " << e.country << "\n";
+   std::cout
+      << "Name: " << std::get<2>(resp).value().name << "\n"
+      << "Age: " << std::get<2>(resp).value().age << "\n"
+      << "Country: " << std::get<2>(resp).value().country << "\n";
 
    conn->cancel(operation::run);
 }
