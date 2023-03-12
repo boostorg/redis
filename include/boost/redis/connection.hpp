@@ -201,15 +201,15 @@ public:
     *  @li `operation::exec`: Cancels operations started with
     *  `async_exec`. Affects only requests that haven't been written
     *  yet.
-    *  @li operation::run: Cancels the `async_run` operation. Notice
-    *  that the preferred way to close a connection is to send a
-    *  [QUIT](https://redis.io/commands/quit/) command to the server.
+    *  @li operation::run: Cancels the `async_run` operation.
     *  @li operation::receive: Cancels any ongoing calls to *  `async_receive`.
+    *  @li operation::all: Cancels all operations listed above. This
+    *  is the default argument.
     *
     *  @param op: The operation to be cancelled.
     *  @returns The number of operations that have been canceled.
     */
-   auto cancel(operation op) -> std::size_t
+   auto cancel(operation op = operation::all) -> std::size_t
       { return base_type::cancel(op); }
 
    /// Sets the maximum size of the read buffer.

@@ -4,17 +4,19 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <iostream>
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/redis.hpp>
-#include "common/common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 // Called from the main function (see main.cpp)
 auto co_main(std::string host, std::string port) -> net::awaitable<void>
@@ -27,9 +29,8 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
 
       response<ignore_t, std::string, ignore_t> resp;
 
-      auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-      co_await connect(conn, host, port);
-      co_await (conn->async_run() || conn->async_exec(req, resp));
+      connection conn{co_await net::this_coro::executor};
+      co_await (async_run(conn, host, port) || conn.async_exec(req, resp));
 
       std::cout << "PING: " << std::get<1>(resp).value() << std::endl;
    } catch (std::exception const& e) {

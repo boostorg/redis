@@ -6,19 +6,25 @@
 
 #include <tuple>
 #include <string>
+#include <chrono>
 #include <thread>
 #include <iostream>
 #include <boost/asio.hpp>
 #include <boost/redis.hpp>
+#include <boost/redis/check_health.hpp>
 
 // Include this in no more than one .cpp file.
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
 using connection = boost::redis::connection;
+using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using boost::redis::async_check_health;
+using namespace std::chrono_literals;
 
 template <class Response>
 auto exec(std::shared_ptr<connection> conn, request const& req, Response& resp)
@@ -28,9 +34,6 @@ auto exec(std::shared_ptr<connection> conn, request const& req, Response& resp)
       net::deferred([&]() { return conn->async_exec(req, resp, net::deferred); }))
       (net::use_future).get();
 }
-
-auto logger = [](auto const& ec)
-   { std::clog << "Run: " << ec.message() << std::endl; };
 
 auto main(int argc, char * argv[]) -> int
 {
@@ -47,17 +50,17 @@ auto main(int argc, char * argv[]) -> int
 
       auto conn = std::make_shared<connection>(ioc);
 
-      // Resolves the address
-      net::ip::tcp::resolver resv{ioc};
-      auto const res = resv.resolve(host, port);
+      // Starts a thread that will can io_context::run on which the
+      // connection will run.
+      std::thread t{[&ioc, conn, host, port]() {
+         async_run(*conn, host, port, 10s, 10s, [conn](auto){
+            conn->cancel();
+         });
 
-      // Connect to Redis
-      net::connect(conn->next_layer(), res);
+         async_check_health(*conn, "Boost.Redis", 2s, [conn](auto) {
+            conn->cancel();
+         });
 
-      // Starts a thread that will can io_context::run on which
-      // the connection will run.
-      std::thread t{[conn, &ioc]() {
-         conn->async_run(logger);
          ioc.run();
       }};
 

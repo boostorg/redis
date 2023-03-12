@@ -28,6 +28,8 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using namespace std::chrono_literals;
 
 BOOST_AUTO_TEST_CASE(hello_priority)
 {
@@ -47,9 +49,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
 
    net::io_context ioc;
 
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    bool seen1 = false;
    bool seen2 = false;
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
       seen3 = true;
    });
 
-   conn.async_run([](auto ec){
+   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       BOOST_TEST(!ec);
    });
 
@@ -94,14 +94,12 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    response<ignore_t, int> resp;
    net::io_context ioc;
 
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    conn.async_exec(req, resp, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_a_number);
    });
-   conn.async_run([](auto ec){
+   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 

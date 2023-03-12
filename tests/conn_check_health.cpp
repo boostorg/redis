@@ -12,7 +12,7 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <boost/redis.hpp>
-#include <boost/redis/experimental/run.hpp>
+#include <boost/redis/check_health.hpp>
 #include <boost/redis/src.hpp>
 
 #include "common.hpp"
@@ -24,7 +24,9 @@ using boost::redis::request;
 using boost::redis::ignore;
 using boost::redis::operation;
 using boost::redis::generic_response;
-using boost::redis::experimental::async_check_health;
+using boost::redis::async_check_health;
+using boost::redis::async_run;
+using namespace std::chrono_literals;
 
 std::chrono::seconds const interval{1};
 
@@ -74,14 +76,11 @@ BOOST_AUTO_TEST_CASE(check_health)
 {
    net::io_context ioc;
 
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    // It looks like client pause does not work for clients that are
    // sending MONITOR. I will therefore open a second connection.
    connection conn2{ioc};
-   net::connect(conn2.next_layer(), endpoints);
 
    std::string const msg = "test-check-health";
 
@@ -108,12 +107,12 @@ BOOST_AUTO_TEST_CASE(check_health)
    generic_response resp;
    push_callback{&conn, &conn2, &resp, &req2}(); // Starts reading pushes.
 
-   conn.async_run([](auto ec){
+   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       std::cout << "B" << std::endl;
       BOOST_TEST(!!ec);
    });
 
-   conn2.async_run([](auto ec){
+   async_run(conn2, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       std::cout << "C" << std::endl;
       BOOST_TEST(!!ec);
    });

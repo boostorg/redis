@@ -13,7 +13,7 @@
 #include <boost/redis.hpp>
 #include <boost/redis/src.hpp>
 #include "common.hpp"
-#include "../examples/common/common.hpp"
+#include "../examples/start.hpp"
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
@@ -22,6 +22,9 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using namespace std::chrono_literals;
 
 auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
@@ -74,13 +77,12 @@ auto async_echo_stress() -> net::awaitable<void>
    for (int i = 0; i < sessions; ++i) 
       net::co_spawn(ex, echo_session(conn, std::to_string(i), msgs), net::detached);
 
-   co_await connect(conn, "127.0.0.1", "6379");
-   co_await conn->async_run();
+   co_await async_run(*conn);
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)
 {
-   run(async_echo_stress());
+   start(async_echo_stress());
 }
 
 #else

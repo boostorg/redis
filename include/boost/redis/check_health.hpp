@@ -4,17 +4,22 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_RUN_HPP
-#define BOOST_REDIS_RUN_HPP
+#ifndef BOOST_REDIS_CHECK_HEALTH_HPP
+#define BOOST_REDIS_CHECK_HEALTH_HPP
 
 // Has to included before promise.hpp to build on msvc.
+#include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
+#include <boost/redis/operation.hpp>
+#include <boost/redis/detail/read_ops.hpp>
 #include <boost/asio/experimental/promise.hpp>
 #include <boost/asio/experimental/use_promise.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <memory>
 #include <chrono>
+#include <optional>
 
-namespace boost::redis::experimental {
+namespace boost::redis {
 namespace detail {
 
 template <class Connection>
@@ -23,14 +28,17 @@ private:
    using executor_type = typename Connection::executor_type;
 
    struct state {
-      using clock_type = std::chrono::steady_clock;
-      using clock_traits_type = asio::wait_traits<clock_type>;
-      using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
       using promise_type = asio::experimental::promise<void(system::error_code, std::size_t), executor_type>;
+      using timer_type =
+         asio::basic_waitable_timer<
+            std::chrono::steady_clock,
+            asio::wait_traits<std::chrono::steady_clock>,
+            executor_type>;
+
 
       timer_type timer_;
-      request req_;
-      generic_response resp_;
+      redis::request req_;
+      redis::generic_response resp_;
       std::optional<promise_type> prom_;
       std::chrono::steady_clock::duration interval_;
 
@@ -124,6 +132,6 @@ async_check_health(
       >(detail::check_health_op<Connection>{conn, msg, interval}, token, conn);
 }
 
-} // boost::redis::experimental
+} // boost::redis
 
-#endif // BOOST_REDIS_RUN_HPP
+#endif // BOOST_REDIS_CHECK_HEALTH_HPP

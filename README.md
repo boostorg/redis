@@ -831,6 +831,9 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 * Adds a function that performs health checks, see
   `boost::redis::experimental::async_check_health`.
 
+* Adds non-member `async_run` function that resolves, connects and
+  calls member `async_run` on a connection object.
+
 ### v1.4.0-1
 
 * Renames `retry_on_connection_lost` to `cancel_if_unresponded`.  (v1.4.1)

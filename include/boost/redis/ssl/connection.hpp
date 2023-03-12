@@ -122,7 +122,7 @@ public:
     *
     *  See redis::connection::cancel for more information.
     */
-   auto cancel(operation op) -> std::size_t
+   auto cancel(operation op = operation::all) -> std::size_t
       { return base_type::cancel(op); }
 
    auto& lowest_layer() noexcept { return stream_.lowest_layer(); }

@@ -11,6 +11,7 @@
 #include <boost/redis/connection.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
+#include <boost/redis/run.hpp>
 
 /** @defgroup high-level-api Reference
  *

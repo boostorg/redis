@@ -6,19 +6,18 @@
 
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/redis.hpp>
 #include <map>
 #include <vector>
-
-#include "common/common.hpp"
+#include <iostream>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-using namespace net::experimental::awaitable_operators;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 void print(std::map<std::string, std::string> const& cont)
 {
@@ -34,8 +33,7 @@ void print(std::vector<int> const& cont)
 
 auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
-   co_await connect(conn, host, port);
-   co_await conn->async_run();
+   co_await async_run(*conn, host, port);
 }
 
 // Stores the content of some STL containers in Redis.

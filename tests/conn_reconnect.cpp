@@ -14,13 +14,16 @@
 #include <boost/redis.hpp>
 #include <boost/redis/src.hpp>
 #include "common.hpp"
-#include "../examples/common/common.hpp"
+#include "../examples/start.hpp"
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
+using boost::redis::async_run;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using namespace std::chrono_literals;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace boost::asio::experimental::awaitable_operators;
@@ -32,16 +35,14 @@ net::awaitable<void> test_reconnect_impl()
    request req;
    req.push("QUIT");
 
-   auto const endpoints = resolve();
    connection conn{ex};
 
    int i = 0;
    for (; i < 5; ++i) {
       boost::system::error_code ec1, ec2;
-      net::connect(conn.next_layer(), endpoints);
       co_await (
          conn.async_exec(req, ignore, net::redirect_error(net::use_awaitable, ec1)) &&
-         conn.async_run(net::redirect_error(net::use_awaitable, ec2))
+         async_run(conn, "127.0.0.1", "6379", 10s, 10s, net::redirect_error(net::use_awaitable, ec2))
       );
 
       BOOST_TEST(!ec1);
@@ -77,11 +78,10 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    req1.push("HELLO", 3);
    req1.push("BLPOP", "any", 0);
 
-   co_await connect(conn, "127.0.0.1", "6379");
    st.expires_after(std::chrono::seconds{1});
    co_await (
       conn->async_exec(req1, ignore, redir(ec1)) ||
-      conn->async_run(redir(ec2)) ||
+      async_run(*conn, "127.0.0.1", "6379", 10s, 10s, redir(ec2)) ||
       st.async_wait(redir(ec3))
    );
 
@@ -96,11 +96,10 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    req2.push("HELLO", 3);
    req2.push("QUIT");
 
-   co_await connect(conn, "127.0.0.1", "6379");
    st.expires_after(std::chrono::seconds{1});
    co_await (
       conn->async_exec(req1, ignore, net::redirect_error(net::use_awaitable, ec1)) ||
-      conn->async_run(net::redirect_error(net::use_awaitable, ec2)) ||
+      async_run(*conn, "127.0.0.1", "6379", 10s, 10s, net::redirect_error(net::use_awaitable, ec2)) ||
       st.async_wait(net::redirect_error(net::use_awaitable, ec3))
    );
    std::cout << "ccc" << std::endl;
@@ -111,7 +110,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 
 BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
 {
-   run(async_test_reconnect_timeout());
+   start(async_test_reconnect_timeout());
 }
 #else
 int main(){}

@@ -4,12 +4,11 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <iostream>
 #include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/redis.hpp>
-
-#include "common/common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
@@ -17,6 +16,8 @@ using endpoints = net::ip::tcp::resolver::results_type;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 auto redir(boost::system::error_code& ec)
    { return net::redirect_error(net::use_awaitable, ec); }
@@ -40,8 +41,7 @@ auto resolve_master_address(std::vector<address> const& endpoints) -> net::await
    response<std::optional<std::array<std::string, 2>>, ignore_t> addr;
    for (auto ep : endpoints) {
       boost::system::error_code ec;
-      co_await connect(conn, ep.host, ep.port);
-      co_await (conn->async_run() && conn->async_exec(req, addr, redir(ec)));
+      co_await (async_run(*conn, ep.host, ep.port) && conn->async_exec(req, addr, redir(ec)));
       conn->reset_stream();
       if (std::get<0>(addr))
          co_return address{std::get<0>(addr).value().value().at(0), std::get<0>(addr).value().value().at(1)};

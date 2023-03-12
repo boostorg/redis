@@ -27,6 +27,8 @@ using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::error;
+using boost::redis::async_run;
+using namespace std::chrono_literals;
 
 BOOST_AUTO_TEST_CASE(no_ignore_error)
 {
@@ -37,16 +39,13 @@ BOOST_AUTO_TEST_CASE(no_ignore_error)
 
    net::io_context ioc;
 
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    conn.async_exec(req, ignore, [&](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, error::resp3_simple_error);
       conn.cancel(redis::operation::run);
    });
-
-   conn.async_run([](auto ec){
+   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 
@@ -66,9 +65,7 @@ BOOST_AUTO_TEST_CASE(has_diagnostic)
 
    net::io_context ioc;
 
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    response<std::string, std::string> resp;
    conn.async_exec(req, resp, [&](auto ec, auto){
@@ -87,8 +84,7 @@ BOOST_AUTO_TEST_CASE(has_diagnostic)
 
       conn.cancel(redis::operation::run);
    });
-
-   conn.async_run([](auto ec){
+   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 
@@ -111,9 +107,7 @@ BOOST_AUTO_TEST_CASE(resp3_error_in_cmd_pipeline)
    response<std::string> resp2;
 
    net::io_context ioc;
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    auto c2 = [&](auto ec, auto)
    {
@@ -139,8 +133,7 @@ BOOST_AUTO_TEST_CASE(resp3_error_in_cmd_pipeline)
    };
 
    conn.async_exec(req1, resp1, c1);
-
-   conn.async_run([](auto ec){
+   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 
@@ -171,9 +164,7 @@ BOOST_AUTO_TEST_CASE(error_in_transaction)
 
    net::io_context ioc;
 
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    conn.async_exec(req, resp, [&](auto ec, auto){
       BOOST_TEST(!ec);
@@ -205,8 +196,7 @@ BOOST_AUTO_TEST_CASE(error_in_transaction)
 
       conn.cancel(redis::operation::run);
    });
-
-   conn.async_run([](auto ec){
+   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 
@@ -226,9 +216,7 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
    req2.push("SUBSCRIBE"); // Wrong command synthax.
 
    net::io_context ioc;
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    auto c2 = [&](auto ec, auto)
    {
@@ -258,8 +246,7 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
    };
 
    conn.async_receive(gresp, c3);
-
-   conn.async_run([](auto ec){
+   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       std::cout << "async_run" << std::endl;
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });

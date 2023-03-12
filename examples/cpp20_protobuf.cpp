@@ -8,7 +8,6 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/redis.hpp>
 #include <iostream>
-#include "common/common.hpp"
 #include "protobuf.hpp"
 
 // See the definition in person.proto. This header is automatically
@@ -21,6 +20,8 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::operation;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 // The protobuf type described in examples/person.proto
 using tutorial::person;
@@ -42,8 +43,7 @@ using tutorial::boost_redis_from_bulk;
 
 auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
-   co_await connect(conn, host, port);
-   co_await conn->async_run();
+   co_await async_run(*conn, host, port);
 }
 
 net::awaitable<void> co_main(std::string host, std::string port)

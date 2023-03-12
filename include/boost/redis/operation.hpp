@@ -22,6 +22,8 @@ enum class operation {
    run,
    /// Refers to `connection::async_receive` operations.
    receive,
+   /// Refers to all operations.
+   all,
 };
 
 } // boost::redis

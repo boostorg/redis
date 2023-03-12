@@ -8,8 +8,7 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/redis.hpp>
-#include <boost/redis/experimental/run.hpp>
-#include "common/common.hpp"
+#include <boost/redis/check_health.hpp>
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
@@ -18,7 +17,9 @@ using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::accep
 using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::experimental::async_check_health;
+using boost::redis::async_check_health;
+using boost::redis::async_run;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
@@ -55,8 +56,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    request req;
    req.push("HELLO", 3);
 
-   co_await connect(conn, host, port);
-   co_await ((conn->async_run() || listener(conn) || async_check_health(*conn) ||
+   co_await ((async_run(*conn, host, port) || listener(conn) || async_check_health(*conn) ||
             sig.async_wait()) && conn->async_exec(req));
 }
 

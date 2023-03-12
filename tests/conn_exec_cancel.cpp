@@ -14,7 +14,7 @@
 #include <boost/redis.hpp>
 #include <boost/redis/src.hpp>
 #include "common.hpp"
-#include "../examples/common/common.hpp"
+#include "../examples/start.hpp"
 
 // NOTE1: Sends hello separately. I have observed that if hello and
 // blpop are sent toguether, Redis will send the response of hello
@@ -30,6 +30,9 @@ using boost::redis::response;
 using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using namespace std::chrono_literals;
 
 auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 {
@@ -37,9 +40,8 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 
    generic_response gresp;
    auto conn = std::make_shared<connection>(ex);
-   co_await connect(conn, "127.0.0.1", "6379");
 
-   conn->async_run([conn](auto ec) {
+   async_run(*conn, "127.0.0.1", "6379", 10s, 10s, [conn](auto ec) {
       std::cout << "async_run: " << ec.message() << std::endl;
       BOOST_TEST(!ec);
    });
@@ -85,11 +87,10 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   co_await connect(conn, "127.0.0.1", "6379");
 
    // Calls async_run separately from the group of ops below to avoid
    // having it canceled when the timer fires.
-   conn->async_run([conn](auto ec) {
+   async_run(*conn, "127.0.0.1", "6379", 10s, 10s, [conn](auto ec) {
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
    });
 
@@ -118,20 +119,18 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
 
 BOOST_AUTO_TEST_CASE(test_ignore_explicit_cancel_of_req_written)
 {
-   run(async_ignore_explicit_cancel_of_req_written());
+   start(async_ignore_explicit_cancel_of_req_written());
 }
 
 BOOST_AUTO_TEST_CASE(test_ignore_implicit_cancel_of_req_written)
 {
-   run(ignore_implicit_cancel_of_req_written());
+   start(ignore_implicit_cancel_of_req_written());
 }
 
 BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
 {
    net::io_context ioc;
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    request req0;
    req0.push("HELLO", 3);
@@ -156,7 +155,7 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
 
    conn.async_exec(req0, ignore, c0);
 
-   conn.async_run([](auto ec){
+   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
    });
 

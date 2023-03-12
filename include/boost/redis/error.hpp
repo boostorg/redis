@@ -63,6 +63,12 @@ enum class error
 
    /// There is no stablished connection.
    not_connected,
+
+   /// Resolve timeout
+   resolve_timeout,
+
+   /// Connect timeout
+   connect_timeout,
 };
 
 /** \internal

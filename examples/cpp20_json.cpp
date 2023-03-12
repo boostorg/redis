@@ -12,7 +12,6 @@
 #include <boost/describe.hpp>
 #include <string>
 #include <iostream>
-#include "common/common.hpp"
 #include "json.hpp"
 
 // Include this in no more than one .cpp file.
@@ -25,6 +24,8 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::operation;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 // Struct that will be stored in Redis using json serialization. 
 struct user {
@@ -45,8 +46,7 @@ void boost_redis_from_bulk(user& u, std::string_view sv, boost::system::error_co
 
 auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
 {
-   co_await connect(conn, host, port);
-   co_await conn->async_run();
+   co_await async_run(*conn, host, port);
 }
 
 net::awaitable<void> co_main(std::string host, std::string port)

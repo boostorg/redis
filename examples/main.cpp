@@ -8,7 +8,7 @@
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-#include "common.hpp"
+#include "start.hpp"
 
 extern boost::asio::awaitable<void> co_main(std::string, std::string);
 
@@ -22,7 +22,7 @@ auto main(int argc, char * argv[]) -> int
       port = argv[2];
    }
 
-   return run(co_main(host, port));
+   return start(co_main(host, port));
 }
 
 #else // defined(BOOST_ASIO_HAS_CO_AWAIT)

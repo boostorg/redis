@@ -23,6 +23,18 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
 
+using endpoints = net::ip::tcp::resolver::results_type;
+
+auto
+resolve(
+   std::string const& host = "127.0.0.1",
+   std::string const& port = "6379") -> endpoints
+{
+   net::io_context ioc;
+   net::ip::tcp::resolver resv{ioc};
+   return resv.resolve(host, port);
+}
+
 struct endpoint {
    std::string host;
    std::string port;
