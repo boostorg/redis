@@ -4,10 +4,13 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/redis.hpp>
+#include <boost/redis/run.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
 #include <iostream>
+
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
 using boost::redis::request;

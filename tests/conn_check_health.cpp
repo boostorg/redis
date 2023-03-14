@@ -4,18 +4,14 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <boost/asio.hpp>
+#include <boost/redis/run.hpp>
+#include <boost/redis/check_health.hpp>
 #include <boost/system/errc.hpp>
-
 #define BOOST_TEST_MODULE check-health
 #include <boost/test/included/unit_test.hpp>
-
-#include <boost/redis.hpp>
-#include <boost/redis/check_health.hpp>
-#include <boost/redis/src.hpp>
-
+#include <iostream>
 #include "common.hpp"
+#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;

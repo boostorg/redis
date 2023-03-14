@@ -4,11 +4,14 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/asio/experimental/awaitable_operators.hpp>
-#include <boost/redis.hpp>
+#include <boost/redis/run.hpp>
 #include <boost/redis/check_health.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/signal_set.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
+
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;

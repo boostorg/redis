@@ -4,11 +4,10 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <map>
-#include <iostream>
-#include <optional>
-#include <sstream>
-
+#include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
+#include <boost/redis/adapter/adapt.hpp>
+#include <boost/redis/detail/read.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/redirect_error.hpp>
@@ -18,8 +17,11 @@
 #include <boost/beast/_experimental/test/stream.hpp>
 #define BOOST_TEST_MODULE low level
 #include <boost/test/included/unit_test.hpp>
+#include <map>
+#include <iostream>
+#include <optional>
+#include <sstream>
 
-#include <boost/redis.hpp>
 #include <boost/redis/src.hpp>
 
 // TODO: Test with empty strings.

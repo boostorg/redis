@@ -4,12 +4,15 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/redis.hpp>
+#include <boost/redis/adapter/adapt.hpp>
+#include <boost/redis/detail/read.hpp>
 #include <boost/redis/detail/write.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/connect.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <string>
 #include <iostream>
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
 namespace redis = boost::redis;

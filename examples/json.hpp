@@ -7,7 +7,9 @@
 #ifndef BOOST_REDIS_JSON_HPP
 #define BOOST_REDIS_JSON_HPP
 
-#include <boost/json.hpp>
+#include <boost/json/serialize.hpp>
+#include <boost/json/parse.hpp>
+#include <boost/json/value_from.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 
 namespace boost::redis::json

@@ -4,16 +4,18 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <iostream>
-namespace net = boost::asio;
-#if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
-#include <boost/asio/experimental/awaitable_operators.hpp>
-#include <boost/redis.hpp>
+#include <boost/redis/run.hpp>
 #include <boost/redis/check_health.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/signal_set.hpp>
+#include <boost/asio/posix/stream_descriptor.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <unistd.h>
+#include <iostream>
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 
+namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
 using stream_descriptor = net::use_awaitable_t<>::as_default_on_t<net::posix::stream_descriptor>;
 using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
@@ -21,7 +23,7 @@ using boost::redis::request;
 using boost::redis::generic_response;
 using boost::redis::async_check_health;
 using boost::redis::async_run;
-using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using connection = net::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 // Chat over Redis pubsub. To test, run this program from multiple
 // terminals and type messages to stdin.

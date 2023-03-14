@@ -7,7 +7,7 @@
 #ifndef BOOST_REDIS_EXAMPLES_START_HPP
 #define BOOST_REDIS_EXAMPLES_START_HPP
 
-#include <boost/asio.hpp>
+#include <boost/asio/awaitable.hpp>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 

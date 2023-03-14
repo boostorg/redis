@@ -4,11 +4,12 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
+#include "start.hpp"
+#include <boost/asio/awaitable.hpp>
+#include <string>
+#include <iostream>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
-
-#include "start.hpp"
 
 extern boost::asio::awaitable<void> co_main(std::string, std::string);
 

@@ -25,6 +25,7 @@ namespace boost::redis {
  *  2. Connects to one of the endpoints from 1.
  *  3. Calls async_run on the underlying connection.
  *
+ *  @param conn A connection to Redis.
  *  @param host Redis host to connect to.
  *  @param port Redis port to connect to.
  *  @param resolve_timeout Time the resolve operation is allowed to take.

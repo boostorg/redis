@@ -4,14 +4,17 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/operation.hpp>
+#include <boost/redis/request.hpp>
+#include <boost/redis/check_health.hpp>
+#include <boost/redis/run.hpp>
+#include <boost/asio/deferred.hpp>
+#include <boost/asio/use_future.hpp>
 #include <tuple>
 #include <string>
 #include <chrono>
 #include <thread>
 #include <iostream>
-#include <boost/asio.hpp>
-#include <boost/redis.hpp>
-#include <boost/redis/check_health.hpp>
 
 // Include this in no more than one .cpp file.
 #include <boost/redis/src.hpp>

@@ -4,17 +4,19 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#define BOOST_JSON_NO_LIB
-#define BOOST_CONTAINER_NO_LIB
-#include <boost/redis.hpp>
+#include <boost/redis/run.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/co_spawn.hpp>
 #include <boost/describe.hpp>
 #include <string>
 #include <iostream>
 #include "json.hpp"
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 // Include this in no more than one .cpp file.
+#define BOOST_JSON_NO_LIB
+#define BOOST_CONTAINER_NO_LIB
 #include <boost/json/src.hpp>
 
 namespace net = boost::asio;

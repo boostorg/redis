@@ -4,17 +4,16 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <boost/asio.hpp>
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
-
+#include <boost/redis/run.hpp>
+#include <boost/asio/detached.hpp>
 #define BOOST_TEST_MODULE conn-reconnect
 #include <boost/test/included/unit_test.hpp>
-
-#include <boost/redis.hpp>
-#include <boost/redis/src.hpp>
+#include <iostream>
 #include "common.hpp"
 #include "../examples/start.hpp"
+#include <boost/redis/src.hpp>
+
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;

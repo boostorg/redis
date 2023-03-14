@@ -10,6 +10,7 @@
 #include <boost/redis/detail/connection_base.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/ssl/stream.hpp>
 
 #include <chrono>
 #include <memory>

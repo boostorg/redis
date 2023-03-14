@@ -4,17 +4,17 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <boost/asio.hpp>
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
+#include <boost/redis/run.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #define BOOST_TEST_MODULE conn-exec-cancel
 #include <boost/test/included/unit_test.hpp>
-#include <boost/redis.hpp>
-#include <boost/redis/src.hpp>
 #include "common.hpp"
 #include "../examples/start.hpp"
+#include <iostream>
+#include <boost/redis/src.hpp>
+
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
 
 // NOTE1: Sends hello separately. I have observed that if hello and
 // blpop are sent toguether, Redis will send the response of hello

@@ -4,16 +4,13 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <boost/asio.hpp>
+#include <boost/redis/run.hpp>
 #include <boost/system/errc.hpp>
-
 #define BOOST_TEST_MODULE conn-quit
 #include <boost/test/included/unit_test.hpp>
-
-#include <boost/redis.hpp>
-#include <boost/redis/src.hpp>
 #include "common.hpp"
+#include <iostream>
+#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
 

@@ -4,12 +4,13 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/asio/experimental/awaitable_operators.hpp>
-#include <boost/redis.hpp>
+#include <boost/redis/run.hpp>
 #include <boost/redis/check_health.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
+#include <iostream>
+
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
@@ -18,7 +19,7 @@ using boost::redis::request;
 using boost::redis::async_run;
 using boost::redis::generic_response;
 using boost::redis::async_check_health;
-using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using connection = net::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 /* This example will subscribe and read pushes indefinitely.
  *

@@ -5,7 +5,6 @@
  */
 
 #include <iostream>
-#include <boost/asio.hpp>
 #include <boost/redis.hpp>
 #include <boost/redis/src.hpp>
 

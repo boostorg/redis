@@ -8,12 +8,13 @@
 #define BOOST_REDIS_RUNNER_HPP
 
 // Has to included before promise.hpp to build on msvc.
-#include <boost/redis/detail/read_ops.hpp>
+#include <boost/redis/detail/helper.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/consign.hpp>
 #include <boost/asio/connect.hpp>
+#include <boost/asio/coroutine.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <memory>
@@ -144,16 +145,16 @@ struct runner_op {
          runner->timer_.expires_after(resolve_timeout);
          BOOST_ASIO_CORO_YIELD
          runner->async_resolve(host, port, std::move(self));
-         AEDIS_CHECK_OP0(;)
+         BOOST_REDIS_CHECK_OP0(;)
 
          runner->timer_.expires_after(connect_timeout);
          BOOST_ASIO_CORO_YIELD
          runner->async_connect(conn->next_layer(), std::move(self));
-         AEDIS_CHECK_OP0(;)
+         BOOST_REDIS_CHECK_OP0(;)
 
          BOOST_ASIO_CORO_YIELD
          conn->async_run(std::move(self));
-         AEDIS_CHECK_OP0(;)
+         BOOST_REDIS_CHECK_OP0(;)
          self.complete({});
       }
    }

@@ -8,7 +8,7 @@
 #define BOOST_REDIS_RESP3_PARSER_HPP
 
 #include <boost/redis/resp3/node.hpp>
-
+#include <boost/system/error_code.hpp>
 #include <array>
 #include <limits>
 #include <string_view>
@@ -48,7 +48,7 @@ public:
    consume(
       char const* data,
       std::size_t n,
-      boost::system::error_code& ec) -> std::pair<node_type, std::size_t>;
+      system::error_code& ec) -> std::pair<node_type, std::size_t>;
 
    // Returns true when the parser is done with the current message.
    [[nodiscard]] auto done() const noexcept

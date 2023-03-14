@@ -5,16 +5,16 @@
  */
 
 // Must come before any asio header, otherwise build fails on msvc.
+
+#include <boost/redis/run.hpp>
+#include <boost/redis/check_health.hpp>
+#include <boost/asio/as_tuple.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <tuple>
 #include <iostream>
-
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/redis.hpp>
-#include <boost/redis/check_health.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
-
 #include "../examples/start.hpp"
+
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;

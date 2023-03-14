@@ -4,10 +4,13 @@
  * accompanying file LICENSE.txt)
  */
 
-#include "start.hpp"
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/io_context.hpp>
 #include <iostream>
+#include "start.hpp"
+
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
 

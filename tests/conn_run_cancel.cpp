@@ -4,18 +4,17 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <boost/asio.hpp>
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
+#include <boost/redis/run.hpp>
+#include <boost/asio/detached.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
-
 #define BOOST_TEST_MODULE conn-run-cancel
 #include <boost/test/included/unit_test.hpp>
-
-#include <boost/redis.hpp>
-#include <boost/redis/src.hpp>
+#include <iostream>
 #include "common.hpp"
+#include <boost/redis/src.hpp>
+
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
 
 namespace net = boost::asio;
 

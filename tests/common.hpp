@@ -1,6 +1,8 @@
 #pragma once
 
-#include <boost/asio.hpp>
+#include <boost/system/error_code.hpp>
+#include <boost/asio/redirect_error.hpp>
+#include <boost/asio/use_awaitable.hpp>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 namespace net = boost::asio;
