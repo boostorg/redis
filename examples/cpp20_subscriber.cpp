@@ -19,6 +19,7 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
+using namespace std::chrono_literals;
 using boost::redis::request;
 using boost::redis::generic_response;
 using boost::redis::logger;
@@ -26,7 +27,6 @@ using boost::redis::config;
 using boost::system::error_code;
 using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 using signal_set = net::deferred_t::as_default_on_t<net::signal_set>;
-using namespace std::chrono_literals;
 
 /* This example will subscribe and read pushes indefinitely.
  *
