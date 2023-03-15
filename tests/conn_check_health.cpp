@@ -22,6 +22,7 @@ using boost::redis::operation;
 using boost::redis::generic_response;
 using boost::redis::async_check_health;
 using boost::redis::async_run;
+using boost::redis::address;
 using namespace std::chrono_literals;
 
 std::chrono::seconds const interval{1};
@@ -103,12 +104,12 @@ BOOST_AUTO_TEST_CASE(check_health)
    generic_response resp;
    push_callback{&conn, &conn2, &resp, &req2}(); // Starts reading pushes.
 
-   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
+   async_run(conn, address{}, 10s, 10s, [](auto ec){
       std::cout << "B" << std::endl;
       BOOST_TEST(!!ec);
    });
 
-   async_run(conn2, "127.0.0.1", "6379", 10s, 10s, [](auto ec){
+   async_run(conn2, address{}, 10s, 10s, [](auto ec){
       std::cout << "C" << std::endl;
       BOOST_TEST(!!ec);
    });

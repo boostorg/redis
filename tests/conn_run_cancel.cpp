@@ -7,7 +7,6 @@
 #include <boost/redis/run.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/system/errc.hpp>
-#include <boost/asio/experimental/as_tuple.hpp>
 #define BOOST_TEST_MODULE conn-run-cancel
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
@@ -15,6 +14,8 @@
 #include <boost/redis/src.hpp>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
+#include <boost/asio/experimental/awaitable_operators.hpp>
+#include <boost/asio/experimental/as_tuple.hpp>
 
 namespace net = boost::asio;
 
@@ -26,9 +27,9 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::async_run;
+using boost::redis::address;
 using namespace std::chrono_literals;
 
-#include <boost/asio/experimental/awaitable_operators.hpp>
 using namespace net::experimental::awaitable_operators;
 
 auto async_cancel_run_with_timer() -> net::awaitable<void>
@@ -40,7 +41,8 @@ auto async_cancel_run_with_timer() -> net::awaitable<void>
    st.expires_after(std::chrono::seconds{1});
 
    boost::system::error_code ec1, ec2;
-   co_await (async_run(conn, "127.0.0.1", "6379", 10s, 10s, redir(ec1)) || st.async_wait(redir(ec2)));
+   address addr;
+   co_await (async_run(conn, addr, 10s, 10s, redir(ec1)) || st.async_wait(redir(ec2)));
 
    BOOST_CHECK_EQUAL(ec1, boost::asio::error::basic_errors::operation_aborted);
    BOOST_TEST(!ec2);
@@ -64,7 +66,8 @@ async_check_cancellation_not_missed(int n, std::chrono::milliseconds ms) -> net:
    for (auto i = 0; i < n; ++i) {
       timer.expires_after(ms);
       boost::system::error_code ec1, ec2;
-      co_await (async_run(conn, "127.0.0.1", "6379", 10s, 10s, redir(ec1)) || timer.async_wait(redir(ec2)));
+      address addr;
+      co_await (async_run(conn, addr, 10s, 10s, redir(ec1)) || timer.async_wait(redir(ec2)));
       BOOST_CHECK_EQUAL(ec1, boost::asio::error::basic_errors::operation_aborted);
       std::cout << "Counter: " << i << std::endl;
    }
@@ -155,7 +158,8 @@ BOOST_AUTO_TEST_CASE(reset_before_run_completes)
       BOOST_TEST(!ec);
       conn.reset_stream();
    });
-   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [&](auto ec){
+   address addr;
+   async_run(conn, addr, 10s, 10s, [&](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::operation_aborted);
    });
 
@@ -163,5 +167,8 @@ BOOST_AUTO_TEST_CASE(reset_before_run_completes)
 }
 
 #else
-int main(){}
+BOOST_AUTO_TEST_CASE(dummy)
+{
+   BOOST_TEST(true);
+}
 #endif

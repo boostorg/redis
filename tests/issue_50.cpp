@@ -9,12 +9,12 @@
 #include <boost/redis/run.hpp>
 #include <boost/redis/check_health.hpp>
 #include <boost/asio/as_tuple.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <tuple>
 #include <iostream>
 #include "../examples/start.hpp"
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/experimental/awaitable_operators.hpp>
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
@@ -24,6 +24,7 @@ using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::async_check_health;
 using boost::redis::async_run;
+using boost::redis::address;
 using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 using namespace std::chrono_literals;
 
@@ -57,7 +58,7 @@ auto periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
   std::cout << "Periodic task done!" << std::endl;
 }
 
-auto co_main(std::string host, std::string port) -> net::awaitable<void>
+auto co_main(address const& addr) -> net::awaitable<void>
 {
   auto ex = co_await net::this_coro::executor;
   auto conn = std::make_shared<connection>(ex);
@@ -69,7 +70,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
 
   // The loop will reconnect on connection lost. To exit type Ctrl-C twice.
   for (int i = 0; i < 10; ++i) {
-    co_await ((async_run(*conn, host, port) || receiver(conn) || async_check_health(*conn) || periodic_task(conn)) &&
+    co_await ((async_run(*conn, addr) || receiver(conn) || async_check_health(*conn) || periodic_task(conn)) &&
               conn->async_exec(req));
 
     conn->reset_stream();

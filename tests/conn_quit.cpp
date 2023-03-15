@@ -21,6 +21,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::async_run;
+using boost::redis::address;
 using namespace std::chrono_literals;
 
 BOOST_AUTO_TEST_CASE(test_quit1)
@@ -37,7 +38,7 @@ BOOST_AUTO_TEST_CASE(test_quit1)
       BOOST_TEST(!ec);
    });
 
-   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [&](auto ec){
+   async_run(conn, address{}, 10s, 10s, [&](auto ec){
       BOOST_TEST(!ec);
    });
 
@@ -88,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_quit2)
 
    conn.async_exec(req1, ignore, c1);
 
-   async_run(conn, "127.0.0.1", "6379", 10s, 10s, [&](auto ec){
+   async_run(conn, address{}, 10s, 10s, [&](auto ec){
       BOOST_TEST(!ec);
    });
 

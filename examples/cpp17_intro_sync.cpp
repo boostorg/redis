@@ -26,6 +26,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
+using boost::redis::address;
 using boost::redis::async_check_health;
 using namespace std::chrono_literals;
 
@@ -41,12 +42,11 @@ auto exec(std::shared_ptr<connection> conn, request const& req, Response& resp)
 auto main(int argc, char * argv[]) -> int
 {
    try {
-      std::string host = "127.0.0.1";
-      std::string port = "6379";
+      address addr;
 
       if (argc == 3) {
-         host = argv[1];
-         port = argv[2];
+         addr.host = argv[1];
+         addr.port = argv[2];
       }
 
       net::io_context ioc{1};
@@ -55,8 +55,8 @@ auto main(int argc, char * argv[]) -> int
 
       // Starts a thread that will can io_context::run on which the
       // connection will run.
-      std::thread t{[&ioc, conn, host, port]() {
-         async_run(*conn, host, port, 10s, 10s, [conn](auto){
+      std::thread t{[&ioc, conn, addr]() {
+         async_run(*conn, addr, 10s, 10s, [conn](auto){
             conn->cancel();
          });
 

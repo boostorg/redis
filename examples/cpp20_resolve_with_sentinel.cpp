@@ -7,9 +7,10 @@
 #include <boost/redis/run.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/redirect_error.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <iostream>
+
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/experimental/awaitable_operators.hpp>
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
@@ -18,20 +19,16 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
+using boost::redis::address;
 using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 auto redir(boost::system::error_code& ec)
    { return net::redirect_error(net::use_awaitable, ec); }
 
-struct address {
-   std::string host;
-   std::string port;
-};
-
 // For more info see
 // - https://redis.io/docs/manual/sentinel.
 // - https://redis.io/docs/reference/sentinel-clients.
-auto resolve_master_address(std::vector<address> const& endpoints) -> net::awaitable<address>
+auto resolve_master_address(std::vector<address> const& addresses) -> net::awaitable<address>
 {
    request req;
    req.push("SENTINEL", "get-master-addr-by-name", "mymaster");
@@ -39,29 +36,29 @@ auto resolve_master_address(std::vector<address> const& endpoints) -> net::await
 
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
 
-   response<std::optional<std::array<std::string, 2>>, ignore_t> addr;
-   for (auto ep : endpoints) {
+   response<std::optional<std::array<std::string, 2>>, ignore_t> resp;
+   for (auto addr : addresses) {
       boost::system::error_code ec;
-      co_await (async_run(*conn, ep.host, ep.port) && conn->async_exec(req, addr, redir(ec)));
+      co_await (async_run(*conn, addr) && conn->async_exec(req, resp, redir(ec)));
       conn->reset_stream();
-      if (std::get<0>(addr))
-         co_return address{std::get<0>(addr).value().value().at(0), std::get<0>(addr).value().value().at(1)};
+      if (std::get<0>(resp))
+         co_return address{std::get<0>(resp).value().value().at(0), std::get<0>(resp).value().value().at(1)};
    }
 
    co_return address{};
 }
 
-auto co_main(std::string host, std::string port) -> net::awaitable<void>
+auto co_main(address const& addr) -> net::awaitable<void>
 {
    // A list of sentinel addresses from which only one is responsive.
    // This simulates sentinels that are down.
-   std::vector<address> const endpoints
-   { {"foo", "26379"}
-   , {"bar", "26379"}
-   , {host, port}
+   std::vector<address> const addresses
+   { address{"foo", "26379"}
+   , address{"bar", "26379"}
+   , addr
    };
 
-   auto const ep = co_await resolve_master_address(endpoints);
+   auto const ep = co_await resolve_master_address(addresses);
 
    std::clog
       << "Host: " << ep.host << "\n"

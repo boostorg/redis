@@ -14,6 +14,7 @@ namespace net = boost::asio;
 
 using connection = boost::redis::connection;
 using boost::redis::async_run;
+using boost::redis::address;
 using boost::system::error_code;
 using namespace std::chrono_literals;
 
@@ -29,7 +30,7 @@ BOOST_AUTO_TEST_CASE(resolve_bad_host)
    net::io_context ioc;
 
    connection conn{ioc};
-   async_run(conn, "Atibaia", "6379", 1000s, 1000s, [](auto ec){
+   async_run(conn, address{{"Atibaia"}, {"6379"}}, 1000s, 1000s, [](auto ec){
       BOOST_TEST(is_host_not_found(ec));
    });
 
@@ -41,7 +42,7 @@ BOOST_AUTO_TEST_CASE(resolve_with_timeout)
    net::io_context ioc;
 
    connection conn{ioc};
-   async_run(conn, "Atibaia", "6379", 1ms, 1ms, [](auto ec){
+   async_run(conn, address{{"Atibaia"}, {"6379"}}, 1ms, 1ms, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::resolve_timeout);
    });
 
@@ -53,7 +54,7 @@ BOOST_AUTO_TEST_CASE(connect_bad_port)
    net::io_context ioc;
 
    connection conn{ioc};
-   async_run(conn, "127.0.0.1", "1", 1000s, 10s, [](auto ec){
+   async_run(conn, address{{"127.0.0.1"}, {"1"}}, 1000s, 10s, [](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::connection_refused);
    });
 
@@ -65,7 +66,7 @@ BOOST_AUTO_TEST_CASE(connect_with_timeout)
    net::io_context ioc;
 
    connection conn{ioc};
-   async_run(conn, "example.com", "1", 10s, 1ms, [](auto ec){
+   async_run(conn, address{{"example.com"}, {"1"}}, 10s, 1ms, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::connect_timeout);
    });
 

@@ -10,6 +10,7 @@
 // Has to included before promise.hpp to build on msvc.
 #include <boost/redis/detail/runner.hpp>
 #include <boost/redis/connection.hpp>
+#include <boost/redis/address.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/consign.hpp>
 #include <memory>
@@ -39,21 +40,18 @@ template <
 auto
 async_run(
    basic_connection<Socket>& conn,
-   std::string_view host = "127.0.0.1",
-   std::string_view port = "6379",
+   address addr = address{"127.0.0.1", "6379"},
    std::chrono::steady_clock::duration resolve_timeout = std::chrono::seconds{10},
    std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10},
    CompletionToken token = CompletionToken{})
 {
    using executor_type = typename Socket::executor_type;
    using runner_type = detail::runner<executor_type>;
-   auto runner = std::make_shared<runner_type>(conn.get_executor());
+   auto runner = std::make_shared<runner_type>(conn.get_executor(), addr);
 
    return
       runner->async_run(
          conn,
-         host,
-         port,
          resolve_timeout,
          connect_timeout,
          asio::consign(std::move(token), runner));

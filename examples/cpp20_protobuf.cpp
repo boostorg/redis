@@ -24,6 +24,7 @@ using boost::redis::response;
 using boost::redis::operation;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
+using boost::redis::address;
 using connection = net::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 // The protobuf type described in examples/person.proto
@@ -44,16 +45,16 @@ void boost_redis_from_bulk(person& u, std::string_view sv, boost::system::error_
 using tutorial::boost_redis_to_bulk;
 using tutorial::boost_redis_from_bulk;
 
-auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
+auto run(std::shared_ptr<connection> conn, address const& addr) -> net::awaitable<void>
 {
-   co_await async_run(*conn, host, port);
+   co_await async_run(*conn, addr);
 }
 
-net::awaitable<void> co_main(std::string host, std::string port)
+net::awaitable<void> co_main(address const& addr)
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn, host, port), net::detached);
+   net::co_spawn(ex, run(conn, addr), net::detached);
 
    person p;
    p.set_name("Louis");

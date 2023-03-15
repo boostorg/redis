@@ -5,7 +5,8 @@
  */
 
 #include <iostream>
-#include <boost/redis.hpp>
+#include <boost/redis/run.hpp>
+#include <boost/redis/address.hpp>
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
@@ -14,17 +15,17 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
+using boost::redis::address;
 using namespace std::chrono_literals;
 
 auto main(int argc, char * argv[]) -> int
 {
    try {
-      std::string host = "127.0.0.1";
-      std::string port = "6379";
+      address addr;
 
       if (argc == 3) {
-         host = argv[1];
-         port = argv[2];
+         addr.host = argv[1];
+         addr.port = argv[2];
       }
 
       // The request
@@ -38,7 +39,7 @@ auto main(int argc, char * argv[]) -> int
       net::io_context ioc;
       connection conn{ioc};
 
-      async_run(conn, host, port, 10s, 10s, [&](auto){
+      async_run(conn, addr, 10s, 10s, [&](auto){
          conn.cancel();
       });
 

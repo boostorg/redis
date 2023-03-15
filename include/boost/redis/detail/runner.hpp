@@ -10,6 +10,7 @@
 // Has to included before promise.hpp to build on msvc.
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/error.hpp>
+#include <boost/redis/address.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/consign.hpp>
@@ -25,8 +26,6 @@ namespace boost::redis::detail {
 template <class Runner>
 struct resolve_op {
    Runner* runner = nullptr;
-   std::string_view host;
-   std::string_view port;
    asio::coroutine coro{};
 
    template <class Self>
@@ -40,7 +39,10 @@ struct resolve_op {
       {
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
-            [this](auto token) { return runner->resv_.async_resolve(host.data(), port.data(), token);},
+            [this](auto token)
+            {
+               return runner->resv_.async_resolve(runner->addr_.host, runner->addr_.port, token);
+            },
             [this](auto token) { return runner->timer_.async_wait(token);}
          ).async_wait(
             asio::experimental::wait_for_one(),
@@ -131,8 +133,6 @@ template <class Runner, class Connection>
 struct runner_op {
    Runner* runner = nullptr;
    Connection* conn = nullptr;
-   std::string_view host;
-   std::string_view port;
    std::chrono::steady_clock::duration resolve_timeout;
    std::chrono::steady_clock::duration connect_timeout;
    asio::coroutine coro{};
@@ -144,7 +144,7 @@ struct runner_op {
       {
          runner->timer_.expires_after(resolve_timeout);
          BOOST_ASIO_CORO_YIELD
-         runner->async_resolve(host, port, std::move(self));
+         runner->async_resolve(std::move(self));
          BOOST_REDIS_CHECK_OP0(;)
 
          runner->timer_.expires_after(connect_timeout);
@@ -163,19 +163,15 @@ struct runner_op {
 template <class Executor>
 class runner {
 public:
-   runner(Executor ex): resv_{ex}, timer_{ex} {}
+   runner(Executor ex, address addr): resv_{ex}, timer_{ex}, addr_{addr} {}
 
    template <class CompletionToken>
-   auto
-   async_resolve(
-      std::string_view host,
-      std::string_view port,
-      CompletionToken&& token)
+   auto async_resolve(CompletionToken&& token)
    {
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(resolve_op<runner>{this, host, port}, token, resv_);
+         >(resolve_op<runner>{this}, token, resv_);
    }
 
    template <class Stream, class CompletionToken>
@@ -191,8 +187,6 @@ public:
    auto
    async_run(
       Connection& conn,
-      std::string_view host,
-      std::string_view port,
       std::chrono::steady_clock::duration resolve_timeout,
       std::chrono::steady_clock::duration connect_timeout,
       CompletionToken&& token)
@@ -200,7 +194,7 @@ public:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(runner_op<runner, Connection>{this, &conn, host, port, resolve_timeout, connect_timeout}, token, resv_);
+         >(runner_op<runner, Connection>{this, &conn, resolve_timeout, connect_timeout}, token, resv_);
    }
 
 private:
@@ -218,6 +212,7 @@ private:
 
    resolver_type resv_;
    timer_type timer_;
+   address addr_;
    asio::ip::tcp::resolver::results_type endpoints_;
 };
 

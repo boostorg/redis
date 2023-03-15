@@ -25,6 +25,7 @@ using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
+using boost::redis::address;
 using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 using namespace std::chrono_literals;
 
@@ -79,7 +80,9 @@ auto async_echo_stress() -> net::awaitable<void>
    for (int i = 0; i < sessions; ++i) 
       net::co_spawn(ex, echo_session(conn, std::to_string(i), msgs), net::detached);
 
-   co_await async_run(*conn);
+
+   address addr;
+   co_await async_run(*conn, addr);
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)
@@ -88,5 +91,8 @@ BOOST_AUTO_TEST_CASE(echo_stress)
 }
 
 #else
-int main(){}
+BOOST_AUTO_TEST_CASE(dummy)
+{
+   BOOST_TEST(true);
+}
 #endif

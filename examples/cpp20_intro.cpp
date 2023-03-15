@@ -17,23 +17,24 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
-using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using boost::redis::address;
+using connection = net::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
-auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
+auto run(std::shared_ptr<connection> conn, address addr) -> net::awaitable<void>
 {
    // async_run coordinate read and write operations.
-   co_await async_run(*conn, host, port);
+   co_await async_run(*conn, addr);
 
    // Cancel pending operations, if any.
    conn->cancel();
 }
 
 // Called from the main function (see main.cpp)
-auto co_main(std::string host, std::string port) -> net::awaitable<void>
+auto co_main(address const& addr) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn, host, port), net::detached);
+   net::co_spawn(ex, run(conn, addr), net::detached);
 
    // A request can contain multiple commands.
    request req;

@@ -9,10 +9,11 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
-#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <unistd.h>
 #include <iostream>
+
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #if defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
 
 namespace net = boost::asio;
@@ -23,6 +24,7 @@ using boost::redis::request;
 using boost::redis::generic_response;
 using boost::redis::async_check_health;
 using boost::redis::async_run;
+using boost::redis::address;
 using connection = net::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 // Chat over Redis pubsub. To test, run this program from multiple
@@ -51,7 +53,7 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
 }
 
 // Called from the main function (see main.cpp)
-auto co_main(std::string host, std::string port) -> net::awaitable<void>
+auto co_main(address const& addr) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
@@ -62,13 +64,13 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    req.push("HELLO", 3);
    req.push("SUBSCRIBE", "chat-channel");
 
-   co_await ((async_run(*conn, host, port) || publisher(stream, conn) || receiver(conn) ||
+   co_await ((async_run(*conn, addr) || publisher(stream, conn) || receiver(conn) ||
          async_check_health(*conn) || sig.async_wait()) &&
          conn->async_exec(req));
 }
 
 #else // defined(BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR)
-auto co_main(std::string host, std::string port) -> net::awaitable<void>
+auto co_main(address const&) -> net::awaitable<void>
 {
    std::cout << "Requires support for posix streams." << std::endl;
    co_return;

@@ -12,6 +12,7 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/redis/run.hpp>
+#include <boost/redis/address.hpp>
 
 /** @defgroup high-level-api Reference
  *
