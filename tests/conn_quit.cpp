@@ -4,16 +4,13 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <boost/asio.hpp>
+#include <boost/redis/run.hpp>
 #include <boost/system/errc.hpp>
-
 #define BOOST_TEST_MODULE conn-quit
 #include <boost/test/included/unit_test.hpp>
-
-#include <boost/redis.hpp>
-#include <boost/redis/src.hpp>
 #include "common.hpp"
+#include <iostream>
+#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
 
@@ -23,6 +20,9 @@ using operation = boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
+using boost::redis::async_run;
+using boost::redis::address;
+using namespace std::chrono_literals;
 
 BOOST_AUTO_TEST_CASE(test_quit1)
 {
@@ -32,15 +32,13 @@ BOOST_AUTO_TEST_CASE(test_quit1)
    req.push("QUIT");
 
    net::io_context ioc;
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    conn.async_exec(req, ignore, [](auto ec, auto) {
       BOOST_TEST(!ec);
    });
 
-   conn.async_run([](auto ec) {
+   async_run(conn, address{}, 10s, 10s, [&](auto ec){
       BOOST_TEST(!ec);
    });
 
@@ -52,9 +50,7 @@ BOOST_AUTO_TEST_CASE(test_quit2)
 {
    net::io_context ioc;
 
-   auto const endpoints = resolve();
    connection conn{ioc};
-   net::connect(conn.next_layer(), endpoints);
 
    request req1;
    req1.get_config().cancel_on_connection_lost = false;
@@ -93,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_quit2)
 
    conn.async_exec(req1, ignore, c1);
 
-   conn.async_run([&](auto ec){
+   async_run(conn, address{}, 10s, 10s, [&](auto ec){
       BOOST_TEST(!ec);
    });
 

@@ -4,12 +4,14 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
+#include <boost/redis/run.hpp>
+#include <boost/redis/check_health.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/signal_set.hpp>
+#include <boost/asio/detached.hpp>
+
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
-#include <boost/redis.hpp>
-#include <boost/redis/experimental/run.hpp>
-#include "common/common.hpp"
 
 namespace net = boost::asio;
 using namespace net::experimental::awaitable_operators;
@@ -18,7 +20,10 @@ using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::accep
 using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::experimental::async_check_health;
+using boost::redis::async_check_health;
+using boost::redis::async_run;
+using boost::redis::address;
+using connection = net::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
@@ -46,7 +51,7 @@ auto listener(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 
 // Called from the main function (see main.cpp)
-auto co_main(std::string host, std::string port) -> net::awaitable<void>
+auto co_main(address const& addr) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
@@ -55,8 +60,7 @@ auto co_main(std::string host, std::string port) -> net::awaitable<void>
    request req;
    req.push("HELLO", 3);
 
-   co_await connect(conn, host, port);
-   co_await ((conn->async_run() || listener(conn) || async_check_health(*conn) ||
+   co_await ((async_run(*conn, addr) || listener(conn) || async_check_health(*conn) ||
             sig.async_wait()) && conn->async_exec(req));
 }
 

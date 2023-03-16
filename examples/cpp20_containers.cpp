@@ -4,21 +4,24 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/asio/experimental/awaitable_operators.hpp>
-#include <boost/redis.hpp>
+#include <boost/redis/run.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/co_spawn.hpp>
 #include <map>
 #include <vector>
+#include <iostream>
 
-#include "common/common.hpp"
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-using namespace net::experimental::awaitable_operators;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using boost::redis::address;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 void print(std::map<std::string, std::string> const& cont)
 {
@@ -32,10 +35,9 @@ void print(std::vector<int> const& cont)
    std::cout << "\n";
 }
 
-auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
+auto run(std::shared_ptr<connection> conn, address const& addr) -> net::awaitable<void>
 {
-   co_await connect(conn, host, port);
-   co_await conn->async_run();
+   co_await async_run(*conn, addr);
 }
 
 // Stores the content of some STL containers in Redis.
@@ -104,11 +106,11 @@ auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 
 // Called from the main function (see main.cpp)
-net::awaitable<void> co_main(std::string host, std::string port)
+net::awaitable<void> co_main(address const& addr)
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn, host, port), net::detached);
+   net::co_spawn(ex, run(conn, addr), net::detached);
    co_await store(conn);
    co_await transaction(conn);
    co_await hgetall(conn);

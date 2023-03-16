@@ -5,13 +5,14 @@
  */
 
 #include <iostream>
-#include <boost/asio.hpp>
+#include <boost/asio/awaitable.hpp>
 #include <boost/system/errc.hpp>
 
 #define BOOST_TEST_MODULE conn-exec-retry
 #include <boost/test/included/unit_test.hpp>
 
-#include <boost/redis.hpp>
+#include <boost/redis/run.hpp>
+#include <boost/redis/address.hpp>
 #include <boost/redis/src.hpp>
 
 #include "common.hpp"
@@ -23,6 +24,9 @@ using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
+using boost::redis::async_run;
+using boost::redis::address;
+using namespace std::chrono_literals;
 
 BOOST_AUTO_TEST_CASE(request_retry_false)
 {
@@ -53,9 +57,6 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
       conn.cancel(operation::run);
    });
 
-   auto const endpoints = resolve();
-   net::connect(conn.next_layer(), endpoints);
-
    auto c2 = [&](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    };
@@ -72,7 +73,7 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
 
    conn.async_exec(req0, ignore, c0);
 
-   conn.async_run([](auto ec){
+   async_run(conn, address{}, 10s, 10s, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -112,9 +113,6 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
       conn.cancel(boost::redis::operation::run);
    });
 
-   auto const endpoints = resolve();
-   net::connect(conn.next_layer(), endpoints);
-
    auto c3 = [&](auto ec, auto){
       BOOST_TEST(!ec);
    };
@@ -136,14 +134,13 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
 
    conn.async_exec(req0, ignore, c0);
 
-   conn.async_run([&](auto ec){
+   async_run(conn, address{}, 10s, 10s, [&](auto ec){
       // The first cacellation.
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
       conn.reset_stream();
 
       // Reconnects and runs again to test req3.
-      net::connect(conn.next_layer(), endpoints);
-      conn.async_run([&](auto ec){
+      async_run(conn, address{}, 10s, 10s, [](auto ec){
          std::cout << ec.message() << std::endl;
          BOOST_TEST(!ec);
       });

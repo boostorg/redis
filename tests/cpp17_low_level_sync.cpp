@@ -4,12 +4,13 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/detail/read.hpp>
+#include <boost/redis/detail/write.hpp>
+#include <boost/redis/adapter/adapt.hpp>
+#include <boost/asio/connect.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <string>
 #include <iostream>
-
-#include <boost/asio/connect.hpp>
-#include <boost/redis.hpp>
-#include <boost/redis/detail/write.hpp>
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;

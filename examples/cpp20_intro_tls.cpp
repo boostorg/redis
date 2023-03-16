@@ -4,17 +4,18 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/ssl/connection.hpp>
+#include <boost/redis/ssl/connection.hpp>
+#include <boost/redis/address.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/asio/connect.hpp>
 #include <tuple>
 #include <string>
 #include <iostream>
 
-#include <boost/asio.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/awaitable_operators.hpp>
-#include <boost/asio/ssl.hpp>
-
-#include <boost/redis.hpp>
-#include <boost/redis/ssl/connection.hpp>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
@@ -24,6 +25,7 @@ using connection = net::use_awaitable_t<>::as_default_on_t<redis::ssl::connectio
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
+using boost::redis::address;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {
@@ -31,7 +33,7 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
    return true;
 }
 
-net::awaitable<void> co_main(std::string, std::string)
+net::awaitable<void> co_main(address const&)
 {
    request req;
    req.push("HELLO", 3, "AUTH", "aedis", "aedis");

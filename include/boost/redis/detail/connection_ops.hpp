@@ -8,6 +8,7 @@
 #define BOOST_REDIS_CONNECTION_OPS_HPP
 
 #include <boost/redis/adapter/adapt.hpp>
+#include <boost/redis/detail/helper.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/detail/read.hpp>
@@ -37,11 +38,11 @@ struct wait_receive_op {
       {
          BOOST_ASIO_CORO_YIELD
          conn->channel_.async_send(system::error_code{}, 0, std::move(self));
-         AEDIS_CHECK_OP0(;);
+         BOOST_REDIS_CHECK_OP0(;);
 
          BOOST_ASIO_CORO_YIELD
          conn->channel_.async_send(system::error_code{}, 0, std::move(self));
-         AEDIS_CHECK_OP0(;);
+         BOOST_REDIS_CHECK_OP0(;);
 
          self.complete({});
       }
@@ -80,7 +81,7 @@ struct exec_read_op {
                   conn->next_layer(),
                   conn->make_dynamic_buffer(),
                   "\r\n", std::move(self));
-               AEDIS_CHECK_OP1(conn->cancel(operation::run););
+               BOOST_REDIS_CHECK_OP1(conn->cancel(operation::run););
             }
 
             // If the next request is a push we have to handle it to
@@ -88,7 +89,7 @@ struct exec_read_op {
             if (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push) {
                BOOST_ASIO_CORO_YIELD
                conn->async_wait_receive(std::move(self));
-               AEDIS_CHECK_OP1(conn->cancel(operation::run););
+               BOOST_REDIS_CHECK_OP1(conn->cancel(operation::run););
                continue;
             }
             //-----------------------------------
@@ -102,7 +103,7 @@ struct exec_read_op {
 
             ++index;
 
-            AEDIS_CHECK_OP1(conn->cancel(operation::run););
+            BOOST_REDIS_CHECK_OP1(conn->cancel(operation::run););
 
             read_size += n;
 
@@ -132,7 +133,7 @@ struct receive_op {
       {
          BOOST_ASIO_CORO_YIELD
          conn->channel_.async_receive(std::move(self));
-         AEDIS_CHECK_OP1(;);
+         BOOST_REDIS_CHECK_OP1(;);
 
          BOOST_ASIO_CORO_YIELD
          redis::detail::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
@@ -147,7 +148,7 @@ struct receive_op {
 
          BOOST_ASIO_CORO_YIELD
          conn->channel_.async_receive(std::move(self));
-         AEDIS_CHECK_OP1(;);
+         BOOST_REDIS_CHECK_OP1(;);
 
          self.complete({}, read_size);
          return;
@@ -228,7 +229,7 @@ EXEC_OP_WAIT:
          BOOST_ASSERT(conn->reqs_.front() != nullptr);
          BOOST_ASIO_CORO_YIELD
          conn->async_exec_read(adapter, conn->reqs_.front()->get_number_of_commands(), std::move(self));
-         AEDIS_CHECK_OP1(;);
+         BOOST_REDIS_CHECK_OP1(;);
 
          read_size = n;
 
@@ -302,7 +303,7 @@ struct writer_op {
          while (conn->coalesce_requests()) {
             BOOST_ASIO_CORO_YIELD
             asio::async_write(conn->next_layer(), asio::buffer(conn->write_buffer_), std::move(self));
-            AEDIS_CHECK_OP0(conn->cancel(operation::run););
+            BOOST_REDIS_CHECK_OP0(conn->cancel(operation::run););
 
             conn->on_write();
 
@@ -353,7 +354,7 @@ struct reader_op {
             return self.complete({}); // EOFINAE: EOF is not an error.
          }
 
-         AEDIS_CHECK_OP0(conn->cancel(operation::run););
+         BOOST_REDIS_CHECK_OP0(conn->cancel(operation::run););
 
          // We handle unsolicited events in the following way
          //

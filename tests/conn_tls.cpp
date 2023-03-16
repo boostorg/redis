@@ -4,17 +4,14 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <boost/asio.hpp>
+#include <boost/redis/run.hpp>
 #include <boost/asio/ssl.hpp>
-
 #define BOOST_TEST_MODULE conn-tls
 #include <boost/test/included/unit_test.hpp>
-
-#include <boost/redis.hpp>
 #include <boost/redis/ssl/connection.hpp>
-#include <boost/redis/src.hpp>
+#include <iostream>
 #include "common.hpp"
+#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
 
@@ -22,6 +19,18 @@ using connection = boost::redis::ssl::connection;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
+
+using endpoints = net::ip::tcp::resolver::results_type;
+
+auto
+resolve(
+   std::string const& host = "127.0.0.1",
+   std::string const& port = "6379") -> endpoints
+{
+   net::io_context ioc;
+   net::ip::tcp::resolver resv{ioc};
+   return resv.resolve(host, port);
+}
 
 struct endpoint {
    std::string host;

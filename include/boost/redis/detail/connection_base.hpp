@@ -52,7 +52,7 @@ public:
 
    auto get_executor() {return writer_timer_.get_executor();}
 
-   auto cancel(operation op) -> std::size_t
+   auto cancel_impl(operation op) -> std::size_t
    {
       switch (op) {
          case operation::exec:
@@ -75,6 +75,19 @@ public:
          }
          default: BOOST_ASSERT(false); return 0;
       }
+   }
+
+   auto cancel(operation op) -> std::size_t
+   {
+      if (op == operation::all) {
+         std::size_t ret = 0;
+         ret += cancel_impl(operation::run);
+         ret += cancel_impl(operation::receive);
+         ret += cancel_impl(operation::exec);
+         return ret;
+      } 
+
+      return cancel_impl(op);
    }
 
    auto cancel_unwritten_requests() -> std::size_t

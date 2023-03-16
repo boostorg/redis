@@ -4,36 +4,37 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
+#include <boost/redis/run.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
+#include <iostream>
+
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/redis.hpp>
-#include "common/common.hpp"
 
 namespace net = boost::asio;
-using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using boost::redis::address;
+using connection = net::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
-auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
+auto run(std::shared_ptr<connection> conn, address addr) -> net::awaitable<void>
 {
-   // From examples/common.hpp to avoid vebosity
-   co_await connect(conn, host, port);
-
    // async_run coordinate read and write operations.
-   co_await conn->async_run();
+   co_await async_run(*conn, addr);
 
    // Cancel pending operations, if any.
-   conn->cancel(operation::exec);
-   conn->cancel(operation::receive);
+   conn->cancel();
 }
 
 // Called from the main function (see main.cpp)
-auto co_main(std::string host, std::string port) -> net::awaitable<void>
+auto co_main(address const& addr) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn, host, port), net::detached);
+   net::co_spawn(ex, run(conn, addr), net::detached);
 
    // A request can contain multiple commands.
    request req;

@@ -4,16 +4,18 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
-#include <boost/asio.hpp>
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
+#include <boost/redis/run.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE echo-stress
 #include <boost/test/included/unit_test.hpp>
-#include <boost/redis.hpp>
-#include <boost/redis/src.hpp>
+#include <iostream>
 #include "common.hpp"
-#include "../examples/common/common.hpp"
+#include "../examples/start.hpp"
+#include <boost/redis/src.hpp>
+
+#ifdef BOOST_ASIO_HAS_CO_AWAIT
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
@@ -22,6 +24,10 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
+using boost::redis::async_run;
+using boost::redis::address;
+using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using namespace std::chrono_literals;
 
 auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
@@ -74,15 +80,19 @@ auto async_echo_stress() -> net::awaitable<void>
    for (int i = 0; i < sessions; ++i) 
       net::co_spawn(ex, echo_session(conn, std::to_string(i), msgs), net::detached);
 
-   co_await connect(conn, "127.0.0.1", "6379");
-   co_await conn->async_run();
+
+   address addr;
+   co_await async_run(*conn, addr);
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)
 {
-   run(async_echo_stress());
+   start(async_echo_stress());
 }
 
 #else
-int main(){}
+BOOST_AUTO_TEST_CASE(dummy)
+{
+   BOOST_TEST(true);
+}
 #endif

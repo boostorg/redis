@@ -59,9 +59,9 @@ include_directories(include)
 #=======================================================================
 
 add_library(common STATIC
-   examples/common/common.cpp
-   examples/common/main.cpp
-   examples/common/boost_redis.cpp
+   examples/start.cpp
+   examples/main.cpp
+   examples/boost_redis.cpp
 )
 target_compile_features(common PUBLIC cxx_std_20)
 if (MSVC)
@@ -98,12 +98,10 @@ if (MSVC)
     target_compile_definitions(cpp17_intro PRIVATE _WIN32_WINNT=0x0601)
 endif()
 
+if (NOT MSVC)
 add_executable(cpp17_intro_sync examples/cpp17_intro_sync.cpp)
 target_compile_features(cpp17_intro_sync PUBLIC cxx_std_17)
 add_test(cpp17_intro_sync cpp17_intro_sync)
-if (MSVC)
-    target_compile_options(cpp17_intro_sync PRIVATE /bigobj)
-    target_compile_definitions(cpp17_intro_sync PRIVATE _WIN32_WINNT=0x0601)
 endif()
 
 if (NOT MSVC)
@@ -318,6 +316,14 @@ add_executable(test_conn_check_health tests/conn_check_health.cpp)
 target_compile_features(test_conn_check_health PUBLIC cxx_std_17)
 target_link_libraries(test_conn_check_health common)
 add_test(test_conn_check_health test_conn_check_health)
+endif()
+
+add_executable(test_run tests/run.cpp)
+target_compile_features(test_run PUBLIC cxx_std_17)
+add_test(test_run test_run)
+if (MSVC)
+    target_compile_options(test_run PRIVATE /bigobj)
+    target_compile_definitions(test_run PRIVATE _WIN32_WINNT=0x0601)
 endif()
 
 # Install

@@ -8,6 +8,7 @@
 #define BOOST_REDIS_READ_OPS_HPP
 
 #include <boost/redis/resp3/parser.hpp>
+#include <boost/redis/detail/helper.hpp>
 #include <boost/assert.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
@@ -18,26 +19,6 @@
 
 namespace boost::redis::detail
 {
-template <class T>
-auto is_cancelled(T const& self)
-{
-   return self.get_cancellation_state().cancelled() != asio::cancellation_type_t::none;
-}
-
-#define AEDIS_CHECK_OP0(X)\
-   if (ec || redis::detail::is_cancelled(self)) {\
-      X\
-      self.complete(!!ec ? ec : asio::error::operation_aborted);\
-      return;\
-   }
-
-#define AEDIS_CHECK_OP1(X)\
-   if (ec || redis::detail::is_cancelled(self)) {\
-      X\
-      self.complete(!!ec ? ec : asio::error::operation_aborted, {});\
-      return;\
-   }
-
 template <
    class AsyncReadStream,
    class DynamicBuffer,
@@ -68,7 +49,7 @@ public:
          if (!parser_.bulk_expected()) {
             BOOST_ASIO_CORO_YIELD
             asio::async_read_until(stream_, buf_, "\r\n", std::move(self));
-            AEDIS_CHECK_OP1(;);
+            BOOST_REDIS_CHECK_OP1(;);
          } else {
 	    // On a bulk read we can't read until delimiter since the
 	    // payload may contain the delimiter itself so we have to
@@ -87,7 +68,7 @@ public:
                   buf_.data(buffer_size_, parser_.bulk_length() + 2 - buffer_size_),
                   asio::transfer_all(),
                   std::move(self));
-               AEDIS_CHECK_OP1(;);
+               BOOST_REDIS_CHECK_OP1(;);
             }
 
             n = parser_.bulk_length() + 2;

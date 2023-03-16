@@ -7,6 +7,7 @@
 #ifndef BOOST_REDIS_RESP3_TYPE_HPP
 #define BOOST_REDIS_RESP3_TYPE_HPP
 
+#include <boost/assert.hpp>
 #include <ostream>
 #include <vector>
 #include <string>

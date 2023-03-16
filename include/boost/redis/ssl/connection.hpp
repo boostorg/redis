@@ -10,6 +10,7 @@
 #include <boost/redis/detail/connection_base.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/ssl/stream.hpp>
 
 #include <chrono>
 #include <memory>
@@ -122,7 +123,7 @@ public:
     *
     *  See redis::connection::cancel for more information.
     */
-   auto cancel(operation op) -> std::size_t
+   auto cancel(operation op = operation::all) -> std::size_t
       { return base_type::cancel(op); }
 
    auto& lowest_layer() noexcept { return stream_.lowest_layer(); }

@@ -527,7 +527,7 @@ void boost_redis_from_bulk(mystruct& obj, char const* p, std::size_t size, boost
 
 These functions are accessed over ADL and therefore they must be
 imported in the global namespace by the user.  In the
-[Examples](#Examples) section the reader can find examples showing how
+[Examples](#examples) section the reader can find examples showing how
 to serialize using json and [protobuf](https://protobuf.dev/).
 
 <a name="examples"></a>
@@ -830,6 +830,9 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 
 * Adds a function that performs health checks, see
   `boost::redis::experimental::async_check_health`.
+
+* Adds non-member `async_run` function that resolves, connects and
+  calls member `async_run` on a connection object.
 
 ### v1.4.0-1
 
