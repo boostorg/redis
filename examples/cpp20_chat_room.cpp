@@ -72,7 +72,7 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
 }
 
 // Called from the main function (see main.cpp)
-auto co_main(config const& cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);

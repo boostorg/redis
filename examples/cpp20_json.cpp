@@ -45,7 +45,7 @@ void boost_redis_to_bulk(std::string& to, user const& u)
 void boost_redis_from_bulk(user& u, std::string_view sv, boost::system::error_code& ec)
    { boost::redis::json::from_bulk(u, sv, ec); }
 
-net::awaitable<void> co_main(config const& cfg)
+auto co_main(config cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);

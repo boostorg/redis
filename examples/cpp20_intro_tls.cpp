@@ -26,7 +26,7 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
    return true;
 }
 
-auto co_main(config const&) -> net::awaitable<void>
+auto co_main(config cfg) -> net::awaitable<void>
 {
    config cfg;
    cfg.username = "aedis";

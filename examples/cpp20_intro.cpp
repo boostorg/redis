@@ -21,7 +21,7 @@ using boost::redis::logger;
 using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 
 // Called from the main function (see main.cpp)
-auto co_main(config const& cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> net::awaitable<void>
 {
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
    conn->async_run(cfg, {}, net::consign(net::detached, conn));

@@ -15,6 +15,11 @@
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
+
 namespace net = boost::asio;
 using boost::redis::config;
 using boost::redis::generic_response;
@@ -72,7 +77,6 @@ auto stream_reader(std::shared_ptr<connection> conn) -> net::awaitable<void>
         req.clear();
         resp.value().clear();
     }
-
 }
 
 // Run this in another terminal:
@@ -82,6 +86,9 @@ auto co_main(config cfg) -> net::awaitable<void>
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
    net::co_spawn(ex, stream_reader(conn), net::detached);
+
+   // Disable health checks.
+   cfg.health_check_interval = std::chrono::seconds{0};
    conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
    signal_set sig_set(ex, SIGINT, SIGTERM);
