@@ -9,14 +9,18 @@
 #include <boost/redis.hpp>
 #include <boost/redis/src.hpp>
 
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
+
 namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
+
 namespace redis = boost::redis;
-using boost::redis::generic_response;
-using redis::ignore_t;
 using redis::operation;
 using redis::request;
-using redis::response;
+using boost::redis::generic_response;
 
 void log(boost::system::error_code const& ec, char const* prefix)
 {
@@ -31,11 +35,7 @@ class redis_client
     redis::connection conn_;
     std::string redisStreamKey_;
 
-    request req_;
-    std::unique_ptr<generic_response> resp_;
-
     std::string streamId_;
-    std::atomic<std::uint64_t> messageCount_;
 
 public:
     redis_client(
@@ -47,13 +47,8 @@ public:
         , resv_(ioc)
         , conn_(net::make_strand(ioc))
         , redisStreamKey_(redisStreamKey)
-        , resp_()
-        , req_()
         , streamId_("$")
-        , messageCount_()
     {
-        resetRequest();
-        resetResponse();
     }
 
     void resolve()
@@ -104,22 +99,23 @@ private:
     void
     do_exec()
     {
-        this->resetRequest();
+        auto req = this->createStreamRequest();
+        auto resp = this->createStreamResponse();
 
         conn_.async_exec(
-            req_,
-            *resp_,
-            net::bind_executor(
-                conn_.get_executor(),
-                [this](auto ec, auto size) { this->on_exec(ec, size); }));
+            *req,
+            *resp,
+            [this, req, resp](auto ec, auto size) { this->on_exec(ec, size, req, resp); });
     }
 
     void on_exec(
         boost::system::error_code ec,
-        std::size_t responseSize)
+        std::size_t responseSize,
+        std::shared_ptr<request> req,
+        std::shared_ptr<generic_response> resp)
     {
         try {
-            this->on_exec_internal(ec, responseSize);
+            this->on_exec_internal(ec, responseSize, req, resp);
         }
         catch (...) {
         }
@@ -130,7 +126,9 @@ private:
     void
     on_exec_internal(
         boost::system::error_code ec,
-        std::size_t responseSize)
+        std::size_t responseSize,
+        std::shared_ptr<request> req,
+        std::shared_ptr<generic_response> resp)
     {
         static const std::string Response_Field_MyField = "myfield";
 
@@ -141,14 +139,14 @@ private:
             return;
         }
 
-        if (!resp_->has_value())
+        if (!resp->has_value())
         {
             return;
         }
 
         // std::cout << "Response: ";
-        // for (int i = 0; i < resp_->value().size(); ++i) {
-        //     std::cout << resp_->value().at(i).value << ", ";
+        // for (int i = 0; i < resp->value().size(); ++i) {
+        //     std::cout << resp->value().at(i).value << ", ";
         // }
         // std::cout << std::endl;
 
@@ -157,19 +155,17 @@ private:
         //  The nesting and number of values in localResp->value() are different, depending on the contents of the stream in redis.
         //  Uncomment the above commented-out code for examples while running the XADD command.
 
-        auto currentMessageCount = this->messageCount_++;
-        auto localResp = this->resetResponse();
-        bool atLeastOneParseMessageSucceeded = false;
-        std::size_t itemIndex = 0;
-        while (itemIndex < localResp->value().size()) {
-            const auto& val = localResp->value().at(itemIndex).value;
+        // "myfield" values don't start before index 4.
+        std::size_t itemIndex = 4;
+        while (itemIndex < resp->value().size()) {
+            const auto& val = resp->value().at(itemIndex).value;
 
             if (Response_Field_MyField.compare(val) == 0) {
                 // We've hit a myfield field.
                 //  The streamId is located at itemIndex - 2
                 //  The payload is located at itemIndex + 1
-                this->streamId_ = localResp->value().at(itemIndex - 2).value;
-                std::cout << "StreamId: " << this->streamId_ << ", MyField: " << localResp->value().at(itemIndex + 1).value << std::endl;
+                this->streamId_ = resp->value().at(itemIndex - 2).value;
+                std::cout << "[" << std::this_thread::get_id() << "] StreamId: " << this->streamId_ << ", MyField: " << resp->value().at(itemIndex + 1).value << std::endl;
                 ++itemIndex; // We can increase so we don't read this again
             }
 
@@ -177,19 +173,16 @@ private:
         }
     }
 
-    void resetRequest()
+    std::shared_ptr<request> createStreamRequest()
     {
-        req_.clear();
-        req_.push("XREAD", "BLOCK", "0", "STREAMS", this->redisStreamKey_, this->streamId_);
+        auto req = std::make_shared<request>();
+        req->push("XREAD", "BLOCK", "0", "STREAMS", this->redisStreamKey_, this->streamId_);
+        return req;
     }
 
-    std::unique_ptr<generic_response> resetResponse()
+    std::shared_ptr<generic_response> createStreamResponse()
     {
-        auto localResponse = std::make_unique<generic_response>();
-        std::swap(
-            this->resp_,
-            localResponse);
-        return localResponse;
+        return std::make_shared<generic_response>();
     }
 };
 
@@ -229,7 +222,7 @@ auto main(int argc, char * argv[]) -> int
 
         net::io_context ioc;
 
-        std::cout << "Starting redis client on " << redisHost << ":" << redisPort << std::endl;
+        std::cout << "[" << std::this_thread::get_id() << "] Starting redis client on " << redisHost << ":" << redisPort << std::endl;
         auto redisClient = startRedisClient(redisHost, redisPort, redisStreamKey, ioc);
 
         // Run the I/O service on the requested number of threads
