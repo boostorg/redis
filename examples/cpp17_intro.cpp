@@ -7,6 +7,7 @@
 #include <iostream>
 #include <boost/redis/run.hpp>
 #include <boost/redis/address.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
@@ -15,6 +16,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
+using boost::redis::logger;
 using boost::redis::address;
 using namespace std::chrono_literals;
 
@@ -39,7 +41,7 @@ auto main(int argc, char * argv[]) -> int
       net::io_context ioc;
       connection conn{ioc};
 
-      async_run(conn, addr, 10s, 10s, [&](auto){
+      async_run(conn, addr, 10s, 10s, logger{}, [&](auto){
          conn.cancel();
       });
 

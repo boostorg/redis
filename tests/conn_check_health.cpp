@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/run.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/redis/check_health.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE check-health
@@ -22,6 +23,7 @@ using boost::redis::operation;
 using boost::redis::generic_response;
 using boost::redis::async_check_health;
 using boost::redis::async_run;
+using boost::redis::logger;
 using boost::redis::address;
 using namespace std::chrono_literals;
 
@@ -104,12 +106,12 @@ BOOST_AUTO_TEST_CASE(check_health)
    generic_response resp;
    push_callback{&conn, &conn2, &resp, &req2}(); // Starts reading pushes.
 
-   async_run(conn, address{}, 10s, 10s, [](auto ec){
+   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
       std::cout << "B" << std::endl;
       BOOST_TEST(!!ec);
    });
 
-   async_run(conn2, address{}, 10s, 10s, [](auto ec){
+   async_run(conn2, address{}, 10s, 10s, logger{}, [](auto ec){
       std::cout << "C" << std::endl;
       BOOST_TEST(!!ec);
    });

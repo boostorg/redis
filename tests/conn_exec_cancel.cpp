@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/run.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE conn-exec-cancel
 #include <boost/test/included/unit_test.hpp>
@@ -31,6 +32,7 @@ using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
+using boost::redis::logger;
 using boost::redis::address;
 using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 using namespace std::chrono_literals;
@@ -42,7 +44,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    generic_response gresp;
    auto conn = std::make_shared<connection>(ex);
 
-   async_run(*conn, address{}, 10s, 10s, [conn](auto ec) {
+   async_run(*conn, address{}, 10s, 10s, logger{}, [conn](auto ec) {
       std::cout << "async_run: " << ec.message() << std::endl;
       BOOST_TEST(!ec);
    });
@@ -91,7 +93,7 @@ auto ignore_implicit_cancel_of_req_written() -> net::awaitable<void>
 
    // Calls async_run separately from the group of ops below to avoid
    // having it canceled when the timer fires.
-   async_run(*conn, address{}, 10s, 10s, [conn](auto ec) {
+   async_run(*conn, address{}, 10s, 10s, logger{}, [conn](auto ec) {
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
    });
 
@@ -156,7 +158,7 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
 
    conn.async_exec(req0, ignore, c0);
 
-   async_run(conn, address{}, 10s, 10s, [](auto ec){
+   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, net::error::basic_errors::operation_aborted);
    });
 

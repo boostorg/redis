@@ -25,6 +25,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::async_run;
+using boost::redis::logger;
 using boost::redis::address;
 using namespace std::chrono_literals;
 
@@ -73,7 +74,7 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
 
    conn.async_exec(req0, ignore, c0);
 
-   async_run(conn, address{}, 10s, 10s, [](auto ec){
+   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
@@ -134,13 +135,13 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
 
    conn.async_exec(req0, ignore, c0);
 
-   async_run(conn, address{}, 10s, 10s, [&](auto ec){
+   async_run(conn, address{}, 10s, 10s, logger{}, [&](auto ec){
       // The first cacellation.
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
       conn.reset_stream();
 
       // Reconnects and runs again to test req3.
-      async_run(conn, address{}, 10s, 10s, [](auto ec){
+      async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
          std::cout << ec.message() << std::endl;
          BOOST_TEST(!ec);
       });

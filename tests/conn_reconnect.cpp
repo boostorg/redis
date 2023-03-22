@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/run.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/asio/detached.hpp>
 #define BOOST_TEST_MODULE conn-reconnect
 #include <boost/test/included/unit_test.hpp>
@@ -22,6 +23,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::async_run;
+using boost::redis::logger;
 using boost::redis::address;
 using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 using namespace std::chrono_literals;
@@ -43,7 +45,7 @@ net::awaitable<void> test_reconnect_impl()
       boost::system::error_code ec1, ec2;
       co_await (
          conn.async_exec(req, ignore, net::redirect_error(net::use_awaitable, ec1)) &&
-         async_run(conn, addr, 10s, 10s, net::redirect_error(net::use_awaitable, ec2))
+         async_run(conn, addr, 10s, 10s, logger{}, net::redirect_error(net::use_awaitable, ec2))
       );
 
       BOOST_TEST(!ec1);
@@ -83,7 +85,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    address addr;
    co_await (
       conn->async_exec(req1, ignore, redir(ec1)) ||
-      async_run(*conn, addr, 10s, 10s, redir(ec2)) ||
+      async_run(*conn, addr, 10s, 10s, logger{}, redir(ec2)) ||
       st.async_wait(redir(ec3))
    );
 
@@ -101,7 +103,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    st.expires_after(std::chrono::seconds{1});
    co_await (
       conn->async_exec(req1, ignore, net::redirect_error(net::use_awaitable, ec1)) ||
-      async_run(*conn, addr, 10s, 10s, net::redirect_error(net::use_awaitable, ec2)) ||
+      async_run(*conn, addr, 10s, 10s, logger{}, net::redirect_error(net::use_awaitable, ec2)) ||
       st.async_wait(net::redirect_error(net::use_awaitable, ec3))
    );
    std::cout << "ccc" << std::endl;

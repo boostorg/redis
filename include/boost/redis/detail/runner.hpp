@@ -48,6 +48,8 @@ struct resolve_op {
             asio::experimental::wait_for_one(),
             std::move(self));
 
+         runner->logger_.on_resolve(ec1, res);
+
          if (is_cancelled(self)) {
             self.complete(asio::error::operation_aborted);
             return;
@@ -86,10 +88,10 @@ struct connect_op {
 
    template <class Self>
    void operator()( Self& self
-                  , std::array<std::size_t, 2> order = {}
-                  , system::error_code ec1 = {}
-                  , asio::ip::tcp::endpoint const& = {}
-                  , system::error_code ec2 = {})
+                  , std::array<std::size_t, 2> const& order = {}
+                  , system::error_code const& ec1 = {}
+                  , asio::ip::tcp::endpoint const& ep= {}
+                  , system::error_code const& ec2 = {})
    {
       BOOST_ASIO_CORO_REENTER (coro)
       {
@@ -104,6 +106,8 @@ struct connect_op {
          ).async_wait(
             asio::experimental::wait_for_one(),
             std::move(self));
+
+         runner->logger_.on_connect(ec1, ep);
 
          if (is_cancelled(self)) {
             self.complete(asio::error::operation_aborted);
@@ -160,10 +164,21 @@ struct runner_op {
    }
 };
 
-template <class Executor>
+template <class Executor, class Logger>
 class runner {
 public:
-   runner(Executor ex, address addr): resv_{ex}, timer_{ex}, addr_{addr} {}
+   using timer_type =
+      asio::basic_waitable_timer<
+         std::chrono::steady_clock,
+         asio::wait_traits<std::chrono::steady_clock>,
+         Executor>;
+
+   runner(Executor ex, address addr, Logger l = Logger{})
+   : resv_{ex}
+   , timer_{ex}
+   , addr_{addr}
+   , logger_{l}
+   {}
 
    template <class CompletionToken>
    auto async_resolve(CompletionToken&& token)
@@ -197,14 +212,14 @@ public:
          >(runner_op<runner, Connection>{this, &conn, resolve_timeout, connect_timeout}, token, resv_);
    }
 
+   void cancel()
+   {
+      resv_.cancel();
+      timer_.cancel();
+   }
+
 private:
    using resolver_type = asio::ip::basic_resolver<asio::ip::tcp, Executor>;
-   using timer_type =
-      asio::basic_waitable_timer<
-         std::chrono::steady_clock,
-         asio::wait_traits<std::chrono::steady_clock>,
-         Executor>;
-
 
    template <class, class> friend struct runner_op;
    template <class, class> friend struct connect_op;
@@ -214,6 +229,7 @@ private:
    timer_type timer_;
    address addr_;
    asio::ip::tcp::resolver::results_type endpoints_;
+   Logger logger_;
 };
 
 } // boost::redis::detail

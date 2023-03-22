@@ -38,7 +38,7 @@ public:
       {
          checker->prom_.emplace(conn->async_exec(checker->req_, checker->resp_, asio::experimental::use_promise));
 
-         checker->timer_.expires_after(checker->interval_);
+         checker->timer_.expires_after(checker->timeout_);
          BOOST_ASIO_CORO_YIELD
          checker->timer_.async_wait(std::move(self));
          if (ec || is_cancelled(self) || checker->resp_.value().empty()) {
@@ -70,7 +70,7 @@ public:
       std::string const& msg,
       std::chrono::steady_clock::duration interval)
    : timer_{ex}
-   , interval_{interval}
+   , timeout_{interval}
    {
       req_.push("PING", msg);
    }
@@ -93,13 +93,20 @@ public:
       prom_.reset();
    }
 
+   void cancel()
+   {
+      timer_.cancel();
+      if (prom_)
+         prom_.cancel();
+   }
+
 private:
    template <class, class> friend class check_health_op;
    timer_type timer_;
    std::optional<promise_type> prom_;
    redis::request req_;
    redis::generic_response resp_;
-   std::chrono::steady_clock::duration interval_;
+   std::chrono::steady_clock::duration timeout_;
 };
 
 } // detail

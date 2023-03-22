@@ -6,6 +6,7 @@
 
 #include <boost/redis/run.hpp>
 #include <boost/redis/address.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE conn-exec
 #include <boost/test/included/unit_test.hpp>
@@ -26,6 +27,7 @@ using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
+using boost::redis::logger;
 using boost::redis::address;
 using namespace std::chrono_literals;
 
@@ -75,7 +77,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
       seen3 = true;
    });
 
-   async_run(conn, address{}, 10s, 10s, [](auto ec){
+   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
       BOOST_TEST(!ec);
    });
 
@@ -97,7 +99,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    conn.async_exec(req, resp, [](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_a_number);
    });
-   async_run(conn, address{}, 10s, 10s, [](auto ec){
+   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
       BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
    });
 

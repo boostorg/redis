@@ -8,6 +8,7 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/check_health.hpp>
 #include <boost/redis/run.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/use_future.hpp>
 #include <tuple>
@@ -27,6 +28,7 @@ using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::async_run;
 using boost::redis::address;
+using boost::redis::logger;
 using boost::redis::async_check_health;
 using namespace std::chrono_literals;
 
@@ -56,7 +58,7 @@ auto main(int argc, char * argv[]) -> int
       // Starts a thread that will can io_context::run on which the
       // connection will run.
       std::thread t{[&ioc, conn, addr]() {
-         async_run(*conn, addr, 10s, 10s, [conn](auto){
+         async_run(*conn, addr, 10s, 10s, logger{}, [conn](auto){
             conn->cancel();
          });
 

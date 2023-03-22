@@ -7,16 +7,17 @@
 #ifndef BOOST_REDIS_RUN_HPP
 #define BOOST_REDIS_RUN_HPP
 
-// Has to included before promise.hpp to build on msvc.
 #include <boost/redis/detail/runner.hpp>
 #include <boost/redis/connection.hpp>
 #include <boost/redis/address.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/consign.hpp>
 #include <memory>
 #include <chrono>
 
-namespace boost::redis {
+namespace boost::redis
+{
 
 /** @brief Call async_run on the connection.
  *  @ingroup high-level-api
@@ -35,6 +36,7 @@ namespace boost::redis {
  */
 template <
    class Socket,
+   class Logger = logger,
    class CompletionToken = asio::default_completion_token_t<typename Socket::executor_type>
 >
 auto
@@ -43,11 +45,12 @@ async_run(
    address addr = address{"127.0.0.1", "6379"},
    std::chrono::steady_clock::duration resolve_timeout = std::chrono::seconds{10},
    std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10},
+   Logger l = Logger{},
    CompletionToken token = CompletionToken{})
 {
    using executor_type = typename Socket::executor_type;
-   using runner_type = detail::runner<executor_type>;
-   auto runner = std::make_shared<runner_type>(conn.get_executor(), addr);
+   using runner_type = detail::runner<executor_type, Logger>;
+   auto runner = std::make_shared<runner_type>(conn.get_executor(), addr, l);
 
    return
       runner->async_run(
