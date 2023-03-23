@@ -11,24 +11,23 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/redis/operation.hpp>
-#include <boost/redis/detail/read_ops.hpp>
-#include <boost/asio/experimental/promise.hpp>
-#include <boost/asio/experimental/use_promise.hpp>
+#include <boost/redis/detail/helper.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/consign.hpp>
+#include <boost/asio/coroutine.hpp>
+#include <boost/asio/experimental/parallel_group.hpp>
 #include <memory>
 #include <chrono>
-#include <optional>
 
 namespace boost::redis {
 namespace detail {
 
 template <class HealthChecker, class Connection>
-class check_health_op {
+class ping_op {
 public:
-   HealthChecker* checker = nullptr;
-   Connection* conn = nullptr;
+   HealthChecker* checker_ = nullptr;
+   Connection* conn_ = nullptr;
    asio::coroutine coro_{};
 
    template <class Self>
@@ -36,20 +35,98 @@ public:
    {
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
-         checker->prom_.emplace(conn->async_exec(checker->req_, checker->resp_, asio::experimental::use_promise));
-
-         checker->timer_.expires_after(checker->timeout_);
-         BOOST_ASIO_CORO_YIELD
-         checker->timer_.async_wait(std::move(self));
-         if (ec || is_cancelled(self) || checker->resp_.value().empty()) {
-            conn->cancel(operation::run);
-            BOOST_ASIO_CORO_YIELD
-            std::move(*checker->prom_)(std::move(self));
+         if (checker_->checker_has_exited_) {
             self.complete({});
             return;
          }
 
-         checker->reset();
+         BOOST_ASIO_CORO_YIELD
+         conn_->async_exec(checker_->req_, checker_->resp_, std::move(self));
+         BOOST_REDIS_CHECK_OP0(checker_->wait_timer_.cancel();)
+
+         // Wait before pinging again.
+         checker_->ping_timer_.expires_after(checker_->ping_interval_);
+         BOOST_ASIO_CORO_YIELD
+         checker_->ping_timer_.async_wait(std::move(self));
+         BOOST_REDIS_CHECK_OP0(;)
+      }
+   }
+};
+
+template <class HealthChecker, class Connection>
+class check_timeout_op {
+public:
+   HealthChecker* checker_ = nullptr;
+   Connection* conn_ = nullptr;
+   asio::coroutine coro_{};
+
+   template <class Self>
+   void operator()(Self& self, system::error_code ec = {})
+   {
+      BOOST_ASIO_CORO_REENTER (coro_) for (;;)
+      {
+         checker_->wait_timer_.expires_after(2 * checker_->ping_interval_);
+         BOOST_ASIO_CORO_YIELD
+         checker_->wait_timer_.async_wait(std::move(self));
+         BOOST_REDIS_CHECK_OP0(;)
+
+         if (!checker_->resp_.has_value()) {
+            self.complete({});
+            return;
+         }
+
+         if (checker_->resp_.value().empty()) {
+            checker_->ping_timer_.cancel();
+            conn_->cancel(operation::run);
+            checker_->checker_has_exited_ = true;
+            self.complete(error::pong_timeout);
+            return;
+         }
+
+         checker_->resp_.value().clear();
+
+         if (checker_->resp_.has_value()) {
+            checker_->resp_.value().clear();
+         }
+      }
+   }
+};
+
+template <class HealthChecker, class Connection>
+class check_health_op {
+public:
+   HealthChecker* checker_ = nullptr;
+   Connection* conn_ = nullptr;
+   asio::coroutine coro_{};
+
+   template <class Self>
+   void
+   operator()(
+         Self& self,
+         std::array<std::size_t, 2> order = {},
+         system::error_code ec1 = {},
+         system::error_code ec2 = {})
+   {
+      BOOST_ASIO_CORO_REENTER (coro_)
+      {
+         BOOST_ASIO_CORO_YIELD
+         asio::experimental::make_parallel_group(
+            [this](auto token) { return checker_->async_ping(*conn_, token); },
+            [this](auto token) { return checker_->async_check_timeout(*conn_, token);}
+         ).async_wait(
+            asio::experimental::wait_for_one(),
+            std::move(self));
+
+         if (is_cancelled(self)) {
+            self.complete(asio::error::operation_aborted);
+            return;
+         }
+
+         switch (order[0]) {
+            case 0: self.complete(ec1); return;
+            case 1: self.complete(ec2); return;
+            default: BOOST_ASSERT(false);
+         }
       }
    }
 };
@@ -57,7 +134,6 @@ public:
 template <class Executor>
 class health_checker {
 private:
-   using promise_type = asio::experimental::promise<void(system::error_code, std::size_t), Executor>;
    using timer_type =
       asio::basic_waitable_timer<
          std::chrono::steady_clock,
@@ -68,9 +144,10 @@ public:
    health_checker(
       Executor ex,
       std::string const& msg,
-      std::chrono::steady_clock::duration interval)
-   : timer_{ex}
-   , timeout_{interval}
+      std::chrono::steady_clock::duration ping_interval)
+   : ping_timer_{ex}
+   , wait_timer_{ex}
+   , ping_interval_{ping_interval}
    {
       req_.push("PING", msg);
    }
@@ -87,26 +164,41 @@ public:
          >(check_health_op<health_checker, Connection>{this, &conn}, token, conn);
    }
 
-   void reset()
-   {
-      resp_.value().clear();
-      prom_.reset();
-   }
-
    void cancel()
    {
-      timer_.cancel();
-      if (prom_)
-         prom_.cancel();
+      ping_timer_.cancel();
+      wait_timer_.cancel();
    }
 
 private:
+   template <class Connection, class CompletionToken>
+   auto async_ping(Connection& conn, CompletionToken token)
+   {
+      return asio::async_compose
+         < CompletionToken
+         , void(system::error_code)
+         >(ping_op<health_checker, Connection>{this, &conn}, token, conn, ping_timer_);
+   }
+
+   template <class Connection, class CompletionToken>
+   auto async_check_timeout(Connection& conn, CompletionToken token)
+   {
+      return asio::async_compose
+         < CompletionToken
+         , void(system::error_code)
+         >(check_timeout_op<health_checker, Connection>{this, &conn}, token, conn, wait_timer_);
+   }
+
+   template <class, class> friend class ping_op;
+   template <class, class> friend class check_timeout_op;
    template <class, class> friend class check_health_op;
-   timer_type timer_;
-   std::optional<promise_type> prom_;
+
+   timer_type ping_timer_;
+   timer_type wait_timer_;
    redis::request req_;
    redis::generic_response resp_;
-   std::chrono::steady_clock::duration timeout_;
+   std::chrono::steady_clock::duration ping_interval_;
+   bool checker_has_exited_ = false;
 };
 
 } // detail
@@ -120,7 +212,7 @@ private:
  *
  *  @param conn A connection to the Redis server.
  *  @param msg The message to be sent with the [PING](https://redis.io/commands/ping/) command. Seting a proper and unique id will help users identify which connections are active.
- *  @param interval Ping interval.
+ *  @param ping_interval Ping ping_interval.
  *  @param token The completion token
  *
  *  The completion token must have the following signature
@@ -128,6 +220,9 @@ private:
  *  @code
  *  void f(system::error_code);
  *  @endcode
+ *
+ *  Completion occurs when a pong response is not receive within two
+ *  times the ping interval.
  */
 template <
    class Connection,
@@ -137,12 +232,12 @@ auto
 async_check_health(
    Connection& conn,
    std::string const& msg = "Boost.Redis",
-   std::chrono::steady_clock::duration interval = std::chrono::seconds{2},
+   std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{2},
    CompletionToken token = CompletionToken{})
 {
    using executor_type = typename Connection::executor_type;
    using health_checker_type = detail::health_checker<executor_type>;
-   auto checker = std::make_shared<health_checker_type>(conn.get_executor(), msg, interval);
+   auto checker = std::make_shared<health_checker_type>(conn.get_executor(), msg, ping_interval);
    return checker->async_check_health(conn, asio::consign(std::move(token), checker));
 }
 

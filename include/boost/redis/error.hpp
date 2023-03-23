@@ -69,6 +69,9 @@ enum class error
 
    /// Connect timeout
    connect_timeout,
+
+   /// Connect timeout
+   pong_timeout,
 };
 
 /** \internal

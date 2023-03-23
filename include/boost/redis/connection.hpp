@@ -51,6 +51,7 @@ public:
    basic_connection(executor_type ex)
    : base_type{ex}
    , stream_{ex}
+   , reconnect_{true}
    {}
 
    /// Contructs from a context.
@@ -227,6 +228,22 @@ public:
    void reserve(std::size_t read, std::size_t write)
       { base_type::reserve(read, write); }
 
+   /** @brief Enable reconnection
+    *
+    *  This property plays any role only when used with
+    *  `boost::redis::async_run`.
+    */
+   void enable_reconnection() noexcept {reconnect_ = true;}
+
+   /** @brief Disable reconnection
+    *
+    *  This property plays any role only when used with
+    *  `boost::redis::async_run`.
+    */
+   void disable_reconnection() noexcept {reconnect_ = false;}
+
+   bool reconnect() const noexcept {return reconnect_;}
+
 private:
    using this_type = basic_connection<next_layer_type>;
 
@@ -244,6 +261,7 @@ private:
    auto lowest_layer() noexcept -> auto& { return stream_.lowest_layer(); }
 
    Socket stream_;
+   bool reconnect_;
 };
 
 /** \brief A connection that uses a asio::ip::tcp::socket.

@@ -7,9 +7,9 @@
 #include <boost/redis/experimental/connector.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/asio/awaitable.hpp>
-#include <boost/asio/detached.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
 #include <boost/asio/consign.hpp>
 #include <iostream>
 

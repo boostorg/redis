@@ -85,8 +85,8 @@ BOOST_AUTO_TEST_CASE(check_health)
 
    bool seen = false;
    async_check_health(conn, msg, interval, [&](auto ec) {
-      BOOST_TEST(!ec);
-      std::cout << "async_check_health: completed." << std::endl;
+      BOOST_CHECK_EQUAL(ec, boost::redis::error::pong_timeout);
+      std::cout << "async_check_health: completed: " << ec.message() << std::endl;
       seen = true;
    });
 
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(check_health)
 
    request req2;
    req2.push("HELLO", "3");
-   req2.push("CLIENT", "PAUSE", "3000", "ALL");
+   req2.push("CLIENT", "PAUSE", "5000", "ALL");
 
    generic_response resp;
    push_callback{&conn, &conn2, &resp, &req2}(); // Starts reading pushes.

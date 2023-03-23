@@ -17,13 +17,13 @@ namespace boost::redis {
 // TODO: Implement filter.
 class logger {
 public:
-   void on_resolve(system::error_code const& ec, asio::ip::tcp::resolver::results_type const& res)
+   void on_resolve(system::error_code const& ec, asio::ip::tcp::resolver::results_type const&)
    {
       // TODO: Print the endpoints
       std::clog << "on_resolve: " << ec.message() << std::endl;
    }
 
-   void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep)
+   void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const&)
    {
       // TODO: Print the endpoint
       std::clog << "on_connect: " << ec.message() << std::endl;
