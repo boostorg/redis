@@ -4,9 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/run.hpp>
-#include <boost/redis/address.hpp>
-#include <boost/redis/logger.hpp>
+#include <boost/redis/connection.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE conn-exec
 #include <boost/test/included/unit_test.hpp>
@@ -20,17 +18,14 @@
 // container.
 
 namespace net = boost::asio;
-using error_code = boost::system::error_code;
-using connection = boost::redis::connection;
+using boost::redis::connection;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
-using boost::redis::ignore_t;
-using boost::redis::async_run;
-using boost::redis::logger;
-using boost::redis::address;
-using namespace std::chrono_literals;
+using boost::redis::operation;
 
+// Sends three requests where one of them has a hello with a priority
+// set, which means it should be executed first.
 BOOST_AUTO_TEST_CASE(hello_priority)
 {
    request req1;
@@ -40,7 +35,6 @@ BOOST_AUTO_TEST_CASE(hello_priority)
    req2.get_config().hello_with_priority = false;
    req2.push("HELLO", 3);
    req2.push("PING", "req2");
-   req2.push("QUIT");
 
    request req3;
    req3.get_config().hello_with_priority = true;
@@ -49,60 +43,63 @@ BOOST_AUTO_TEST_CASE(hello_priority)
 
    net::io_context ioc;
 
-   connection conn{ioc};
+   auto conn = std::make_shared<connection>(ioc);
 
    bool seen1 = false;
    bool seen2 = false;
    bool seen3 = false;
 
-   conn.async_exec(req1, ignore, [&](auto ec, auto){
-      std::cout << "bbb" << std::endl;
+   conn->async_exec(req1, ignore, [&](auto ec, auto){
+      // Second callback to the called.
+      std::cout << "req1" << std::endl;
       BOOST_TEST(!ec);
       BOOST_TEST(!seen2);
       BOOST_TEST(seen3);
       seen1 = true;
    });
-   conn.async_exec(req2, ignore, [&](auto ec, auto){
-      std::cout << "ccc" << std::endl;
+
+   conn->async_exec(req2, ignore, [&](auto ec, auto){
+      // Last callback to the called.
+      std::cout << "req2" << std::endl;
       BOOST_TEST(!ec);
       BOOST_TEST(seen1);
       BOOST_TEST(seen3);
       seen2 = true;
+      conn->cancel(operation::run);
+      conn->cancel(operation::reconnection);
    });
-   conn.async_exec(req3, ignore, [&](auto ec, auto){
-      std::cout << "ddd" << std::endl;
+
+   conn->async_exec(req3, ignore, [&](auto ec, auto){
+      // Callback that will be called first.
+      std::cout << "req3" << std::endl;
       BOOST_TEST(!ec);
       BOOST_TEST(!seen1);
       BOOST_TEST(!seen2);
       seen3 = true;
    });
 
-   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
-      BOOST_TEST(!ec);
-   });
-
+   run(conn);
    ioc.run();
 }
 
+// Tries to receive a string in an int and gets an error.
 BOOST_AUTO_TEST_CASE(wrong_response_data_type)
 {
    request req;
-   req.push("HELLO", 3);
-   req.push("QUIT");
+   req.push("PING");
 
    // Wrong data type.
-   response<ignore_t, int> resp;
+   response<int> resp;
    net::io_context ioc;
 
-   connection conn{ioc};
+   auto conn = std::make_shared<connection>(ioc);
 
-   conn.async_exec(req, resp, [](auto ec, auto){
+   conn->async_exec(req, resp, [conn](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_a_number);
-   });
-   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
+      conn->cancel(operation::reconnection);
    });
 
+   run(conn);
    ioc.run();
 }
 
@@ -110,13 +107,13 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 {
    request req;
    req.get_config().cancel_if_not_connected = true;
-   req.push("HELLO", 3);
    req.push("PING");
 
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
-   conn->async_exec(req, ignore, [](auto ec, auto){
+   conn->async_exec(req, ignore, [conn](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_connected);
+      conn->cancel();
    });
 
    ioc.run();

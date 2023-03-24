@@ -8,6 +8,10 @@
 #define BOOST_REDIS_CONNECTION_HPP
 
 #include <boost/redis/detail/connection_base.hpp>
+#include <boost/redis/detail/runner.hpp>
+#include <boost/redis/detail/reconnection.hpp>
+#include <boost/redis/logger.hpp>
+#include <boost/redis/config.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/asio/io_context.hpp>
 
@@ -15,6 +19,27 @@
 #include <memory>
 
 namespace boost::redis {
+
+namespace detail
+{
+
+template <class Executor>
+class dummy_handshaker {
+public:
+   dummy_handshaker(Executor) {}
+
+   template <class Stream, class CompletionToken>
+   auto async_handshake(Stream&, CompletionToken&& token)
+      { return asio::post(std::move(token)); }
+
+   void set_config(config const&) {}
+
+   std::size_t cancel(operation) { return 0;}
+
+   constexpr bool is_dummy() const noexcept {return true;}
+};
+
+}
 
 /** @brief A connection to the Redis server.
  *  @ingroup high-level-api
@@ -50,8 +75,9 @@ public:
    explicit
    basic_connection(executor_type ex)
    : base_type{ex}
+   , reconn_{ex}
+   , runner_{ex, {}}
    , stream_{ex}
-   , reconnect_{true}
    {}
 
    /// Contructs from a context.
@@ -67,9 +93,9 @@ public:
    void reset_stream()
    {
       if (stream_.is_open()) {
-         system::error_code ignore;
-         stream_.shutdown(asio::ip::tcp::socket::shutdown_both, ignore);
-         stream_.close(ignore);
+         system::error_code ec;
+         stream_.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
+         stream_.close(ec);
       }
    }
 
@@ -79,13 +105,31 @@ public:
    /// Returns a const reference to the next layer.
    auto next_layer() const noexcept -> auto const& { return stream_; }
 
-   /** @brief Starts read and write operations
+   /** @brief Starts underlying connection operations.
     *
-    *  This function starts read and write operations with the Redis
+    *  In more detail, this function will
+    *
+    *  1. Resolve the address passed on `boost::redis::config::addr`.
+    *  2. Connect to one of the results obtained in the resolve operation.
+    *  3. Send a [HELLO](https://redis.io/commands/hello/) command where each of its parameters are read from `cfg`.
+    *  4. Start a health-check operation where ping commands are sent
+    *     at intervals specified in
+    *     `boost::redis::config::health_check_interval`.  The message passed to
+    *     `PING` will be `boost::redis::config::health_check_id`.  Passing a
+    *     timeout with value zero will disable health-checks.  If the Redis
+    *     server does not respond to a health-check within two times the value
+    *     specified here, it will be considered unresponsive and the connection
+    *     will be closed and a new connection will be stablished.
+    *  5. Starts read and write operations with the Redis
     *  server. More specifically it will trigger the write of all
     *  requests i.e. calls to `async_exec` that happened prior to this
     *  call.
     *
+    *  When a connection is lost for any reason, a new one is stablished automatically. To disable
+    *  reconnection call `boost::redis::connection::cancel(operation::reconnection)`.
+    *
+    *  @param cfg Configuration paramters.
+    *  @param l Logger object. The interface expected is specified in the class `boost::redis::logger`.
     *  @param token Completion token.
     *
     *  The completion token must have the following signature
@@ -96,51 +140,37 @@ public:
     *
     *  @remarks
     *
-    *  * This function will complete only when the connection is lost.
-    *  If the error is asio::error::eof this function will complete
-    *  without error.
-    *  * It can can be called multiple times on the same connection
-    *  object. This makes it simple to implement reconnection in a way
-    *  that does not require cancelling any pending connections.
+    *  * This function will complete only if reconnection was disabled and the connection is lost.
     *
-    *  For examples of how to call this function see the examples. For
-    *  example, if reconnection is not necessary, the coroutine below
-    *  is enough
-    *
-    *  ```cpp
-    *  auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
-    *  {
-    *     // From examples/common.hpp to avoid vebosity
-    *     co_await connect(conn, host, port);
-    *  
-    *     // async_run coordinate read and write operations.
-    *     co_await conn->async_run();
-    *  
-    *     // Cancel pending operations, if any.
-    *     conn->cancel(operation::exec);
-    *     conn->cancel(operation::receive);
-    *  }
-    *  ```
-    *
-    *  For a reconnection example see cpp20_subscriber.cpp.
+    *  For example on how to call this function refer to cpp20_intro.cpp or any other example.
     */
-   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto async_run(CompletionToken token = CompletionToken{})
+   template <
+      class Logger = logger,
+      class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto
+   async_run(
+      config const& cfg = {},
+      Logger l = Logger{},
+      CompletionToken token = CompletionToken{})
    {
-      return base_type::async_run(std::move(token));
+      reconn_.set_wait_interval(cfg.reconnect_wait_interval);
+      runner_.set_config(cfg);
+      l.set_prefix(runner_.get_config().log_prefix);
+      return reconn_.async_run(*this, l, std::move(token));
    }
 
-   /** @brief Executes a command on the Redis server asynchronously.
+   /** @brief Executes commands on the Redis server asynchronously.
     *
     *  This function sends a request to the Redis server and
-    *  complete after the response has been processed. If the request
+    *  waits for the responses to each individual command in the
+    *  request to arrive. If the request
     *  contains only commands that don't expect a response, the
     *  completion occurs after it has been written to the underlying
     *  stream.  Multiple concurrent calls to this function will be
     *  automatically queued by the implementation.
     *
     *  @param req Request object.
-    *  @param response Response object.
+    *  @param resp Response object.
     *  @param token Asio completion token.
     *
     *  For an example see cpp20_echo_server.cpp. The completion token must
@@ -158,17 +188,17 @@ public:
       class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(
       request const& req,
-      Response& response = ignore,
+      Response& resp = ignore,
       CompletionToken token = CompletionToken{})
    {
-      return base_type::async_exec(req, response, std::move(token));
+      return base_type::async_exec(req, resp, std::move(token));
    }
 
    /** @brief Receives server side pushes asynchronously.
     *
-    *  When pushes arrive and there is no async_receive operation in
+    *  When pushes arrive and there is no `async_receive` operation in
     *  progress, pushed data, requests, and responses will be paused
-    *  until async_receive is called again.  Apps will usually want to
+    *  until `async_receive` is called again.  Apps will usually want to
     *  call `async_receive` in a loop. 
     *
     *  To cancel an ongoing receive operation apps should call
@@ -203,15 +233,18 @@ public:
     *  `async_exec`. Affects only requests that haven't been written
     *  yet.
     *  @li operation::run: Cancels the `async_run` operation.
-    *  @li operation::receive: Cancels any ongoing calls to *  `async_receive`.
-    *  @li operation::all: Cancels all operations listed above. This
-    *  is the default argument.
+    *  @li operation::receive: Cancels any ongoing calls to `async_receive`.
+    *  @li operation::all: Cancels all operations listed above.
     *
     *  @param op: The operation to be cancelled.
     *  @returns The number of operations that have been canceled.
     */
    auto cancel(operation op = operation::all) -> std::size_t
-      { return base_type::cancel(op); }
+   {
+      reconn_.cancel(op);
+      runner_.cancel(op);
+      return base_type::cancel(op);
+   }
 
    /// Sets the maximum size of the read buffer.
    void set_max_buffer_read_size(std::size_t max_read_size) noexcept
@@ -228,40 +261,43 @@ public:
    void reserve(std::size_t read, std::size_t write)
       { base_type::reserve(read, write); }
 
-   /** @brief Enable reconnection
-    *
-    *  This property plays any role only when used with
-    *  `boost::redis::async_run`.
-    */
-   void enable_reconnection() noexcept {reconnect_ = true;}
-
-   /** @brief Disable reconnection
-    *
-    *  This property plays any role only when used with
-    *  `boost::redis::async_run`.
-    */
-   void disable_reconnection() noexcept {reconnect_ = false;}
-
-   bool reconnect() const noexcept {return reconnect_;}
+   /// Returns true if the connection was canceled.
+   bool is_cancelled() const noexcept
+      { return reconn_.is_cancelled();}
 
 private:
+   using runner_type = detail::runner<executor_type, detail::dummy_handshaker>;
+   using reconnection_type = detail::basic_reconnection<executor_type>;
    using this_type = basic_connection<next_layer_type>;
 
    template <class, class> friend class detail::connection_base;
-   template <class, class> friend struct detail::exec_read_op;
+   template <class, class> friend class detail::read_next_op;
    template <class, class> friend struct detail::exec_op;
    template <class, class> friend struct detail::receive_op;
    template <class> friend struct detail::reader_op;
-   template <class> friend struct detail::writer_op;
-   template <class> friend struct detail::run_op;
+   template <class, class> friend struct detail::writer_op;
+   template <class, class> friend struct detail::run_op;
    template <class> friend struct detail::wait_receive_op;
+   template <class, class, class> friend struct detail::run_all_op;
+   template <class, class, class> friend struct detail::reconnection_op;
 
-   void close() { stream_.close(); }
+   template <class Logger, class CompletionToken>
+   auto async_run_one(Logger l, CompletionToken token)
+      { return runner_.async_run(*this, l, std::move(token)); }
+
+   template <class Logger, class CompletionToken>
+   auto async_run_impl(Logger l, CompletionToken token)
+      { return base_type::async_run_impl(l, std::move(token)); }
+
+   void close()
+      { reset_stream(); }
+
    auto is_open() const noexcept { return stream_.is_open(); }
    auto lowest_layer() noexcept -> auto& { return stream_.lowest_layer(); }
 
+   reconnection_type reconn_;
+   runner_type runner_;
    Socket stream_;
-   bool reconnect_;
 };
 
 /** \brief A connection that uses a asio::ip::tcp::socket.

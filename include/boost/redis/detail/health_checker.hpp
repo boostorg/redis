@@ -4,14 +4,15 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_CHECK_HEALTH_HPP
-#define BOOST_REDIS_CHECK_HEALTH_HPP
+#ifndef BOOST_REDIS_HEALTH_CHECKER_HPP
+#define BOOST_REDIS_HEALTH_CHECKER_HPP
 
 // Has to included before promise.hpp to build on msvc.
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/detail/helper.hpp>
+#include <boost/redis/config.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/consign.hpp>
@@ -20,8 +21,7 @@
 #include <memory>
 #include <chrono>
 
-namespace boost::redis {
-namespace detail {
+namespace boost::redis::detail {
 
 template <class HealthChecker, class Connection>
 class ping_op {
@@ -70,7 +70,7 @@ public:
          checker_->wait_timer_.async_wait(std::move(self));
          BOOST_REDIS_CHECK_OP0(;)
 
-         if (!checker_->resp_.has_value()) {
+         if (checker_->resp_.has_error()) {
             self.complete({});
             return;
          }
@@ -82,8 +82,6 @@ public:
             self.complete(error::pong_timeout);
             return;
          }
-
-         checker_->resp_.value().clear();
 
          if (checker_->resp_.has_value()) {
             checker_->resp_.value().clear();
@@ -109,6 +107,13 @@ public:
    {
       BOOST_ASIO_CORO_REENTER (coro_)
       {
+         if (checker_->ping_interval_.count() == 0) {
+            BOOST_ASIO_CORO_YIELD
+            asio::post(std::move(self));
+            self.complete({});
+            return;
+         }
+
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
             [this](auto token) { return checker_->async_ping(*conn_, token); },
@@ -141,15 +146,18 @@ private:
          Executor>;
 
 public:
-   health_checker(
-      Executor ex,
-      std::string const& msg,
-      std::chrono::steady_clock::duration ping_interval)
+   health_checker(Executor ex)
    : ping_timer_{ex}
    , wait_timer_{ex}
-   , ping_interval_{ping_interval}
    {
-      req_.push("PING", msg);
+      req_.push("PING", "Boost.Redis");
+   }
+
+   void set_config(config const& cfg)
+   {
+      req_.clear();
+      req_.push("PING", cfg.health_check_id);
+      ping_interval_ = cfg.health_check_interval;
    }
 
    template <
@@ -164,10 +172,18 @@ public:
          >(check_health_op<health_checker, Connection>{this, &conn}, token, conn);
    }
 
-   void cancel()
+   std::size_t cancel(operation op)
    {
-      ping_timer_.cancel();
-      wait_timer_.cancel();
+      switch (op) {
+         case operation::health_check:
+         case operation::all:
+            ping_timer_.cancel();
+            wait_timer_.cancel();
+            break;
+         default: /* ignore */;
+      }
+
+      return 0;
    }
 
 private:
@@ -197,50 +213,10 @@ private:
    timer_type wait_timer_;
    redis::request req_;
    redis::generic_response resp_;
-   std::chrono::steady_clock::duration ping_interval_;
+   std::chrono::steady_clock::duration ping_interval_ = std::chrono::seconds{5};
    bool checker_has_exited_ = false;
 };
 
-} // detail
+} // boost::redis::detail
 
-/** @brief Checks Redis health asynchronously
- *  @ingroup high-level-api
- *
- *  This function will ping the Redis server periodically until a ping
- *  timesout or an error occurs. On timeout this function will
- *  complete with success.
- *
- *  @param conn A connection to the Redis server.
- *  @param msg The message to be sent with the [PING](https://redis.io/commands/ping/) command. Seting a proper and unique id will help users identify which connections are active.
- *  @param ping_interval Ping ping_interval.
- *  @param token The completion token
- *
- *  The completion token must have the following signature
- *
- *  @code
- *  void f(system::error_code);
- *  @endcode
- *
- *  Completion occurs when a pong response is not receive within two
- *  times the ping interval.
- */
-template <
-   class Connection,
-   class CompletionToken = asio::default_completion_token_t<typename Connection::executor_type>
->
-auto
-async_check_health(
-   Connection& conn,
-   std::string const& msg = "Boost.Redis",
-   std::chrono::steady_clock::duration ping_interval = std::chrono::seconds{2},
-   CompletionToken token = CompletionToken{})
-{
-   using executor_type = typename Connection::executor_type;
-   using health_checker_type = detail::health_checker<executor_type>;
-   auto checker = std::make_shared<health_checker_type>(conn.get_executor(), msg, ping_interval);
-   return checker->async_check_health(conn, asio::consign(std::move(token), checker));
-}
-
-} // boost::redis
-
-#endif // BOOST_REDIS_CHECK_HEALTH_HPP
+#endif // BOOST_REDIS_HEALTH_CHECKER_HPP

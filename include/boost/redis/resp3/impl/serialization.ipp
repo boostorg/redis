@@ -21,7 +21,6 @@ void boost_redis_to_bulk(std::string& payload, std::string_view data)
 
 void add_header(std::string& payload, type t, std::size_t size)
 {
-   // TODO: Call reserve.
    auto const str = std::to_string(size);
 
    payload += to_code(t);

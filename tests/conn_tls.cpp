@@ -4,13 +4,12 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/run.hpp>
-#include <boost/asio/ssl.hpp>
+#include <boost/redis/ssl/connection.hpp>
 #define BOOST_TEST_MODULE conn-tls
 #include <boost/test/included/unit_test.hpp>
-#include <boost/redis/ssl/connection.hpp>
 #include <iostream>
 #include "common.hpp"
+
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
@@ -18,24 +17,8 @@ namespace net = boost::asio;
 using connection = boost::redis::ssl::connection;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::ignore_t;
-
-using endpoints = net::ip::tcp::resolver::results_type;
-
-auto
-resolve(
-   std::string const& host = "127.0.0.1",
-   std::string const& port = "6379") -> endpoints
-{
-   net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   return resv.resolve(host, port);
-}
-
-struct endpoint {
-   std::string host;
-   std::string port;
-};
+using boost::redis::config;
+using boost::redis::operation;
 
 bool verify_certificate(bool, net::ssl::verify_context&)
 {
@@ -45,17 +28,18 @@ bool verify_certificate(bool, net::ssl::verify_context&)
 
 BOOST_AUTO_TEST_CASE(ping)
 {
+   config cfg;
+   cfg.username = "aedis";
+   cfg.password = "aedis";
+   cfg.addr.host = "db.occase.de";
+   cfg.addr.port = "6380";
+
    std::string const in = "Kabuf";
 
    request req;
-   req.get_config().cancel_on_connection_lost = true;
-   req.push("HELLO", 3, "AUTH", "aedis", "aedis");
    req.push("PING", in);
-   req.push("QUIT");
 
-   response<ignore_t, std::string, ignore_t> resp;
-
-   auto const endpoints = resolve("db.occase.de", "6380");
+   response<std::string> resp;
 
    net::io_context ioc;
    net::ssl::context ctx{net::ssl::context::sslv23};
@@ -63,19 +47,16 @@ BOOST_AUTO_TEST_CASE(ping)
    conn.next_layer().set_verify_mode(net::ssl::verify_peer);
    conn.next_layer().set_verify_callback(verify_certificate);
 
-   net::connect(conn.lowest_layer(), endpoints);
-   conn.next_layer().handshake(net::ssl::stream_base::client);
-
-   conn.async_exec(req, resp, [](auto ec, auto) {
+   conn.async_exec(req, resp, [&](auto ec, auto) {
       BOOST_TEST(!ec);
+      conn.cancel();
    });
 
-   conn.async_run([](auto ec) {
-      BOOST_TEST(!ec);
-   });
+   conn.async_run(cfg, {}, [](auto) { });
 
    ioc.run();
 
-   BOOST_CHECK_EQUAL(in, std::get<1>(resp).value());
+   BOOST_CHECK_EQUAL(in, std::get<0>(resp).value());
+   std::cout << "===============================" << std::endl;
 }
 

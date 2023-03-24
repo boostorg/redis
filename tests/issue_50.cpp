@@ -6,7 +6,7 @@
 
 // Must come before any asio header, otherwise build fails on msvc.
 
-#include <boost/redis/experimental/connector.hpp>
+#include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/detached.hpp>
@@ -22,31 +22,44 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
-namespace redis = boost::redis;
 using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
-using redis::request;
-using redis::response;
-using redis::ignore;
-using redis::address;
-using redis::logger;
-using redis::experimental::async_connect;
-using redis::experimental::connect_config;
+using boost::redis::request;
+using boost::redis::response;
+using boost::redis::ignore;
+using boost::redis::logger;
+using boost::redis::config;
+using boost::redis::operation;
+using boost::system::error_code;
+using boost::asio::use_awaitable;
+using boost::asio::redirect_error;
 using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 using namespace std::chrono_literals;
 
 // Push consumer
-auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto
+receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   boost::system::error_code ec;
-   while (!ec)
-      co_await conn->async_receive(ignore, net::redirect_error(net::use_awaitable, ec));
+   std::cout << "uuu" << std::endl;
+   while (!conn->is_cancelled()) {
+      std::cout << "dddd" << std::endl;
+      // Loop reading Redis pushs messages.
+      for (;;) {
+         std::cout << "aaaa" << std::endl;
+         error_code ec;
+         co_await conn->async_receive(ignore, redirect_error(use_awaitable, ec));
+         if (ec)
+            break;
+      }
+   }
 }
 
-auto periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto
+periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
   net::steady_timer timer{co_await net::this_coro::executor};
   for (int i = 0; i < 10; ++i) {
-    timer.expires_after(std::chrono::seconds(2));
+    std::cout << "In the loop: " << i << std::endl;
+    timer.expires_after(std::chrono::milliseconds(50));
     co_await timer.async_wait(net::use_awaitable);
 
     // Key is not set so it will cause an error since we are passing
@@ -56,29 +69,26 @@ auto periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
     req.push("GET", "mykey");
     auto [ec, u] = co_await conn->async_exec(req, ignore, net::as_tuple(net::use_awaitable));
     if (ec) {
-      std::cout << "Error: " << ec << std::endl;
+      std::cout << "(1)Error: " << ec << std::endl;
     } else {
       std::cout << "no error: " << std::endl;
     }
   }
 
   std::cout << "Periodic task done!" << std::endl;
-  conn->disable_reconnection();
-  conn->cancel(redis::operation::run);
-  conn->cancel(redis::operation::receive);
+  conn->cancel(operation::run);
+  conn->cancel(operation::receive);
+  conn->cancel(operation::reconnection);
 }
 
-auto co_main(address const& addr) -> net::awaitable<void>
+auto co_main(config const& cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
 
-   connect_config cfg;
-   cfg.addr = addr;
-
    net::co_spawn(ex, receiver(conn), net::detached);
    net::co_spawn(ex, periodic_task(conn), net::detached);
-   redis::experimental::async_connect(*conn, cfg, logger{}, net::consign(net::detached, conn));
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

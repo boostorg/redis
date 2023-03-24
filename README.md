@@ -2,9 +2,9 @@
 
 Boost.Redis is a [Redis](https://redis.io/) client library built on top of
 [Boost.Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
-that implements 
-[RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md),
-a plain text protocol which can multiplex any number of client
+that implements Redis plain text protocol
+[RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
+It can multiplex any number of client
 requests, responses, and server pushes onto a single active socket
 connection to the Redis server.  The library hides low-level code away
 from the user, which, in the majority of the cases will be concerned
@@ -17,7 +17,7 @@ with only three library entities
   STL containers and user defined data types.
 * `boost::redis::response`: Container of Redis responses.
 
-In the next sections we will cover all those points in detail with
+In the next sections we will cover all these points in detail with
 examples. The requirements for using Boost.Redis are
 
 * Boost 1.81 or greater.
@@ -40,7 +40,7 @@ examples and tests cmake is supported, for example
 
 ```cpp
 # Linux
-$ BOOST_ROOT=/opt/boost_1_81_0 cmake --preset dev
+$ BOOST_ROOT=/opt/boost_1_81_0 cmake --preset g++-11
 
 # Windows 
 $ cmake -G "Visual Studio 17 2022" -A x64 -B bin64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
@@ -65,107 +65,34 @@ connection to send a [ping](https://redis.io/commands/ping/) command
 to Redis
 
 ```cpp
-auto run(std::shared_ptr<connection> conn, std::string host, std::string port) -> net::awaitable<void>
+auto co_main(config const& cfg) -> net::awaitable<void>
 {
-   // From examples/common.hpp to avoid vebosity
-   co_await connect(conn, host, port);
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
-   // async_run coordinates read and write operations.
-   co_await conn->async_run();
-
-   // Cancel pending operations, if any.
-   conn->cancel(operation::exec);
-   conn->cancel(operation::receive);
-}
-
-auto co_main(std::string host, std::string port) -> net::awaitable<void>
-{
-   auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn, host, port), net::detached);
-
-   // A request can contain multiple commands.
+   // A request containing only a ping command.
    request req;
-   req.push("HELLO", 3);
    req.push("PING", "Hello world");
-   req.push("QUIT");
 
-   // Stores responses of each individual command. The responses to
-   // HELLO and QUIT are being ignored for simplicity.
-   response<ignore_t, std::string, ignore_t> resp;
+   // Response where the PONG response will be stored.
+   response<std::string> resp;
 
    // Executes the request.
    co_await conn->async_exec(req, resp);
+   conn->cancel();
 
-   std::cout << "PING: " << std::get<1>(resp).value() << std::endl;
+   std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
 }
 ```
+
 The roles played by the `async_run` and `async_exec` functions are
 
 * `connection::async_exec`: Execute the commands contained in the
   request and store the individual responses in the `resp` object. Can
   be called from multiple places in your code concurrently.
-* `connection::async_run`: Coordinate low-level read and write
-  operations. More specifically, it will hand IO control to
-  `async_exec` when a response arrives and to `async_receive` when a
-  server-push is received. It is also responsible for triggering
-  writes of pending requests.
-
-Depending on the user's requirements, there are different styles of
-calling `async_run`. For example, in a short-lived connection where
-there is only one active client communicating with the server, the
-easiest way to call `async_run` is to only run it simultaneously with
-the `async_exec` call, this is exemplified in
-cpp20_intro_awaitable_ops.cpp.  If there are many in-process clients
-performing simultaneous requests, an alternative is to launch a
-long-running coroutine which calls `async_run` detached from other
-operations as shown in the example above, cpp20_intro.cpp and
-cpp20_echo_server.cpp.  The list of examples below will help users
-comparing different ways of implementing the ping example shown above
-
-* cpp20_intro_awaitable_ops.cpp: Uses awaitable operators.
-* cpp20_intro.cpp: Calls `async_run` detached from other operations.
-* cpp20_intro_tls.cpp: Communicates over TLS.
-* cpp17_intro.cpp: Uses callbacks and requires C++17.
-* cpp17_intro_sync.cpp: Runs `async_run` in a separate thread and
-  performs synchronous calls to `async_exec`.
-
-While calling `async_run` is a sufficient condition for maintaining
-active two-way communication with the Redis server, most production
-deployments will want to do more. For example, they may want to
-reconnect if the connection goes down, either to the same server or a
-failover server. They may want to perform health checks and more.  The
-example below shows for example how to use a loop to keep reconnecting
-to the same address when a disconnection occurs (see
-cpp20_subscriber.cpp)
-
-```cpp
-auto run(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   steady_timer timer{co_await net::this_coro::executor};
-
-   for (;;) {
-      co_await connect(conn, "127.0.0.1", "6379");
-      co_await (conn->async_run() || health_check(conn) || receiver(conn));
-
-      // Prepare the stream for a new connection.
-      conn->reset_stream();
-
-      // Waits one second before trying to reconnect.
-      timer.expires_after(std::chrono::seconds{1});
-      co_await timer.async_wait();
-   }
-}
-```
-
-The ability to reconnect the same connection object results in
-considerable simplification of backend code and makes it easier to
-write failover-safe applications. For example, a Websocket server
-might have a 10k sessions communicating with Redis at the time the
-connection is lost (or maybe killed by the server admin to force a
-failover). It would be concerning if each individual section were to
-throw exceptions and handle error.  With the pattern shown above the
-only place that has to manage the error is the run function.
+* `connection::async_run`: Resolve, connect, ssl-handshake,
+  resp3-handshake, health-checks reconnection and coordinate low-level
+  read and write operations..
 
 ### Server pushes
 
@@ -181,48 +108,34 @@ The connection class supports server pushes by means of the
 to used it
 
 ```cpp
-auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto
+receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   for (generic_response resp;;) {
-      co_await conn->async_receive(resp);
-      // Use resp and clear the response for a new push.
-      resp.clear();
+   request req;
+   req.push("SUBSCRIBE", "channel");
+
+   while (!conn->is_cancelled()) {
+
+      // Reconnect to channels.
+      co_await conn->async_exec(req);
+
+      // Loop reading Redis pushs messages.
+      for (generic_response resp;;) {
+         error_code ec;
+         co_await conn->async_receive(resp, net::redirect_error(net::use_awaitable, ec));
+         if (ec)
+            break; // Connection lost, break so we can reconnect to channels.
+         std::cout
+            << resp.value().at(1).value
+            << " " << resp.value().at(2).value
+            << " " << resp.value().at(3).value
+            << std::endl;
+         resp.value().clear();
+      }
    }
 }
+
 ```
-
-### Cancellation
-
-Boost.Redis supports both implicit and explicit cancellation of connection
-operations. Explicit cancellation is supported by means of the
-`boost::redis::connection::cancel` member function. Implicit
-terminal-cancellation, like those that happen when using Asio
-awaitable `operator ||` will be discussed with more detail below.
-
-```cpp
-co_await (conn.async_run(...) || conn.async_exec(...))
-```
-
-* Useful for short-lived connections that are meant to be closed after
-  a command has been executed.
-
-```cpp
-co_await (conn.async_exec(...) || time.async_wait(...))
-```
-
-* Provides a way to limit how long the execution of a single request
-  should last.
-* WARNING: If the timer fires after the request has been sent but before the
-  response has been received, the connection will be closed.
-* It is usually a better idea to have a healthy checker than adding
-  per request timeout, see cpp20_subscriber.cpp for an example.
-
-```cpp
-co_await (conn.async_exec(...) || conn.async_exec(...) || ... || conn.async_exec(...))
-```
-
-* This works but is unnecessary, the connection will automatically
-  merge the individual requests into a single payload.
 
 <a name="requests"></a>
 ## Requests
@@ -535,7 +448,6 @@ to serialize using json and [protobuf](https://protobuf.dev/).
 
 The examples below show how to use the features discussed so far
 
-* cpp20_intro_awaitable_ops.cpp: The version shown above.
 * cpp20_intro.cpp: Does not use awaitable operators.
 * cpp20_intro_tls.cpp: Communicates over TLS.
 * cpp20_containers.cpp: Shows how to send and receive STL containers and how to use transactions.
@@ -793,7 +705,7 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 * Renames the project to Boost.Redis and moves the code into namespace
   `boost::redis`.
 
-* As pointed out in the reviews the `to_buld` and `from_buld` names were too
+* As pointed out in the reviews the `to_bulk` and `from_bulk` names were too
   generic for ADL customization points. They gained the prefix `boost_redis_`.
 
 * Moves `boost::redis::resp3::request` to `boost::redis::request`.
@@ -820,19 +732,16 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   became unnecessary and was removed. I could measure significative performance
   gains with theses changes.
 
-* Adds native json support for Boost.Describe'd classes. To use it include
-  `<boost/redis/json.hpp>` and decribe you class as of Boost.Describe, see
-  cpp20_json_serialization.cpp for more details.
+* Improves serialization examples using Boost.Describe to serialize to JSON and protobuf. See
+  cpp20_json.cpp and cpp20_protobuf.cpp for more details.
 
 * Upgrades to Boost 1.81.0.
 
 * Fixes build with libc++.
 
-* Adds a function that performs health checks, see
-  `boost::redis::experimental::async_check_health`.
-
-* Adds non-member `async_run` function that resolves, connects and
-  calls member `async_run` on a connection object.
+* Adds high-level functionality to the connection classes. For
+  example, `boost::redis::connection::async_run` will automatically
+  resolve, connect, reconnect and perform health checks.
 
 ### v1.4.0-1
 

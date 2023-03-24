@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/connection.hpp>
 #include <boost/redis/adapter/adapt.hpp>
-#include <boost/redis/address.hpp>
 #include <boost/redis/detail/read.hpp>
 #include <boost/redis/detail/write.hpp>
 #include <boost/asio/use_awaitable.hpp>
@@ -22,15 +22,15 @@ using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>
 using boost::redis::adapter::adapt2;
 using net::ip::tcp;
 using boost::redis::request;
-using boost::redis::address;
 using boost::redis::adapter::result;
+using redis::config;
 
-auto co_main(address const& addr) -> net::awaitable<void>
+auto co_main(config const& cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
 
    resolver resv{ex};
-   auto const addrs = co_await resv.async_resolve(addr.host, addr.port);
+   auto const addrs = co_await resv.async_resolve(cfg.addr.host, cfg.addr.port);
    tcp_socket socket{ex};
    co_await net::async_connect(socket, addrs);
 

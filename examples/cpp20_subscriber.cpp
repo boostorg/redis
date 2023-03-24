@@ -4,25 +4,29 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/experimental/connector.hpp>
+#include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/deferred.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/consign.hpp>
+#include <boost/asio/redirect_error.hpp>
+#include <boost/asio/signal_set.hpp>
 #include <iostream>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
-namespace redis = boost::redis;
-using redis::generic_response;
-using redis::address;
-using redis::logger;
-using redis::experimental::async_connect;
-using redis::experimental::connect_config;
-using connection = net::use_awaitable_t<>::as_default_on_t<redis::connection>;
+using boost::redis::request;
+using boost::redis::generic_response;
+using boost::redis::logger;
+using boost::redis::config;
+using boost::system::error_code;
+using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
+using signal_set = net::deferred_t::as_default_on_t<net::signal_set>;
+using namespace std::chrono_literals;
 
 /* This example will subscribe and read pushes indefinitely.
  *
@@ -41,27 +45,44 @@ using connection = net::use_awaitable_t<>::as_default_on_t<redis::connection>;
  */
 
 // Receives server pushes.
-auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto
+receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   for (generic_response resp;;) {
-      co_await conn->async_receive(resp);
-      std::cout
-         << resp.value().at(1).value
-         << " " << resp.value().at(2).value
-         << " " << resp.value().at(3).value
-         << std::endl;
-      resp.value().clear();
+   request req;
+   req.push("SUBSCRIBE", "channel");
+
+   while (!conn->is_cancelled()) {
+
+      // Reconnect to channels.
+      co_await conn->async_exec(req);
+
+      // Loop reading Redis pushs messages.
+      for (generic_response resp;;) {
+         error_code ec;
+         co_await conn->async_receive(resp, net::redirect_error(net::use_awaitable, ec));
+         if (ec)
+            break; // Connection lost, break so we can reconnect to channels.
+         std::cout
+            << resp.value().at(1).value
+            << " " << resp.value().at(2).value
+            << " " << resp.value().at(3).value
+            << std::endl;
+         resp.value().clear();
+      }
    }
 }
 
-auto co_main(address const& addr) -> net::awaitable<void>
+auto co_main(config const& cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   connect_config cfg;
-   cfg.addr = addr;
    net::co_spawn(ex, receiver(conn), net::detached);
-   redis::experimental::async_connect(*conn, cfg, logger{}, net::consign(net::detached, conn));
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+
+   signal_set sig_set(ex, SIGINT, SIGTERM);
+   co_await sig_set.async_wait();
+
+   conn->cancel();
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

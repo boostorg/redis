@@ -4,10 +4,11 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/run.hpp>
-#include <boost/asio/use_awaitable.hpp>
+#include <boost/redis/connection.hpp>
+#include <boost/asio/deferred.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
+#include <boost/asio/consign.hpp>
 #include <iostream>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
@@ -15,41 +16,28 @@
 namespace net = boost::asio;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::ignore_t;
-using boost::redis::async_run;
-using boost::redis::address;
-using connection = net::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
-
-auto run(std::shared_ptr<connection> conn, address addr) -> net::awaitable<void>
-{
-   // async_run coordinate read and write operations.
-   co_await async_run(*conn, addr);
-
-   // Cancel pending operations, if any.
-   conn->cancel();
-}
+using boost::redis::config;
+using boost::redis::logger;
+using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 
 // Called from the main function (see main.cpp)
-auto co_main(address const& addr) -> net::awaitable<void>
+auto co_main(config const& cfg) -> net::awaitable<void>
 {
-   auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn, addr), net::detached);
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
-   // A request can contain multiple commands.
+   // A request containing only a ping command.
    request req;
-   req.push("HELLO", 3);
    req.push("PING", "Hello world");
-   req.push("QUIT");
 
-   // Stores responses of each individual command. The responses to
-   // HELLO and QUIT are being ignored for simplicity.
-   response<ignore_t, std::string, ignore_t> resp;
+   // Response where the PONG response will be stored.
+   response<std::string> resp;
 
-   // Executtes the request.
+   // Executes the request.
    co_await conn->async_exec(req, resp);
+   conn->cancel();
 
-   std::cout << "PING: " << std::get<1>(resp).value() << std::endl;
+   std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

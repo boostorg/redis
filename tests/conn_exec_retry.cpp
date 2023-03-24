@@ -4,18 +4,16 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <iostream>
+#include <boost/redis/connection.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/system/errc.hpp>
 
 #define BOOST_TEST_MODULE conn-exec-retry
 #include <boost/test/included/unit_test.hpp>
-
-#include <boost/redis/run.hpp>
-#include <boost/redis/address.hpp>
-#include <boost/redis/src.hpp>
-
+#include <iostream>
 #include "common.hpp"
+
+#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
@@ -24,9 +22,8 @@ using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
-using boost::redis::async_run;
 using boost::redis::logger;
-using boost::redis::address;
+using boost::redis::config;
 using namespace std::chrono_literals;
 
 BOOST_AUTO_TEST_CASE(request_retry_false)
@@ -45,7 +42,7 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
    req2.push("PING");
 
    net::io_context ioc;
-   connection conn{ioc};
+   auto conn = std::make_shared<connection>(ioc);
 
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});
@@ -55,28 +52,33 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
       // although it has cancel_on_connection_lost = false. The reason
       // being it has already been written so
       // cancel_on_connection_lost does not apply.
-      conn.cancel(operation::run);
+      conn->cancel(operation::run);
+      conn->cancel(operation::reconnection);
+      std::cout << "async_wait" << std::endl;
    });
 
    auto c2 = [&](auto ec, auto){
+      std::cout << "c2" << std::endl;
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    };
 
    auto c1 = [&](auto ec, auto){
+      std::cout << "c1" << std::endl;
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    };
 
    auto c0 = [&](auto ec, auto){
+      std::cout << "c0" << std::endl;
       BOOST_TEST(!ec);
-      conn.async_exec(req1, ignore, c1);
-      conn.async_exec(req2, ignore, c2);
+      conn->async_exec(req1, ignore, c1);
+      conn->async_exec(req2, ignore, c2);
    };
 
-   conn.async_exec(req0, ignore, c0);
+   conn->async_exec(req0, ignore, c0);
 
-   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-   });
+   config cfg;
+   cfg.health_check_interval = 5s;
+   run(conn);
 
    ioc.run();
 }
@@ -102,25 +104,27 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
    req3.push("QUIT");
 
    net::io_context ioc;
-   connection conn{ioc};
+   auto conn = std::make_shared<connection>(ioc);
 
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});
    st.async_wait([&](auto){
       // Cancels the request before receiving the response. This
       // should cause the thrid request to not complete with error
-      // since it has cancel_if_unresponded = true and cancellation commes
-      // after it was written.
-      conn.cancel(boost::redis::operation::run);
+      // since it has cancel_if_unresponded = true and cancellation
+      // comes after it was written.
+      conn->cancel(operation::run);
    });
 
    auto c3 = [&](auto ec, auto){
+      std::cout << "c3: " << ec.message() << std::endl;
       BOOST_TEST(!ec);
+      conn->cancel();
    };
 
    auto c2 = [&](auto ec, auto){
       BOOST_TEST(!ec);
-      conn.async_exec(req3, ignore, c3);
+      conn->async_exec(req3, ignore, c3);
    };
 
    auto c1 = [](auto ec, auto){
@@ -129,22 +133,17 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
 
    auto c0 = [&](auto ec, auto){
       BOOST_TEST(!ec);
-      conn.async_exec(req1, ignore, c1);
-      conn.async_exec(req2, ignore, c2);
+      conn->async_exec(req1, ignore, c1);
+      conn->async_exec(req2, ignore, c2);
    };
 
-   conn.async_exec(req0, ignore, c0);
+   conn->async_exec(req0, ignore, c0);
 
-   async_run(conn, address{}, 10s, 10s, logger{}, [&](auto ec){
-      // The first cacellation.
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
-      conn.reset_stream();
-
-      // Reconnects and runs again to test req3.
-      async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
-         std::cout << ec.message() << std::endl;
-         BOOST_TEST(!ec);
-      });
+   config cfg;
+   cfg.health_check_interval = 5s;
+   conn->async_run(cfg, {}, [&](auto ec){
+      std::cout << ec.message() << std::endl;
+      BOOST_TEST(!!ec);
    });
 
    ioc.run();

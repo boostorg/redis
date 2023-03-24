@@ -84,7 +84,6 @@ void add_header(std::string& payload, type t, std::size_t size);
 template <class T>
 void add_bulk(std::string& payload, T const& data)
 {
-   // TODO: Call reserve.
    add_bulk_impl<T>::add(payload, data);
 }
 

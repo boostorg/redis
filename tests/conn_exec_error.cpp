@@ -4,7 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/run.hpp>
+#include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE conn-exec-error
@@ -24,9 +24,9 @@ using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::error;
-using boost::redis::async_run;
 using boost::redis::logger;
-using boost::redis::address;
+using boost::redis::operation;
+using redis::config;
 using namespace std::chrono_literals;
 
 BOOST_AUTO_TEST_CASE(no_ignore_error)
@@ -38,15 +38,15 @@ BOOST_AUTO_TEST_CASE(no_ignore_error)
 
    net::io_context ioc;
 
-   connection conn{ioc};
+   auto conn = std::make_shared<connection>(ioc);
 
-   conn.async_exec(req, ignore, [&](auto ec, auto){
+   conn->async_exec(req, ignore, [&](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, error::resp3_simple_error);
-      conn.cancel(redis::operation::run);
+      conn->cancel(operation::run);
+      conn->cancel(operation::reconnection);
    });
-   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
-   });
+
+   run(conn);
 
    ioc.run();
 }
@@ -64,10 +64,10 @@ BOOST_AUTO_TEST_CASE(has_diagnostic)
 
    net::io_context ioc;
 
-   connection conn{ioc};
+   auto conn = std::make_shared<connection>(ioc);
 
    response<std::string, std::string> resp;
-   conn.async_exec(req, resp, [&](auto ec, auto){
+   conn->async_exec(req, resp, [&](auto ec, auto){
       BOOST_TEST(!ec);
 
       // HELLO
@@ -81,11 +81,11 @@ BOOST_AUTO_TEST_CASE(has_diagnostic)
       BOOST_TEST(std::get<1>(resp).has_value());
       BOOST_CHECK_EQUAL(std::get<1>(resp).value(), "Barra do Una");
 
-      conn.cancel(redis::operation::run);
+      conn->cancel(operation::run);
+      conn->cancel(operation::reconnection);
    });
-   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
-   });
+
+   run(conn);
 
    ioc.run();
 }
@@ -106,14 +106,15 @@ BOOST_AUTO_TEST_CASE(resp3_error_in_cmd_pipeline)
    response<std::string> resp2;
 
    net::io_context ioc;
-   connection conn{ioc};
+   auto conn = std::make_shared<connection>(ioc);
 
    auto c2 = [&](auto ec, auto)
    {
       BOOST_TEST(!ec);
       BOOST_TEST(std::get<0>(resp2).has_value());
       BOOST_CHECK_EQUAL(std::get<0>(resp2).value(), "req2-msg1");
-      conn.cancel(redis::operation::run);
+      conn->cancel(operation::run);
+      conn->cancel(operation::reconnection);
    };
 
    auto c1 = [&](auto ec, auto)
@@ -128,13 +129,11 @@ BOOST_AUTO_TEST_CASE(resp3_error_in_cmd_pipeline)
       BOOST_TEST(std::get<3>(resp1).has_value());
       BOOST_CHECK_EQUAL(std::get<3>(resp1).value(), "req1-msg3");
 
-      conn.async_exec(req2, resp2, c2);
+      conn->async_exec(req2, resp2, c2);
    };
 
-   conn.async_exec(req1, resp1, c1);
-   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
-   });
+   conn->async_exec(req1, resp1, c1);
+   run(conn);
 
    ioc.run();
 }
@@ -163,9 +162,9 @@ BOOST_AUTO_TEST_CASE(error_in_transaction)
 
    net::io_context ioc;
 
-   connection conn{ioc};
+   auto conn = std::make_shared<connection>(ioc);
 
-   conn.async_exec(req, resp, [&](auto ec, auto){
+   conn->async_exec(req, resp, [&](auto ec, auto){
       BOOST_TEST(!ec);
       
       BOOST_TEST(std::get<0>(resp).has_value());
@@ -193,11 +192,11 @@ BOOST_AUTO_TEST_CASE(error_in_transaction)
       BOOST_TEST(std::get<6>(resp).has_value());
       BOOST_CHECK_EQUAL(std::get<6>(resp).value(), "PONG");
 
-      conn.cancel(redis::operation::run);
+      conn->cancel(operation::run);
+      conn->cancel(operation::reconnection);
    });
-   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
-   });
+
+   run(conn);
 
    ioc.run();
 }
@@ -215,7 +214,7 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
    req2.push("SUBSCRIBE"); // Wrong command synthax.
 
    net::io_context ioc;
-   connection conn{ioc};
+   auto conn = std::make_shared<connection>(ioc);
 
    auto c2 = [&](auto ec, auto)
    {
@@ -227,10 +226,10 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
    {
       std::cout << "async_exec: hello" << std::endl;
       BOOST_TEST(!ec);
-      conn.async_exec(req2, ignore, c2);
+      conn->async_exec(req2, ignore, c2);
    };
 
-   conn.async_exec(req1, ignore, c1);
+   conn->async_exec(req1, ignore, c1);
 
    generic_response gresp;
    auto c3 = [&](auto ec, auto)
@@ -241,14 +240,13 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
       BOOST_CHECK_EQUAL(gresp.error().data_type, resp3::type::simple_error);
       BOOST_TEST(!std::empty(gresp.error().diagnostic));
       std::cout << gresp.error().diagnostic << std::endl;
-      conn.cancel(redis::operation::run);
+      conn->cancel(operation::run);
+      conn->cancel(operation::reconnection);
    };
 
-   conn.async_receive(gresp, c3);
-   async_run(conn, address{}, 10s, 10s, logger{}, [](auto ec){
-      std::cout << "async_run" << std::endl;
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::basic_errors::operation_aborted);
-   });
+   conn->async_receive(gresp, c3);
+
+   run(conn);
 
    ioc.run();
 }
