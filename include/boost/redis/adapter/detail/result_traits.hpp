@@ -12,6 +12,7 @@
 #include <boost/redis/ignore.hpp>
 #include <boost/redis/adapter/detail/adapters.hpp>
 #include <boost/redis/adapter/result.hpp>
+#include <boost/redis/adapter/ignore.hpp>
 #include <boost/mp11.hpp>
 
 #include <vector>

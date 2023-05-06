@@ -8,7 +8,11 @@
 #define BOOST_REDIS_SSL_CONNECTION_HPP
 
 #include <boost/redis/detail/connection_base.hpp>
+#include <boost/redis/detail/runner.hpp>
+#include <boost/redis/ssl/detail/handshaker.hpp>
+#include <boost/redis/detail/reconnection.hpp>
 #include <boost/redis/response.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ssl/stream.hpp>
 
@@ -56,7 +60,10 @@ public:
    explicit
    basic_connection(executor_type ex, asio::ssl::context& ctx)
    : base_type{ex}
-   , stream_{ex, ctx}
+   , ctx_{&ctx}
+   , reconn_{ex}
+   , runner_{ex, {}}
+   , stream_{std::make_unique<next_layer_type>(ex, ctx)}
    { }
 
    /// Constructor
@@ -66,28 +73,40 @@ public:
    { }
 
    /// Returns the associated executor.
-   auto get_executor() {return stream_.get_executor();}
+   auto get_executor() {return stream_->get_executor();}
 
    /// Reset the underlying stream.
-   void reset_stream(asio::ssl::context& ctx)
+   void reset_stream()
    {
-      stream_ = next_layer_type{stream_.get_executor(), ctx};
+      if (stream_->next_layer().is_open()) {
+         stream_->next_layer().close();
+         stream_ = std::make_unique<next_layer_type>(stream_->get_executor(), *ctx_);
+      }
    }
 
    /// Returns a reference to the next layer.
-   auto& next_layer() noexcept { return stream_; }
+   auto& next_layer() noexcept { return *stream_; }
 
    /// Returns a const reference to the next layer.
-   auto const& next_layer() const noexcept { return stream_; }
+   auto const& next_layer() const noexcept { return *stream_; }
 
    /** @brief Establishes a connection with the Redis server asynchronously.
     *
     *  See redis::connection::async_run for more information.
     */
-   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto async_run(CompletionToken token = CompletionToken{})
+   template <
+      class Logger = logger,
+      class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto
+   async_run(
+      config const& cfg = {},
+      Logger l = Logger{},
+      CompletionToken token = CompletionToken{})
    {
-      return base_type::async_run(std::move(token));
+      reconn_.set_wait_interval(cfg.reconnect_wait_interval);
+      runner_.set_config(cfg);
+      l.set_prefix(runner_.get_config().log_prefix);
+      return reconn_.async_run(*this, l, std::move(token));
    }
 
    /** @brief Executes a command on the Redis server asynchronously.
@@ -124,9 +143,13 @@ public:
     *  See redis::connection::cancel for more information.
     */
    auto cancel(operation op = operation::all) -> std::size_t
-      { return base_type::cancel(op); }
+   {
+      reconn_.cancel(op);
+      runner_.cancel(op);
+      return base_type::cancel(op);
+   }
 
-   auto& lowest_layer() noexcept { return stream_.lowest_layer(); }
+   auto& lowest_layer() noexcept { return stream_->lowest_layer(); }
 
    /// Sets the maximum size of the read buffer.
    void set_max_buffer_read_size(std::size_t max_read_size) noexcept
@@ -143,22 +166,43 @@ public:
    void reserve(std::size_t read, std::size_t write)
       { base_type::reserve(read, write); }
 
+   /// Returns true if the connection was canceled.
+   bool is_cancelled() const noexcept
+      { return reconn_.is_cancelled();}
+
 private:
+   using runner_type = redis::detail::runner<executor_type, detail::handshaker>;
+   using reconnection_type = redis::detail::basic_reconnection<executor_type>;
    using this_type = basic_connection<next_layer_type>;
 
+   template <class Logger, class CompletionToken>
+   auto async_run_one(Logger l, CompletionToken token)
+      { return runner_.async_run(*this, l, std::move(token)); }
+
+   template <class Logger, class CompletionToken>
+   auto async_run_impl(Logger l, CompletionToken token)
+      { return base_type::async_run_impl(l, std::move(token)); }
+
    template <class, class> friend class redis::detail::connection_base;
+   template <class, class> friend class redis::detail::read_next_op;
    template <class, class> friend struct redis::detail::exec_op;
-   template <class, class> friend struct redis::detail::exec_read_op;
-   template <class, class> friend struct detail::receive_op;
-   template <class> friend struct redis::detail::run_op;
-   template <class> friend struct redis::detail::writer_op;
+   template <class, class> friend struct redis::detail::receive_op;
+   template <class, class> friend struct redis::detail::run_op;
+   template <class, class> friend struct redis::detail::writer_op;
    template <class> friend struct redis::detail::reader_op;
-   template <class> friend struct detail::wait_receive_op;
+   template <class> friend struct redis::detail::wait_receive_op;
+   template <class, class, class> friend struct redis::detail::run_all_op;
+   template <class, class, class> friend struct redis::detail::reconnection_op;
 
-   auto is_open() const noexcept { return stream_.next_layer().is_open(); }
-   void close() { stream_.next_layer().close(); }
+   auto is_open() const noexcept { return stream_->next_layer().is_open(); }
 
-   next_layer_type stream_;
+   void close()
+      { reset_stream(); }
+
+   asio::ssl::context* ctx_;
+   reconnection_type reconn_;
+   runner_type runner_;
+   std::unique_ptr<next_layer_type> stream_;
 };
 
 /** \brief A connection that uses a boost::asio::ssl::stream<boost::asio::ip::tcp::socket>.

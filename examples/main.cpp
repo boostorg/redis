@@ -5,25 +5,27 @@
  */
 
 #include "start.hpp"
-#include <boost/redis/address.hpp>
+#include <boost/redis/config.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <string>
 #include <iostream>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-extern boost::asio::awaitable<void> co_main(boost::redis::address const&);
+using boost::redis::config;
+
+extern boost::asio::awaitable<void> co_main(config const&);
 
 auto main(int argc, char * argv[]) -> int
 {
-   boost::redis::address addr;
+   config cfg;
 
    if (argc == 3) {
-      addr.host = argv[1];
-      addr.port = argv[2];
+      cfg.addr.host = argv[1];
+      cfg.addr.port = argv[2];
    }
 
-   return start(co_main(addr));
+   return start(co_main(cfg));
 }
 
 #else // defined(BOOST_ASIO_HAS_CO_AWAIT)

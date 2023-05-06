@@ -27,7 +27,7 @@ auto start(net::awaitable<void> op) -> int
       return 0;
 
    } catch (std::exception const& e) {
-      std::cerr << "Error: " << e.what() << std::endl;
+      std::cerr << "start> " << e.what() << std::endl;
    }
 
    return 1;

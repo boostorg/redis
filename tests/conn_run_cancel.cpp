@@ -4,7 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/run.hpp>
+#include <boost/redis/connection.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE conn-run-cancel
@@ -20,14 +21,14 @@
 namespace net = boost::asio;
 
 using boost::redis::operation;
-using connection = boost::redis::connection;
-using error_code = boost::system::error_code;
+using boost::redis::config;
+using boost::redis::connection;
+using boost::system::error_code;
 using net::experimental::as_tuple;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
-using boost::redis::async_run;
-using boost::redis::address;
+using boost::redis::logger;
 using namespace std::chrono_literals;
 
 using namespace net::experimental::awaitable_operators;
@@ -38,13 +39,14 @@ auto async_cancel_run_with_timer() -> net::awaitable<void>
    connection conn{ex};
 
    net::steady_timer st{ex};
-   st.expires_after(std::chrono::seconds{1});
+   st.expires_after(1s);
 
-   boost::system::error_code ec1, ec2;
-   address addr;
-   co_await (async_run(conn, addr, 10s, 10s, redir(ec1)) || st.async_wait(redir(ec2)));
+   error_code ec1, ec2;
+   config cfg;
+   logger l;
+   co_await (conn.async_run(cfg, l, redir(ec1)) || st.async_wait(redir(ec2)));
 
-   BOOST_CHECK_EQUAL(ec1, boost::asio::error::basic_errors::operation_aborted);
+   BOOST_CHECK_EQUAL(ec1, boost::asio::error::operation_aborted);
    BOOST_TEST(!ec2);
 }
 
@@ -65,10 +67,11 @@ async_check_cancellation_not_missed(int n, std::chrono::milliseconds ms) -> net:
 
    for (auto i = 0; i < n; ++i) {
       timer.expires_after(ms);
-      boost::system::error_code ec1, ec2;
-      address addr;
-      co_await (async_run(conn, addr, 10s, 10s, redir(ec1)) || timer.async_wait(redir(ec2)));
-      BOOST_CHECK_EQUAL(ec1, boost::asio::error::basic_errors::operation_aborted);
+      error_code ec1, ec2;
+      config cfg;
+      logger l;
+      co_await (conn.async_run(cfg, l, redir(ec1)) || timer.async_wait(redir(ec2)));
+      BOOST_CHECK_EQUAL(ec1, boost::asio::error::operation_aborted);
       std::cout << "Counter: " << i << std::endl;
    }
 }
@@ -141,28 +144,6 @@ BOOST_AUTO_TEST_CASE(check_implicit_cancel_not_missed_1024)
 {
    net::io_context ioc;
    net::co_spawn(ioc, async_check_cancellation_not_missed(20, std::chrono::milliseconds{1024}), net::detached);
-   ioc.run();
-}
-
-BOOST_AUTO_TEST_CASE(reset_before_run_completes)
-{
-   net::io_context ioc;
-   connection conn{ioc};
-
-   // Sends a ping just as a means of waiting until we are connected.
-   request req;
-   req.push("HELLO", 3);
-   req.push("PING");
-
-   conn.async_exec(req, ignore, [&](auto ec, auto){
-      BOOST_TEST(!ec);
-      conn.reset_stream();
-   });
-   address addr;
-   async_run(conn, addr, 10s, 10s, [&](auto ec){
-      BOOST_CHECK_EQUAL(ec, net::error::operation_aborted);
-   });
-
    ioc.run();
 }
 

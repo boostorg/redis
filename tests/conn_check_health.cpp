@@ -4,8 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/run.hpp>
-#include <boost/redis/check_health.hpp>
+#include <boost/redis/connection.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE check-health
 #include <boost/test/included/unit_test.hpp>
@@ -14,57 +13,59 @@
 #include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
+namespace redis = boost::redis;
 using error_code = boost::system::error_code;
 using connection = boost::redis::connection;
 using boost::redis::request;
 using boost::redis::ignore;
 using boost::redis::operation;
 using boost::redis::generic_response;
-using boost::redis::async_check_health;
-using boost::redis::async_run;
-using boost::redis::address;
-using namespace std::chrono_literals;
+using boost::redis::logger;
+using redis::config;
+
+// TODO: Test cancel(health_check) 
 
 std::chrono::seconds const interval{1};
 
 struct push_callback {
-   connection* conn;
+   connection* conn1;
    connection* conn2;
-   generic_response* resp;
-   request* req;
+   generic_response* resp2;
+   request* req1;
    int i = 0;
+   boost::asio::coroutine coro{};
 
    void operator()(error_code ec = {}, std::size_t = 0)
    {
-      ++i;
-      if (ec) {
-         std::clog << "Exiting." << std::endl;
-         return;
-      }
+      BOOST_ASIO_CORO_REENTER (coro) for (;;)
+      {
+         resp2->value().clear();
+         BOOST_ASIO_CORO_YIELD
+         conn2->async_receive(*resp2, *this);
+         if (ec) {
+            std::clog << "Exiting." << std::endl;
+            return;
+         }
 
-      if (resp->value().empty()) {
-         // First call
-         BOOST_TEST(!ec);
-         conn2->async_receive(*resp, *this);
-      } else if (i == 5) {
-         std::clog << "Pausing the server" << std::endl;
-         // Pause the redis server to test if the health-check exits.
-         conn->async_exec(*req, ignore, [](auto ec, auto) {
-            std::clog << "Pausing callback> " << ec.message() << std::endl;
+         BOOST_TEST(resp2->has_value());
+         BOOST_TEST(!resp2->value().empty());
+         std::clog << "Event> " << resp2->value().front().value << std::endl;
+
+         ++i;
+
+         if (i == 5) {
+            std::clog << "Pausing the server" << std::endl;
+            // Pause the redis server to test if the health-check exits.
+            BOOST_ASIO_CORO_YIELD
+            conn1->async_exec(*req1, ignore, *this);
+            std::clog << "After pausing> " << ec.message() << std::endl;
             // Don't know in CI we are getting: Got RESP3 simple-error.
             //BOOST_TEST(!ec);
-         });
-         conn2->cancel(operation::run);
-         conn2->cancel(operation::receive);
-      } else {
-         BOOST_TEST(!ec);
-         // Expect 3 pongs and pause the clients so check-health exists
-         // without error.
-         BOOST_TEST(resp->has_value());
-         BOOST_TEST(!resp->value().empty());
-         std::clog << "Event> " << resp->value().front().value << std::endl;
-         resp->value().clear();
-         conn2->async_receive(*resp, *this);
+            conn2->cancel(operation::run);
+            conn2->cancel(operation::receive);
+            conn2->cancel(operation::reconnection);
+            return;
+         }
       }
    };
 };
@@ -73,48 +74,51 @@ BOOST_AUTO_TEST_CASE(check_health)
 {
    net::io_context ioc;
 
-   connection conn{ioc};
+
+   connection conn1{ioc};
+   conn1.cancel(operation::reconnection);
+
+   request req1;
+   req1.push("CLIENT", "PAUSE", "10000", "ALL");
+
+   config cfg1;
+   cfg1.health_check_id = "conn1";
+   error_code res1;
+   conn1.async_run(cfg1, {}, [&](auto ec) {
+      std::cout << "async_run 1 completed: " << ec.message() << std::endl;
+      res1 = ec;
+   });
+
+   //--------------------------------
 
    // It looks like client pause does not work for clients that are
    // sending MONITOR. I will therefore open a second connection.
    connection conn2{ioc};
 
-   std::string const msg = "test-check-health";
-
-   bool seen = false;
-   async_check_health(conn, msg, interval, [&](auto ec) {
-      BOOST_TEST(!ec);
-      std::cout << "async_check_health: completed." << std::endl;
-      seen = true;
-   });
-
-   request req;
-   req.push("HELLO", 3);
-   req.push("MONITOR");
-
-   conn2.async_exec(req, ignore, [](auto ec, auto) {
-      std::cout << "A" << std::endl;
-      BOOST_TEST(!ec);
+   config cfg2;
+   cfg2.health_check_id = "conn2";
+   error_code res2;
+   conn2.async_run(cfg2, {}, [&](auto ec){
+      std::cout << "async_run 2 completed: " << ec.message() << std::endl;
+      res2 = ec;
    });
 
    request req2;
-   req2.push("HELLO", "3");
-   req2.push("CLIENT", "PAUSE", "3000", "ALL");
+   req2.push("MONITOR");
+   generic_response resp2;
 
-   generic_response resp;
-   push_callback{&conn, &conn2, &resp, &req2}(); // Starts reading pushes.
-
-   async_run(conn, address{}, 10s, 10s, [](auto ec){
-      std::cout << "B" << std::endl;
-      BOOST_TEST(!!ec);
+   conn2.async_exec(req2, ignore, [](auto ec, auto) {
+      std::cout << "async_exec: " << std::endl;
+      BOOST_TEST(!ec);
    });
 
-   async_run(conn2, address{}, 10s, 10s, [](auto ec){
-      std::cout << "C" << std::endl;
-      BOOST_TEST(!!ec);
-   });
+   //--------------------------------
+
+   push_callback{&conn1, &conn2, &resp2, &req1}(); // Starts reading pushes.
 
    ioc.run();
-   BOOST_TEST(seen);
+
+   BOOST_TEST(!!res1);
+   BOOST_TEST(!!res2);
 }
 

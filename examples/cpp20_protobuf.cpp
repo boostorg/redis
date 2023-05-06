@@ -4,10 +4,11 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/run.hpp>
-#include <boost/asio/use_awaitable.hpp>
+#include <boost/redis/connection.hpp>
+#include <boost/asio/deferred.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
+#include <boost/asio/consign.hpp>
 #include <iostream>
 #include "protobuf.hpp"
 
@@ -18,14 +19,12 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
-namespace redis = boost::redis;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::operation;
 using boost::redis::ignore_t;
-using boost::redis::async_run;
-using boost::redis::address;
-using connection = net::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using boost::redis::config;
+using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 
 // The protobuf type described in examples/person.proto
 using tutorial::person;
@@ -45,16 +44,11 @@ void boost_redis_from_bulk(person& u, std::string_view sv, boost::system::error_
 using tutorial::boost_redis_to_bulk;
 using tutorial::boost_redis_from_bulk;
 
-auto run(std::shared_ptr<connection> conn, address const& addr) -> net::awaitable<void>
-{
-   co_await async_run(*conn, addr);
-}
-
-net::awaitable<void> co_main(address const& addr)
+net::awaitable<void> co_main(config const& cfg)
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn, addr), net::detached);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
    person p;
    p.set_name("Louis");
@@ -62,21 +56,19 @@ net::awaitable<void> co_main(address const& addr)
    p.set_email("No email yet.");
 
    request req;
-   req.push("HELLO", 3);
    req.push("SET", "protobuf-key", p);
    req.push("GET", "protobuf-key");
 
-   response<ignore_t, ignore_t, person> resp;
+   response<ignore_t, person> resp;
 
    // Sends the request and receives the response.
    co_await conn->async_exec(req, resp);
+   conn->cancel();
 
    std::cout
-      << "Name: " << std::get<2>(resp).value().name() << "\n"
-      << "Age: " << std::get<2>(resp).value().id() << "\n"
-      << "Email: " << std::get<2>(resp).value().email() << "\n";
-
-   conn->cancel(operation::run);
+      << "Name: " << std::get<1>(resp).value().name() << "\n"
+      << "Age: " << std::get<1>(resp).value().id() << "\n"
+      << "Email: " << std::get<1>(resp).value().email() << "\n";
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

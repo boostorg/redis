@@ -7,12 +7,15 @@
 #ifndef BOOST_REDIS_HPP
 #define BOOST_REDIS_HPP
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/connection.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/redis/run.hpp>
 #include <boost/redis/address.hpp>
+#include <boost/redis/ignore.hpp>
+#include <boost/redis/logger.hpp>
 
 /** @defgroup high-level-api Reference
  *

@@ -4,7 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/run.hpp>
+#include <boost/redis/connection.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/system/errc.hpp>
@@ -24,10 +24,9 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
-using boost::redis::async_run;
-using boost::redis::address;
-using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
-using namespace std::chrono_literals;
+using boost::redis::logger;
+using boost::redis::config;
+using boost::redis::connection;
 
 auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
@@ -38,10 +37,7 @@ auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::await
          break;
    }
 
-   request req;
-   req.push("HELLO", 3);
-   req.push("QUIT");
-   co_await conn->async_exec(req, ignore);
+   conn->cancel();
 }
 
 auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> net::awaitable<void>
@@ -81,8 +77,7 @@ auto async_echo_stress() -> net::awaitable<void>
       net::co_spawn(ex, echo_session(conn, std::to_string(i), msgs), net::detached);
 
 
-   address addr;
-   co_await async_run(*conn, addr);
+   run(conn);
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)

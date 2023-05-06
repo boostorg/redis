@@ -69,6 +69,12 @@ enum class error
 
    /// Connect timeout
    connect_timeout,
+
+   /// Connect timeout
+   pong_timeout,
+
+   /// SSL handshake timeout
+   ssl_handshake_timeout,
 };
 
 /** \internal

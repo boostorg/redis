@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/run.hpp>
-#include <boost/asio/use_awaitable.hpp>
+#include <boost/redis/connection.hpp>
+#include <boost/asio/deferred.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <map>
@@ -16,12 +16,12 @@
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
-using boost::redis::request;
-using boost::redis::response;
-using boost::redis::ignore_t;
-using boost::redis::async_run;
-using boost::redis::address;
-using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using redis::request;
+using redis::response;
+using redis::ignore_t;
+using redis::ignore;
+using redis::config;
+using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 
 void print(std::map<std::string, std::string> const& cont)
 {
@@ -35,11 +35,6 @@ void print(std::vector<int> const& cont)
    std::cout << "\n";
 }
 
-auto run(std::shared_ptr<connection> conn, address const& addr) -> net::awaitable<void>
-{
-   co_await async_run(*conn, addr);
-}
-
 // Stores the content of some STL containers in Redis.
 auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
@@ -50,7 +45,6 @@ auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
       {{"key1", "value1"}, {"key2", "value2"}, {"key3", "value3"}};
 
    request req;
-   req.push("HELLO", 3);
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);
 
@@ -61,30 +55,27 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    // A request contains multiple commands.
    request req;
-   req.push("HELLO", 3);
    req.push("HGETALL", "hset-key");
 
    // Responses as tuple elements.
-   response<ignore_t, std::map<std::string, std::string>> resp;
+   response<std::map<std::string, std::string>> resp;
 
    // Executes the request and reads the response.
    co_await conn->async_exec(req, resp);
 
-   print(std::get<1>(resp).value());
+   print(std::get<0>(resp).value());
 }
 
 // Retrieves in a transaction.
 auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    request req;
-   req.push("HELLO", 3);
    req.push("MULTI");
    req.push("LRANGE", "rpush-key", 0, -1); // Retrieves
    req.push("HGETALL", "hset-key"); // Retrieves
    req.push("EXEC");
 
    response<
-      ignore_t, // hello
       ignore_t, // multi
       ignore_t, // lrange
       ignore_t, // hgetall
@@ -93,28 +84,20 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
    co_await conn->async_exec(req, resp);
 
-   print(std::get<0>(std::get<4>(resp).value()).value().value());
-   print(std::get<1>(std::get<4>(resp).value()).value().value());
-}
-
-auto quit(std::shared_ptr<connection> conn) -> net::awaitable<void>
-{
-   request req;
-   req.push("QUIT");
-
-   co_await conn->async_exec(req);
+   print(std::get<0>(std::get<3>(resp).value()).value().value());
+   print(std::get<1>(std::get<3>(resp).value()).value().value());
 }
 
 // Called from the main function (see main.cpp)
-net::awaitable<void> co_main(address const& addr)
+net::awaitable<void> co_main(config const& cfg)
 {
-   auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, run(conn, addr), net::detached);
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+
    co_await store(conn);
    co_await transaction(conn);
    co_await hgetall(conn);
-   co_await quit(conn);
+   conn->cancel();
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

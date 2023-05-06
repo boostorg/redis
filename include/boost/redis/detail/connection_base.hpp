@@ -8,23 +8,449 @@
 #define BOOST_REDIS_CONNECTION_BASE_HPP
 
 #include <boost/redis/adapter/adapt.hpp>
+#include <boost/redis/detail/helper.hpp>
+#include <boost/redis/detail/read.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
-#include <boost/redis/detail/connection_ops.hpp>
-#include <boost/assert.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/steady_timer.hpp>
+#include <boost/redis/resp3/type.hpp>
+
+#include <boost/system.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/experimental/channel.hpp>
+#include <boost/asio/experimental/parallel_group.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/write.hpp>
+#include <boost/assert.hpp>
+#include <boost/core/ignore_unused.hpp>
 
-#include <vector>
-#include <queue>
-#include <limits>
+#include <algorithm>
+#include <array>
 #include <chrono>
+#include <deque>
+#include <limits>
 #include <memory>
+#include <string_view>
 #include <type_traits>
 
 namespace boost::redis::detail {
+
+template <class Conn>
+struct wait_receive_op {
+   Conn* conn;
+   asio::coroutine coro{};
+
+   template <class Self>
+   void
+   operator()(Self& self , system::error_code ec = {})
+   {
+      BOOST_ASIO_CORO_REENTER (coro)
+      {
+         BOOST_ASIO_CORO_YIELD
+         conn->channel_.async_send(system::error_code{}, 0, std::move(self));
+         BOOST_REDIS_CHECK_OP0(;);
+
+         BOOST_ASIO_CORO_YIELD
+         conn->channel_.async_send(system::error_code{}, 0, std::move(self));
+         BOOST_REDIS_CHECK_OP0(;);
+
+         self.complete({});
+      }
+   }
+};
+
+template <class Conn, class Adapter>
+class read_next_op {
+public:
+   using req_info_type = typename Conn::req_info;
+   using req_info_ptr = typename std::shared_ptr<req_info_type>;
+
+private:
+   Conn* conn_;
+   req_info_ptr info_;
+   Adapter adapter_;
+   std::size_t cmds_ = 0;
+   std::size_t read_size_ = 0;
+   std::size_t index_ = 0;
+   asio::coroutine coro_{};
+
+public:
+   read_next_op(Conn& conn, Adapter adapter, req_info_ptr info)
+   : conn_{&conn}
+   , info_{info}
+   , adapter_{adapter}
+   , cmds_{info->get_number_of_commands()}
+   {}
+
+   template <class Self>
+   void
+   operator()( Self& self
+             , system::error_code ec = {}
+             , std::size_t n = 0)
+   {
+      BOOST_ASIO_CORO_REENTER (coro_)
+      {
+         // Loop reading the responses to this request.
+         while (cmds_ != 0) {
+            if (info_->stop_requested()) {
+               self.complete(asio::error::operation_aborted, 0);
+               return;
+            }
+
+            //-----------------------------------
+            // If we detect a push in the middle of a request we have
+            // to hand it to the push consumer. To do that we need
+            // some data in the read bufer.
+            if (conn_->read_buffer_.empty()) {
+               BOOST_ASIO_CORO_YIELD
+               asio::async_read_until(
+                  conn_->next_layer(),
+                  conn_->make_dynamic_buffer(),
+                  "\r\n", std::move(self));
+               BOOST_REDIS_CHECK_OP1(conn_->cancel(operation::run););
+               if (info_->stop_requested()) {
+                  self.complete(asio::error::operation_aborted, 0);
+                  return;
+               }
+            }
+
+            // If the next request is a push we have to handle it to
+            // the receive_op wait for it to be done and continue.
+            if (resp3::to_type(conn_->read_buffer_.front()) == resp3::type::push) {
+               BOOST_ASIO_CORO_YIELD
+               conn_->async_wait_receive(std::move(self));
+               BOOST_REDIS_CHECK_OP1(conn_->cancel(operation::run););
+               continue;
+            }
+            //-----------------------------------
+
+            BOOST_ASIO_CORO_YIELD
+            redis::detail::async_read(
+               conn_->next_layer(),
+               conn_->make_dynamic_buffer(),
+                  [i = index_, adpt = adapter_] (resp3::basic_node<std::string_view> const& nd, system::error_code& ec) mutable { adpt(i, nd, ec); },
+                  std::move(self));
+
+            ++index_;
+
+            BOOST_REDIS_CHECK_OP1(conn_->cancel(operation::run););
+
+            read_size_ += n;
+
+            BOOST_ASSERT(cmds_ != 0);
+            --cmds_;
+         }
+
+         self.complete({}, read_size_);
+      }
+   }
+};
+
+template <class Conn, class Adapter>
+struct receive_op {
+   Conn* conn;
+   Adapter adapter;
+   std::size_t read_size = 0;
+   asio::coroutine coro{};
+
+   template <class Self>
+   void
+   operator()( Self& self
+             , system::error_code ec = {}
+             , std::size_t n = 0)
+   {
+      BOOST_ASIO_CORO_REENTER (coro)
+      {
+         BOOST_ASIO_CORO_YIELD
+         conn->channel_.async_receive(std::move(self));
+         BOOST_REDIS_CHECK_OP1(;);
+
+         BOOST_ASIO_CORO_YIELD
+         redis::detail::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
+         if (ec || is_cancelled(self)) {
+            conn->cancel(operation::run);
+            conn->cancel(operation::receive);
+            self.complete(!!ec ? ec : asio::error::operation_aborted, {});
+            return;
+         }
+
+         read_size = n;
+
+         BOOST_ASIO_CORO_YIELD
+         conn->channel_.async_receive(std::move(self));
+         BOOST_REDIS_CHECK_OP1(;);
+
+         self.complete({}, read_size);
+         return;
+      }
+   }
+};
+
+template <class Conn, class Adapter>
+struct exec_op {
+   using req_info_type = typename Conn::req_info;
+
+   Conn* conn = nullptr;
+   request const* req = nullptr;
+   Adapter adapter{};
+   std::shared_ptr<req_info_type> info = nullptr;
+   std::size_t read_size = 0;
+   asio::coroutine coro{};
+
+   template <class Self>
+   void
+   operator()( Self& self
+             , system::error_code ec = {}
+             , std::size_t n = 0)
+   {
+      BOOST_ASIO_CORO_REENTER (coro)
+      {
+         // Check whether the user wants to wait for the connection to
+         // be stablished.
+         if (req->get_config().cancel_if_not_connected && !conn->is_open()) {
+            BOOST_ASIO_CORO_YIELD
+            asio::post(std::move(self));
+            return self.complete(error::not_connected, 0);
+         }
+
+         info = std::allocate_shared<req_info_type>(asio::get_associated_allocator(self), *req, conn->get_executor());
+
+         conn->add_request_info(info);
+EXEC_OP_WAIT:
+         BOOST_ASIO_CORO_YIELD
+         info->async_wait(std::move(self));
+         BOOST_ASSERT(ec == asio::error::operation_aborted);
+
+         if (info->stop_requested()) {
+            // Don't have to call remove_request as it has already
+            // been by cancel(exec).
+            return self.complete(ec, 0);
+         }
+
+         if (is_cancelled(self)) {
+            if (info->is_written()) {
+               using c_t = asio::cancellation_type;
+               auto const c = self.get_cancellation_state().cancelled();
+               if ((c & c_t::terminal) != c_t::none) {
+                  // Cancellation requires closing the connection
+                  // otherwise it stays in inconsistent state.
+                  conn->cancel(operation::run);
+                  return self.complete(ec, 0);
+               } else {
+                  // Can't implement other cancelation types, ignoring.
+                  self.get_cancellation_state().clear();
+                  goto EXEC_OP_WAIT;
+               }
+            } else {
+               // Cancelation can be honored.
+               conn->remove_request(info);
+               self.complete(ec, 0);
+               return;
+            }
+         }
+
+         BOOST_ASSERT(conn->is_open());
+          
+         if (req->size() == 0) {
+            // Don't have to call remove_request as it has already
+            // been removed.
+            return self.complete({}, 0);
+         }
+
+         BOOST_ASSERT(!conn->reqs_.empty());
+         BOOST_ASSERT(conn->reqs_.front() != nullptr);
+         BOOST_ASIO_CORO_YIELD
+         conn->async_read_next(adapter, std::move(self));
+         BOOST_REDIS_CHECK_OP1(;);
+
+         read_size = n;
+
+         if (info->stop_requested()) {
+            // Don't have to call remove_request as it has already
+            // been by cancel(exec).
+            return self.complete(ec, 0);
+         }
+
+         BOOST_ASSERT(!conn->reqs_.empty());
+         conn->reqs_.pop_front();
+
+         if (conn->is_waiting_response()) {
+            BOOST_ASSERT(!conn->reqs_.empty());
+            conn->reqs_.front()->proceed();
+         } else {
+            conn->read_timer_.cancel_one();
+         }
+
+         self.complete({}, read_size);
+      }
+   }
+};
+
+template <class Conn, class Logger>
+struct run_op {
+   Conn* conn = nullptr;
+   Logger logger_;
+   asio::coroutine coro{};
+
+   template <class Self>
+   void operator()( Self& self
+                  , std::array<std::size_t, 2> order = {}
+                  , system::error_code ec0 = {}
+                  , system::error_code ec1 = {})
+   {
+      BOOST_ASIO_CORO_REENTER (coro)
+      {
+         conn->write_buffer_.clear();
+         conn->read_buffer_.clear();
+
+         BOOST_ASIO_CORO_YIELD
+         asio::experimental::make_parallel_group(
+            [this](auto token) { return conn->reader(token);},
+            [this](auto token) { return conn->writer(logger_, token);}
+         ).async_wait(
+            asio::experimental::wait_for_one(),
+            std::move(self));
+
+         if (is_cancelled(self)) {
+            self.complete(asio::error::operation_aborted);
+            return;
+         }
+
+         switch (order[0]) {
+           case 0: self.complete(ec0); break;
+           case 1: self.complete(ec1); break;
+           default: BOOST_ASSERT(false);
+         }
+      }
+   }
+};
+
+template <class Conn, class Logger>
+struct writer_op {
+   Conn* conn_;
+   Logger logger_;
+   asio::coroutine coro{};
+
+   template <class Self>
+   void operator()( Self& self
+                  , system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      ignore_unused(n);
+
+      BOOST_ASIO_CORO_REENTER (coro) for (;;)
+      {
+         while (conn_->coalesce_requests()) {
+            BOOST_ASIO_CORO_YIELD
+            asio::async_write(conn_->next_layer(), asio::buffer(conn_->write_buffer_), std::move(self));
+            logger_.on_write(ec, conn_->write_buffer_);
+            BOOST_REDIS_CHECK_OP0(conn_->cancel(operation::run););
+
+            conn_->on_write();
+
+            // A socket.close() may have been called while a
+            // successful write might had already been queued, so we
+            // have to check here before proceeding.
+            if (!conn_->is_open()) {
+               self.complete({});
+               return;
+            }
+         }
+
+         BOOST_ASIO_CORO_YIELD
+         conn_->writer_timer_.async_wait(std::move(self));
+         if (!conn_->is_open() || is_cancelled(self)) {
+            // Notice this is not an error of the op, stoping was
+            // requested from the outside, so we complete with
+            // success.
+            self.complete({});
+            return;
+         }
+      }
+   }
+};
+
+template <class Conn>
+struct reader_op {
+   Conn* conn;
+   asio::coroutine coro{};
+
+   bool as_push() const
+   {
+      return
+         (resp3::to_type(conn->read_buffer_.front()) == resp3::type::push)
+          || conn->reqs_.empty()
+          || (!conn->reqs_.empty() && conn->reqs_.front()->get_number_of_commands() == 0)
+          || !conn->is_waiting_response(); // Added to deal with MONITOR.
+   }
+
+   template <class Self>
+   void operator()( Self& self
+                  , system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      ignore_unused(n);
+
+      BOOST_ASIO_CORO_REENTER (coro) for (;;)
+      {
+         BOOST_ASIO_CORO_YIELD
+         asio::async_read_until(
+            conn->next_layer(),
+            conn->make_dynamic_buffer(),
+            "\r\n", std::move(self));
+
+         if (ec == asio::error::eof) {
+            conn->cancel(operation::run);
+            return self.complete({}); // EOFINAE: EOF is not an error.
+         }
+
+         BOOST_REDIS_CHECK_OP0(conn->cancel(operation::run););
+
+         // We handle unsolicited events in the following way
+         //
+         // 1. Its resp3 type is a push.
+         //
+         // 2. A non-push type is received with an empty requests
+         //    queue. I have noticed this is possible (e.g. -MISCONF).
+         //    I expect them to have type push so we can distinguish
+         //    them from responses to commands, but it is a
+         //    simple-error. If we are lucky enough to receive them
+         //    when the command queue is empty we can treat them as
+         //    server pushes, otherwise it is impossible to handle
+         //    them properly
+         //
+         // 3. The request does not expect any response but we got
+         //    one. This may happen if for example, subscribe with
+         //    wrong syntax.
+         //
+         // Useful links:
+         //
+         // - https://github.com/redis/redis/issues/11784
+         // - https://github.com/redis/redis/issues/6426
+         //
+         BOOST_ASSERT(!conn->read_buffer_.empty());
+         if (as_push()) {
+            BOOST_ASIO_CORO_YIELD
+            conn->async_wait_receive(std::move(self));
+         } else {
+            BOOST_ASSERT_MSG(conn->is_waiting_response(), "Not waiting for a response (using MONITOR command perhaps?)");
+            BOOST_ASSERT(!conn->reqs_.empty());
+            BOOST_ASSERT(conn->reqs_.front()->get_number_of_commands() != 0);
+            conn->reqs_.front()->proceed();
+            BOOST_ASIO_CORO_YIELD
+            conn->read_timer_.async_wait(std::move(self));
+            ec = {};
+         }
+
+         if (!conn->is_open() || ec || is_cancelled(self)) {
+            conn->cancel(operation::run);
+            self.complete(asio::error::basic_errors::operation_aborted);
+            return;
+         }
+      }
+   }
+};
 
 /** Base class for high level Redis asynchronous connections.
  *
@@ -64,16 +490,14 @@ public:
             derived().close();
             read_timer_.cancel();
             writer_timer_.cancel();
-            cancel_on_conn_lost();
-
-            return 1U;
+            return cancel_on_conn_lost();
          }
          case operation::receive:
          {
             channel_.cancel();
             return 1U;
          }
-         default: BOOST_ASSERT(false); return 0;
+         default: /* ignore */; return 0;
       }
    }
 
@@ -150,7 +574,7 @@ public:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code, std::size_t)
-         >(redis::detail::exec_op<Derived, decltype(f)>{&derived(), &req, f}, token, writer_timer_);
+         >(exec_op<Derived, decltype(f)>{&derived(), &req, f}, token, writer_timer_);
    }
 
    template <class Response, class CompletionToken>
@@ -163,16 +587,16 @@ public:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code, std::size_t)
-         >(redis::detail::receive_op<Derived, decltype(f)>{&derived(), f}, token, channel_);
+         >(receive_op<Derived, decltype(f)>{&derived(), f}, token, channel_);
    }
 
-   template <class CompletionToken>
-   auto async_run(CompletionToken token)
+   template <class Logger, class CompletionToken>
+   auto async_run_impl(Logger l, CompletionToken token)
    {
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(detail::run_op<Derived>{&derived()}, token, writer_timer_);
+         >(run_op<Derived, Logger>{&derived(), l}, token, writer_timer_);
    }
 
    void set_max_buffer_read_size(std::size_t max_read_size) noexcept
@@ -296,13 +720,13 @@ private:
 
    using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
-   template <class> friend struct detail::reader_op;
-   template <class> friend struct detail::writer_op;
-   template <class> friend struct detail::run_op;
-   template <class, class> friend struct detail::exec_op;
-   template <class, class> friend struct detail::exec_read_op;
-   template <class, class> friend struct detail::receive_op;
-   template <class> friend struct detail::wait_receive_op;
+   template <class> friend struct reader_op;
+   template <class, class> friend struct writer_op;
+   template <class, class> friend struct run_op;
+   template <class, class> friend struct exec_op;
+   template <class, class> friend class read_next_op;
+   template <class, class> friend struct receive_op;
+   template <class> friend struct wait_receive_op;
 
    template <class CompletionToken>
    auto async_wait_receive(CompletionToken token)
@@ -356,25 +780,25 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(detail::reader_op<Derived>{&derived()}, token, writer_timer_);
+         >(reader_op<Derived>{&derived()}, token, writer_timer_);
    }
 
-   template <class CompletionToken>
-   auto writer(CompletionToken&& token)
+   template <class CompletionToken, class Logger>
+   auto writer(Logger l, CompletionToken&& token)
    {
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(detail::writer_op<Derived>{&derived()}, token, writer_timer_);
+         >(writer_op<Derived, Logger>{&derived(), l}, token, writer_timer_);
    }
 
    template <class Adapter, class CompletionToken>
-   auto async_exec_read(Adapter adapter, std::size_t cmds, CompletionToken token)
+   auto async_read_next(Adapter adapter, CompletionToken token)
    {
       return asio::async_compose
          < CompletionToken
          , void(system::error_code, std::size_t)
-         >(detail::exec_read_op<Derived, Adapter>{&derived(), adapter, cmds}, token, writer_timer_);
+         >(read_next_op<Derived, Adapter>{derived(), adapter, reqs_.front()}, token, writer_timer_);
    }
 
    [[nodiscard]] bool coalesce_requests()

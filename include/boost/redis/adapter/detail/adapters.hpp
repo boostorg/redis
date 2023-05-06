@@ -12,7 +12,6 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/adapter/result.hpp>
-#include <boost/redis/adapter/ignore.hpp>
 #include <boost/assert.hpp>
 
 #include <set>
