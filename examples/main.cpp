@@ -14,7 +14,7 @@
 
 using boost::redis::config;
 
-extern boost::asio::awaitable<void> co_main(config const&);
+extern boost::asio::awaitable<void> co_main(config);
 
 auto main(int argc, char * argv[]) -> int
 {

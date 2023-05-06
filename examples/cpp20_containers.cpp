@@ -89,7 +89,7 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
 }
 
 // Called from the main function (see main.cpp)
-net::awaitable<void> co_main(config const& cfg)
+net::awaitable<void> co_main(config cfg)
 {
    auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
    conn->async_run(cfg, {}, net::consign(net::detached, conn));

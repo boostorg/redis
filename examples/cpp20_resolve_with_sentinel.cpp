@@ -55,7 +55,7 @@ auto resolve_master_address(std::vector<address> const& addresses) -> net::await
    co_return address{};
 }
 
-auto co_main(config const& cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> net::awaitable<void>
 {
    // A list of sentinel addresses from which only one is responsive.
    // This simulates sentinels that are down.
