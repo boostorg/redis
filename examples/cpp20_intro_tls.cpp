@@ -28,7 +28,6 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 
 auto co_main(config cfg) -> net::awaitable<void>
 {
-   config cfg;
    cfg.username = "aedis";
    cfg.password = "aedis";
    cfg.addr.host = "db.occase.de";

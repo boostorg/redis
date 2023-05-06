@@ -81,7 +81,7 @@ periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
   conn->cancel(operation::reconnection);
 }
 
-auto co_main(config const& cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);

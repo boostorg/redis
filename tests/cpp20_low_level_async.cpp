@@ -25,7 +25,7 @@ using boost::redis::request;
 using boost::redis::adapter::result;
 using redis::config;
 
-auto co_main(config const& cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
 
