@@ -51,7 +51,7 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   while (!conn->is_cancelled()) {
+   while (conn->will_reconnect()) {
 
       // Reconnect to channels.
       co_await conn->async_exec(req);
@@ -75,9 +75,10 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 auto co_main(config cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
+   auto ctx = std::make_shared<net::ssl::context>(net::ssl::context::tls_client);
+   auto conn = std::make_shared<connection>(ex, *ctx);
    net::co_spawn(ex, receiver(conn), net::detached);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+   conn->async_run(cfg, {}, net::consign(net::detached, conn, ctx));
 
    signal_set sig_set(ex, SIGINT, SIGTERM);
    co_await sig_set.async_wait();

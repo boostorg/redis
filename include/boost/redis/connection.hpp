@@ -9,101 +9,79 @@
 
 #include <boost/redis/detail/connection_base.hpp>
 #include <boost/redis/detail/runner.hpp>
+#include <boost/redis/detail/handshaker.hpp>
 #include <boost/redis/detail/reconnection.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/response.hpp>
+#include <boost/asio/basic_stream_socket.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/ssl/stream.hpp>
 
 #include <chrono>
 #include <memory>
 
 namespace boost::redis {
 
-namespace detail
-{
-
-template <class Executor>
-class dummy_handshaker {
-public:
-   dummy_handshaker(Executor) {}
-
-   template <class Stream, class CompletionToken>
-   auto async_handshake(Stream&, CompletionToken&& token)
-      { return asio::post(std::move(token)); }
-
-   void set_config(config const&) {}
-
-   std::size_t cancel(operation) { return 0;}
-
-   constexpr bool is_dummy() const noexcept {return true;}
-};
-
-}
-
-/** @brief A connection to the Redis server.
- *  @ingroup high-level-api
+/** \brief A SSL connection to the Redis server.
+ *  \ingroup high-level-api
  *
- *  For more details, please see the documentation of each individual
- *  function.
+ *  This class keeps a healthy connection to the Redis instance where
+ *  commands can be sent at any time. For more details, please see the
+ *  documentation of each individual function.
  *
  *  @tparam Socket The socket type e.g. asio::ip::tcp::socket.
+ *
  */
-template <class Socket>
-class basic_connection :
-   private detail::connection_base<
-      typename Socket::executor_type,
-      basic_connection<Socket>> {
+template <class Executor>
+class basic_connection : private detail::connection_base<Executor, basic_connection<Executor>> {
 public:
-   /// Executor type.
-   using executor_type = typename Socket::executor_type;
-
    /// Type of the next layer
-   using next_layer_type = Socket;
+   using next_layer_type = asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>>;
+
+   /// Executor type.
+   using executor_type = Executor;
 
    /// Rebinds the socket type to another executor.
    template <class Executor1>
    struct rebind_executor
    {
-      /// The socket type when rebound to the specified executor.
-      using other = basic_connection<typename next_layer_type::template rebind_executor<Executor1>::other>;
+      /// The connection type when rebound to the specified executor.
+      using other = basic_connection<Executor1>;
    };
 
-   using base_type = detail::connection_base<executor_type, basic_connection<Socket>>;
+   using base_type = redis::detail::connection_base<Executor, basic_connection<Executor>>;
 
    /// Contructs from an executor.
    explicit
-   basic_connection(executor_type ex)
+   basic_connection(executor_type ex, asio::ssl::context& ctx)
    : base_type{ex}
+   , ctx_{&ctx}
    , reconn_{ex}
    , runner_{ex, {}}
-   , stream_{ex}
-   {}
+   , stream_{std::make_unique<next_layer_type>(ex, ctx)}
+   { }
 
    /// Contructs from a context.
    explicit
-   basic_connection(asio::io_context& ioc)
-   : basic_connection(ioc.get_executor())
+   basic_connection(asio::io_context& ioc, asio::ssl::context& ctx)
+   : basic_connection(ioc.get_executor(), ctx)
    { }
 
    /// Returns the associated executor.
-   auto get_executor() {return stream_.get_executor();}
+   auto get_executor() {return stream_->get_executor();}
 
-   /// Resets the underlying stream.
+   /// Reset the underlying stream.
    void reset_stream()
    {
-      if (stream_.is_open()) {
-         system::error_code ec;
-         stream_.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
-         stream_.close(ec);
-      }
+      stream_ = std::make_unique<next_layer_type>(stream_->get_executor(), *ctx_);
    }
 
    /// Returns a reference to the next layer.
-   auto next_layer() noexcept -> auto& { return stream_; }
+   auto& next_layer() noexcept { return *stream_; }
 
    /// Returns a const reference to the next layer.
-   auto next_layer() const noexcept -> auto const& { return stream_; }
+   auto const& next_layer() const noexcept { return *stream_; }
 
    /** @brief Starts underlying connection operations.
     *
@@ -153,7 +131,8 @@ public:
       Logger l = Logger{},
       CompletionToken token = CompletionToken{})
    {
-      reconn_.set_wait_interval(cfg.reconnect_wait_interval);
+      use_ssl_ = cfg.use_ssl;
+      reconn_.set_config(cfg.reconnect_wait_interval);
       runner_.set_config(cfg);
       l.set_prefix(runner_.get_config().log_prefix);
       return reconn_.async_run(*this, l, std::move(token));
@@ -262,11 +241,11 @@ public:
       { base_type::reserve(read, write); }
 
    /// Returns true if the connection was canceled.
-   bool is_cancelled() const noexcept
-      { return reconn_.is_cancelled();}
+   bool will_reconnect() const noexcept
+      { return reconn_.will_reconnect();}
 
 private:
-   using runner_type = detail::runner<executor_type, detail::dummy_handshaker>;
+   using runner_type = detail::runner<executor_type, detail::handshaker>;
    using reconnection_type = detail::basic_reconnection<executor_type>;
    using this_type = basic_connection<next_layer_type>;
 
@@ -290,20 +269,27 @@ private:
       { return base_type::async_run_impl(l, std::move(token)); }
 
    void close()
-      { reset_stream(); }
+   {
+      if (stream_->next_layer().is_open())
+         stream_->next_layer().close();
+   }
 
-   auto is_open() const noexcept { return stream_.is_open(); }
-   auto lowest_layer() noexcept -> auto& { return stream_.lowest_layer(); }
+   auto is_open() const noexcept { return stream_->next_layer().is_open(); }
+   auto& lowest_layer() noexcept { return stream_->lowest_layer(); }
 
+   auto use_ssl() const noexcept { return use_ssl_;}
+
+   bool use_ssl_ = false;
+   asio::ssl::context* ctx_;
    reconnection_type reconn_;
    runner_type runner_;
-   Socket stream_;
+   std::unique_ptr<next_layer_type> stream_;
 };
 
-/** \brief A connection that uses a asio::ip::tcp::socket.
+/** \brief A connection that uses the asio::any_io_executor.
  *  \ingroup high-level-api
  */
-using connection = basic_connection<asio::ip::tcp::socket>;
+using connection = basic_connection<asio::any_io_executor>;
 
 } // boost::redis
 

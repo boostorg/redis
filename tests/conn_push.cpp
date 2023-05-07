@@ -46,7 +46,8 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
 
    net::io_context ioc;
 
-   auto conn = std::make_shared<connection>(ioc);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
 
    auto c3 =[](auto ec, auto...)
    {
@@ -86,7 +87,8 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
 BOOST_AUTO_TEST_CASE(push_received1)
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
 
    request req;
    //req.push("HELLO", 3);
@@ -116,7 +118,8 @@ BOOST_AUTO_TEST_CASE(push_received1)
 BOOST_AUTO_TEST_CASE(push_filtered_out)
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
 
    request req;
    req.push("HELLO", 3);
@@ -183,7 +186,8 @@ auto boost_redis_adapt(response_error_tag&)
 BOOST_AUTO_TEST_CASE(test_push_adapter)
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
 
    request req;
    req.push("HELLO", 3);
@@ -234,7 +238,8 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
    req3.push("QUIT");
 
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
 
    auto c11 =[&](auto ec, auto...)
    {

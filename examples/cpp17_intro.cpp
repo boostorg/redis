@@ -32,7 +32,8 @@ auto main(int argc, char * argv[]) -> int
       response<std::string> resp;
 
       net::io_context ioc;
-      connection conn{ioc};
+      net::ssl::context ctx{net::ssl::context::tls_client};
+      connection conn{ioc, ctx};
 
       conn.async_run(cfg, {}, net::detached);
 

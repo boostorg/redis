@@ -43,7 +43,8 @@ BOOST_AUTO_TEST_CASE(hello_priority)
 
    net::io_context ioc;
 
-   auto conn = std::make_shared<connection>(ioc);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
 
    bool seen1 = false;
    bool seen2 = false;
@@ -92,7 +93,8 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    response<int> resp;
    net::io_context ioc;
 
-   auto conn = std::make_shared<connection>(ioc);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
 
    conn->async_exec(req, resp, [conn](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_a_number);
@@ -110,7 +112,8 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
    req.push("PING");
 
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
    conn->async_exec(req, ignore, [conn](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_connected);
       conn->cancel();

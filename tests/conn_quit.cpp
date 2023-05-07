@@ -9,6 +9,7 @@
 #define BOOST_TEST_MODULE conn-quit
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
+#include "common.hpp"
 
 // TODO: Move this to a lib.
 #include <boost/redis/src.hpp>
@@ -30,17 +31,15 @@ BOOST_AUTO_TEST_CASE(test_eof_no_error)
    req.push("QUIT");
 
    net::io_context ioc;
-   connection conn{ioc};
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
 
-   conn.async_exec(req, ignore, [&](auto ec, auto) {
+   conn->async_exec(req, ignore, [&](auto ec, auto) {
       BOOST_TEST(!ec);
-      conn.cancel(operation::reconnection);
+      conn->cancel(operation::reconnection);
    });
 
-   conn.async_run({}, {}, [](auto ec){
-      BOOST_TEST(!!ec);
-   });
-
+   run(conn);
    ioc.run();
 }
 
@@ -49,8 +48,8 @@ BOOST_AUTO_TEST_CASE(test_async_run_exits)
 {
    net::io_context ioc;
 
-   connection conn{ioc};
-   conn.cancel(operation::reconnection);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ioc, ctx);
 
    request req1;
    req1.get_config().cancel_on_connection_lost = false;
@@ -75,25 +74,24 @@ BOOST_AUTO_TEST_CASE(test_async_run_exits)
    {
       std::clog << "c2: " << ec.message() << std::endl;
       BOOST_TEST(!ec);
-      conn.async_exec(req3, ignore, c3);
+      conn->async_exec(req3, ignore, c3);
    };
 
    auto c1 = [&](auto ec, auto)
    {
-      std::cout << "c3: " << ec.message() << std::endl;
+      std::cout << "c1: " << ec.message() << std::endl;
       BOOST_TEST(!ec);
-      conn.async_exec(req2, ignore, c2);
+      conn->async_exec(req2, ignore, c2);
    };
 
-   conn.async_exec(req1, ignore, c1);
+   conn->async_exec(req1, ignore, c1);
 
    // The healthy checker should not be the cause of async_run
-   // completing, so we set a long timeout.
+   // completing, so we disable.
    config cfg;
-   cfg.health_check_interval = 10000s;
-   conn.async_run({}, {}, [&](auto ec){
-      BOOST_TEST(!!ec);
-   });
+   cfg.health_check_interval = 0s;
+   cfg.reconnect_wait_interval = 0s;
+   run(conn, cfg);
 
    ioc.run();
 }

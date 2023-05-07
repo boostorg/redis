@@ -12,6 +12,7 @@
 // Include this in no more than one .cpp file.
 #include <boost/redis/src.hpp>
 
+namespace net = boost::asio;
 using boost::redis::sync_connection;
 using boost::redis::request;
 using boost::redis::response;
@@ -27,7 +28,8 @@ auto main(int argc, char * argv[]) -> int
          cfg.addr.port = argv[2];
       }
 
-      sync_connection conn;
+      net::ssl::context ctx{net::ssl::context::tls_client};
+      sync_connection conn{ctx};
       conn.run(cfg);
 
       request req;

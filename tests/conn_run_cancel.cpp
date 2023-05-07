@@ -36,7 +36,8 @@ using namespace net::experimental::awaitable_operators;
 auto async_cancel_run_with_timer() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   connection conn{ex};
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   connection conn{ex, ctx};
 
    net::steady_timer st{ex};
    st.expires_after(1s);
@@ -61,7 +62,8 @@ auto
 async_check_cancellation_not_missed(int n, std::chrono::milliseconds ms) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   connection conn{ex};
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   connection conn{ex, ctx};
 
    net::steady_timer timer{ex};
 

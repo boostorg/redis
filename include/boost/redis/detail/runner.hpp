@@ -136,7 +136,7 @@ struct run_all_op {
          logger_.on_connect(ec, runner_->ctor_.endpoint());
          BOOST_REDIS_CHECK_OP0(conn_->cancel(operation::run);)
 
-         if (!runner_->hsher_.is_dummy()) {
+         if (conn_->use_ssl()) {
             BOOST_ASIO_CORO_YIELD
             runner_->hsher_.async_handshake(conn_->next_layer(), std::move(self));
             logger_.on_ssl_handshake(ec);

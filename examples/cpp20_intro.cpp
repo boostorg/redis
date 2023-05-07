@@ -23,8 +23,9 @@ using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 // Called from the main function (see main.cpp)
 auto co_main(config cfg) -> net::awaitable<void>
 {
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+   auto ctx = std::make_shared<net::ssl::context>(net::ssl::context::tls_client);
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor, *ctx);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn, ctx));
 
    // A request containing only a ping command.
    request req;

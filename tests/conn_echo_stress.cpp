@@ -65,7 +65,8 @@ auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> ne
 auto async_echo_stress() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
+   net::ssl::context ctx{net::ssl::context::tls_client};
+   auto conn = std::make_shared<connection>(ex, ctx);
 
    int const sessions = 500;
    int const msgs = 1000;

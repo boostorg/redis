@@ -19,7 +19,7 @@
 #include <string>
 #include <chrono>
 
-namespace boost::redis::ssl::detail
+namespace boost::redis::detail
 {
 
 template <class Handshaker, class Stream>
@@ -119,6 +119,6 @@ private:
    std::chrono::steady_clock::duration timeout_;
 };
 
-} // boost::redis::ssl::detail
+} // boost::redis::detail
 
 #endif // BOOST_REDIS_SSL_CONNECTOR_HPP

@@ -34,7 +34,8 @@ auto resolve_master_address(std::vector<address> const& addresses) -> net::await
    req.push("SENTINEL", "get-master-addr-by-name", "mymaster");
    req.push("QUIT");
 
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   auto ctx = std::make_shared<net::ssl::context>(net::ssl::context::tls_client);
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor, *ctx);
 
    response<std::optional<std::array<std::string, 2>>, ignore_t> resp;
    for (auto addr : addresses) {
@@ -44,7 +45,7 @@ auto resolve_master_address(std::vector<address> const& addresses) -> net::await
       // TODO: async_run and async_exec should be lauched in
       // parallel here so we can wait for async_run completion
       // before eventually calling it again.
-      conn->async_run(cfg, {}, net::consign(net::detached, conn));
+      conn->async_run(cfg, {}, net::consign(net::detached, conn, ctx));
       co_await conn->async_exec(req, resp, redir(ec));
       conn->cancel();
       conn->reset_stream();

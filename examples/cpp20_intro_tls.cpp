@@ -4,7 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/ssl/connection.hpp>
+#include <boost/redis/connection.hpp>
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/detached.hpp>
@@ -18,7 +18,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::config;
 using boost::redis::logger;
-using connection = net::deferred_t::as_default_on_t<boost::redis::ssl::connection>;
+using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {
@@ -28,14 +28,15 @@ auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 
 auto co_main(config cfg) -> net::awaitable<void>
 {
+   cfg.use_ssl = true;
    cfg.username = "aedis";
    cfg.password = "aedis";
    cfg.addr.host = "db.occase.de";
    cfg.addr.port = "6380";
 
-   net::ssl::context ctx{net::ssl::context::sslv23};
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor, ctx);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+   auto ctx = std::make_shared<net::ssl::context>(net::ssl::context::tls_client);
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor, *ctx);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn, ctx));
 
    request req;
    req.push("PING");

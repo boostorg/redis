@@ -107,7 +107,7 @@ public:
    {
       BOOST_ASIO_CORO_REENTER (coro_)
       {
-         if (checker_->ping_interval_.count() == 0) {
+         if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
             BOOST_ASIO_CORO_YIELD
             asio::post(std::move(self));
             self.complete({});
