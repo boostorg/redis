@@ -75,13 +75,12 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
 auto co_main(config cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   auto ctx = std::make_shared<net::ssl::context>(net::ssl::context::tls_client);
-   auto conn = std::make_shared<connection>(ex, *ctx);
+   auto conn = std::make_shared<connection>(ex);
    auto stream = std::make_shared<stream_descriptor>(ex, ::dup(STDIN_FILENO));
 
    net::co_spawn(ex, receiver(conn), net::detached);
    net::co_spawn(ex, publisher(stream, conn), net::detached);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn, ctx));
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
    signal_set sig_set{ex, SIGINT, SIGTERM};
    co_await sig_set.async_wait();

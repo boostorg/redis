@@ -38,8 +38,7 @@ BOOST_AUTO_TEST_CASE(no_ignore_error)
 
    net::io_context ioc;
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    conn->async_exec(req, ignore, [&](auto ec, auto){
       BOOST_CHECK_EQUAL(ec, error::resp3_simple_error);
@@ -65,8 +64,7 @@ BOOST_AUTO_TEST_CASE(has_diagnostic)
 
    net::io_context ioc;
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    response<std::string, std::string> resp;
    conn->async_exec(req, resp, [&](auto ec, auto){
@@ -108,8 +106,7 @@ BOOST_AUTO_TEST_CASE(resp3_error_in_cmd_pipeline)
    response<std::string> resp2;
 
    net::io_context ioc;
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    auto c2 = [&](auto ec, auto)
    {
@@ -165,8 +162,7 @@ BOOST_AUTO_TEST_CASE(error_in_transaction)
 
    net::io_context ioc;
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    conn->async_exec(req, resp, [&](auto ec, auto){
       BOOST_TEST(!ec);
@@ -218,8 +214,7 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
    req2.push("SUBSCRIBE"); // Wrong command synthax.
 
    net::io_context ioc;
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    auto c2 = [&](auto ec, auto)
    {

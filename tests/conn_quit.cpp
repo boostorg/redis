@@ -31,8 +31,7 @@ BOOST_AUTO_TEST_CASE(test_eof_no_error)
    req.push("QUIT");
 
    net::io_context ioc;
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    conn->async_exec(req, ignore, [&](auto ec, auto) {
       BOOST_TEST(!ec);
@@ -48,8 +47,7 @@ BOOST_AUTO_TEST_CASE(test_async_run_exits)
 {
    net::io_context ioc;
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    request req1;
    req1.get_config().cancel_on_connection_lost = false;

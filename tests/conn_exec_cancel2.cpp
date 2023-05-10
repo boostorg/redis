@@ -40,8 +40,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    auto ex = co_await net::this_coro::executor;
 
    generic_response gresp;
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ex, ctx);
+   auto conn = std::make_shared<connection>(ex);
 
    run(conn);
 

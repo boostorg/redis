@@ -20,9 +20,9 @@ namespace boost::redis
 
 class sync_connection {
 public:
-   sync_connection(boost::asio::ssl::context& ctx)
+   sync_connection()
    : ioc_{1}
-   , conn_{std::make_shared<connection>(ioc_, ctx)}
+   , conn_{std::make_shared<connection>(ioc_)}
    { }
 
    ~sync_connection()

@@ -40,8 +40,7 @@ BOOST_AUTO_TEST_CASE(resolve_bad_host)
    cfg.health_check_interval = 10h;
    cfg.reconnect_wait_interval = 0s;
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   connection conn{ioc, ctx};
+   connection conn{ioc};
    conn.async_run(cfg, {}, [](auto ec){
       BOOST_TEST(is_host_not_found(ec));
    });
@@ -61,8 +60,7 @@ BOOST_AUTO_TEST_CASE(resolve_with_timeout)
    cfg.health_check_interval = 10h;
    cfg.reconnect_wait_interval = 0s;
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
    run(conn, cfg);
    ioc.run();
 }
@@ -79,8 +77,7 @@ BOOST_AUTO_TEST_CASE(connect_bad_port)
    cfg.health_check_interval = 10h;
    cfg.reconnect_wait_interval = 0s;
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
    run(conn, cfg, net::error::connection_refused);
    ioc.run();
 }

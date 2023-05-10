@@ -34,9 +34,8 @@ auto co_main(config cfg) -> net::awaitable<void>
    cfg.addr.host = "db.occase.de";
    cfg.addr.port = "6380";
 
-   auto ctx = std::make_shared<net::ssl::context>(net::ssl::context::tls_client);
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor, *ctx);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn, ctx));
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
    request req;
    req.push("PING");

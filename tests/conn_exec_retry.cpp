@@ -42,8 +42,7 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
    req2.push("PING");
 
    net::io_context ioc;
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});
@@ -105,8 +104,7 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
    req3.push("QUIT");
 
    net::io_context ioc;
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});

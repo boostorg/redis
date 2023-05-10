@@ -75,8 +75,7 @@ BOOST_AUTO_TEST_CASE(check_health)
    net::io_context ioc;
 
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   connection conn1{ioc, ctx};
+   connection conn1{ioc};
 
    request req1;
    req1.push("CLIENT", "PAUSE", "10000", "ALL");
@@ -94,7 +93,7 @@ BOOST_AUTO_TEST_CASE(check_health)
 
    // It looks like client pause does not work for clients that are
    // sending MONITOR. I will therefore open a second connection.
-   connection conn2{ioc, ctx};
+   connection conn2{ioc};
 
    config cfg2;
    cfg2.health_check_id = "conn2";

@@ -47,9 +47,8 @@ using tutorial::boost_redis_from_bulk;
 net::awaitable<void> co_main(config cfg)
 {
    auto ex = co_await net::this_coro::executor;
-   auto ctx = std::make_shared<net::ssl::context>(net::ssl::context::tls_client);
-   auto conn = std::make_shared<connection>(ex, *ctx);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn, ctx));
+   auto conn = std::make_shared<connection>(ex);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
    person p;
    p.set_name("Louis");

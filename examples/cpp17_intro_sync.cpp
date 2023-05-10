@@ -28,8 +28,7 @@ auto main(int argc, char * argv[]) -> int
          cfg.addr.port = argv[2];
       }
 
-      net::ssl::context ctx{net::ssl::context::tls_client};
-      sync_connection conn{ctx};
+      sync_connection conn;
       conn.run(cfg);
 
       request req;

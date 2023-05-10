@@ -36,8 +36,7 @@ net::awaitable<void> test_reconnect_impl()
    request req;
    req.push("QUIT");
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ex, ctx);
+   auto conn = std::make_shared<connection>(ex);
    run(conn);
 
    int i = 0;
@@ -69,8 +68,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 
    net::steady_timer st{ex};
 
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ex, ctx);
+   auto conn = std::make_shared<connection>(ex);
    error_code ec1, ec3;
 
    request req1;

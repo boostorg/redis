@@ -43,8 +43,7 @@ BOOST_AUTO_TEST_CASE(ping)
    response<std::string> resp;
 
    net::io_context ioc;
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   connection conn{ioc, ctx};
+   connection conn{ioc};
    conn.next_layer().set_verify_mode(net::ssl::verify_peer);
    conn.next_layer().set_verify_callback(verify_certificate);
 

@@ -61,6 +61,7 @@ include_directories(include)
 add_library(test_common STATIC
    tests/common.cpp
 )
+target_link_libraries(test_common PUBLIC OpenSSL::Crypto OpenSSL::SSL)
 target_compile_features(test_common PUBLIC cxx_std_17)
 if (MSVC)
     target_compile_options(test_common PRIVATE /bigobj)

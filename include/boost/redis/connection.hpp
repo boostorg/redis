@@ -54,27 +54,36 @@ public:
 
    /// Contructs from an executor.
    explicit
-   basic_connection(executor_type ex, asio::ssl::context& ctx)
+   basic_connection(executor_type ex, asio::ssl::context::method method = asio::ssl::context::tls_client)
    : base_type{ex}
-   , ctx_{&ctx}
+   , ctx_{method}
    , reconn_{ex}
    , runner_{ex, {}}
-   , stream_{std::make_unique<next_layer_type>(ex, ctx)}
+   , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
    { }
 
    /// Contructs from a context.
    explicit
-   basic_connection(asio::io_context& ioc, asio::ssl::context& ctx)
-   : basic_connection(ioc.get_executor(), ctx)
+   basic_connection(asio::io_context& ioc, asio::ssl::context::method method = asio::ssl::context::tls_client)
+   : basic_connection(ioc.get_executor(), method)
    { }
 
    /// Returns the associated executor.
-   auto get_executor() {return stream_->get_executor();}
+   auto get_executor()
+      {return stream_->get_executor();}
+
+   /// Returns the ssl context.
+   auto const& get_ssl_context() const noexcept
+      { return ctx_;}
+
+   /// Returns the ssl context.
+   auto& get_ssl_context() noexcept
+      { return ctx_;}
 
    /// Reset the underlying stream.
    void reset_stream()
    {
-      stream_ = std::make_unique<next_layer_type>(stream_->get_executor(), *ctx_);
+      stream_ = std::make_unique<next_layer_type>(stream_->get_executor(), ctx_);
    }
 
    /// Returns a reference to the next layer.
@@ -280,7 +289,7 @@ private:
    auto use_ssl() const noexcept { return use_ssl_;}
 
    bool use_ssl_ = false;
-   asio::ssl::context* ctx_;
+   asio::ssl::context ctx_;
    reconnection_type reconn_;
    runner_type runner_;
    std::unique_ptr<next_layer_type> stream_;

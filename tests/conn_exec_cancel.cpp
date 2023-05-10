@@ -38,8 +38,7 @@ using namespace std::chrono_literals;
 auto implicit_cancel_of_req_written() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ex, ctx);
+   auto conn = std::make_shared<connection>(ex);
 
    config cfg;
    cfg.health_check_interval = std::chrono::seconds{0};
@@ -81,8 +80,7 @@ BOOST_AUTO_TEST_CASE(test_ignore_implicit_cancel_of_req_written)
 BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
 {
    net::io_context ioc;
-   net::ssl::context ctx{net::ssl::context::tls_client};
-   auto conn = std::make_shared<connection>(ioc, ctx);
+   auto conn = std::make_shared<connection>(ioc);
 
    request req0;
    req0.push("PING");

@@ -91,9 +91,8 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
 // Called from the main function (see main.cpp)
 net::awaitable<void> co_main(config cfg)
 {
-   auto ctx = std::make_shared<net::ssl::context>(net::ssl::context::tls_client);
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor, *ctx);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn, ctx));
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
    co_await store(conn);
    co_await transaction(conn);
