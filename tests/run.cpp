@@ -8,7 +8,6 @@
 #define BOOST_TEST_MODULE run
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
-#include <boost/redis/src.hpp>
 #include "common.hpp"
 
 namespace net = boost::asio;
@@ -38,9 +37,9 @@ BOOST_AUTO_TEST_CASE(resolve_bad_host)
    cfg.resolve_timeout = 10h;
    cfg.connect_timeout = 10h;
    cfg.health_check_interval = 10h;
+   cfg.reconnect_wait_interval = 0s;
 
    connection conn{ioc};
-   conn.cancel(operation::reconnection);
    conn.async_run(cfg, {}, [](auto ec){
       BOOST_TEST(is_host_not_found(ec));
    });
@@ -58,9 +57,9 @@ BOOST_AUTO_TEST_CASE(resolve_with_timeout)
    cfg.resolve_timeout = 1ms;
    cfg.connect_timeout = 1ms;
    cfg.health_check_interval = 10h;
+   cfg.reconnect_wait_interval = 0s;
 
    auto conn = std::make_shared<connection>(ioc);
-   conn->cancel(operation::reconnection);
    run(conn, cfg);
    ioc.run();
 }
@@ -75,9 +74,9 @@ BOOST_AUTO_TEST_CASE(connect_bad_port)
    cfg.resolve_timeout = 10h;
    cfg.connect_timeout = 10s;
    cfg.health_check_interval = 10h;
+   cfg.reconnect_wait_interval = 0s;
 
    auto conn = std::make_shared<connection>(ioc);
-   conn->cancel(operation::reconnection);
    run(conn, cfg, net::error::connection_refused);
    ioc.run();
 }

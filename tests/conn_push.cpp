@@ -14,7 +14,6 @@
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 #include "common.hpp"
-#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;

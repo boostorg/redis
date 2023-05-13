@@ -4,17 +4,15 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/ssl/connection.hpp>
+#include <boost/redis/connection.hpp>
 #define BOOST_TEST_MODULE conn-tls
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 #include "common.hpp"
 
-#include <boost/redis/src.hpp>
-
 namespace net = boost::asio;
 
-using connection = boost::redis::ssl::connection;
+using connection = boost::redis::connection;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::config;
@@ -29,6 +27,7 @@ bool verify_certificate(bool, net::ssl::verify_context&)
 BOOST_AUTO_TEST_CASE(ping)
 {
    config cfg;
+   cfg.use_ssl = true;
    cfg.username = "aedis";
    cfg.password = "aedis";
    cfg.addr.host = "db.occase.de";
@@ -42,8 +41,7 @@ BOOST_AUTO_TEST_CASE(ping)
    response<std::string> resp;
 
    net::io_context ioc;
-   net::ssl::context ctx{net::ssl::context::sslv23};
-   connection conn{ioc, ctx};
+   connection conn{ioc};
    conn.next_layer().set_verify_mode(net::ssl::verify_peer);
    conn.next_layer().set_verify_callback(verify_certificate);
 

@@ -4,33 +4,43 @@
  * accompanying file LICENSE.txt)
  */
 
-#include "start.hpp"
 #include <boost/redis/config.hpp>
-#include <boost/asio/awaitable.hpp>
-#include <string>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/io_context.hpp>
 #include <iostream>
+
+namespace net = boost::asio;
+using boost::redis::config;
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-using boost::redis::config;
-
-extern boost::asio::awaitable<void> co_main(config);
+extern net::awaitable<void> co_main(config);
 
 auto main(int argc, char * argv[]) -> int
 {
-   config cfg;
+   try {
+      config cfg;
 
-   if (argc == 3) {
-      cfg.addr.host = argv[1];
-      cfg.addr.port = argv[2];
+      if (argc == 3) {
+         cfg.addr.host = argv[1];
+         cfg.addr.port = argv[2];
+      }
+
+      net::io_context ioc;
+      net::co_spawn(ioc, std::move(co_main(cfg)), [](std::exception_ptr p) {
+         if (p)
+            std::rethrow_exception(p);
+      });
+      ioc.run();
+
+   } catch (std::exception const& e) {
+      std::cerr << "(main) " << e.what() << std::endl;
+      return 1;
    }
-
-   return start(co_main(cfg));
 }
 
 #else // defined(BOOST_ASIO_HAS_CO_AWAIT)
-
-#include <iostream>
 
 auto main() -> int
 {

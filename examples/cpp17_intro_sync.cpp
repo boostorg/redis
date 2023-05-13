@@ -12,6 +12,7 @@
 // Include this in no more than one .cpp file.
 #include <boost/redis/src.hpp>
 
+namespace net = boost::asio;
 using boost::redis::sync_connection;
 using boost::redis::request;
 using boost::redis::response;

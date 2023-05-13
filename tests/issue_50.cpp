@@ -17,7 +17,6 @@
 #include <boost/asio/co_spawn.hpp>
 #include <tuple>
 #include <iostream>
-#include "../examples/start.hpp"
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
@@ -40,7 +39,7 @@ auto
 receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    std::cout << "uuu" << std::endl;
-   while (!conn->is_cancelled()) {
+   while (conn->will_reconnect()) {
       std::cout << "dddd" << std::endl;
       // Loop reading Redis pushs messages.
       for (;;) {

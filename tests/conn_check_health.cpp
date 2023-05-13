@@ -10,7 +10,6 @@
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 #include "common.hpp"
-#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
@@ -76,13 +75,13 @@ BOOST_AUTO_TEST_CASE(check_health)
 
 
    connection conn1{ioc};
-   conn1.cancel(operation::reconnection);
 
    request req1;
    req1.push("CLIENT", "PAUSE", "10000", "ALL");
 
    config cfg1;
    cfg1.health_check_id = "conn1";
+   cfg1.reconnect_wait_interval = std::chrono::seconds::zero();
    error_code res1;
    conn1.async_run(cfg1, {}, [&](auto ec) {
       std::cout << "async_run 1 completed: " << ec.message() << std::endl;

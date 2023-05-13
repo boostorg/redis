@@ -12,8 +12,6 @@
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 #include "common.hpp"
-#include "../examples/start.hpp"
-#include <boost/redis/src.hpp>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 

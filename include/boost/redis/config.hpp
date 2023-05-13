@@ -27,6 +27,9 @@ struct address {
  *  @ingroup high-level-api
  */
 struct config {
+   /// Uses SSL instead of a plain connection.
+   bool use_ssl = false;
+
    /// Address of the Redis server.
    address addr = address{"127.0.0.1", "6379"};
 
@@ -60,10 +63,16 @@ struct config {
    /// Time the SSL handshake operation is allowed to last.
    std::chrono::steady_clock::duration ssl_handshake_timeout = std::chrono::seconds{10};
 
-   /// @brief Health checks interval.  
+   /** Health checks interval.  
+    *  
+    *  To disable health-checks pass zero as duration.
+    */
    std::chrono::steady_clock::duration health_check_interval = std::chrono::seconds{2};
 
-   /// Time waited before trying a reconnection.
+   /** @brief Time waited before trying a reconnection.
+    *  
+    *  To disable reconnection pass zero as duration.
+    */
    std::chrono::steady_clock::duration reconnect_wait_interval = std::chrono::seconds{1};
 };
 

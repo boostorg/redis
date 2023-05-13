@@ -678,7 +678,7 @@ Acknowledgement to people that helped shape Boost.Redis
 * Mohammad Nejati ([ashtum](https://github.com/ashtum)): For pointing out scenarios where calls to `async_exec` should fail when the connection is lost.
 * Klemens Morgenstern ([klemens-morgenstern](https://github.com/klemens-morgenstern)): For useful discussion about timeouts, cancellation, synchronous interfaces and general help with Asio.
 * Vinnie Falco ([vinniefalco](https://github.com/vinniefalco)): For general suggestions about how to improve the code and the documentation.
-* Bram Veldhoen ([bveldhoen](https://github.com/bveldhoen)): For contributing a Redis streams example.
+* Bram Veldhoen ([bveldhoen](https://github.com/bveldhoen)): For contributing a Redis-streams example.
 
 Also many thanks to all individuals that participated in the Boost
 review

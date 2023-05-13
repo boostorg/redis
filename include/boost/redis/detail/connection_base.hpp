@@ -83,6 +83,11 @@ public:
    , cmds_{info->get_number_of_commands()}
    {}
 
+   auto make_adapter() noexcept
+   {
+      return [i = index_, adpt = adapter_] (resp3::basic_node<std::string_view> const& nd, system::error_code& ec) mutable { adpt(i, nd, ec); };
+   }
+
    template <class Self>
    void
    operator()( Self& self
@@ -103,11 +108,12 @@ public:
             // to hand it to the push consumer. To do that we need
             // some data in the read bufer.
             if (conn_->read_buffer_.empty()) {
-               BOOST_ASIO_CORO_YIELD
-               asio::async_read_until(
-                  conn_->next_layer(),
-                  conn_->make_dynamic_buffer(),
-                  "\r\n", std::move(self));
+
+               if (conn_->derived().use_ssl())
+                  BOOST_ASIO_CORO_YIELD asio::async_read_until(conn_->next_layer(), conn_->make_dynamic_buffer(), "\r\n", std::move(self));
+               else
+                  BOOST_ASIO_CORO_YIELD asio::async_read_until(conn_->next_layer().next_layer(), conn_->make_dynamic_buffer(), "\r\n", std::move(self));
+
                BOOST_REDIS_CHECK_OP1(conn_->cancel(operation::run););
                if (info_->stop_requested()) {
                   self.complete(asio::error::operation_aborted, 0);
@@ -125,12 +131,10 @@ public:
             }
             //-----------------------------------
 
-            BOOST_ASIO_CORO_YIELD
-            redis::detail::async_read(
-               conn_->next_layer(),
-               conn_->make_dynamic_buffer(),
-                  [i = index_, adpt = adapter_] (resp3::basic_node<std::string_view> const& nd, system::error_code& ec) mutable { adpt(i, nd, ec); },
-                  std::move(self));
+            if (conn_->derived().use_ssl())
+               BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer(), conn_->make_dynamic_buffer(), make_adapter(), std::move(self));
+            else
+               BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer().next_layer(), conn_->make_dynamic_buffer(), make_adapter(), std::move(self));
 
             ++index_;
 
@@ -166,8 +170,11 @@ struct receive_op {
          conn->channel_.async_receive(std::move(self));
          BOOST_REDIS_CHECK_OP1(;);
 
-         BOOST_ASIO_CORO_YIELD
-         redis::detail::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
+         if (conn->derived().use_ssl())
+            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
+         else
+            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn->next_layer().next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
+
          if (ec || is_cancelled(self)) {
             conn->cancel(operation::run);
             conn->cancel(operation::receive);
@@ -342,8 +349,11 @@ struct writer_op {
       BOOST_ASIO_CORO_REENTER (coro) for (;;)
       {
          while (conn_->coalesce_requests()) {
-            BOOST_ASIO_CORO_YIELD
-            asio::async_write(conn_->next_layer(), asio::buffer(conn_->write_buffer_), std::move(self));
+            if (conn_->derived().use_ssl())
+               BOOST_ASIO_CORO_YIELD asio::async_write(conn_->next_layer(), asio::buffer(conn_->write_buffer_), std::move(self));
+            else
+               BOOST_ASIO_CORO_YIELD asio::async_write(conn_->next_layer().next_layer(), asio::buffer(conn_->write_buffer_), std::move(self));
+
             logger_.on_write(ec, conn_->write_buffer_);
             BOOST_REDIS_CHECK_OP0(conn_->cancel(operation::run););
 
@@ -394,11 +404,10 @@ struct reader_op {
 
       BOOST_ASIO_CORO_REENTER (coro) for (;;)
       {
-         BOOST_ASIO_CORO_YIELD
-         asio::async_read_until(
-            conn->next_layer(),
-            conn->make_dynamic_buffer(),
-            "\r\n", std::move(self));
+         if (conn->derived().use_ssl())
+            BOOST_ASIO_CORO_YIELD asio::async_read_until(conn->next_layer(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
+         else
+            BOOST_ASIO_CORO_YIELD asio::async_read_until(conn->next_layer().next_layer(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
 
          if (ec == asio::error::eof) {
             conn->cancel(operation::run);

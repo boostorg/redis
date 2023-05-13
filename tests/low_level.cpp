@@ -22,8 +22,6 @@
 #include <optional>
 #include <sstream>
 
-#include <boost/redis/src.hpp>
-
 // TODO: Test with empty strings.
 
 namespace std

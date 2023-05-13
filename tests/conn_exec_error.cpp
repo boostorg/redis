@@ -10,7 +10,6 @@
 #define BOOST_TEST_MODULE conn-exec-error
 #include <boost/test/included/unit_test.hpp>
 #include "common.hpp"
-#include <boost/redis/src.hpp>
 #include <iostream>
 
 namespace net = boost::asio;

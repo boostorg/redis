@@ -51,7 +51,7 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   while (!conn->is_cancelled()) {
+   while (conn->will_reconnect()) {
 
       // Reconnect to channels.
       co_await conn->async_exec(req);

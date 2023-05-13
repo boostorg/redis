@@ -10,8 +10,6 @@
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 #include "common.hpp"
-#include "../examples/start.hpp"
-#include <boost/redis/src.hpp>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/asio/experimental/awaitable_operators.hpp>
@@ -57,9 +55,7 @@ net::awaitable<void> test_reconnect_impl()
 // Test whether the client works after a reconnect.
 BOOST_AUTO_TEST_CASE(test_reconnect)
 {
-   net::io_context ioc;
-   net::co_spawn(ioc, test_reconnect_impl(), net::detached);
-   ioc.run();
+   start(test_reconnect_impl());
 }
 
 auto async_test_reconnect_timeout() -> net::awaitable<void>

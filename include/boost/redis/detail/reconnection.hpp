@@ -30,10 +30,9 @@ struct reconnection_op {
       {
          BOOST_ASIO_CORO_YIELD
          conn_->async_run_one(logger_, std::move(self));
-         conn_->reset_stream();
          conn_->cancel(operation::receive);
          logger_.on_connection_lost(ec);
-         if (reconn_->is_cancelled() || is_cancelled(self)) {
+         if (!reconn_->will_reconnect() || is_cancelled(self)) {
             reconn_->cancel(operation::reconnection);
             self.complete(!!ec ? ec : asio::error::operation_aborted);
             return;
@@ -43,10 +42,11 @@ struct reconnection_op {
          BOOST_ASIO_CORO_YIELD
          reconn_->timer_.async_wait(std::move(self));
          BOOST_REDIS_CHECK_OP0(;)
-         if (reconn_->is_cancelled()) {
+         if (!reconn_->will_reconnect()) {
             self.complete(asio::error::operation_aborted);
             return;
          }
+         conn_->reset_stream();
       }
    }
 };
@@ -56,19 +56,16 @@ struct reconnection_op {
 template <class Executor>
 class basic_reconnection {
 public:
-   /// Executor type.
    using executor_type = Executor;
 
    basic_reconnection(Executor ex)
    : timer_{ex}
-   , is_cancelled_{false}
    {}
 
    basic_reconnection(asio::io_context& ioc, std::chrono::steady_clock::duration wait_interval)
    : basic_reconnection{ioc.get_executor(), wait_interval}
    {}
 
-   /// Rebinds to a new executor type.
    template <class Executor1>
    struct rebind_executor
    {
@@ -92,7 +89,7 @@ public:
          >(detail::reconnection_op<basic_reconnection, Connection, Logger>{this, &conn, l}, token, conn);
    }
 
-   void set_wait_interval(std::chrono::steady_clock::duration wait_interval)
+   void set_config(std::chrono::steady_clock::duration wait_interval)
    {
       wait_interval_ = wait_interval;
    }
@@ -102,7 +99,7 @@ public:
       switch (op) {
          case operation::reconnection:
          case operation::all:
-            is_cancelled_ = true;
+            wait_interval_ = std::chrono::seconds::zero();
             timer_.cancel();
             break;
          default: /* ignore */;
@@ -111,8 +108,8 @@ public:
       return 0U;
    }
 
-   bool is_cancelled() const noexcept {return is_cancelled_;}
-   void reset() noexcept {is_cancelled_ = false;}
+   bool will_reconnect() const noexcept
+      { return wait_interval_ != std::chrono::seconds::zero();}
 
 private:
    using timer_type =
@@ -125,10 +122,7 @@ private:
 
    timer_type timer_;
    std::chrono::steady_clock::duration wait_interval_ = std::chrono::seconds{1};
-   bool is_cancelled_;
 };
-
-using reconnection = basic_reconnection<asio::any_io_executor>;
 
 } // boost::redis
 
