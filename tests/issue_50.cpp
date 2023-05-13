@@ -17,7 +17,6 @@
 #include <boost/asio/co_spawn.hpp>
 #include <tuple>
 #include <iostream>
-#include "../examples/start.hpp"
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 

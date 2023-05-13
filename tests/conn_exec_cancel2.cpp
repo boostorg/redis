@@ -9,9 +9,7 @@
 #define BOOST_TEST_MODULE conn-exec-cancel
 #include <boost/test/included/unit_test.hpp>
 #include "common.hpp"
-#include "../examples/start.hpp"
 #include <iostream>
-#include <boost/redis/src.hpp>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/asio/experimental/awaitable_operators.hpp>

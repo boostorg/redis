@@ -13,8 +13,6 @@
 #include <iostream>
 #include "common.hpp"
 
-#include <boost/redis/src.hpp>
-
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
 using connection = boost::redis::connection;

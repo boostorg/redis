@@ -10,8 +10,6 @@
 #include <iostream>
 #include "common.hpp"
 
-#include <boost/redis/src.hpp>
-
 namespace net = boost::asio;
 
 using connection = boost::redis::connection;

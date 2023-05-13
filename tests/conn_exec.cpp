@@ -10,7 +10,6 @@
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 #include "common.hpp"
-#include <boost/redis/src.hpp>
 
 // TODO: Test whether HELLO won't be inserted passt commands that have
 // been already writen.

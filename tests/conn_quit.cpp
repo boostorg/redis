@@ -11,9 +11,6 @@
 #include <iostream>
 #include "common.hpp"
 
-// TODO: Move this to a lib.
-#include <boost/redis/src.hpp>
-
 namespace net = boost::asio;
 using boost::redis::connection;
 using boost::system::error_code;

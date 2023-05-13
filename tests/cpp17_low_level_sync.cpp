@@ -11,7 +11,6 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <string>
 #include <iostream>
-#include <boost/redis/src.hpp>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;

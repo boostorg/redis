@@ -8,7 +8,6 @@
 #define BOOST_TEST_MODULE run
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
-#include <boost/redis/src.hpp>
 #include "common.hpp"
 
 namespace net = boost::asio;
