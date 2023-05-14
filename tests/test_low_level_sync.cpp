@@ -9,6 +9,8 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#define BOOST_TEST_MODULE conn-quit
+#include <boost/test/included/unit_test.hpp>
 #include <string>
 #include <iostream>
 
@@ -18,16 +20,11 @@ using boost::redis::adapter::adapt2;
 using boost::redis::request;
 using boost::redis::adapter::result;
 
-auto main(int argc, char * argv[]) -> int
+BOOST_AUTO_TEST_CASE(low_level_sync)
 {
    try {
-      std::string host = "127.0.0.1";
-      std::string port = "6379";
-
-      if (argc == 3) {
-         host = argv[1];
-         port = argv[2];
-      }
+      std::string const host = "127.0.0.1";
+      std::string const port = "6379";
 
       net::io_context ioc;
       net::ip::tcp::resolver resv{ioc};

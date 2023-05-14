@@ -9,10 +9,14 @@
 #include <boost/redis/detail/read.hpp>
 #include <boost/redis/detail/write.hpp>
 #include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/co_spawn.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <string>
 #include <iostream>
+#define BOOST_TEST_MODULE conn-tls
+#include <boost/test/included/unit_test.hpp>
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
@@ -52,6 +56,19 @@ auto co_main(config cfg) -> net::awaitable<void>
    co_await redis::detail::async_read(socket, dbuffer);
 
    std::cout << "Ping: " << resp.value() << std::endl;
+}
+
+BOOST_AUTO_TEST_CASE(low_level_async)
+{
+   net::io_context ioc;
+   net::co_spawn(ioc, std::move(co_main({})), net::detached);
+   ioc.run();
+}
+
+#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
+
+BOOST_AUTO_TEST_CASE(low_level_async)
+{
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

@@ -8,8 +8,6 @@
 #include <boost/asio/detached.hpp>
 #include <iostream>
 
-#include <boost/redis/src.hpp>
-
 namespace net = boost::asio;
 using boost::redis::connection;
 using boost::redis::request;
