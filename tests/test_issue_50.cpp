@@ -15,6 +15,8 @@
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
+#define BOOST_TEST_MODULE conn-quit
+#include <boost/test/included/unit_test.hpp>
 #include <tuple>
 #include <iostream>
 
@@ -88,6 +90,19 @@ auto co_main(config cfg) -> net::awaitable<void>
    net::co_spawn(ex, receiver(conn), net::detached);
    net::co_spawn(ex, periodic_task(conn), net::detached);
    conn->async_run(cfg, {}, net::consign(net::detached, conn));
+}
+
+BOOST_AUTO_TEST_CASE(issue_50)
+{
+   net::io_context ioc;
+   net::co_spawn(ioc, std::move(co_main({})), net::detached);
+   ioc.run();
+}
+
+#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
+
+BOOST_AUTO_TEST_CASE(issue_50)
+{
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
