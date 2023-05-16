@@ -55,7 +55,9 @@ net::awaitable<void> test_reconnect_impl()
 // Test whether the client works after a reconnect.
 BOOST_AUTO_TEST_CASE(test_reconnect)
 {
-   start(test_reconnect_impl());
+   net::io_context ioc;
+   net::co_spawn(ioc, test_reconnect_impl(), net::detached);
+   ioc.run();
 }
 
 auto async_test_reconnect_timeout() -> net::awaitable<void>
@@ -103,7 +105,9 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 
 BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
 {
-   start(async_test_reconnect_timeout());
+   net::io_context ioc;
+   net::co_spawn(ioc, async_test_reconnect_timeout(), net::detached);
+   ioc.run();
 }
 #else
 BOOST_AUTO_TEST_CASE(dummy)

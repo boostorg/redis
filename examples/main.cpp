@@ -4,6 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/connection.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/use_awaitable.hpp>
@@ -12,6 +13,7 @@
 
 namespace net = boost::asio;
 using boost::redis::config;
+using boost::redis::logger;
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 

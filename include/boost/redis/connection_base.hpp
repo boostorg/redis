@@ -14,8 +14,11 @@
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/type.hpp>
+#include <boost/redis/config.hpp>
+#include <boost/redis/detail/runner.hpp>
 
 #include <boost/system.hpp>
+#include <boost/asio/basic_stream_socket.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
@@ -24,6 +27,7 @@
 #include <boost/asio/write.hpp>
 #include <boost/assert.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/asio/ssl/stream.hpp>
 
 #include <algorithm>
 #include <array>
@@ -34,7 +38,8 @@
 #include <string_view>
 #include <type_traits>
 
-namespace boost::redis::detail {
+namespace boost::redis {
+namespace detail {
 
 template <class Conn>
 struct wait_receive_op {
@@ -109,7 +114,7 @@ public:
             // some data in the read bufer.
             if (conn_->read_buffer_.empty()) {
 
-               if (conn_->derived().use_ssl())
+               if (conn_->use_ssl())
                   BOOST_ASIO_CORO_YIELD asio::async_read_until(conn_->next_layer(), conn_->make_dynamic_buffer(), "\r\n", std::move(self));
                else
                   BOOST_ASIO_CORO_YIELD asio::async_read_until(conn_->next_layer().next_layer(), conn_->make_dynamic_buffer(), "\r\n", std::move(self));
@@ -131,7 +136,7 @@ public:
             }
             //-----------------------------------
 
-            if (conn_->derived().use_ssl())
+            if (conn_->use_ssl())
                BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer(), conn_->make_dynamic_buffer(), make_adapter(), std::move(self));
             else
                BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer().next_layer(), conn_->make_dynamic_buffer(), make_adapter(), std::move(self));
@@ -170,7 +175,7 @@ struct receive_op {
          conn->channel_.async_receive(std::move(self));
          BOOST_REDIS_CHECK_OP1(;);
 
-         if (conn->derived().use_ssl())
+         if (conn->use_ssl())
             BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
          else
             BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn->next_layer().next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
@@ -349,7 +354,7 @@ struct writer_op {
       BOOST_ASIO_CORO_REENTER (coro) for (;;)
       {
          while (conn_->coalesce_requests()) {
-            if (conn_->derived().use_ssl())
+            if (conn_->use_ssl())
                BOOST_ASIO_CORO_YIELD asio::async_write(conn_->next_layer(), asio::buffer(conn_->write_buffer_), std::move(self));
             else
                BOOST_ASIO_CORO_YIELD asio::async_write(conn_->next_layer().next_layer(), asio::buffer(conn_->write_buffer_), std::move(self));
@@ -404,7 +409,7 @@ struct reader_op {
 
       BOOST_ASIO_CORO_REENTER (coro) for (;;)
       {
-         if (conn->derived().use_ssl())
+         if (conn->use_ssl())
             BOOST_ASIO_CORO_YIELD asio::async_read_until(conn->next_layer(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
          else
             BOOST_ASIO_CORO_YIELD asio::async_read_until(conn->next_layer().next_layer(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
@@ -460,88 +465,235 @@ struct reader_op {
       }
    }
 };
+} // detail
 
-/** Base class for high level Redis asynchronous connections.
- *
- *  This class is not meant to be instantiated directly but as base
- *  class in the CRTP.
+/** @brief Base class for high level Redis asynchronous connections.
+ *  @ingroup high-level-api
  *
  *  @tparam Executor The executor type.
- *  @tparam Derived The derived class type.
  *
  */
-template <class Executor, class Derived>
+template <class Executor>
 class connection_base {
 public:
+   /// Executor type
    using executor_type = Executor;
-   using this_type = connection_base<Executor, Derived>;
 
-   connection_base(executor_type ex)
-   : writer_timer_{ex}
+   /// Type of the next layer
+   using next_layer_type = asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>>;
+
+   using this_type = connection_base<Executor>;
+
+   /// Constructs from an executor.
+   connection_base(executor_type ex, asio::ssl::context::method method = asio::ssl::context::tls_client)
+   : ctx_{method}
+   , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
+   , writer_timer_{ex}
    , read_timer_{ex}
    , channel_{ex}
+   , runner_{ex, {}}
    {
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
+   /// Contructs from an execution context.
+   explicit
+   connection_base(asio::io_context& ioc, asio::ssl::context::method method = asio::ssl::context::tls_client)
+   : connection_base(ioc.get_executor(), method)
+   { }
+
+   /// Returns the ssl context.
+   auto const& get_ssl_context() const noexcept
+      { return ctx_;}
+
+   /// Returns the ssl context.
+   auto& get_ssl_context() noexcept
+      { return ctx_;}
+
+   /// Resets the underlying stream.
+   void reset_stream()
+   {
+      stream_ = std::make_unique<next_layer_type>(writer_timer_.get_executor(), ctx_);
+   }
+
+   /// Returns a reference to the next layer.
+   auto& next_layer() noexcept { return *stream_; }
+
+   /// Returns a const reference to the next layer.
+   auto const& next_layer() const noexcept { return *stream_; }
+
+   /// Returns the associated executor.
    auto get_executor() {return writer_timer_.get_executor();}
 
-   auto cancel_impl(operation op) -> std::size_t
+   /// Cancels specific operations.
+   virtual void cancel(operation op)
    {
-      switch (op) {
-         case operation::exec:
-         {
-            return cancel_unwritten_requests();
-         }
-         case operation::run:
-         {
-            derived().close();
-            read_timer_.cancel();
-            writer_timer_.cancel();
-            return cancel_on_conn_lost();
-         }
-         case operation::receive:
-         {
-            channel_.cancel();
-            return 1U;
-         }
-         default: /* ignore */; return 0;
-      }
-   }
-
-   auto cancel(operation op) -> std::size_t
-   {
+      runner_.cancel(op);
       if (op == operation::all) {
-         std::size_t ret = 0;
-         ret += cancel_impl(operation::run);
-         ret += cancel_impl(operation::receive);
-         ret += cancel_impl(operation::exec);
-         return ret;
+         cancel_impl(operation::run);
+         cancel_impl(operation::receive);
+         cancel_impl(operation::exec);
+         return;
       } 
 
-      return cancel_impl(op);
+      cancel_impl(op);
    }
 
-   auto cancel_unwritten_requests() -> std::size_t
+   /** @brief Executes commands on the Redis server asynchronously.
+    *
+    *  This function sends a request to the Redis server and waits for
+    *  the responses to each individual command in the request. If the
+    *  request contains only commands that don't expect a response,
+    *  the completion occurs after it has been written to the
+    *  underlying stream.  Multiple concurrent calls to this function
+    *  will be automatically queued by the implementation.
+    *
+    *  @param req Request.
+    *  @param resp Response.
+    *  @param token Completion token.
+    *
+    *  For an example see cpp20_echo_server.cpp. The completion token must
+    *  have the following signature
+    *
+    *  @code
+    *  void f(system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the response received
+    *  in bytes.
+    */
+   template <
+      class Response = ignore_t,
+      class CompletionToken = asio::default_completion_token_t<executor_type>
+   >
+   auto
+   async_exec(
+      request const& req,
+      Response& resp = ignore,
+      CompletionToken token = CompletionToken{})
    {
-      auto f = [](auto const& ptr)
-      {
-         BOOST_ASSERT(ptr != nullptr);
-         return ptr->is_written();
-      };
+      using namespace boost::redis::adapter;
+      auto f = boost_redis_adapt(resp);
+      BOOST_ASSERT_MSG(req.size() <= f.get_supported_response_size(), "Request and response have incompatible sizes.");
 
-      auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), f);
-
-      auto const ret = std::distance(point, std::end(reqs_));
-
-      std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-         ptr->stop();
-      });
-
-      reqs_.erase(point, std::end(reqs_));
-      return ret;
+      return asio::async_compose
+         < CompletionToken
+         , void(system::error_code, std::size_t)
+         >(redis::detail::exec_op<this_type, decltype(f)>{this, &req, f}, token, writer_timer_);
    }
+
+   /** @brief Receives server side pushes asynchronously.
+    *
+    *  When pushes arrive and there is no `async_receive` operation in
+    *  progress, pushed data, requests, and responses will be paused
+    *  until `async_receive` is called again.  Apps will usually want
+    *  to call `async_receive` in a loop. 
+    *
+    *  To cancel an ongoing receive operation apps should call
+    *  `connection::cancel(operation::receive)`.
+    *
+    *  @param response Response object.
+    *  @param token Completion token.
+    *
+    *  For an example see cpp20_subscriber.cpp. The completion token must
+    *  have the following signature
+    *
+    *  @code
+    *  void f(system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the push received in
+    *  bytes.
+    */
+   template <
+      class Response = ignore_t,
+      class CompletionToken = asio::default_completion_token_t<executor_type>
+   >
+   auto
+   async_receive(
+      Response& response,
+      CompletionToken token = CompletionToken{})
+   {
+      using namespace boost::redis::adapter;
+      auto g = boost_redis_adapt(response);
+      auto f = adapter::detail::make_adapter_wrapper(g);
+
+      return asio::async_compose
+         < CompletionToken
+         , void(system::error_code, std::size_t)
+         >(redis::detail::receive_op<this_type, decltype(f)>{this, f}, token, channel_);
+   }
+
+   /** @brief Starts underlying connection operations.
+    *
+    *  Provides a high-level connection to the Redis server. It will
+    *  perform the following steps
+    *
+    *  1. Resolve the address passed on `boost::redis::config::addr`.
+    *  2. Connect to one of the results obtained in the resolve operation.
+    *  3. Send a [HELLO](https://redis.io/commands/hello/) command where each of its parameters are read from `cfg`.
+    *  4. Start a health-check operation where ping commands are sent
+    *     at intervals specified in
+    *     `boost::redis::config::health_check_interval`.  The message passed to
+    *     `PING` will be `boost::redis::config::health_check_id`.  Passing a
+    *     timeout with value zero will disable health-checks.  If the Redis
+    *     server does not respond to a health-check within two times the value
+    *     specified here, it will be considered unresponsive and the connection
+    *     will be closed and a new connection will be stablished.
+    *  5. Starts read and write operations with the Redis
+    *  server. More specifically it will trigger the write of all
+    *  requests i.e. calls to `async_exec` that happened prior to this
+    *  call.
+    *
+    *  @param cfg Configuration paramters.
+    *  @param l Logger object. The interface expected is specified in the class `boost::redis::logger`.
+    *  @param token Completion token.
+    *
+    *  The completion token must have the following signature
+    *
+    *  @code
+    *  void f(system::error_code);
+    *  @endcode
+    *
+    *  For example on how to call this function refer to
+    *  cpp20_intro.cpp or any other example.
+    */
+   template <class Logger, class CompletionToken>
+   auto async_run_one(config const& cfg, Logger l, CompletionToken token)
+   {
+      runner_.set_config(cfg);
+      l.set_prefix(runner_.get_config().log_prefix);
+      return runner_.async_run(*this, l, std::move(token));
+   }
+
+   /// Sets the maximum size of the read buffer.
+   void set_max_buffer_read_size(std::size_t max_read_size) noexcept
+      {max_read_size_ = max_read_size;}
+
+   /** @brief Reserve memory on the read and write internal buffers.
+    *
+    *  This function will call `std::string::reserve` on the
+    *  underlying buffers.
+    *  
+    *  @param read The new capacity of the read buffer.
+    *  @param write The new capacity of the write buffer.
+    */
+   void reserve(std::size_t read, std::size_t write)
+   {
+      read_buffer_.reserve(read);
+      write_buffer_.reserve(write);
+   }
+
+private:
+   using clock_type = std::chrono::steady_clock;
+   using clock_traits_type = asio::wait_traits<clock_type>;
+   using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
+   using channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
+   using runner_type = redis::detail::runner<executor_type>;
+
+   auto use_ssl() const noexcept
+      { return runner_.get_config().use_ssl;}
 
    auto cancel_on_conn_lost() -> std::size_t
    {
@@ -573,58 +725,47 @@ public:
       return ret;
    }
 
-   template <class Response, class CompletionToken>
-   auto async_exec(request const& req, Response& resp, CompletionToken token)
+   auto cancel_unwritten_requests() -> std::size_t
    {
-      using namespace boost::redis::adapter;
-      auto f = boost_redis_adapt(resp);
-      BOOST_ASSERT_MSG(req.size() <= f.get_supported_response_size(), "Request and response have incompatible sizes.");
+      auto f = [](auto const& ptr)
+      {
+         BOOST_ASSERT(ptr != nullptr);
+         return ptr->is_written();
+      };
 
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code, std::size_t)
-         >(exec_op<Derived, decltype(f)>{&derived(), &req, f}, token, writer_timer_);
+      auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), f);
+
+      auto const ret = std::distance(point, std::end(reqs_));
+
+      std::for_each(point, std::end(reqs_), [](auto const& ptr) {
+         ptr->stop();
+      });
+
+      reqs_.erase(point, std::end(reqs_));
+      return ret;
    }
 
-   template <class Response, class CompletionToken>
-   auto async_receive(Response& response, CompletionToken token)
+   void cancel_impl(operation op)
    {
-      using namespace boost::redis::adapter;
-      auto g = boost_redis_adapt(response);
-      auto f = adapter::detail::make_adapter_wrapper(g);
-
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code, std::size_t)
-         >(receive_op<Derived, decltype(f)>{&derived(), f}, token, channel_);
+      switch (op) {
+         case operation::exec:
+         {
+            cancel_unwritten_requests();
+         } break;
+         case operation::run:
+         {
+            close();
+            read_timer_.cancel();
+            writer_timer_.cancel();
+            cancel_on_conn_lost();
+         } break;
+         case operation::receive:
+         {
+            channel_.cancel();
+         } break;
+         default: /* ignore */;
+      }
    }
-
-   template <class Logger, class CompletionToken>
-   auto async_run_impl(Logger l, CompletionToken token)
-   {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(run_op<Derived, Logger>{&derived(), l}, token, writer_timer_);
-   }
-
-   void set_max_buffer_read_size(std::size_t max_read_size) noexcept
-      {max_read_size_ = max_read_size;}
-
-   // Reserves memory in the read and write buffer.
-   void reserve(std::size_t read, std::size_t write)
-   {
-      read_buffer_.reserve(read);
-      write_buffer_.reserve(write);
-   }
-
-private:
-   using clock_type = std::chrono::steady_clock;
-   using clock_traits_type = asio::wait_traits<clock_type>;
-   using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
-   using channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
-
-   auto derived() -> Derived& { return static_cast<Derived&>(*this); }
 
    void on_write()
    {
@@ -729,13 +870,14 @@ private:
 
    using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
-   template <class> friend struct reader_op;
-   template <class, class> friend struct writer_op;
-   template <class, class> friend struct run_op;
-   template <class, class> friend struct exec_op;
-   template <class, class> friend class read_next_op;
-   template <class, class> friend struct receive_op;
-   template <class> friend struct wait_receive_op;
+   template <class> friend struct redis::detail::reader_op;
+   template <class, class> friend struct redis::detail::writer_op;
+   template <class, class> friend struct redis::detail::run_op;
+   template <class, class> friend struct redis::detail::exec_op;
+   template <class, class> friend class redis::detail::read_next_op;
+   template <class, class> friend struct redis::detail::receive_op;
+   template <class> friend struct redis::detail::wait_receive_op;
+   template <class, class, class> friend struct redis::detail::run_all_op;
 
    template <class CompletionToken>
    auto async_wait_receive(CompletionToken token)
@@ -743,7 +885,7 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(wait_receive_op<Derived>{&derived()}, token, channel_);
+         >(redis::detail::wait_receive_op<this_type>{this}, token, channel_);
    }
 
    void cancel_push_requests()
@@ -776,7 +918,7 @@ private:
          std::rotate(std::rbegin(reqs_), std::rbegin(reqs_) + 1, rend);
       }
 
-      if (derived().is_open() && !is_writing())
+      if (is_open() && !is_writing())
          writer_timer_.cancel();
    }
 
@@ -789,7 +931,7 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(reader_op<Derived>{&derived()}, token, writer_timer_);
+         >(redis::detail::reader_op<this_type>{this}, token, writer_timer_);
    }
 
    template <class CompletionToken, class Logger>
@@ -798,7 +940,7 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(writer_op<Derived, Logger>{&derived(), l}, token, writer_timer_);
+         >(redis::detail::writer_op<this_type, Logger>{this, l}, token, writer_timer_);
    }
 
    template <class Adapter, class CompletionToken>
@@ -807,7 +949,18 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code, std::size_t)
-         >(read_next_op<Derived, Adapter>{derived(), adapter, reqs_.front()}, token, writer_timer_);
+         >(redis::detail::read_next_op<this_type, Adapter>{*this, adapter, reqs_.front()}, token, writer_timer_);
+   }
+
+   template <class Logger, class CompletionToken>
+   auto async_run_lean(config const& cfg, Logger l, CompletionToken token)
+   {
+      runner_.set_config(cfg);
+      l.set_prefix(runner_.get_config().log_prefix);
+      return asio::async_compose
+         < CompletionToken
+         , void(system::error_code)
+         >(redis::detail::run_op<this_type, Logger>{this, l}, token, writer_timer_);
    }
 
    [[nodiscard]] bool coalesce_requests()
@@ -832,12 +985,25 @@ private:
       return !std::empty(reqs_) && reqs_.front()->is_written();
    }
 
+   void close()
+   {
+      if (stream_->next_layer().is_open())
+         stream_->next_layer().close();
+   }
+
+   auto is_open() const noexcept { return stream_->next_layer().is_open(); }
+   auto& lowest_layer() noexcept { return stream_->lowest_layer(); }
+
+   asio::ssl::context ctx_;
+   std::unique_ptr<next_layer_type> stream_;
+
    // Notice we use a timer to simulate a condition-variable. It is
    // also more suitable than a channel and the notify operation does
    // not suspend.
    timer_type writer_timer_;
    timer_type read_timer_;
    channel_type channel_;
+   runner_type runner_;
 
    std::string read_buffer_;
    std::string write_buffer_;
@@ -845,6 +1011,6 @@ private:
    std::size_t max_read_size_ = (std::numeric_limits<std::size_t>::max)();
 };
 
-} // boost::redis::detail
+} // boost::redis
 
 #endif // BOOST_REDIS_CONNECTION_BASE_HPP

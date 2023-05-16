@@ -88,7 +88,7 @@ auto co_main(config cfg) -> net::awaitable<void>
    net::co_spawn(ex, stream_reader(conn), net::detached);
 
    // Disable health checks.
-   cfg.health_check_interval = std::chrono::seconds{0};
+   cfg.health_check_interval = std::chrono::seconds::zero();
    conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
    signal_set sig_set(ex, SIGINT, SIGTERM);

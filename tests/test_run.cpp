@@ -39,8 +39,8 @@ BOOST_AUTO_TEST_CASE(resolve_bad_host)
    cfg.health_check_interval = 10h;
    cfg.reconnect_wait_interval = 0s;
 
-   connection conn{ioc};
-   conn.async_run(cfg, {}, [](auto ec){
+   auto conn = std::make_shared<connection>(ioc);
+   conn->async_run(cfg, {}, [](auto ec){
       BOOST_TEST(is_host_not_found(ec));
    });
 

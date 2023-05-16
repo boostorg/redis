@@ -15,12 +15,11 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
-namespace redis = boost::redis;
-using redis::request;
-using redis::response;
-using redis::ignore_t;
-using redis::ignore;
-using redis::config;
+using boost::redis::request;
+using boost::redis::response;
+using boost::redis::ignore_t;
+using boost::redis::ignore;
+using boost::redis::config;
 using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 
 void print(std::map<std::string, std::string> const& cont)

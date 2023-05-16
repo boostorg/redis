@@ -16,6 +16,7 @@
 #include <boost/redis/operation.hpp>
 #include <boost/redis/detail/connector.hpp>
 #include <boost/redis/detail/resolver.hpp>
+#include <boost/redis/detail/handshaker.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/coroutine.hpp>
@@ -132,7 +133,7 @@ struct run_all_op {
          BOOST_REDIS_CHECK_OP0(conn_->cancel(operation::run);)
 
          BOOST_ASIO_CORO_YIELD
-         runner_->ctor_.async_connect(conn_->lowest_layer(), runner_->resv_.results(), std::move(self));
+         runner_->ctor_.async_connect(conn_->next_layer().next_layer(), runner_->resv_.results(), std::move(self));
          logger_.on_connect(ec, runner_->ctor_.endpoint());
          BOOST_REDIS_CHECK_OP0(conn_->cancel(operation::run);)
 
@@ -144,14 +145,14 @@ struct run_all_op {
          }
 
          BOOST_ASIO_CORO_YIELD
-         conn_->async_run_impl(logger_, std::move(self));
+         conn_->async_run_lean(runner_->cfg_, logger_, std::move(self));
          BOOST_REDIS_CHECK_OP0(;)
          self.complete(ec);
       }
    }
 };
 
-template <class Executor, template<class> class Handshaker>
+template <class Executor>
 class runner {
 public:
    runner(Executor ex, config cfg)
@@ -194,7 +195,7 @@ public:
 private:
    using resolver_type = resolver<Executor>;
    using connector_type = connector<Executor>;
-   using handshaker_type = Handshaker<Executor>;
+   using handshaker_type = detail::handshaker<Executor>;
    using health_checker_type = health_checker<Executor>;
    using timer_type = typename connector_type::timer_type;
 

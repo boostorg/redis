@@ -13,13 +13,12 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
-namespace redis = boost::redis;
 using endpoints = net::ip::tcp::resolver::results_type;
-using redis::request;
-using redis::response;
-using redis::ignore_t;
-using redis::config;
-using redis::address;
+using boost::redis::request;
+using boost::redis::response;
+using boost::redis::ignore_t;
+using boost::redis::config;
+using boost::redis::address;
 using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 
 auto redir(boost::system::error_code& ec)
