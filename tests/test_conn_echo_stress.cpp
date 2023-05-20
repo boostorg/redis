@@ -80,7 +80,9 @@ auto async_echo_stress() -> net::awaitable<void>
 
 BOOST_AUTO_TEST_CASE(echo_stress)
 {
-   start(async_echo_stress());
+   net::io_context ioc;
+   net::co_spawn(ioc, async_echo_stress(), net::detached);
+   ioc.run();
 }
 
 #else

@@ -12,6 +12,7 @@
 #include <boost/asio/consign.hpp>
 #include <string>
 #include <iostream>
+
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 #define BOOST_JSON_NO_LIB
@@ -21,12 +22,12 @@
 
 namespace net = boost::asio;
 using namespace boost::describe;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::operation;
 using boost::redis::ignore_t;
 using boost::redis::config;
+using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 
 // Struct that will be stored in Redis using json serialization. 
 struct user {

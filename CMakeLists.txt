@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
+set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+
 project(
     boost_redis
     VERSION 1.4.1
@@ -65,9 +67,9 @@ foreach(lib IN LISTS libs_cpp20 libs_cpp17 libs_common)
    add_library(${lib} STATIC)
 endforeach()
 
-target_sources(boost_redis_src PUBLIC examples/boost_redis.cpp)
-target_sources(tests_common PUBLIC tests/common.cpp)
-target_sources(examples_main PUBLIC examples/main.cpp)
+target_sources(boost_redis_src PRIVATE examples/boost_redis.cpp)
+target_sources(tests_common PRIVATE tests/common.cpp)
+target_sources(examples_main PRIVATE examples/main.cpp)
 
 # Executables
 #=======================================================================
@@ -134,16 +136,17 @@ foreach(exe IN LISTS tests_cpp17 tests_cpp20)
    target_link_libraries(${exe} PRIVATE  tests_common)
 endforeach()
 
-foreach(exe IN LISTS tests_cpp17 tests_cpp20 examples_cpp17 examples_cpp20 libs_cpp17 libs_cpp20 benchmakrs)
-   target_link_libraries(${exe} PRIVATE OpenSSL::Crypto OpenSSL::SSL boost_redis_src)
-endforeach()
-
-if (MSVC)
-   foreach(exe IN LISTS tests_cpp17 tests_cpp20 examples_cpp17 examples_cpp20 libs_cpp17 libs_cpp20 benchmakrs libs_common)
+foreach(exe IN LISTS tests_cpp17 tests_cpp20 examples_cpp17 examples_cpp20 libs_cpp17 libs_cpp20 libs_common benchmakrs)
+   target_link_libraries(${exe} PRIVATE OpenSSL::Crypto OpenSSL::SSL)
+   if (MSVC)
       target_compile_options(${exe} PRIVATE /bigobj)
       target_compile_definitions(${exe} PRIVATE _WIN32_WINNT=0x0601)
-   endforeach()
-endif()
+   endif()
+endforeach()
+
+foreach(exe IN LISTS tests_cpp17 tests_cpp20 examples_cpp17 examples_cpp20 libs_cpp17 libs_cpp20 benchmakrs)
+   target_link_libraries(${exe} PRIVATE boost_redis_src)
+endforeach()
 
 foreach(exe IN LISTS tests_cpp20 examples_cpp20 libs_cpp20 benchmarks)
    target_compile_features(${exe} PUBLIC cxx_std_20)

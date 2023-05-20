@@ -8,6 +8,7 @@
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE conn-exec-cancel
 #include <boost/test/included/unit_test.hpp>
+#include <boost/asio/detached.hpp>
 #include "common.hpp"
 #include <iostream>
 
@@ -72,7 +73,9 @@ auto implicit_cancel_of_req_written() -> net::awaitable<void>
 
 BOOST_AUTO_TEST_CASE(test_ignore_implicit_cancel_of_req_written)
 {
-   start(implicit_cancel_of_req_written());
+   net::io_context ioc;
+   net::co_spawn(ioc, implicit_cancel_of_req_written(), net::detached);
+   ioc.run();
 }
 
 BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)

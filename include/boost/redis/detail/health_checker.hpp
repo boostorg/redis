@@ -17,6 +17,7 @@
 #include <boost/asio/compose.hpp>
 #include <boost/asio/consign.hpp>
 #include <boost/asio/coroutine.hpp>
+#include <boost/asio/post.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <memory>
 #include <chrono>
