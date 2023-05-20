@@ -25,9 +25,10 @@ run(
    std::shared_ptr<boost::redis::connection> conn,
    boost::redis::config cfg,
    boost::system::error_code ec,
-   boost::redis::operation op)
+   boost::redis::operation op,
+   boost::redis::logger::level l)
 {
-   conn->async_run(cfg, {}, run_callback{conn, op, ec});
+   conn->async_run(cfg, {l}, run_callback{conn, op, ec});
 }
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT

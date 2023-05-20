@@ -7,6 +7,7 @@
 #include <boost/redis/connection.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
+#include <boost/asio/deferred.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE echo-stress
 #include <boost/test/included/unit_test.hpp>
@@ -38,25 +39,33 @@ auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::await
    conn->cancel();
 }
 
-auto echo_session(std::shared_ptr<connection> conn, std::string id, int n) -> net::awaitable<void>
+auto
+echo_session(
+   std::shared_ptr<connection> conn,
+   std::shared_ptr<request> pubs,
+   std::string id,
+   int n) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
 
    request req;
-   response<ignore_t, std::string> resp;
+   response<ignore_t, std::string, ignore_t> resp;
 
    for (auto i = 0; i < n; ++i) {
       auto const msg = id + "/" + std::to_string(i);
       //std::cout << msg << std::endl;
-      req.push("HELLO", 3);
+      req.push("HELLO", 3); // Just to mess around.
       req.push("PING", msg);
-      req.push("SUBSCRIBE", "channel");
+      req.push("PING", "lsls"); // TODO: Change to HELLO after fixing issue 105.
       boost::system::error_code ec;
       co_await conn->async_exec(req, resp, redir(ec));
-      BOOST_CHECK_EQUAL(ec, boost::system::error_code{});
-      BOOST_CHECK_EQUAL(msg, std::get<1>(resp).value());
+
+      BOOST_REQUIRE_EQUAL(ec, boost::system::error_code{});
+      BOOST_REQUIRE_EQUAL(msg, std::get<1>(resp).value());
       req.clear();
       std::get<1>(resp).value().clear();
+
+      co_await conn->async_exec(*pubs, ignore, net::deferred);
    }
 }
 
@@ -64,18 +73,41 @@ auto async_echo_stress() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
+   config cfg;
+   cfg.health_check_interval = std::chrono::seconds::zero();
+   run(conn, cfg,
+       boost::asio::error::operation_aborted,
+       boost::redis::operation::receive,
+       boost::redis::logger::level::crit);
 
+   request req;
+   req.push("SUBSCRIBE", "channel");
+   co_await conn->async_exec(req, ignore, net::deferred);
+
+   // Number of coroutines that will send pings sharing the same
+   // connection to redis.
    int const sessions = 500;
-   int const msgs = 1000;
-   int total = sessions * msgs;
 
-   net::co_spawn(ex, push_consumer(conn, total), net::detached);
+   // The number of pings that will be sent by each session.
+   int const msgs = 1000;
+
+   // The number of publishes that will be sent by each session with
+   // each message.
+   int const n_pubs = 10;
+
+   // This is the total number of pushes we will receive.
+   int total_pushes = sessions * msgs * n_pubs + 1;
+
+   auto pubs = std::make_shared<request>();
+   for (int i = 0; i < n_pubs; ++i)
+      pubs->push("PUBLISH", "channel", "payload");
+
+   // Op that will consume the pushes counting down until all expected
+   // pushes have been received.
+   net::co_spawn(ex, push_consumer(conn, total_pushes), net::detached);
 
    for (int i = 0; i < sessions; ++i) 
-      net::co_spawn(ex, echo_session(conn, std::to_string(i), msgs), net::detached);
-
-
-   run(conn);
+      net::co_spawn(ex, echo_session(conn, pubs, std::to_string(i), msgs), net::detached);
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)
