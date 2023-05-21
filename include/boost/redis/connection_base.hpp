@@ -20,7 +20,6 @@
 #include <boost/system.hpp>
 #include <boost/asio/basic_stream_socket.hpp>
 #include <boost/asio/bind_executor.hpp>
-#include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -52,10 +51,10 @@ struct wait_receive_op {
    {
       BOOST_ASIO_CORO_REENTER (coro)
       {
-         conn_->channel_.cancel();
+         conn_->read_op_timer_.cancel();
 
          BOOST_ASIO_CORO_YIELD
-         conn_->channel_.async_send(system::error_code{}, 0, std::move(self));
+         conn_->read_op_timer_.async_wait(std::move(self));
          if (!conn_->is_open() || is_cancelled(self)) {
             self.complete(!!ec ? ec : asio::error::operation_aborted);
             return;
@@ -143,7 +142,11 @@ public:
 
             ++index_;
 
-            BOOST_REDIS_CHECK_OP1(conn_->cancel(operation::run););
+            if (ec || redis::detail::is_cancelled(self)) {
+               conn_->cancel(operation::run);
+               self.complete(!!ec ? ec : asio::error::operation_aborted, {});
+               return;
+            }
 
             read_size_ += n;
 
@@ -171,9 +174,9 @@ struct receive_op {
    {
       BOOST_ASIO_CORO_REENTER (coro)
       {
-         if (conn_->wait_read_op_notification_) {
+         if (!conn_->is_next_push()) {
             BOOST_ASIO_CORO_YIELD
-            conn_->channel_.async_receive(std::move(self));
+            conn_->read_op_timer_.async_wait(std::move(self));
             if (!conn_->is_open() || is_cancelled(self)) {
                self.complete(!!ec ? ec : asio::error::operation_aborted, 0);
                return;
@@ -194,9 +197,9 @@ struct receive_op {
 
          read_size = n;
 
-         conn_->wait_read_op_notification_ = !conn_->is_next_maybe_push();
-         if (conn_->wait_read_op_notification_)
-            conn_->channel_.cancel();
+         if (!conn_->is_next_push()) {
+            conn_->read_op_timer_.cancel();
+         }
 
          self.complete({}, read_size);
          return;
@@ -320,7 +323,6 @@ struct run_op {
       {
          conn->write_buffer_.clear();
          conn->read_buffer_.clear();
-         conn->wait_read_op_notification_ = true;
 
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
@@ -496,11 +498,12 @@ public:
    , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
    , writer_timer_{ex}
    , read_timer_{ex}
-   , channel_{ex}
+   , read_op_timer_{ex}
    , runner_{ex, {}}
    {
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+      read_op_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
    /// Contructs from an execution context.
@@ -628,7 +631,7 @@ public:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code, std::size_t)
-         >(redis::detail::receive_op<this_type, decltype(f)>{this, f}, token, channel_);
+         >(redis::detail::receive_op<this_type, decltype(f)>{this, f}, token, read_op_timer_);
    }
 
    /** @brief Starts underlying connection operations.
@@ -695,7 +698,6 @@ private:
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = asio::wait_traits<clock_type>;
    using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
-   using channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
    using runner_type = redis::detail::runner<executor_type>;
 
    auto use_ssl() const noexcept
@@ -767,7 +769,7 @@ private:
          } break;
          case operation::receive:
          {
-            channel_.cancel();
+            read_op_timer_.cancel();
          } break;
          default: /* ignore */;
       }
@@ -891,7 +893,7 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(redis::detail::wait_receive_op<this_type>{this}, token, channel_);
+         >(redis::detail::wait_receive_op<this_type>{this}, token, read_op_timer_);
    }
 
    void cancel_push_requests()
@@ -997,7 +999,7 @@ private:
          stream_->next_layer().close();
    }
 
-   bool is_next_maybe_push() const noexcept
+   bool is_next_push() const noexcept
    {
       return !read_buffer_.empty() && (resp3::to_type(read_buffer_.front()) == resp3::type::push);
    }
@@ -1013,16 +1015,13 @@ private:
    // not suspend.
    timer_type writer_timer_;
    timer_type read_timer_;
-   channel_type channel_;
+   timer_type read_op_timer_;
    runner_type runner_;
 
    std::string read_buffer_;
    std::string write_buffer_;
    reqs_type reqs_;
    std::size_t max_read_size_ = (std::numeric_limits<std::size_t>::max)();
-
-   // Flag that optimizes reading pushes.
-   bool wait_read_op_notification_ = true;
 };
 
 } // boost::redis

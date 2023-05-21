@@ -152,7 +152,7 @@ push_consumer1(std::shared_ptr<connection> conn, bool& push_received)
 
    {
       auto [ec, ev] = co_await conn->async_receive(ignore, as_tuple(net::use_awaitable));
-      BOOST_CHECK_EQUAL(ec, net::experimental::channel_errc::channel_cancelled);
+      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    }
 
    push_received = true;
@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    });
 
    conn->async_exec(req, ignore, [](auto ec, auto){
-      BOOST_CHECK_EQUAL(ec, net::experimental::error::channel_errors::channel_cancelled);
+      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
    run(conn);
