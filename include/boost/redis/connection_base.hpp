@@ -43,7 +43,7 @@ namespace detail {
 
 template <class Conn>
 struct wait_receive_op {
-   Conn* conn;
+   Conn* conn_;
    asio::coroutine coro{};
 
    template <class Self>
@@ -52,14 +52,14 @@ struct wait_receive_op {
    {
       BOOST_ASIO_CORO_REENTER (coro)
       {
-         BOOST_ASIO_CORO_YIELD
-         conn->channel_.async_send(system::error_code{}, 0, std::move(self));
-         BOOST_REDIS_CHECK_OP0(;);
+         conn_->channel_.cancel();
 
          BOOST_ASIO_CORO_YIELD
-         conn->channel_.async_send(system::error_code{}, 0, std::move(self));
-         BOOST_REDIS_CHECK_OP0(;);
-
+         conn_->channel_.async_send(system::error_code{}, 0, std::move(self));
+         if (!conn_->is_open() || is_cancelled(self)) {
+            self.complete(!!ec ? ec : asio::error::operation_aborted);
+            return;
+         }
          self.complete({});
       }
    }
@@ -158,7 +158,7 @@ public:
 
 template <class Conn, class Adapter>
 struct receive_op {
-   Conn* conn;
+   Conn* conn_;
    Adapter adapter;
    std::size_t read_size = 0;
    asio::coroutine coro{};
@@ -171,27 +171,32 @@ struct receive_op {
    {
       BOOST_ASIO_CORO_REENTER (coro)
       {
-         BOOST_ASIO_CORO_YIELD
-         conn->channel_.async_receive(std::move(self));
-         BOOST_REDIS_CHECK_OP1(;);
+         if (conn_->wait_read_op_notification_) {
+            BOOST_ASIO_CORO_YIELD
+            conn_->channel_.async_receive(std::move(self));
+            if (!conn_->is_open() || is_cancelled(self)) {
+               self.complete(!!ec ? ec : asio::error::operation_aborted, 0);
+               return;
+            }
+         }
 
-         if (conn->use_ssl())
-            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
+         if (conn_->use_ssl())
+            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer(), conn_->make_dynamic_buffer(), adapter, std::move(self));
          else
-            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn->next_layer().next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
+            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer().next_layer(), conn_->make_dynamic_buffer(), adapter, std::move(self));
 
          if (ec || is_cancelled(self)) {
-            conn->cancel(operation::run);
-            conn->cancel(operation::receive);
+            conn_->cancel(operation::run);
+            conn_->cancel(operation::receive);
             self.complete(!!ec ? ec : asio::error::operation_aborted, {});
             return;
          }
 
          read_size = n;
 
-         BOOST_ASIO_CORO_YIELD
-         conn->channel_.async_receive(std::move(self));
-         BOOST_REDIS_CHECK_OP1(;);
+         conn_->wait_read_op_notification_ = !conn_->is_next_maybe_push();
+         if (conn_->wait_read_op_notification_)
+            conn_->channel_.cancel();
 
          self.complete({}, read_size);
          return;
@@ -315,6 +320,7 @@ struct run_op {
       {
          conn->write_buffer_.clear();
          conn->read_buffer_.clear();
+         conn->wait_read_op_notification_ = true;
 
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
@@ -991,6 +997,11 @@ private:
          stream_->next_layer().close();
    }
 
+   bool is_next_maybe_push() const noexcept
+   {
+      return !read_buffer_.empty() && (resp3::to_type(read_buffer_.front()) == resp3::type::push);
+   }
+
    auto is_open() const noexcept { return stream_->next_layer().is_open(); }
    auto& lowest_layer() noexcept { return stream_->lowest_layer(); }
 
@@ -1009,6 +1020,9 @@ private:
    std::string write_buffer_;
    reqs_type reqs_;
    std::size_t max_read_size_ = (std::numeric_limits<std::size_t>::max)();
+
+   // Flag that optimizes reading pushes.
+   bool wait_read_op_notification_ = true;
 };
 
 } // boost::redis

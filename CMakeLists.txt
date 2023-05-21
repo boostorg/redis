@@ -79,15 +79,16 @@ add_executable(echo_server_client benchmarks/cpp/asio/echo_server_client.cpp)
 add_executable(echo_server_direct benchmarks/cpp/asio/echo_server_direct.cpp)
 
 set(tests_cpp17
-    test_conn_quit
-    test_conn_tls
-    test_low_level
-    test_conn_exec_retry
-    test_conn_exec_error
-    test_request
-    test_run
-    test_low_level_sync
-    test_conn_check_health)
+   test_conn_quit
+   test_conn_tls
+   test_low_level
+   test_conn_exec_retry
+   test_conn_exec_error
+   test_request
+   test_run
+   test_low_level_sync
+   test_conn_check_health
+)
 
 set(tests_cpp20
     test_conn_exec

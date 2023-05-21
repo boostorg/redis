@@ -9,6 +9,7 @@
 #define BOOST_TEST_MODULE check-health
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
+#include <thread>
 #include "common.hpp"
 
 namespace net = boost::asio;
@@ -119,5 +120,9 @@ BOOST_AUTO_TEST_CASE(check_health)
 
    BOOST_TEST(!!res1);
    BOOST_TEST(!!res2);
+
+   // Waits before exiting otherwise it might cause subsequent tests
+   // to fail.
+   std::this_thread::sleep_for(std::chrono::seconds{10});
 }
 
