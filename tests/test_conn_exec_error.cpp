@@ -200,14 +200,25 @@ BOOST_AUTO_TEST_CASE(error_in_transaction)
    ioc.run();
 }
 
-// This test is important because a subscriber has no response on
-// success, but on error, for example when using a wrong syntax, the
-// server will send a simple error response the client is not
-// expecting.
+// This test is important because a SUBSCRIBE command has no response
+// on success, but does on error. for example when using a wrong
+// syntax, the server will send a simple error response the client is
+// not expecting.
+//
+// Sending the subscribe after the ping command below is just a
+// convenience to avoid have it merged in a pipeline making things
+// even more complex. For example, without a ping, we might get the
+// sequence HELLO + SUBSCRIBE + PING where the hello and ping are
+// automatically sent by the implementation. In this case, if the
+// subscribe synthax is wrong, redis will send a response, which does
+// not exist on success. That response will be interprested as the
+// response to the PING command that comes thereafter and won't be
+// forwarded to the receive_op, resulting in a difficult to handle
+// error.
 BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
 {
    request req1;
-   req1.push("HELLO", 3);
+   req1.push("PING");
 
    request req2;
    req2.push("SUBSCRIBE"); // Wrong command synthax.

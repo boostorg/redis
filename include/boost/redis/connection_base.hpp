@@ -20,7 +20,6 @@
 #include <boost/system.hpp>
 #include <boost/asio/basic_stream_socket.hpp>
 #include <boost/asio/bind_executor.hpp>
-#include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -43,7 +42,7 @@ namespace detail {
 
 template <class Conn>
 struct wait_receive_op {
-   Conn* conn;
+   Conn* conn_;
    asio::coroutine coro{};
 
    template <class Self>
@@ -52,14 +51,14 @@ struct wait_receive_op {
    {
       BOOST_ASIO_CORO_REENTER (coro)
       {
-         BOOST_ASIO_CORO_YIELD
-         conn->channel_.async_send(system::error_code{}, 0, std::move(self));
-         BOOST_REDIS_CHECK_OP0(;);
+         conn_->read_op_timer_.cancel();
 
          BOOST_ASIO_CORO_YIELD
-         conn->channel_.async_send(system::error_code{}, 0, std::move(self));
-         BOOST_REDIS_CHECK_OP0(;);
-
+         conn_->read_op_timer_.async_wait(std::move(self));
+         if (!conn_->is_open() || is_cancelled(self)) {
+            self.complete(!!ec ? ec : asio::error::operation_aborted);
+            return;
+         }
          self.complete({});
       }
    }
@@ -143,7 +142,11 @@ public:
 
             ++index_;
 
-            BOOST_REDIS_CHECK_OP1(conn_->cancel(operation::run););
+            if (ec || redis::detail::is_cancelled(self)) {
+               conn_->cancel(operation::run);
+               self.complete(!!ec ? ec : asio::error::operation_aborted, {});
+               return;
+            }
 
             read_size_ += n;
 
@@ -158,7 +161,7 @@ public:
 
 template <class Conn, class Adapter>
 struct receive_op {
-   Conn* conn;
+   Conn* conn_;
    Adapter adapter;
    std::size_t read_size = 0;
    asio::coroutine coro{};
@@ -171,27 +174,32 @@ struct receive_op {
    {
       BOOST_ASIO_CORO_REENTER (coro)
       {
-         BOOST_ASIO_CORO_YIELD
-         conn->channel_.async_receive(std::move(self));
-         BOOST_REDIS_CHECK_OP1(;);
+         if (!conn_->is_next_push()) {
+            BOOST_ASIO_CORO_YIELD
+            conn_->read_op_timer_.async_wait(std::move(self));
+            if (!conn_->is_open() || is_cancelled(self)) {
+               self.complete(!!ec ? ec : asio::error::operation_aborted, 0);
+               return;
+            }
+         }
 
-         if (conn->use_ssl())
-            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn->next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
+         if (conn_->use_ssl())
+            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer(), conn_->make_dynamic_buffer(), adapter, std::move(self));
          else
-            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn->next_layer().next_layer(), conn->make_dynamic_buffer(), adapter, std::move(self));
+            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer().next_layer(), conn_->make_dynamic_buffer(), adapter, std::move(self));
 
          if (ec || is_cancelled(self)) {
-            conn->cancel(operation::run);
-            conn->cancel(operation::receive);
+            conn_->cancel(operation::run);
+            conn_->cancel(operation::receive);
             self.complete(!!ec ? ec : asio::error::operation_aborted, {});
             return;
          }
 
          read_size = n;
 
-         BOOST_ASIO_CORO_YIELD
-         conn->channel_.async_receive(std::move(self));
-         BOOST_REDIS_CHECK_OP1(;);
+         if (!conn_->is_next_push()) {
+            conn_->read_op_timer_.cancel();
+         }
 
          self.complete({}, read_size);
          return;
@@ -490,11 +498,12 @@ public:
    , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
    , writer_timer_{ex}
    , read_timer_{ex}
-   , channel_{ex}
+   , read_op_timer_{ex}
    , runner_{ex, {}}
    {
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+      read_op_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
 
    /// Contructs from an execution context.
@@ -622,7 +631,7 @@ public:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code, std::size_t)
-         >(redis::detail::receive_op<this_type, decltype(f)>{this, f}, token, channel_);
+         >(redis::detail::receive_op<this_type, decltype(f)>{this, f}, token, read_op_timer_);
    }
 
    /** @brief Starts underlying connection operations.
@@ -689,7 +698,6 @@ private:
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = asio::wait_traits<clock_type>;
    using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
-   using channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
    using runner_type = redis::detail::runner<executor_type>;
 
    auto use_ssl() const noexcept
@@ -761,7 +769,7 @@ private:
          } break;
          case operation::receive:
          {
-            channel_.cancel();
+            read_op_timer_.cancel();
          } break;
          default: /* ignore */;
       }
@@ -885,7 +893,7 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(redis::detail::wait_receive_op<this_type>{this}, token, channel_);
+         >(redis::detail::wait_receive_op<this_type>{this}, token, read_op_timer_);
    }
 
    void cancel_push_requests()
@@ -991,6 +999,11 @@ private:
          stream_->next_layer().close();
    }
 
+   bool is_next_push() const noexcept
+   {
+      return !read_buffer_.empty() && (resp3::to_type(read_buffer_.front()) == resp3::type::push);
+   }
+
    auto is_open() const noexcept { return stream_->next_layer().is_open(); }
    auto& lowest_layer() noexcept { return stream_->lowest_layer(); }
 
@@ -1002,7 +1015,7 @@ private:
    // not suspend.
    timer_type writer_timer_;
    timer_type read_timer_;
-   channel_type channel_;
+   timer_type read_op_timer_;
    runner_type runner_;
 
    std::string read_buffer_;

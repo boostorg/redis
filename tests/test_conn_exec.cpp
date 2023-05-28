@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
    conn->async_exec(req1, ignore, [&](auto ec, auto){
       // Second callback to the called.
       std::cout << "req1" << std::endl;
-      BOOST_TEST(!ec);
+      BOOST_CHECK_EQUAL(ec, boost::system::error_code{});
       BOOST_TEST(!seen2);
       BOOST_TEST(seen3);
       seen1 = true;
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
    conn->async_exec(req2, ignore, [&](auto ec, auto){
       // Last callback to the called.
       std::cout << "req2" << std::endl;
-      BOOST_TEST(!ec);
+      BOOST_CHECK_EQUAL(ec, boost::system::error_code{});
       BOOST_TEST(seen1);
       BOOST_TEST(seen3);
       seen2 = true;
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
    conn->async_exec(req3, ignore, [&](auto ec, auto){
       // Callback that will be called first.
       std::cout << "req3" << std::endl;
-      BOOST_TEST(!ec);
+      BOOST_CHECK_EQUAL(ec, boost::system::error_code{});
       BOOST_TEST(!seen1);
       BOOST_TEST(!seen2);
       seen3 = true;
