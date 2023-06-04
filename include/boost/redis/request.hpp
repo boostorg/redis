@@ -99,6 +99,7 @@ public:
    {
       payload_.clear();
       commands_ = 0;
+      has_hello_priority_ = false;
    }
 
    /// Calls std::string::reserve on the internal storage.
@@ -139,14 +140,12 @@ public:
    template <class... Ts>
    void push(std::string_view cmd, Ts const&... args)
    {
-      auto const size_before = std::size(payload_);
       auto constexpr pack_size = sizeof...(Ts);
       resp3::add_header(payload_, resp3::type::array, 1 + pack_size);
       resp3::add_bulk(payload_, cmd);
       resp3::add_bulk(payload_, std::tie(std::forward<Ts const&>(args)...));
-      auto const size_after = std::size(payload_);
 
-      check_cmd(cmd, size_after - size_before);
+      check_cmd(cmd);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -194,7 +193,6 @@ public:
       if (begin == end)
          return;
 
-      auto const size_before = std::size(payload_);
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
       resp3::add_header(payload_, resp3::type::array, 2 + size * distance);
@@ -204,9 +202,7 @@ public:
       for (; begin != end; ++begin)
 	 resp3::add_bulk(payload_, *begin);
 
-      auto const size_after = std::size(payload_);
-
-      check_cmd(cmd, size_after - size_before);
+      check_cmd(cmd);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -249,7 +245,6 @@ public:
       if (begin == end)
          return;
 
-      auto const size_before = std::size(payload_);
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
       resp3::add_header(payload_, resp3::type::array, 1 + size * distance);
@@ -258,9 +253,7 @@ public:
       for (; begin != end; ++begin)
 	 resp3::add_bulk(payload_, *begin);
 
-      auto const size_after = std::size(payload_);
-
-      check_cmd(cmd, size_after - size_before);
+      check_cmd(cmd);
    }
 
    /** @brief Appends a new command to the end of the request.
@@ -308,18 +301,13 @@ public:
    }
 
 private:
-   void check_cmd(std::string_view cmd, std::size_t n)
+   void check_cmd(std::string_view cmd)
    {
       if (!detail::has_response(cmd))
          ++commands_;
 
-      if (cmd == "HELLO") {
+      if (cmd == "HELLO")
          has_hello_priority_ = cfg_.hello_with_priority;
-         if (has_hello_priority_) {
-            auto const shift = std::size(payload_) - n;
-            std::rotate(std::begin(payload_), std::begin(payload_) + shift, std::end(payload_));
-         }
-      }
    }
 
    config cfg_;
