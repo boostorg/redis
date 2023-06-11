@@ -14,10 +14,10 @@
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/any_io_executor.hpp>
+#include <boost/asio/any_completion_handler.hpp>
 
 #include <chrono>
 #include <memory>
-#include <iostream>
 
 namespace boost::redis {
 namespace detail
@@ -187,7 +187,65 @@ private:
 /** \brief A connection that uses the asio::any_io_executor.
  *  \ingroup high-level-api
  */
-using connection = basic_connection<asio::any_io_executor>;
+class connection {
+public:
+   /// Executor type.
+   using executor_type = asio::any_io_executor;
+
+   /// Contructs from an executor.
+   explicit connection(executor_type ex, asio::ssl::context::method method = asio::ssl::context::tls_client);
+
+   /// Contructs from a context.
+   explicit connection(asio::io_context& ioc, asio::ssl::context::method method = asio::ssl::context::tls_client);
+
+   executor_type get_executor() noexcept { return impl_.get_executor(); }
+
+   template <class CompletionToken>
+   auto async_run(config const& cfg, logger l, CompletionToken token)
+   {
+      return asio::async_initiate<
+         CompletionToken, void(boost::system::error_code)>(
+            [](auto handler, connection* self, config const* cfg, logger l)
+            {
+               self->async_run_impl(*cfg, l, std::move(handler));
+            }, token, this, &cfg, l);
+   }
+
+   template <class Response, class CompletionToken>
+   auto async_receive(Response& response, CompletionToken token)
+   {
+      return impl_.async_receive(response, std::move(token));
+   }
+
+   template <class Response, class CompletionToken>
+   auto async_exec(request const& req, Response& resp, CompletionToken token)
+   {
+      return impl_.async_exec(req, resp, std::move(token));
+   }
+
+   void cancel(operation op = operation::all);
+
+   /// Returns true if the connection was canceled.
+   bool will_reconnect() const noexcept
+      { return impl_.will_reconnect();}
+
+   /// Returns a reference to the next layer.
+   auto& next_layer() noexcept { return impl_.next_layer(); }
+
+   /// Returns a const reference to the next layer.
+   auto const& next_layer() const noexcept { return impl_.next_layer(); }
+
+   void reset_stream() { impl_.reset_stream();}
+
+private:
+   void
+   async_run_impl(
+      config const& cfg,
+      logger l,
+      asio::any_completion_handler<void(boost::system::error_code)> token);
+
+   basic_connection<executor_type> impl_;
+};
 
 } // boost::redis
 

@@ -19,11 +19,12 @@
 
 namespace net = boost::asio;
 using stream_descriptor = net::deferred_t::as_default_on_t<net::posix::stream_descriptor>;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 using signal_set = net::deferred_t::as_default_on_t<net::signal_set>;
 using boost::redis::request;
 using boost::redis::generic_response;
 using boost::redis::config;
+using boost::redis::connection;
+using boost::redis::ignore;
 using net::redirect_error;
 using net::use_awaitable;
 using boost::system::error_code;
@@ -41,7 +42,7 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    while (conn->will_reconnect()) {
 
       // Subscribe to channels.
-      co_await conn->async_exec(req);
+      co_await conn->async_exec(req, ignore, net::deferred);
 
       // Loop reading Redis push messages.
       for (generic_response resp;;) {
@@ -66,7 +67,7 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
       auto n = co_await net::async_read_until(*in, net::dynamic_buffer(msg, 1024), "\n");
       request req;
       req.push("PUBLISH", "channel", msg);
-      co_await conn->async_exec(req);
+      co_await conn->async_exec(req, ignore, net::deferred);
       msg.erase(0, n);
    }
 }

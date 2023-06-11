@@ -25,7 +25,7 @@ using boost::redis::response;
 using boost::redis::operation;
 using boost::redis::ignore_t;
 using boost::redis::config;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
+using boost::redis::connection;
 
 // The protobuf type described in examples/person.proto
 using tutorial::person;
@@ -76,7 +76,7 @@ net::awaitable<void> co_main(config cfg)
    response<ignore_t, person> resp;
 
    // Sends the request and receives the response.
-   co_await conn->async_exec(req, resp);
+   co_await conn->async_exec(req, resp, net::deferred);
    conn->cancel();
 
    std::cout

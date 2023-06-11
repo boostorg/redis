@@ -25,7 +25,7 @@ using boost::redis::config;
 using boost::redis::generic_response;
 using boost::redis::operation;
 using boost::redis::request;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
+using boost::redis::connection;
 using signal_set = net::deferred_t::as_default_on_t<net::signal_set>;
 
 auto stream_reader(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -39,7 +39,7 @@ auto stream_reader(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
     for (;;) {
         req.push("XREAD", "BLOCK", "0", "STREAMS", "test-topic", stream_id);
-        co_await conn->async_exec(req, resp);
+        co_await conn->async_exec(req, resp, net::deferred);
 
         // std::cout << "Response: ";
         // for (int i = 0; i < resp->value().size(); ++i) {

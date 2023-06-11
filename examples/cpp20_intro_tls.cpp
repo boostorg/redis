@@ -18,7 +18,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::config;
 using boost::redis::logger;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
+using boost::redis::connection;
 
 auto verify_certificate(bool, net::ssl::verify_context&) -> bool
 {
@@ -45,7 +45,7 @@ auto co_main(config cfg) -> net::awaitable<void>
    conn->next_layer().set_verify_mode(net::ssl::verify_peer);
    conn->next_layer().set_verify_callback(verify_certificate);
 
-   co_await conn->async_exec(req, resp);
+   co_await conn->async_exec(req, resp, net::deferred);
    conn->cancel();
 
    std::cout << "Response: " << std::get<0>(resp).value() << std::endl;

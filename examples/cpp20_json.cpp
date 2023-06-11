@@ -29,7 +29,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::config;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
+using boost::redis::connection;
 
 // Struct that will be stored in Redis using json serialization. 
 struct user {
@@ -64,7 +64,7 @@ auto co_main(config cfg) -> net::awaitable<void>
 
    response<ignore_t, user> resp;
 
-   co_await conn->async_exec(req, resp);
+   co_await conn->async_exec(req, resp, net::deferred);
    conn->cancel();
 
    // Prints the first ping
