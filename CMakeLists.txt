@@ -111,10 +111,11 @@ set(examples_cpp20
     cpp20_streams
     cpp20_containers
     cpp20_echo_server
-    cpp20_resolve_with_sentinel
     cpp20_json
     cpp20_subscriber
-    cpp20_intro_tls)
+    cpp20_intro_tls
+    cpp20_resolve_with_sentinel
+)
 
 if (Protobuf_FOUND)
    list(APPEND examples_cpp20 cpp20_protobuf)

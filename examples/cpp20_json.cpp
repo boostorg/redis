@@ -7,9 +7,9 @@
 #include <boost/redis/connection.hpp>
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/detached.hpp>
-#include <boost/asio/co_spawn.hpp>
 #include <boost/describe.hpp>
 #include <boost/asio/consign.hpp>
+#include <boost/asio/use_awaitable.hpp>
 #include <string>
 #include <iostream>
 
@@ -17,14 +17,16 @@
 
 #define BOOST_JSON_NO_LIB
 #define BOOST_CONTAINER_NO_LIB
-#include "json.hpp"
+#include <boost/json/serialize.hpp>
+#include <boost/json/parse.hpp>
+#include <boost/json/value_from.hpp>
+#include <boost/redis/resp3/serialization.hpp>
 #include <boost/json/src.hpp>
 
 namespace net = boost::asio;
 using namespace boost::describe;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::operation;
 using boost::redis::ignore_t;
 using boost::redis::config;
 using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
@@ -41,10 +43,10 @@ BOOST_DESCRIBE_STRUCT(user, (), (name, age, country))
 
 // Boost.Redis customization points (examples/json.hpp)
 void boost_redis_to_bulk(std::string& to, user const& u)
-   { boost::redis::json::to_bulk(to, u); }
+   { boost::redis::resp3::boost_redis_to_bulk(to, boost::json::serialize(boost::json::value_from(u))); }
 
-void boost_redis_from_bulk(user& u, std::string_view sv, boost::system::error_code& ec)
-   { boost::redis::json::from_bulk(u, sv, ec); }
+void boost_redis_from_bulk(user& u, std::string_view sv, boost::system::error_code&)
+   { u = boost::json::value_to<user>(boost::json::parse(sv)); }
 
 auto co_main(config cfg) -> net::awaitable<void>
 {
