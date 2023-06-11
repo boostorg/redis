@@ -67,8 +67,8 @@ jobs:
         platform_version: ${{env.BOOST_PLATFORM_VERSION}}
         arch: null
 
-    - name: Install packages
-      run: cinst openssl
+    - name: Install openssl
+      run: choco install openssl
 
     - name: Create build directory
       run: mkdir build
