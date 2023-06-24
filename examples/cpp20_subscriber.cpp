@@ -24,8 +24,9 @@ using boost::redis::request;
 using boost::redis::generic_response;
 using boost::redis::logger;
 using boost::redis::config;
+using boost::redis::ignore;
 using boost::system::error_code;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
+using boost::redis::connection;
 using signal_set = net::deferred_t::as_default_on_t<net::signal_set>;
 
 /* This example will subscribe and read pushes indefinitely.
@@ -51,10 +52,11 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
+   // Loop while reconnection is enabled
    while (conn->will_reconnect()) {
 
       // Reconnect to channels.
-      co_await conn->async_exec(req);
+      co_await conn->async_exec(req, ignore, net::deferred);
 
       // Loop reading Redis pushs messages.
       for (generic_response resp;;) {

@@ -19,7 +19,7 @@ using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::config;
 using boost::redis::address;
-using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
+using boost::redis::connection;
 
 auto redir(boost::system::error_code& ec)
    { return net::redirect_error(net::use_awaitable, ec); }

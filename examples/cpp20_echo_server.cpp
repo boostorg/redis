@@ -18,11 +18,11 @@ namespace net = boost::asio;
 using tcp_socket = net::deferred_t::as_default_on_t<net::ip::tcp::socket>;
 using tcp_acceptor = net::deferred_t::as_default_on_t<net::ip::tcp::acceptor>;
 using signal_set = net::deferred_t::as_default_on_t<net::signal_set>;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::config;
 using boost::system::error_code;
+using boost::redis::connection;
 using namespace std::chrono_literals;
 
 auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -33,7 +33,7 @@ auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) ->
    for (std::string buffer;;) {
       auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
       req.push("PING", buffer);
-      co_await conn->async_exec(req, resp);
+      co_await conn->async_exec(req, resp, net::deferred);
       co_await net::async_write(socket, net::buffer(std::get<0>(resp).value()));
       std::get<0>(resp).value().clear();
       req.clear();

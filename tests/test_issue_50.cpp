@@ -30,10 +30,10 @@ using boost::redis::ignore;
 using boost::redis::logger;
 using boost::redis::config;
 using boost::redis::operation;
+using boost::redis::connection;
 using boost::system::error_code;
 using boost::asio::use_awaitable;
 using boost::asio::redirect_error;
-using connection = boost::asio::use_awaitable_t<>::as_default_on_t<boost::redis::connection>;
 using namespace std::chrono_literals;
 
 // Push consumer

@@ -37,8 +37,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace boost::redis {
-namespace detail {
+namespace boost::redis::detail {
 
 template <class Conn>
 struct wait_receive_op {
@@ -473,7 +472,6 @@ struct reader_op {
       }
    }
 };
-} // detail
 
 /** @brief Base class for high level Redis asynchronous connections.
  *  @ingroup high-level-api
@@ -549,29 +547,6 @@ public:
       cancel_impl(op);
    }
 
-   /** @brief Executes commands on the Redis server asynchronously.
-    *
-    *  This function sends a request to the Redis server and waits for
-    *  the responses to each individual command in the request. If the
-    *  request contains only commands that don't expect a response,
-    *  the completion occurs after it has been written to the
-    *  underlying stream.  Multiple concurrent calls to this function
-    *  will be automatically queued by the implementation.
-    *
-    *  @param req Request.
-    *  @param resp Response.
-    *  @param token Completion token.
-    *
-    *  For an example see cpp20_echo_server.cpp. The completion token must
-    *  have the following signature
-    *
-    *  @code
-    *  void f(system::error_code, std::size_t);
-    *  @endcode
-    *
-    *  Where the second parameter is the size of the response received
-    *  in bytes.
-    */
    template <
       class Response = ignore_t,
       class CompletionToken = asio::default_completion_token_t<executor_type>
@@ -592,29 +567,6 @@ public:
          >(redis::detail::exec_op<this_type, decltype(f)>{this, &req, f}, token, writer_timer_);
    }
 
-   /** @brief Receives server side pushes asynchronously.
-    *
-    *  When pushes arrive and there is no `async_receive` operation in
-    *  progress, pushed data, requests, and responses will be paused
-    *  until `async_receive` is called again.  Apps will usually want
-    *  to call `async_receive` in a loop. 
-    *
-    *  To cancel an ongoing receive operation apps should call
-    *  `connection::cancel(operation::receive)`.
-    *
-    *  @param response Response object.
-    *  @param token Completion token.
-    *
-    *  For an example see cpp20_subscriber.cpp. The completion token must
-    *  have the following signature
-    *
-    *  @code
-    *  void f(system::error_code, std::size_t);
-    *  @endcode
-    *
-    *  Where the second parameter is the size of the push received in
-    *  bytes.
-    */
    template <
       class Response = ignore_t,
       class CompletionToken = asio::default_completion_token_t<executor_type>
@@ -634,60 +586,17 @@ public:
          >(redis::detail::receive_op<this_type, decltype(f)>{this, f}, token, read_op_timer_);
    }
 
-   /** @brief Starts underlying connection operations.
-    *
-    *  Provides a high-level connection to the Redis server. It will
-    *  perform the following steps
-    *
-    *  1. Resolve the address passed on `boost::redis::config::addr`.
-    *  2. Connect to one of the results obtained in the resolve operation.
-    *  3. Send a [HELLO](https://redis.io/commands/hello/) command where each of its parameters are read from `cfg`.
-    *  4. Start a health-check operation where ping commands are sent
-    *     at intervals specified in
-    *     `boost::redis::config::health_check_interval`.  The message passed to
-    *     `PING` will be `boost::redis::config::health_check_id`.  Passing a
-    *     timeout with value zero will disable health-checks.  If the Redis
-    *     server does not respond to a health-check within two times the value
-    *     specified here, it will be considered unresponsive and the connection
-    *     will be closed and a new connection will be stablished.
-    *  5. Starts read and write operations with the Redis
-    *  server. More specifically it will trigger the write of all
-    *  requests i.e. calls to `async_exec` that happened prior to this
-    *  call.
-    *
-    *  @param cfg Configuration paramters.
-    *  @param l Logger object. The interface expected is specified in the class `boost::redis::logger`.
-    *  @param token Completion token.
-    *
-    *  The completion token must have the following signature
-    *
-    *  @code
-    *  void f(system::error_code);
-    *  @endcode
-    *
-    *  For example on how to call this function refer to
-    *  cpp20_intro.cpp or any other example.
-    */
    template <class Logger, class CompletionToken>
-   auto async_run_one(config const& cfg, Logger l, CompletionToken token)
+   auto async_run(config const& cfg, Logger l, CompletionToken token)
    {
       runner_.set_config(cfg);
       l.set_prefix(runner_.get_config().log_prefix);
       return runner_.async_run(*this, l, std::move(token));
    }
 
-   /// Sets the maximum size of the read buffer.
    void set_max_buffer_read_size(std::size_t max_read_size) noexcept
       {max_read_size_ = max_read_size;}
 
-   /** @brief Reserve memory on the read and write internal buffers.
-    *
-    *  This function will call `std::string::reserve` on the
-    *  underlying buffers.
-    *  
-    *  @param read The new capacity of the read buffer.
-    *  @param write The new capacity of the write buffer.
-    */
    void reserve(std::size_t read, std::size_t write)
    {
       read_buffer_.reserve(read);
@@ -1024,6 +933,6 @@ private:
    std::size_t max_read_size_ = (std::numeric_limits<std::size_t>::max)();
 };
 
-} // boost::redis
+} // boost::redis::detail
 
 #endif // BOOST_REDIS_CONNECTION_BASE_HPP

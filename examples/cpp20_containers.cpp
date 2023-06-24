@@ -20,7 +20,7 @@ using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::ignore;
 using boost::redis::config;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
+using boost::redis::connection;
 
 void print(std::map<std::string, std::string> const& cont)
 {
@@ -47,7 +47,7 @@ auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);
 
-   co_await conn->async_exec(req);
+   co_await conn->async_exec(req, ignore, net::deferred);
 }
 
 auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -60,7 +60,7 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
    response<std::map<std::string, std::string>> resp;
 
    // Executes the request and reads the response.
-   co_await conn->async_exec(req, resp);
+   co_await conn->async_exec(req, resp, net::deferred);
 
    print(std::get<0>(resp).value());
 }
@@ -81,7 +81,7 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
       response<std::optional<std::vector<int>>, std::optional<std::map<std::string, std::string>>> // exec
    > resp;
 
-   co_await conn->async_exec(req, resp);
+   co_await conn->async_exec(req, resp, net::deferred);
 
    print(std::get<0>(std::get<3>(resp).value()).value().value());
    print(std::get<1>(std::get<3>(resp).value()).value().value());

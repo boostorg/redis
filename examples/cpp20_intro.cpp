@@ -17,8 +17,7 @@ namespace net = boost::asio;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::config;
-using boost::redis::logger;
-using connection = net::deferred_t::as_default_on_t<boost::redis::connection>;
+using boost::redis::connection;
 
 // Called from the main function (see main.cpp)
 auto co_main(config cfg) -> net::awaitable<void>
@@ -34,7 +33,7 @@ auto co_main(config cfg) -> net::awaitable<void>
    response<std::string> resp;
 
    // Executes the request.
-   co_await conn->async_exec(req, resp);
+   co_await conn->async_exec(req, resp, net::deferred);
    conn->cancel();
 
    std::cout << "PING: " << std::get<0>(resp).value() << std::endl;

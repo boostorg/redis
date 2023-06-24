@@ -7,17 +7,17 @@
 #ifndef BOOST_REDIS_CONNECTION_HPP
 #define BOOST_REDIS_CONNECTION_HPP
 
-#include <boost/redis/connection_base.hpp>
+#include <boost/redis/detail/connection_base.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/any_io_executor.hpp>
+#include <boost/asio/any_completion_handler.hpp>
 
 #include <chrono>
 #include <memory>
-#include <iostream>
 
 namespace boost::redis {
 namespace detail
@@ -34,7 +34,7 @@ struct reconnection_op {
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
          BOOST_ASIO_CORO_YIELD
-         conn_->async_run_one(conn_->cfg_, logger_, std::move(self));
+         conn_->impl_.async_run(conn_->cfg_, logger_, std::move(self));
          conn_->cancel(operation::receive);
          logger_.on_connection_lost(ec);
          if (!conn_->will_reconnect() || is_cancelled(self)) {
@@ -68,13 +68,14 @@ struct reconnection_op {
  *
  */
 template <class Executor>
-class basic_connection : public connection_base<Executor> {
+class basic_connection {
 public:
-   using base_type = connection_base<Executor>;
-   using this_type = basic_connection<Executor>;
-
    /// Executor type.
    using executor_type = Executor;
+
+   /// Returns the underlying executor.
+   executor_type get_executor() noexcept
+      { return impl_.get_executor(); }
 
    /// Rebinds the socket type to another executor.
    template <class Executor1>
@@ -87,7 +88,7 @@ public:
    /// Contructs from an executor.
    explicit
    basic_connection(executor_type ex, asio::ssl::context::method method = asio::ssl::context::tls_client)
-   : base_type{ex, method}
+   : impl_{ex, method}
    , timer_{ex}
    { }
 
@@ -97,12 +98,28 @@ public:
    : basic_connection(ioc.get_executor(), method)
    { }
 
-   /** @brief High-level connection to Redis.
+   /** @brief Starts underlying connection operations.
     *
-    *  This connection class adds reconnection functionality to
-    *  `boost::redis::connection_base::async_run_one`.  When a
-    *  connection is lost for any reason, a new one is stablished
-    *  automatically. To disable reconnection call
+    *  This member function provides the following functionality
+    *
+    *  1. Resolve the address passed on `boost::redis::config::addr`.
+    *  2. Connect to one of the results obtained in the resolve operation.
+    *  3. Send a [HELLO](https://redis.io/commands/hello/) command where each of its parameters are read from `cfg`.
+    *  4. Start a health-check operation where ping commands are sent
+    *     at intervals specified in
+    *     `boost::redis::config::health_check_interval`.  The message passed to
+    *     `PING` will be `boost::redis::config::health_check_id`.  Passing a
+    *     timeout with value zero will disable health-checks.  If the Redis
+    *     server does not respond to a health-check within two times the value
+    *     specified here, it will be considered unresponsive and the connection
+    *     will be closed and a new connection will be stablished.
+    *  5. Starts read and write operations with the Redis
+    *  server. More specifically it will trigger the write of all
+    *  requests i.e. calls to `async_exec` that happened prior to this
+    *  call.
+    *
+    *  When a connection is lost for any reason, a new one is
+    *  stablished automatically. To disable reconnection call
     *  `boost::redis::connection::cancel(operation::reconnection)`.
     *
     *  @param cfg Configuration paramters.
@@ -114,11 +131,6 @@ public:
     *  @code
     *  void f(system::error_code);
     *  @endcode
-    *
-    *  @remarks
-    *
-    *  * This function will complete only if reconnection was disabled
-    *    and the connection is lost.
     *
     *  For example on how to call this function refer to
     *  cpp20_intro.cpp or any other example.
@@ -132,12 +144,85 @@ public:
       Logger l = Logger{},
       CompletionToken token = CompletionToken{})
    {
+      using this_type = basic_connection<executor_type>;
+
       cfg_ = cfg;
       l.set_prefix(cfg_.log_prefix);
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
          >(detail::reconnection_op<this_type, Logger>{this, l}, token, timer_);
+   }
+
+   /** @brief Receives server side pushes asynchronously.
+    *
+    *  When pushes arrive and there is no `async_receive` operation in
+    *  progress, pushed data, requests, and responses will be paused
+    *  until `async_receive` is called again.  Apps will usually want
+    *  to call `async_receive` in a loop. 
+    *
+    *  To cancel an ongoing receive operation apps should call
+    *  `connection::cancel(operation::receive)`.
+    *
+    *  @param response Response object.
+    *  @param token Completion token.
+    *
+    *  For an example see cpp20_subscriber.cpp. The completion token must
+    *  have the following signature
+    *
+    *  @code
+    *  void f(system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the push received in
+    *  bytes.
+    */
+   template <
+      class Response = ignore_t,
+      class CompletionToken = asio::default_completion_token_t<executor_type>
+   >
+   auto
+   async_receive(
+      Response& response,
+      CompletionToken token = CompletionToken{})
+   {
+      return impl_.async_receive(response, token);
+   }
+
+   /** @brief Executes commands on the Redis server asynchronously.
+    *
+    *  This function sends a request to the Redis server and waits for
+    *  the responses to each individual command in the request. If the
+    *  request contains only commands that don't expect a response,
+    *  the completion occurs after it has been written to the
+    *  underlying stream.  Multiple concurrent calls to this function
+    *  will be automatically queued by the implementation.
+    *
+    *  @param req Request.
+    *  @param resp Response.
+    *  @param token Completion token.
+    *
+    *  For an example see cpp20_echo_server.cpp. The completion token must
+    *  have the following signature
+    *
+    *  @code
+    *  void f(system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the response received
+    *  in bytes.
+    */
+   template <
+      class Response = ignore_t,
+      class CompletionToken = asio::default_completion_token_t<executor_type>
+   >
+   auto
+   async_exec(
+      request const& req,
+      Response& resp = ignore,
+      CompletionToken token = CompletionToken{})
+   {
+      return impl_.async_exec(req, resp, token);
    }
 
    /** @brief Cancel operations.
@@ -152,7 +237,7 @@ public:
     *  @param op: The operation to be cancelled.
     *  @returns The number of operations that have been canceled.
     */
-   void cancel(operation op = operation::all) override
+   void cancel(operation op = operation::all)
    {
       switch (op) {
          case operation::reconnection:
@@ -163,16 +248,51 @@ public:
          default: /* ignore */;
       }
 
-      base_type::cancel(op);
+      impl_.cancel(op);
    }
 
    /// Returns true if the connection was canceled.
    bool will_reconnect() const noexcept
       { return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();}
 
-private:
-   config cfg_;
+   /** @brief Reserve memory on the read and write internal buffers.
+    *
+    *  This function will call `std::string::reserve` on the
+    *  underlying buffers.
+    *  
+    *  @param read The new capacity of the read buffer.
+    *  @param write The new capacity of the write buffer.
+    */
+   void reserve(std::size_t read, std::size_t write)
+   {
+      impl_.reserve(read, write);
+   }
 
+   /// Sets the maximum size of the read buffer.
+   void set_max_buffer_read_size(std::size_t max_read_size) noexcept
+      { impl_.set_max_buffer_read_size(max_read_size); }
+
+   /// Returns the ssl context.
+   auto const& get_ssl_context() const noexcept
+      { return impl_.get_ssl_context();}
+
+   /// Returns the ssl context.
+   auto& get_ssl_context() noexcept
+      { return impl_.get_ssl_context();}
+
+   /// Resets the underlying stream.
+   void reset_stream()
+      { impl_.reset_stream(); }
+
+   /// Returns a reference to the next layer.
+   auto& next_layer() noexcept
+      { return impl_.next_layer(); }
+
+   /// Returns a const reference to the next layer.
+   auto const& next_layer() const noexcept
+      { return impl_.next_layer(); }
+
+private:
    using timer_type =
       asio::basic_waitable_timer<
          std::chrono::steady_clock,
@@ -181,13 +301,89 @@ private:
 
    template <class, class> friend struct detail::reconnection_op;
 
+   config cfg_;
+   detail::connection_base<executor_type> impl_;
    timer_type timer_;
 };
 
-/** \brief A connection that uses the asio::any_io_executor.
+/** \brief A basic_connection that type erases the executor.
  *  \ingroup high-level-api
+ *
+ *  This connection type uses the asio::any_io_executor and
+ *  asio::any_completion_token to reduce compilation times.
+ *
+ *  For documentaiton of each member function see
+ *  `boost::redis::basic_connection`.
  */
-using connection = basic_connection<asio::any_io_executor>;
+class connection {
+public:
+   /// Executor type.
+   using executor_type = asio::any_io_executor;
+
+   /// Contructs from an executor.
+   explicit connection(executor_type ex, asio::ssl::context::method method = asio::ssl::context::tls_client);
+
+   /// Contructs from a context.
+   explicit connection(asio::io_context& ioc, asio::ssl::context::method method = asio::ssl::context::tls_client);
+
+   /// Returns the underlying executor.
+   executor_type get_executor() noexcept
+      { return impl_.get_executor(); }
+
+   /// Calls `boost::redis::basic_connection::async_run`.
+   template <class CompletionToken>
+   auto async_run(config const& cfg, logger l, CompletionToken token)
+   {
+      return asio::async_initiate<
+         CompletionToken, void(boost::system::error_code)>(
+            [](auto handler, connection* self, config const* cfg, logger l)
+            {
+               self->async_run_impl(*cfg, l, std::move(handler));
+            }, token, this, &cfg, l);
+   }
+
+   /// Calls `boost::redis::basic_connection::async_receive`.
+   template <class Response, class CompletionToken>
+   auto async_receive(Response& response, CompletionToken token)
+   {
+      return impl_.async_receive(response, std::move(token));
+   }
+
+   /// Calls `boost::redis::basic_connection::async_exec`.
+   template <class Response, class CompletionToken>
+   auto async_exec(request const& req, Response& resp, CompletionToken token)
+   {
+      return impl_.async_exec(req, resp, std::move(token));
+   }
+
+   /// Calls `boost::redis::basic_connection::cancel`.
+   void cancel(operation op = operation::all);
+
+   /// Calls `boost::redis::basic_connection::will_reconnect`.
+   bool will_reconnect() const noexcept
+      { return impl_.will_reconnect();}
+
+   /// Calls `boost::redis::basic_connection::next_layer`.
+   auto& next_layer() noexcept
+      { return impl_.next_layer(); }
+
+   /// Calls `boost::redis::basic_connection::next_layer`.
+   auto const& next_layer() const noexcept
+      { return impl_.next_layer(); }
+
+   /// Calls `boost::redis::basic_connection::reset_stream`.
+   void reset_stream()
+      { impl_.reset_stream();}
+
+private:
+   void
+   async_run_impl(
+      config const& cfg,
+      logger l,
+      asio::any_completion_handler<void(boost::system::error_code)> token);
+
+   basic_connection<executor_type> impl_;
+};
 
 } // boost::redis
 
