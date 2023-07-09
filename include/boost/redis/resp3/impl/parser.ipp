@@ -24,132 +24,186 @@ parser::parser()
    sizes_[0] = 2; // The sentinel must be more than 1.
 }
 
-auto
-parser::consume(
-   char const* data,
-   std::size_t n,
-   system::error_code& ec) -> std::pair<node_type, std::size_t>
+std::size_t
+parser::get_suggested_buffer_growth(std::size_t hint) const noexcept
 {
-   node_type ret;
-   if (bulk_expected()) {
-      n = bulk_length_ + 2;
-      ret = {bulk_, 1, depth_, {data, bulk_length_}};
-      bulk_ = type::invalid;
-      --sizes_[depth_];
+   if (!bulk_expected())
+      return hint;
 
-   } else if (sizes_[depth_] != 0) {
-      auto const t = to_type(*data);
-      switch (t) {
-         case type::streamed_string_part:
-         {
-            to_int(bulk_length_ , std::string_view{data + 1, n - 3}, ec);
-            if (ec)
-               return std::make_pair(node_type{}, 0);
+   if (hint < bulk_length_ + 2)
+      return bulk_length_ + 2;
 
-            if (bulk_length_ == 0) {
-               ret = {type::streamed_string_part, 1, depth_, {}};
-               sizes_[depth_] = 0; // We are done.
-               bulk_ = type::invalid;
-            } else {
-               bulk_ = type::streamed_string_part;
-            }
-         } break;
-         case type::blob_error:
-         case type::verbatim_string:
-         case type::blob_string:
-         {
-            if (data[1] == '?') {
-               // NOTE: This can only be triggered with blob_string.
-               // Trick: A streamed string is read as an aggregate
-               // of infinite lenght. When the streaming is done
-               // the server is supposed to send a part with length
-               // 0.
-               sizes_[++depth_] = (std::numeric_limits<std::size_t>::max)();
-               ret = {type::streamed_string, 0, depth_, {}};
-            } else {
-               to_int(bulk_length_ , std::string_view{data + 1, n - 3} , ec);
-               if (ec)
-                  return std::make_pair(node_type{}, 0);
+   return hint;
+}
 
-               bulk_ = t;
-            }
-         } break;
-         case type::boolean:
-         {
-            if (n == 3) {
-                ec = error::empty_field;
-                return std::make_pair(node_type{}, 0);
-            }
+std::size_t
+parser::get_consumed() const noexcept
+{
+   return consumed_;
+}
 
-            if (data[1] != 'f' && data[1] != 't') {
-                ec = error::unexpected_bool_value;
-                return std::make_pair(node_type{}, 0);
-            }
+bool
+parser::done() const noexcept
+{
+   return depth_ == 0 && bulk_ == type::invalid && consumed_ != 0;
+}
 
-            ret = {t, 1, depth_, {data + 1, n - 3}};
-            --sizes_[depth_];
-         } break;
-         case type::doublean:
-         case type::big_number:
-         case type::number:
-         {
-            if (n == 3) {
-                ec = error::empty_field;
-                return std::make_pair(node_type{}, 0);
-            }
-
-            ret = {t, 1, depth_, {data + 1, n - 3}};
-            --sizes_[depth_];
-         } break;
-         case type::simple_error:
-         case type::simple_string:
-         {
-            ret = {t, 1, depth_, {&data[1], n - 3}};
-            --sizes_[depth_];
-         } break;
-         case type::null:
-         {
-            ret = {type::null, 1, depth_, {}};
-            --sizes_[depth_];
-         } break;
-         case type::push:
-         case type::set:
-         case type::array:
-         case type::attribute:
-         case type::map:
-         {
-            int_type l = -1;
-            to_int(l, std::string_view{data + 1, n - 3}, ec);
-            if (ec)
-               return std::make_pair(node_type{}, 0);
-
-            ret = {t, l, depth_, {}};
-            if (l == 0) {
-               --sizes_[depth_];
-            } else {
-               if (depth_ == max_embedded_depth) {
-                  ec = error::exceeeds_max_nested_depth;
-                  return std::make_pair(node_type{}, 0);
-               }
-
-               ++depth_;
-
-               sizes_[depth_] = l * element_multiplicity(t);
-            }
-         } break;
-         default:
-         {
-            ec = error::invalid_data_type;
-            return std::make_pair(node_type{}, 0);
-         }
-      }
-   }
-   
+void
+parser::commit_elem() noexcept
+{
+   --sizes_[depth_];
    while (sizes_[depth_] == 0) {
       --depth_;
       --sizes_[depth_];
    }
-   
-   return std::make_pair(ret, n);
+}
+
+auto
+parser::consume(std::string_view view, system::error_code& ec) noexcept -> parser::result
+{
+   switch (bulk_) {
+      case type::invalid:
+      {
+         auto const pos = view.find(sep, consumed_);
+         if (pos == std::string::npos)
+            return {}; // Needs more data to proceeed.
+
+         auto const t = to_type(view.at(consumed_));
+         auto const content = view.substr(consumed_ + 1, pos - 1 - consumed_);
+         auto const ret = consume_impl(t, content, ec);
+         if (ec)
+            return {};
+
+         consumed_ = pos + 2;
+         if (!bulk_expected())
+            return ret;
+
+      } [[fallthrough]];
+
+      default: // Handles bulk.
+      {
+         auto const span = bulk_length_ + 2;
+         if ((std::size(view) - consumed_) < span)
+            return {}; // Needs more data to proceeed.
+
+         auto const bulk_view = view.substr(consumed_, bulk_length_);
+         node_type const ret = {bulk_, 1, depth_, bulk_view};
+         bulk_ = type::invalid;
+         commit_elem();
+
+         consumed_ += span;
+         return ret;
+      }
+   }
+}
+
+auto
+parser::consume_impl(
+   type t,
+   std::string_view elem,
+   system::error_code& ec) -> parser::node_type
+{
+   BOOST_ASSERT(!bulk_expected());
+
+   node_type ret;
+   switch (t) {
+      case type::streamed_string_part:
+      {
+         to_int(bulk_length_ , elem, ec);
+         if (ec)
+            return {};
+
+         if (bulk_length_ == 0) {
+            ret = {type::streamed_string_part, 1, depth_, {}};
+            sizes_[depth_] = 1; // We are done.
+            bulk_ = type::invalid;
+            commit_elem();
+         } else {
+            bulk_ = type::streamed_string_part;
+         }
+      } break;
+      case type::blob_error:
+      case type::verbatim_string:
+      case type::blob_string:
+      {
+         if (elem.at(0) == '?') {
+            // NOTE: This can only be triggered with blob_string.
+            // Trick: A streamed string is read as an aggregate of
+            // infinite length. When the streaming is done the server
+            // is supposed to send a part with length 0.
+            sizes_[++depth_] = (std::numeric_limits<std::size_t>::max)();
+            ret = {type::streamed_string, 0, depth_, {}};
+         } else {
+            to_int(bulk_length_ , elem , ec);
+            if (ec)
+               return {};
+
+            bulk_ = t;
+         }
+      } break;
+      case type::boolean:
+      {
+         if (std::empty(elem)) {
+             ec = error::empty_field;
+             return {};
+         }
+
+         if (elem.at(0) != 'f' && elem.at(0) != 't') {
+             ec = error::unexpected_bool_value;
+             return {};
+         }
+
+         ret = {t, 1, depth_, elem};
+         commit_elem();
+      } break;
+      case type::doublean:
+      case type::big_number:
+      case type::number:
+      {
+         if (std::empty(elem)) {
+             ec = error::empty_field;
+             return {};
+         }
+      } [[fallthrough]];
+      case type::simple_error:
+      case type::simple_string:
+      case type::null:
+      {
+         ret = {t, 1, depth_, elem};
+         commit_elem();
+      } break;
+      case type::push:
+      case type::set:
+      case type::array:
+      case type::attribute:
+      case type::map:
+      {
+         int_type l = -1;
+         to_int(l, elem, ec);
+         if (ec)
+            return {};
+
+         ret = {t, l, depth_, {}};
+         if (l == 0) {
+            commit_elem();
+         } else {
+            if (depth_ == max_embedded_depth) {
+               ec = error::exceeeds_max_nested_depth;
+               return {};
+            }
+
+            ++depth_;
+
+            sizes_[depth_] = l * element_multiplicity(t);
+         }
+      } break;
+      default:
+      {
+         ec = error::invalid_data_type;
+         return {};
+      }
+   }
+
+   return ret;
 }
 } // boost::redis::resp3

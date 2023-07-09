@@ -42,11 +42,15 @@ BOOST_AUTO_TEST_CASE(low_level_sync)
       std::string buffer;
       result<std::string> resp;
 
+      std::size_t consumed = 0;
       // Reads the responses to all commands in the request.
-      auto dbuffer = net::dynamic_buffer(buffer);
-      redis::detail::read(socket, dbuffer);
-      redis::detail::read(socket, dbuffer, adapt2(resp));
-      redis::detail::read(socket, dbuffer);
+      auto dbuf = net::dynamic_buffer(buffer);
+      consumed = redis::detail::read(socket, dbuf);
+      dbuf.consume(consumed);
+      consumed = redis::detail::read(socket, dbuf, adapt2(resp));
+      dbuf.consume(consumed);
+      consumed = redis::detail::read(socket, dbuf);
+      dbuf.consume(consumed);
 
       std::cout << "Ping: " << resp.value() << std::endl;
 

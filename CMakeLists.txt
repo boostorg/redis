@@ -163,6 +163,7 @@ if (BOOST_REDIS_TESTS)
   make_test(test_request 17)
   make_test(test_run 17)
   make_test(test_low_level_sync 17)
+  make_test(test_low_level_sync_sans_io 17)
   make_test(test_conn_check_health 17)
 
   make_test(test_conn_exec 20)
