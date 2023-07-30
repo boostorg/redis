@@ -49,11 +49,15 @@ auto co_main(config cfg) -> net::awaitable<void>
    std::string buffer;
    result<std::string> resp;
 
+   std::size_t consumed = 0;
    // Reads the responses to all commands in the request.
-   auto dbuffer = net::dynamic_buffer(buffer);
-   co_await redis::detail::async_read(socket, dbuffer);
-   co_await redis::detail::async_read(socket, dbuffer, adapt2(resp));
-   co_await redis::detail::async_read(socket, dbuffer);
+   auto dbuf = net::dynamic_buffer(buffer);
+   consumed = co_await redis::detail::async_read(socket, dbuf);
+   dbuf.consume(consumed);
+   consumed = co_await redis::detail::async_read(socket, dbuf, adapt2(resp));
+   dbuf.consume(consumed);
+   consumed = co_await redis::detail::async_read(socket, dbuf);
+   dbuf.consume(consumed);
 
    std::cout << "Ping: " << resp.value() << std::endl;
 }

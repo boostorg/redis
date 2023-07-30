@@ -27,12 +27,13 @@
 #include <boost/assert.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/asio/ssl/stream.hpp>
+#include <boost/asio/read_until.hpp>
+#include <boost/asio/buffer.hpp>
 
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <deque>
-#include <limits>
 #include <memory>
 #include <string_view>
 #include <type_traits>
@@ -112,10 +113,13 @@ public:
             // some data in the read bufer.
             if (conn_->read_buffer_.empty()) {
 
-               if (conn_->use_ssl())
-                  BOOST_ASIO_CORO_YIELD asio::async_read_until(conn_->next_layer(), conn_->make_dynamic_buffer(), "\r\n", std::move(self));
-               else
-                  BOOST_ASIO_CORO_YIELD asio::async_read_until(conn_->next_layer().next_layer(), conn_->make_dynamic_buffer(), "\r\n", std::move(self));
+               if (conn_->use_ssl()) {
+                  BOOST_ASIO_CORO_YIELD
+                  asio::async_read_until(conn_->next_layer(), conn_->dbuf_, resp3::parser::sep, std::move(self));
+               } else {
+                  BOOST_ASIO_CORO_YIELD
+                  asio::async_read_until(conn_->next_layer().next_layer(), conn_->dbuf_, resp3::parser::sep, std::move(self));
+               }
 
                BOOST_REDIS_CHECK_OP1(conn_->cancel(operation::run););
                if (info_->stop_requested()) {
@@ -134,10 +138,13 @@ public:
             }
             //-----------------------------------
 
-            if (conn_->use_ssl())
-               BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer(), conn_->make_dynamic_buffer(), make_adapter(), std::move(self));
-            else
-               BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer().next_layer(), conn_->make_dynamic_buffer(), make_adapter(), std::move(self));
+            if (conn_->use_ssl()) {
+               BOOST_ASIO_CORO_YIELD
+               redis::detail::async_read(conn_->next_layer(), conn_->dbuf_, make_adapter(), std::move(self));
+            } else {
+               BOOST_ASIO_CORO_YIELD
+               redis::detail::async_read(conn_->next_layer().next_layer(), conn_->dbuf_, make_adapter(), std::move(self));
+            }
 
             ++index_;
 
@@ -147,6 +154,7 @@ public:
                return;
             }
 
+            conn_->dbuf_.consume(n);
             read_size_ += n;
 
             BOOST_ASSERT(cmds_ != 0);
@@ -162,7 +170,6 @@ template <class Conn, class Adapter>
 struct receive_op {
    Conn* conn_;
    Adapter adapter;
-   std::size_t read_size = 0;
    asio::coroutine coro{};
 
    template <class Self>
@@ -182,10 +189,13 @@ struct receive_op {
             }
          }
 
-         if (conn_->use_ssl())
-            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer(), conn_->make_dynamic_buffer(), adapter, std::move(self));
-         else
-            BOOST_ASIO_CORO_YIELD redis::detail::async_read(conn_->next_layer().next_layer(), conn_->make_dynamic_buffer(), adapter, std::move(self));
+         if (conn_->use_ssl()) {
+            BOOST_ASIO_CORO_YIELD
+            redis::detail::async_read(conn_->next_layer(), conn_->dbuf_, adapter, std::move(self));
+         } else {
+            BOOST_ASIO_CORO_YIELD
+            redis::detail::async_read(conn_->next_layer().next_layer(), conn_->dbuf_, adapter, std::move(self));
+         }
 
          if (ec || is_cancelled(self)) {
             conn_->cancel(operation::run);
@@ -194,13 +204,13 @@ struct receive_op {
             return;
          }
 
-         read_size = n;
+         conn_->dbuf_.consume(n);
 
          if (!conn_->is_next_push()) {
             conn_->read_op_timer_.cancel();
          }
 
-         self.complete({}, read_size);
+         self.complete({}, n);
          return;
       }
    }
@@ -214,7 +224,6 @@ struct exec_op {
    request const* req = nullptr;
    Adapter adapter{};
    std::shared_ptr<req_info_type> info = nullptr;
-   std::size_t read_size = 0;
    asio::coroutine coro{};
 
    template <class Self>
@@ -283,8 +292,6 @@ EXEC_OP_WAIT:
          conn->async_read_next(adapter, std::move(self));
          BOOST_REDIS_CHECK_OP1(;);
 
-         read_size = n;
-
          if (info->stop_requested()) {
             // Don't have to call remove_request as it has already
             // been by cancel(exec).
@@ -301,7 +308,7 @@ EXEC_OP_WAIT:
             conn->read_timer_.cancel_one();
          }
 
-         self.complete({}, read_size);
+         self.complete({}, n);
       }
    }
 };
@@ -417,9 +424,9 @@ struct reader_op {
       BOOST_ASIO_CORO_REENTER (coro) for (;;)
       {
          if (conn->use_ssl())
-            BOOST_ASIO_CORO_YIELD asio::async_read_until(conn->next_layer(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
+            BOOST_ASIO_CORO_YIELD asio::async_read_until(conn->next_layer(), conn->dbuf_, "\r\n", std::move(self));
          else
-            BOOST_ASIO_CORO_YIELD asio::async_read_until(conn->next_layer().next_layer(), conn->make_dynamic_buffer(), "\r\n", std::move(self));
+            BOOST_ASIO_CORO_YIELD asio::async_read_until(conn->next_layer().next_layer(), conn->dbuf_, "\r\n", std::move(self));
 
          if (ec == asio::error::eof) {
             conn->cancel(operation::run);
@@ -491,24 +498,22 @@ public:
    using this_type = connection_base<Executor>;
 
    /// Constructs from an executor.
-   connection_base(executor_type ex, asio::ssl::context::method method = asio::ssl::context::tls_client)
+   connection_base(
+      executor_type ex,
+      asio::ssl::context::method method,
+      std::size_t max_read_size)
    : ctx_{method}
    , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
    , writer_timer_{ex}
    , read_timer_{ex}
    , read_op_timer_{ex}
    , runner_{ex, {}}
+   , dbuf_{read_buffer_, max_read_size}
    {
       writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_timer_.expires_at(std::chrono::steady_clock::time_point::max());
       read_op_timer_.expires_at(std::chrono::steady_clock::time_point::max());
    }
-
-   /// Contructs from an execution context.
-   explicit
-   connection_base(asio::io_context& ioc, asio::ssl::context::method method = asio::ssl::context::tls_client)
-   : connection_base(ioc.get_executor(), method)
-   { }
 
    /// Returns the ssl context.
    auto const& get_ssl_context() const noexcept
@@ -547,15 +552,8 @@ public:
       cancel_impl(op);
    }
 
-   template <
-      class Response = ignore_t,
-      class CompletionToken = asio::default_completion_token_t<executor_type>
-   >
-   auto
-   async_exec(
-      request const& req,
-      Response& resp = ignore,
-      CompletionToken token = CompletionToken{})
+   template <class Response, class CompletionToken>
+   auto async_exec(request const& req, Response& resp, CompletionToken token)
    {
       using namespace boost::redis::adapter;
       auto f = boost_redis_adapt(resp);
@@ -567,14 +565,8 @@ public:
          >(redis::detail::exec_op<this_type, decltype(f)>{this, &req, f}, token, writer_timer_);
    }
 
-   template <
-      class Response = ignore_t,
-      class CompletionToken = asio::default_completion_token_t<executor_type>
-   >
-   auto
-   async_receive(
-      Response& response,
-      CompletionToken token = CompletionToken{})
+   template <class Response, class CompletionToken>
+   auto async_receive(Response& response, CompletionToken token)
    {
       using namespace boost::redis::adapter;
       auto g = boost_redis_adapt(response);
@@ -592,15 +584,6 @@ public:
       runner_.set_config(cfg);
       l.set_prefix(runner_.get_config().log_prefix);
       return runner_.async_run(*this, l, std::move(token));
-   }
-
-   void set_max_buffer_read_size(std::size_t max_read_size) noexcept
-      {max_read_size_ = max_read_size;}
-
-   void reserve(std::size_t read, std::size_t write)
-   {
-      read_buffer_.reserve(read);
-      write_buffer_.reserve(write);
    }
 
 private:
@@ -839,9 +822,6 @@ private:
          writer_timer_.cancel();
    }
 
-   auto make_dynamic_buffer()
-      { return asio::dynamic_buffer(read_buffer_, max_read_size_); }
-
    template <class CompletionToken>
    auto reader(CompletionToken&& token)
    {
@@ -927,10 +907,12 @@ private:
    timer_type read_op_timer_;
    runner_type runner_;
 
+   using dyn_buffer_type = asio::dynamic_string_buffer<char, std::char_traits<char>, std::allocator<char>>;
+
    std::string read_buffer_;
+   dyn_buffer_type dbuf_;
    std::string write_buffer_;
    reqs_type reqs_;
-   std::size_t max_read_size_ = (std::numeric_limits<std::size_t>::max)();
 };
 
 } // boost::redis::detail

@@ -18,6 +18,7 @@
 
 #include <chrono>
 #include <memory>
+#include <limits>
 
 namespace boost::redis {
 namespace detail
@@ -87,15 +88,21 @@ public:
 
    /// Contructs from an executor.
    explicit
-   basic_connection(executor_type ex, asio::ssl::context::method method = asio::ssl::context::tls_client)
-   : impl_{ex, method}
+   basic_connection(
+      executor_type ex,
+      asio::ssl::context::method method = asio::ssl::context::tls_client,
+      std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)())
+   : impl_{ex, method, max_read_size}
    , timer_{ex}
    { }
 
    /// Contructs from a context.
    explicit
-   basic_connection(asio::io_context& ioc, asio::ssl::context::method method = asio::ssl::context::tls_client)
-   : basic_connection(ioc.get_executor(), method)
+   basic_connection(
+      asio::io_context& ioc,
+      asio::ssl::context::method method = asio::ssl::context::tls_client,
+      std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)())
+   : basic_connection(ioc.get_executor(), method, max_read_size)
    { }
 
    /** @brief Starts underlying connection operations.
@@ -255,23 +262,6 @@ public:
    bool will_reconnect() const noexcept
       { return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();}
 
-   /** @brief Reserve memory on the read and write internal buffers.
-    *
-    *  This function will call `std::string::reserve` on the
-    *  underlying buffers.
-    *  
-    *  @param read The new capacity of the read buffer.
-    *  @param write The new capacity of the write buffer.
-    */
-   void reserve(std::size_t read, std::size_t write)
-   {
-      impl_.reserve(read, write);
-   }
-
-   /// Sets the maximum size of the read buffer.
-   void set_max_buffer_read_size(std::size_t max_read_size) noexcept
-      { impl_.set_max_buffer_read_size(max_read_size); }
-
    /// Returns the ssl context.
    auto const& get_ssl_context() const noexcept
       { return impl_.get_ssl_context();}
@@ -321,10 +311,18 @@ public:
    using executor_type = asio::any_io_executor;
 
    /// Contructs from an executor.
-   explicit connection(executor_type ex, asio::ssl::context::method method = asio::ssl::context::tls_client);
+   explicit
+   connection(
+      executor_type ex,
+      asio::ssl::context::method method = asio::ssl::context::tls_client,
+      std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)());
 
    /// Contructs from a context.
-   explicit connection(asio::io_context& ioc, asio::ssl::context::method method = asio::ssl::context::tls_client);
+   explicit
+   connection(
+      asio::io_context& ioc,
+      asio::ssl::context::method method = asio::ssl::context::tls_client,
+      std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)());
 
    /// Returns the underlying executor.
    executor_type get_executor() noexcept
