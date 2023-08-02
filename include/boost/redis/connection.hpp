@@ -227,9 +227,9 @@ public:
    async_exec(
       request const& req,
       Response& resp = ignore,
-      CompletionToken token = CompletionToken{})
+      CompletionToken&& token = CompletionToken{})
    {
-      return impl_.async_exec(req, resp, token);
+      return impl_.async_exec(req, resp, std::forward<CompletionToken>(token));
    }
 
    /** @brief Cancel operations.
