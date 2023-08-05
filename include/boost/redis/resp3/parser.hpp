@@ -73,6 +73,30 @@ public:
    auto consume(std::string_view view, system::error_code& ec) noexcept -> result;
 };
 
+template <class Adapter>
+bool
+parse(
+   resp3::parser& p,
+   std::string_view const& msg,
+   Adapter& adapter,
+   system::error_code& ec)
+{
+   while (!p.done()) {
+      auto const res = p.consume(msg, ec);
+      if (ec)
+         return true;
+
+      if (!res)
+         return false;
+
+      adapter(res.value(), ec);
+      if (ec)
+         return true;
+   }
+
+   return true;
+}
+
 } // boost::redis::resp3
 
 #endif // BOOST_REDIS_RESP3_PARSER_HPP

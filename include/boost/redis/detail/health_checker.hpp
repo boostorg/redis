@@ -167,6 +167,7 @@ public:
    >
    auto async_check_health(Connection& conn, CompletionToken token = CompletionToken{})
    {
+      checker_has_exited_ = false;
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)

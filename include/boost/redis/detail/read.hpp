@@ -10,10 +10,11 @@
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/adapter/ignore.hpp>
+#include <boost/redis/detail/helper.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/coroutine.hpp>
-#include <boost/redis/detail/helper.hpp>
+#include <boost/asio/post.hpp>
 
 #include <string_view>
 #include <limits>
@@ -27,6 +28,59 @@ std::string_view buffer_view(DynamicBuffer buf) noexcept
    return std::string_view{start, std::size(buf)};
 }
 
+template <class AsyncReadStream, class DynamicBuffer>
+class append_some_op {
+private:
+   AsyncReadStream& stream_;
+   DynamicBuffer buf_;
+   std::size_t size_ = 0;
+   std::size_t tmp_ = 0;
+   asio::coroutine coro_{};
+
+public:
+   append_some_op(AsyncReadStream& stream, DynamicBuffer buf, std::size_t size)
+   : stream_ {stream}
+   , buf_ {std::move(buf)}
+   , size_{size}
+   { }
+
+   template <class Self>
+   void operator()( Self& self
+                  , system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      BOOST_ASIO_CORO_REENTER (coro_)
+      {
+         tmp_ = buf_.size();
+         buf_.grow(size_);
+
+         BOOST_ASIO_CORO_YIELD
+         stream_.async_read_some(buf_.data(tmp_, size_), std::move(self));
+         if (ec) {
+            self.complete(ec, 0);
+            return;
+         }
+
+         buf_.shrink(buf_.size() - tmp_ - n);
+         self.complete({}, n);
+      }
+   }
+};
+
+template <class AsyncReadStream, class DynamicBuffer, class CompletionToken>
+auto
+async_append_some(
+   AsyncReadStream& stream,
+   DynamicBuffer buffer,
+   std::size_t size,
+   CompletionToken&& token)
+{
+   return asio::async_compose
+      < CompletionToken
+      , void(system::error_code, std::size_t)
+      >(append_some_op<AsyncReadStream, DynamicBuffer> {stream, buffer, size}, token, stream);
+}
+
 template <
    class AsyncReadStream,
    class DynamicBuffer,
@@ -37,8 +91,8 @@ private:
    DynamicBuffer buf_;
    resp3::parser parser_;
    ResponseAdapter adapter_;
-   std::size_t tmp_ = 0;
-   resp3::parser::result res_;
+   bool needs_rescheduling_ = true;
+   system::error_code ec_;
    asio::coroutine coro_{};
 
    static std::size_t const growth = 1024;
@@ -53,36 +107,29 @@ public:
    template <class Self>
    void operator()( Self& self
                   , system::error_code ec = {}
-                  , std::size_t n = 0)
+                  , std::size_t = 0)
    {
-      BOOST_ASIO_CORO_REENTER (coro_) for (;;) {
-
-         res_ = parser_.consume(buffer_view(buf_), ec);
-         if (ec)
-            return self.complete(ec, 0);
-
-         if (!res_.has_value()) {
-            tmp_ = buf_.size();
-            buf_.grow(parser_.get_suggested_buffer_growth(growth));
-
+      BOOST_ASIO_CORO_REENTER (coro_)
+      {
+         while (!resp3::parse(parser_, buffer_view(buf_), adapter_, ec)) {
+            needs_rescheduling_ = false;
             BOOST_ASIO_CORO_YIELD
-            stream_.async_read_some(
-               buf_.data(tmp_, parser_.get_suggested_buffer_growth(growth)),
+            async_append_some(
+               stream_, buf_, parser_.get_suggested_buffer_growth(growth),
                std::move(self));
-            BOOST_REDIS_CHECK_OP1(;);
-
-            buf_.shrink(buf_.size() - tmp_ - n);
-            continue;
+            if (ec) {
+               self.complete(ec, 0);
+               return;
+            }
          }
 
-         adapter_(res_.value(), ec);
-         if (ec)
-            return self.complete(ec, 0);
-
-         if (parser_.done()) {
-            self.complete({}, parser_.get_consumed());
-            return;
+         ec_ = ec;
+         if (needs_rescheduling_) {
+            BOOST_ASIO_CORO_YIELD
+            asio::post(std::move(self));
          }
+
+         self.complete(ec_, parser_.get_consumed());
       }
    }
 };
