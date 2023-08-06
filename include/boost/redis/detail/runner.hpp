@@ -231,6 +231,9 @@ private:
          hello_req_.push("HELLO", "3", "AUTH", cfg_.username, cfg_.password);
       else
          hello_req_.push("HELLO", "3", "SETNAME", cfg_.clientname);
+
+      if (cfg_.database_index)
+         hello_req_.push("SELECT", cfg_.database_index.value());
    }
 
    resolver_type resv_;

@@ -676,6 +676,15 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 
 ### develop (incorporates changes to conform the boost review and more)
 
+* Adds `boost::redis::config::database_index` to make it possible to
+  choose a database before starting running commands e.g. after an
+  automatic reconnection.
+
+* Massive performance improvement. One of my tests went from
+  140k req/s to 390k/s. This was possible after a parser
+  simplification that reduced the number of reschedules and buffer
+  rotations.
+
 * Adds Redis stream example.
 
 * Renames the project to Boost.Redis and moves the code into namespace

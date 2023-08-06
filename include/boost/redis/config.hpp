@@ -9,6 +9,7 @@
 
 #include <string>
 #include <chrono>
+#include <optional>
 
 namespace boost::redis
 {
@@ -47,6 +48,9 @@ struct config {
 
    /// Client name parameter of the [HELLO](https://redis.io/commands/hello/) command.
    std::string clientname = "Boost.Redis";
+
+   /// Database that will be passed to the [SELECT](https://redis.io/commands/hello/) command.
+   std::optional<int> database_index = 0;
 
    /// Message used by the health-checker in `boost::redis::connection::async_run`.
    std::string health_check_id = "Boost.Redis";
