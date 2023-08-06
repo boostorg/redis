@@ -20,8 +20,10 @@ namespace net = boost::asio;
 using boost::redis::connection;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::operation;
+using boost::redis::config;
 
 // Sends three requests where one of them has a hello with a priority
 // set, which means it should be executed first.
@@ -117,3 +119,38 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 
    ioc.run();
 }
+
+BOOST_AUTO_TEST_CASE(correct_database)
+{
+   config cfg;
+   cfg.database_index = 2;
+
+   net::io_context ioc;
+
+   auto conn = std::make_shared<connection>(ioc);
+
+   request req;
+   req.push("CLIENT", "LIST");
+
+   generic_response resp;
+
+   conn->async_exec(req, resp, [&](auto ec, auto n){
+         BOOST_TEST(!ec);
+         std::clog << "async_exec has completed: " << n << std::endl;
+         conn->cancel();
+   });
+
+   conn->async_run(cfg, {}, [](auto){
+         std::clog << "async_run has exited." << std::endl;
+   });
+
+   ioc.run();
+
+   assert(!resp.value().empty());
+   auto const& value = resp.value().front().value;
+   auto const pos = value.find("db=");
+   auto const index_str = value.substr(pos + 3, 1);
+   auto const index = std::stoi(index_str);
+   BOOST_CHECK_EQUAL(cfg.database_index.value(), index);
+}
+
