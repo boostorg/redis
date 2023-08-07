@@ -89,7 +89,7 @@ auto async_echo_stress() -> net::awaitable<void>
    int const sessions = 500;
 
    // The number of pings that will be sent by each session.
-   int const msgs = 1000;
+   int const msgs = 1'000;
 
    // The number of publishes that will be sent by each session with
    // each message.
