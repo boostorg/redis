@@ -184,10 +184,15 @@ public:
     *  Where the second parameter is the size of the push received in
     *  bytes.
     */
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto async_receive(CompletionToken token = CompletionToken{})
+      { return impl_.async_receive(std::move(token)); }
+
    template <
       class Response = ignore_t,
       class CompletionToken = asio::default_completion_token_t<executor_type>
    >
+   [[deprecated("Set the response with set_receive_response and use the other overload.")]]
    auto
    async_receive(
       Response& response,
@@ -282,6 +287,11 @@ public:
    auto const& next_layer() const noexcept
       { return impl_.next_layer(); }
 
+   /// Sets the response object of `async_receive` operations.
+   template <class Response>
+   void set_receive_response(Response& response)
+      { impl_.set_receive_response(response); }
+
 private:
    using timer_type =
       asio::basic_waitable_timer<
@@ -342,10 +352,16 @@ public:
 
    /// Calls `boost::redis::basic_connection::async_receive`.
    template <class Response, class CompletionToken>
+   [[deprecated("Set the response with set_receive_response and use the other overload.")]]
    auto async_receive(Response& response, CompletionToken token)
    {
       return impl_.async_receive(response, std::move(token));
    }
+
+   /// Calls `boost::redis::basic_connection::async_receive`.
+   template <class CompletionToken>
+   auto async_receive(CompletionToken token)
+      { return impl_.async_receive(std::move(token)); }
 
    /// Calls `boost::redis::basic_connection::async_exec`.
    template <class Response, class CompletionToken>
@@ -372,6 +388,11 @@ public:
    /// Calls `boost::redis::basic_connection::reset_stream`.
    void reset_stream()
       { impl_.reset_stream();}
+
+   /// Sets the response object of `async_receive` operations.
+   template <class Response>
+   void set_receive_response(Response& response)
+      { impl_.set_receive_response(response); }
 
 private:
    void

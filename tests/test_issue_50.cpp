@@ -47,11 +47,15 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
       for (;;) {
          std::cout << "aaaa" << std::endl;
          error_code ec;
-         co_await conn->async_receive(ignore, redirect_error(use_awaitable, ec));
-         if (ec)
+         co_await conn->async_receive(redirect_error(use_awaitable, ec));
+         if (ec) {
+            std::cout << "Error in async_receive" << std::endl;
             break;
+         }
       }
    }
+
+   std::cout << "Exiting the receiver." << std::endl;
 }
 
 auto

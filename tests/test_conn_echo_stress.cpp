@@ -30,8 +30,12 @@ using boost::redis::connection;
 auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
    int c = 0;
-   for (;;) {
-      co_await conn->async_receive(ignore, net::use_awaitable);
+   for (error_code ec;;) {
+      co_await conn->async_receive(redirect_error(net::use_awaitable, ec));
+      if (ec) {
+         std::cout << "push_consumer error: " << ec.message() << std::endl;
+         co_return;
+      }
       if (++c == expected)
          break;
    }
@@ -60,7 +64,7 @@ echo_session(
       boost::system::error_code ec;
       co_await conn->async_exec(req, resp, redir(ec));
 
-      BOOST_REQUIRE_EQUAL(ec, boost::system::error_code{});
+      BOOST_TEST(!ec);
       BOOST_REQUIRE_EQUAL(msg, std::get<1>(resp).value());
       req.clear();
       std::get<1>(resp).value().clear();

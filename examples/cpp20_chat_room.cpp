@@ -39,15 +39,17 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
+   generic_response resp;
+   conn->set_receive_response(resp);
+
    while (conn->will_reconnect()) {
 
       // Subscribe to channels.
       co_await conn->async_exec(req, ignore, net::deferred);
 
       // Loop reading Redis push messages.
-      for (generic_response resp;;) {
-         error_code ec;
-         co_await conn->async_receive(resp, redirect_error(use_awaitable, ec));
+      for (error_code ec;;) {
+         co_await conn->async_receive(redirect_error(use_awaitable, ec));
          if (ec)
             break; // Connection lost, break so we can reconnect to channels.
          std::cout
