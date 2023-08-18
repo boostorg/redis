@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['aedis_0',['Aedis',['../index.html',1,'']]]
+  ['boost_5fredis_0',['boost_redis',['../index.html',1,'']]]
 ];

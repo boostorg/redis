@@ -1,7 +1,8 @@
 var searchData=
 [
-  ['cancel_5fif_5fnot_5fconnected_0',['cancel_if_not_connected',['../classaedis_1_1resp3_1_1request.html#a4054811af1ac8f14a04a501907bc05be',1,'aedis::resp3::request::config']]],
-  ['cancel_5fif_5funresponded_1',['cancel_if_unresponded',['../classaedis_1_1resp3_1_1request.html#aaf54ba8aed68d70e972611d26c291f5a',1,'aedis::resp3::request::config']]],
-  ['cancel_5fon_5fconnection_5flost_2',['cancel_on_connection_lost',['../classaedis_1_1resp3_1_1request.html#aab978e56c202631d2fea293b73725e69',1,'aedis::resp3::request::config']]],
-  ['coalesce_3',['coalesce',['../classaedis_1_1resp3_1_1request.html#a253cef2ca5d60b1b319019fafb3d27b3',1,'aedis::resp3::request::config']]]
+  ['cancel_5fif_5fnot_5fconnected_0',['cancel_if_not_connected',['../classboost_1_1redis_1_1request.html#a3225a8a42083e807cd7b699bbd33707a',1,'boost::redis::request::config']]],
+  ['cancel_5fif_5funresponded_1',['cancel_if_unresponded',['../classboost_1_1redis_1_1request.html#abbc65c9264a6732bdd157078507479ab',1,'boost::redis::request::config']]],
+  ['cancel_5fon_5fconnection_5flost_2',['cancel_on_connection_lost',['../classboost_1_1redis_1_1request.html#ad871157d771d49b6ea3cd0707280256f',1,'boost::redis::request::config']]],
+  ['clientname_3',['clientname',['../group__high-level-api.html#a3388584bc6c20946f824e35602b51c4e',1,'boost::redis::config']]],
+  ['connect_5ftimeout_4',['connect_timeout',['../group__high-level-api.html#ac01a8bcfc1acd353acc62b69f0648442',1,'boost::redis::config']]]
 ];

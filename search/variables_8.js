@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['username_127',['username',['../classaedis_1_1connection.html#a4c2c5e3c10176852a484b267dd54b8b2',1,'aedis::connection::config']]]
+  ['ssl_5fhandshake_5ftimeout_0',['ssl_handshake_timeout',['../group__high-level-api.html#a7ece06408c132bead5d515b4ab05adf6',1,'boost::redis::config']]]
 ];

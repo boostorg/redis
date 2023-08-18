@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['next_5flayer_0',['next_layer',['../classaedis_1_1basic__connection.html#a98a6bf065f054d7f35f8084675cc8e85',1,'aedis::basic_connection::next_layer() noexcept -&gt; auto &amp;'],['../classaedis_1_1basic__connection.html#a9b3246fee4afd0d8d60cc2e0ea6f24cc',1,'aedis::basic_connection::next_layer() const noexcept -&gt; auto const &amp;'],['../classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a2edf602750c582aa51b4f5db13f5d278',1,'aedis::ssl::basic_connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::next_layer() noexcept'],['../classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a85624d24ce2847755d3afdb7d579ce5c',1,'aedis::ssl::basic_connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::next_layer() const noexcept']]]
+  ['logger_0',['logger',['../group__high-level-api.html#ga186542ac949acb7559e25d5ed4f09856',1,'boost::redis::logger']]]
 ];

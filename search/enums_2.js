@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['type_0',['type',['../group__high-level-api.html#gabdb6bdf6f96b4a7a91ed63d2324cef57',1,'aedis::resp3']]]
+  ['operation_0',['operation',['../group__high-level-api.html#gaaf95d0d45b3829342e8adff2d6c3fcbe',1,'boost::redis']]]
 ];

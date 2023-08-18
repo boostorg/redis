@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['operator_3c_3c_0',['operator&lt;&lt;',['../group__high-level-api.html#ga59a01d6e56b2afb270a045e2b79cb64b',1,'aedis::resp3']]],
-  ['operator_3d_3d_1',['operator==',['../structaedis_1_1resp3_1_1node.html#a2ffd7c2ffcf18e82ac771609e6899541',1,'aedis::resp3::node']]]
+  ['next_5flayer_0',['next_layer',['../classboost_1_1redis_1_1basic__connection.html#ac3322c9e78d08a3324e28065661a4ab7',1,'boost::redis::basic_connection::next_layer() noexcept'],['../classboost_1_1redis_1_1basic__connection.html#a5793ba93372aa9408a1542b2e43d3c1b',1,'boost::redis::basic_connection::next_layer() const noexcept'],['../classboost_1_1redis_1_1connection.html#a80fe4b5f2b636500fc3bed31a62a8df4',1,'boost::redis::connection::next_layer() noexcept'],['../classboost_1_1redis_1_1connection.html#a944d7e9129ad59f0d0f7751224ed13e7',1,'boost::redis::connection::next_layer() const noexcept'],['../classboost_1_1redis_1_1detail_1_1connection__base.html#a8fe2cddc312ea9ff7240e197d8840501',1,'boost::redis::detail::connection_base::next_layer() noexcept'],['../classboost_1_1redis_1_1detail_1_1connection__base.html#aeda5977289b1f187137211a52e21320b',1,'boost::redis::detail::connection_base::next_layer() const noexcept']]]
 ];

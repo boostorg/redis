@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['value_0',['value',['../structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3',1,'aedis::resp3::node']]]
+  ['log_5fprefix_0',['log_prefix',['../group__high-level-api.html#aedb28694c3cfe1818d2c52c773a9fc18',1,'boost::redis::config']]]
 ];

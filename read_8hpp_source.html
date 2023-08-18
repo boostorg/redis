@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: aedis/resp3/read.hpp Source File</title>
+<title>boost_redis: boost/redis/detail/read.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -34,7 +34,7 @@ MathJax.Hub.Config({
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.1</span>
+   <div id="projectname">boost_redis<span id="projectnumber">&#160;1.4.2</span>
    </div>
    <div id="projectbrief">A redis client library</div>
   </td>
@@ -101,122 +101,229 @@ $(document).ready(function(){initNavTree('read_8hpp_source.html',''); initResiza
 <div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="comment"> * accompanying file LICENSE.txt)</span></div>
 <div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="comment"> */</span></div>
 <div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span> </div>
-<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#ifndef AEDIS_RESP3_READ_HPP</span></div>
-<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#define AEDIS_RESP3_READ_HPP</span></div>
+<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#ifndef BOOST_REDIS_READ_HPP</span></div>
+<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#define BOOST_REDIS_READ_HPP</span></div>
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span> </div>
-<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &lt;aedis/resp3/type.hpp&gt;</span></div>
-<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &lt;aedis/resp3/detail/parser.hpp&gt;</span></div>
-<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#include &lt;aedis/resp3/detail/read_ops.hpp&gt;</span></div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
+<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &lt;boost/redis/resp3/type.hpp&gt;</span></div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &lt;boost/redis/resp3/parser.hpp&gt;</span></div>
+<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#include &lt;boost/redis/adapter/ignore.hpp&gt;</span></div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#include &lt;boost/redis/detail/helper.hpp&gt;</span></div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &lt;boost/asio/read.hpp&gt;</span></div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="preprocessor">#include &lt;boost/asio/compose.hpp&gt;</span></div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="preprocessor">#include &lt;boost/asio/async_result.hpp&gt;</span></div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span> </div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="keyword">namespace </span>aedis::resp3 {</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span> </div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="keyword">template</span> &lt;</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>  <span class="keyword">class </span>SyncReadStream,</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>  <span class="keyword">class </span>DynamicBuffer,</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  <span class="keyword">class </span>ResponseAdapter</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>  &gt;</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="keyword">auto</span></div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno"><a class="line" href="group__low-level-api.html#gad7df3a165405aef64f72618d45d100cb">   56</a></span><a class="code hl_function" href="group__low-level-api.html#gab94ca8205fe516f47e48e148a6216026">read</a>(</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>   SyncReadStream&amp; stream,</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>   DynamicBuffer buf,</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>   ResponseAdapter adapter,</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>   boost::system::error_code&amp; ec) -&gt; std::size_t</div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>{</div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>   detail::parser p;</div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>   std::size_t n = 0;</div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>   std::size_t consumed = 0;</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>   <span class="keywordflow">do</span> {</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>      <span class="keywordflow">if</span> (!p.bulk_expected()) {</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>     n = boost::asio::read_until(stream, buf, <span class="stringliteral">&quot;\r\n&quot;</span>, ec);</div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>     <span class="keywordflow">if</span> (ec)</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>        <span class="keywordflow">return</span> 0;</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span> </div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>      } <span class="keywordflow">else</span> {</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>     <span class="keyword">auto</span> <span class="keyword">const</span> s = buf.size();</div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>     <span class="keyword">auto</span> <span class="keyword">const</span> l = p.bulk_length();</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>     <span class="keywordflow">if</span> (s &lt; (l + 2)) {</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>        <span class="keyword">auto</span> <span class="keyword">const</span> to_read = l + 2 - s;</div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>        buf.grow(to_read);</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>        n = <a class="code hl_function" href="group__low-level-api.html#gab94ca8205fe516f47e48e148a6216026">boost::asio::read</a>(stream, buf.data(s, to_read), ec);</div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>        <span class="keywordflow">if</span> (ec)</div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>           <span class="keywordflow">return</span> 0;</div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>     }</div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>      }</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span> </div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>      <span class="keyword">auto</span> <span class="keyword">const</span>* data = <span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span> const*<span class="keyword">&gt;</span>(buf.data(0, n).data());</div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>      <span class="keyword">auto</span> <span class="keyword">const</span> res = p.consume(data, n, ec);</div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>      <span class="keywordflow">if</span> (ec)</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>         <span class="keywordflow">return</span> 0;</div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span> </div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>      <span class="keywordflow">if</span> (!p.bulk_expected()) {</div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>         adapter(res.first, ec);</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>         <span class="keywordflow">if</span> (ec)</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>            <span class="keywordflow">return</span> 0;</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>      }</div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span> </div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>      buf.consume(res.second);</div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>      consumed += res.second;</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>   } <span class="keywordflow">while</span> (!p.done());</div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="preprocessor">#include &lt;boost/asio/coroutine.hpp&gt;</span></div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="preprocessor">#include &lt;boost/asio/post.hpp&gt;</span></div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span> </div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="preprocessor">#include &lt;string_view&gt;</span></div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="preprocessor">#include &lt;limits&gt;</span></div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="keyword">namespace </span>boost::redis::detail {</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span> </div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> DynamicBuffer&gt;</div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>std::string_view buffer_view(DynamicBuffer buf) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>{</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>   <span class="keywordtype">char</span> <span class="keyword">const</span>* start = <span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span> const*<span class="keyword">&gt;</span>(buf.data(0, buf.size()).data());</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>   <span class="keywordflow">return</span> std::string_view{start, std::size(buf)};</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>}</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> AsyncReadStream, <span class="keyword">class</span> DynamicBuffer&gt;</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="keyword">class </span>append_some_op {</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="keyword">private</span>:</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>   AsyncReadStream&amp; stream_;</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>   DynamicBuffer buf_;</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>   std::size_t size_ = 0;</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>   std::size_t tmp_ = 0;</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>   asio::coroutine coro_{};</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span> </div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>   append_some_op(AsyncReadStream&amp; stream, DynamicBuffer buf, std::size_t size)</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>   : stream_ {stream}</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>   , buf_ {std::move(buf)}</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>   , size_{size}</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>   { }</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Self&gt;</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>   <span class="keywordtype">void</span> operator()( Self&amp; self</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>                  , system::error_code ec = {}</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>                  , std::size_t n = 0)</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>   {</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>      BOOST_ASIO_CORO_REENTER (coro_)</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>      {</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>         tmp_ = buf_.size();</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>         buf_.grow(size_);</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>         BOOST_ASIO_CORO_YIELD</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>         stream_.async_read_some(buf_.data(tmp_, size_), std::move(self));</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>         <span class="keywordflow">if</span> (ec) {</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>            self.complete(ec, 0);</div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>            <span class="keywordflow">return</span>;</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>         }</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>         buf_.shrink(buf_.size() - tmp_ - n);</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>         self.complete({}, n);</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>      }</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>   }</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>};</div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span> </div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> AsyncReadStream, <span class="keyword">class</span> DynamicBuffer, <span class="keyword">class</span> CompletionToken&gt;</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="keyword">auto</span></div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>async_append_some(</div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>   AsyncReadStream&amp; stream,</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>   DynamicBuffer buffer,</div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>   std::size_t size,</div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>   CompletionToken&amp;&amp; token)</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>{</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>   <span class="keywordflow">return</span> asio::async_compose</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>      &lt; CompletionToken</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>      , void(system::error_code, std::size_t)</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>      &gt;(append_some_op&lt;AsyncReadStream, DynamicBuffer&gt; {stream, buffer, size}, token, stream);</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>}</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span> </div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span><span class="keyword">template</span> &lt;</div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>   <span class="keyword">class </span>AsyncReadStream,</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>   <span class="keyword">class </span>DynamicBuffer,</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>   <span class="keyword">class </span>ResponseAdapter&gt;</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span><span class="keyword">class </span>parse_op {</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="keyword">private</span>:</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>   AsyncReadStream&amp; stream_;</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>   DynamicBuffer buf_;</div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>   resp3::parser parser_;</div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>   ResponseAdapter adapter_;</div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>   <span class="keywordtype">bool</span> needs_rescheduling_ = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>   system::error_code ec_;</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>   asio::coroutine coro_{};</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span> </div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>   <span class="keywordflow">return</span> consumed;</div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>}</div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span> </div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span><span class="keyword">template</span>&lt;</div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>   <span class="keyword">class </span>SyncReadStream,</div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>   <span class="keyword">class </span>DynamicBuffer,</div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>   <span class="keyword">class </span>ResponseAdapter = detail::ignore_response&gt;</div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span><span class="keyword">auto</span></div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno"><a class="line" href="group__low-level-api.html#gab94ca8205fe516f47e48e148a6216026">  111</a></span><a class="code hl_function" href="group__low-level-api.html#gab94ca8205fe516f47e48e148a6216026">read</a>(</div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>   SyncReadStream&amp; stream,</div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>   DynamicBuffer buf,</div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>   ResponseAdapter adapter = ResponseAdapter{})</div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>{</div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>   boost::system::error_code ec;</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>   <span class="keyword">auto</span> <span class="keyword">const</span> n = <a class="code hl_function" href="group__low-level-api.html#gab94ca8205fe516f47e48e148a6216026">resp3::read</a>(stream, buf, adapter, ec);</div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span> </div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>   <span class="keywordflow">if</span> (ec)</div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>       BOOST_THROW_EXCEPTION(boost::system::system_error{ec});</div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span> </div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>   <span class="keywordflow">return</span> n;</div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>}</div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span> </div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span><span class="keyword">template</span> &lt;</div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>   <span class="keyword">class </span>AsyncReadStream,</div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>   <span class="keyword">class </span>DynamicBuffer,</div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>   <span class="keyword">class </span>ResponseAdapter = detail::ignore_response,</div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>   <span class="keyword">class </span>CompletionToken = boost::asio::default_completion_token_t&lt;typename AsyncReadStream::executor_type&gt;</div>
-<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>   &gt;</div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno"><a class="line" href="group__low-level-api.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">  169</a></span><span class="keyword">auto</span> <a class="code hl_function" href="group__low-level-api.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">async_read</a>(</div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>   AsyncReadStream&amp; stream,</div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>   DynamicBuffer buffer,</div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>   ResponseAdapter adapter = ResponseAdapter{},</div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>   CompletionToken&amp;&amp; token =</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>      boost::asio::default_completion_token_t&lt;typename AsyncReadStream::executor_type&gt;{})</div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>{</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>   <span class="keywordflow">return</span> boost::asio::async_compose</div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>      &lt; CompletionToken</div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>      , void(boost::system::error_code, std::size_t)</div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>      &gt;(detail::parse_op&lt;AsyncReadStream, DynamicBuffer, ResponseAdapter&gt; {stream, buffer, adapter},</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>        token,</div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>        stream);</div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>}</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span> </div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>} <span class="comment">// aedis::resp3</span></div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>   <span class="keyword">static</span> std::size_t <span class="keyword">const</span> growth = 1024;</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span> </div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>   parse_op(AsyncReadStream&amp; stream, DynamicBuffer buf, ResponseAdapter adapter)</div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>   : stream_ {stream}</div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>   , buf_ {std::move(buf)}</div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>   , adapter_ {std::move(adapter)}</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>   { }</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span> </div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>   <span class="keyword">template</span> &lt;<span class="keyword">class</span> Self&gt;</div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>   <span class="keywordtype">void</span> operator()( Self&amp; self</div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>                  , system::error_code ec = {}</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>                  , std::size_t = 0)</div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>   {</div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>      BOOST_ASIO_CORO_REENTER (coro_)</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>      {</div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>         <span class="keywordflow">while</span> (!resp3::parse(parser_, buffer_view(buf_), adapter_, ec)) {</div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>            needs_rescheduling_ = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>            BOOST_ASIO_CORO_YIELD</div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>            async_append_some(</div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>               stream_, buf_, parser_.get_suggested_buffer_growth(growth),</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>               std::move(self));</div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>            <span class="keywordflow">if</span> (ec) {</div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>               self.complete(ec, 0);</div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>               <span class="keywordflow">return</span>;</div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>            }</div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>         }</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span> </div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>         ec_ = ec;</div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>         <span class="keywordflow">if</span> (needs_rescheduling_) {</div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>            BOOST_ASIO_CORO_YIELD</div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>            asio::post(std::move(self));</div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>         }</div>
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span> </div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>         self.complete(ec_, parser_.get_consumed());</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>      }</div>
+<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>   }</div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>};</div>
+<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span> </div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span><span class="keyword">template</span> &lt;</div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>     <span class="keyword">class </span>SyncReadStream,</div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>     <span class="keyword">class </span>DynamicBuffer,</div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>     <span class="keyword">class </span>ResponseAdapter</div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>  &gt;</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span><span class="keyword">auto</span></div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>read(</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>   SyncReadStream&amp; stream,</div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>   DynamicBuffer buf,</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>   ResponseAdapter adapter,</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>   system::error_code&amp; ec) -&gt; std::size_t</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>{</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>   <span class="keyword">static</span> std::size_t <span class="keyword">const</span> growth = 1024;</div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span> </div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>   resp3::parser parser;</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>   <span class="keywordflow">while</span> (!parser.done()) {</div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>      <span class="keyword">auto</span> <span class="keyword">const</span> res = parser.consume(detail::buffer_view(buf), ec);</div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>      <span class="keywordflow">if</span> (ec)</div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>         <span class="keywordflow">return</span> 0UL;</div>
 <div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span> </div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span><span class="preprocessor">#endif </span><span class="comment">// AEDIS_RESP3_READ_HPP</span></div>
-<div class="ttc" id="agroup__low-level-api_html_ga8a0d6c76b5faeeaa5ee5e2e4770cd181"><div class="ttname"><a href="group__low-level-api.html#ga8a0d6c76b5faeeaa5ee5e2e4770cd181">aedis::resp3::async_read</a></div><div class="ttdeci">auto async_read(AsyncReadStream &amp;stream, DynamicBuffer buffer, ResponseAdapter adapter=ResponseAdapter{}, CompletionToken &amp;&amp;token=boost::asio::default_completion_token_t&lt; typename AsyncReadStream::executor_type &gt;{})</div><div class="ttdoc">Reads a complete response to a Redis command asynchronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00169">read.hpp:169</a></div></div>
-<div class="ttc" id="agroup__low-level-api_html_gab94ca8205fe516f47e48e148a6216026"><div class="ttname"><a href="group__low-level-api.html#gab94ca8205fe516f47e48e148a6216026">aedis::resp3::read</a></div><div class="ttdeci">auto read(SyncReadStream &amp;stream, DynamicBuffer buf, ResponseAdapter adapter=ResponseAdapter{})</div><div class="ttdoc">Reads a complete response to a command sychronously.</div><div class="ttdef"><b>Definition:</b> <a href="read_8hpp_source.html#l00111">read.hpp:111</a></div></div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>      <span class="keywordflow">if</span> (!res.has_value()) {</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>         <span class="keyword">auto</span> <span class="keyword">const</span> size_before = buf.size();</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>         buf.grow(parser.get_suggested_buffer_growth(growth));</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>         <span class="keyword">auto</span> <span class="keyword">const</span> n =</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>            stream.read_some(</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>               buf.data(size_before, parser.get_suggested_buffer_growth(growth)),</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>               ec);</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>         <span class="keywordflow">if</span> (ec)</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>            <span class="keywordflow">return</span> 0UL;</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span> </div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>         buf.shrink(buf.size() - size_before - n);</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>         <span class="keywordflow">continue</span>;</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>      }</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span> </div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>      adapter(res.value(), ec);</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>      <span class="keywordflow">if</span> (ec)</div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>         <span class="keywordflow">return</span> 0UL;</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>   }</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span> </div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>   <span class="keywordflow">return</span> parser.get_consumed();</div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>}</div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span> </div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="keyword">template</span>&lt;</div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>   <span class="keyword">class </span>SyncReadStream,</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>   <span class="keyword">class </span>DynamicBuffer,</div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>   <span class="keyword">class </span>ResponseAdapter = <a class="code hl_variable" href="group__high-level-api.html#ga67c4e424db0e0ee72bd5a62c2e649470">adapter::ignore</a>&gt;</div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span><span class="keyword">auto</span></div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>read(</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>   SyncReadStream&amp; stream,</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>   DynamicBuffer buf,</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>   ResponseAdapter adapter = ResponseAdapter{})</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>{</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>   system::error_code ec;</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>   <span class="keyword">auto</span> <span class="keyword">const</span> n = redis::detail::read(stream, buf, adapter, ec);</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span> </div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>   <span class="keywordflow">if</span> (ec)</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>       BOOST_THROW_EXCEPTION(system::system_error{ec});</div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span> </div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>   <span class="keywordflow">return</span> n;</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>}</div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span> </div>
+<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span><span class="keyword">template</span> &lt;</div>
+<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span>   <span class="keyword">class </span>AsyncReadStream,</div>
+<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>   <span class="keyword">class </span>DynamicBuffer,</div>
+<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>   <span class="keyword">class </span>ResponseAdapter = <a class="code hl_variable" href="group__high-level-api.html#ga67c4e424db0e0ee72bd5a62c2e649470">adapter::ignore</a>,</div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>   <span class="keyword">class </span>CompletionToken = asio::default_completion_token_t&lt;typename AsyncReadStream::executor_type&gt;</div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>   &gt;</div>
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span><span class="keyword">auto</span> async_read(</div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>   AsyncReadStream&amp; stream,</div>
+<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>   DynamicBuffer buffer,</div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>   ResponseAdapter adapter = ResponseAdapter{},</div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>   CompletionToken&amp;&amp; token =</div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>      asio::default_completion_token_t&lt;typename AsyncReadStream::executor_type&gt;{})</div>
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>{</div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>   <span class="keywordflow">return</span> asio::async_compose</div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>      &lt; CompletionToken</div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>      , void(system::error_code, std::size_t)</div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>      &gt;(parse_op&lt;AsyncReadStream, DynamicBuffer, ResponseAdapter&gt; {stream, buffer, adapter},</div>
+<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>        token,</div>
+<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>        stream);</div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>}</div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span> </div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>} <span class="comment">// boost::redis::detail</span></div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span> </div>
+<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span><span class="preprocessor">#endif </span><span class="comment">// BOOST_REDIS_READ_HPP</span></div>
+<div class="ttc" id="agroup__high-level-api_html_ga67c4e424db0e0ee72bd5a62c2e649470"><div class="ttname"><a href="group__high-level-api.html#ga67c4e424db0e0ee72bd5a62c2e649470">boost::redis::ignore</a></div><div class="ttdeci">ignore_t ignore</div><div class="ttdoc">Global ignore object.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><a class="el" href="dir_fc21780ef7622f597daa202227f08e20.html">aedis</a></li><li class="navelem"><a class="el" href="dir_c182dba47daf15664f6962aa16cc85fb.html">resp3</a></li><li class="navelem"><b>read.hpp</b></li>
-    <li class="footer">Generated on Sat Jan 14 2023 18:40:26 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+    <li class="navelem"><a class="el" href="dir_1878a3f4746a95c6aad317458cc7ef80.html">boost</a></li><li class="navelem"><a class="el" href="dir_2cc765c1b27cc1fc357a11cf7463bf5b.html">redis</a></li><li class="navelem"><a class="el" href="dir_f302fe01f65b2994e2f6bed4560d702c.html">detail</a></li><li class="navelem"><b>read.hpp</b></li>
+    <li class="footer">Generated on Fri Aug 18 2023 23:21:52 for boost_redis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
   </ul>
 </div>
 </body>

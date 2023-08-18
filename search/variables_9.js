@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['value_128',['value',['../structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3',1,'aedis::resp3::node']]]
+  ['use_5fssl_0',['use_ssl',['../group__high-level-api.html#abcea19f2e03ef615aa6a955749e4d7dd',1,'boost::redis::config']]],
+  ['username_1',['username',['../group__high-level-api.html#af907445bc3426511a6d6e8a1d56edac8',1,'boost::redis::config']]]
 ];

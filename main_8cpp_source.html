@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: examples/common/main.cpp Source File</title>
+<title>boost_redis: examples/main.cpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -34,7 +34,7 @@ MathJax.Hub.Config({
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.1</span>
+   <div id="projectname">boost_redis<span id="projectnumber">&#160;1.4.2</span>
    </div>
    <div id="projectbrief">A redis client library</div>
   </td>
@@ -101,46 +101,65 @@ $(document).ready(function(){initNavTree('main_8cpp_source.html',''); initResiza
 <div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="comment"> * accompanying file LICENSE.txt)</span></div>
 <div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="comment"> */</span></div>
 <div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span> </div>
-<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &lt;boost/asio.hpp&gt;</span></div>
-<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span> </div>
-<div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span><span class="preprocessor">#if defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
-<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span> </div>
-<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &quot;common.hpp&quot;</span></div>
-<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">extern</span> boost::asio::awaitable&lt;void&gt; co_main(std::string, std::string);</div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span> </div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">auto</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> * argv[]) -&gt; <span class="keywordtype">int</span></div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>{</div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>   std::string host = <span class="stringliteral">&quot;127.0.0.1&quot;</span>;</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>   std::string port = <span class="stringliteral">&quot;6379&quot;</span>;</div>
+<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &lt;boost/redis/connection.hpp&gt;</span></div>
+<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#include &lt;boost/redis/config.hpp&gt;</span></div>
+<div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span><span class="preprocessor">#include &lt;boost/asio/co_spawn.hpp&gt;</span></div>
+<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &lt;boost/asio/use_awaitable.hpp&gt;</span></div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &lt;boost/asio/io_context.hpp&gt;</span></div>
+<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="keyword">namespace </span>net = boost::asio;</div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">using </span><a class="code hl_struct" href="group__high-level-api.html#structboost_1_1redis_1_1config">boost::redis::config</a>;</div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keyword">using </span><a class="code hl_class" href="classboost_1_1redis_1_1logger.html">boost::redis::logger</a>;</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span> </div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="preprocessor">#if defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span> </div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>   <span class="keywordflow">if</span> (argc == 3) {</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>      host = argv[1];</div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>      port = argv[2];</div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>   }</div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>   <span class="keywordflow">return</span> <a class="code hl_enumvalue" href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6">run</a>(co_main(host, port));</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>}</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span> </div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="preprocessor">#else </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span> </div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="keyword">extern</span> net::awaitable&lt;void&gt; co_main(<a class="code hl_struct" href="group__high-level-api.html#structboost_1_1redis_1_1config">config</a>);</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="keyword">auto</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> * argv[]) -&gt; <span class="keywordtype">int</span></div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>{</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>   <span class="keywordflow">try</span> {</div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>      <a class="code hl_struct" href="group__high-level-api.html#structboost_1_1redis_1_1config">config</a> cfg;</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>      <span class="keywordflow">if</span> (argc == 3) {</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>         cfg.<a class="code hl_variable" href="group__high-level-api.html#a2304a0db25fae6498289c039b71e011f">addr</a>.<a class="code hl_variable" href="group__high-level-api.html#afb00b91dd1004117161e998d04d68bae">host</a> = argv[1];</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>         cfg.<a class="code hl_variable" href="group__high-level-api.html#a2304a0db25fae6498289c039b71e011f">addr</a>.<a class="code hl_variable" href="group__high-level-api.html#a629bba53218baa30ce807ce8808b9a36">port</a> = argv[2];</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>      }</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span> </div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="keyword">auto</span> main() -&gt; <span class="keywordtype">int</span></div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>{</div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>   std::cout &lt;&lt; <span class="stringliteral">&quot;Requires coroutine support.&quot;</span> &lt;&lt; std::endl;</div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>   <span class="keywordflow">return</span> 0;</div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>}</div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="preprocessor">#endif </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
-<div class="ttc" id="agroup__high-level-api_html_ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6"><div class="ttname"><a href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6">aedis::operation::run</a></div><div class="ttdeci">@ run</div><div class="ttdoc">Refers to connection::async_run operations.</div></div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>      net::io_context ioc;</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>      net::co_spawn(ioc, std::move(co_main(cfg)), [](std::exception_ptr p) {</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>         <span class="keywordflow">if</span> (p)</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>            std::rethrow_exception(p);</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>      });</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>      ioc.run();</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>   } <span class="keywordflow">catch</span> (std::exception <span class="keyword">const</span>&amp; e) {</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>      std::cerr &lt;&lt; <span class="stringliteral">&quot;(main) &quot;</span> &lt;&lt; e.what() &lt;&lt; std::endl;</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>      <span class="keywordflow">return</span> 1;</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>   }</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>}</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span> </div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="preprocessor">#else </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="keyword">auto</span> main() -&gt; <span class="keywordtype">int</span></div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>{</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>   std::cout &lt;&lt; <span class="stringliteral">&quot;Requires coroutine support.&quot;</span> &lt;&lt; std::endl;</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>   <span class="keywordflow">return</span> 0;</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>}</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="preprocessor">#endif </span><span class="comment">// defined(BOOST_ASIO_HAS_CO_AWAIT)</span></div>
+<div class="ttc" id="aclassboost_1_1redis_1_1logger_html"><div class="ttname"><a href="classboost_1_1redis_1_1logger.html">boost::redis::logger</a></div><div class="ttdoc">Logger class.</div><div class="ttdef"><b>Definition:</b> <a href="logger_8hpp_source.html#l00023">logger.hpp:23</a></div></div>
+<div class="ttc" id="agroup__high-level-api_html_a2304a0db25fae6498289c039b71e011f"><div class="ttname"><a href="group__high-level-api.html#a2304a0db25fae6498289c039b71e011f">boost::redis::config::addr</a></div><div class="ttdeci">address addr</div><div class="ttdoc">Address of the Redis server.</div><div class="ttdef"><b>Definition:</b> <a href="config_8hpp_source.html#l00035">config.hpp:35</a></div></div>
+<div class="ttc" id="agroup__high-level-api_html_a629bba53218baa30ce807ce8808b9a36"><div class="ttname"><a href="group__high-level-api.html#a629bba53218baa30ce807ce8808b9a36">boost::redis::address::port</a></div><div class="ttdeci">std::string port</div><div class="ttdoc">Redis port.</div><div class="ttdef"><b>Definition:</b> <a href="config_8hpp_source.html#l00024">config.hpp:24</a></div></div>
+<div class="ttc" id="agroup__high-level-api_html_afb00b91dd1004117161e998d04d68bae"><div class="ttname"><a href="group__high-level-api.html#afb00b91dd1004117161e998d04d68bae">boost::redis::address::host</a></div><div class="ttdeci">std::string host</div><div class="ttdoc">Redis host.</div><div class="ttdef"><b>Definition:</b> <a href="config_8hpp_source.html#l00022">config.hpp:22</a></div></div>
+<div class="ttc" id="agroup__high-level-api_html_structboost_1_1redis_1_1config"><div class="ttname"><a href="group__high-level-api.html#structboost_1_1redis_1_1config">boost::redis::config</a></div><div class="ttdoc">Configure parameters used by the connection classes.</div><div class="ttdef"><b>Definition:</b> <a href="config_8hpp_source.html#l00030">config.hpp:30</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><a class="el" href="dir_d697700341b5bc9df88e7bd81cbb1008.html">common</a></li><li class="navelem"><b>main.cpp</b></li>
-    <li class="footer">Generated on Sat Jan 14 2023 18:40:26 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+    <li class="navelem"><a class="el" href="dir_d28a4824dc47e487b107a5db32ef43c4.html">examples</a></li><li class="navelem"><b>main.cpp</b></li>
+    <li class="footer">Generated on Fri Aug 18 2023 23:21:52 for boost_redis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
   </ul>
 </div>
 </body>

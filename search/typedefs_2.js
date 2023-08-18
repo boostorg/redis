@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['ignore_0',['ignore',['../group__high-level-api.html#ga0d619e51ab37f7854e7218a061900820',1,'aedis']]]
+  ['ignore_5ft_0',['ignore_t',['../group__high-level-api.html#ga71ed828bcaf291989dcf4050a18601ba',1,'boost::redis']]]
 ];

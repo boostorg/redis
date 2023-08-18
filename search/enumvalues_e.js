@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['write_168',['write',['../classaedis_1_1connection.html#a33c7f3484cebc96ef3050407daded0c9aefb2a684e4afb7d55e6147fbe5a332ee',1,'aedis::connection']]]
+  ['warning_0',['warning',['../group__high-level-api.html#gga4f66f8e4497ccf09e57440515d806feba7b83d3f08fa392b79e3f553b585971cd',1,'boost::redis::logger']]]
 ];

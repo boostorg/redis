@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.4"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aedis: aedis/operation.hpp Source File</title>
+<title>boost_redis: boost/redis/operation.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -34,7 +34,7 @@ MathJax.Hub.Config({
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Aedis<span id="projectnumber">&#160;1.4.1</span>
+   <div id="projectname">boost_redis<span id="projectnumber">&#160;1.4.2</span>
    </div>
    <div id="projectbrief">A redis client library</div>
   </td>
@@ -101,30 +101,43 @@ $(document).ready(function(){initNavTree('operation_8hpp_source.html',''); initR
 <div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="comment"> * accompanying file LICENSE.txt)</span></div>
 <div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="comment"> */</span></div>
 <div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span> </div>
-<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#ifndef AEDIS_OPERATION_HPP</span></div>
-<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#define AEDIS_OPERATION_HPP</span></div>
+<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#ifndef BOOST_REDIS_OPERATION_HPP</span></div>
+<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#define BOOST_REDIS_OPERATION_HPP</span></div>
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span> </div>
-<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="keyword">namespace </span>aedis {</div>
+<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="keyword">namespace </span>boost::redis {</div>
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span> </div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno"><a class="line" href="group__high-level-api.html#gadcfe42e0996c05d14fe5f8bacce384bc">   18</a></span><span class="keyword">enum class</span> <a class="code hl_enumeration" href="group__high-level-api.html#gadcfe42e0996c05d14fe5f8bacce384bc">operation</a> {</div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>   exec,</div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6">run</a>,</div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd">receive</a>,</div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>};</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>} <span class="comment">// aedis</span></div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span> </div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="preprocessor">#endif </span><span class="comment">// AEDIS_OPERATION_HPP</span></div>
-<div class="ttc" id="agroup__high-level-api_html_gadcfe42e0996c05d14fe5f8bacce384bc"><div class="ttname"><a href="group__high-level-api.html#gadcfe42e0996c05d14fe5f8bacce384bc">aedis::operation</a></div><div class="ttdeci">operation</div><div class="ttdoc">Connection operations that can be cancelled.</div><div class="ttdef"><b>Definition:</b> <a href="operation_8hpp_source.html#l00018">operation.hpp:18</a></div></div>
-<div class="ttc" id="agroup__high-level-api_html_ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6"><div class="ttname"><a href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcaa53108f7543b75adbb34afc035d4cdf6">aedis::operation::run</a></div><div class="ttdeci">@ run</div><div class="ttdoc">Refers to connection::async_run operations.</div></div>
-<div class="ttc" id="agroup__high-level-api_html_ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd"><div class="ttname"><a href="group__high-level-api.html#ggadcfe42e0996c05d14fe5f8bacce384bcacbd71f0d3114139d38a8d080d610e5fd">aedis::operation::receive</a></div><div class="ttdeci">@ receive</div><div class="ttdoc">Refers to connection::async_receive operations.</div></div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno"><a class="line" href="group__high-level-api.html#gaaf95d0d45b3829342e8adff2d6c3fcbe">   18</a></span><span class="keyword">enum class</span> <a class="code hl_enumeration" href="group__high-level-api.html#gaaf95d0d45b3829342e8adff2d6c3fcbe">operation</a> {</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea785e254f4f43227df02945c04559dbaf">resolve</a>,</div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbeab640a0ce465fa2a4150c36b305c1c11b">connect</a>,</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea2bb2ad175f26a87d45e71deab2948a0b">ssl_handshake</a>,</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea52fb3679b07eb74d90784e612ca5cb30">exec</a>,</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbeaa53108f7543b75adbb34afc035d4cdf6">run</a>,</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbeacbd71f0d3114139d38a8d080d610e5fd">receive</a>,</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea98bb9485fefd5cfbd328218de5e0c8d0">reconnection</a>,</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea1962a11396d63dc19923d194f6e2793f">health_check</a>,</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>   <a class="code hl_enumvalue" href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbeaa181a603769c1f98ad927e7367c7aa51">all</a>,</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>};</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>} <span class="comment">// boost::redis</span></div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span> </div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="preprocessor">#endif </span><span class="comment">// BOOST_REDIS_OPERATION_HPP</span></div>
+<div class="ttc" id="agroup__high-level-api_html_gaaf95d0d45b3829342e8adff2d6c3fcbe"><div class="ttname"><a href="group__high-level-api.html#gaaf95d0d45b3829342e8adff2d6c3fcbe">boost::redis::operation</a></div><div class="ttdeci">operation</div><div class="ttdoc">Connection operations that can be cancelled.</div><div class="ttdef"><b>Definition:</b> <a href="operation_8hpp_source.html#l00018">operation.hpp:18</a></div></div>
+<div class="ttc" id="agroup__high-level-api_html_ggaaf95d0d45b3829342e8adff2d6c3fcbea1962a11396d63dc19923d194f6e2793f"><div class="ttname"><a href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea1962a11396d63dc19923d194f6e2793f">boost::redis::operation::health_check</a></div><div class="ttdeci">@ health_check</div><div class="ttdoc">Health check operation.</div></div>
+<div class="ttc" id="agroup__high-level-api_html_ggaaf95d0d45b3829342e8adff2d6c3fcbea2bb2ad175f26a87d45e71deab2948a0b"><div class="ttname"><a href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea2bb2ad175f26a87d45e71deab2948a0b">boost::redis::operation::ssl_handshake</a></div><div class="ttdeci">@ ssl_handshake</div><div class="ttdoc">SSL handshake operation.</div></div>
+<div class="ttc" id="agroup__high-level-api_html_ggaaf95d0d45b3829342e8adff2d6c3fcbea52fb3679b07eb74d90784e612ca5cb30"><div class="ttname"><a href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea52fb3679b07eb74d90784e612ca5cb30">boost::redis::operation::exec</a></div><div class="ttdeci">@ exec</div><div class="ttdoc">Refers to connection::async_exec operations.</div></div>
+<div class="ttc" id="agroup__high-level-api_html_ggaaf95d0d45b3829342e8adff2d6c3fcbea785e254f4f43227df02945c04559dbaf"><div class="ttname"><a href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea785e254f4f43227df02945c04559dbaf">boost::redis::operation::resolve</a></div><div class="ttdeci">@ resolve</div><div class="ttdoc">Resolve operation.</div></div>
+<div class="ttc" id="agroup__high-level-api_html_ggaaf95d0d45b3829342e8adff2d6c3fcbea98bb9485fefd5cfbd328218de5e0c8d0"><div class="ttname"><a href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbea98bb9485fefd5cfbd328218de5e0c8d0">boost::redis::operation::reconnection</a></div><div class="ttdeci">@ reconnection</div><div class="ttdoc">Cancels reconnection.</div></div>
+<div class="ttc" id="agroup__high-level-api_html_ggaaf95d0d45b3829342e8adff2d6c3fcbeaa181a603769c1f98ad927e7367c7aa51"><div class="ttname"><a href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbeaa181a603769c1f98ad927e7367c7aa51">boost::redis::operation::all</a></div><div class="ttdeci">@ all</div><div class="ttdoc">Refers to all operations.</div></div>
+<div class="ttc" id="agroup__high-level-api_html_ggaaf95d0d45b3829342e8adff2d6c3fcbeaa53108f7543b75adbb34afc035d4cdf6"><div class="ttname"><a href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbeaa53108f7543b75adbb34afc035d4cdf6">boost::redis::operation::run</a></div><div class="ttdeci">@ run</div><div class="ttdoc">Refers to connection::async_run operations.</div></div>
+<div class="ttc" id="agroup__high-level-api_html_ggaaf95d0d45b3829342e8adff2d6c3fcbeab640a0ce465fa2a4150c36b305c1c11b"><div class="ttname"><a href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbeab640a0ce465fa2a4150c36b305c1c11b">boost::redis::operation::connect</a></div><div class="ttdeci">@ connect</div><div class="ttdoc">Connect operation.</div></div>
+<div class="ttc" id="agroup__high-level-api_html_ggaaf95d0d45b3829342e8adff2d6c3fcbeacbd71f0d3114139d38a8d080d610e5fd"><div class="ttname"><a href="group__high-level-api.html#ggaaf95d0d45b3829342e8adff2d6c3fcbeacbd71f0d3114139d38a8d080d610e5fd">boost::redis::operation::receive</a></div><div class="ttdeci">@ receive</div><div class="ttdoc">Refers to connection::async_receive operations.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><a class="el" href="dir_fc21780ef7622f597daa202227f08e20.html">aedis</a></li><li class="navelem"><b>operation.hpp</b></li>
-    <li class="footer">Generated on Sat Jan 14 2023 18:40:26 for Aedis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
+    <li class="navelem"><a class="el" href="dir_1878a3f4746a95c6aad317458cc7ef80.html">boost</a></li><li class="navelem"><a class="el" href="dir_2cc765c1b27cc1fc357a11cf7463bf5b.html">redis</a></li><li class="navelem"><b>operation.hpp</b></li>
+    <li class="footer">Generated on Fri Aug 18 2023 23:21:52 for boost_redis by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.4 </li>
   </ul>
 </div>
 </body>

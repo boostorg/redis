@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['unexpected_5fbool_5fvalue_0',['unexpected_bool_value',['../group__high-level-api.html#gga1833aa5e140bbaa9d319ecb1a71bd8baa5fc45aedad26336422187e290f356194',1,'aedis']]]
+  ['to_5fstring_0',['to_string',['../group__high-level-api.html#ga319e0035f0a58a03a1d9bf233ca7d177',1,'boost::redis::resp3']]],
+  ['type_1',['type',['../group__high-level-api.html#ga436af8b7b98a621d7130e35e53a93cf1',1,'boost::redis::resp3']]]
 ];

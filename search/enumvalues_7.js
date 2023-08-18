@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['push_0',['push',['../group__high-level-api.html#ggabdb6bdf6f96b4a7a91ed63d2324cef57a21a361d96e3e13f5f109748c2a9d2434',1,'aedis::resp3']]]
+  ['map_0',['map',['../group__high-level-api.html#gga436af8b7b98a621d7130e35e53a93cf1a1d78dc8ed51214e518b5114fe24490ae',1,'boost::redis::resp3']]]
 ];

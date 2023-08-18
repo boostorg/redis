@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['cancel_0',['cancel',['../classaedis_1_1basic__connection.html#a6031e4ec3662db74a0ce94e0877bae12',1,'aedis::basic_connection::cancel()'],['../classaedis_1_1ssl_1_1basic__connection_3_01boost_1_1asio_1_1ssl_1_1stream_3_01AsyncReadWriteStream_01_4_01_4.html#a85e8529c77bd07a7b7be94d32bfac7d0',1,'aedis::ssl::basic_connection&lt; boost::asio::ssl::stream&lt; AsyncReadWriteStream &gt; &gt;::cancel()']]],
-  ['clear_1',['clear',['../classaedis_1_1resp3_1_1request.html#a92da0407e160354a4d81510f098cecd1',1,'aedis::resp3::request']]]
+  ['cancel_0',['cancel',['../classboost_1_1redis_1_1basic__connection.html#ab91c1de2894180d9bc9ae35b188f078a',1,'boost::redis::basic_connection::cancel()'],['../classboost_1_1redis_1_1connection.html#a95d4d441d5cc6e9809de9e18c2a19ca8',1,'boost::redis::connection::cancel()'],['../classboost_1_1redis_1_1detail_1_1connection__base.html#a38e00a341bf3041e93229d579900e5c8',1,'boost::redis::detail::connection_base::cancel()']]],
+  ['clear_1',['clear',['../classboost_1_1redis_1_1request.html#ac880af0951bfae6b89913913ac709557',1,'boost::redis::request']]],
+  ['connection_2',['connection',['../classboost_1_1redis_1_1connection.html#a68cfce1ed9affe06f6f2b0e84d6d8dbd',1,'boost::redis::connection::connection(executor_type ex, asio::ssl::context::method method=asio::ssl::context::tls_client, std::size_t max_read_size=(std::numeric_limits&lt; std::size_t &gt;::max)())'],['../classboost_1_1redis_1_1connection.html#ab006ce3e2f5a2024abbf8853ca37589c',1,'boost::redis::connection::connection(asio::io_context &amp;ioc, asio::ssl::context::method method=asio::ssl::context::tls_client, std::size_t max_read_size=(std::numeric_limits&lt; std::size_t &gt;::max)())']]],
+  ['connection_5fbase_3',['connection_base',['../classboost_1_1redis_1_1detail_1_1connection__base.html#a5cf3308f2e1aea63dc0fade071ab80de',1,'boost::redis::detail::connection_base']]]
 ];

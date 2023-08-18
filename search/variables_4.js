@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['value_0',['value',['../structaedis_1_1resp3_1_1node.html#a923b33182800f271bad3155a36231da3',1,'aedis::resp3::node']]]
+  ['ignore_0',['ignore',['../group__high-level-api.html#ga67c4e424db0e0ee72bd5a62c2e649470',1,'boost::redis']]]
 ];
