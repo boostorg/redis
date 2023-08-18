@@ -38,6 +38,9 @@ struct error_category_impl : system::error_category {
 	 case error::not_a_double: return "Not a double.";
 	 case error::resp3_null: return "Got RESP3 null.";
 	 case error::not_connected: return "Not connected.";
+	 case error::resolve_timeout: return "Resolve timeout.";
+	 case error::connect_timeout: return "Connect timeout.";
+	 case error::pong_timeout: return "Pong timeout.";
 	 default: BOOST_ASSERT(false); return "Boost.Redis error.";
       }
    }

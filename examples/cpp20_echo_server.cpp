@@ -4,21 +4,26 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio.hpp>
+#include <boost/redis/connection.hpp>
+#include <boost/asio/deferred.hpp>
+#include <boost/asio/signal_set.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/redirect_error.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <iostream>
+
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <boost/asio/experimental/awaitable_operators.hpp>
-#include <boost/redis.hpp>
-#include <boost/redis/experimental/run.hpp>
-#include "common/common.hpp"
 
 namespace net = boost::asio;
-using namespace net::experimental::awaitable_operators;
-using tcp_socket = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::socket>;
-using tcp_acceptor = net::use_awaitable_t<>::as_default_on_t<net::ip::tcp::acceptor>;
-using signal_set = net::use_awaitable_t<>::as_default_on_t<net::signal_set>;
+using tcp_socket = net::deferred_t::as_default_on_t<net::ip::tcp::socket>;
+using tcp_acceptor = net::deferred_t::as_default_on_t<net::ip::tcp::acceptor>;
+using signal_set = net::deferred_t::as_default_on_t<net::signal_set>;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::experimental::async_check_health;
+using boost::redis::config;
+using boost::system::error_code;
+using boost::redis::connection;
+using namespace std::chrono_literals;
 
 auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
@@ -28,7 +33,7 @@ auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) ->
    for (std::string buffer;;) {
       auto n = co_await net::async_read_until(socket, net::dynamic_buffer(buffer, 1024), "\n");
       req.push("PING", buffer);
-      co_await conn->async_exec(req, resp);
+      co_await conn->async_exec(req, resp, net::deferred);
       co_await net::async_write(socket, net::buffer(std::get<0>(resp).value()));
       std::get<0>(resp).value().clear();
       req.clear();
@@ -39,25 +44,27 @@ auto echo_server_session(tcp_socket socket, std::shared_ptr<connection> conn) ->
 // Listens for tcp connections.
 auto listener(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-   auto ex = co_await net::this_coro::executor;
-   tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});
-   for (;;)
-      net::co_spawn(ex, echo_server_session(co_await acc.async_accept(), conn), net::detached);
+   try {
+      auto ex = co_await net::this_coro::executor;
+      tcp_acceptor acc(ex, {net::ip::tcp::v4(), 55555});
+      for (;;)
+         net::co_spawn(ex, echo_server_session(co_await acc.async_accept(), conn), net::detached);
+   } catch (std::exception const& e) {
+      std::clog << "Listener: " << e.what() << std::endl;
+   }
 }
 
 // Called from the main function (see main.cpp)
-auto co_main(std::string host, std::string port) -> net::awaitable<void>
+auto co_main(config cfg) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   signal_set sig{ex, SIGINT, SIGTERM};
+   net::co_spawn(ex, listener(conn), net::detached);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
 
-   request req;
-   req.push("HELLO", 3);
-
-   co_await connect(conn, host, port);
-   co_await ((conn->async_run() || listener(conn) || async_check_health(*conn) ||
-            sig.async_wait()) && conn->async_exec(req));
+   signal_set sig_set(ex, SIGINT, SIGTERM);
+   co_await sig_set.async_wait();
+   conn->cancel();
 }
 
 #endif // defined(BOOST_ASIO_HAS_CO_AWAIT)

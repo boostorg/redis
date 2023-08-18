@@ -1,23 +1,25 @@
 #pragma once
 
-#include <boost/asio.hpp>
-#include <chrono>
-
-namespace net = boost::asio;
-using endpoints = net::ip::tcp::resolver::results_type;
-
-auto
-resolve(
-   std::string const& host = "127.0.0.1",
-   std::string const& port = "6379") -> endpoints
-{
-   net::io_context ioc;
-   net::ip::tcp::resolver resv{ioc};
-   return resv.resolve(host, port);
-}
+#include <boost/system/error_code.hpp>
+#include <boost/asio/redirect_error.hpp>
+#include <boost/asio/awaitable.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/redis/connection.hpp>
+#include <boost/redis/operation.hpp>
+#include <memory>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 inline
 auto redir(boost::system::error_code& ec)
-   { return net::redirect_error(net::use_awaitable, ec); }
+   { return boost::asio::redirect_error(boost::asio::use_awaitable, ec); }
+auto start(boost::asio::awaitable<void> op) -> int;
 #endif // BOOST_ASIO_HAS_CO_AWAIT
+
+void
+run(
+   std::shared_ptr<boost::redis::connection> conn,
+   boost::redis::config cfg = {},
+   boost::system::error_code ec = boost::asio::error::operation_aborted,
+   boost::redis::operation op = boost::redis::operation::receive,
+   boost::redis::logger::level l = boost::redis::logger::level::info);
+

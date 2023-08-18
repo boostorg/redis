@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.14)
 
+#set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+
+# determine whether it's main/root project
+# or being built under another project.
+if (NOT DEFINED BOOST_REDIS_MAIN_PROJECT)
+   set(BOOST_REDIS_MAIN_PROJECT OFF)
+   if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+      set(BOOST_REDIS_MAIN_PROJECT ON)
+   endif()
+endif()
+
 project(
     boost_redis
     VERSION 1.4.1
@@ -7,6 +18,12 @@ project(
     HOMEPAGE_URL "https://boostorg.github.io/redis/"
     LANGUAGES CXX
 )
+
+option(BOOST_REDIS_INSTALL "Generate install targets." ${BOOST_REDIS_MAIN_PROJECT})
+option(BOOST_REDIS_TESTS "Build tests." ${BOOST_REDIS_MAIN_PROJECT})
+option(BOOST_REDIS_EXAMPLES "Build examples." ${BOOST_REDIS_MAIN_PROJECT})
+option(BOOST_REDIS_BENCHMARKS "Build benchmarks." ${BOOST_REDIS_MAIN_PROJECT})
+option(BOOST_REDIS_DOC "Generate documentations." ${BOOST_REDIS_MAIN_PROJECT})
 
 add_library(boost_redis INTERFACE)
 add_library(Boost::redis ALIAS boost_redis)
@@ -32,311 +49,182 @@ target_compile_features(boost_redis INTERFACE cxx_std_17)
 # Asio bases C++ feature detection on __cplusplus. Make MSVC
 # define it correctly
 if (MSVC)
-    target_compile_options(boost_redis INTERFACE /Zc:__cplusplus)
+  target_compile_options(boost_redis INTERFACE /Zc:__cplusplus)
 endif()
 
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/BoostRedisConfigVersion.cmake"
-    COMPATIBILITY AnyNewerVersion
-)
-
 find_package(Boost 1.80 REQUIRED)
+
 include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(OpenSSL REQUIRED)
 
-enable_testing()
 include_directories(include)
 
-# Main function for the examples.
+# Common
 #=======================================================================
 
-add_library(common STATIC
-   examples/common/common.cpp
-   examples/common/main.cpp
-   examples/common/boost_redis.cpp
-)
-target_compile_features(common PUBLIC cxx_std_20)
+add_library(boost_redis_project_options INTERFACE)
+target_link_libraries(boost_redis_project_options INTERFACE OpenSSL::Crypto OpenSSL::SSL)
 if (MSVC)
-    target_compile_options(common PRIVATE /bigobj)
-    target_compile_definitions(common PRIVATE _WIN32_WINNT=0x0601)
+   target_compile_options(boost_redis_project_options INTERFACE /bigobj)
+   target_compile_definitions(boost_redis_project_options INTERFACE _WIN32_WINNT=0x0601)
 endif()
+
+add_library(boost_redis_src STATIC examples/boost_redis.cpp)
+target_compile_features(boost_redis_src PRIVATE cxx_std_17)
+target_link_libraries(boost_redis_src PRIVATE boost_redis_project_options)
 
 # Executables
 #=======================================================================
 
-add_executable(cpp20_intro examples/cpp20_intro.cpp)
-target_link_libraries(cpp20_intro common)
-target_compile_features(cpp20_intro PUBLIC cxx_std_20)
-add_test(cpp20_intro cpp20_intro)
-if (MSVC)
-    target_compile_options(cpp20_intro PRIVATE /bigobj)
-    target_compile_definitions(cpp20_intro PRIVATE _WIN32_WINNT=0x0601)
+if (BOOST_REDIS_BENCHMARKS)
+  add_library(benchmarks_options INTERFACE)
+  target_link_libraries(benchmarks_options INTERFACE boost_redis_src)
+  target_link_libraries(benchmarks_options INTERFACE boost_redis_project_options)
+  target_compile_features(benchmarks_options INTERFACE cxx_std_20)
+
+  add_executable(echo_server_client benchmarks/cpp/asio/echo_server_client.cpp)
+  target_link_libraries(echo_server_client PRIVATE benchmarks_options)
+
+  add_executable(echo_server_direct benchmarks/cpp/asio/echo_server_direct.cpp)
+  target_link_libraries(echo_server_direct PRIVATE benchmarks_options)
 endif()
 
-add_executable(cpp20_intro_awaitable_ops examples/cpp20_intro_awaitable_ops.cpp)
-target_link_libraries(cpp20_intro_awaitable_ops common)
-target_compile_features(cpp20_intro_awaitable_ops PUBLIC cxx_std_20)
-add_test(cpp20_intro_awaitable_ops cpp20_intro_awaitable_ops)
-if (MSVC)
-    target_compile_options(cpp20_intro_awaitable_ops PRIVATE /bigobj)
-    target_compile_definitions(cpp20_intro_awaitable_ops PRIVATE _WIN32_WINNT=0x0601)
+if (BOOST_REDIS_EXAMPLES)
+  add_library(examples_main STATIC examples/main.cpp)
+  target_compile_features(examples_main PRIVATE cxx_std_20)
+  target_link_libraries(examples_main PRIVATE boost_redis_project_options)
+
+  macro(make_example EXAMPLE_NAME STANDARD)
+    add_executable(${EXAMPLE_NAME} examples/${EXAMPLE_NAME}.cpp)
+    target_link_libraries(${EXAMPLE_NAME} PRIVATE boost_redis_src)
+    target_link_libraries(${EXAMPLE_NAME} PRIVATE boost_redis_project_options)
+    target_compile_features(${EXAMPLE_NAME} PRIVATE cxx_std_${STANDARD})
+    if (${STANDARD} STREQUAL "20")
+      target_link_libraries(${EXAMPLE_NAME} PRIVATE examples_main)
+    endif()
+  endmacro()
+
+  macro(make_testable_example EXAMPLE_NAME STANDARD)
+    make_example(${EXAMPLE_NAME} ${STANDARD})
+    add_test(${EXAMPLE_NAME} ${EXAMPLE_NAME})
+  endmacro()
+
+  make_testable_example(cpp17_intro 17)
+  make_testable_example(cpp17_intro_sync 17)
+
+  make_testable_example(cpp20_intro 20)
+  make_testable_example(cpp20_containers 20)
+  make_testable_example(cpp20_json 20)
+  make_testable_example(cpp20_intro_tls 20)
+
+  make_example(cpp20_subscriber 20)
+  make_example(cpp20_streams 20)
+  make_example(cpp20_echo_server 20)
+  make_example(cpp20_resolve_with_sentinel 20)
+
+  # We test the protobuf example only on gcc.
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    find_package(Protobuf)
+    if (Protobuf_FOUND)
+       protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS examples/person.proto)
+       make_testable_example(cpp20_protobuf 20)
+       target_sources(cpp20_protobuf PUBLIC ${PROTO_SRCS} ${PROTO_HDRS})
+       target_link_libraries(cpp20_protobuf PRIVATE  ${Protobuf_LIBRARIES})
+       target_include_directories(cpp20_protobuf PUBLIC ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+    endif()
+  endif()
+
+  if (NOT MSVC)
+     make_example(cpp20_chat_room 20)
+  endif()
 endif()
 
-add_executable(cpp17_intro examples/cpp17_intro.cpp)
-target_compile_features(cpp17_intro PUBLIC cxx_std_17)
-add_test(cpp17_intro cpp17_intro)
-if (MSVC)
-    target_compile_options(cpp17_intro PRIVATE /bigobj)
-    target_compile_definitions(cpp17_intro PRIVATE _WIN32_WINNT=0x0601)
-endif()
+if (BOOST_REDIS_TESTS)
+  enable_testing()
 
-add_executable(cpp17_intro_sync examples/cpp17_intro_sync.cpp)
-target_compile_features(cpp17_intro_sync PUBLIC cxx_std_17)
-add_test(cpp17_intro_sync cpp17_intro_sync)
-if (MSVC)
-    target_compile_options(cpp17_intro_sync PRIVATE /bigobj)
-    target_compile_definitions(cpp17_intro_sync PRIVATE _WIN32_WINNT=0x0601)
-endif()
+  add_library(tests_common STATIC tests/common.cpp)
+  target_compile_features(tests_common PRIVATE cxx_std_17)
+  target_link_libraries(tests_common PRIVATE boost_redis_project_options)
 
-if (NOT MSVC)
-add_executable(cpp20_chat_room examples/cpp20_chat_room.cpp)
-target_compile_features(cpp20_chat_room PUBLIC cxx_std_20)
-target_link_libraries(cpp20_chat_room common)
-endif()
+  macro(make_test TEST_NAME STANDARD)
+    add_executable(${TEST_NAME} tests/${TEST_NAME}.cpp)
+    target_link_libraries(${TEST_NAME} PRIVATE boost_redis_src tests_common)
+    target_link_libraries(${TEST_NAME} PRIVATE boost_redis_project_options)
+    target_compile_features(${TEST_NAME} PRIVATE cxx_std_${STANDARD})
+    add_test(${TEST_NAME} ${TEST_NAME})
+  endmacro()
 
-add_executable(cpp20_containers examples/cpp20_containers.cpp)
-target_compile_features(cpp20_containers PUBLIC cxx_std_20)
-target_link_libraries(cpp20_containers common)
-add_test(cpp20_containers cpp20_containers)
-if (MSVC)
-    target_compile_options(cpp20_containers PRIVATE /bigobj)
-    target_compile_definitions(cpp20_containers PRIVATE _WIN32_WINNT=0x0601)
-endif()
+  make_test(test_conn_quit 17)
+  make_test(test_conn_tls 17)
+  make_test(test_low_level 17)
+  make_test(test_conn_exec_retry 17)
+  make_test(test_conn_exec_error 17)
+  make_test(test_request 17)
+  make_test(test_run 17)
+  make_test(test_low_level_sync 17)
+  make_test(test_low_level_sync_sans_io 17)
+  make_test(test_conn_check_health 17)
 
-if (NOT MSVC)
-add_executable(cpp20_echo_server examples/cpp20_echo_server.cpp)
-target_compile_features(cpp20_echo_server PUBLIC cxx_std_20)
-target_link_libraries(cpp20_echo_server common)
-endif()
-
-add_executable(cpp20_resolve_with_sentinel examples/cpp20_resolve_with_sentinel.cpp)
-target_compile_features(cpp20_resolve_with_sentinel PUBLIC cxx_std_20)
-target_link_libraries(cpp20_resolve_with_sentinel common)
-#add_test(cpp20_resolve_with_sentinel cpp20_resolve_with_sentinel)
-if (MSVC)
-    target_compile_options(cpp20_resolve_with_sentinel PRIVATE /bigobj)
-    target_compile_definitions(cpp20_resolve_with_sentinel PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(cpp20_json_serialization examples/cpp20_json_serialization.cpp)
-target_compile_features(cpp20_json_serialization PUBLIC cxx_std_20)
-target_link_libraries(cpp20_json_serialization common)
-add_test(cpp20_json_serialization cpp20_json_serialization)
-if (MSVC)
-    target_compile_options(cpp20_json_serialization PRIVATE /bigobj)
-    target_compile_definitions(cpp20_json_serialization PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-if (NOT MSVC)
-add_executable(cpp20_subscriber examples/cpp20_subscriber.cpp)
-target_compile_features(cpp20_subscriber PUBLIC cxx_std_20)
-target_link_libraries(cpp20_subscriber common)
-endif()
-
-add_executable(cpp20_intro_tls examples/cpp20_intro_tls.cpp)
-target_compile_features(cpp20_intro_tls PUBLIC cxx_std_20)
-add_test(cpp20_intro_tls cpp20_intro_tls)
-target_link_libraries(cpp20_intro_tls OpenSSL::Crypto OpenSSL::SSL)
-target_link_libraries(cpp20_intro_tls common)
-if (MSVC)
-    target_compile_options(cpp20_intro_tls PRIVATE /bigobj)
-    target_compile_definitions(cpp20_intro_tls PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(cpp20_low_level_async tests/cpp20_low_level_async.cpp)
-target_compile_features(cpp20_low_level_async PUBLIC cxx_std_20)
-add_test(cpp20_low_level_async cpp20_low_level_async)
-target_link_libraries(cpp20_low_level_async common)
-if (MSVC)
-    target_compile_options(cpp20_low_level_async PRIVATE /bigobj)
-    target_compile_definitions(cpp20_low_level_async PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(echo_server_client benchmarks/cpp/asio/echo_server_client.cpp)
-target_compile_features(echo_server_client PUBLIC cxx_std_20)
-if (MSVC)
-    target_compile_options(echo_server_client PRIVATE /bigobj)
-    target_compile_definitions(echo_server_client PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(echo_server_direct benchmarks/cpp/asio/echo_server_direct.cpp)
-target_compile_features(echo_server_direct PUBLIC cxx_std_20)
-if (MSVC)
-    target_compile_options(echo_server_direct PRIVATE /bigobj)
-    target_compile_definitions(echo_server_direct PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(cpp17_low_level_sync tests/cpp17_low_level_sync.cpp)
-target_compile_features(cpp17_low_level_sync PUBLIC cxx_std_17)
-add_test(cpp17_low_level_sync cpp17_low_level_sync)
-if (MSVC)
-    target_compile_options(cpp17_low_level_sync PRIVATE /bigobj)
-    target_compile_definitions(cpp17_low_level_sync PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_exec tests/conn_exec.cpp)
-target_compile_features(test_conn_exec PUBLIC cxx_std_20)
-add_test(test_conn_exec test_conn_exec)
-if (MSVC)
-    target_compile_options(test_conn_exec PRIVATE /bigobj)
-    target_compile_definitions(test_conn_exec PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_exec_retry tests/conn_exec_retry.cpp)
-target_compile_features(test_conn_exec_retry PUBLIC cxx_std_20)
-add_test(test_conn_exec_retry test_conn_exec_retry)
-if (MSVC)
-    target_compile_options(test_conn_exec_retry PRIVATE /bigobj)
-    target_compile_definitions(test_conn_exec_retry PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_push tests/conn_push.cpp)
-target_compile_features(test_conn_push PUBLIC cxx_std_20)
-add_test(test_conn_push test_conn_push)
-if (MSVC)
-    target_compile_options(test_conn_push PRIVATE /bigobj)
-    target_compile_definitions(test_conn_push PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_quit tests/conn_quit.cpp)
-target_compile_features(test_conn_quit PUBLIC cxx_std_17)
-add_test(test_conn_quit test_conn_quit)
-if (MSVC)
-    target_compile_options(test_conn_quit PRIVATE /bigobj)
-    target_compile_definitions(test_conn_quit PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_reconnect tests/conn_reconnect.cpp)
-target_compile_features(test_conn_reconnect PUBLIC cxx_std_20)
-target_link_libraries(test_conn_reconnect common)
-add_test(test_conn_reconnect test_conn_reconnect)
-if (MSVC)
-    target_compile_options(test_conn_reconnect PRIVATE /bigobj)
-    target_compile_definitions(test_conn_reconnect PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_tls tests/conn_tls.cpp)
-add_test(test_conn_tls test_conn_tls)
-target_compile_features(test_conn_tls PUBLIC cxx_std_17)
-target_link_libraries(test_conn_tls OpenSSL::Crypto OpenSSL::SSL)
-if (MSVC)
-    target_compile_options(test_conn_tls PRIVATE /bigobj)
-    target_compile_definitions(test_conn_tls PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_low_level tests/low_level.cpp)
-target_compile_features(test_low_level PUBLIC cxx_std_17)
-add_test(test_low_level test_low_level)
-if (MSVC)
-    target_compile_options(test_low_level PRIVATE /bigobj)
-    target_compile_definitions(test_low_level PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_run_cancel tests/conn_run_cancel.cpp)
-target_compile_features(test_conn_run_cancel PUBLIC cxx_std_20)
-add_test(test_conn_run_cancel test_conn_run_cancel)
-if (MSVC)
-    target_compile_options(test_conn_run_cancel PRIVATE /bigobj)
-    target_compile_definitions(test_conn_run_cancel PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_exec_cancel tests/conn_exec_cancel.cpp)
-target_compile_features(test_conn_exec_cancel PUBLIC cxx_std_20)
-target_link_libraries(test_conn_exec_cancel common)
-add_test(test_conn_exec_cancel test_conn_exec_cancel)
-if (MSVC)
-    target_compile_options(test_conn_exec_cancel PRIVATE /bigobj)
-    target_compile_definitions(test_conn_exec_cancel PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_exec_error tests/conn_exec_error.cpp)
-target_compile_features(test_conn_exec_error PUBLIC cxx_std_17)
-target_link_libraries(test_conn_exec_error common)
-add_test(test_conn_exec_error test_conn_exec_error)
-if (MSVC)
-    target_compile_options(test_conn_exec_error PRIVATE /bigobj)
-    target_compile_definitions(test_conn_exec_error PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_conn_echo_stress tests/conn_echo_stress.cpp)
-target_compile_features(test_conn_echo_stress PUBLIC cxx_std_20)
-target_link_libraries(test_conn_echo_stress common)
-add_test(test_conn_echo_stress test_conn_echo_stress)
-if (MSVC)
-    target_compile_options(test_conn_echo_stress PRIVATE /bigobj)
-    target_compile_definitions(test_conn_echo_stress PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-add_executable(test_request tests/request.cpp)
-target_compile_features(test_request PUBLIC cxx_std_17)
-add_test(test_request test_request)
-if (MSVC)
-    target_compile_options(test_request PRIVATE /bigobj)
-    target_compile_definitions(test_request PRIVATE _WIN32_WINNT=0x0601)
-endif()
-
-if (NOT MSVC)
-add_executable(test_issue_50 tests/issue_50.cpp)
-target_compile_features(test_issue_50 PUBLIC cxx_std_20)
-target_link_libraries(test_issue_50 common)
-add_test(test_issue_50 test_issue_50)
-endif()
-
-if (NOT MSVC)
-add_executable(test_conn_check_health tests/conn_check_health.cpp)
-target_compile_features(test_conn_check_health PUBLIC cxx_std_17)
-target_link_libraries(test_conn_check_health common)
-add_test(test_conn_check_health test_conn_check_health)
+  make_test(test_conn_exec 20)
+  make_test(test_conn_push 20)
+  make_test(test_conn_reconnect 20)
+  make_test(test_conn_exec_cancel 20)
+  make_test(test_conn_exec_cancel2 20)
+  make_test(test_conn_echo_stress 20)
+  make_test(test_low_level_async 20)
+  make_test(test_conn_run_cancel 20)
+  make_test(test_issue_50 20)
 endif()
 
 # Install
 #=======================================================================
 
-install(TARGETS boost_redis
-    EXPORT boost_redis
-    PUBLIC_HEADER DESTINATION include COMPONENT Development
-)
+if (BOOST_REDIS_INSTALL)
+  install(TARGETS boost_redis
+      EXPORT boost_redis
+      PUBLIC_HEADER DESTINATION include COMPONENT Development
+  )
+  
+  include(CMakePackageConfigHelpers)
+  
+  configure_package_config_file(
+     "${PROJECT_SOURCE_DIR}/cmake/BoostRedisConfig.cmake.in"
+     "${PROJECT_BINARY_DIR}/BoostRedisConfig.cmake"
+      INSTALL_DESTINATION lib/cmake/boost/redis
+  )
+  
+  install(EXPORT boost_redis DESTINATION lib/cmake/boost/redis)
+  install(FILES "${PROJECT_BINARY_DIR}/BoostRedisConfigVersion.cmake"
+     "${PROJECT_BINARY_DIR}/BoostRedisConfig.cmake"
+       DESTINATION lib/cmake/boost/redis)
+  
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 
-include(CMakePackageConfigHelpers)
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/BoostRedisConfigVersion.cmake"
+    COMPATIBILITY AnyNewerVersion
+  )
 
-configure_package_config_file(
-   "${PROJECT_SOURCE_DIR}/cmake/BoostRedisConfig.cmake.in"
-   "${PROJECT_BINARY_DIR}/BoostRedisConfig.cmake"
-    INSTALL_DESTINATION lib/cmake/boost/redis
-)
-
-install(EXPORT boost_redis DESTINATION lib/cmake/boost/redis)
-install(FILES "${PROJECT_BINARY_DIR}/BoostRedisConfigVersion.cmake"
-   "${PROJECT_BINARY_DIR}/BoostRedisConfig.cmake"
-     DESTINATION lib/cmake/boost/redis)
-
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
+  include(CPack)
+endif()
 
 # Doxygen
 #=======================================================================
 
-set(DOXYGEN_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/doc")
-configure_file(doc/Doxyfile.in doc/Doxyfile @ONLY)
-
-add_custom_target(
-    doc
-    COMMAND doxygen "${PROJECT_BINARY_DIR}/doc/Doxyfile"
-    COMMENT "Building documentation using Doxygen"
-    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    VERBATIM
-)
+if (BOOST_REDIS_DOC)
+  set(DOXYGEN_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/doc")
+  configure_file(doc/Doxyfile.in doc/Doxyfile @ONLY)
+  
+  add_custom_target(
+      doc
+      COMMAND doxygen "${PROJECT_BINARY_DIR}/doc/Doxyfile"
+      COMMENT "Building documentation using Doxygen"
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+      VERBATIM
+  )
+endif()
 
 # Coverage
 #=======================================================================
@@ -364,11 +252,6 @@ add_custom_target(
     COMMENT "Generating coverage report"
     VERBATIM
 )
-
-# Distribution
-#=======================================================================
-
-include(CPack)
 
 # TODO
 #=======================================================================

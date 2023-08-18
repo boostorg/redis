@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/resp3/serialization.hpp>
+#include <boost/redis/resp3/parser.hpp>
 
 namespace boost::redis::resp3 {
 
@@ -14,29 +15,28 @@ void boost_redis_to_bulk(std::string& payload, std::string_view data)
 
    payload += to_code(type::blob_string);
    payload.append(std::cbegin(str), std::cend(str));
-   payload += separator;
+   payload += parser::sep;
    payload.append(std::cbegin(data), std::cend(data));
-   payload += separator;
+   payload += parser::sep;
 }
 
 void add_header(std::string& payload, type t, std::size_t size)
 {
-   // TODO: Call reserve.
    auto const str = std::to_string(size);
 
    payload += to_code(t);
    payload.append(std::cbegin(str), std::cend(str));
-   payload += separator;
+   payload += parser::sep;
 }
 
 void add_blob(std::string& payload, std::string_view blob)
 {
    payload.append(std::cbegin(blob), std::cend(blob));
-   payload += separator;
+   payload += parser::sep;
 }
 
 void add_separator(std::string& payload)
 {
-   payload += separator;
+   payload += parser::sep;
 }
 } // boost::redis::resp3

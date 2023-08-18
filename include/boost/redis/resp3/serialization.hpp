@@ -8,6 +8,9 @@
 #define BOOST_REDIS_RESP3_SERIALIZATION_HPP
 
 #include <boost/redis/resp3/type.hpp>
+#include <boost/system/system_error.hpp>
+#include <boost/throw_exception.hpp>
+#include <boost/redis/resp3/parser.hpp>
 
 #include <string>
 #include <tuple>
@@ -16,7 +19,6 @@
 // to calculate the header size correctly.
 
 namespace boost::redis::resp3 {
-constexpr char const* separator = "\r\n";
 
 /** @brief Adds a bulk to the request.
  *  @relates boost::redis::request
@@ -84,7 +86,6 @@ void add_header(std::string& payload, type t, std::size_t size);
 template <class T>
 void add_bulk(std::string& payload, T const& data)
 {
-   // TODO: Call reserve.
    add_bulk_impl<T>::add(payload, data);
 }
 
@@ -103,6 +104,40 @@ struct bulk_counter<std::pair<T, U>> {
 
 void add_blob(std::string& payload, std::string_view blob);
 void add_separator(std::string& payload);
+
+namespace detail
+{
+
+template <class Adapter>
+void deserialize(std::string_view const& data, Adapter adapter, system::error_code& ec)
+{
+   parser parser;
+   while (!parser.done()) {
+      auto const res = parser.consume(data, ec);
+      if (ec)
+         return;
+
+      BOOST_ASSERT(res.has_value());
+
+      adapter(res.value(), ec);
+      if (ec)
+         return;
+   }
+
+   BOOST_ASSERT(parser.get_consumed() == std::size(data));
+}
+
+template <class Adapter>
+void deserialize(std::string_view const& data, Adapter adapter)
+{
+   system::error_code ec;
+   deserialize(data, adapter, ec);
+
+   if (ec)
+       BOOST_THROW_EXCEPTION(system::system_error{ec});
+}
+
+}
 
 } // boost::redis::resp3
 

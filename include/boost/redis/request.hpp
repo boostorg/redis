@@ -12,6 +12,7 @@
 
 #include <string>
 #include <tuple>
+#include <algorithm>
 
 // NOTE: For some commands like hset it would be a good idea to assert
 // the value type is a pair.
@@ -98,6 +99,7 @@ public:
    {
       payload_.clear();
       commands_ = 0;
+      has_hello_priority_ = false;
    }
 
    /// Calls std::string::reserve on the internal storage.

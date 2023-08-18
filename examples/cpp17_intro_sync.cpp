@@ -4,76 +4,40 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <tuple>
-#include <string>
-#include <thread>
-#include <iostream>
-#include <boost/asio.hpp>
-#include <boost/redis.hpp>
+#include "sync_connection.hpp"
 
-// Include this in no more than one .cpp file.
-#include <boost/redis/src.hpp>
+#include <string>
+#include <iostream>
 
 namespace net = boost::asio;
-using connection = boost::redis::connection;
+using boost::redis::sync_connection;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::ignore_t;
-
-template <class Response>
-auto exec(std::shared_ptr<connection> conn, request const& req, Response& resp)
-{
-   net::dispatch(
-      conn->get_executor(),
-      net::deferred([&]() { return conn->async_exec(req, resp, net::deferred); }))
-      (net::use_future).get();
-}
-
-auto logger = [](auto const& ec)
-   { std::clog << "Run: " << ec.message() << std::endl; };
+using boost::redis::config;
 
 auto main(int argc, char * argv[]) -> int
 {
    try {
-      std::string host = "127.0.0.1";
-      std::string port = "6379";
+      config cfg;
 
       if (argc == 3) {
-         host = argv[1];
-         port = argv[2];
+         cfg.addr.host = argv[1];
+         cfg.addr.port = argv[2];
       }
 
-      net::io_context ioc{1};
-
-      auto conn = std::make_shared<connection>(ioc);
-
-      // Resolves the address
-      net::ip::tcp::resolver resv{ioc};
-      auto const res = resv.resolve(host, port);
-
-      // Connect to Redis
-      net::connect(conn->next_layer(), res);
-
-      // Starts a thread that will can io_context::run on which
-      // the connection will run.
-      std::thread t{[conn, &ioc]() {
-         conn->async_run(logger);
-         ioc.run();
-      }};
+      sync_connection conn;
+      conn.run(cfg);
 
       request req;
-      req.push("HELLO", 3);
       req.push("PING");
-      req.push("QUIT");
 
-      response<ignore_t, std::string, ignore_t> resp;
+      response<std::string> resp;
 
-      // Executes commands synchronously.
-      exec(conn, req, resp);
+      conn.exec(req, resp);
+      conn.stop();
 
-      std::cout << "Response: " << std::get<1>(resp).value() << std::endl;
+      std::cout << "Response: " << std::get<0>(resp).value() << std::endl;
 
-      t.join();
    } catch (std::exception const& e) {
       std::cerr << e.what() << std::endl;
    }

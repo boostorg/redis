@@ -9,13 +9,130 @@
 
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/resp3/parser.hpp>
-#include <boost/redis/detail/read_ops.hpp>
 #include <boost/redis/adapter/ignore.hpp>
+#include <boost/redis/detail/helper.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/compose.hpp>
-#include <boost/asio/async_result.hpp>
+#include <boost/asio/coroutine.hpp>
+#include <boost/asio/post.hpp>
+
+#include <string_view>
+#include <limits>
 
 namespace boost::redis::detail {
+
+template <class DynamicBuffer>
+std::string_view buffer_view(DynamicBuffer buf) noexcept
+{
+   char const* start = static_cast<char const*>(buf.data(0, buf.size()).data());
+   return std::string_view{start, std::size(buf)};
+}
+
+template <class AsyncReadStream, class DynamicBuffer>
+class append_some_op {
+private:
+   AsyncReadStream& stream_;
+   DynamicBuffer buf_;
+   std::size_t size_ = 0;
+   std::size_t tmp_ = 0;
+   asio::coroutine coro_{};
+
+public:
+   append_some_op(AsyncReadStream& stream, DynamicBuffer buf, std::size_t size)
+   : stream_ {stream}
+   , buf_ {std::move(buf)}
+   , size_{size}
+   { }
+
+   template <class Self>
+   void operator()( Self& self
+                  , system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      BOOST_ASIO_CORO_REENTER (coro_)
+      {
+         tmp_ = buf_.size();
+         buf_.grow(size_);
+
+         BOOST_ASIO_CORO_YIELD
+         stream_.async_read_some(buf_.data(tmp_, size_), std::move(self));
+         if (ec) {
+            self.complete(ec, 0);
+            return;
+         }
+
+         buf_.shrink(buf_.size() - tmp_ - n);
+         self.complete({}, n);
+      }
+   }
+};
+
+template <class AsyncReadStream, class DynamicBuffer, class CompletionToken>
+auto
+async_append_some(
+   AsyncReadStream& stream,
+   DynamicBuffer buffer,
+   std::size_t size,
+   CompletionToken&& token)
+{
+   return asio::async_compose
+      < CompletionToken
+      , void(system::error_code, std::size_t)
+      >(append_some_op<AsyncReadStream, DynamicBuffer> {stream, buffer, size}, token, stream);
+}
+
+template <
+   class AsyncReadStream,
+   class DynamicBuffer,
+   class ResponseAdapter>
+class parse_op {
+private:
+   AsyncReadStream& stream_;
+   DynamicBuffer buf_;
+   resp3::parser parser_;
+   ResponseAdapter adapter_;
+   bool needs_rescheduling_ = true;
+   system::error_code ec_;
+   asio::coroutine coro_{};
+
+   static std::size_t const growth = 1024;
+
+public:
+   parse_op(AsyncReadStream& stream, DynamicBuffer buf, ResponseAdapter adapter)
+   : stream_ {stream}
+   , buf_ {std::move(buf)}
+   , adapter_ {std::move(adapter)}
+   { }
+
+   template <class Self>
+   void operator()( Self& self
+                  , system::error_code ec = {}
+                  , std::size_t = 0)
+   {
+      BOOST_ASIO_CORO_REENTER (coro_)
+      {
+         while (!resp3::parse(parser_, buffer_view(buf_), adapter_, ec)) {
+            needs_rescheduling_ = false;
+            BOOST_ASIO_CORO_YIELD
+            async_append_some(
+               stream_, buf_, parser_.get_suggested_buffer_growth(growth),
+               std::move(self));
+            if (ec) {
+               self.complete(ec, 0);
+               return;
+            }
+         }
+
+         ec_ = ec;
+         if (needs_rescheduling_) {
+            BOOST_ASIO_CORO_YIELD
+            asio::post(std::move(self));
+         }
+
+         self.complete(ec_, parser_.get_consumed());
+      }
+   }
+};
 
 /** \brief Reads a complete response to a command sychronously.
  *
@@ -58,43 +175,34 @@ read(
    ResponseAdapter adapter,
    system::error_code& ec) -> std::size_t
 {
-   resp3::parser p;
-   std::size_t n = 0;
-   std::size_t consumed = 0;
-   do {
-      if (!p.bulk_expected()) {
-	 n = asio::read_until(stream, buf, "\r\n", ec);
-	 if (ec)
-	    return 0;
+   static std::size_t const growth = 1024;
 
-      } else {
-	 auto const s = buf.size();
-	 auto const l = p.bulk_length();
-	 if (s < (l + 2)) {
-	    auto const to_read = l + 2 - s;
-	    buf.grow(to_read);
-	    n = asio::read(stream, buf.data(s, to_read), ec);
-	    if (ec)
-	       return 0;
-	 }
-      }
-
-      auto const* data = static_cast<char const*>(buf.data(0, n).data());
-      auto const res = p.consume(data, n, ec);
+   resp3::parser parser;
+   while (!parser.done()) {
+      auto const res = parser.consume(detail::buffer_view(buf), ec);
       if (ec)
-         return 0;
+         return 0UL;
 
-      if (!p.bulk_expected()) {
-         adapter(res.first, ec);
+      if (!res.has_value()) {
+         auto const size_before = buf.size();
+         buf.grow(parser.get_suggested_buffer_growth(growth));
+         auto const n =
+            stream.read_some(
+               buf.data(size_before, parser.get_suggested_buffer_growth(growth)),
+               ec);
          if (ec)
-            return 0;
+            return 0UL;
+
+         buf.shrink(buf.size() - size_before - n);
+         continue;
       }
 
-      buf.consume(res.second);
-      consumed += res.second;
-   } while (!p.done());
+      adapter(res.value(), ec);
+      if (ec)
+         return 0UL;
+   }
 
-   return consumed;
+   return parser.get_consumed();
 }
 
 /** \brief Reads a complete response to a command sychronously.
@@ -173,7 +281,7 @@ auto async_read(
    return asio::async_compose
       < CompletionToken
       , void(system::error_code, std::size_t)
-      >(detail::parse_op<AsyncReadStream, DynamicBuffer, ResponseAdapter> {stream, buffer, adapter},
+      >(parse_op<AsyncReadStream, DynamicBuffer, ResponseAdapter> {stream, buffer, adapter},
         token,
         stream);
 }

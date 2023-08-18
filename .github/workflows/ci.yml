@@ -67,8 +67,8 @@ jobs:
         platform_version: ${{env.BOOST_PLATFORM_VERSION}}
         arch: null
 
-    - name: Install packages
-      run: cinst openssl
+    - name: Install openssl
+      run: choco install openssl
 
     - name: Create build directory
       run: mkdir build
@@ -115,6 +115,8 @@ jobs:
       uses: actions/checkout@v3
     - name: Install CMake
       run: sudo apt-get -y install cmake
+    - name: Install protobuf
+      run: sudo apt-get -y install protobuf-compiler
     - name: Install compiler
       run: sudo apt-get install -y ${{ matrix.install }}
     - name: Install Redis
