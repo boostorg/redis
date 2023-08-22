@@ -13,7 +13,7 @@ endif()
 
 project(
     boost_redis
-    VERSION 1.4.1
+    VERSION 1.4.2
     DESCRIPTION "A redis client library"
     HOMEPAGE_URL "https://boostorg.github.io/redis/"
     LANGUAGES CXX
