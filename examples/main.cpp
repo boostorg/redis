@@ -30,7 +30,7 @@ auto main(int argc, char * argv[]) -> int
       }
 
       net::io_context ioc;
-      net::co_spawn(ioc, std::move(co_main(cfg)), [](std::exception_ptr p) {
+      net::co_spawn(ioc, co_main(cfg), [](std::exception_ptr p) {
          if (p)
             std::rethrow_exception(p);
       });

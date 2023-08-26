@@ -41,7 +41,7 @@ struct push_callback {
       {
          resp2->value().clear();
          BOOST_ASIO_CORO_YIELD
-         conn2->async_receive(*resp2, *this);
+         conn2->async_receive(*this);
          if (ec) {
             std::clog << "Exiting." << std::endl;
             return;
@@ -106,6 +106,7 @@ BOOST_AUTO_TEST_CASE(check_health)
    request req2;
    req2.push("MONITOR");
    generic_response resp2;
+   conn2.set_receive_response(resp2);
 
    conn2.async_exec(req2, ignore, [](auto ec, auto) {
       std::cout << "async_exec: " << std::endl;
@@ -113,7 +114,7 @@ BOOST_AUTO_TEST_CASE(check_health)
    });
 
    //--------------------------------
-
+   
    push_callback{&conn1, &conn2, &resp2, &req1}(); // Starts reading pushes.
 
    ioc.run();

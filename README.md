@@ -676,6 +676,18 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 
 ### develop (incorporates changes to conform the boost review and more)
 
+* Deprecates the `async_receive` overload that takes a response. Users
+  should now first call `set_receive_response` to avoid contantly seting
+  the same response.
+
+* Uses `std::function` to type erase the response adapter. This change
+  should not influence users in any way but allowed important
+  simplification in the connections internals. This resulted in big
+  performance improvement where one of my benchmark programs passed
+  from 190k/s to 473k/s.
+
+### v1.4.2 (incorporates changes to conform the boost review and more)
+
 * Adds `boost::redis::config::database_index` to make it possible to
   choose a database before starting running commands e.g. after an
   automatic reconnection.

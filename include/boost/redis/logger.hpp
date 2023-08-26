@@ -19,6 +19,10 @@ namespace boost::redis {
  *  @ingroup high-level-api
  *
  *  The class can be passed to the connection objects to log to `std::clog`
+ *
+ *  Notice that currently this class has no stable interface. Users
+ *  that don't want any logging can disable it by contructing a logger
+ *  with logger::level::emerg to the connection.
  */
 class logger {
 public:
@@ -98,6 +102,22 @@ public:
     */
    void on_write(system::error_code const& ec, std::string const& payload);
 
+   /** @brief Called when the read operation completes.
+    *  @ingroup high-level-api
+    *
+    *  @param ec Error code returned by the read operation.
+    *  @param n Number of bytes read.
+    */
+   void on_read(system::error_code const& ec, std::size_t n);
+
+   /** @brief Called when the run operation completes.
+    *  @ingroup high-level-api
+    *
+    *  @param read_ec Error code returned by the read operation.
+    *  @param write_ec Error code returned by the write operation.
+    */
+   void on_run(system::error_code const& reader_ec, system::error_code const& writer_ec);
+
    /** @brief Called when the `HELLO` request completes.
     *  @ingroup high-level-api
     *
@@ -115,6 +135,26 @@ public:
    {
       prefix_ = prefix;
    }
+
+   /** @brief Called when the runner operation completes.
+    *  @ingroup high-level-api
+    *
+    *  @param run_all_ec Error code returned by the run_all operation.
+    *  @param health_check_ec Error code returned by the health checker operation.
+    *  @param hello_ec Error code returned by the health checker operation.
+    */
+   void
+      on_runner(
+         system::error_code const& run_all_ec,
+         system::error_code const& health_check_ec,
+         system::error_code const& hello_ec);
+
+   void
+      on_check_health(
+         system::error_code const& ping_ec,
+         system::error_code const& check_timeout_ec);
+
+   void trace(std::string_view reason);
 
 private:
    void write_prefix();

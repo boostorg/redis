@@ -50,8 +50,15 @@ struct hello_op {
          BOOST_ASIO_CORO_YIELD
          conn_->async_exec(runner_->hello_req_, runner_->hello_resp_, std::move(self));
          logger_.on_hello(ec, runner_->hello_resp_);
-         BOOST_REDIS_CHECK_OP0(conn_->cancel(operation::run);)
-         self.complete(ec);
+
+         if (ec || runner_->has_error_in_response() || is_cancelled(self)) {
+            logger_.trace("hello-op: error/canceled. Exiting ...");
+            conn_->cancel(operation::run);
+            self.complete(!!ec ? ec : asio::error::operation_aborted);
+            return;
+         }
+
+         self.complete({});
       }
    }
 };
@@ -84,11 +91,13 @@ public:
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
             [this](auto token) { return runner_->async_run_all(*conn_, logger_, token); },
-            [this](auto token) { return runner_->health_checker_.async_check_health(*conn_, token); },
+            [this](auto token) { return runner_->health_checker_.async_check_health(*conn_, logger_, token); },
             [this](auto token) { return runner_->async_hello(*conn_, logger_, token); }
          ).async_wait(
             asio::experimental::wait_for_all(),
             std::move(self));
+
+         logger_.on_runner(ec0, ec1, ec2);
 
          if (is_cancelled(self)) {
             self.complete(asio::error::operation_aborted);
@@ -232,8 +241,25 @@ private:
       else
          hello_req_.push("HELLO", "3", "SETNAME", cfg_.clientname);
 
-      if (cfg_.database_index)
+      if (cfg_.database_index && cfg_.database_index.value() != 0)
          hello_req_.push("SELECT", cfg_.database_index.value());
+   }
+
+   bool has_error_in_response() const noexcept
+   {
+      if (!hello_resp_.has_value())
+         return true;
+
+      auto f = [](auto const& e)
+      {
+         switch (e.data_type) {
+            case resp3::type::simple_error:
+            case resp3::type::blob_error: return true;
+            default: return false;
+         }
+      };
+
+      return std::any_of(std::cbegin(hello_resp_.value()), std::cend(hello_resp_.value()), f);
    }
 
    resolver_type resv_;

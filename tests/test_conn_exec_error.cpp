@@ -242,6 +242,8 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
    conn->async_exec(req1, ignore, c1);
 
    generic_response gresp;
+   conn->set_receive_response(gresp);
+
    auto c3 = [&](auto ec, auto)
    {
       std::cout << "async_receive" << std::endl;
@@ -254,7 +256,7 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
       conn->cancel(operation::reconnection);
    };
 
-   conn->async_receive(gresp, c3);
+   conn->async_receive(c3);
 
    run(conn);
 

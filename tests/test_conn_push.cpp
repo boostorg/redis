@@ -69,12 +69,12 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
    run(conn, {}, {});
 
    bool push_received = false;
-   conn->async_receive(ignore, [&, conn](auto ec, auto){
+   conn->async_receive([&, conn](auto ec, auto){
       std::cout << "async_receive" << std::endl;
       BOOST_TEST(!ec);
+      push_received = true;
       conn->cancel(operation::run);
       conn->cancel(operation::reconnection);
-      push_received = true;
    });
 
    ioc.run();
@@ -99,12 +99,12 @@ BOOST_AUTO_TEST_CASE(push_received1)
    run(conn);
 
    bool push_received = false;
-   conn->async_receive(ignore, [&, conn](auto ec, auto){
+   conn->async_receive([&, conn](auto ec, auto){
       std::cout << "async_receive" << std::endl;
       BOOST_TEST(!ec);
+      push_received = true;
       conn->cancel(operation::run);
       conn->cancel(operation::reconnection);
-      push_received = true;
    });
 
    ioc.run();
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
       BOOST_TEST(!ec);
    });
 
-   conn->async_receive(ignore, [conn](auto ec, auto){
+   conn->async_receive([&, conn](auto ec, auto){
       BOOST_TEST(!ec);
       conn->cancel(operation::reconnection);
    });
@@ -146,12 +146,12 @@ net::awaitable<void>
 push_consumer1(std::shared_ptr<connection> conn, bool& push_received)
 {
    {
-      auto [ec, ev] = co_await conn->async_receive(ignore, as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await conn->async_receive(as_tuple(net::use_awaitable));
       BOOST_TEST(!ec);
    }
 
    {
-      auto [ec, ev] = co_await conn->async_receive(ignore, as_tuple(net::use_awaitable));
+      auto [ec, ev] = co_await conn->async_receive(as_tuple(net::use_awaitable));
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    }
 
@@ -190,8 +190,10 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   conn->async_receive(error_tag_obj, [conn](auto ec, auto) {
-      BOOST_CHECK_EQUAL(ec, boost::redis::error::incompatible_size);
+   conn->set_receive_response(error_tag_obj);
+
+   conn->async_receive([&, conn](auto ec, auto) {
+      BOOST_CHECK_EQUAL(ec, boost::asio::experimental::error::channel_cancelled);
       conn->cancel(operation::reconnection);
    });
 
@@ -199,7 +201,9 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    });
 
-   run(conn);
+   conn->async_run({}, {}, [](auto ec){
+      BOOST_CHECK_EQUAL(ec, boost::redis::error::incompatible_size);
+   });
 
    ioc.run();
 
@@ -210,7 +214,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
 net::awaitable<void> push_consumer3(std::shared_ptr<connection> conn)
 {
    for (;;) {
-      co_await conn->async_receive(ignore, net::use_awaitable);
+      co_await conn->async_receive(net::use_awaitable);
    }
 }
 

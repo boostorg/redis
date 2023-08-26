@@ -65,7 +65,7 @@ auto co_main(config cfg) -> net::awaitable<void>
 BOOST_AUTO_TEST_CASE(low_level_async)
 {
    net::io_context ioc;
-   net::co_spawn(ioc, std::move(co_main({})), net::detached);
+   net::co_spawn(ioc, co_main({}), net::detached);
    ioc.run();
 }
 
