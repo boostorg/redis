@@ -16,6 +16,7 @@
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/runner.hpp>
+#include <boost/redis/usage.hpp>
 
 #include <boost/system.hpp>
 #include <boost/asio/basic_stream_socket.hpp>
@@ -40,7 +41,8 @@
 #include <type_traits>
 #include <functional>
 
-namespace boost::redis::detail {
+namespace boost::redis::detail
+{
 
 template <class Conn>
 struct exec_op {
@@ -48,8 +50,6 @@ struct exec_op {
    using adapter_type = typename Conn::adapter_type;
 
    Conn* conn_ = nullptr;
-   request const* req_ = nullptr;
-   adapter_type adapter{};
    std::shared_ptr<req_info_type> info_ = nullptr;
    asio::coroutine coro{};
 
@@ -60,13 +60,11 @@ struct exec_op {
       {
          // Check whether the user wants to wait for the connection to
          // be stablished.
-         if (req_->get_config().cancel_if_not_connected && !conn_->is_open()) {
+         if (info_->req_->get_config().cancel_if_not_connected && !conn_->is_open()) {
             BOOST_ASIO_CORO_YIELD
             asio::post(std::move(self));
             return self.complete(error::not_connected, 0);
          }
-
-         info_ = std::allocate_shared<req_info_type>(asio::get_associated_allocator(self), *req_, adapter, conn_->get_executor());
 
          conn_->add_request_info(info_);
 
@@ -329,6 +327,10 @@ public:
    /// Type of the next layer
    using next_layer_type = asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>>;
 
+   using clock_type = std::chrono::steady_clock;
+   using clock_traits_type = asio::wait_traits<clock_type>;
+   using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
+
    using receiver_adapter_type = std::function<void(resp3::basic_node<std::string_view> const&, system::error_code&)>;
 
    using this_type = connection_base<Executor>;
@@ -391,12 +393,14 @@ public:
    {
       using namespace boost::redis::adapter;
       auto f = boost_redis_adapt(resp);
-      BOOST_ASSERT_MSG(req.size() <= f.get_supported_response_size(), "Request and response have incompatible sizes.");
+      BOOST_ASSERT_MSG(req.get_expected_responses() <= f.get_supported_response_size(), "Request and response have incompatible sizes.");
+
+      auto info = std::make_shared<req_info>(req, f, get_executor());
 
       return asio::async_compose
          < CompletionToken
          , void(system::error_code, std::size_t)
-         >(redis::detail::exec_op<this_type>{this, &req, f}, token, writer_timer_);
+         >(exec_op<this_type>{this, info}, token, writer_timer_);
    }
 
    template <class Response, class CompletionToken>
@@ -427,12 +431,12 @@ public:
       receive_adapter_ = adapter::detail::make_adapter_wrapper(g);
    }
 
+   usage get_usage() const noexcept
+      { return usage_; }
+
 private:
-   using clock_type = std::chrono::steady_clock;
-   using clock_traits_type = asio::wait_traits<clock_type>;
-   using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
    using receive_channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
-   using runner_type = redis::detail::runner<executor_type>;
+   using runner_type = runner<executor_type>;
    using adapter_type = std::function<void(std::size_t, resp3::basic_node<std::string_view> const&, system::error_code&)>;
 
    auto use_ssl() const noexcept
@@ -545,7 +549,7 @@ private:
       , action_{action::none}
       , req_{&req}
       , adapter_{}
-      , cmds_{std::size(req)}
+      , expected_responses_{req.get_expected_responses()}
       , status_{status::none}
       , ec_{{}}
       , read_size_{0}
@@ -554,7 +558,7 @@ private:
 
          adapter_ = [this, adapter](node_type const& nd, system::error_code& ec)
          {
-            auto const i = std::size(*req_) - cmds_;
+            auto const i = req_->get_expected_responses() - expected_responses_;
             adapter(i, nd, ec);
          };
       }
@@ -611,7 +615,7 @@ private:
       wrapped_adapter_type adapter_;
 
       // Contains the number of commands that haven't been read yet.
-      std::size_t cmds_;
+      std::size_t expected_responses_;
       status status_;
 
       system::error_code ec_;
@@ -625,16 +629,16 @@ private:
 
    using reqs_type = std::deque<std::shared_ptr<req_info>>;
 
-   template <class, class> friend struct redis::detail::reader_op;
-   template <class, class> friend struct redis::detail::writer_op;
-   template <class, class> friend struct redis::detail::run_op;
-   template <class> friend struct redis::detail::exec_op;
-   template <class, class, class> friend struct redis::detail::run_all_op;
+   template <class, class> friend struct reader_op;
+   template <class, class> friend struct writer_op;
+   template <class, class> friend struct run_op;
+   template <class> friend struct exec_op;
+   template <class, class, class> friend struct run_all_op;
 
    void cancel_push_requests()
    {
       auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-         return !(ptr->is_staged() && ptr->req_->size() == 0);
+         return !(ptr->is_staged() && ptr->req_->get_expected_responses() == 0);
       });
 
       std::for_each(point, std::end(reqs_), [](auto const& ptr) {
@@ -671,7 +675,7 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(redis::detail::reader_op<this_type, Logger>{this, l}, token, writer_timer_);
+         >(reader_op<this_type, Logger>{this, l}, token, writer_timer_);
    }
 
    template <class CompletionToken, class Logger>
@@ -680,7 +684,7 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(redis::detail::writer_op<this_type, Logger>{this, l}, token, writer_timer_);
+         >(writer_op<this_type, Logger>{this, l}, token, writer_timer_);
    }
 
    template <class Logger, class CompletionToken>
@@ -691,7 +695,7 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(redis::detail::run_op<this_type, Logger>{this, l}, token, writer_timer_);
+         >(run_op<this_type, Logger>{this, l}, token, writer_timer_);
    }
 
    [[nodiscard]] bool coalesce_requests()
@@ -706,7 +710,10 @@ private:
          // Stage the request.
          write_buffer_ += ri->req_->payload();
          ri->mark_staged();
+         usage_.commands_sent += ri->expected_responses_;
       });
+
+      usage_.bytes_sent += std::size(write_buffer_);
 
       return point != std::cend(reqs_);
    }
@@ -758,13 +765,13 @@ private:
       return
          (resp3::to_type(read_buffer_.front()) == resp3::type::push)
           || reqs_.empty()
-          || (!reqs_.empty() && reqs_.front()->cmds_ == 0)
+          || (!reqs_.empty() && reqs_.front()->expected_responses_ == 0)
           || !is_waiting_response(); // Added to deal with MONITOR.
    }
 
    auto get_suggested_buffer_growth() const noexcept
    {
-      return parser_.get_suggested_buffer_growth(1024);
+      return parser_.get_suggested_buffer_growth(4096);
    }
 
    enum class parse_result { needs_more, push, resp };
@@ -773,6 +780,14 @@ private:
 
    parse_ret_type on_finish_parsing(parse_result t)
    {
+      if (t == parse_result::push) {
+         usage_.pushes_received += 1;
+         usage_.push_bytes_received += parser_.get_consumed();
+      } else {
+         usage_.responses_received += 1;
+         usage_.response_bytes_received += parser_.get_consumed();
+      }
+
       on_push_ = false;
       dbuf_.consume(parser_.get_consumed());
       auto const res = std::make_pair(t, parser_.get_consumed());
@@ -808,7 +823,7 @@ private:
       BOOST_ASSERT_MSG(is_waiting_response(), "Not waiting for a response (using MONITOR command perhaps?)");
       BOOST_ASSERT(!reqs_.empty());
       BOOST_ASSERT(reqs_.front() != nullptr);
-      BOOST_ASSERT(reqs_.front()->cmds_ != 0);
+      BOOST_ASSERT(reqs_.front()->expected_responses_ != 0);
 
       if (!resp3::parse(parser_, data, reqs_.front()->adapter_, ec))
          return std::make_pair(parse_result::needs_more, 0);
@@ -821,7 +836,7 @@ private:
 
       reqs_.front()->read_size_ += parser_.get_consumed();
 
-      if (--reqs_.front()->cmds_ == 0) {
+      if (--reqs_.front()->expected_responses_ == 0) {
          // Done with this request.
          reqs_.front()->proceed();
          reqs_.pop_front();
@@ -849,6 +864,8 @@ private:
    reqs_type reqs_;
    resp3::parser parser_{};
    bool on_push_ = false;
+
+   usage usage_;
 };
 
 } // boost::redis::detail
