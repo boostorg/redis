@@ -292,6 +292,10 @@ public:
    void set_receive_response(Response& response)
       { impl_.set_receive_response(response); }
 
+   /// Returns connection usage information.
+   usage get_usage() const noexcept
+      { return impl_.get_usage(); }
+
 private:
    using timer_type =
       asio::basic_waitable_timer<
@@ -393,6 +397,10 @@ public:
    template <class Response>
    void set_receive_response(Response& response)
       { impl_.set_receive_response(response); }
+
+   /// Returns connection usage information.
+   usage get_usage() const noexcept
+      { return impl_.get_usage(); }
 
 private:
    void

@@ -26,6 +26,20 @@ using boost::redis::ignore_t;
 using boost::redis::logger;
 using boost::redis::config;
 using boost::redis::connection;
+using boost::redis::usage;
+
+std::ostream& operator<<(std::ostream& os, usage const& u)
+{
+   os
+      << "Commands sent: " << u.commands_sent << "\n"
+      << "Bytes sent: " << u.bytes_sent << "\n"
+      << "Responses received: " << u.responses_received << "\n"
+      << "Pushes received: " << u.pushes_received << "\n"
+      << "Response bytes received: " << u.response_bytes_received << "\n"
+      << "Push bytes received: " << u.push_bytes_received;
+
+   return os;
+}
 
 auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
 {
@@ -73,10 +87,9 @@ echo_session(
    }
 }
 
-auto async_echo_stress() -> net::awaitable<void>
+auto async_echo_stress(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
    config cfg;
    cfg.health_check_interval = std::chrono::seconds::zero();
    run(conn, cfg,
@@ -117,8 +130,12 @@ auto async_echo_stress() -> net::awaitable<void>
 BOOST_AUTO_TEST_CASE(echo_stress)
 {
    net::io_context ioc;
-   net::co_spawn(ioc, async_echo_stress(), net::detached);
+   auto conn = std::make_shared<connection>(ioc);
+   net::co_spawn(ioc, async_echo_stress(conn), net::detached);
    ioc.run();
+
+   std::cout << "-------------------\n"
+             << conn->get_usage() << std::endl;
 }
 
 #else

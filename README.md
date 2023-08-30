@@ -686,6 +686,10 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   performance improvement where one of my benchmark programs passed
   from 190k/s to 473k/s.
 
+* The connection has a new member `get_usage()` that returns the
+  connection usage information, such as number of bytes writen,
+  received etc.
+
 ### v1.4.2 (incorporates changes to conform the boost review and more)
 
 * Adds `boost::redis::config::database_index` to make it possible to

@@ -30,7 +30,11 @@ public:
     *  @ingroup high-level-api
     */
    enum class level
-   {  /// Emergency
+   {
+      /// Disabled
+      disabled,
+
+      /// Emergency
       emerg,
 
       /// Alert
@@ -60,7 +64,7 @@ public:
     *
     *  @param l Log level.
     */
-   logger(level l = level::info)
+   logger(level l = level::disabled)
    : level_{l}
    {}
 
