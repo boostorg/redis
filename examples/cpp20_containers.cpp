@@ -14,13 +14,17 @@
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-namespace net = boost::asio;
+namespace asio = boost::asio;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
 using boost::redis::ignore;
 using boost::redis::config;
 using boost::redis::connection;
+using boost::asio::awaitable;
+using boost::asio::deferred;
+using boost::asio::detached;
+using boost::asio::consign;
 
 void print(std::map<std::string, std::string> const& cont)
 {
@@ -35,7 +39,7 @@ void print(std::vector<int> const& cont)
 }
 
 // Stores the content of some STL containers in Redis.
-auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto store(std::shared_ptr<connection> conn) -> awaitable<void>
 {
    std::vector<int> vec
       {1, 2, 3, 4, 5, 6};
@@ -47,10 +51,10 @@ auto store(std::shared_ptr<connection> conn) -> net::awaitable<void>
    req.push_range("RPUSH", "rpush-key", vec);
    req.push_range("HSET", "hset-key", map);
 
-   co_await conn->async_exec(req, ignore, net::deferred);
+   co_await conn->async_exec(req, ignore, deferred);
 }
 
-auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto hgetall(std::shared_ptr<connection> conn) -> awaitable<void>
 {
    // A request contains multiple commands.
    request req;
@@ -60,13 +64,13 @@ auto hgetall(std::shared_ptr<connection> conn) -> net::awaitable<void>
    response<std::map<std::string, std::string>> resp;
 
    // Executes the request and reads the response.
-   co_await conn->async_exec(req, resp, net::deferred);
+   co_await conn->async_exec(req, resp, deferred);
 
    print(std::get<0>(resp).value());
 }
 
 // Retrieves in a transaction.
-auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto transaction(std::shared_ptr<connection> conn) -> awaitable<void>
 {
    request req;
    req.push("MULTI");
@@ -81,17 +85,17 @@ auto transaction(std::shared_ptr<connection> conn) -> net::awaitable<void>
       response<std::optional<std::vector<int>>, std::optional<std::map<std::string, std::string>>> // exec
    > resp;
 
-   co_await conn->async_exec(req, resp, net::deferred);
+   co_await conn->async_exec(req, resp, deferred);
 
    print(std::get<0>(std::get<3>(resp).value()).value().value());
    print(std::get<1>(std::get<3>(resp).value()).value().value());
 }
 
 // Called from the main function (see main.cpp)
-net::awaitable<void> co_main(config cfg)
+awaitable<void> co_main(config cfg)
 {
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+   auto conn = std::make_shared<connection>(co_await asio::this_coro::executor);
+   conn->async_run(cfg, {}, consign(detached, conn));
 
    co_await store(conn);
    co_await transaction(conn);

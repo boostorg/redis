@@ -13,20 +13,20 @@
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-namespace net = boost::asio;
+namespace asio = boost::asio;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::config;
 using boost::redis::logger;
 using boost::redis::connection;
 
-auto verify_certificate(bool, net::ssl::verify_context&) -> bool
+auto verify_certificate(bool, asio::ssl::verify_context&) -> bool
 {
    std::cout << "set_verify_callback" << std::endl;
    return true;
 }
 
-auto co_main(config cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> asio::awaitable<void>
 {
    cfg.use_ssl = true;
    cfg.username = "aedis";
@@ -34,18 +34,18 @@ auto co_main(config cfg) -> net::awaitable<void>
    cfg.addr.host = "db.occase.de";
    cfg.addr.port = "6380";
 
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+   auto conn = std::make_shared<connection>(co_await asio::this_coro::executor);
+   conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
 
    request req;
    req.push("PING");
 
    response<std::string> resp;
 
-   conn->next_layer().set_verify_mode(net::ssl::verify_peer);
+   conn->next_layer().set_verify_mode(asio::ssl::verify_peer);
    conn->next_layer().set_verify_callback(verify_certificate);
 
-   co_await conn->async_exec(req, resp, net::deferred);
+   co_await conn->async_exec(req, resp, asio::deferred);
    conn->cancel();
 
    std::cout << "Response: " << std::get<0>(resp).value() << std::endl;

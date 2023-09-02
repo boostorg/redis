@@ -9,7 +9,6 @@
 
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/detail/helper.hpp>
-#include <boost/redis/detail/read.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
@@ -43,6 +42,66 @@
 
 namespace boost::redis::detail
 {
+
+template <class DynamicBuffer>
+std::string_view buffer_view(DynamicBuffer buf) noexcept
+{
+   char const* start = static_cast<char const*>(buf.data(0, buf.size()).data());
+   return std::string_view{start, std::size(buf)};
+}
+
+template <class AsyncReadStream, class DynamicBuffer>
+class append_some_op {
+private:
+   AsyncReadStream& stream_;
+   DynamicBuffer buf_;
+   std::size_t size_ = 0;
+   std::size_t tmp_ = 0;
+   asio::coroutine coro_{};
+
+public:
+   append_some_op(AsyncReadStream& stream, DynamicBuffer buf, std::size_t size)
+   : stream_ {stream}
+   , buf_ {std::move(buf)}
+   , size_{size}
+   { }
+
+   template <class Self>
+   void operator()( Self& self
+                  , system::error_code ec = {}
+                  , std::size_t n = 0)
+   {
+      BOOST_ASIO_CORO_REENTER (coro_)
+      {
+         tmp_ = buf_.size();
+         buf_.grow(size_);
+
+         BOOST_ASIO_CORO_YIELD
+         stream_.async_read_some(buf_.data(tmp_, size_), std::move(self));
+         if (ec) {
+            self.complete(ec, 0);
+            return;
+         }
+
+         buf_.shrink(buf_.size() - tmp_ - n);
+         self.complete({}, n);
+      }
+   }
+};
+
+template <class AsyncReadStream, class DynamicBuffer, class CompletionToken>
+auto
+async_append_some(
+   AsyncReadStream& stream,
+   DynamicBuffer buffer,
+   std::size_t size,
+   CompletionToken&& token)
+{
+   return asio::async_compose
+      < CompletionToken
+      , void(system::error_code, std::size_t)
+      >(append_some_op<AsyncReadStream, DynamicBuffer> {stream, buffer, size}, token, stream);
+}
 
 template <class Conn>
 struct exec_op {
@@ -128,9 +187,7 @@ struct run_op {
    {
       BOOST_ASIO_CORO_REENTER (coro)
       {
-         conn->write_buffer_.clear();
-         conn->read_buffer_.clear();
-         conn->parser_.reset();
+         conn->reset();
 
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
@@ -331,8 +388,6 @@ public:
    using clock_traits_type = asio::wait_traits<clock_type>;
    using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
 
-   using receiver_adapter_type = std::function<void(resp3::basic_node<std::string_view> const&, system::error_code&)>;
-
    using this_type = connection_base<Executor>;
 
    /// Constructs from an executor.
@@ -438,6 +493,7 @@ private:
    using receive_channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
    using runner_type = runner<executor_type>;
    using adapter_type = std::function<void(std::size_t, resp3::basic_node<std::string_view> const&, system::error_code&)>;
+   using receiver_adapter_type = std::function<void(resp3::basic_node<std::string_view> const&, system::error_code&)>;
 
    auto use_ssl() const noexcept
       { return runner_.get_config().use_ssl;}
@@ -726,7 +782,6 @@ private:
    void close()
    {
       if (stream_->next_layer().is_open()) {
-         // TODO: Communicate the error to the caller.
          system::error_code ec;
          stream_->next_layer().close(ec);
       }
@@ -843,6 +898,14 @@ private:
       }
 
       return on_finish_parsing(parse_result::resp);
+   }
+
+   void reset()
+   {
+      write_buffer_.clear();
+      read_buffer_.clear();
+      parser_.reset();
+      on_push_ = false;
    }
 
    asio::ssl::context ctx_;

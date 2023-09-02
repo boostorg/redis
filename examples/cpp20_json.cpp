@@ -23,7 +23,7 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/json/src.hpp>
 
-namespace net = boost::asio;
+namespace asio = boost::asio;
 using namespace boost::describe;
 using boost::redis::request;
 using boost::redis::response;
@@ -48,11 +48,11 @@ void boost_redis_to_bulk(std::string& to, user const& u)
 void boost_redis_from_bulk(user& u, std::string_view sv, boost::system::error_code&)
    { u = boost::json::value_to<user>(boost::json::parse(sv)); }
 
-auto co_main(config cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> asio::awaitable<void>
 {
-   auto ex = co_await net::this_coro::executor;
+   auto ex = co_await asio::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+   conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
 
    // user object that will be stored in Redis in json format.
    user const u{"Joao", "58", "Brazil"};
@@ -64,7 +64,7 @@ auto co_main(config cfg) -> net::awaitable<void>
 
    response<ignore_t, user> resp;
 
-   co_await conn->async_exec(req, resp, net::deferred);
+   co_await conn->async_exec(req, resp, asio::deferred);
    conn->cancel();
 
    // Prints the first ping

@@ -12,8 +12,8 @@
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-namespace net = boost::asio;
-using endpoints = net::ip::tcp::resolver::results_type;
+namespace asio = boost::asio;
+using endpoints = asio::ip::tcp::resolver::results_type;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
@@ -22,18 +22,18 @@ using boost::redis::address;
 using boost::redis::connection;
 
 auto redir(boost::system::error_code& ec)
-   { return net::redirect_error(net::use_awaitable, ec); }
+   { return asio::redirect_error(asio::use_awaitable, ec); }
 
 // For more info see
 // - https://redis.io/docs/manual/sentinel.
 // - https://redis.io/docs/reference/sentinel-clients.
-auto resolve_master_address(std::vector<address> const& addresses) -> net::awaitable<address>
+auto resolve_master_address(std::vector<address> const& addresses) -> asio::awaitable<address>
 {
    request req;
    req.push("SENTINEL", "get-master-addr-by-name", "mymaster");
    req.push("QUIT");
 
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   auto conn = std::make_shared<connection>(co_await asio::this_coro::executor);
 
    response<std::optional<std::array<std::string, 2>>, ignore_t> resp;
    for (auto addr : addresses) {
@@ -43,7 +43,7 @@ auto resolve_master_address(std::vector<address> const& addresses) -> net::await
       // TODO: async_run and async_exec should be lauched in
       // parallel here so we can wait for async_run completion
       // before eventually calling it again.
-      conn->async_run(cfg, {}, net::consign(net::detached, conn));
+      conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
       co_await conn->async_exec(req, resp, redir(ec));
       conn->cancel();
       conn->reset_stream();
@@ -54,7 +54,7 @@ auto resolve_master_address(std::vector<address> const& addresses) -> net::await
    co_return address{};
 }
 
-auto co_main(config cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> asio::awaitable<void>
 {
    // A list of sentinel addresses from which only one is responsive.
    // This simulates sentinels that are down.

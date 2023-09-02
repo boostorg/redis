@@ -19,7 +19,7 @@
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-namespace net = boost::asio;
+namespace asio = boost::asio;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::operation;
@@ -58,11 +58,11 @@ void boost_redis_from_bulk(person& u, std::string_view sv, boost::system::error_
 using tutorial::boost_redis_to_bulk;
 using tutorial::boost_redis_from_bulk;
 
-net::awaitable<void> co_main(config cfg)
+asio::awaitable<void> co_main(config cfg)
 {
-   auto ex = co_await net::this_coro::executor;
+   auto ex = co_await asio::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+   conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
 
    person p;
    p.set_name("Louis");
@@ -76,7 +76,7 @@ net::awaitable<void> co_main(config cfg)
    response<ignore_t, person> resp;
 
    // Sends the request and receives the response.
-   co_await conn->async_exec(req, resp, net::deferred);
+   co_await conn->async_exec(req, resp, asio::deferred);
    conn->cancel();
 
    std::cout
