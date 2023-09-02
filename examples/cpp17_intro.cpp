@@ -8,7 +8,7 @@
 #include <boost/asio/detached.hpp>
 #include <iostream>
 
-namespace net = boost::asio;
+namespace asio = boost::asio;
 using boost::redis::connection;
 using boost::redis::request;
 using boost::redis::response;
@@ -29,10 +29,10 @@ auto main(int argc, char * argv[]) -> int
 
       response<std::string> resp;
 
-      net::io_context ioc;
+      asio::io_context ioc;
       connection conn{ioc};
 
-      conn.async_run(cfg, {}, net::detached);
+      conn.async_run(cfg, {}, asio::detached);
 
       conn.async_exec(req, resp, [&](auto ec, auto) {
          if (!ec)

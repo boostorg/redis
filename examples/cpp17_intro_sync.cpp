@@ -9,7 +9,6 @@
 #include <string>
 #include <iostream>
 
-namespace net = boost::asio;
 using boost::redis::sync_connection;
 using boost::redis::request;
 using boost::redis::response;

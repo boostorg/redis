@@ -18,7 +18,7 @@
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-namespace net = boost::asio;
+namespace asio = boost::asio;
 using namespace std::chrono_literals;
 using boost::redis::request;
 using boost::redis::generic_response;
@@ -27,7 +27,7 @@ using boost::redis::config;
 using boost::redis::ignore;
 using boost::system::error_code;
 using boost::redis::connection;
-using signal_set = net::deferred_t::as_default_on_t<net::signal_set>;
+using signal_set = asio::deferred_t::as_default_on_t<asio::signal_set>;
 
 /* This example will subscribe and read pushes indefinitely.
  *
@@ -47,7 +47,7 @@ using signal_set = net::deferred_t::as_default_on_t<net::signal_set>;
 
 // Receives server pushes.
 auto
-receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
+receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 {
    request req;
    req.push("SUBSCRIBE", "channel");
@@ -59,11 +59,11 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    while (conn->will_reconnect()) {
 
       // Reconnect to channels.
-      co_await conn->async_exec(req, ignore, net::deferred);
+      co_await conn->async_exec(req, ignore, asio::deferred);
 
       // Loop reading Redis pushs messages.
       for (error_code ec;;) {
-         co_await conn->async_receive(net::redirect_error(net::use_awaitable, ec));
+         co_await conn->async_receive(asio::redirect_error(asio::use_awaitable, ec));
          if (ec)
             break; // Connection lost, break so we can reconnect to channels.
          std::cout
@@ -76,12 +76,12 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    }
 }
 
-auto co_main(config cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> asio::awaitable<void>
 {
-   auto ex = co_await net::this_coro::executor;
+   auto ex = co_await asio::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   net::co_spawn(ex, receiver(conn), net::detached);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+   asio::co_spawn(ex, receiver(conn), asio::detached);
+   conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
 
    signal_set sig_set(ex, SIGINT, SIGTERM);
    co_await sig_set.async_wait();

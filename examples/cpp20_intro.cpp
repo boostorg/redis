@@ -13,17 +13,17 @@
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-namespace net = boost::asio;
+namespace asio = boost::asio;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::config;
 using boost::redis::connection;
 
 // Called from the main function (see main.cpp)
-auto co_main(config cfg) -> net::awaitable<void>
+auto co_main(config cfg) -> asio::awaitable<void>
 {
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+   auto conn = std::make_shared<connection>(co_await asio::this_coro::executor);
+   conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
 
    // A request containing only a ping command.
    request req;
@@ -33,7 +33,7 @@ auto co_main(config cfg) -> net::awaitable<void>
    response<std::string> resp;
 
    // Executes the request.
-   co_await conn->async_exec(req, resp, net::deferred);
+   co_await conn->async_exec(req, resp, asio::deferred);
    conn->cancel();
 
    std::cout << "PING: " << std::get<0>(resp).value() << std::endl;

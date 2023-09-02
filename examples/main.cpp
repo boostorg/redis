@@ -11,13 +11,13 @@
 #include <boost/asio/io_context.hpp>
 #include <iostream>
 
-namespace net = boost::asio;
+namespace asio = boost::asio;
 using boost::redis::config;
 using boost::redis::logger;
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-extern net::awaitable<void> co_main(config);
+extern asio::awaitable<void> co_main(config);
 
 auto main(int argc, char * argv[]) -> int
 {
@@ -29,8 +29,8 @@ auto main(int argc, char * argv[]) -> int
          cfg.addr.port = argv[2];
       }
 
-      net::io_context ioc;
-      net::co_spawn(ioc, co_main(cfg), [](std::exception_ptr p) {
+      asio::io_context ioc;
+      asio::co_spawn(ioc, co_main(cfg), [](std::exception_ptr p) {
          if (p)
             std::rethrow_exception(p);
       });
