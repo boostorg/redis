@@ -116,7 +116,8 @@ public:
       }
    }
 
-   void count(resp3::basic_node<std::string_view> const& nd)
+   template <class String>
+   void count(resp3::basic_node<String> const& nd)
    {
       if (nd.depth == 1) {
          if (is_aggregate(nd.data_type))
@@ -131,7 +132,8 @@ public:
          ++i_;
    }
 
-   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code& ec)
+   template <class String>
+   void operator()(resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       using std::visit;
 

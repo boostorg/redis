@@ -589,3 +589,16 @@ BOOST_AUTO_TEST_CASE(adapter)
    BOOST_CHECK_EQUAL(std::get<1>(resp).value(), 42);
    BOOST_TEST(!ec);
 }
+
+// TODO: This was an experiment, I will resume implementing this
+// later.
+BOOST_AUTO_TEST_CASE(adapter_as)
+{
+   result<std::set<std::string>> set;
+   auto adapter = adapt2(set);
+
+   for (auto const& e: set_expected1a.value()) {
+      error_code ec;
+      adapter(e, ec);
+   }
+}

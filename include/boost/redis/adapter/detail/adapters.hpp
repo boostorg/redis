@@ -92,7 +92,8 @@ private:
 
 public:
    explicit general_aggregate(Result* c = nullptr): result_(c) {}
-   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code&)
+   template <class String>
+   void operator()(resp3::basic_node<String> const& nd, system::error_code&)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
       switch (nd.data_type) {
@@ -114,7 +115,8 @@ private:
 public:
    explicit general_simple(Node* t = nullptr) : result_(t) {}
 
-   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code&)
+   template <class String>
+   void operator()(resp3::basic_node<String> const& nd, system::error_code&)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
       switch (nd.data_type) {
@@ -136,10 +138,11 @@ class simple_impl {
 public:
    void on_value_available(Result&) {}
 
+   template <class String>
    void
    operator()(
       Result& result,
-      resp3::basic_node<std::string_view> const& n,
+      resp3::basic_node<String> const& n,
       system::error_code& ec)
    {
       if (is_aggregate(n.data_type)) {
@@ -160,10 +163,11 @@ public:
    void on_value_available(Result& result)
       { hint_ = std::end(result); }
 
+   template <class String>
    void
    operator()(
       Result& result,
-      resp3::basic_node<std::string_view> const& nd,
+      resp3::basic_node<String> const& nd,
       system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
@@ -195,10 +199,11 @@ public:
    void on_value_available(Result& result)
       { current_ = std::end(result); }
 
+   template <class String>
    void
    operator()(
       Result& result,
-      resp3::basic_node<std::string_view> const& nd,
+      resp3::basic_node<String> const& nd,
       system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
@@ -233,10 +238,11 @@ class vector_impl {
 public:
    void on_value_available(Result& ) { }
 
+   template <class String>
    void
    operator()(
       Result& result,
-      resp3::basic_node<std::string_view> const& nd,
+      resp3::basic_node<String> const& nd,
       system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
@@ -257,10 +263,11 @@ private:
 public:
    void on_value_available(Result& ) { }
 
+   template <class String>
    void
    operator()(
       Result& result,
-      resp3::basic_node<std::string_view> const& nd,
+      resp3::basic_node<String> const& nd,
       system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
@@ -292,10 +299,11 @@ struct list_impl {
 
    void on_value_available(Result& ) { }
 
+   template <class String>
    void
    operator()(
       Result& result,
-      resp3::basic_node<std::string_view> const& nd,
+      resp3::basic_node<String> const& nd,
       system::error_code& ec)
    {
       if (!is_aggregate(nd.data_type)) {
@@ -365,7 +373,8 @@ private:
    response_type* result_;
    typename impl_map<Result>::type impl_;
 
-   bool set_if_resp3_error(resp3::basic_node<std::string_view> const& nd) noexcept
+   template <class String>
+   bool set_if_resp3_error(resp3::basic_node<String> const& nd) noexcept
    {
       switch (nd.data_type) {
          case resp3::type::null:
@@ -387,9 +396,10 @@ public:
       }
    }
 
+   template <class String>
    void
    operator()(
-      resp3::basic_node<std::string_view> const& nd,
+      resp3::basic_node<String> const& nd,
       system::error_code& ec)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
@@ -414,7 +424,8 @@ private:
    response_type* result_;
    typename impl_map<T>::type impl_{};
 
-   bool set_if_resp3_error(resp3::basic_node<std::string_view> const& nd) noexcept
+   template <class String>
+   bool set_if_resp3_error(resp3::basic_node<String> const& nd) noexcept
    {
       switch (nd.data_type) {
          case resp3::type::blob_error:
@@ -429,9 +440,10 @@ private:
 public:
    explicit wrapper(response_type* o = nullptr) : result_(o) {}
 
+   template <class String>
    void
    operator()(
-      resp3::basic_node<std::string_view> const& nd,
+      resp3::basic_node<String> const& nd,
       system::error_code& ec)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
