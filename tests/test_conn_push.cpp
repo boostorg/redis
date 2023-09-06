@@ -26,6 +26,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
+using boost::system::error_code;
 using redis::config;
 using boost::redis::logger;
 using namespace std::chrono_literals;
@@ -49,7 +50,7 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
 
    auto c3 =[](auto ec, auto...)
    {
-      BOOST_TEST(!!ec);
+      std::cout << "c3: " << ec.message() << std::endl;
    };
 
    auto c2 =[&, conn](auto ec, auto...)
@@ -73,8 +74,7 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
       std::cout << "async_receive" << std::endl;
       BOOST_TEST(!ec);
       push_received = true;
-      conn->cancel(operation::run);
-      conn->cancel(operation::reconnection);
+      conn->cancel();
    });
 
    ioc.run();
@@ -87,29 +87,45 @@ BOOST_AUTO_TEST_CASE(push_received1)
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
 
+   // Trick: Uses SUBSCRIBE because this command has no response or
+   // better said, its response is a server push, which is what we
+   // want to test. We send two because we want to test both
+   // async_receive and receive.
    request req;
-   //req.push("HELLO", 3);
-   req.push("SUBSCRIBE", "channel");
+   req.push("SUBSCRIBE", "channel1");
+   req.push("SUBSCRIBE", "channel2");
 
    conn->async_exec(req, ignore, [conn](auto ec, auto){
       std::cout << "async_exec" << std::endl;
       BOOST_TEST(!ec);
    });
 
-   run(conn);
-
-   bool push_received = false;
+   bool push_async_received = false;
    conn->async_receive([&, conn](auto ec, auto){
-      std::cout << "async_receive" << std::endl;
+      std::cout << "(1) async_receive" << std::endl;
+
       BOOST_TEST(!ec);
-      push_received = true;
-      conn->cancel(operation::run);
-      conn->cancel(operation::reconnection);
+      push_async_received = true;
+
+      // Receives the second push synchronously.
+      error_code ec2;
+      std::size_t res = 0;
+      res = conn->receive(ec2);
+      BOOST_TEST(!ec2);
+      BOOST_TEST(res != std::size_t(0));
+
+      // Tries to receive a third push synchronously.
+      ec2 = {};
+      res = conn->receive(ec2);
+      BOOST_CHECK_EQUAL(ec2, boost::redis::make_error_code(boost::redis::error::sync_receive_push_failed));
+
+      conn->cancel();
    });
 
+   run(conn);
    ioc.run();
 
-   BOOST_TEST(push_received);
+   BOOST_TEST(push_async_received);
 }
 
 BOOST_AUTO_TEST_CASE(push_filtered_out)

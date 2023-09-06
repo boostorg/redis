@@ -24,8 +24,7 @@ namespace boost::redis::adapter::detail
 class ignore_adapter {
 public:
    template <class String>
-   void
-   operator()(std::size_t, resp3::basic_node<String> const& nd, system::error_code& ec)
+   void operator()(std::size_t, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       switch (nd.data_type) {
          case resp3::type::simple_error: ec = redis::error::resp3_simple_error; break;
@@ -61,11 +60,7 @@ public:
       { return size;}
 
    template <class String>
-   void
-   operator()(
-      std::size_t i,
-      resp3::basic_node<String> const& nd,
-      system::error_code& ec)
+   void operator()(std::size_t i, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       using std::visit;
       // I am usure whether this should be an error or an assertion.
@@ -91,11 +86,7 @@ public:
       { return static_cast<std::size_t>(-1);}
 
    template <class String>
-   void
-   operator()(
-      std::size_t,
-      resp3::basic_node<String> const& nd,
-      system::error_code& ec)
+   void operator()(std::size_t, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       adapter_(nd, ec);
    }

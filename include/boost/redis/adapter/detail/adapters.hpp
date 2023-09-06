@@ -139,11 +139,7 @@ public:
    void on_value_available(Result&) {}
 
    template <class String>
-   void
-   operator()(
-      Result& result,
-      resp3::basic_node<String> const& n,
-      system::error_code& ec)
+   void operator()(Result& result, resp3::basic_node<String> const& n, system::error_code& ec)
    {
       if (is_aggregate(n.data_type)) {
          ec = redis::error::expects_resp3_simple_type;
@@ -164,11 +160,7 @@ public:
       { hint_ = std::end(result); }
 
    template <class String>
-   void
-   operator()(
-      Result& result,
-      resp3::basic_node<String> const& nd,
-      system::error_code& ec)
+   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
          if (nd.data_type != resp3::type::set)
@@ -200,11 +192,7 @@ public:
       { current_ = std::end(result); }
 
    template <class String>
-   void
-   operator()(
-      Result& result,
-      resp3::basic_node<String> const& nd,
-      system::error_code& ec)
+   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
          if (element_multiplicity(nd.data_type) != 2)
@@ -239,11 +227,7 @@ public:
    void on_value_available(Result& ) { }
 
    template <class String>
-   void
-   operator()(
-      Result& result,
-      resp3::basic_node<String> const& nd,
-      system::error_code& ec)
+   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
          auto const m = element_multiplicity(nd.data_type);
@@ -264,11 +248,7 @@ public:
    void on_value_available(Result& ) { }
 
    template <class String>
-   void
-   operator()(
-      Result& result,
-      resp3::basic_node<String> const& nd,
-      system::error_code& ec)
+   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
 	 if (i_ != -1) {
@@ -300,11 +280,7 @@ struct list_impl {
    void on_value_available(Result& ) { }
 
    template <class String>
-   void
-   operator()(
-      Result& result,
-      resp3::basic_node<String> const& nd,
-      system::error_code& ec)
+   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (!is_aggregate(nd.data_type)) {
         BOOST_ASSERT(nd.aggregate_size == 1);
@@ -397,10 +373,7 @@ public:
    }
 
    template <class String>
-   void
-   operator()(
-      resp3::basic_node<String> const& nd,
-      system::error_code& ec)
+   void operator()(resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
 

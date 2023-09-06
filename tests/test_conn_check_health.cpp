@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/response.hpp>
 #include <boost/system/errc.hpp>
 #define BOOST_TEST_MODULE check-health
 #include <boost/test/included/unit_test.hpp>
@@ -21,6 +22,7 @@ using boost::redis::ignore;
 using boost::redis::operation;
 using boost::redis::generic_response;
 using boost::redis::logger;
+using boost::redis::consume_one;
 using redis::config;
 
 // TODO: Test cancel(health_check) 
@@ -39,7 +41,6 @@ struct push_callback {
    {
       BOOST_ASIO_CORO_REENTER (coro) for (;;)
       {
-         resp2->value().clear();
          BOOST_ASIO_CORO_YIELD
          conn2->async_receive(*this);
          if (ec) {
@@ -50,6 +51,7 @@ struct push_callback {
          BOOST_TEST(resp2->has_value());
          BOOST_TEST(!resp2->value().empty());
          std::clog << "Event> " << resp2->value().front().value << std::endl;
+         consume_one(*resp2);
 
          ++i;
 

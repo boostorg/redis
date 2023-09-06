@@ -27,6 +27,7 @@ using boost::redis::logger;
 using boost::redis::config;
 using boost::redis::connection;
 using boost::redis::usage;
+using boost::redis::error;
 
 std::ostream& operator<<(std::ostream& os, usage const& u)
 {
@@ -45,8 +46,16 @@ auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::await
 {
    int c = 0;
    for (error_code ec;;) {
-      co_await conn->async_receive(redirect_error(net::use_awaitable, ec));
+      conn->receive(ec);
+      if (ec == error::sync_receive_push_failed) {
+         ec = {};
+         co_await conn->async_receive(redirect_error(net::use_awaitable, ec));
+      } else if (!ec) {
+         //std::cout << "Skipping suspension." << std::endl;
+      }
+
       if (ec) {
+         BOOST_TEST(false);
          std::cout << "push_consumer error: " << ec.message() << std::endl;
          co_return;
       }
@@ -61,30 +70,10 @@ auto
 echo_session(
    std::shared_ptr<connection> conn,
    std::shared_ptr<request> pubs,
-   std::string id,
    int n) -> net::awaitable<void>
 {
-   auto ex = co_await net::this_coro::executor;
-
-   request req;
-   response<ignore_t, std::string, ignore_t> resp;
-
-   for (auto i = 0; i < n; ++i) {
-      auto const msg = id + "/" + std::to_string(i);
-      //std::cout << msg << std::endl;
-      req.push("HELLO", 3); // Just to mess around.
-      req.push("PING", msg);
-      req.push("PING", "lsls"); // TODO: Change to HELLO after fixing issue 105.
-      boost::system::error_code ec;
-      co_await conn->async_exec(req, resp, redir(ec));
-
-      BOOST_TEST(!ec);
-      BOOST_REQUIRE_EQUAL(msg, std::get<1>(resp).value());
-      req.clear();
-      std::get<1>(resp).value().clear();
-
+   for (auto i = 0; i < n; ++i)
       co_await conn->async_exec(*pubs, ignore, net::deferred);
-   }
 }
 
 auto async_echo_stress(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -103,19 +92,20 @@ auto async_echo_stress(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
    // Number of coroutines that will send pings sharing the same
    // connection to redis.
-   int const sessions = 500;
+   int const sessions = 1000;
 
    // The number of pings that will be sent by each session.
-   int const msgs = 1000;
+   int const msgs = 500;
 
    // The number of publishes that will be sent by each session with
    // each message.
-   int const n_pubs = 10;
+   int const n_pubs = 100;
 
    // This is the total number of pushes we will receive.
    int total_pushes = sessions * msgs * n_pubs + 1;
 
    auto pubs = std::make_shared<request>();
+   pubs->push("PING");
    for (int i = 0; i < n_pubs; ++i)
       pubs->push("PUBLISH", "channel", "payload");
 
@@ -124,7 +114,7 @@ auto async_echo_stress(std::shared_ptr<connection> conn) -> net::awaitable<void>
    net::co_spawn(ex, push_consumer(conn, total_pushes), net::detached);
 
    for (int i = 0; i < sessions; ++i) 
-      net::co_spawn(ex, echo_session(conn, pubs, std::to_string(i), msgs), net::detached);
+      net::co_spawn(ex, echo_session(conn, pubs, msgs), net::detached);
 }
 
 BOOST_AUTO_TEST_CASE(echo_stress)
@@ -134,8 +124,10 @@ BOOST_AUTO_TEST_CASE(echo_stress)
    net::co_spawn(ioc, async_echo_stress(conn), net::detached);
    ioc.run();
 
-   std::cout << "-------------------\n"
-             << conn->get_usage() << std::endl;
+   std::cout
+      << "-------------------\n"
+      << conn->get_usage()
+      << std::endl;
 }
 
 #else

@@ -348,8 +348,10 @@ struct reader_op {
          }
 
          if (res_.first == parse_result::push) {
-            BOOST_ASIO_CORO_YIELD
-            conn_->receive_channel_.async_send(ec, res_.second, std::move(self));
+            if (!conn_->receive_channel_.try_send(ec, res_.second)) {
+               BOOST_ASIO_CORO_YIELD
+               conn_->receive_channel_.async_send(ec, res_.second, std::move(self));
+            }
 
             if (ec) {
                logger_.trace("reader-op: error. Exiting ...");
@@ -398,7 +400,7 @@ public:
    : ctx_{method}
    , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
    , writer_timer_{ex}
-   , receive_channel_{ex}
+   , receive_channel_{ex, 256}
    , runner_{ex, {}}
    , dbuf_{read_buffer_, max_read_size}
    {
@@ -469,6 +471,26 @@ public:
    template <class CompletionToken>
    auto async_receive(CompletionToken token)
       { return receive_channel_.async_receive(std::move(token)); }
+
+   std::size_t receive(system::error_code& ec)
+   {
+      std::size_t size = 0;
+
+      auto f = [&](system::error_code const& ec2, std::size_t n)
+      {
+         ec = ec2;
+         size = n;
+      };
+
+      auto const res = receive_channel_.try_receive(f);
+      if (ec)
+         return 0;
+
+      if (!res)
+         ec = error::sync_receive_push_failed;
+
+      return size;
+   }
 
    template <class Logger, class CompletionToken>
    auto async_run(config const& cfg, Logger l, CompletionToken token)
