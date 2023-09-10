@@ -188,6 +188,23 @@ public:
    auto async_receive(CompletionToken token = CompletionToken{})
       { return impl_.async_receive(std::move(token)); }
 
+   
+   /** @brief Receives server pushes synchronously without blocking.
+    *
+    *  Receives a server push synchronously by calling `try_receive` on
+    *  the underlying channel. If the operation fails because
+    *  `try_receive` returns `false`, `ec` will be set to
+    *  `boost::redis::error::sync_receive_push_failed`.
+    *
+    *  @param ec Contains the error if any occurred.
+    *
+    *  @returns The number of bytes read from the socket.
+    */
+   std::size_t receive(system::error_code& ec)
+   {
+      return impl_.receive(ec);
+   }
+
    template <
       class Response = ignore_t,
       class CompletionToken = asio::default_completion_token_t<executor_type>
@@ -366,6 +383,12 @@ public:
    template <class CompletionToken>
    auto async_receive(CompletionToken token)
       { return impl_.async_receive(std::move(token)); }
+
+   /// Calls `boost::redis::basic_connection::receive`.
+   std::size_t receive(system::error_code& ec)
+   {
+      return impl_.receive(ec);
+   }
 
    /// Calls `boost::redis::basic_connection::async_exec`.
    template <class Response, class CompletionToken>

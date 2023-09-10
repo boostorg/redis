@@ -674,21 +674,33 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 
 ## Changelog
 
-### develop (incorporates changes to conform the boost review and more)
+### develop
 
 * Deprecates the `async_receive` overload that takes a response. Users
-  should now first call `set_receive_response` to avoid contantly seting
-  the same response.
+  should now first call `set_receive_response` to avoid constantly and
+  unnecessarily setting the same response.
 
 * Uses `std::function` to type erase the response adapter. This change
   should not influence users in any way but allowed important
-  simplification in the connections internals. This resulted in big
-  performance improvement where one of my benchmark programs passed
-  from 190k/s to 473k/s.
+  simplification in the connections internals. This resulted in
+  massive performance improvement.
 
 * The connection has a new member `get_usage()` that returns the
-  connection usage information, such as number of bytes writen,
+  connection usage information, such as number of bytes written,
   received etc.
+
+* There are massive performance improvements in the consuming of
+  server pushes which are now communicated with an `asio::channel` and
+  therefore can be buffered which avoids blocking the socket read-loop.
+  Batch reads are also supported by means of `channel.try_send` and
+  buffered messages can be consumed synchronously with
+  `connection::receive`. The function `boost::redis::cancel_one` has
+  been added to simplify processing multiple server pushes contained
+  in the same `generic_response`.  *IMPORTANT*: These changes may
+  result in more than one push in the response when
+  `connection::async_receive` resumes. The user must therefore be
+  careful when calling `resp.clear()`: either ensure that all message
+  have been processed or just use `consume_one`.
 
 ### v1.4.2 (incorporates changes to conform the boost review and more)
 

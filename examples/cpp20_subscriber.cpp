@@ -22,9 +22,11 @@ namespace asio = boost::asio;
 using namespace std::chrono_literals;
 using boost::redis::request;
 using boost::redis::generic_response;
+using boost::redis::consume_one;
 using boost::redis::logger;
 using boost::redis::config;
 using boost::redis::ignore;
+using boost::redis::error;
 using boost::system::error_code;
 using boost::redis::connection;
 using signal_set = asio::deferred_t::as_default_on_t<asio::signal_set>;
@@ -58,20 +60,28 @@ receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    // Loop while reconnection is enabled
    while (conn->will_reconnect()) {
 
-      // Reconnect to channels.
+      // Reconnect to the channels.
       co_await conn->async_exec(req, ignore, asio::deferred);
 
       // Loop reading Redis pushs messages.
       for (error_code ec;;) {
-         co_await conn->async_receive(asio::redirect_error(asio::use_awaitable, ec));
+         // First tries to read any buffered pushes.
+         conn->receive(ec);
+         if (ec == error::sync_receive_push_failed) {
+            ec = {};
+            co_await conn->async_receive(asio::redirect_error(asio::use_awaitable, ec));
+         }
+
          if (ec)
             break; // Connection lost, break so we can reconnect to channels.
+
          std::cout
             << resp.value().at(1).value
             << " " << resp.value().at(2).value
             << " " << resp.value().at(3).value
             << std::endl;
-         resp.value().clear();
+
+         consume_one(resp);
       }
    }
 }

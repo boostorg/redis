@@ -23,8 +23,8 @@ namespace boost::redis::adapter::detail
 
 class ignore_adapter {
 public:
-   void
-   operator()(std::size_t, resp3::basic_node<std::string_view> const& nd, system::error_code& ec)
+   template <class String>
+   void operator()(std::size_t, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       switch (nd.data_type) {
          case resp3::type::simple_error: ec = redis::error::resp3_simple_error; break;
@@ -59,11 +59,8 @@ public:
    auto get_supported_response_size() const noexcept
       { return size;}
 
-   void
-   operator()(
-      std::size_t i,
-      resp3::basic_node<std::string_view> const& nd,
-      system::error_code& ec)
+   template <class String>
+   void operator()(std::size_t i, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       using std::visit;
       // I am usure whether this should be an error or an assertion.
@@ -88,11 +85,8 @@ public:
    get_supported_response_size() const noexcept
       { return static_cast<std::size_t>(-1);}
 
-   void
-   operator()(
-      std::size_t,
-      resp3::basic_node<std::string_view> const& nd,
-      system::error_code& ec)
+   template <class String>
+   void operator()(std::size_t, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       adapter_(nd, ec);
    }
@@ -142,7 +136,8 @@ class wrapper {
 public:
    explicit wrapper(Adapter adapter) : adapter_{adapter} {}
 
-   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code& ec)
+   template <class String>
+   void operator()(resp3::basic_node<String> const& nd, system::error_code& ec)
       { return adapter_(0, nd, ec); }
 
    [[nodiscard]]

@@ -21,5 +21,5 @@ run(
    boost::redis::config cfg = {},
    boost::system::error_code ec = boost::asio::error::operation_aborted,
    boost::redis::operation op = boost::redis::operation::receive,
-   boost::redis::logger::level l = boost::redis::logger::level::info);
+   boost::redis::logger::level l = boost::redis::logger::level::disabled);
 

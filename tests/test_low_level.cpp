@@ -30,15 +30,17 @@ namespace resp3 = boost::redis::resp3;
 using boost::system::error_code;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::adapter::result;
 using boost::redis::resp3::parser;
 using boost::redis::resp3::parse;
+using boost::redis::consume_one;
+using boost::redis::error;
 
 using boost::redis::adapter::adapt2;
 using node_type = result<resp3::node>;
-using vec_node_type = result<std::vector<resp3::node>>;
 using vec_type = result<std::vector<std::string>>;
 using op_vec_type = result<std::optional<std::vector<std::string>>>;
 
@@ -154,7 +156,7 @@ result<std::optional<bool>> op_bool_ok = true;
 
 // TODO: Test a streamed string that is not finished with a string of
 // size 0 but other command comes in.
-vec_node_type streamed_string_e1
+generic_response streamed_string_e1
 {{ {boost::redis::resp3::type::streamed_string, 0, 1, ""}
 , {boost::redis::resp3::type::streamed_string_part, 1, 1, "Hell"}
 , {boost::redis::resp3::type::streamed_string_part, 1, 1, "o wor"}
@@ -162,10 +164,10 @@ vec_node_type streamed_string_e1
 , {boost::redis::resp3::type::streamed_string_part, 1, 1, ""}
 }};
 
-vec_node_type streamed_string_e2
+generic_response streamed_string_e2
 {{{resp3::type::streamed_string, 0UL, 1UL, {}}, {resp3::type::streamed_string_part, 1UL, 1UL, {}} }};
 
-vec_node_type const push_e1a
+generic_response const push_e1a
   {{ {resp3::type::push,          4UL, 0UL, {}}
    , {resp3::type::simple_string, 1UL, 1UL, "pubsub"}
    , {resp3::type::simple_string, 1UL, 1UL, "message"}
@@ -173,10 +175,10 @@ vec_node_type const push_e1a
    , {resp3::type::simple_string, 1UL, 1UL, "some message"}
   }};
 
-vec_node_type const push_e1b
+generic_response const push_e1b
    {{{resp3::type::push, 0UL, 0UL, {}}}};
 
-vec_node_type const set_expected1a
+generic_response const set_expected1a
    {{{resp3::type::set,            6UL, 0UL, {}}
    , {resp3::type::simple_string,  1UL, 1UL, {"orange"}}
    , {resp3::type::simple_string,  1UL, 1UL, {"apple"}}
@@ -192,7 +194,7 @@ muset_type const set_e1g{{"apple", "one", "orange", "orange", "three", "two"}};
 vec_type const set_e1d = {{"orange", "apple", "one", "two", "three", "orange"}};
 op_vec_type const set_expected_1e = set_e1d;
 
-vec_node_type const array_e1a
+generic_response const array_e1a
 {{ {resp3::type::array,       3UL, 0UL, {}}
    , {resp3::type::blob_string, 1UL, 1UL, {"11"}}
    , {resp3::type::blob_string, 1UL, 1UL, {"22"}}
@@ -202,12 +204,12 @@ vec_node_type const array_e1a
 result<std::vector<int>> const array_e1b{{11, 22, 3}};
 result<std::vector<std::string>> const array_e1c{{"11", "22", "3"}};
 result<std::vector<std::string>> const array_e1d{};
-vec_node_type const array_e1e{{{resp3::type::array, 0UL, 0UL, {}}}};
+generic_response const array_e1e{{{resp3::type::array, 0UL, 0UL, {}}}};
 array_type const array_e1f{{11, 22, 3}};
 result<std::list<int>> const array_e1g{{11, 22, 3}};
 result<std::deque<int>> const array_e1h{{11, 22, 3}};
 
-vec_node_type const map_expected_1a
+generic_response const map_expected_1a
 {{ {resp3::type::map,         4UL, 0UL, {}}
 , {resp3::type::blob_string, 1UL, 1UL, {"key1"}}
 , {resp3::type::blob_string, 1UL, 1UL, {"value1"}}
@@ -263,7 +265,7 @@ tuple8_type const map_e1f
 , std::string{"key3"}, std::string{"value3"}
 };
 
-vec_node_type const attr_e1a
+generic_response const attr_e1a
 {{ {resp3::type::attribute,     1UL, 0UL, {}}
    , {resp3::type::simple_string, 1UL, 1UL, "key-popularity"}
    , {resp3::type::map,           2UL, 1UL, {}}
@@ -273,7 +275,7 @@ vec_node_type const attr_e1a
    , {resp3::type::doublean,      1UL, 2UL, "0.0012"}
 }  };
 
-vec_node_type const attr_e1b
+generic_response const attr_e1b
    {{{resp3::type::attribute, 0UL, 0UL, {}} }};
 
 #define S01a  "#11\r\n"
@@ -407,7 +409,7 @@ vec_node_type const attr_e1b
    test(make_expected(S04e, array_type2{}, boost::redis::error::incompatible_size));\
    test(make_expected(S04e, tuple_int_2{}, boost::redis::error::incompatible_size));\
    test(make_expected(S04f, array_type2{}, boost::redis::error::nested_aggregate_not_supported));\
-   test(make_expected(S04g, vec_node_type{}, boost::redis::error::exceeeds_max_nested_depth));\
+   test(make_expected(S04g, generic_response{}, boost::redis::error::exceeeds_max_nested_depth));\
    test(make_expected(S04h, array_e1d));\
    test(make_expected(S04h, array_e1e));\
    test(make_expected(S04i, set_type{}, boost::redis::error::expects_resp3_set)); \
@@ -418,7 +420,7 @@ vec_node_type const attr_e1b
    test(make_expected(S09a, set_expected1a)); \
    test(make_expected(S09a, set_expected_1e)); \
    test(make_expected(S09a, set_type{{"apple", "one", "orange", "three", "two"}})); \
-   test(make_expected(S09b, vec_node_type{{{resp3::type::set,  0UL, 0UL, {}}}})); \
+   test(make_expected(S09b, generic_response{{{resp3::type::set,  0UL, 0UL, {}}}})); \
    test(make_expected(S03c, map_type{}));\
    test(make_expected(S11a, node_type{{resp3::type::doublean, 1UL, 0UL, {"1.23"}}}));\
    test(make_expected(S11b, node_type{{resp3::type::doublean, 1UL, 0UL, {"inf"}}}));\
@@ -496,7 +498,7 @@ void check_error(char const* name, boost::redis::error ev)
       static_cast<std::underlying_type<boost::redis::error>::type>(ev)));
 }
 
-BOOST_AUTO_TEST_CASE(error)
+BOOST_AUTO_TEST_CASE(cover_error)
 {
    check_error("boost.redis", boost::redis::error::invalid_data_type);
    check_error("boost.redis", boost::redis::error::not_a_number);
@@ -514,6 +516,12 @@ BOOST_AUTO_TEST_CASE(error)
    check_error("boost.redis", boost::redis::error::not_a_double);
    check_error("boost.redis", boost::redis::error::resp3_null);
    check_error("boost.redis", boost::redis::error::not_connected);
+   check_error("boost.redis", boost::redis::error::resolve_timeout);
+   check_error("boost.redis", boost::redis::error::connect_timeout);
+   check_error("boost.redis", boost::redis::error::pong_timeout);
+   check_error("boost.redis", boost::redis::error::ssl_handshake_timeout);
+   check_error("boost.redis", boost::redis::error::sync_receive_push_failed);
+   check_error("boost.redis", boost::redis::error::incompatible_node_depth);
 }
 
 std::string get_type_as_str(boost::redis::resp3::type t)
@@ -588,4 +596,72 @@ BOOST_AUTO_TEST_CASE(adapter)
 
    BOOST_CHECK_EQUAL(std::get<1>(resp).value(), 42);
    BOOST_TEST(!ec);
+}
+
+// TODO: This was an experiment, I will resume implementing this
+// later.
+BOOST_AUTO_TEST_CASE(adapter_as)
+{
+   result<std::set<std::string>> set;
+   auto adapter = adapt2(set);
+
+   for (auto const& e: set_expected1a.value()) {
+      error_code ec;
+      adapter(e, ec);
+   }
+}
+
+BOOST_AUTO_TEST_CASE(cancel_one_1)
+{
+   auto resp = push_e1a;
+   BOOST_TEST(resp.has_value());
+
+   consume_one(resp);
+   BOOST_TEST(resp.value().empty());
+}
+
+BOOST_AUTO_TEST_CASE(cancel_one_empty)
+{
+   generic_response resp;
+   BOOST_TEST(resp.has_value());
+
+   consume_one(resp);
+   BOOST_TEST(resp.value().empty());
+}
+
+BOOST_AUTO_TEST_CASE(cancel_one_has_error)
+{
+   generic_response resp = boost::redis::adapter::error{resp3::type::simple_string, {}};
+   BOOST_TEST(resp.has_error());
+
+   consume_one(resp);
+   BOOST_TEST(resp.has_error());
+}
+
+BOOST_AUTO_TEST_CASE(cancel_one_has_does_not_consume_past_the_end)
+{
+   auto resp = push_e1a;
+   BOOST_TEST(resp.has_value());
+   resp.value().insert(
+      std::cend(resp.value()),
+      std::cbegin(push_e1a.value()),
+      std::cend(push_e1a.value()));
+
+   consume_one(resp);
+
+   BOOST_CHECK_EQUAL(resp.value().size(), push_e1a.value().size());
+}
+
+BOOST_AUTO_TEST_CASE(cancel_one_incompatible_depth)
+{
+   auto resp = streamed_string_e1;
+   BOOST_TEST(resp.has_value());
+
+   error_code ec;
+   consume_one(resp, ec);
+
+   error_code expected = error::incompatible_node_depth;
+   BOOST_CHECK_EQUAL(ec, expected);
+
+   BOOST_CHECK_EQUAL(resp.value().size(), push_e1a.value().size());
 }
