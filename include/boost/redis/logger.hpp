@@ -117,8 +117,8 @@ public:
    /** @brief Called when the run operation completes.
     *  @ingroup high-level-api
     *
-    *  @param read_ec Error code returned by the read operation.
-    *  @param write_ec Error code returned by the write operation.
+    *  @param reader_ec Error code returned by the read operation.
+    *  @param writer_ec Error code returned by the write operation.
     */
    void on_run(system::error_code const& reader_ec, system::error_code const& writer_ec);
 

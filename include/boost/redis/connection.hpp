@@ -171,7 +171,6 @@ public:
     *  To cancel an ongoing receive operation apps should call
     *  `connection::cancel(operation::receive)`.
     *
-    *  @param response Response object.
     *  @param token Completion token.
     *
     *  For an example see cpp20_subscriber.cpp. The completion token must
@@ -264,7 +263,6 @@ public:
     *  @li operation::all: Cancels all operations listed above.
     *
     *  @param op: The operation to be cancelled.
-    *  @returns The number of operations that have been canceled.
     */
    void cancel(operation op = operation::all)
    {

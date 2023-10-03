@@ -54,7 +54,7 @@ using generic_response = adapter::result<std::vector<resp3::node>>;
  * std::cout << "PING: " << resp.value().front().value << std::endl;
  * consume_one(resp);
  * std::cout << "PING: " << resp.value().front().value << std::endl;
- * @code
+ * @endcode
  *
  * is
  *
@@ -62,7 +62,7 @@ using generic_response = adapter::result<std::vector<resp3::node>>;
  * PING: one
  * PING: two
  * PING: three
- * @code
+ * @endcode
  *
  * Given that this function rotates elements, it won't be very
  * efficient for responses with a large number of elements. It was
