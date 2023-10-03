@@ -6,6 +6,7 @@ import sequence ;
 
 # All paths must be absolute to work well with the Doxygen rules.
 path-constant this_dir : . ;
+path-constant target_dir : html ;
 path-constant redis_root_dir : .. ;
 path-constant include_dir : ../include ;
 path-constant examples_dir : ../examples ;
@@ -20,7 +21,8 @@ local examples = [ path.glob-tree $(examples_dir) : *.hpp *.cpp ] ;
 # which is not correct.
 local stylesheet_arg = [ sequence.join "\"$(stylesheet_files)\"" : " " ] ;
 
-doxygen autodoc.html
+# The doxygen rule requires the target name to end in .html to generate HTML files
+doxygen doc.html
     :
         $(includes) $(examples) $(readme)
     :
@@ -59,11 +61,27 @@ doxygen autodoc.html
         <doxygen:param>DIRECTORY_GRAPH=NO
     ;
 
+explicit doc.html ;
+
+# The doxygen rule only informs b2 about the main HTML file, and not about
+# all the doc directory that gets generated. Using the install rule copies
+# only a single file, which is incorrect. This is a workaround to copy
+# the generated docs to the doc/html directory, where they should be.
+make copyhtml.tag : doc.html : @copy_html_dir ;
+explicit copyhtml.tag ;
+actions copy_html_dir
+{
+    rm -rf $(target_dir)
+    mkdir -p $(target_dir)
+    cp -r $(<:D)/html/doc/* $(target_dir)/
+    echo "Stamped" > "$(<)"
+}
+
 # These are used to inform the build system of the
 # means to build the integrated and stand-alone docs.
 
 alias boostdoc ;
 explicit boostdoc ;
 
-alias boostrelease : autodoc.html ;
+alias boostrelease : copyhtml.tag ;
 explicit boostrelease ;
