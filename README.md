@@ -1,4 +1,4 @@
-# boost_redis
+# Boost.Redis
 
 Boost.Redis is a high-level [Redis](https://redis.io/) client library built on top of
 [Boost.Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
