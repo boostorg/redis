@@ -278,6 +278,22 @@ def _run_cmake_b2_find_package_tests(
     _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
 
 
+# Builds and runs the library tests using b2
+def _run_b2_tests(
+    variant: str,
+    cxxstd: str,
+    toolset: str
+):
+    os.chdir(str(_boost_root))
+    _run([
+        'b2',
+        '--abbreviate-paths',
+        'toolset={}'.format(toolset),
+        'cxxstd={}'.format(cxxstd),
+        'variant={}'.format(variant),
+        '-j4',
+        'libs/redis/test'
+    ])
 
 
 def main():
@@ -335,6 +351,12 @@ def main():
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
     subp.set_defaults(func=_run_cmake_b2_find_package_tests)
+
+    subp = subparsers.add_parser('run-b2-tests')
+    subp.add_argument('--variant', default='debug,release')
+    subp.add_argument('--cxxstd', default='17,20')
+    subp.add_argument('--toolset', default='gcc')
+    subp.set_defaults(func=_run_b2_tests)
 
     args = parser.parse_args()
 

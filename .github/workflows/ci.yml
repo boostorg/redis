@@ -4,14 +4,14 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  windows:
-    name: "${{matrix.generator}} ${{matrix.toolset}} Boost ${{matrix.boost_version}} ${{matrix.build_type}} ${{matrix.name_args}}"
+  windows-cmake:
+    name: "${{matrix.toolset}} ${{matrix.build_type}} C++${{matrix.cxxstd}}"
     runs-on: ${{matrix.os}}
     defaults:
       run:
         shell: bash
     strategy:
-      # fail-fast: false
+      fail-fast: false
       matrix:
         include:
           - { toolset: msvc-14.2, os: windows-2019, generator: "Visual Studio 16 2019", cxxstd: '17', build-type: 'Debug' }
@@ -79,13 +79,42 @@ jobs:
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
 
-  posix:
+  windows-b2:
+    name: "${{matrix.toolset}}"
+    runs-on: ${{matrix.os}}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { toolset: msvc-14.2, os: windows-2019 }
+          - { toolset: msvc-14.3, os: windows-2022 }
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: choco install openssl
+
+    - name: Setup Boost
+      run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
+    
+    - name: Build and run project tests using B2
+      run: |
+        python3 tools/ci.py run-b2-tests \
+          --toolset ${{ matrix.toolset }} \
+          --cxxstd 17,20 \
+          --variant debug,release
+
+  posix-cmake:
     defaults:
       run:
         shell: bash
 
     strategy:
-      # fail-fast: false
+      fail-fast: false
       matrix:
         include:
           - { toolset: gcc-11,   install: g++-11,   os: ubuntu-22.04, cxxstd: '17', build-type: 'Debug', ldflags: '' }
@@ -155,3 +184,33 @@ jobs:
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
+
+  posix-b2:
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { toolset: gcc-11,   install: g++-11,   cxxstd: "11,17,20" } # Having C++11 shouldn't break the build
+          - { toolset: clang-14, install: clang-11, cxxstd: "17,20" }
+    name: "${{ matrix.toolset }}"
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: sudo apt-get -y install python3 ${{ matrix.install }}
+
+    - name: Setup Boost
+      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+    
+    - name: Build and run project tests using B2
+      run: |
+        python3 tools/ci.py run-b2-tests \
+          --toolset ${{ matrix.toolset }} \
+          --cxxstd ${{ matrix.cxxstd }} \
+          --variant debug,release
