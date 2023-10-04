@@ -286,7 +286,7 @@ def _run_b2_tests(
 ):
     os.chdir(str(_boost_root))
     _run([
-        'b2',
+        _b2_command,
         '--abbreviate-paths',
         'toolset={}'.format(toolset),
         'cxxstd={}'.format(cxxstd),
