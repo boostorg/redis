@@ -26,17 +26,17 @@ jobs:
       run: choco install openssl
 
     - name: Setup Boost
-      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+      run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
 
     - name: Build a Boost distribution using B2
       run: |
-        ./tools/ci.py build-b2-distro \
+        python3 tools/ci.py build-b2-distro \
           --generator "${{ matrix.generator }}" \
           --toolset ${{ matrix.toolset }}
 
     - name: Build a Boost distribution using CMake
       run: |
-        ./tools/ci.py build-cmake-distro \
+        python3 tools/ci.py build-cmake-distro \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
@@ -44,7 +44,7 @@ jobs:
         
     - name: Build the project tests
       run: |
-        ./tools/ci.py build-cmake-standalone-tests \
+        python3 tools/ci.py build-cmake-standalone-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
@@ -53,26 +53,26 @@ jobs:
     # # TODO: re-enable this when a Redis server is available for this job
     # - name: Run the project tests
     #   run: |
-    #     ./tools/ci.py run-cmake-standalone-tests \
+    #     python3 tools/ci.py run-cmake-standalone-tests \
     #       --build-type ${{ matrix.build-type }}
 
     - name: Run add_subdirectory tests
       run: |
-        ./tools/ci.py run-cmake-add-subdirectory-tests \
+        python3 tools/ci.py run-cmake-add-subdirectory-tests \
           --build-type ${{ matrix.build-type }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
 
     - name: Run find_package tests with the built cmake distribution
       run: |
-        ./tools/ci.py run-cmake-find-package-tests \
+        python3 tools/ci.py run-cmake-find-package-tests \
           --build-type ${{ matrix.build-type }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
 
     - name: Run find_package tests with the built b2 distribution
       run: |
-        ./tools/ci.py run-cmake-b2-find-package-tests \
+        python3 tools/ci.py run-cmake-b2-find-package-tests \
           --build-type ${{ matrix.build-type }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
@@ -110,7 +110,8 @@ jobs:
       run: ./tools/ci.py setup-boost --source-dir=$(pwd)
 
     - name: Build a Boost distribution using B2
-      run: ./tools/ci.py build-b2-distro \
+      run: |
+        ./tools/ci.py build-b2-distro \
           --toolset ${{ matrix.toolset }}
 
     - name: Build a Boost distribution using CMake
