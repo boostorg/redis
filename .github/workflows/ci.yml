@@ -31,7 +31,6 @@ jobs:
     - name: Build a Boost distribution using B2
       run: |
         python3 tools/ci.py build-b2-distro \
-          --generator "${{ matrix.generator }}" \
           --toolset ${{ matrix.toolset }}
 
     - name: Build a Boost distribution using CMake
