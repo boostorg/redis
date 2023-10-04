@@ -5,7 +5,7 @@ on: [push, pull_request]
 
 jobs:
   windows-cmake:
-    name: "${{matrix.toolset}} ${{matrix.build_type}} C++${{matrix.cxxstd}}"
+    name: "CMake ${{matrix.toolset}} ${{matrix.build-type}} C++${{matrix.cxxstd}}"
     runs-on: ${{matrix.os}}
     defaults:
       run:
@@ -80,7 +80,7 @@ jobs:
           --generator "${{ matrix.generator }}"
 
   windows-b2:
-    name: "${{matrix.toolset}}"
+    name: "B2 ${{matrix.toolset}}"
     runs-on: ${{matrix.os}}
     defaults:
       run:
@@ -109,6 +109,7 @@ jobs:
           --variant debug,release
 
   posix-cmake:
+    name: "CMake ${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
     defaults:
       run:
         shell: bash
@@ -125,7 +126,6 @@ jobs:
           - { toolset: clang-13, install: clang-13, os: ubuntu-22.04, cxxstd: '20', build-type: 'Release', ldflags: '' }
           - { toolset: clang-14, install: 'clang-14 libc++-14-dev libc++abi-14-dev', os: ubuntu-22.04, cxxstd: '17', build-type: 'Debug', cxxflags: '-stdlib=libc++', ldflags: '-lc++' }
           - { toolset: clang-14, install: 'clang-14 libc++-14-dev libc++abi-14-dev', os: ubuntu-22.04, cxxstd: '20', build-type: 'Release', cxxflags: '-stdlib=libc++', ldflags: '-lc++' }
-    name: "${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
     runs-on: ${{ matrix.os }}
     env:
       CXXFLAGS: ${{matrix.cxxflags}} -Wall -Wextra
@@ -186,6 +186,7 @@ jobs:
           --toolset ${{ matrix.toolset }}
 
   posix-b2:
+    name: "B2 ${{ matrix.toolset }}"
     defaults:
       run:
         shell: bash
@@ -196,7 +197,6 @@ jobs:
         include:
           - { toolset: gcc-11,   install: g++-11,   cxxstd: "11,17,20" } # Having C++11 shouldn't break the build
           - { toolset: clang-14, install: clang-11, cxxstd: "17,20" }
-    name: "${{ matrix.toolset }}"
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
