@@ -12,7 +12,7 @@
       "warnings": {
         "dev": true,
         "deprecated": true,
-        "uninitialized": true,
+        "uninitialized": false,
         "unusedCli": true,
         "systemVars": false
       },
@@ -52,8 +52,7 @@
         "CMAKE_CXX_COMPILER": "g++-11",
         "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "PROJECT_BINARY_DIR": "${sourceDir}/build/g++-11",
-        "DOXYGEN_OUTPUT_DIRECTORY": "${sourceDir}/build/g++-11/doc/"
+        "PROJECT_BINARY_DIR": "${sourceDir}/build/g++-11"
       }
     },
     {
@@ -69,8 +68,7 @@
         "CMAKE_CXX_COMPILER": "g++-11",
         "CMAKE_SHARED_LINKER_FLAGS": "",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "PROJECT_BINARY_DIR": "${sourceDir}/build/g++-11-release",
-        "DOXYGEN_OUTPUT_DIRECTORY": "${sourceDir}/build/g++-11-release/doc/"
+        "PROJECT_BINARY_DIR": "${sourceDir}/build/g++-11-release"
       }
     },
     {
@@ -86,8 +84,7 @@
         "CMAKE_CXX_COMPILER": "clang++-13",
         "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "PROJECT_BINARY_DIR": "${sourceDir}/build/clang++-13",
-        "DOXYGEN_OUTPUT_DIRECTORY": "${sourceDir}/build/clang++-13/doc/"
+        "PROJECT_BINARY_DIR": "${sourceDir}/build/clang++-13"
       }
     },
     {
@@ -103,8 +100,7 @@
         "CMAKE_CXX_COMPILER": "clang++-14",
         "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "PROJECT_BINARY_DIR": "${sourceDir}/build/clang++-14",
-        "DOXYGEN_OUTPUT_DIRECTORY": "${sourceDir}/build/clang++-14/doc/"
+        "PROJECT_BINARY_DIR": "${sourceDir}/build/clang++-14"
       }
     },
     {
@@ -121,8 +117,7 @@
         "CMAKE_CXX_COMPILER": "clang++-14",
         "CMAKE_SHARED_LINKER_FLAGS": "",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "PROJECT_BINARY_DIR": "${sourceDir}/build/libc++-14-cpp17",
-        "DOXYGEN_OUTPUT_DIRECTORY": "${sourceDir}/build/libc++-14-cpp17/doc/"
+        "PROJECT_BINARY_DIR": "${sourceDir}/build/libc++-14-cpp17"
       }
     },
     {
@@ -139,8 +134,7 @@
         "CMAKE_CXX_COMPILER": "clang++-14",
         "CMAKE_SHARED_LINKER_FLAGS": "",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "PROJECT_BINARY_DIR": "${sourceDir}/build/libc++-14-cpp20",
-        "DOXYGEN_OUTPUT_DIRECTORY": "${sourceDir}/build/libc++-14-cpp20/doc/"
+        "PROJECT_BINARY_DIR": "${sourceDir}/build/libc++-14-cpp20"
       }
     },
     {

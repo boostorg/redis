@@ -116,7 +116,7 @@ def _build_b2_distro(
     ])
 
 
-def _run_cmake_superproject_tests(
+def _build_cmake_distro(
     install_prefix: Path,
     generator: str,
     build_type: str,
@@ -128,6 +128,7 @@ def _run_cmake_superproject_tests(
         'cmake',
         '-G',
         generator,
+        '-DBUILD_TESTING=ON',
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
         '-DBOOST_INCLUDE_LIBRARIES=redis',
@@ -140,9 +141,6 @@ def _run_cmake_superproject_tests(
     ])
     _run(['cmake', '--build', '.', '--target', 'tests', '--config', build_type])
     _run(['ctest', '--output-on-failure', '--build-config', build_type])
-
-
-def _install_cmake_distro(build_type: str):
     _run(['cmake', '--build', '.', '--target', 'install', '--config', build_type])
 
 
@@ -156,6 +154,7 @@ def _run_cmake_standalone_tests(
     _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', '__build_standalone__'))
     _run([
         'cmake',
+        '-DBUILD_TESTING=ON',
         '-DCMAKE_PREFIX_PATH={}'.format(_build_prefix_path(b2_distro)),
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
@@ -165,7 +164,7 @@ def _run_cmake_standalone_tests(
         '..'
     ])
     _run(['cmake', '--build', '.'])
-    _run(['ctest', '--output-on-failure', '--build-config', build_type])
+    _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
 
 
 def _run_cmake_add_subdirectory_tests(
@@ -179,13 +178,14 @@ def _run_cmake_add_subdirectory_tests(
         'cmake',
         '-G',
         generator,
+        '-DBUILD_TESTING=ON',
         '-DBOOST_CI_INSTALL_TEST=OFF',
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '..'
     ])
     _run(['cmake', '--build', '.', '--config', build_type])
-    _run(['ctest', '--output-on-failure', '--build-config', build_type])
+    _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
 
 
 def _run_cmake_find_package_tests(
@@ -199,6 +199,7 @@ def _run_cmake_find_package_tests(
         'cmake',
         '-G',
         generator,
+        '-DBUILD_TESTING=ON',
         '-DBOOST_CI_INSTALL_TEST=ON',
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
@@ -206,7 +207,7 @@ def _run_cmake_find_package_tests(
         '..'
     ])
     _run(['cmake', '--build', '.', '--config', build_type])
-    _run(['ctest', '--output-on-failure', '--build-config', build_type])
+    _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
 
 
 def _run_cmake_b2_find_package_tests(
@@ -220,6 +221,7 @@ def _run_cmake_b2_find_package_tests(
         'cmake',
         '-G',
         generator,
+        '-DBUILD_TESTING=ON',
         '-DCMAKE_PREFIX_PATH={}'.format(_build_prefix_path(b2_distro)),
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
@@ -227,7 +229,7 @@ def _run_cmake_b2_find_package_tests(
         '..'
     ])
     _run(['cmake', '--build', '.', '--config', build_type])
-    _run(['ctest', '--output-on-failure', '--build-config', build_type])
+    _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
 
 
 def _run_b2_tests(
@@ -282,17 +284,13 @@ def main():
     subp.add_argument('--install-prefix', type=Path, required=True)
     subp.set_defaults(func=_build_b2_distro)
 
-    subp = subparsers.add_parser('run-cmake-superproject-tests')
+    subp = subparsers.add_parser('build-cmake-distro')
     subp.add_argument('--install-prefix', type=Path, required=True)
     subp.add_argument('--generator', default='Unix Makefiles')
     subp.add_argument('--build-type', default='Debug')
     subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
-    subp.set_defaults(func=_run_cmake_superproject_tests)
-
-    subp = subparsers.add_parser('install-cmake-distro')
-    subp.add_argument('--build-type', default='Debug')
-    subp.set_defaults(func=_install_cmake_distro)
+    subp.set_defaults(func=_build_cmake_distro)
 
     subp = subparsers.add_parser('run-cmake-standalone-tests')
     subp.add_argument('--b2-distro', type=Path, required=True)
@@ -333,6 +331,9 @@ def main():
     subp.set_defaults(func=_run_b2_tests)
 
     args = parser.parse_args()
+
+    os.environ['CMAKE_BUILD_PARALLEL_LEVEL'] = '4'
+    
     args.func(**{k: v for k, v in vars(args).items() if k != 'func'})
 
 
