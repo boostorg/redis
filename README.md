@@ -6,10 +6,10 @@ that implements Redis plain text protocol
 [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
 It can multiplex any number of client
 requests, responses, and server pushes onto a single active socket
-connection to the Redis server.  The requirements for using Boost.Redis are
+connection to the Redis server.  The requirements for using Boost.Redis are:
 
-* Boost 1.81 or greater.
-* C++17 minimum.
+* Boost. The library is included in Boost distributions starting with 1.84.
+* C++17 or higher.
 * Redis 6 or higher (must support RESP3).
 * Gcc (10, 11, 12), Clang (11, 13, 14) and Visual Studio (16 2019, 17 2022).
 * Have basic-level knowledge about [Redis](https://redis.io/docs/)
