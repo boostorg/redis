@@ -29,7 +29,7 @@ jobs:
       run: docker run -d --name redis -p 6379:6379 redis:alpine
 
     - name: Setup Boost
-      run: ./tools/ci.py install-boost --source-dir=$(pwd)
+      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
 
     - name: Build a Boost distribution using B2
       run: |
@@ -98,7 +98,7 @@ jobs:
       run: sudo apt-get -y install cmake protobuf-compiler redis-server python3 ${{ matrix.install }}
 
     - name: Setup Boost
-      run: ./tools/ci.py install-boost --source-dir=$(pwd)
+      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
 
     - name: Build a Boost distribution using B2
       run: ./tools/ci.py build-b2-distro
@@ -124,7 +124,7 @@ jobs:
       run: |
         ./tools/ci.py run-cmake-find-package-tests \
           --build-type ${{ matrix.build-type }}
-          
+
     - name: Run find_package tests with the built b2 distribution
       run: |
         ./tools/ci.py run-cmake-b2-find-package-tests \
