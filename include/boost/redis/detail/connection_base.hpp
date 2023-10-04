@@ -405,7 +405,7 @@ public:
    , dbuf_{read_buffer_, max_read_size}
    {
       set_receive_response(ignore);
-      writer_timer_.expires_at(std::chrono::steady_clock::time_point::max());
+      writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
    }
 
    /// Returns the ssl context.
@@ -632,7 +632,7 @@ private:
       , ec_{{}}
       , read_size_{0}
       {
-         timer_.expires_at(std::chrono::steady_clock::time_point::max());
+         timer_.expires_at((std::chrono::steady_clock::time_point::max)());
 
          adapter_ = [this, adapter](node_type const& nd, system::error_code& ec)
          {
