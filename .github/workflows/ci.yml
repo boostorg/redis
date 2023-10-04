@@ -60,6 +60,7 @@ jobs:
       run: |
         python3 tools/ci.py run-cmake-add-subdirectory-tests \
           --build-type ${{ matrix.build-type }} \
+          --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
 
@@ -67,6 +68,7 @@ jobs:
       run: |
         python3 tools/ci.py run-cmake-find-package-tests \
           --build-type ${{ matrix.build-type }} \
+          --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
 
@@ -74,6 +76,7 @@ jobs:
       run: |
         python3 tools/ci.py run-cmake-b2-find-package-tests \
           --build-type ${{ matrix.build-type }} \
+          --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
 
@@ -117,9 +120,9 @@ jobs:
     - name: Build a Boost distribution using CMake
       run: |
         ./tools/ci.py build-cmake-distro \
-          --toolset ${{ matrix.toolset }} \
           --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }}
+          --cxxstd ${{ matrix.cxxstd }} \
+          --toolset ${{ matrix.toolset }}
 
     - name: Build the project tests
       run: |
@@ -137,16 +140,19 @@ jobs:
       run: |
         ./tools/ci.py run-cmake-add-subdirectory-tests \
           --build-type ${{ matrix.build-type }} \
+          --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
 
     - name: Run find_package tests with the built cmake distribution
       run: |
         ./tools/ci.py run-cmake-find-package-tests \
           --build-type ${{ matrix.build-type }} \
+          --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
 
     - name: Run find_package tests with the built b2 distribution
       run: |
         ./tools/ci.py run-cmake-b2-find-package-tests \
           --build-type ${{ matrix.build-type }} \
+          --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}

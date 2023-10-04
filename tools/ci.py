@@ -103,8 +103,7 @@ def _setup_boost(
     copytree(
         str(source_dir),
         str(lib_dir),
-        ignore=ignore_patterns('__build*__', '.git'),
-        dirs_exist_ok=True
+        ignore=ignore_patterns('__build*__', '.git')
     )
 
     # Install Boost dependencies
@@ -205,6 +204,7 @@ def _run_cmake_standalone_tests(
 def _run_cmake_add_subdirectory_tests(
     generator: str,
     build_type: str,
+    cxxstd: str,
     toolset: str,
     build_shared_libs: bool = False
 ):
@@ -219,6 +219,7 @@ def _run_cmake_add_subdirectory_tests(
         '-DBOOST_CI_INSTALL_TEST=OFF',
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
+        '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
         '..'
     ])
     _run(['cmake', '--build', '.', '--config', build_type])
@@ -229,6 +230,7 @@ def _run_cmake_add_subdirectory_tests(
 def _run_cmake_find_package_tests(
     generator: str,
     build_type: str,
+    cxxstd: str,
     toolset: str,
     build_shared_libs: bool = False
 ):
@@ -242,6 +244,7 @@ def _run_cmake_find_package_tests(
         '-DBOOST_CI_INSTALL_TEST=ON',
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
+        '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
         '-DCMAKE_PREFIX_PATH={}'.format(_build_prefix_path(_cmake_distro)),
         '..'
     ])
@@ -253,6 +256,7 @@ def _run_cmake_find_package_tests(
 def _run_cmake_b2_find_package_tests(
     generator: str,
     build_type: str,
+    cxxstd: str,
     toolset: str,
     build_shared_libs: bool = False
 ):
@@ -266,6 +270,7 @@ def _run_cmake_b2_find_package_tests(
         '-DCMAKE_PREFIX_PATH={}'.format(_build_prefix_path(_b2_distro)),
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
+        '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
         '-DBUILD_TESTING=ON',
         '..'
     ])
@@ -310,6 +315,7 @@ def main():
     subp = subparsers.add_parser('run-cmake-add-subdirectory-tests')
     subp.add_argument('--generator', default='Unix Makefiles')
     subp.add_argument('--build-type', default='Debug')
+    subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
     subp.set_defaults(func=_run_cmake_add_subdirectory_tests)
@@ -317,6 +323,7 @@ def main():
     subp = subparsers.add_parser('run-cmake-find-package-tests')
     subp.add_argument('--generator', default='Unix Makefiles')
     subp.add_argument('--build-type', default='Debug')
+    subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
     subp.set_defaults(func=_run_cmake_find_package_tests)
@@ -324,6 +331,7 @@ def main():
     subp = subparsers.add_parser('run-cmake-b2-find-package-tests')
     subp.add_argument('--generator', default='Unix Makefiles')
     subp.add_argument('--build-type', default='Debug')
+    subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
     subp.set_defaults(func=_run_cmake_b2_find_package_tests)
