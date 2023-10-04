@@ -1,0 +1,54 @@
+
+import ../config/checks/config : requires ;
+import ac ;
+
+using openssl ;
+
+local requirements = 
+        <define>BOOST_ALL_NO_LIB=1
+        <define>BOOST_ASIO_NO_DEPRECATED=1
+        <define>BOOST_ASIO_DISABLE_BOOST_ARRAY=1
+        <define>BOOST_ASIO_DISABLE_BOOST_BIND=1
+        <define>BOOST_ASIO_DISABLE_BOOST_DATE_TIME=1
+        <define>BOOST_ASIO_DISABLE_BOOST_REGEX=1
+        <toolset>msvc:<cxxflags>"/bigobj"
+        <target-os>windows:<define>_WIN32_WINNT=0x0601
+        <include>../include
+        [ requires cxx17 ]
+        [ ac.check-library /openssl//ssl    : <library>/openssl//ssl/<link>shared : <build>no ]
+        [ ac.check-library /openssl//crypto : <library>/openssl//crypto/<link>shared : <build>no ]
+        <library>/openssl//ssl/<link>shared
+        <library>/openssl//crypto/<link>shared
+    ;
+
+
+# Helper library
+lib redis_test_common
+    :
+        boost_redis.cpp
+        common.cpp
+    : requirements $(requirements)
+    : usage-requirements $(requirements)
+;
+
+alias openssl_libs
+    :
+    : requirements
+    : usage-requirements
+    ;
+
+local tests = 
+    test_low_level_sync_sans_io
+    test_low_level
+    test_request
+    test_run
+;
+
+for local test in $(tests)
+{
+    run 
+        $(test).cpp
+        redis_test_common/<link>static
+    : target-name $(test)
+    ;
+}
