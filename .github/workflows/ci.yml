@@ -24,7 +24,7 @@ jobs:
 
     - name: Install dependencies
       run: choco install --no-progress -y openssl
-
+    
     - name: Setup Boost
       run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
 
@@ -91,12 +91,17 @@ jobs:
         include:
           - { toolset: msvc-14.2, os: windows-2019 }
           - { toolset: msvc-14.3, os: windows-2022 }
+    env:
+      OPENSSL_ROOT: "C:\\Program Files\\OpenSSL-Win64"
     steps:
     - name: Checkout
       uses: actions/checkout@v3
 
     - name: Install dependencies
       run: choco install --no-progress -y openssl
+    
+    - name: Setup user-config.jam
+      run: cp tools/user-config.jam "$USERPROFILE/"
 
     - name: Setup Boost
       run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
