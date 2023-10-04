@@ -109,7 +109,7 @@ def _setup_boost(
     # Install Boost dependencies
     _run(["git", "config", "submodule.fetchJobs", "8"])
     _run(["git", "submodule", "update", "-q", "--init", "tools/boostdep"])
-    _run(["python", "tools/boostdep/depinst/depinst.py", "--include", "examples", "redis"])
+    _run(["python", "tools/boostdep/depinst/depinst.py", "--include", "example", "redis"])
 
     # Bootstrap
     if _is_windows:

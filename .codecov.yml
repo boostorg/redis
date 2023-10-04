@@ -7,7 +7,7 @@ codecov:
 
 ignore:
   - "benchmarks/cpp/asio/*"
-  - "examples/*"
+  - "example/*"
   - "tests/*"
   - "/usr/*"
   - "**/boost/*"

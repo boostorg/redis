@@ -74,5 +74,5 @@ if(BOOST_REDIS_MAIN_PROJECT AND BUILD_TESTING)
   add_subdirectory(benchmarks)
 
   # Examples
-  add_subdirectory(examples)
+  add_subdirectory(example)
 endif()

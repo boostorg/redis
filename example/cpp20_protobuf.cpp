@@ -27,10 +27,10 @@ using boost::redis::ignore_t;
 using boost::redis::config;
 using boost::redis::connection;
 
-// The protobuf type described in examples/person.proto
+// The protobuf type described in example/person.proto
 using tutorial::person;
 
-// Boost.Redis customization points (examples/protobuf.hpp)
+// Boost.Redis customization points (example/protobuf.hpp)
 namespace tutorial
 {
 

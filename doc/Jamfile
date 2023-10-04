@@ -9,7 +9,7 @@ path-constant this_dir : . ;
 path-constant target_dir : html ;
 path-constant redis_root_dir : .. ;
 path-constant include_dir : ../include ;
-path-constant examples_dir : ../examples ;
+path-constant examples_dir : ../example ;
 path-constant readme : ../README.md ;
 path-constant layout_file : DoxygenLayout.xml ;
 
