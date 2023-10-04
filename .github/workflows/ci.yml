@@ -25,47 +25,56 @@ jobs:
     - name: Install dependencies
       run: choco install openssl
 
-    - name: Set up a running Redis server
-      run: docker run -d --name redis -p 6379:6379 redis:alpine
-
     - name: Setup Boost
       run: ./tools/ci.py setup-boost --source-dir=$(pwd)
 
     - name: Build a Boost distribution using B2
       run: |
         ./tools/ci.py build-b2-distro \
-          --generator "${{ matrix.generator }}"
+          --generator "${{ matrix.generator }}" \
+          --toolset ${{ matrix.toolset }}
 
     - name: Build a Boost distribution using CMake
       run: |
         ./tools/ci.py build-cmake-distro \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
+          --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
         
-    - name: Run the project's tests
+    - name: Build the project tests
       run: |
-        ./tools/ci.py run-cmake-standalone-tests \
+        ./tools/ci.py build-cmake-standalone-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
+          --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
+
+    # # TODO: re-enable this when a Redis server is available for this job
+    # - name: Run the project tests
+    #   run: |
+    #     ./tools/ci.py run-cmake-standalone-tests \
+    #       --build-type ${{ matrix.build-type }}
 
     - name: Run add_subdirectory tests
       run: |
         ./tools/ci.py run-cmake-add-subdirectory-tests \
           --build-type ${{ matrix.build-type }} \
+          --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
 
     - name: Run find_package tests with the built cmake distribution
       run: |
         ./tools/ci.py run-cmake-find-package-tests \
           --build-type ${{ matrix.build-type }} \
+          --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
 
     - name: Run find_package tests with the built b2 distribution
       run: |
         ./tools/ci.py run-cmake-b2-find-package-tests \
           --build-type ${{ matrix.build-type }} \
+          --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}"
 
   posix:
@@ -101,31 +110,42 @@ jobs:
       run: ./tools/ci.py setup-boost --source-dir=$(pwd)
 
     - name: Build a Boost distribution using B2
-      run: ./tools/ci.py build-b2-distro
+      run: ./tools/ci.py build-b2-distro \
+          --toolset ${{ matrix.toolset }}
 
     - name: Build a Boost distribution using CMake
       run: |
         ./tools/ci.py build-cmake-distro \
+          --toolset ${{ matrix.toolset }} \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }}
 
-    - name: Run the project's tests
+    - name: Build the project tests
+      run: |
+        ./tools/ci.py build-cmake-standalone-tests \
+          --build-type ${{ matrix.build-type }} \
+          --cxxstd ${{ matrix.cxxstd }} \
+          --toolset ${{ matrix.toolset }}
+  
+    - name: Run the project tests
       run: |
         ./tools/ci.py run-cmake-standalone-tests \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }}
+          --build-type ${{ matrix.build-type }}
 
     - name: Run add_subdirectory tests
       run: |
         ./tools/ci.py run-cmake-add-subdirectory-tests \
-          --build-type ${{ matrix.build-type }}
+          --build-type ${{ matrix.build-type }} \
+          --toolset ${{ matrix.toolset }}
 
     - name: Run find_package tests with the built cmake distribution
       run: |
         ./tools/ci.py run-cmake-find-package-tests \
-          --build-type ${{ matrix.build-type }}
+          --build-type ${{ matrix.build-type }} \
+          --toolset ${{ matrix.toolset }}
 
     - name: Run find_package tests with the built b2 distribution
       run: |
         ./tools/ci.py run-cmake-b2-find-package-tests \
-          --build-type ${{ matrix.build-type }}
+          --build-type ${{ matrix.build-type }} \
+          --toolset ${{ matrix.toolset }}
