@@ -15,16 +15,17 @@ target_link_libraries(boost_redis_src PRIVATE boost_redis_project_options)
 add_library(boost_redis_tests_common STATIC common.cpp)
 target_compile_features(boost_redis_tests_common PRIVATE cxx_std_17)
 target_link_libraries(boost_redis_tests_common PRIVATE boost_redis_project_options)
-if (NOT BOOST_REDIS_MAIN_PROJECT)
-  target_link_libraries(boost_redis_tests_common PUBLIC Boost::unit_test_framework)
-endif()
 
 macro(make_test TEST_NAME STANDARD)
-  add_executable(${TEST_NAME} ${TEST_NAME}.cpp)
-  target_link_libraries(${TEST_NAME} PRIVATE boost_redis_src boost_redis_tests_common)
-  target_link_libraries(${TEST_NAME} PRIVATE boost_redis_project_options)
-  target_compile_features(${TEST_NAME} PRIVATE cxx_std_${STANDARD})
-  add_test(${TEST_NAME} ${TEST_NAME})
+  set(EXE_NAME "boost_redis_${TEST_NAME}")
+  add_executable(${EXE_NAME} ${TEST_NAME}.cpp)
+  target_link_libraries(${EXE_NAME} PRIVATE
+    boost_redis_src
+    boost_redis_tests_common
+    boost_redis_project_options
+  )
+  target_compile_features(${EXE_NAME} PRIVATE cxx_std_${STANDARD})
+  add_test(${EXE_NAME} ${EXE_NAME})
 endmacro()
 
 make_test(test_conn_quit 17)
