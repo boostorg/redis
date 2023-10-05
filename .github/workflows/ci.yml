@@ -31,9 +31,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Install dependencies
-      run: vcpkg install openssl --triplet x64-windows
-    
     - name: Setup Boost
       run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
 
@@ -106,14 +103,11 @@ jobs:
           - { toolset: msvc-14.2, os: windows-2019 }
           - { toolset: msvc-14.3, os: windows-2022 }
     env:
-      OPENSSL_ROOT: "C:\\vcpkg\\installed\\x64-windows"
+      OPENSSL_ROOT: "C:\\Program Files\\OpenSSL"
     steps:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Install dependencies
-      run: vcpkg install openssl --triplet x64-windows
-    
     - name: Setup user-config.jam
       run: cp tools/user-config.jam "${HOMEDRIVE}${HOMEPATH}/"
 
