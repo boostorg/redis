@@ -214,7 +214,7 @@ def _run_cmake_add_subdirectory_tests(
     toolset: str,
     build_shared_libs: bool = False
 ):
-    test_folder = _boost_root.joinpath('libs', 'redis', 'test', 'cmake_test', '__build_cmake_subdir_test__')
+    test_folder = _boost_root.joinpath('libs', 'redis', 'test', 'cmake_subdir_test', '__build')
     _mkdir_and_cd(test_folder)
     _run([
         'cmake',
@@ -222,7 +222,6 @@ def _run_cmake_add_subdirectory_tests(
         generator,
         '-DCMAKE_CXX_COMPILER={}'.format(_compiler_from_toolset(toolset)),
         '-DBUILD_TESTING=ON',
-        '-DBOOST_CI_INSTALL_TEST=OFF',
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
@@ -240,14 +239,13 @@ def _run_cmake_find_package_tests(
     toolset: str,
     build_shared_libs: bool = False
 ):
-    _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_test', '__build_cmake_install_test__'))
+    _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_install_test', '__build'))
     _run([
         'cmake',
         '-G',
         generator,
         '-DCMAKE_CXX_COMPILER={}'.format(_compiler_from_toolset(toolset)),
         '-DBUILD_TESTING=ON',
-        '-DBOOST_CI_INSTALL_TEST=ON',
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
@@ -266,7 +264,7 @@ def _run_cmake_b2_find_package_tests(
     toolset: str,
     build_shared_libs: bool = False
 ):
-    _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_b2_test', '__build_cmake_b2_test__'))
+    _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_b2_test', '__build'))
     _run([
         'cmake',
         '-G',
