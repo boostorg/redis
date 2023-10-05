@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+# Contains commands that are invoked by the CI scripts.
+# Having this as a Python file makes it platform-independent.
+
 from pathlib import Path
 from typing import List, Union
 import subprocess
@@ -9,6 +12,7 @@ from shutil import rmtree, copytree, ignore_patterns
 import argparse
 
 
+# Variables
 _is_windows = os.name == 'nt'
 _home = Path(os.path.expanduser('~'))
 _boost_root = _home.joinpath('boost-root')
@@ -17,6 +21,7 @@ _cmake_distro = _home.joinpath('boost-cmake-distro')
 _b2_command = str(_boost_root.joinpath('b2'))
 
 
+# Utilities
 def _run(args: List[str]) -> None:
     print('+ ', args, flush=True)
     subprocess.run(args, check=True)
@@ -36,10 +41,7 @@ def _remove_readonly(func, path, _):
     func(path)
 
 
-def _build_prefix_path(*paths: Union[str, Path]) -> str:
-    return ';'.join(str(p) for p in paths)
-
-
+# Parses a string into a boolean (for command-line parsing)
 def _str2bool(v: Union[bool, str]) -> bool:
     if isinstance(v, bool):
         return v
@@ -51,6 +53,8 @@ def _str2bool(v: Union[bool, str]) -> bool:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
+# Transforms a b2-like toolset into a compiler command suitable
+# to be passed to CMAKE_CXX_COMPILER
 def _compiler_from_toolset(toolset: str) -> str:
     if toolset.startswith('gcc'):
         return toolset.replace('gcc', 'g++')
@@ -62,6 +66,8 @@ def _compiler_from_toolset(toolset: str) -> str:
         return toolset
 
 
+# If we're on the master branch, we should use the Boost superproject master branch.
+# Otherwise, use the superproject develop branch.
 def _deduce_boost_branch() -> str:
     # Are we in GitHub Actions?
     if os.environ.get('GITHUB_ACTIONS') is not None:
@@ -181,7 +187,7 @@ def _build_cmake_standalone_tests(
         'cmake',
         '-DBUILD_TESTING=ON',
         '-DCMAKE_CXX_COMPILER={}'.format(_compiler_from_toolset(toolset)),
-        '-DCMAKE_PREFIX_PATH={}'.format(_build_prefix_path(_b2_distro)),
+        '-DCMAKE_PREFIX_PATH={}'.format(_b2_distro),
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
@@ -245,7 +251,7 @@ def _run_cmake_find_package_tests(
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
-        '-DCMAKE_PREFIX_PATH={}'.format(_build_prefix_path(_cmake_distro)),
+        '-DCMAKE_PREFIX_PATH={}'.format(_cmake_distro),
         '..'
     ])
     _run(['cmake', '--build', '.', '--config', build_type])
@@ -267,7 +273,7 @@ def _run_cmake_b2_find_package_tests(
         generator,
         '-DCMAKE_CXX_COMPILER={}'.format(_compiler_from_toolset(toolset)),
         '-DBUILD_TESTING=ON',
-        '-DCMAKE_PREFIX_PATH={}'.format(_build_prefix_path(_b2_distro)),
+        '-DCMAKE_PREFIX_PATH={}'.format(_b2_distro),
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
@@ -297,6 +303,7 @@ def _run_b2_tests(
 
 
 def main():
+    # Command line parsing
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
 
@@ -358,10 +365,13 @@ def main():
     subp.add_argument('--toolset', default='gcc')
     subp.set_defaults(func=_run_b2_tests)
 
+    # Actually parse the arguments
     args = parser.parse_args()
 
-    os.environ['CMAKE_BUILD_PARALLEL_LEVEL'] = '4'
-    
+    # Invoke the relevant function (as defined by the func default), with
+    # the command-line arguments the user passed us (we need to get rid
+    # of the func property to match function signatures)
+    # This approach is recommended by Python's argparse docs
     args.func(**{k: v for k, v in vars(args).items() if k != 'func'})
 
 
