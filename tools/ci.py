@@ -122,7 +122,7 @@ def _setup_boost(
         _run(['cmd', '/q', '/c', 'bootstrap.bat'])
     else:
         _run(['bash', 'bootstrap.sh'])
-    _run([_b2_command, 'headers'])
+    _run([_b2_command, 'headers', '-d0'])
 
 
 # Builds a Boost distribution using ./b2 install, and places it into _b2_distro.
