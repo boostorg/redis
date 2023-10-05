@@ -7,7 +7,6 @@ using openssl ;
 
 # Use these requirements as both regular and usage requirements across all tests
 local requirements = 
-        <define>BOOST_ALL_NO_LIB=1
         <define>BOOST_ASIO_NO_DEPRECATED=1
         <define>BOOST_ASIO_DISABLE_BOOST_ARRAY=1
         <define>BOOST_ASIO_DISABLE_BOOST_BIND=1
@@ -31,8 +30,6 @@ local requirements =
         ]
         [ ac.check-library /openssl//ssl    : <library>/openssl//ssl/<link>shared : <build>no ]
         [ ac.check-library /openssl//crypto : <library>/openssl//crypto/<link>shared : <build>no ]
-        <library>/openssl//ssl/<link>shared
-        <library>/openssl//crypto/<link>shared
     ;
 
 
