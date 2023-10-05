@@ -41,7 +41,7 @@ struct user {
 // The type must be described for serialization to work.
 BOOST_DESCRIBE_STRUCT(user, (), (name, age, country))
 
-// Boost.Redis customization points (examples/json.hpp)
+// Boost.Redis customization points (example/json.hpp)
 void boost_redis_to_bulk(std::string& to, user const& u)
    { boost::redis::resp3::boost_redis_to_bulk(to, boost::json::serialize(boost::json::value_from(u))); }
 

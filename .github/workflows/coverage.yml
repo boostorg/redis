@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+
 jobs:
   posix:
     defaults:
@@ -15,33 +16,36 @@ jobs:
       CXX: g++-11
       CXXFLAGS: -g -O0 -std=c++20 --coverage -fkeep-inline-functions -fkeep-static-functions
       LDFLAGS: --coverage
+      CMAKE_BUILD_PARALLEL_LEVEL: 4
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-    - name: Install CMake
-      run: sudo apt-get -y install cmake
-    - name: Install lcov
-      run: sudo apt-get -y install lcov
-    - name: Install compiler
-      run: sudo apt-get -y install g++-11
-    - name: Install Redis
-      run: sudo apt-get -y install redis-server
-    - name: Install boost
-      uses: MarkusJx/install-boost@v2.4.1
-      id: install-boost
-      with:
-        boost_version: 1.81.0
-        platform_version: 22.04
+
+    - name: Install dependencies
+      run: sudo apt-get --no-install-recommends -y install cmake lcov g++-11 redis-server python3 libgd-perl
+    
+    - name: Setup Boost
+      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+    
+    - name: Build Boost
+      run: ./tools/ci.py build-b2-distro --toolset=gcc-11
+    
+    # Having our library there confuses the coverage reports
+    - name: Remove Boost.Redis from the b2 distro
+      run: rm -rf ~/boost-b2-distro/include/boost/redis
+
     - name: Run CMake
-      run: |
-        BOOST_ROOT=${{steps.install-boost.outputs.BOOST_ROOT}} cmake --preset coverage .
+      run: cmake -DCMAKE_PREFIX_PATH=$HOME/boost-b2-distro --preset coverage .
+
     - name: Build
       run: cmake --build --preset coverage
+
     - name: Test
       run: ctest --preset coverage
+
     - name: Make the coverage file
       run: cmake --build --preset coverage --target coverage
+
     - name: Upload to codecov
       run: |
-        bash <(curl -s https://codecov.io/bash) -f ./build/coverage/coverage.info || echo "Codecov did not collect coverage reports"
-
+        bash <(curl -s https://codecov.io/bash) -f ./build/coverage/coverage.info

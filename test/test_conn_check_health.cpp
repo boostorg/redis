@@ -21,13 +21,11 @@ using boost::redis::request;
 using boost::redis::ignore;
 using boost::redis::operation;
 using boost::redis::generic_response;
-using boost::redis::logger;
 using boost::redis::consume_one;
 using redis::config;
 
 // TODO: Test cancel(health_check) 
 
-std::chrono::seconds const interval{1};
 
 struct push_callback {
    connection* conn1;
