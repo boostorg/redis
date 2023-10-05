@@ -137,8 +137,8 @@ jobs:
           - { toolset: clang-11, install: clang-11, os: ubuntu-22.04, cxxstd: '20', build-type: 'Debug', ldflags: '' }
           - { toolset: clang-13, install: clang-13, os: ubuntu-22.04, cxxstd: '17', build-type: 'Release', ldflags: '' }
           - { toolset: clang-13, install: clang-13, os: ubuntu-22.04, cxxstd: '20', build-type: 'Release', ldflags: '' }
-          - { toolset: clang-14, install: 'clang-14 libc++-14-dev libc++abi-14-dev', os: ubuntu-22.04, cxxstd: '17', build-type: 'Debug',   cxxflags: '-stdlib=libc++', ldflags: '-stdlib=libc++' }
-          - { toolset: clang-14, install: 'clang-14 libc++-14-dev libc++abi-14-dev', os: ubuntu-22.04, cxxstd: '20', build-type: 'Release', cxxflags: '-stdlib=libc++', ldflags: '-stdlib=libc++' }
+          - { toolset: clang-14, install: 'clang-14 libc++-14-dev libc++abi-14-dev', os: ubuntu-22.04, cxxstd: '17', build-type: 'Debug', cxxflags: '-stdlib=libc++', ldflags: '-lc++' }
+          - { toolset: clang-14, install: 'clang-14 libc++-14-dev libc++abi-14-dev', os: ubuntu-22.04, cxxstd: '20', build-type: 'Release', cxxflags: '-stdlib=libc++', ldflags: '-lc++' }
     runs-on: ${{ matrix.os }}
     env:
       CXXFLAGS: ${{matrix.cxxflags}} -Wall -Wextra
