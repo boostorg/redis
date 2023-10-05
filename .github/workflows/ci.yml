@@ -101,7 +101,7 @@ jobs:
       run: choco install --no-progress -y openssl
     
     - name: Setup user-config.jam
-      run: cp tools/user-config.jam "$USERPROFILE/"
+      run: cp tools/user-config.jam "${HOMEDRIVE}${HOMEPATH}/"
 
     - name: Setup Boost
       run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
