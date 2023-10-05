@@ -14,7 +14,19 @@ local requirements =
         <toolset>msvc:<cxxflags>"/bigobj"
         <target-os>windows:<define>_WIN32_WINNT=0x0601
         <include>../include
-        [ requires cxx17 ]
+        [ requires
+            cxx14_constexpr
+            cxx14_generic_lambdas
+            cxx14_initialized_lambda_captures
+            cxx14_aggregate_nsdmi
+            cxx14_return_type_deduction
+            cxx17_hdr_charconv
+            cxx17_hdr_optional
+            cxx17_hdr_string_view
+            cxx17_hdr_variant
+            cxx17_std_apply
+            cxx17_structured_bindings
+        ]
         [ ac.check-library /openssl//ssl    : <library>/openssl//ssl/<link>shared : <build>no ]
         [ ac.check-library /openssl//crypto : <library>/openssl//crypto/<link>shared : <build>no ]
         <library>/openssl//ssl/<link>shared
