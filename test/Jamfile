@@ -2,8 +2,10 @@
 import ../config/checks/config : requires ;
 import ac ;
 
+# Configure openssl if it hasn't been done yet
 using openssl ;
 
+# Use these requirements as both regular and usage requirements across all tests
 local requirements = 
         <define>BOOST_ALL_NO_LIB=1
         <define>BOOST_ASIO_NO_DEPRECATED=1
@@ -43,12 +45,8 @@ lib redis_test_common
     : usage-requirements $(requirements)
 ;
 
-alias openssl_libs
-    :
-    : requirements
-    : usage-requirements
-    ;
-
+# B2 runs tests in parallel, and some tests rely on having exclusive
+# access to a Redis server, so we only run the ones that don't require a DB server.
 local tests = 
     test_low_level_sync_sans_io
     test_low_level
@@ -56,6 +54,7 @@ local tests =
     test_run
 ;
 
+# Build and run the tests
 for local test in $(tests)
 {
     run 
