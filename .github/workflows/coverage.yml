@@ -1,9 +1,9 @@
 name: Coverage
 
-on: push
-  # push:
-  #   branches:
-  #     - develop
+on:
+  push:
+    branches:
+      - develop
 
 jobs:
   posix:
