@@ -4,10 +4,9 @@ import os ;
 
 local OPENSSL_ROOT = [ os.environ OPENSSL_ROOT ] ;
 
-project
-  : requirements
+using openssl : :
     <include>$(OPENSSL_ROOT)/include
-    <variant>debug:<library-path>$(OPENSSL_ROOT)/lib
-    <target-os>windows<variant>debug:<library-path>$(OPENSSL_ROOT)/debug/lib
-    <variant>release:<library-path>$(OPENSSL_ROOT)/lib
-  ;
+    <search>$(OPENSSL_ROOT)/lib
+    <ssl-name>libssl
+    <crypto-name>libcrypto
+;
