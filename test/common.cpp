@@ -3,7 +3,6 @@
 #include <boost/asio/consign.hpp>
 #include <boost/asio/co_spawn.hpp>
 
-#include <boost/test/unit_test.hpp>
 
 namespace net = boost::asio;
 
@@ -15,7 +14,6 @@ struct run_callback {
    void operator()(boost::system::error_code const& ec) const
    {
       std::cout << "async_run: " << ec.message() << std::endl;
-      //BOOST_CHECK_EQUAL(ec, expected);
       conn->cancel(op);
    }
 };
