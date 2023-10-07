@@ -2,7 +2,7 @@
     "key": "redis",
     "name": "Redis",
     "authors": [
-        "Marcelo Zimbres"
+        "Marcelo Zimbres Silva"
     ],
     "description": "Redis async client library built on top of Boost.Asio.",
     "category": [
@@ -10,7 +10,7 @@
         "IO"
     ],
     "maintainers": [
-        "Marcelo Zimbres <mzimbres@gmail.com>"
+        "Marcelo Zimbres Silva <mzimbres@gmail.com>"
     ],
     "cxxstd": "17"
 }
