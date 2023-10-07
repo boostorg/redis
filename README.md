@@ -2,11 +2,9 @@
 
 Boost.Redis is a high-level [Redis](https://redis.io/) client library built on top of
 [Boost.Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
-that implements Redis plain text protocol
+that implements the Redis protocol
 [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-It can multiplex any number of client
-requests, responses, and server pushes onto a single active socket
-connection to the Redis server.  The requirements for using Boost.Redis are:
+The requirements for using Boost.Redis are:
 
 * Boost. The library is included in Boost distributions starting with 1.84.
 * C++17 or higher.
@@ -82,8 +80,9 @@ them are
 * [Client-side caching](https://redis.io/docs/manual/client-side-caching/)
 
 The connection class supports server pushes by means of the
-`boost::redis::connection::async_receive` function, the coroutine shows how
-to used it
+`boost::redis::connection::async_receive` function, which can be
+called in the same connection that is being used to execute commands.
+The coroutine below shows how to used it
 
 ```cpp
 auto
@@ -92,6 +91,9 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
+   generic_response resp;
+   conn->set_receive_response(resp);
+
    // Loop while reconnection is enabled
    while (conn->will_reconnect()) {
 
@@ -99,7 +101,7 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
       co_await conn->async_exec(req, ignore, net::deferred);
 
       // Loop reading Redis pushes.
-      for (generic_response resp;;) {
+      for (;;) {
          error_code ec;
          co_await conn->async_receive(resp, net::redirect_error(net::use_awaitable, ec));
          if (ec)
@@ -108,7 +110,7 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
          // Use the response resp in some way and then clear it.
          ...
 
-         resp.value().clear();
+         consume_one(resp);
       }
    }
 }
