@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2023 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -171,7 +171,6 @@ public:
     *  To cancel an ongoing receive operation apps should call
     *  `connection::cancel(operation::receive)`.
     *
-    *  @param response Response object.
     *  @param token Completion token.
     *
     *  For an example see cpp20_subscriber.cpp. The completion token must
@@ -184,10 +183,32 @@ public:
     *  Where the second parameter is the size of the push received in
     *  bytes.
     */
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto async_receive(CompletionToken token = CompletionToken{})
+      { return impl_.async_receive(std::move(token)); }
+
+   
+   /** @brief Receives server pushes synchronously without blocking.
+    *
+    *  Receives a server push synchronously by calling `try_receive` on
+    *  the underlying channel. If the operation fails because
+    *  `try_receive` returns `false`, `ec` will be set to
+    *  `boost::redis::error::sync_receive_push_failed`.
+    *
+    *  @param ec Contains the error if any occurred.
+    *
+    *  @returns The number of bytes read from the socket.
+    */
+   std::size_t receive(system::error_code& ec)
+   {
+      return impl_.receive(ec);
+   }
+
    template <
       class Response = ignore_t,
       class CompletionToken = asio::default_completion_token_t<executor_type>
    >
+   [[deprecated("Set the response with set_receive_response and use the other overload.")]]
    auto
    async_receive(
       Response& response,
@@ -242,7 +263,6 @@ public:
     *  @li operation::all: Cancels all operations listed above.
     *
     *  @param op: The operation to be cancelled.
-    *  @returns The number of operations that have been canceled.
     */
    void cancel(operation op = operation::all)
    {
@@ -281,6 +301,15 @@ public:
    /// Returns a const reference to the next layer.
    auto const& next_layer() const noexcept
       { return impl_.next_layer(); }
+
+   /// Sets the response object of `async_receive` operations.
+   template <class Response>
+   void set_receive_response(Response& response)
+      { impl_.set_receive_response(response); }
+
+   /// Returns connection usage information.
+   usage get_usage() const noexcept
+      { return impl_.get_usage(); }
 
 private:
    using timer_type =
@@ -342,9 +371,21 @@ public:
 
    /// Calls `boost::redis::basic_connection::async_receive`.
    template <class Response, class CompletionToken>
+   [[deprecated("Set the response with set_receive_response and use the other overload.")]]
    auto async_receive(Response& response, CompletionToken token)
    {
       return impl_.async_receive(response, std::move(token));
+   }
+
+   /// Calls `boost::redis::basic_connection::async_receive`.
+   template <class CompletionToken>
+   auto async_receive(CompletionToken token)
+      { return impl_.async_receive(std::move(token)); }
+
+   /// Calls `boost::redis::basic_connection::receive`.
+   std::size_t receive(system::error_code& ec)
+   {
+      return impl_.receive(ec);
    }
 
    /// Calls `boost::redis::basic_connection::async_exec`.
@@ -372,6 +413,15 @@ public:
    /// Calls `boost::redis::basic_connection::reset_stream`.
    void reset_stream()
       { impl_.reset_stream();}
+
+   /// Sets the response object of `async_receive` operations.
+   template <class Response>
+   void set_receive_response(Response& response)
+      { impl_.set_receive_response(response); }
+
+   /// Returns connection usage information.
+   usage get_usage() const noexcept
+      { return impl_.get_usage(); }
 
 private:
    void

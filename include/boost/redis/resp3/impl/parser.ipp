@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2023 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -9,6 +9,7 @@
 #include <boost/assert.hpp>
 
 #include <charconv>
+#include <limits>
 
 namespace boost::redis::resp3 {
 
@@ -21,6 +22,16 @@ void to_int(int_type& i, std::string_view sv, system::error_code& ec)
 
 parser::parser()
 {
+   reset();
+}
+
+void parser::reset()
+{
+   depth_ = 0;
+   sizes_ = {{1}};
+   bulk_length_ = (std::numeric_limits<unsigned long>::max)();
+   bulk_ = type::invalid;
+   consumed_ = 0;
    sizes_[0] = 2; // The sentinel must be more than 1.
 }
 

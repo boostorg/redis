@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2023 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -84,8 +84,12 @@ public:
     request(config cfg = config{true, false, true, true})
     : cfg_{cfg} {}
 
+    //// Returns the number of responses expected for this request.
+   [[nodiscard]] auto get_expected_responses() const noexcept -> std::size_t
+      { return expected_responses_;};
+
     //// Returns the number of commands contained in this request.
-   [[nodiscard]] auto size() const noexcept -> std::size_t
+   [[nodiscard]] auto get_commands() const noexcept -> std::size_t
       { return commands_;};
 
    [[nodiscard]] auto payload() const noexcept -> std::string_view
@@ -99,6 +103,7 @@ public:
    {
       payload_.clear();
       commands_ = 0;
+      expected_responses_ = 0;
       has_hello_priority_ = false;
    }
 
@@ -303,8 +308,10 @@ public:
 private:
    void check_cmd(std::string_view cmd)
    {
+      ++commands_;
+
       if (!detail::has_response(cmd))
-         ++commands_;
+         ++expected_responses_;
 
       if (cmd == "HELLO")
          has_hello_priority_ = cfg_.hello_with_priority;
@@ -313,6 +320,7 @@ private:
    config cfg_;
    std::string payload_;
    std::size_t commands_ = 0;
+   std::size_t expected_responses_ = 0;
    bool has_hello_priority_ = false;
 };
 

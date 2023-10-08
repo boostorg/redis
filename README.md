@@ -1,15 +1,13 @@
-# boost_redis
+# Boost.Redis
 
 Boost.Redis is a high-level [Redis](https://redis.io/) client library built on top of
 [Boost.Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
-that implements Redis plain text protocol
+that implements the Redis protocol
 [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-It can multiplex any number of client
-requests, responses, and server pushes onto a single active socket
-connection to the Redis server.  The requirements for using Boost.Redis are
+The requirements for using Boost.Redis are:
 
-* Boost 1.81 or greater.
-* C++17 minimum.
+* Boost. The library is included in Boost distributions starting with 1.84.
+* C++17 or higher.
 * Redis 6 or higher (must support RESP3).
 * Gcc (10, 11, 12), Clang (11, 13, 14) and Visual Studio (16 2019, 17 2022).
 * Have basic-level knowledge about [Redis](https://redis.io/docs/)
@@ -82,8 +80,9 @@ them are
 * [Client-side caching](https://redis.io/docs/manual/client-side-caching/)
 
 The connection class supports server pushes by means of the
-`boost::redis::connection::async_receive` function, the coroutine shows how
-to used it
+`boost::redis::connection::async_receive` function, which can be
+called in the same connection that is being used to execute commands.
+The coroutine below shows how to used it
 
 ```cpp
 auto
@@ -92,6 +91,9 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
+   generic_response resp;
+   conn->set_receive_response(resp);
+
    // Loop while reconnection is enabled
    while (conn->will_reconnect()) {
 
@@ -99,7 +101,7 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
       co_await conn->async_exec(req, ignore, net::deferred);
 
       // Loop reading Redis pushes.
-      for (generic_response resp;;) {
+      for (;;) {
          error_code ec;
          co_await conn->async_receive(resp, net::redirect_error(net::use_awaitable, ec));
          if (ec)
@@ -108,7 +110,7 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
          // Use the response resp in some way and then clear it.
          ...
 
-         resp.value().clear();
+         consume_one(resp);
       }
    }
 }
@@ -674,7 +676,35 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 
 ## Changelog
 
-### develop (incorporates changes to conform the boost review and more)
+### develop
+
+* Deprecates the `async_receive` overload that takes a response. Users
+  should now first call `set_receive_response` to avoid constantly and
+  unnecessarily setting the same response.
+
+* Uses `std::function` to type erase the response adapter. This change
+  should not influence users in any way but allowed important
+  simplification in the connections internals. This resulted in
+  massive performance improvement.
+
+* The connection has a new member `get_usage()` that returns the
+  connection usage information, such as number of bytes written,
+  received etc.
+
+* There are massive performance improvements in the consuming of
+  server pushes which are now communicated with an `asio::channel` and
+  therefore can be buffered which avoids blocking the socket read-loop.
+  Batch reads are also supported by means of `channel.try_send` and
+  buffered messages can be consumed synchronously with
+  `connection::receive`. The function `boost::redis::cancel_one` has
+  been added to simplify processing multiple server pushes contained
+  in the same `generic_response`.  *IMPORTANT*: These changes may
+  result in more than one push in the response when
+  `connection::async_receive` resumes. The user must therefore be
+  careful when calling `resp.clear()`: either ensure that all message
+  have been processed or just use `consume_one`.
+
+### v1.4.2 (incorporates changes to conform the boost review and more)
 
 * Adds `boost::redis::config::database_index` to make it possible to
   choose a database before starting running commands e.g. after an

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2023 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -116,7 +116,8 @@ public:
       }
    }
 
-   void count(resp3::basic_node<std::string_view> const& nd)
+   template <class String>
+   void count(resp3::basic_node<String> const& nd)
    {
       if (nd.depth == 1) {
          if (is_aggregate(nd.data_type))
@@ -131,7 +132,8 @@ public:
          ++i_;
    }
 
-   void operator()(resp3::basic_node<std::string_view> const& nd, system::error_code& ec)
+   template <class String>
+   void operator()(resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       using std::visit;
 
