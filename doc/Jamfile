@@ -27,7 +27,7 @@ doxygen doc.html
         $(includes) $(examples) $(readme)
     :
         <doxygen:param>"PROJECT_NAME=Boost.Redis"
-        <doxygen:param>PROJECT_NUMBER="1.4.2"
+        <doxygen:param>PROJECT_NUMBER="1.84.0"
         <doxygen:param>PROJECT_BRIEF="A redis client library"
         <doxygen:param>"STRIP_FROM_PATH=\"$(redis_root_dir)\""
         <doxygen:param>"STRIP_FROM_INC_PATH=\"$(include_dir)\""
