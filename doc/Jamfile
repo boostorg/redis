@@ -12,6 +12,8 @@ path-constant include_dir : ../include ;
 path-constant examples_dir : ../example ;
 path-constant readme : ../README.md ;
 path-constant layout_file : DoxygenLayout.xml ;
+path-constant header : header.html ;
+path-constant footer : footer.html ;
 
 local stylesheet_files = [ path.glob $(this_dir) : *.css ] ;
 local includes = [ path.glob-tree $(include_dir) : *.hpp *.cpp ] ;
@@ -46,10 +48,13 @@ doxygen doc.html
         <doxygen:param>EXCLUDE_SYMBOLS=std
         <doxygen:param>"USE_MDFILE_AS_MAINPAGE=\"$(readme)\""
         <doxygen:param>SOURCE_BROWSER=YES
+        <doxygen:param>"HTML_HEADER=\"$(header)\""
+        <doxygen:param>"HTML_FOOTER=\"$(footer)\""
         <doxygen:param>"HTML_EXTRA_STYLESHEET=$(stylesheet_arg)"
         <doxygen:param>HTML_TIMESTAMP=YES
         <doxygen:param>GENERATE_TREEVIEW=YES
-        <doxygen:param>FULL_SIDEBAR=NO
+        <doxygen:param>FULL_SIDEBAR=YES
+        <doxygen:param>DISABLE_INDEX=YES
         <doxygen:param>ENUM_VALUES_PER_LINE=0
         <doxygen:param>OBFUSCATE_EMAILS=YES
         <doxygen:param>USE_MATHJAX=YES
