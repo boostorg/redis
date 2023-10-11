@@ -40,6 +40,8 @@ html {
 
 #page-wrapper {
     height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
 }
 
 #content-wrapper {
@@ -100,6 +102,7 @@ html {
     #MSearchSelect {
         padding-left: 0.75em;
         left: auto;
+        background-repeat: no-repeat;
     }
 
     #MSearchField {
@@ -121,7 +124,6 @@ html {
         display: block;
         border-bottom: none;
         max-width: var(--side-nav-fixed-width);
-        overflow: hidden;
         background: var(--side-nav-background);
     }
 
