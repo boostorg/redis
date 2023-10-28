@@ -5,10 +5,7 @@ project(cmake_subdir_test LANGUAGES CXX)
 set(BOOST_INCLUDE_LIBRARIES redis)
 
 # Build our dependencies, so the targets Boost::xxx are defined
-add_subdirectory(${_BOOST_ROOT} boostorg/boost)
-
-# Build our project
-add_subdirectory(${_BOOST_ROOT}/libs/redis boostorg/redis)
+add_subdirectory(../../../.. boostorg/boost)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE Boost::redis)
