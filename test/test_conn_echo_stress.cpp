@@ -24,7 +24,6 @@ using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::logger;
-using boost::redis::config;
 using boost::redis::connection;
 using boost::redis::usage;
 using boost::redis::error;
@@ -79,7 +78,7 @@ echo_session(
 auto async_echo_stress(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   config cfg;
+   auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds::zero();
    run(conn, cfg,
        boost::asio::error::operation_aborted,
