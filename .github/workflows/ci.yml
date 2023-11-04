@@ -134,13 +134,15 @@ jobs:
           - toolset: gcc-11
             install: g++-11
             os: ubuntu-latest
+            container: ubuntu:22.04
             cxxstd: '17'
             build-type: 'Debug'
             ldflags: ''
 
           - toolset: gcc-11
             install: g++-11
-            os: ubuntu-22.04
+            os: ubuntu-latest
+            container: ubuntu:22.04
             cxxstd: '20'
             build-type: 'Release'
             ldflags: ''
@@ -177,7 +179,7 @@ jobs:
             build-type: 'Release'
             ldflags: ''
 
-          - toolset: clang-14,
+          - toolset: clang-14
             install: 'clang-14 libc++-14-dev libc++abi-14-dev'
             os: ubuntu-latest
             container: ubuntu:22.04
@@ -283,6 +285,8 @@ jobs:
           - toolset: gcc-11
             install: g++-11
             cxxstd: "11,17,20" # Having C++11 shouldn't break the build
+            os: ubuntu-latest
+            container: ubuntu:22.04
           - toolset: clang-14
             install: clang-14
             os: ubuntu-latest

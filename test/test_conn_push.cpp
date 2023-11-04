@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
 
    conn->async_exec(req0, ignore,  c0);
 
-   run(conn, {}, {});
+   run(conn, make_test_config(), {});
 
    net::co_spawn(ioc.get_executor(), push_consumer3(conn), net::detached);
    ioc.run();
