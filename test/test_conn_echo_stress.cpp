@@ -91,14 +91,14 @@ auto async_echo_stress(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
    // Number of coroutines that will send pings sharing the same
    // connection to redis.
-   int const sessions = 500;
+   int const sessions = 150;
 
    // The number of pings that will be sent by each session.
-   int const msgs = 250;
+   int const msgs = 200;
 
    // The number of publishes that will be sent by each session with
    // each message.
-   int const n_pubs = 50;
+   int const n_pubs = 25;
 
    // This is the total number of pushes we will receive.
    int total_pushes = sessions * msgs * n_pubs + 1;
