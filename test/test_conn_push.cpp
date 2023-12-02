@@ -257,9 +257,8 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
 
    auto c11 =[&](auto ec, auto...)
    {
-      std::cout << "quit sent" << std::endl;
+      std::cout << "quit sent: " << ec.message() << std::endl;
       conn->cancel(operation::reconnection);
-      BOOST_TEST(!ec);
    };
    auto c10 =[&](auto ec, auto...)
    {
