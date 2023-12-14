@@ -27,7 +27,7 @@ examples and tests cmake is supported, for example
 
 ```cpp
 # Linux
-$ BOOST_ROOT=/opt/boost_1_81_0 cmake --preset g++-11
+$ BOOST_ROOT=/opt/boost_1_84_0 cmake --preset g++-11
 
 # Windows 
 $ cmake -G "Visual Studio 17 2022" -A x64 -B bin64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
@@ -676,7 +676,7 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 
 ## Changelog
 
-### develop
+### Boost 1.84 (First release in Boost)
 
 * Deprecates the `async_receive` overload that takes a response. Users
   should now first call `set_receive_response` to avoid constantly and

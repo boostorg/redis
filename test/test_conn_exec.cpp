@@ -23,7 +23,6 @@ using boost::redis::response;
 using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::operation;
-using boost::redis::config;
 
 // Sends three requests where one of them has a hello with a priority
 // set, which means it should be executed first.
@@ -122,7 +121,7 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 
 BOOST_AUTO_TEST_CASE(correct_database)
 {
-   config cfg;
+   auto cfg = make_test_config();
    cfg.database_index = 2;
 
    net::io_context ioc;

@@ -18,7 +18,6 @@ using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
-using boost::redis::config;
 using namespace std::chrono_literals;
 
 BOOST_AUTO_TEST_CASE(test_eof_no_error)
@@ -83,7 +82,7 @@ BOOST_AUTO_TEST_CASE(test_async_run_exits)
 
    // The healthy checker should not be the cause of async_run
    // completing, so we disable.
-   config cfg;
+   auto cfg = make_test_config();
    cfg.health_check_interval = 0s;
    cfg.reconnect_wait_interval = 0s;
    run(conn, cfg);
