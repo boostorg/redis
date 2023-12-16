@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(test_async_run_exits)
    auto c3 = [](auto ec, auto)
    {
       std::clog << "c3: " << ec.message() << std::endl;
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
+      BOOST_CHECK_EQUAL(ec, boost::asio::error::operation_aborted);
    };
 
    auto c2 = [&](auto ec, auto)

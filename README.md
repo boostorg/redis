@@ -676,6 +676,15 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 
 ## Changelog
 
+### Boost 1.85
+
+* Fixes [issue 170](https://github.com/boostorg/redis/issues/170).
+  Under load and on low-latency networks it is possible to start
+  receiving responses before the write operation completed and while
+  the request is still marked as staged and not written. This messes
+  up with the heuristics that classifies responses as unsolicied or
+  not.
+
 ### Boost 1.84 (First release in Boost)
 
 * Deprecates the `async_receive` overload that takes a response. Users
