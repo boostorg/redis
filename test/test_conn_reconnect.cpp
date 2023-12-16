@@ -99,7 +99,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 
    std::cout << "ccc" << std::endl;
 
-   BOOST_CHECK_EQUAL(ec1, boost::system::errc::errc_t::operation_canceled);
+   BOOST_CHECK_EQUAL(ec1, boost::asio::error::operation_aborted);
 }
 
 BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
