@@ -423,6 +423,14 @@ public:
    usage get_usage() const noexcept
       { return impl_.get_usage(); }
 
+   /// Returns the ssl context.
+   auto const& get_ssl_context() const noexcept
+      { return impl_.get_ssl_context();}
+
+   /// Returns the ssl context.
+   auto& get_ssl_context() noexcept
+      { return impl_.get_ssl_context();}
+
 private:
    void
    async_run_impl(
