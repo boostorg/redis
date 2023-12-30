@@ -23,6 +23,7 @@ macro(make_test TEST_NAME STANDARD)
     boost_redis_src
     boost_redis_tests_common
     boost_redis_project_options
+    Boost::unit_test_framework
   )
   target_compile_features(${EXE_NAME} PRIVATE cxx_std_${STANDARD})
   add_test(${EXE_NAME} ${EXE_NAME})
