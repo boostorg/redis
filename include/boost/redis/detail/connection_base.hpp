@@ -394,9 +394,9 @@ public:
    /// Constructs from an executor.
    connection_base(
       executor_type ex,
-      asio::ssl::context::method method,
+      asio::ssl::context ctx,
       std::size_t max_read_size)
-   : ctx_{method}
+   : ctx_{std::move(ctx)}
    , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
    , writer_timer_{ex}
    , receive_channel_{ex, 256}
@@ -409,10 +409,6 @@ public:
 
    /// Returns the ssl context.
    auto const& get_ssl_context() const noexcept
-      { return ctx_;}
-
-   /// Returns the ssl context.
-   auto& get_ssl_context() noexcept
       { return ctx_;}
 
    /// Resets the underlying stream.
