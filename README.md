@@ -686,12 +686,12 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   not.
 
 * ([Issue 168](https://github.com/boostorg/redis/issues/168)).
-  Provides SSL context getters. The user wants to be able to pass the
-  `ssl::context` in the connection constructor as is done in Boost.Beast
-  and Boost.MySql. However, doing so would penalize users on plain
-  connections, which would have to start passing a dummy context on
-  every instantiation. If there is more convincing argument I will
-  change this in the future.
+  Provides a way of passing a custom SSL context to the connection.
+  The design here differs from that of Boost.Beast and Boost.MySql
+  since in Boost.Redis the connection owns the context instead of only
+  storing a reference to a user provided one. This is ok so because
+  apps need only one connection for their entire application, which
+  makes the overhead of one ssl-context per connection negligible.
 
 ### Boost 1.84 (First release in Boost)
 
