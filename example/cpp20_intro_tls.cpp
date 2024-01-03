@@ -22,9 +22,15 @@ using boost::redis::connection;
 
 auto verify_certificate(bool, asio::ssl::verify_context&) -> bool
 {
-   std::cout << "set_verify_callback" << std::endl;
+   std::cout << "verify_certificate called" << std::endl;
    return true;
 }
+
+auto prepare_callback = [](connection::next_layer_type& stream)
+{
+   stream.set_verify_mode(asio::ssl::verify_peer);
+   stream.set_verify_callback(verify_certificate);
+};
 
 auto co_main(config cfg) -> asio::awaitable<void>
 {
@@ -35,15 +41,13 @@ auto co_main(config cfg) -> asio::awaitable<void>
    cfg.addr.port = "6380";
 
    auto conn = std::make_shared<connection>(co_await asio::this_coro::executor);
+   conn->set_prepare_callback(prepare_callback);
    conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
 
    request req;
    req.push("PING");
 
    response<std::string> resp;
-
-   conn->next_layer().set_verify_mode(asio::ssl::verify_peer);
-   conn->next_layer().set_verify_callback(verify_certificate);
 
    co_await conn->async_exec(req, resp, asio::deferred);
    conn->cancel();

@@ -17,6 +17,7 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::config;
 using boost::redis::operation;
+using boost::redis::ignore;
 using boost::system::error_code;
 
 bool verify_certificate(bool, net::ssl::verify_context&)
@@ -24,6 +25,12 @@ bool verify_certificate(bool, net::ssl::verify_context&)
    std::cout << "set_verify_callback" << std::endl;
    return true;
 }
+
+auto prepare_callback = [](connection::next_layer_type& stream)
+{
+   stream.set_verify_mode(net::ssl::verify_peer);
+   stream.set_verify_callback(verify_certificate);
+};
 
 config make_tls_config()
 {
@@ -49,8 +56,7 @@ BOOST_AUTO_TEST_CASE(ping_internal_ssl_context)
 
    net::io_context ioc;
    connection conn{ioc};
-   conn.next_layer().set_verify_mode(net::ssl::verify_peer);
-   conn.next_layer().set_verify_callback(verify_certificate);
+   conn.set_prepare_callback(prepare_callback);
 
    conn.async_exec(req, resp, [&](auto ec, auto) {
       BOOST_TEST(!ec);
@@ -77,8 +83,7 @@ BOOST_AUTO_TEST_CASE(ping_custom_ssl_context)
    net::io_context ioc;
    net::ssl::context ctx{boost::asio::ssl::context::tls_client};
    connection conn{ioc, std::move(ctx)};
-   conn.next_layer().set_verify_mode(net::ssl::verify_peer);
-   conn.next_layer().set_verify_callback(verify_certificate);
+   conn.set_prepare_callback(prepare_callback);
 
    conn.async_exec(req, resp, [&](auto ec, auto) {
       BOOST_TEST(!ec);
@@ -107,8 +112,7 @@ BOOST_AUTO_TEST_CASE(acl_does_not_allow_select)
 
    net::io_context ioc;
    connection conn{ioc};
-   conn.next_layer().set_verify_mode(net::ssl::verify_peer);
-   conn.next_layer().set_verify_callback(verify_certificate);
+   conn.set_prepare_callback(prepare_callback);
 
    conn.async_exec(req, resp, [&](auto, auto) {
       // TODO: We should not need this cancel here because
@@ -126,3 +130,44 @@ BOOST_AUTO_TEST_CASE(acl_does_not_allow_select)
 
    BOOST_TEST(!!ec2);
 }
+
+BOOST_AUTO_TEST_CASE(tls_and_reconnection)
+{
+   net::io_context ioc;
+   connection conn{ioc};
+
+   int counter = 0;
+   auto prepare_callback = [&](auto& stream)
+   {
+      ++counter;
+   };
+
+   conn.set_prepare_callback(prepare_callback);
+
+   request req;
+   req.get_config().cancel_on_connection_lost = false;
+   req.push("PING", "str1");
+   req.push("QUIT");
+
+   conn.async_exec(req, ignore, [&](auto ec, auto) {
+      std::cout << "First: " << ec.message() << std::endl;
+      BOOST_TEST(!ec);
+      conn.async_exec(req, ignore, [&](auto ec, auto) {
+         std::cout << "Second: " << ec.message() << std::endl;
+         BOOST_TEST(!ec);
+         conn.async_exec(req, ignore, [&](auto ec, auto) {
+            std::cout << "Third: " << ec.message() << std::endl;
+            BOOST_TEST(!ec);
+            conn.cancel();
+         });
+      });
+   });
+
+   auto const cfg = make_tls_config();
+   conn.async_run(cfg, {}, [](auto) { });
+
+   ioc.run();
+
+   BOOST_CHECK_EQUAL(counter, 3);
+}
+
