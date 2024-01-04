@@ -693,6 +693,11 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   apps need only one connection for their entire application, which
   makes the overhead of one ssl-context per connection negligible.
 
+* ([Issue 169](https://github.com/boostorg/redis/issues/169)).
+  Allows setting a callback that is called before every attempt to
+  stablish a connection or reconnection. See `cpp20_intro_tls.cpp` for
+  an example.
+
 ### Boost 1.84 (First release in Boost)
 
 * Deprecates the `async_receive` overload that takes a response. Users

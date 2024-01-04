@@ -34,6 +34,8 @@ struct reconnection_op {
    {
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
+         conn_->m_prepare_callback(conn_->next_layer());
+
          BOOST_ASIO_CORO_YIELD
          conn_->impl_.async_run(conn_->cfg_, logger_, std::move(self));
          conn_->cancel(operation::receive);
@@ -77,6 +79,15 @@ public:
    /// Returns the underlying executor.
    executor_type get_executor() noexcept
       { return impl_.get_executor(); }
+
+   /// Next layer type.
+   using next_layer_type = asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>>;
+
+   /** Prepare callback type
+    *
+    *  See set_prepare_callback for more information.
+    */
+   using prepare_callback_type = std::function<void(next_layer_type&)>;
 
    /// Rebinds the socket type to another executor.
    template <class Executor1>
@@ -313,6 +324,30 @@ public:
    usage get_usage() const noexcept
       { return impl_.get_usage(); }
 
+   /** @brief Set the prepare callback
+    *
+    *  This callback is called before every new connect or reconnect
+    *  attempt. It is specially useful for SSL connections, for example
+    *
+    *  @code
+    *  auto verify_certificate(bool, asio::ssl::verify_context&) -> bool
+    *  {
+    *     std::cout << "verify_certificate called" << std::endl;
+    *     return true;
+    *  }
+    *  
+    *  auto prepare_callback = [](connection::next_layer_type& stream)
+    *  {
+    *     stream.set_verify_mode(asio::ssl::verify_peer);
+    *     stream.set_verify_callback(verify_certificate);
+    *  };
+    *  @endcode
+    */
+   void set_prepare_callback(prepare_callback_type callback)
+   {
+      m_prepare_callback = std::move(callback);
+   }
+
 private:
    using timer_type =
       asio::basic_waitable_timer<
@@ -325,6 +360,7 @@ private:
    config cfg_;
    detail::connection_base<executor_type> impl_;
    timer_type timer_;
+   prepare_callback_type m_prepare_callback = [](next_layer_type&){ };
 };
 
 /** \brief A basic_connection that type erases the executor.
@@ -340,6 +376,15 @@ class connection {
 public:
    /// Executor type.
    using executor_type = asio::any_io_executor;
+
+   /// Underlying connection type.
+   using underlying_type = basic_connection<executor_type>;
+
+   /// Next layer type.
+   using next_layer_type = underlying_type::next_layer_type;
+
+   /// Prepare callback type
+   using prepare_callback_type = underlying_type::prepare_callback_type;
 
    /// Contructs from an executor.
    explicit
@@ -429,6 +474,10 @@ public:
    auto const& get_ssl_context() const noexcept
       { return impl_.get_ssl_context();}
 
+   /// Calls `boost::redis::basic_connection::set_prepare_callback`.
+   void set_prepare_callback(prepare_callback_type callback)
+      { impl_.set_prepare_callback(std::move(callback)); }
+
 private:
    void
    async_run_impl(
@@ -436,7 +485,7 @@ private:
       logger l,
       asio::any_completion_handler<void(boost::system::error_code)> token);
 
-   basic_connection<executor_type> impl_;
+    underlying_type impl_;
 };
 
 } // boost::redis
