@@ -47,6 +47,7 @@ make_test(test_conn_exec_cancel2 20)
 make_test(test_conn_echo_stress 20)
 make_test(test_conn_run_cancel 20)
 make_test(test_issue_50 20)
+make_test(test_issue_181 17)
 
 # Coverage
 set(

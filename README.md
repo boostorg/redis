@@ -693,6 +693,11 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   apps need only one connection for their entire application, which
   makes the overhead of one ssl-context per connection negligible.
 
+* ([Issue 181](https://github.com/boostorg/redis/issues/181)).
+  See a detailed description of this bug in
+  [this](https://github.com/boostorg/redis/issues/181#issuecomment-1913346983)
+  comment.
+
 ### Boost 1.84 (First release in Boost)
 
 * Deprecates the `async_receive` overload that takes a response. Users

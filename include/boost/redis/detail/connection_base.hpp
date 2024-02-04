@@ -506,6 +506,9 @@ public:
    usage get_usage() const noexcept
       { return usage_; }
 
+   auto run_is_canceled() const noexcept
+      { return cancel_run_called_; }
+
 private:
    using receive_channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
    using runner_type = runner<executor_type>;
@@ -539,6 +542,7 @@ private:
       });
 
       reqs_.erase(point, std::end(reqs_));
+
       std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
          return ptr->mark_waiting();
       });
@@ -575,6 +579,12 @@ private:
          } break;
          case operation::run:
          {
+            // Protects the code below from being called more than
+            // once, see https://github.com/boostorg/redis/issues/181
+            if (std::exchange(cancel_run_called_, true)) {
+               return;
+            }
+
             close();
             writer_timer_.cancel();
             receive_channel_.cancel();
@@ -601,8 +611,9 @@ private:
       // partition of unwritten requests instead of them all.
       std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
          BOOST_ASSERT_MSG(ptr != nullptr, "Expects non-null pointer.");
-         if (ptr->is_staged())
+         if (ptr->is_staged()) {
             ptr->mark_written();
+         }
       });
    }
 
@@ -921,6 +932,7 @@ private:
       read_buffer_.clear();
       parser_.reset();
       on_push_ = false;
+      cancel_run_called_ = false;
    }
 
    asio::ssl::context ctx_;
@@ -942,6 +954,7 @@ private:
    reqs_type reqs_;
    resp3::parser parser_{};
    bool on_push_ = false;
+   bool cancel_run_called_ = false;
 
    usage usage_;
 };
