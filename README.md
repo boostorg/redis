@@ -698,6 +698,10 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   [this](https://github.com/boostorg/redis/issues/181#issuecomment-1913346983)
   comment.
 
+* ([Issue 182](https://github.com/boostorg/redis/issues/182)).
+  Sets `"default"` as the default value of `config::username`. This
+  makes it simpler to use the `requirepass` configuration in Redis.
+
 ### Boost 1.84 (First release in Boost)
 
 * Deprecates the `async_receive` overload that takes a response. Users
