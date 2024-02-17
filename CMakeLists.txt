@@ -77,6 +77,7 @@ if (BOOST_REDIS_MAIN_PROJECT)
     functional
     test
     json
+    endian
   )
 
   foreach(dep IN LISTS deps)
