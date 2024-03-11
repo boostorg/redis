@@ -1,5 +1,5 @@
 
-import ../config/checks/config : requires ;
+import config : requires ;
 import ac ;
 
 # Configure openssl if it hasn't been done yet
@@ -14,7 +14,6 @@ local requirements =
         <define>BOOST_ASIO_DISABLE_BOOST_REGEX=1
         <toolset>msvc:<cxxflags>"/bigobj"
         <target-os>windows:<define>_WIN32_WINNT=0x0601
-        <include>../include
         [ requires
             cxx14_constexpr
             cxx14_generic_lambdas
@@ -30,6 +29,7 @@ local requirements =
         ]
         [ ac.check-library /openssl//ssl    : <library>/openssl//ssl/<link>shared : <build>no ]
         [ ac.check-library /openssl//crypto : <library>/openssl//crypto/<link>shared : <build>no ]
+        <library>/boost/test//boost_unit_test_framework
     ;
 
 
