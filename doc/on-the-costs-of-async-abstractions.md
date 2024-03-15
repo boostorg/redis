@@ -17,7 +17,7 @@ here influenced my views on the proposed
 (a.k.a. Senders and Receivers), which is likely to become the basis of
 networking in upcoming C++ standards.
 
-Although the analysis presented here uses the Redis communication
+Although the analysis presented in this article uses the Redis communication
 protocol for illustration I expect it to be useful in general since
 [RESP3](https://github.com/antirez/RESP3/blob/master/spec.md) shares
 many similarities with other widely used protocols such as HTTP. 
@@ -98,7 +98,7 @@ This is illustrated in the diagram below
     |<---- offset threshold ---->|
     |                            |
    "+PONG\r\n:100\r\n+OK\r\n_\r\n+PONG\r\n"
-    |                                       # Initial message
+    |                                       # Initial offset
 
    "+PONG\r\n:100\r\n+OK\r\n_\r\n+PONG\r\n"
     |<------>|                              # After 1st message
@@ -110,7 +110,7 @@ This is illustrated in the diagram below
     |<--------------------->|               # After 3rd message
 
    "+PONG\r\n:100\r\n+OK\r\n_\r\n+PONG\r\n"
-    |<-------------------------->|          # 4th message crosses the threashold
+    |<-------------------------->|          # Threshold crossed after the 4th message
 
    "+PONG\r\n"
     |                                       # After rotation
@@ -255,7 +255,7 @@ avoided, this is what worked for Boost.Redis
      `try_send_via_dispatch` for a more aggressive optimization).
 
   3. Coalescing of individual requests into a single payload to reduce
-     the number of necessary writes on the socket,this is only
+     the number of necessary writes on the socket, this is only
      possible because Redis supports pipelining (good protocols
      help!).
 
@@ -282,8 +282,8 @@ avoided, this is what worked for Boost.Redis
      `resp3::async_read` is IO-less.
    
 Sometimes it is not possible to avoid asynchronous operations that
-complete synchronously, in the following sections we will therefore
-see how favoring throughput over fairness works in Boost.Asio.
+complete synchronously, in the following sections we will see how to
+favor throughput over fairness in Boost.Asio.
 
 ### Calling the continuation inline
 
@@ -299,7 +299,7 @@ async_read_until(socket, buffer, "\r\n", continuation);
 
 // Immediate completions are executed in exec2 (otherwise equal to the
 // version above). The completion is called inline if exec2 is the
-same // executor that is running the operation.
+// same executor that is running the operation.
 async_read_until(socket, buffer, "\r\n", bind_immediate_executor(exec2, completion));
 ```
 
@@ -388,7 +388,7 @@ Although faster, this strategy has some downsides
    - Requires additional layers of complexity such as
      `bind_immediate_executor` in addition to `bind_executor`.
    
-  - Not compliat with more strict
+  - Non-compliat with more strict
     [guidelines](https://en.wikipedia.org/wiki/The_Power_of_10:_Rules_for_Developing_Safety-Critical_Code)
     that prohibits reentrat code.
 
@@ -432,7 +432,7 @@ instructing the asynchronous operation to call the completion inline
 on immediate completion.  It turns out however that coroutine support
 for _tail-calls_ provide a way to completely sidestep this problem.
 This feature is described by
-[Backer](https://lewissbaker.github.io/2020/05/11/understanding_symmetric_transfer)
+[Lewis Baker](https://lewissbaker.github.io/2020/05/11/understanding_symmetric_transfer)
 as follows
 
 > A tail-call is one where the current stack-frame is popped before
@@ -581,7 +581,7 @@ reentracy, allowing
 [sixteen](https://github.com/NVIDIA/stdexec/blob/83cdb92d316e8b3bca1357e2cf49fc39e9bed403/include/exec/trampoline_scheduler.hpp#L52)
 levels of inline calls by default. While in Boost.Asio it is possible to use
 reentracy as an optimization for a corner cases, here it is made its
-_modus operandi_, my opinion about this has already been stated in a
+_modus operandi_, the downsides of this approach have already been stated in a
 previous section so I won't repeat it here.
 
 Also the fact that a special scheduler is needed by specific
