@@ -30,7 +30,8 @@ macro(make_test TEST_NAME STANDARD)
 endmacro()
 
 make_test(test_conn_quit 17)
-make_test(test_conn_tls 17)
+# TODO: Configure a Redis server with TLS in the CI and reenable this test.
+#make_test(test_conn_tls 17)
 make_test(test_low_level 17)
 make_test(test_conn_exec_retry 17)
 make_test(test_conn_exec_error 17)

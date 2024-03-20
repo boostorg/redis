@@ -702,6 +702,14 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   Sets `"default"` as the default value of `config::username`. This
   makes it simpler to use the `requirepass` configuration in Redis.
 
+* ([Issue 189](https://github.com/boostorg/redis/issues/189)).
+  Fixes narrowing convertion by using `std::size_t` instead of
+  `std::uint64_t` for the sizes of bulks and aggregates. The code
+  relies now on `std::from_chars` returning an error if a value
+  greater than 32 is received on platforms on which the size
+  of`std::size_t` is 32.
+
+
 ### Boost 1.84 (First release in Boost)
 
 * Deprecates the `async_receive` overload that takes a response. Users
