@@ -199,7 +199,7 @@ parser::consume_impl(
             commit_elem();
          } else {
             if (depth_ == max_embedded_depth) {
-               ec = error::exceeeds_max_nested_depth;
+               ec = error::exceeds_max_nested_depth;
                return {};
             }
 

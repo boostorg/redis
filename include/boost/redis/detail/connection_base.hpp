@@ -265,7 +265,7 @@ struct writer_op {
          conn_->writer_timer_.async_wait(std::move(self));
          if (!conn_->is_open() || is_cancelled(self)) {
             logger_.trace("writer-op: canceled (3). Exiting ...");
-            // Notice this is not an error of the op, stoping was
+            // Notice this is not an error of the op, stopping was
             // requested from the outside, so we complete with
             // success.
             self.complete({});
