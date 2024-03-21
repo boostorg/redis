@@ -23,7 +23,7 @@ enum class error
    not_a_number,
 
    /// The maximum depth of a nested response was exceeded.
-   exceeeds_max_nested_depth,
+   exceeds_max_nested_depth,
 
    /// Got non boolean value.
    unexpected_bool_value,
