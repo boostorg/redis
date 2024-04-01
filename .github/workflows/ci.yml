@@ -210,8 +210,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        apt-get update
-        apt-get -y --no-install-recommends install \
+        sudo apt-get update
+        sudo apt-get -y --no-install-recommends install \
           g++ \
           libssl-dev \
           make \
