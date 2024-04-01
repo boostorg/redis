@@ -84,7 +84,6 @@ BOOST_AUTO_TEST_CASE(ping_internal_ssl_context)
    conn.next_layer().set_verify_mode(net::ssl::verify_none);
 
    conn.async_exec(req, resp, [&](error_code ec, auto) {
-      std::cout << ec.message() << std::endl;
       BOOST_TEST(ec == std::error_code());
       conn.cancel();
    });
