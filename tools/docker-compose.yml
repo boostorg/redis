@@ -8,5 +8,7 @@ services:
     image: ubuntu:22.04
     container_name: builder
     tty: true
+    environment:
+      - BOOST_REDIS_TEST_SERVER=redis
     volumes:
       - ../:/boost-redis
