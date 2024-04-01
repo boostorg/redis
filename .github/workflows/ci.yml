@@ -130,7 +130,6 @@ jobs:
 
   posix-cmake:
     name: "CMake ${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
-    needs: build-redis-container
     defaults:
       run:
         shell: bash
