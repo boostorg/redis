@@ -4,3 +4,9 @@ services:
     ports:
       - 6379:6379
       - 6380:6380
+  builder:
+    image: ubuntu:22.04
+    container_name: builder
+    tty: true
+    volumes:
+      - ./:/boost-redis

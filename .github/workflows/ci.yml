@@ -128,27 +128,6 @@ jobs:
           --cxxstd 17,20 \
           --variant debug,release
 
-  build-redis-container:
-    name: Build Redis container
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Log in to the Container registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: tools
-          push: true
-          tags: ghcr.io/${{ github.repository }}:latest
-
   posix-cmake:
     name: "CMake ${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
     needs: build-redis-container
@@ -227,22 +206,26 @@ jobs:
             ldflags: '-lc++'
 
     runs-on: ${{ matrix.os }}
-    container: ${{matrix.container}}
+    # container: ${{matrix.container}}
     env:
       CXXFLAGS: ${{matrix.cxxflags}} -Wall -Wextra
       LDFLAGS:  ${{matrix.ldflags}}
       CMAKE_BUILD_PARALLEL_LEVEL: 4
       BOOST_REDIS_TEST_SERVER: redis
     
-    services:
-      redis:
-        image: ghcr.io/${{ github.repository }}:latest
-
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Set up the required containers
+      run: |
+        cd tools
+        docker compose up -d --wait || (docker compose logs; exit 1)
+      
     - name: Install dependencies
       run: |
-        apt-get update
-        apt-get -y --no-install-recommends install \
+        docker exec -it builder apt-get update
+        docker exec -it builder apt-get -y --no-install-recommends install \
           git \
           libssl-dev \
           make \
@@ -251,59 +234,51 @@ jobs:
           protobuf-compiler \
           python3 \
           ${{ matrix.install }}
-  
-    - name: Checkout
-      uses: actions/checkout@v4
-    
-    - name: Set up a Redis server
-      run: |
-        cd tools
-        docker compose up -d --wait || (docker compose logs; exit 1)
 
     - name: Setup Boost
-      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+      run: docker exec -it builder /boost-redis/tools/ci.py setup-boost --source-dir=/boost-redis
 
     - name: Build a Boost distribution using B2
       run: |
-        ./tools/ci.py build-b2-distro \
+        docker exec -it builder /boost-redis/tools/ci.py build-b2-distro \
           --toolset ${{ matrix.toolset }}
 
     - name: Build a Boost distribution using CMake
       run: |
-        ./tools/ci.py build-cmake-distro \
+        docker exec -it builder /boost-redis/tools/ci.py build-cmake-distro \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
 
     - name: Build the project tests
       run: |
-        ./tools/ci.py build-cmake-standalone-tests \
+        docker exec -it builder /boost-redis/tools/ci.py build-cmake-standalone-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
   
     - name: Run the project tests
       run: |
-        ./tools/ci.py run-cmake-standalone-tests \
+        docker exec -it builder /boost-redis/tools/ci.py run-cmake-standalone-tests \
           --build-type ${{ matrix.build-type }}
 
     - name: Run add_subdirectory tests
       run: |
-        ./tools/ci.py run-cmake-add-subdirectory-tests \
+        docker exec -it builder /boost-redis/tools/ci.py run-cmake-add-subdirectory-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
 
     - name: Run find_package tests with the built cmake distribution
       run: |
-        ./tools/ci.py run-cmake-find-package-tests \
+        docker exec -it builder /boost-redis/tools/ci.py run-cmake-find-package-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
 
     - name: Run find_package tests with the built b2 distribution
       run: |
-        ./tools/ci.py run-cmake-b2-find-package-tests \
+        docker exec -it builder /boost-redis/tools/ci.py run-cmake-b2-find-package-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
