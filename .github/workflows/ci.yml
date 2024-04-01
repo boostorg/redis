@@ -205,25 +205,25 @@ jobs:
       CMAKE_BUILD_PARALLEL_LEVEL: 4
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: Install dependencies
       run: |
         apt-get update
         apt-get -y --no-install-recommends install \
-          git \
-          ca-certificates \
+          g++ \
           cmake \
           protobuf-compiler \
           python3 \
           docker-compose-v2 \
           ${{ matrix.install }}
-
-    - name: Checkout
-      uses: actions/checkout@v3
     
     - name: Set up a Redis server
       run: |
         cd tools
-        docker compose up -d --wait || (docker compose logs; docker inspect tools-redis-1; exit 1)
+        chmod 777 tls/*
+        docker compose up -d --wait || (docker compose logs; exit 1)
 
     - name: Setup Boost
       run: ./tools/ci.py setup-boost --source-dir=$(pwd)
