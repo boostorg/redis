@@ -223,8 +223,8 @@ jobs:
       
     - name: Install dependencies
       run: |
-        docker exec -it builder apt-get update
-        docker exec -it builder apt-get -y --no-install-recommends install \
+        docker exec builder apt-get update
+        docker exec builder apt-get -y --no-install-recommends install \
           git \
           libssl-dev \
           make \
@@ -235,49 +235,49 @@ jobs:
           ${{ matrix.install }}
 
     - name: Setup Boost
-      run: docker exec -it builder /boost-redis/tools/ci.py setup-boost --source-dir=/boost-redis
+      run: docker exec builder /boost-redis/tools/ci.py setup-boost --source-dir=/boost-redis
 
     - name: Build a Boost distribution using B2
       run: |
-        docker exec -it builder /boost-redis/tools/ci.py build-b2-distro \
+        docker exec builder /boost-redis/tools/ci.py build-b2-distro \
           --toolset ${{ matrix.toolset }}
 
     - name: Build a Boost distribution using CMake
       run: |
-        docker exec -it builder /boost-redis/tools/ci.py build-cmake-distro \
+        docker exec builder /boost-redis/tools/ci.py build-cmake-distro \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
 
     - name: Build the project tests
       run: |
-        docker exec -it builder /boost-redis/tools/ci.py build-cmake-standalone-tests \
+        docker exec builder /boost-redis/tools/ci.py build-cmake-standalone-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
   
     - name: Run the project tests
       run: |
-        docker exec -it builder /boost-redis/tools/ci.py run-cmake-standalone-tests \
+        docker exec builder /boost-redis/tools/ci.py run-cmake-standalone-tests \
           --build-type ${{ matrix.build-type }}
 
     - name: Run add_subdirectory tests
       run: |
-        docker exec -it builder /boost-redis/tools/ci.py run-cmake-add-subdirectory-tests \
+        docker exec builder /boost-redis/tools/ci.py run-cmake-add-subdirectory-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
 
     - name: Run find_package tests with the built cmake distribution
       run: |
-        docker exec -it builder /boost-redis/tools/ci.py run-cmake-find-package-tests \
+        docker exec builder /boost-redis/tools/ci.py run-cmake-find-package-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
 
     - name: Run find_package tests with the built b2 distribution
       run: |
-        docker exec -it builder /boost-redis/tools/ci.py run-cmake-b2-find-package-tests \
+        docker exec builder /boost-redis/tools/ci.py run-cmake-b2-find-package-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
