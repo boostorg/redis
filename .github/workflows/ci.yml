@@ -221,7 +221,7 @@ jobs:
     - name: Set up a Redis server
       run: |
         cd tools
-        docker compose up -d --wait || (docker compose logs; exit 1)
+        docker compose up -d --wait || (docker compose logs; docker inspect tools-redis-1; exit 1)
 
     - name: Setup Boost
       run: ./tools/ci.py setup-boost --source-dir=$(pwd)
