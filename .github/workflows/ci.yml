@@ -198,7 +198,7 @@ jobs:
             ldflags: '-lc++'
 
     runs-on: ${{ matrix.os }}
-    container: ${{matrix.container}}
+    # container: ${{matrix.container}}
     env:
       CXXFLAGS: ${{matrix.cxxflags}} -Wall -Wextra
       LDFLAGS:  ${{matrix.ldflags}}
@@ -213,14 +213,11 @@ jobs:
         apt-get update
         apt-get -y --no-install-recommends install \
           g++ \
-          git \
           libssl-dev \
           make \
-          ca-certificates \
           cmake \
           protobuf-compiler \
           python3 \
-          docker-compose-v2 \
           ${{ matrix.install }}
     
     - name: Set up a Redis server
