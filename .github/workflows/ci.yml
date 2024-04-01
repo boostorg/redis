@@ -210,6 +210,7 @@ jobs:
         apt-get update
         apt-get -y --no-install-recommends install \
           git \
+          ca-certificates \
           cmake \
           protobuf-compiler \
           python3 \
@@ -218,7 +219,6 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v3
-
     
     - name: Set up a Redis server
       run: |
