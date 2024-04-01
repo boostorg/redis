@@ -215,7 +215,7 @@ jobs:
           g++ \
           git \
           libssl-dev \
-          ninja-build \
+          make \
           ca-certificates \
           cmake \
           protobuf-compiler \
