@@ -213,6 +213,7 @@ jobs:
         apt-get update
         apt-get -y --no-install-recommends install \
           g++ \
+          git \
           ca-certificates \
           cmake \
           protobuf-compiler \
