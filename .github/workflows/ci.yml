@@ -8,6 +8,13 @@
 
 name: CI
 
+# Permissions for GITHUB_TOKEN
+permissions:
+  # Required for actions/checkout
+  contents: read
+  # Required to save the Docker container to the GitHub container registry
+  packages: write
+
 on: [push, pull_request]
 
 jobs:
@@ -121,8 +128,30 @@ jobs:
           --cxxstd 17,20 \
           --variant debug,release
 
+  build-redis-container:
+    name: Build Redis container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: tools
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+
   posix-cmake:
     name: "CMake ${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
+    needs: build-redis-container
     defaults:
       run:
         shell: bash
@@ -198,27 +227,33 @@ jobs:
             ldflags: '-lc++'
 
     runs-on: ${{ matrix.os }}
-    # container: ${{matrix.container}}
+    container: ${{matrix.container}}
     env:
       CXXFLAGS: ${{matrix.cxxflags}} -Wall -Wextra
       LDFLAGS:  ${{matrix.ldflags}}
       CMAKE_BUILD_PARALLEL_LEVEL: 4
+      BOOST_REDIS_TEST_SERVER: redis
+    
+    services:
+      redis:
+        image: ghcr.io/${{ github.repository }}:latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get -y --no-install-recommends install \
-          g++ \
+          git \
           libssl-dev \
           make \
+          ca-certificates \
           cmake \
           protobuf-compiler \
           python3 \
           ${{ matrix.install }}
+  
+    - name: Checkout
+      uses: actions/checkout@v4
     
     - name: Set up a Redis server
       run: |
