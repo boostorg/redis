@@ -213,6 +213,7 @@ jobs:
         apt-get update
         apt-get -y --no-install-recommends install \
           g++ \
+          ca-certificates \
           cmake \
           protobuf-compiler \
           python3 \
