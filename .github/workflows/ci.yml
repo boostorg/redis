@@ -222,7 +222,6 @@ jobs:
     - name: Set up a Redis server
       run: |
         cd tools
-        chmod 777 tls/*
         docker compose up -d --wait || (docker compose logs; exit 1)
 
     - name: Setup Boost
