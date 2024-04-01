@@ -212,8 +212,8 @@ jobs:
       run: |
         apt-get update
         apt-get -y --no-install-recommends install \
-          cmake
-          protobuf-compiler 
+          cmake \
+          protobuf-compiler \
           python3 \
           docker-compose-v2 \
           ${{ matrix.install }}
