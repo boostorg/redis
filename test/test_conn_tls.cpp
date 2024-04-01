@@ -4,14 +4,11 @@
  * accompanying file LICENSE.txt)
  */
 
-#include "boost/asio/ssl/verify_mode.hpp"
-#include "boost/asio/ssl/host_name_verification.hpp"
-#include "boost/redis/logger.hpp"
-#include "boost/system/detail/error_code.hpp"
+#include <boost/asio/ssl/host_name_verification.hpp>
+#include <boost/system/error_code.hpp>
 #include <boost/redis/connection.hpp>
 #define BOOST_TEST_MODULE conn-tls
 #include <boost/test/included/unit_test.hpp>
-#include <iostream>
 #include "common.hpp"
 
 namespace net = boost::asio;
