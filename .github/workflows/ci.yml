@@ -203,26 +203,25 @@ jobs:
       CXXFLAGS: ${{matrix.cxxflags}} -Wall -Wextra
       LDFLAGS:  ${{matrix.ldflags}}
       CMAKE_BUILD_PARALLEL_LEVEL: 4
-      BOOST_REDIS_TEST_SERVER: redis
-
-    services:
-      redis:
-        image: redis
 
     steps:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Setup container environment
-      if: matrix.container
-      run: |
-        apt-get update
-        apt-get -y install sudo python3 git g++ libssl-dev protobuf-compiler redis-server
-
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get -y install cmake protobuf-compiler redis-server python3 ${{ matrix.install }}
+        sudo apt-get -y --no-install-recommends install \
+          cmake
+          protobuf-compiler 
+          python3 \
+          docker-compose-v2 \
+          ${{ matrix.install }}
+    
+    - name: Set up a Redis server
+      run: |
+        cd tools
+        docker compose up -d --wait || (docker compose logs; exit 1)
 
     - name: Setup Boost
       run: ./tools/ci.py setup-boost --source-dir=$(pwd)
