@@ -1,6 +1,16 @@
 services:
   redis:
-    build: .
+    image: "redis:alpine"
+    command: [
+        "redis-server",
+        "--tls-port", "6380",
+        "--tls-cert-file", "/tls/server.crt",
+        "--tls-key-file", "/tls/server-key.key",
+        "--tls-ca-cert-file", "/tls/ca.crt",
+        "--tls-auth-clients", "no",
+      ]
+    volumes:
+      - ./tls:/tls
     ports:
       - 6379:6379
       - 6380:6380
