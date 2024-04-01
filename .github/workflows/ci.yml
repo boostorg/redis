@@ -214,6 +214,8 @@ jobs:
         apt-get -y --no-install-recommends install \
           g++ \
           git \
+          libssl-dev \
+          ninja-build \
           ca-certificates \
           cmake \
           protobuf-compiler \
