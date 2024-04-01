@@ -210,8 +210,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get -y --no-install-recommends install \
+        apt-get update
+        apt-get -y --no-install-recommends install \
           cmake
           protobuf-compiler 
           python3 \
