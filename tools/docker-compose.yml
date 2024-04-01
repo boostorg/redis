@@ -9,4 +9,4 @@ services:
     container_name: builder
     tty: true
     volumes:
-      - ./:/boost-redis
+      - ../:/boost-redis
