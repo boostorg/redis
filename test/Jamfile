@@ -1,4 +1,5 @@
 
+import-search /boost/config/checks ;
 import config : requires ;
 import ac ;
 
@@ -6,7 +7,7 @@ import ac ;
 using openssl ;
 
 # Use these requirements as both regular and usage requirements across all tests
-local requirements = 
+local requirements =
         <define>BOOST_ASIO_NO_DEPRECATED=1
         <define>BOOST_ASIO_DISABLE_BOOST_ARRAY=1
         <define>BOOST_ASIO_DISABLE_BOOST_BIND=1
@@ -44,7 +45,7 @@ lib redis_test_common
 
 # B2 runs tests in parallel, and some tests rely on having exclusive
 # access to a Redis server, so we only run the ones that don't require a DB server.
-local tests = 
+local tests =
     test_low_level_sync_sans_io
     test_low_level
     test_request
@@ -54,7 +55,7 @@ local tests =
 # Build and run the tests
 for local test in $(tests)
 {
-    run 
+    run
         $(test).cpp
         redis_test_common/<link>static
     : target-name $(test)
