@@ -7,6 +7,7 @@
 #ifndef BOOST_REDIS_CONNECTION_BASE_HPP
 #define BOOST_REDIS_CONNECTION_BASE_HPP
 
+#include <boost/redis/any_adapter.hpp>
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/error.hpp>
@@ -39,6 +40,7 @@
 #include <string_view>
 #include <type_traits>
 #include <functional>
+#include <utility>
 
 namespace boost::redis::detail
 {
@@ -440,19 +442,24 @@ public:
       cancel_impl(op);
    }
 
-   template <class Response, class CompletionToken>
-   auto async_exec(request const& req, Response& resp, CompletionToken token)
+   template <class CompletionToken>
+   auto async_exec(request const& req, any_adapter adapter, CompletionToken token)
    {
-      using namespace boost::redis::adapter;
-      auto f = boost_redis_adapt(resp);
-      BOOST_ASSERT_MSG(req.get_expected_responses() <= f.get_supported_response_size(), "Request and response have incompatible sizes.");
+      auto adapter_impl = std::move(adapter).get_impl();
+      BOOST_ASSERT_MSG(req.get_expected_responses() <= adapter_impl.supported_response_size, "Request and response have incompatible sizes.");
 
-      auto info = std::make_shared<req_info>(req, f, get_executor());
+      auto info = std::make_shared<req_info>(req, std::move(adapter_impl.adapt_fn), get_executor());
 
       return asio::async_compose
          < CompletionToken
          , void(system::error_code, std::size_t)
          >(exec_op<this_type>{this, info}, token, writer_timer_);
+   }
+
+   template <class Response, class CompletionToken>
+   auto async_exec(request const& req, Response& resp, CompletionToken token)
+   {
+      return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
 
    template <class Response, class CompletionToken>
