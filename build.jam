@@ -5,21 +5,24 @@
 
 require-b2 5.2 ;
 
+constant boost_dependencies :
+    /boost/asio//boost_asio
+    /boost/assert//boost_assert
+    /boost/core//boost_core
+    /boost/mp11//boost_mp11
+    /boost/system//boost_system
+    /boost/throw_exception//boost_throw_exception ;
+
 project /boost/redis
     : common-requirements
-        <library>/boost/asio//boost_asio
-        <library>/boost/assert//boost_assert
-        <library>/boost/core//boost_core
-        <library>/boost/mp11//boost_mp11
-        <library>/boost/system//boost_system
-        <library>/boost/throw_exception//boost_throw_exception
         <include>include
     ;
 
 explicit
-    [ alias boost_redis ]
+    [ alias boost_redis : : : : <library>$(boost_dependencies) ]
     [ alias all : boost_redis test ]
     ;
 
 call-if : boost-library redis
     ;
+
