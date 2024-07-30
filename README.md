@@ -9,7 +9,7 @@ The requirements for using Boost.Redis are:
 * Boost. The library is included in Boost distributions starting with 1.84.
 * C++17 or higher.
 * Redis 6 or higher (must support RESP3).
-* Gcc (10, 11, 12), Clang (11, 13, 14) and Visual Studio (16 2019, 17 2022).
+* Gcc (11, 12), Clang (11, 13, 14) and Visual Studio (16 2019, 17 2022).
 * Have basic-level knowledge about [Redis](https://redis.io/docs/)
   and [Boost.Asio](https://www.boost.org/doc/libs/1_82_0/doc/html/boost_asio/overview.html).
 
