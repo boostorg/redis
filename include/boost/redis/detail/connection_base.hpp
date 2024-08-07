@@ -7,7 +7,7 @@
 #ifndef BOOST_REDIS_CONNECTION_BASE_HPP
 #define BOOST_REDIS_CONNECTION_BASE_HPP
 
-#include <boost/redis/any_adapter.hpp>
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/error.hpp>
@@ -443,7 +443,7 @@ public:
    }
 
    template <class CompletionToken>
-   auto async_exec(request const& req, any_adapter adapter, CompletionToken token)
+   auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token)
    {
       auto adapter_impl = std::move(adapter).get_impl();
       BOOST_ASSERT_MSG(req.get_expected_responses() <= adapter_impl.supported_response_size, "Request and response have incompatible sizes.");
@@ -454,12 +454,6 @@ public:
          < CompletionToken
          , void(system::error_code, std::size_t)
          >(exec_op<this_type>{this, info}, token, writer_timer_);
-   }
-
-   template <class Response, class CompletionToken>
-   auto async_exec(request const& req, Response& resp, CompletionToken token)
-   {
-      return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
 
    template <class Response, class CompletionToken>

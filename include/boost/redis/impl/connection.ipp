@@ -31,6 +31,15 @@ connection::async_run_impl(
    impl_.async_run(cfg, l, std::move(token));
 }
 
+void
+connection::async_exec_impl(
+   request const& req,
+   any_adapter adapter,
+   asio::any_completion_handler<void(boost::system::error_code)> token)
+{
+   impl_.async_exec(req, std::move(adapter), std::move(token));
+}
+
 void connection::cancel(operation op)
 {
    impl_.cancel(op);
