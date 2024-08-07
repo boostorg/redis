@@ -11,6 +11,7 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/redis/operation.hpp>
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -44,7 +45,7 @@ public:
          }
 
          BOOST_ASIO_CORO_YIELD
-         conn_->async_exec(checker_->req_, checker_->resp_, std::move(self));
+         conn_->async_exec(checker_->req_, any_adapter(checker_->resp_), std::move(self));
          if (ec || is_cancelled(self)) {
             logger_.trace("ping_op: error/cancelled (1).");
             checker_->wait_timer_.cancel();
