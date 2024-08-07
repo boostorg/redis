@@ -123,7 +123,9 @@ struct exec_op {
          // be stablished.
          if (info_->req_->get_config().cancel_if_not_connected && !conn_->is_open()) {
             BOOST_ASIO_CORO_YIELD
-            asio::post(std::move(self));
+            asio::dispatch(
+               asio::get_associated_immediate_executor(self, self.get_io_executor()),
+               std::move(self));
             return self.complete(error::not_connected, 0);
          }
 
