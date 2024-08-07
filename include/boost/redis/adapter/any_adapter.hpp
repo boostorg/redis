@@ -49,10 +49,10 @@ class any_adapter
     } impl_;
 
     template <class T>
-    static auto create_impl(T& response) -> impl_t
+    static auto create_impl(T& resp) -> impl_t
     {
         using namespace boost::redis::adapter;
-        auto adapter = boost_redis_adapt(response);
+        auto adapter = boost_redis_adapt(resp);
         std::size_t size = adapter.get_supported_response_size();
         return { std::move(adapter), size };
     }
