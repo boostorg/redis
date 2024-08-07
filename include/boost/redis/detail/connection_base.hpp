@@ -31,6 +31,7 @@
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/experimental/channel.hpp>
+#include <boost/asio/associated_immediate_executor.hpp>
 
 #include <algorithm>
 #include <array>
