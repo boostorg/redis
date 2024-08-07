@@ -408,17 +408,17 @@ public:
 
    /// Calls `boost::redis::basic_connection::async_exec`.
    template <class Response, class CompletionToken>
-   auto async_exec(request const& req, Response& resp, CompletionToken token)
+   auto async_exec(request const& req, Response& resp, CompletionToken&& token)
    {
-      return async_exec(req, any_adapter(resp), std::move(token));
+      return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
 
    /// Calls `boost::redis::basic_connection::async_exec`.
    template <class CompletionToken>
-   auto async_exec(request const& req, any_adapter adapter, CompletionToken token)
+   auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token)
    {
       return asio::async_initiate<
-         CompletionToken, void(boost::system::error_code)>(
+         CompletionToken, void(boost::system::error_code, std::size_t)>(
             [](auto handler, connection* self, request const* req, any_adapter&& adapter)
             {
                self->async_exec_impl(*req, std::move(adapter), std::move(handler));
