@@ -64,15 +64,15 @@ public:
     /**
      * @brief Constructor.
      * 
-     * Creates a type-erased response adapter from `response` by calling
-     * @ref boost_redis_adapt. `T` must be a valid Redis response type.
+     * Creates a type-erased response adapter from `resp` by calling
+     * `boost_redis_adapt`. `T` must be a valid Redis response type.
      * Any type passed to @ref connection::async_exec qualifies.
      *
-     * This object stores a reference to `response`, which must be kept alive
+     * This object stores a reference to `resp`, which must be kept alive
      * while `*this` is being used.
      */
     template <class T, class = std::enable_if_t<!std::is_same_v<T, any_adapter>>>
-    explicit any_adapter(T& response) : impl_(create_impl(response)) {}
+    explicit any_adapter(T& resp) : impl_(create_impl(resp)) {}
 };
 
 }
