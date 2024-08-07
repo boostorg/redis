@@ -260,7 +260,11 @@ public:
       return impl_.async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
 
-
+   /** @copydoc async_exec
+    * 
+    * @details This function uses the type-erased @ref any_adapter class, which
+    * encapsulates a reference to a response object.
+    */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto
    async_exec(
@@ -409,6 +413,7 @@ public:
       return async_exec(req, any_adapter(resp), std::move(token));
    }
 
+   /// Calls `boost::redis::basic_connection::async_exec`.
    template <class CompletionToken>
    auto async_exec(request const& req, any_adapter adapter, CompletionToken token)
    {
