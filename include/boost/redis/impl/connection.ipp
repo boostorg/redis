@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <cstddef>
 
 namespace boost::redis {
 
@@ -34,8 +35,8 @@ connection::async_run_impl(
 void
 connection::async_exec_impl(
    request const& req,
-   any_adapter adapter,
-   asio::any_completion_handler<void(boost::system::error_code)> token)
+   any_adapter&& adapter,
+   asio::any_completion_handler<void(boost::system::error_code, std::size_t)> token)
 {
    impl_.async_exec(req, std::move(adapter), std::move(token));
 }

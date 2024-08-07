@@ -7,7 +7,6 @@
 #ifndef BOOST_REDIS_CONNECTION_HPP
 #define BOOST_REDIS_CONNECTION_HPP
 
-#include "boost/redis/request.hpp"
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/connection_base.hpp>
 #include <boost/redis/logger.hpp>
@@ -19,6 +18,7 @@
 #include <boost/asio/any_completion_handler.hpp>
 
 #include <chrono>
+#include <cstddef>
 #include <limits>
 
 namespace boost::redis {
@@ -414,7 +414,7 @@ public:
    {
       return asio::async_initiate<
          CompletionToken, void(boost::system::error_code)>(
-            [](auto handler, connection* self, request const* req, any_adapter adapter)
+            [](auto handler, connection* self, request const* req, any_adapter&& adapter)
             {
                self->async_exec_impl(*req, std::move(adapter), std::move(handler));
             }, token, this, &req, std::move(adapter));
@@ -462,8 +462,8 @@ private:
    void
    async_exec_impl(
       request const& req,
-      any_adapter adapter,
-      asio::any_completion_handler<void(boost::system::error_code)> token);
+      any_adapter&& adapter,
+      asio::any_completion_handler<void(boost::system::error_code, std::size_t)> token);
 
    basic_connection<executor_type> impl_;
 };
