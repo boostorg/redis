@@ -10,13 +10,21 @@
 
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/adapter/adapt.hpp>
-#include <boost/system/detail/error_code.hpp>
+#include <boost/system/error_code.hpp>
 #include <cstddef>
 #include <functional>
 #include <string_view>
 #include <type_traits>
 
 namespace boost::redis {
+
+namespace detail { 
+
+// Forward decl
+template <class Executor>
+class connection_base;
+
+}
 
 class any_adapter
 {
@@ -36,12 +44,12 @@ class any_adapter
         return { std::move(adapter), size };
     }
 
+    template <class Executor>
+    friend class detail::connection_base;
+
 public:
     template <class T, class = std::enable_if_t<!std::is_same_v<T, any_adapter>>>
     explicit any_adapter(T& response) : impl_(create_impl(response)) {}
-
-    // TODO: make this private
-    auto get_impl() && { return std::move(impl_); }
 };
 
 }

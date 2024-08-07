@@ -445,9 +445,9 @@ public:
    }
 
    template <class CompletionToken>
-   auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token)
+   auto async_exec(request const& req, any_adapter&& adapter, CompletionToken&& token)
    {
-      auto adapter_impl = std::move(adapter).get_impl();
+      auto& adapter_impl = adapter.impl_;
       BOOST_ASSERT_MSG(req.get_expected_responses() <= adapter_impl.supported_response_size, "Request and response have incompatible sizes.");
 
       auto info = std::make_shared<req_info>(req, std::move(adapter_impl.adapt_fn), get_executor());
