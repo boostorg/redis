@@ -26,6 +26,19 @@ class connection_base;
 
 }
 
+/** @brief A type-erased reference to a response.
+ *  @ingroup high-level-api
+ *
+ *  A type-erased response adapter. It can be executed using @ref connection::async_exec.
+ *  Using this type instead of raw response references enables separate compilation.
+ *
+ *  Given a response object `resp` that can be passed to `async_exec`, the following two
+ *  statements have the same effect:
+ *  ```
+ *      co_await conn.async_exec(req, resp);
+ *      co_await conn.async_exec(req, any_response(resp));
+ *  ```
+ */
 class any_adapter
 {
     using fn_type = std::function<void(std::size_t, resp3::basic_node<std::string_view> const&, system::error_code&)>;
@@ -48,6 +61,16 @@ class any_adapter
     friend class detail::connection_base;
 
 public:
+    /**
+     * @brief Constructor.
+     * 
+     * Creates a type-erased response adapter from `response` by calling
+     * @ref boost_redis_adapt. `T` must be a valid Redis response type.
+     * Any type passed to @ref connection::async_exec qualifies.
+     *
+     * This object stores a reference to `response`, which must be kept alive
+     * while `*this` is being used.
+     */
     template <class T, class = std::enable_if_t<!std::is_same_v<T, any_adapter>>>
     explicit any_adapter(T& response) : impl_(create_impl(response)) {}
 };
