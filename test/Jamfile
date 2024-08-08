@@ -8,6 +8,7 @@ using openssl ;
 
 # Use these requirements as both regular and usage requirements across all tests
 local requirements =
+        <library>/boost/redis//boost_redis ;
         <define>BOOST_ASIO_NO_DEPRECATED=1
         <define>BOOST_ASIO_DISABLE_BOOST_ARRAY=1
         <define>BOOST_ASIO_DISABLE_BOOST_BIND=1
