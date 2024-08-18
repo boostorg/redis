@@ -317,7 +317,7 @@ struct reader_op {
             if (ec == asio::error::eof) {
                logger_.trace("reader-op: EOF received. Exiting ...");
                conn_->cancel(operation::run);
-               return self.complete({}); // EOFINAE: EOF is not an error.
+               return self.complete(ec);
             }
 
             // The connection is not viable after an error.

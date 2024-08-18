@@ -676,6 +676,14 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 
 ## Changelog
 
+### Boost 1.87
+
+* ([Issue 205](https://github.com/boostorg/redis/issues/205))
+  Improves reaction time to disconnection by using `wait_for_one_error`
+  instead of `wait_for_all`. The function `connection::async_run` was
+  also changed to return EOF to the user when that error is received
+  from the server. That is a breaking change.
+
 ### Boost 1.85
 
 * ([Issue 170](https://github.com/boostorg/redis/issues/170))
