@@ -93,7 +93,7 @@ public:
             [this](auto token) { return runner_->health_checker_.async_check_health(*conn_, logger_, token); },
             [this](auto token) { return runner_->async_hello(*conn_, logger_, token); }
          ).async_wait(
-            asio::experimental::wait_for_all(),
+            asio::experimental::wait_for_one_error(),
             std::move(self));
 
          logger_.on_runner(ec0, ec1, ec2);
