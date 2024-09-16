@@ -409,7 +409,7 @@ generic_response const attr_e1b
    test(make_expected(S04e, array_type2{}, boost::redis::error::incompatible_size));\
    test(make_expected(S04e, tuple_int_2{}, boost::redis::error::incompatible_size));\
    test(make_expected(S04f, array_type2{}, boost::redis::error::nested_aggregate_not_supported));\
-   test(make_expected(S04g, generic_response{}, boost::redis::error::exceeeds_max_nested_depth));\
+   test(make_expected(S04g, generic_response{}, boost::redis::error::exceeds_max_nested_depth));\
    test(make_expected(S04h, array_e1d));\
    test(make_expected(S04h, array_e1e));\
    test(make_expected(S04i, set_type{}, boost::redis::error::expects_resp3_set)); \
@@ -502,7 +502,7 @@ BOOST_AUTO_TEST_CASE(cover_error)
 {
    check_error("boost.redis", boost::redis::error::invalid_data_type);
    check_error("boost.redis", boost::redis::error::not_a_number);
-   check_error("boost.redis", boost::redis::error::exceeeds_max_nested_depth);
+   check_error("boost.redis", boost::redis::error::exceeds_max_nested_depth);
    check_error("boost.redis", boost::redis::error::unexpected_bool_value);
    check_error("boost.redis", boost::redis::error::empty_field);
    check_error("boost.redis", boost::redis::error::expects_resp3_simple_type);
