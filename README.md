@@ -684,6 +684,9 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   also changed to return EOF to the user when that error is received
   from the server. That is a breaking change.
 
+* ([Issue 210](https://github.com/boostorg/redis/issues/210))
+  Fixes the adapter of empty nested reposponses.
+
 ### Boost 1.85
 
 * ([Issue 170](https://github.com/boostorg/redis/issues/170))
