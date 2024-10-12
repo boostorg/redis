@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2023 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2024 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -23,6 +23,7 @@
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/prepend.hpp>
 #include <string>
 #include <memory>
 #include <chrono>
@@ -88,10 +89,51 @@ public:
       BOOST_ASIO_CORO_REENTER (coro_)
       {
          BOOST_ASIO_CORO_YIELD
+         runner_->resv_.async_resolve(
+            asio::prepend(std::move(self), std::array<std::size_t, 3> {}));
+
+         logger_.on_resolve(ec0, runner_->resv_.results());
+
+         if (ec0 || redis::detail::is_cancelled(self)) {
+            self.complete(!!ec0 ? ec0 : asio::error::operation_aborted);
+            return;
+         }
+
+         BOOST_ASIO_CORO_YIELD
+         runner_->ctor_.async_connect(
+            conn_->next_layer().next_layer(),
+            runner_->resv_.results(),
+            asio::prepend(std::move(self), std::array<std::size_t, 3> {}));
+
+         logger_.on_connect(ec0, runner_->ctor_.endpoint());
+
+         if (ec0 || redis::detail::is_cancelled(self)) {
+            self.complete(!!ec0 ? ec0 : asio::error::operation_aborted);
+            return;
+         }
+
+         if (conn_->use_ssl()) {
+            BOOST_ASIO_CORO_YIELD
+            runner_->hsher_.async_handshake(
+               conn_->next_layer(),
+               asio::prepend(std::move(self),
+                  std::array<std::size_t, 3> {}));
+
+            logger_.on_ssl_handshake(ec0);
+            if (ec0 || redis::detail::is_cancelled(self)) {
+               self.complete(!!ec0 ? ec0 : asio::error::operation_aborted);
+               return;
+            }
+         }
+
+         // Note: Oder is important here because async_run might
+         // trigger an async_write before the async_hello thereby
+         // causing authentication problems.
+         BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
-            [this](auto token) { return runner_->async_run_all(*conn_, logger_, token); },
+            [this](auto token) { return runner_->async_hello(*conn_, logger_, token); },
             [this](auto token) { return runner_->health_checker_.async_check_health(*conn_, logger_, token); },
-            [this](auto token) { return runner_->async_hello(*conn_, logger_, token); }
+            [this](auto token) { return conn_->async_run_lean(runner_->cfg_, logger_, token); }
          ).async_wait(
             asio::experimental::wait_for_one_error(),
             std::move(self));
@@ -103,13 +145,8 @@ public:
             return;
          }
 
-         if (ec0 == error::connect_timeout || ec0 == error::resolve_timeout) {
+         if (order[0] == 0 && !!ec0) {
             self.complete(ec0);
-            return;
-         }
-
-         if (order[0] == 2 && !!ec2) {
-            self.complete(ec2);
             return;
          }
 
@@ -118,44 +155,7 @@ public:
             return;
          }
 
-         self.complete(ec0);
-      }
-   }
-};
-
-template <class Runner, class Connection, class Logger>
-struct run_all_op {
-   Runner* runner_ = nullptr;
-   Connection* conn_ = nullptr;
-   Logger logger_;
-   asio::coroutine coro_{};
-
-   template <class Self>
-   void operator()(Self& self, system::error_code ec = {}, std::size_t = 0)
-   {
-      BOOST_ASIO_CORO_REENTER (coro_)
-      {
-         BOOST_ASIO_CORO_YIELD
-         runner_->resv_.async_resolve(std::move(self));
-         logger_.on_resolve(ec, runner_->resv_.results());
-         BOOST_REDIS_CHECK_OP0(conn_->cancel(operation::run);)
-
-         BOOST_ASIO_CORO_YIELD
-         runner_->ctor_.async_connect(conn_->next_layer().next_layer(), runner_->resv_.results(), std::move(self));
-         logger_.on_connect(ec, runner_->ctor_.endpoint());
-         BOOST_REDIS_CHECK_OP0(conn_->cancel(operation::run);)
-
-         if (conn_->use_ssl()) {
-            BOOST_ASIO_CORO_YIELD
-            runner_->hsher_.async_handshake(conn_->next_layer(), std::move(self));
-            logger_.on_ssl_handshake(ec);
-            BOOST_REDIS_CHECK_OP0(conn_->cancel(operation::run);)
-         }
-
-         BOOST_ASIO_CORO_YIELD
-         conn_->async_run_lean(runner_->cfg_, logger_, std::move(self));
-         BOOST_REDIS_CHECK_OP0(;)
-         self.complete(ec);
+         self.complete(ec2);
       }
    }
 };
@@ -207,18 +207,8 @@ private:
    using health_checker_type = health_checker<Executor>;
    using timer_type = typename connector_type::timer_type;
 
-   template <class, class, class> friend struct run_all_op;
    template <class, class, class> friend class runner_op;
    template <class, class, class> friend struct hello_op;
-
-   template <class Connection, class Logger, class CompletionToken>
-   auto async_run_all(Connection& conn, Logger l, CompletionToken token)
-   {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(run_all_op<runner, Connection, Logger>{this, &conn, l}, token, conn);
-   }
 
    template <class Connection, class Logger, class CompletionToken>
    auto async_hello(Connection& conn, Logger l, CompletionToken token)

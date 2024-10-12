@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
 
    auto cfg = make_test_config();
    conn->async_run(cfg, {}, [](auto ec){
-      BOOST_CHECK_EQUAL(ec, boost::redis::error::incompatible_size);
+      BOOST_CHECK_EQUAL(ec, redis::error::incompatible_size);
    });
 
    ioc.run();
