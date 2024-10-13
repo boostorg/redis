@@ -205,7 +205,6 @@ private:
    using connector_type = connector<Executor>;
    using handshaker_type = detail::handshaker<Executor>;
    using health_checker_type = health_checker<Executor>;
-   using timer_type = typename connector_type::timer_type;
 
    template <class, class, class> friend class runner_op;
    template <class, class, class> friend struct hello_op;
