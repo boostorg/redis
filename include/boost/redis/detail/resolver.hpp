@@ -40,7 +40,9 @@ struct resolve_op {
 
          resv_->results_ = res;
 
-         // TODO: map operation_canceled into error::resolve_timeout
+         if (ec == asio::error::operation_aborted) {
+            ec == error::resolve_timeout;
+         }
          self.complete(ec);
       }
    }
