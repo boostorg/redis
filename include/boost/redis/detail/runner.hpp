@@ -18,7 +18,6 @@
 #include <boost/redis/detail/resolver.hpp>
 #include <boost/redis/detail/handshaker.hpp>
 #include <boost/asio/compose.hpp>
-#include <boost/asio/connect.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -165,7 +164,6 @@ class runner {
 public:
    runner(Executor ex, config cfg)
    : resv_{ex}
-   , ctor_{ex}
    , hsher_{ex}
    , health_checker_{ex}
    , cfg_{cfg}
@@ -174,7 +172,6 @@ public:
    std::size_t cancel(operation op)
    {
       resv_.cancel(op);
-      ctor_.cancel(op);
       hsher_.cancel(op);
       health_checker_.cancel(op);
       return 0U;
@@ -202,10 +199,8 @@ public:
 
 private:
    using resolver_type = resolver<Executor>;
-   using connector_type = connector<Executor>;
    using handshaker_type = detail::handshaker<Executor>;
    using health_checker_type = health_checker<Executor>;
-   using timer_type = typename connector_type::timer_type;
 
    template <class, class, class> friend class runner_op;
    template <class, class, class> friend struct hello_op;
@@ -245,7 +240,7 @@ private:
    }
 
    resolver_type resv_;
-   connector_type ctor_;
+   connector ctor_;
    handshaker_type hsher_;
    health_checker_type health_checker_;
    request hello_req_;
