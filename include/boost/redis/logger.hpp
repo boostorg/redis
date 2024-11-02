@@ -64,7 +64,7 @@ public:
     *
     *  @param l Log level.
     */
-   logger(level l = level::disabled)
+   logger(level l = level::debug)
    : level_{l}
    {}
 
