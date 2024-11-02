@@ -41,9 +41,10 @@ struct resolve_op {
          resv_->results_ = res;
 
          if (ec == asio::error::operation_aborted) {
-            ec == error::resolve_timeout;
+            self.complete(error::resolve_timeout);
+         } else {
+            self.complete(ec);
          }
-         self.complete(ec);
       }
    }
 };
