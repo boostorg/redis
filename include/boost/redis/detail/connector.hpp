@@ -42,10 +42,10 @@ struct connect_op {
          ctor_->endpoint_ = ep;
 
          if (ec == asio::error::operation_aborted) {
-            ec == error::connect_timeout;
+            self.complete(redis::error::connect_timeout);
+         } else {
+            self.complete(ec);
          }
-
-         self.complete(ec);
       }
    }
 };
