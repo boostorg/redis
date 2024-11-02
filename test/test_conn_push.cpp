@@ -9,7 +9,7 @@
 #include <boost/system/errc.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/co_spawn.hpp>
-#include <boost/asio/experimental/as_tuple.hpp>
+#include <boost/asio/as_tuple.hpp>
 #define BOOST_TEST_MODULE conn-push
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
@@ -21,7 +21,7 @@ namespace redis = boost::redis;
 using boost::redis::operation;
 using connection = boost::redis::connection;
 using error_code = boost::system::error_code;
-using net::experimental::as_tuple;
+using net::as_tuple;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
