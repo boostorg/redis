@@ -38,9 +38,9 @@ struct reconnection_op {
          conn_->impl_.async_run(conn_->cfg_, logger_, std::move(self));
          conn_->cancel(operation::receive);
          logger_.on_connection_lost(ec);
-         if (!conn_->will_reconnect() || is_cancelled(self)) {
+         if (!conn_->will_reconnect()) {
             conn_->cancel(operation::reconnection);
-            self.complete(!!ec ? ec : asio::error::operation_aborted);
+            self.complete(ec);
             return;
          }
 
@@ -52,6 +52,7 @@ struct reconnection_op {
             self.complete(asio::error::operation_aborted);
             return;
          }
+
          conn_->reset_stream();
       }
    }

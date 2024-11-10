@@ -70,6 +70,8 @@ private:
    Logger logger_;
    asio::coroutine coro_{};
 
+   using order_t = std::array<std::size_t, 3>;
+
 public:
    runner_op(Runner* runner, Connection* conn, Logger l)
    : runner_{runner}
@@ -79,7 +81,7 @@ public:
 
    template <class Self>
    void operator()( Self& self
-                  , std::array<std::size_t, 3> order = {}
+                  , order_t order = {}
                   , system::error_code ec0 = {}
                   , system::error_code ec1 = {}
                   , system::error_code ec2 = {}
@@ -88,13 +90,12 @@ public:
       BOOST_ASIO_CORO_REENTER (coro_)
       {
          BOOST_ASIO_CORO_YIELD
-         runner_->resv_.async_resolve(
-            asio::prepend(std::move(self), std::array<std::size_t, 3> {}));
+         runner_->resv_.async_resolve(asio::prepend(std::move(self), order_t {}));
 
          logger_.on_resolve(ec0, runner_->resv_.results());
 
-         if (ec0 || redis::detail::is_cancelled(self)) {
-            self.complete(!!ec0 ? ec0 : asio::error::operation_aborted);
+         if (ec0) {
+            self.complete(ec0);
             return;
          }
 
@@ -102,12 +103,12 @@ public:
          runner_->ctor_.async_connect(
             conn_->next_layer().next_layer(),
             runner_->resv_.results(),
-            asio::prepend(std::move(self), std::array<std::size_t, 3> {}));
+            asio::prepend(std::move(self), order_t {}));
 
          logger_.on_connect(ec0, runner_->ctor_.endpoint());
 
-         if (ec0 || redis::detail::is_cancelled(self)) {
-            self.complete(!!ec0 ? ec0 : asio::error::operation_aborted);
+         if (ec0) {
+            self.complete(ec0);
             return;
          }
 
@@ -115,12 +116,12 @@ public:
             BOOST_ASIO_CORO_YIELD
             runner_->hsher_.async_handshake(
                conn_->next_layer(),
-               asio::prepend(std::move(self),
-                  std::array<std::size_t, 3> {}));
+               asio::prepend(std::move(self), order_t {}));
 
             logger_.on_ssl_handshake(ec0);
-            if (ec0 || redis::detail::is_cancelled(self)) {
-               self.complete(!!ec0 ? ec0 : asio::error::operation_aborted);
+
+            if (ec0) {
+               self.complete(ec0);
                return;
             }
          }
