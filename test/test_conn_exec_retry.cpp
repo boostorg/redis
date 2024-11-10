@@ -75,8 +75,13 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
    conn->async_exec(req0, ignore, c0);
 
    auto cfg = make_test_config();
-   cfg.health_check_interval = 5s;
-   run(conn);
+   conn->async_run(cfg, {boost::redis::logger::level::debug},
+      [&](boost::system::error_code const& ec)
+      {
+         std::cout << "async_run: " << ec.message() << std::endl;
+         conn->cancel();
+      }
+   );
 
    ioc.run();
 }

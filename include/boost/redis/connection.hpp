@@ -22,42 +22,6 @@
 #include <limits>
 
 namespace boost::redis {
-namespace detail
-{
-template <class Connection, class Logger>
-struct reconnection_op {
-   Connection* conn_ = nullptr;
-   Logger logger_;
-   asio::coroutine coro_{};
-
-   template <class Self>
-   void operator()(Self& self, system::error_code ec = {})
-   {
-      BOOST_ASIO_CORO_REENTER (coro_) for (;;)
-      {
-         BOOST_ASIO_CORO_YIELD
-         conn_->impl_.async_run(conn_->cfg_, logger_, std::move(self));
-         conn_->cancel(operation::receive);
-         logger_.on_connection_lost(ec);
-         if (!conn_->will_reconnect() || is_cancelled(self)) {
-            conn_->cancel(operation::reconnection);
-            self.complete(!!ec ? ec : asio::error::operation_aborted);
-            return;
-         }
-
-         conn_->timer_.expires_after(conn_->cfg_.reconnect_wait_interval);
-         BOOST_ASIO_CORO_YIELD
-         conn_->timer_.async_wait(std::move(self));
-         BOOST_REDIS_CHECK_OP0(;)
-         if (!conn_->will_reconnect()) {
-            self.complete(asio::error::operation_aborted);
-            return;
-         }
-         conn_->reset_stream();
-      }
-   }
-};
-} // detail
 
 /** @brief A SSL connection to the Redis server.
  *  @ingroup high-level-api
@@ -100,7 +64,6 @@ public:
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)())
    : impl_{ex, std::move(ctx), max_read_size}
-   , timer_{ex}
    { }
 
    /// Contructs from a context.
@@ -158,14 +121,7 @@ public:
       Logger l = Logger{},
       CompletionToken token = CompletionToken{})
    {
-      using this_type = basic_connection<executor_type>;
-
-      cfg_ = cfg;
-      l.set_prefix(cfg_.log_prefix);
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(detail::reconnection_op<this_type, Logger>{this, l}, token, timer_);
+      return impl_.async_run(cfg, l, std::move(token));
    }
 
    /** @brief Receives server side pushes asynchronously.
@@ -287,22 +243,11 @@ public:
     *  @param op: The operation to be cancelled.
     */
    void cancel(operation op = operation::all)
-   {
-      switch (op) {
-         case operation::reconnection:
-         case operation::all:
-            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
-            timer_.cancel();
-            break;
-         default: /* ignore */;
-      }
-
-      impl_.cancel(op);
-   }
+      { impl_.cancel(op); }
 
    /// Returns true if the connection was canceled.
    bool will_reconnect() const noexcept
-      { return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();}
+      { return impl_.will_reconnect();}
 
    /// Returns the ssl context.
    auto const& get_ssl_context() const noexcept
@@ -330,17 +275,7 @@ public:
       { return impl_.get_usage(); }
 
 private:
-   using timer_type =
-      asio::basic_waitable_timer<
-         std::chrono::steady_clock,
-         asio::wait_traits<std::chrono::steady_clock>,
-         Executor>;
-
-   template <class, class> friend struct detail::reconnection_op;
-
-   config cfg_;
    detail::connection_base<executor_type> impl_;
-   timer_type timer_;
 };
 
 /** \brief A basic_connection that type erases the executor.
