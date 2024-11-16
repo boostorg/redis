@@ -87,7 +87,7 @@ public:
                   , system::error_code ec2 = {}
                   , std::size_t = 0)
    {
-      BOOST_ASIO_CORO_REENTER (coro_)
+      BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
          BOOST_ASIO_CORO_YIELD
          runner_->resv_.async_resolve(asio::prepend(std::move(self), order_t {}));
@@ -133,17 +133,14 @@ public:
          asio::experimental::make_parallel_group(
             [this](auto token) { return runner_->async_hello(*conn_, logger_, token); },
             [this](auto token) { return runner_->health_checker_.async_check_health(*conn_, logger_, token); },
-            [this](auto token) { return conn_->async_run_lean(runner_->cfg_, logger_, token); }
+            [this](auto token) { return conn_->async_run_lean(logger_, token); }
          ).async_wait(
             asio::experimental::wait_for_one_error(),
             std::move(self));
 
+         // TODO: Unify these lines.
          logger_.on_runner(ec0, ec1, ec2);
-
-         if (is_cancelled(self)) {
-            self.complete(asio::error::operation_aborted);
-            return;
-         }
+         logger_.on_connection_lost({});
 
          if (order[0] == 0 && !!ec0) {
             self.complete(ec0);
@@ -155,7 +152,34 @@ public:
             return;
          }
 
-         self.complete(ec2);
+         // The receive operation must be cancelled because channel
+         // subscription does not survive a reconnection but requires
+         // re-subscription.
+         conn_->cancel(operation::receive);
+
+         if (!conn_->will_reconnect()) {
+            conn_->cancel(operation::reconnection);
+            self.complete(ec2);
+            return;
+         }
+
+         // It is safe to use the writer timer here because we are not
+         // connected.
+         conn_->writer_timer_.expires_after(conn_->cfg_.reconnect_wait_interval);
+
+         BOOST_ASIO_CORO_YIELD
+         conn_->writer_timer_.async_wait(asio::prepend(std::move(self), order_t {}));
+         if (ec0) {
+            self.complete(ec0);
+            return;
+         }
+
+         if (!conn_->will_reconnect()) {
+            self.complete(asio::error::operation_aborted);
+            return;
+         }
+
+         conn_->reset_stream();
       }
    }
 };
@@ -195,8 +219,6 @@ public:
          , void(system::error_code)
          >(runner_op<runner, Connection, Logger>{this, &conn, l}, token, conn);
    }
-
-   config const& get_config() const noexcept {return cfg_;}
 
 private:
    using resolver_type = resolver<Executor>;

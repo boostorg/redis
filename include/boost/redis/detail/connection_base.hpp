@@ -313,13 +313,6 @@ struct reader_op {
 
             logger_.on_read(ec, n);
 
-            // EOF is not treated as error.
-            if (ec == asio::error::eof) {
-               logger_.trace("reader-op: EOF received. Exiting ...");
-               conn_->cancel(operation::run);
-               return self.complete(ec);
-            }
-
             // The connection is not viable after an error.
             if (ec) {
                logger_.trace("reader-op: error. Exiting ...");
@@ -429,7 +422,17 @@ public:
    /// Cancels specific operations.
    void cancel(operation op)
    {
+      // TODO: Simplify
+      switch (op) {
+         case operation::reconnection:
+         case operation::all:
+            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
+            break;
+         default: /* ignore */;
+      }
+
       runner_.cancel(op);
+
       if (op == operation::all) {
          cancel_impl(operation::run);
          cancel_impl(operation::receive);
@@ -490,8 +493,9 @@ public:
    template <class Logger, class CompletionToken>
    auto async_run(config const& cfg, Logger l, CompletionToken token)
    {
+      cfg_ = cfg;
       runner_.set_config(cfg);
-      l.set_prefix(runner_.get_config().log_prefix);
+      l.set_prefix(cfg.log_prefix);
       return runner_.async_run(*this, l, std::move(token));
    }
 
@@ -509,6 +513,9 @@ public:
    auto run_is_canceled() const noexcept
       { return cancel_run_called_; }
 
+   bool will_reconnect() const noexcept
+      { return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();}
+
 private:
    using receive_channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
    using runner_type = runner<executor_type>;
@@ -517,7 +524,7 @@ private:
    using exec_notifier_type = receive_channel_type;
 
    auto use_ssl() const noexcept
-      { return runner_.get_config().use_ssl;}
+      { return cfg_.use_ssl;}
 
    auto cancel_on_conn_lost() -> std::size_t
    {
@@ -760,10 +767,8 @@ private:
    }
 
    template <class Logger, class CompletionToken>
-   auto async_run_lean(config const& cfg, Logger l, CompletionToken token)
+   auto async_run_lean(Logger l, CompletionToken token)
    {
-      runner_.set_config(cfg);
-      l.set_prefix(runner_.get_config().log_prefix);
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
@@ -948,6 +953,7 @@ private:
 
    using dyn_buffer_type = asio::dynamic_string_buffer<char, std::char_traits<char>, std::allocator<char>>;
 
+   config cfg_;
    std::string read_buffer_;
    dyn_buffer_type dbuf_;
    std::string write_buffer_;
