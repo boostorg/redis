@@ -11,7 +11,6 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/redis/operation.hpp>
-#include <boost/redis/detail/helper.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/compose.hpp>
@@ -45,10 +44,10 @@ public:
 
          BOOST_ASIO_CORO_YIELD
          conn_->async_exec(checker_->req_, checker_->resp_, std::move(self));
-         if (ec || is_cancelled(self)) {
+         if (ec) {
             logger_.trace("ping_op: error/cancelled (1).");
             checker_->wait_timer_.cancel();
-            self.complete(!!ec ? ec : asio::error::operation_aborted);
+            self.complete(ec);
             return;
          }
 
@@ -56,9 +55,9 @@ public:
          checker_->ping_timer_.expires_after(checker_->ping_interval_);
          BOOST_ASIO_CORO_YIELD
          checker_->ping_timer_.async_wait(std::move(self));
-         if (ec || is_cancelled(self)) {
+         if (ec) {
             logger_.trace("ping_op: error/cancelled (2).");
-            self.complete(!!ec ? ec : asio::error::operation_aborted);
+            self.complete(ec);
             return;
          }
       }
@@ -81,9 +80,9 @@ public:
          checker_->wait_timer_.expires_after(2 * checker_->ping_interval_);
          BOOST_ASIO_CORO_YIELD
          checker_->wait_timer_.async_wait(std::move(self));
-         if (ec || is_cancelled(self)) {
+         if (ec) {
             logger_.trace("check-timeout-op: error/canceled. Exiting ...");
-            self.complete(!!ec ? ec : asio::error::operation_aborted);
+            self.complete(ec);
             return;
          }
 
@@ -144,12 +143,6 @@ public:
             std::move(self));
 
          logger_.on_check_health(ec1, ec2);
-
-         if (is_cancelled(self)) {
-            logger_.trace("check-health-op: canceled. Exiting ...");
-            self.complete(asio::error::operation_aborted);
-            return;
-         }
 
          switch (order[0]) {
             case 0: self.complete(ec1); return;
