@@ -70,7 +70,7 @@ private:
    Logger logger_;
    asio::coroutine coro_{};
 
-   using order_t = std::array<std::size_t, 3>;
+   using order_t = std::array<std::size_t, 4>;
 
 public:
    runner_op(Runner* runner, Connection* conn, Logger l)
@@ -85,7 +85,7 @@ public:
                   , system::error_code ec0 = {}
                   , system::error_code ec1 = {}
                   , system::error_code ec2 = {}
-                  , std::size_t = 0)
+                  , system::error_code ec3 = {})
    {
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
@@ -126,19 +126,23 @@ public:
             }
          }
 
-         // Note: Oder is important here because async_run might
+         conn_->reset();
+
+         // Note: Oder is important here because the writer might
          // trigger an async_write before the async_hello thereby
          // causing authentication problems.
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
             [this](auto token) { return runner_->async_hello(*conn_, logger_, token); },
             [this](auto token) { return runner_->health_checker_.async_check_health(*conn_, logger_, token); },
-            [this](auto token) { return conn_->async_run_lean(logger_, token); }
+            [this](auto token) { return conn_->reader(logger_, token);},
+            [this](auto token) { return conn_->writer(logger_, token);}
          ).async_wait(
             asio::experimental::wait_for_one_error(),
             std::move(self));
 
          // TODO: Unify these lines.
+         logger_.on_run(ec0, ec1);
          logger_.on_runner(ec0, ec1, ec2);
          logger_.on_connection_lost({});
 

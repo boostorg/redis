@@ -173,47 +173,6 @@ EXEC_OP_WAIT:
 };
 
 template <class Conn, class Logger>
-struct run_op {
-   Conn* conn = nullptr;
-   Logger logger_;
-   asio::coroutine coro{};
-
-   template <class Self>
-   void operator()( Self& self
-                  , std::array<std::size_t, 2> order = {}
-                  , system::error_code ec0 = {}
-                  , system::error_code ec1 = {})
-   {
-      BOOST_ASIO_CORO_REENTER (coro)
-      {
-         conn->reset();
-
-         BOOST_ASIO_CORO_YIELD
-         asio::experimental::make_parallel_group(
-            [this](auto token) { return conn->reader(logger_, token);},
-            [this](auto token) { return conn->writer(logger_, token);}
-         ).async_wait(
-            asio::experimental::wait_for_one(),
-            std::move(self));
-
-         if (is_cancelled(self)) {
-            logger_.trace("run-op: canceled. Exiting ...");
-            self.complete(asio::error::operation_aborted);
-            return;
-         }
-
-         logger_.on_run(ec0, ec1);
-
-         switch (order[0]) {
-           case 0: self.complete(ec0); break;
-           case 1: self.complete(ec1); break;
-           default: BOOST_ASSERT(false);
-         }
-      }
-   }
-};
-
-template <class Conn, class Logger>
 struct writer_op {
    Conn* conn_;
    Logger logger_;
@@ -710,7 +669,6 @@ private:
 
    template <class, class> friend struct reader_op;
    template <class, class> friend struct writer_op;
-   template <class, class> friend struct run_op;
    template <class> friend struct exec_op;
    template <class, class, class> friend struct runner_op;
 
@@ -764,15 +722,6 @@ private:
          < CompletionToken
          , void(system::error_code)
          >(writer_op<this_type, Logger>{this, l}, token, writer_timer_);
-   }
-
-   template <class Logger, class CompletionToken>
-   auto async_run_lean(Logger l, CompletionToken token)
-   {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(run_op<this_type, Logger>{this, l}, token, writer_timer_);
    }
 
    [[nodiscard]] bool coalesce_requests()
