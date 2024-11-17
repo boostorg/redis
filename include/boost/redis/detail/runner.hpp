@@ -32,6 +32,9 @@ namespace boost::redis::detail
 
 void push_hello(config const& cfg, request& req);
 
+// TODO: Can we avoid this whole function whose only purpose is to
+// check for an error in the hello response and complete with an error
+// so that the parallel group that starts it can exit?
 template <class Runner, class Connection, class Logger>
 struct hello_op {
    Runner* runner_ = nullptr;
@@ -50,10 +53,10 @@ struct hello_op {
          conn_->async_exec(runner_->hello_req_, runner_->hello_resp_, std::move(self));
          logger_.on_hello(ec, runner_->hello_resp_);
 
-         if (ec || runner_->has_error_in_response() || is_cancelled(self)) {
+         if (ec || runner_->has_error_in_response()) {
             logger_.trace("hello-op: error/canceled. Exiting ...");
             conn_->cancel(operation::run);
-            self.complete(!!ec ? ec : asio::error::operation_aborted);
+            self.complete(ec);
             return;
          }
 
@@ -70,7 +73,7 @@ private:
    Logger logger_;
    asio::coroutine coro_{};
 
-   using order_t = std::array<std::size_t, 4>;
+   using order_t = std::array<std::size_t, 5>;
 
 public:
    runner_op(Runner* runner, Connection* conn, Logger l)
@@ -85,7 +88,8 @@ public:
                   , system::error_code ec0 = {}
                   , system::error_code ec1 = {}
                   , system::error_code ec2 = {}
-                  , system::error_code ec3 = {})
+                  , system::error_code ec3 = {}
+                  , system::error_code ec4 = {})
    {
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
@@ -130,11 +134,12 @@ public:
 
          // Note: Oder is important here because the writer might
          // trigger an async_write before the async_hello thereby
-         // causing authentication problems.
+         // causing an authentication problem.
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
             [this](auto token) { return runner_->async_hello(*conn_, logger_, token); },
-            [this](auto token) { return runner_->health_checker_.async_check_health(*conn_, logger_, token); },
+            [this](auto token) { return runner_->health_checker_.async_ping(*conn_, logger_, token); },
+            [this](auto token) { return runner_->health_checker_.async_check_timeout(*conn_, logger_, token);},
             [this](auto token) { return conn_->reader(logger_, token);},
             [this](auto token) { return conn_->writer(logger_, token);}
          ).async_wait(
@@ -142,6 +147,7 @@ public:
             std::move(self));
 
          // TODO: Unify these lines.
+         logger_.on_check_health(ec1, ec2);
          logger_.on_run(ec0, ec1);
          logger_.on_runner(ec0, ec1, ec2);
          logger_.on_connection_lost({});
@@ -151,7 +157,7 @@ public:
             return;
          }
 
-         if (order[0] == 1 && ec1 == error::pong_timeout) {
+         if (order[0] == 2 && ec2 == error::pong_timeout) {
             self.complete(ec1);
             return;
          }
@@ -163,7 +169,7 @@ public:
 
          if (!conn_->will_reconnect()) {
             conn_->cancel(operation::reconnection);
-            self.complete(ec2);
+            self.complete(ec3);
             return;
          }
 

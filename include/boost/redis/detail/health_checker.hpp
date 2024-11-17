@@ -17,7 +17,6 @@
 #include <boost/asio/consign.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/post.hpp>
-#include <boost/asio/experimental/parallel_group.hpp>
 #include <memory>
 #include <chrono>
 
@@ -36,6 +35,14 @@ public:
    {
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
+         if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
+            logger_.trace("ping-op: timeout disabled. Exiting ...");
+            BOOST_ASIO_CORO_YIELD
+            asio::post(std::move(self));
+            self.complete({});
+            return;
+         }
+
          if (checker_->checker_has_exited_) {
             logger_.trace("ping_op: checker has exited. Exiting ...");
             self.complete({});
@@ -77,6 +84,14 @@ public:
    {
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
+         if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
+            logger_.trace("check-timeout-op: timeout disabled. Exiting ...");
+            BOOST_ASIO_CORO_YIELD
+            asio::post(std::move(self));
+            self.complete({});
+            return;
+         }
+
          checker_->wait_timer_.expires_after(2 * checker_->ping_interval_);
          BOOST_ASIO_CORO_YIELD
          checker_->wait_timer_.async_wait(std::move(self));
@@ -108,51 +123,6 @@ public:
    }
 };
 
-template <class HealthChecker, class Connection, class Logger>
-class check_health_op {
-public:
-   HealthChecker* checker_ = nullptr;
-   Connection* conn_ = nullptr;
-   Logger logger_;
-   asio::coroutine coro_{};
-
-   template <class Self>
-   void
-   operator()(
-         Self& self,
-         std::array<std::size_t, 2> order = {},
-         system::error_code ec1 = {},
-         system::error_code ec2 = {})
-   {
-      BOOST_ASIO_CORO_REENTER (coro_)
-      {
-         if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
-            logger_.trace("check-health-op: timeout disabled.");
-            BOOST_ASIO_CORO_YIELD
-            asio::post(std::move(self));
-            self.complete({});
-            return;
-         }
-
-         BOOST_ASIO_CORO_YIELD
-         asio::experimental::make_parallel_group(
-            [this](auto token) { return checker_->async_ping(*conn_, logger_, token); },
-            [this](auto token) { return checker_->async_check_timeout(*conn_, logger_, token);}
-         ).async_wait(
-            asio::experimental::wait_for_one(),
-            std::move(self));
-
-         logger_.on_check_health(ec1, ec2);
-
-         switch (order[0]) {
-            case 0: self.complete(ec1); return;
-            case 1: self.complete(ec2); return;
-            default: BOOST_ASSERT(false);
-         }
-      }
-   }
-};
-
 template <class Executor>
 class health_checker {
 private:
@@ -177,24 +147,6 @@ public:
       ping_interval_ = cfg.health_check_interval;
    }
 
-   template <
-      class Connection,
-      class Logger,
-      class CompletionToken = asio::default_completion_token_t<Executor>
-   >
-   auto
-   async_check_health(
-      Connection& conn,
-      Logger l,
-      CompletionToken token = CompletionToken{})
-   {
-      checker_has_exited_ = false;
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(check_health_op<health_checker, Connection, Logger>{this, &conn, l}, token, conn);
-   }
-
    std::size_t cancel(operation op)
    {
       switch (op) {
@@ -209,7 +161,6 @@ public:
       return 0;
    }
 
-private:
    template <class Connection, class Logger, class CompletionToken>
    auto async_ping(Connection& conn, Logger l, CompletionToken token)
    {
@@ -228,9 +179,10 @@ private:
          >(check_timeout_op<health_checker, Connection, Logger>{this, &conn, l}, token, conn, wait_timer_);
    }
 
+private:
+
    template <class, class, class> friend class ping_op;
    template <class, class, class> friend class check_timeout_op;
-   template <class, class, class> friend class check_health_op;
 
    timer_type ping_timer_;
    timer_type wait_timer_;

@@ -20,7 +20,6 @@
 #include <boost/system.hpp>
 #include <boost/asio/basic_stream_socket.hpp>
 #include <boost/asio/bind_executor.hpp>
-#include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/write.hpp>
