@@ -102,7 +102,7 @@ public:
    , timer_{ex}
    { }
 
-   /// Contructs from a context.
+   /// Constructs from a context.
    explicit
    basic_connection(
       asio::io_context& ioc,
@@ -125,17 +125,17 @@ public:
     *     timeout with value zero will disable health-checks.  If the Redis
     *     server does not respond to a health-check within two times the value
     *     specified here, it will be considered unresponsive and the connection
-    *     will be closed and a new connection will be stablished.
+    *     will be closed and a new connection will be established.
     *  5. Starts read and write operations with the Redis
     *  server. More specifically it will trigger the write of all
     *  requests i.e. calls to `async_exec` that happened prior to this
     *  call.
     *
     *  When a connection is lost for any reason, a new one is
-    *  stablished automatically. To disable reconnection call
+    *  established automatically. To disable reconnection call
     *  `boost::redis::connection::cancel(operation::reconnection)`.
     *
-    *  @param cfg Configuration paramters.
+    *  @param cfg Configuration parameters.
     *  @param l Logger object. The interface expected is specified in the class `boost::redis::logger`.
     *  @param token Completion token.
     *
