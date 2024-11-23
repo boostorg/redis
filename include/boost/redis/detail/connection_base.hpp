@@ -393,15 +393,20 @@ public:
             resv_.cancel();
             break;
          case operation::reconnection:
+            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
+            break;
+         case operation::health_check:
+            health_checker_.cancel();
+            break;
          case operation::all:
             resv_.cancel();
+            health_checker_.cancel();
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
             break;
          default: /* ignore */;
       }
 
       ssl_handshaker_.cancel(op);
-      health_checker_.cancel(op);
 
       if (op == operation::all) {
          cancel_impl(operation::run);

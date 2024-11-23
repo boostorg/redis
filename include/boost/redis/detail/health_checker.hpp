@@ -7,10 +7,8 @@
 #ifndef BOOST_REDIS_HEALTH_CHECKER_HPP
 #define BOOST_REDIS_HEALTH_CHECKER_HPP
 
-// Has to included before promise.hpp to build on msvc.
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
-#include <boost/redis/operation.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/compose.hpp>
@@ -147,18 +145,10 @@ public:
       ping_interval_ = cfg.health_check_interval;
    }
 
-   std::size_t cancel(operation op)
+   void cancel()
    {
-      switch (op) {
-         case operation::health_check:
-         case operation::all:
-            ping_timer_.cancel();
-            wait_timer_.cancel();
-            break;
-         default: /* ignore */;
-      }
-
-      return 0;
+      ping_timer_.cancel();
+      wait_timer_.cancel();
    }
 
    template <class Connection, class Logger, class CompletionToken>
