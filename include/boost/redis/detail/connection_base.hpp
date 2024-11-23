@@ -387,7 +387,6 @@ public:
    /// Cancels specific operations.
    void cancel(operation op)
    {
-      // TODO: Simplify
       switch (op) {
          case operation::resolve:
             resv_.cancel();
@@ -395,8 +394,17 @@ public:
          case operation::ssl_handshake:
             ssl_handshaker_.cancel();
             break;
+         case operation::exec:
+            cancel_unwritten_requests();
+            break;
          case operation::reconnection:
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
+            break;
+         case operation::run:
+            cancel_run();
+            break;
+         case operation::receive:
+            receive_channel_.cancel();
             break;
          case operation::health_check:
             health_checker_.cancel();
@@ -406,18 +414,12 @@ public:
             ssl_handshaker_.cancel();
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
             health_checker_.cancel();
+            cancel_run(); // run
+            receive_channel_.cancel(); // receive
+            cancel_unwritten_requests(); // exec
             break;
          default: /* ignore */;
       }
-
-      if (op == operation::all) {
-         cancel_impl(operation::run);
-         cancel_impl(operation::receive);
-         cancel_impl(operation::exec);
-         return;
-      } 
-
-      cancel_impl(op);
    }
 
    template <class Response, class CompletionToken>
@@ -561,32 +563,18 @@ private:
       return ret;
    }
 
-   void cancel_impl(operation op)
+   void cancel_run()
    {
-      switch (op) {
-         case operation::exec:
-         {
-            cancel_unwritten_requests();
-         } break;
-         case operation::run:
-         {
-            // Protects the code below from being called more than
-            // once, see https://github.com/boostorg/redis/issues/181
-            if (std::exchange(cancel_run_called_, true)) {
-               return;
-            }
-
-            close();
-            writer_timer_.cancel();
-            receive_channel_.cancel();
-            cancel_on_conn_lost();
-         } break;
-         case operation::receive:
-         {
-            receive_channel_.cancel();
-         } break;
-         default: /* ignore */;
+      // Protects the code below from being called more than
+      // once, see https://github.com/boostorg/redis/issues/181
+      if (std::exchange(cancel_run_called_, true)) {
+         return;
       }
+
+      close();
+      writer_timer_.cancel();
+      receive_channel_.cancel();
+      cancel_on_conn_lost();
    }
 
    void on_write()
