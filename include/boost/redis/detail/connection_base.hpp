@@ -389,14 +389,17 @@ public:
    {
       // TODO: Simplify
       switch (op) {
+         case operation::resolve:
+            resv_.cancel();
+            break;
          case operation::reconnection:
          case operation::all:
+            resv_.cancel();
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
             break;
          default: /* ignore */;
       }
 
-      resv_.cancel(op);
       ssl_handshaker_.cancel(op);
       health_checker_.cancel(op);
 
