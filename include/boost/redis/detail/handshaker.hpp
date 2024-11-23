@@ -93,18 +93,8 @@ public:
          >(handshake_op<handshaker, Stream>{this, &stream}, token, timer_);
    }
 
-   std::size_t cancel(operation op)
-   {
-      switch (op) {
-         case operation::ssl_handshake:
-         case operation::all:
-            timer_.cancel();
-            break;
-         default: /* ignore */;
-      }
-
-      return 0;
-   }
+   void cancel()
+      { timer_.cancel(); }
 
    constexpr bool is_dummy() const noexcept
       {return false;}
