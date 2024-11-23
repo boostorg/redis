@@ -15,7 +15,6 @@
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/detail/connector.hpp>
-#include <boost/redis/detail/resolver.hpp>
 #include <boost/redis/detail/handshaker.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/coroutine.hpp>
@@ -94,9 +93,9 @@ public:
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
          BOOST_ASIO_CORO_YIELD
-         runner_->resv_.async_resolve(asio::prepend(std::move(self), order_t {}));
+         conn_->resv_.async_resolve(asio::prepend(std::move(self), order_t {}));
 
-         logger_.on_resolve(ec0, runner_->resv_.results());
+         logger_.on_resolve(ec0, conn_->resv_.results());
 
          if (ec0) {
             self.complete(ec0);
@@ -106,7 +105,7 @@ public:
          BOOST_ASIO_CORO_YIELD
          runner_->ctor_.async_connect(
             conn_->next_layer().next_layer(),
-            runner_->resv_.results(),
+            conn_->resv_.results(),
             asio::prepend(std::move(self), order_t {}));
 
          logger_.on_connect(ec0, runner_->ctor_.endpoint());
@@ -198,15 +197,13 @@ template <class Executor>
 class runner {
 public:
    runner(Executor ex, config cfg)
-   : resv_{ex}
-   , hsher_{ex}
+   : hsher_{ex}
    , health_checker_{ex}
    , cfg_{cfg}
    { }
 
    std::size_t cancel(operation op)
    {
-      resv_.cancel(op);
       hsher_.cancel(op);
       health_checker_.cancel(op);
       return 0U;
@@ -215,7 +212,6 @@ public:
    void set_config(config const& cfg)
    {
       cfg_ = cfg;
-      resv_.set_config(cfg);
       ctor_.set_config(cfg);
       hsher_.set_config(cfg);
       health_checker_.set_config(cfg);
@@ -231,7 +227,6 @@ public:
    }
 
 private:
-   using resolver_type = resolver<Executor>;
    using handshaker_type = detail::handshaker<Executor>;
    using health_checker_type = health_checker<Executor>;
 
@@ -272,7 +267,6 @@ private:
       return std::any_of(std::cbegin(hello_resp_.value()), std::cend(hello_resp_.value()), f);
    }
 
-   resolver_type resv_;
    connector ctor_;
    handshaker_type hsher_;
    health_checker_type health_checker_;

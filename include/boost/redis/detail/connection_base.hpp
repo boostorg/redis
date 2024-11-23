@@ -9,6 +9,7 @@
 
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/detail/helper.hpp>
+#include <boost/redis/detail/resolver.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
@@ -351,6 +352,7 @@ public:
    , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
    , writer_timer_{ex}
    , receive_channel_{ex, 256}
+   , resv_{ex}
    , runner_{ex, {}}
    , dbuf_{read_buffer_, max_read_size}
    {
@@ -389,6 +391,7 @@ public:
          default: /* ignore */;
       }
 
+      resv_.cancel(op);
       runner_.cancel(op);
 
       if (op == operation::all) {
@@ -452,6 +455,7 @@ public:
    auto async_run(config const& cfg, Logger l, CompletionToken token)
    {
       cfg_ = cfg;
+      resv_.set_config(cfg);
       runner_.set_config(cfg);
       l.set_prefix(cfg.log_prefix);
       return runner_.async_run(*this, l, std::move(token));
@@ -476,6 +480,7 @@ public:
 
 private:
    using receive_channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
+   using resolver_type = resolver<Executor>;
    using runner_type = runner<executor_type>;
    using adapter_type = std::function<void(std::size_t, resp3::basic_node<std::string_view> const&, system::error_code&)>;
    using receiver_adapter_type = std::function<void(resp3::basic_node<std::string_view> const&, system::error_code&)>;
@@ -896,6 +901,7 @@ private:
    // not suspend.
    timer_type writer_timer_;
    receive_channel_type receive_channel_;
+   resolver_type resv_;
    runner_type runner_;
    receiver_adapter_type receive_adapter_;
 

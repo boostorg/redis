@@ -8,6 +8,7 @@
 #define BOOST_REDIS_RESOLVER_HPP
 
 #include <boost/redis/config.hpp>
+#include <boost/redis/operation.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/asio/compose.hpp>
