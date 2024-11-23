@@ -7,8 +7,8 @@
 #ifndef BOOST_REDIS_RUNNER_HPP
 #define BOOST_REDIS_RUNNER_HPP
 
-#include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/error.hpp>
@@ -135,8 +135,8 @@ public:
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
             [this](auto token) { return runner_->async_hello(*conn_, logger_, token); },
-            [this](auto token) { return runner_->health_checker_.async_ping(*conn_, logger_, token); },
-            [this](auto token) { return runner_->health_checker_.async_check_timeout(*conn_, logger_, token);},
+            [this](auto token) { return conn_->health_checker_.async_ping(*conn_, logger_, token); },
+            [this](auto token) { return conn_->health_checker_.async_check_timeout(*conn_, logger_, token);},
             [this](auto token) { return conn_->reader(logger_, token);},
             [this](auto token) { return conn_->writer(logger_, token);}
          ).async_wait(
@@ -195,20 +195,12 @@ template <class Executor>
 class runner {
 public:
    runner(Executor ex, config cfg)
-   : health_checker_{ex}
-   , cfg_{cfg}
+   : cfg_{cfg}
    { }
-
-   std::size_t cancel(operation op)
-   {
-      health_checker_.cancel(op);
-      return 0U;
-   }
 
    void set_config(config const& cfg)
    {
       cfg_ = cfg;
-      health_checker_.set_config(cfg);
    }
 
    template <class Connection, class Logger, class CompletionToken>
@@ -221,7 +213,6 @@ public:
    }
 
 private:
-   using health_checker_type = health_checker<Executor>;
 
    template <class, class, class> friend class runner_op;
    template <class, class, class> friend struct hello_op;
@@ -260,7 +251,6 @@ private:
       return std::any_of(std::cbegin(hello_resp_.value()), std::cend(hello_resp_.value()), f);
    }
 
-   health_checker_type health_checker_;
    request hello_req_;
    generic_response hello_resp_;
    config cfg_;
