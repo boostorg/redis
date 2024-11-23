@@ -14,7 +14,6 @@
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
-#include <boost/redis/detail/handshaker.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
@@ -116,7 +115,7 @@ public:
 
          if (conn_->use_ssl()) {
             BOOST_ASIO_CORO_YIELD
-            runner_->hsher_.async_handshake(
+            conn_->ssl_handshaker_.async_handshake(
                conn_->next_layer(),
                asio::prepend(std::move(self), order_t {}));
 
@@ -196,14 +195,12 @@ template <class Executor>
 class runner {
 public:
    runner(Executor ex, config cfg)
-   : hsher_{ex}
-   , health_checker_{ex}
+   : health_checker_{ex}
    , cfg_{cfg}
    { }
 
    std::size_t cancel(operation op)
    {
-      hsher_.cancel(op);
       health_checker_.cancel(op);
       return 0U;
    }
@@ -211,7 +208,6 @@ public:
    void set_config(config const& cfg)
    {
       cfg_ = cfg;
-      hsher_.set_config(cfg);
       health_checker_.set_config(cfg);
    }
 
@@ -225,7 +221,6 @@ public:
    }
 
 private:
-   using handshaker_type = detail::handshaker<Executor>;
    using health_checker_type = health_checker<Executor>;
 
    template <class, class, class> friend class runner_op;
@@ -265,7 +260,6 @@ private:
       return std::any_of(std::cbegin(hello_resp_.value()), std::cend(hello_resp_.value()), f);
    }
 
-   handshaker_type hsher_;
    health_checker_type health_checker_;
    request hello_req_;
    generic_response hello_resp_;
