@@ -14,7 +14,6 @@
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
-#include <boost/redis/detail/connector.hpp>
 #include <boost/redis/detail/handshaker.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/coroutine.hpp>
@@ -103,12 +102,12 @@ public:
          }
 
          BOOST_ASIO_CORO_YIELD
-         runner_->ctor_.async_connect(
+         conn_->ctor_.async_connect(
             conn_->next_layer().next_layer(),
             conn_->resv_.results(),
             asio::prepend(std::move(self), order_t {}));
 
-         logger_.on_connect(ec0, runner_->ctor_.endpoint());
+         logger_.on_connect(ec0, conn_->ctor_.endpoint());
 
          if (ec0) {
             self.complete(ec0);
@@ -212,7 +211,6 @@ public:
    void set_config(config const& cfg)
    {
       cfg_ = cfg;
-      ctor_.set_config(cfg);
       hsher_.set_config(cfg);
       health_checker_.set_config(cfg);
    }
@@ -267,7 +265,6 @@ private:
       return std::any_of(std::cbegin(hello_resp_.value()), std::cend(hello_resp_.value()), f);
    }
 
-   connector ctor_;
    handshaker_type hsher_;
    health_checker_type health_checker_;
    request hello_req_;

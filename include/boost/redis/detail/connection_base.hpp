@@ -9,12 +9,13 @@
 
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/detail/helper.hpp>
-#include <boost/redis/detail/resolver.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/resolver.hpp>
+#include <boost/redis/detail/connector.hpp>
 #include <boost/redis/detail/runner.hpp>
 #include <boost/redis/usage.hpp>
 
@@ -456,6 +457,7 @@ public:
    {
       cfg_ = cfg;
       resv_.set_config(cfg);
+      ctor_.set_config(cfg);
       runner_.set_config(cfg);
       l.set_prefix(cfg.log_prefix);
       return runner_.async_run(*this, l, std::move(token));
@@ -902,6 +904,7 @@ private:
    timer_type writer_timer_;
    receive_channel_type receive_channel_;
    resolver_type resv_;
+   connector ctor_;
    runner_type runner_;
    receiver_adapter_type receive_adapter_;
 
