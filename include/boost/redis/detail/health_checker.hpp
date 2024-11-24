@@ -10,6 +10,7 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/operation.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/consign.hpp>

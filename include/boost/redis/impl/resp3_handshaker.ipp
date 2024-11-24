@@ -4,7 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/detail/runner.hpp>
+#include <boost/redis/detail/resp3_handshaker.hpp>
 
 namespace boost::redis::detail
 {
