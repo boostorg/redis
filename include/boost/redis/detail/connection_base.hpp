@@ -16,7 +16,6 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/resolver.hpp>
 #include <boost/redis/detail/connector.hpp>
-#include <boost/redis/detail/handshaker.hpp>
 #include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/detail/runner.hpp>
 #include <boost/redis/usage.hpp>
@@ -350,7 +349,6 @@ public:
    , writer_timer_{ex}
    , receive_channel_{ex, 256}
    , resv_{ex}
-   , ssl_handshaker_{ex}
    , health_checker_{ex}
    , runner_{ex, {}}
    , dbuf_{read_buffer_, max_read_size}
@@ -385,9 +383,6 @@ public:
          case operation::resolve:
             resv_.cancel();
             break;
-         case operation::ssl_handshake:
-            ssl_handshaker_.cancel();
-            break;
          case operation::exec:
             cancel_unwritten_requests();
             break;
@@ -405,7 +400,6 @@ public:
             break;
          case operation::all:
             resv_.cancel();
-            ssl_handshaker_.cancel();
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
             health_checker_.cancel();
             cancel_run(); // run
@@ -469,7 +463,6 @@ public:
       cfg_ = cfg;
       resv_.set_config(cfg);
       ctor_.set_config(cfg);
-      ssl_handshaker_.set_config(cfg);
       health_checker_.set_config(cfg);
       runner_.set_config(cfg);
       l.set_prefix(cfg.log_prefix);
@@ -496,7 +489,6 @@ public:
 private:
    using receive_channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
    using resolver_type = resolver<Executor>;
-   using handshaker_type = handshaker<Executor>;
    using health_checker_type = health_checker<Executor>;
    using runner_type = runner<executor_type>;
    using adapter_type = std::function<void(std::size_t, resp3::basic_node<std::string_view> const&, system::error_code&)>;
@@ -906,7 +898,6 @@ private:
    receive_channel_type receive_channel_;
    resolver_type resv_;
    connector ctor_;
-   handshaker_type ssl_handshaker_;
    health_checker_type health_checker_;
    runner_type runner_;
    receiver_adapter_type receive_adapter_;

@@ -20,6 +20,8 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/prepend.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/asio/cancel_after.hpp>
 #include <string>
 #include <memory>
 #include <chrono>
@@ -120,9 +122,16 @@ public:
 
          if (conn_->use_ssl()) {
             BOOST_ASIO_CORO_YIELD
-            conn_->ssl_handshaker_.async_handshake(
-               conn_->next_layer(),
-               asio::prepend(std::move(self), order_t {}));
+            conn_->next_layer().async_handshake(
+               asio::ssl::stream_base::client,
+               asio::prepend(
+                  asio::cancel_after(
+                     runner_->cfg_.ssl_handshake_timeout,
+                     std::move(self)
+                  ),
+                  order_t {}
+               )
+            );
 
             logger_.on_ssl_handshake(ec0);
 
