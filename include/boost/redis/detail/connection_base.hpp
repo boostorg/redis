@@ -199,15 +199,9 @@ struct writer_op {
             logger_.on_write(ec, conn_->write_buffer_);
 
             if (ec) {
-               logger_.trace("writer-op: error. Exiting ...");
+               logger_.trace("writer_op (1)", ec);
                conn_->cancel(operation::run);
                self.complete(ec);
-               return;
-            }
-
-            if (is_cancelled(self)) {
-               logger_.trace("writer-op: canceled. Exiting ...");
-               self.complete(asio::error::operation_aborted);
                return;
             }
 
@@ -217,7 +211,7 @@ struct writer_op {
             // successful write might had already been queued, so we
             // have to check here before proceeding.
             if (!conn_->is_open()) {
-               logger_.trace("writer-op: canceled (2). Exiting ...");
+               logger_.trace("writer_op (2): connection is closed.");
                self.complete({});
                return;
             }
@@ -225,8 +219,8 @@ struct writer_op {
 
          BOOST_ASIO_CORO_YIELD
          conn_->writer_timer_.async_wait(std::move(self));
-         if (!conn_->is_open() || is_cancelled(self)) {
-            logger_.trace("writer-op: canceled (3). Exiting ...");
+         if (!conn_->is_open()) {
+            logger_.trace("writer_op (3): connection is closed.");
             // Notice this is not an error of the op, stoping was
             // requested from the outside, so we complete with
             // success.
@@ -277,7 +271,7 @@ struct reader_op {
 
             // The connection is not viable after an error.
             if (ec) {
-               logger_.trace("reader-op: error. Exiting ...");
+               logger_.trace("reader_op (1)", ec);
                conn_->cancel(operation::run);
                self.complete(ec);
                return;
@@ -286,8 +280,8 @@ struct reader_op {
             // Somebody might have canceled implicitly or explicitly
             // while we were suspended and after queueing so we have to
             // check.
-            if (!conn_->is_open() || is_cancelled(self)) {
-               logger_.trace("reader-op: canceled. Exiting ...");
+            if (!conn_->is_open()) {
+               logger_.trace("reader_op (2): connection is closed.");
                self.complete(ec);
                return;
             }
@@ -295,7 +289,7 @@ struct reader_op {
 
          res_ = conn_->on_read(buffer_view(conn_->dbuf_), ec);
          if (ec) {
-            logger_.trace("reader-op: parse error. Exiting ...");
+            logger_.trace("reader_op (3)", ec);
             conn_->cancel(operation::run);
             self.complete(ec);
             return;
@@ -308,14 +302,14 @@ struct reader_op {
             }
 
             if (ec) {
-               logger_.trace("reader-op: error. Exiting ...");
+               logger_.trace("reader_op (4)", ec);
                conn_->cancel(operation::run);
                self.complete(ec);
                return;
             }
 
-            if (!conn_->is_open() || is_cancelled(self)) {
-               logger_.trace("reader-op: canceled (2). Exiting ...");
+            if (!conn_->is_open()) {
+               logger_.trace("reader_op (5): connection is closed.");
                self.complete(asio::error::operation_aborted);
                return;
             }

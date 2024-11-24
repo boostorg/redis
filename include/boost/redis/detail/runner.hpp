@@ -50,10 +50,15 @@ struct hello_op {
          conn_->async_exec(runner_->hello_req_, runner_->hello_resp_, std::move(self));
          logger_.on_hello(ec, runner_->hello_resp_);
 
-         if (ec || runner_->has_error_in_response()) {
-            logger_.trace("hello-op: error/canceled. Exiting ...");
+         if (ec) {
             conn_->cancel(operation::run);
             self.complete(ec);
+            return;
+         }
+
+         if (runner_->has_error_in_response()) {
+            conn_->cancel(operation::run);
+            self.complete(error::resp3_hello);
             return;
          }
 
@@ -142,12 +147,6 @@ public:
          ).async_wait(
             asio::experimental::wait_for_one_error(),
             std::move(self));
-
-         // TODO: Unify these lines.
-         logger_.on_check_health(ec1, ec2);
-         logger_.on_run(ec0, ec1);
-         logger_.on_runner(ec0, ec1, ec2);
-         logger_.on_connection_lost({});
 
          if (order[0] == 0 && !!ec0) {
             self.complete(ec0);

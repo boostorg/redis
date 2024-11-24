@@ -34,7 +34,7 @@ public:
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
          if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
-            logger_.trace("ping-op: timeout disabled. Exiting ...");
+            logger_.trace("ping_op: timeout disabled.");
             BOOST_ASIO_CORO_YIELD
             asio::post(std::move(self));
             self.complete({});
@@ -42,7 +42,7 @@ public:
          }
 
          if (checker_->checker_has_exited_) {
-            logger_.trace("ping_op: checker has exited. Exiting ...");
+            logger_.trace("ping_op: checker has exited.");
             self.complete({});
             return;
          }
@@ -50,7 +50,7 @@ public:
          BOOST_ASIO_CORO_YIELD
          conn_->async_exec(checker_->req_, checker_->resp_, std::move(self));
          if (ec) {
-            logger_.trace("ping_op: error/cancelled (1).");
+            logger_.trace("ping_op (exec)", ec);
             checker_->wait_timer_.cancel();
             self.complete(ec);
             return;
@@ -58,10 +58,11 @@ public:
 
          // Wait before pinging again.
          checker_->ping_timer_.expires_after(checker_->ping_interval_);
+
          BOOST_ASIO_CORO_YIELD
          checker_->ping_timer_.async_wait(std::move(self));
          if (ec) {
-            logger_.trace("ping_op: error/cancelled (2).");
+            logger_.trace("ping_op (wait)", ec);
             self.complete(ec);
             return;
          }
@@ -83,7 +84,7 @@ public:
       BOOST_ASIO_CORO_REENTER (coro_) for (;;)
       {
          if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
-            logger_.trace("check-timeout-op: timeout disabled. Exiting ...");
+            logger_.trace("check_timeout_op: timeout disabled.");
             BOOST_ASIO_CORO_YIELD
             asio::post(std::move(self));
             self.complete({});
@@ -91,22 +92,23 @@ public:
          }
 
          checker_->wait_timer_.expires_after(2 * checker_->ping_interval_);
+
          BOOST_ASIO_CORO_YIELD
          checker_->wait_timer_.async_wait(std::move(self));
          if (ec) {
-            logger_.trace("check-timeout-op: error/canceled. Exiting ...");
+            logger_.trace("check_timeout_op (async_wait)", ec);
             self.complete(ec);
             return;
          }
 
          if (checker_->resp_.has_error()) {
-            logger_.trace("check-timeout-op: Response error. Exiting ...");
+            logger_.trace("check_timeout_op: Response error.");
             self.complete({});
             return;
          }
 
          if (checker_->resp_.value().empty()) {
-            logger_.trace("check-timeout-op: Response has no value. Exiting ...");
+            logger_.trace("check_timeout_op: pong timeout.");
             checker_->ping_timer_.cancel();
             conn_->cancel(operation::run);
             checker_->checker_has_exited_ = true;
