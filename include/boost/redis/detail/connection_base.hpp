@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2023 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2024 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -322,7 +322,7 @@ struct reader_op {
             if (ec == asio::error::eof) {
                logger_.trace("reader-op: EOF received. Exiting ...");
                conn_->cancel(operation::run);
-               return self.complete({}); // EOFINAE: EOF is not an error.
+               return self.complete(ec);
             }
 
             // The connection is not viable after an error.
@@ -709,7 +709,7 @@ private:
    template <class, class> friend struct writer_op;
    template <class, class> friend struct run_op;
    template <class> friend struct exec_op;
-   template <class, class, class> friend struct run_all_op;
+   template <class, class, class> friend struct runner_op;
 
    void cancel_push_requests()
    {
