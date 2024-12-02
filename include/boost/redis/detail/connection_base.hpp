@@ -7,6 +7,7 @@
 #ifndef BOOST_REDIS_CONNECTION_BASE_HPP
 #define BOOST_REDIS_CONNECTION_BASE_HPP
 
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/error.hpp>
@@ -30,6 +31,7 @@
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/experimental/channel.hpp>
+#include <boost/asio/associated_immediate_executor.hpp>
 
 #include <algorithm>
 #include <array>
@@ -37,8 +39,8 @@
 #include <deque>
 #include <memory>
 #include <string_view>
-#include <type_traits>
 #include <functional>
+#include <utility>
 
 namespace boost::redis::detail
 {
@@ -121,7 +123,9 @@ struct exec_op {
          // be stablished.
          if (info_->req_->get_config().cancel_if_not_connected && !conn_->is_open()) {
             BOOST_ASIO_CORO_YIELD
-            asio::post(std::move(self));
+            asio::dispatch(
+               asio::get_associated_immediate_executor(self, self.get_io_executor()),
+               std::move(self));
             return self.complete(error::not_connected, 0);
          }
 
@@ -440,14 +444,13 @@ public:
       cancel_impl(op);
    }
 
-   template <class Response, class CompletionToken>
-   auto async_exec(request const& req, Response& resp, CompletionToken token)
+   template <class CompletionToken>
+   auto async_exec(request const& req, any_adapter&& adapter, CompletionToken&& token)
    {
-      using namespace boost::redis::adapter;
-      auto f = boost_redis_adapt(resp);
-      BOOST_ASSERT_MSG(req.get_expected_responses() <= f.get_supported_response_size(), "Request and response have incompatible sizes.");
+      auto& adapter_impl = adapter.impl_;
+      BOOST_ASSERT_MSG(req.get_expected_responses() <= adapter_impl.supported_response_size, "Request and response have incompatible sizes.");
 
-      auto info = std::make_shared<req_info>(req, f, get_executor());
+      auto info = std::make_shared<req_info>(req, std::move(adapter_impl.adapt_fn), get_executor());
 
       return asio::async_compose
          < CompletionToken
