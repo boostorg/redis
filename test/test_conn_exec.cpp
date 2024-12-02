@@ -193,9 +193,9 @@ BOOST_AUTO_TEST_CASE(large_number_of_concurrent_requests_issue_170)
    BOOST_CHECK_EQUAL(counter, repeat);
 }
 
-BOOST_AUTO_TEST_CASE(exec_any_response)
+BOOST_AUTO_TEST_CASE(exec_any_adapter)
 {
-   // Executing an any_response object works
+   // Executing an any_adapter object works
    request req;
    req.push("PING", "PONG");
    response<std::string> res;
