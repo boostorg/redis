@@ -22,7 +22,7 @@ namespace detail {
 
 // Forward decl
 template <class Executor>
-class connection_base;
+class basic_connection;
 
 }
 
@@ -58,7 +58,7 @@ class any_adapter
     }
 
     template <class Executor>
-    friend class detail::connection_base;
+    friend class basic_connection;
 
 public:
     /**
