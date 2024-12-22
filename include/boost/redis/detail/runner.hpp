@@ -7,6 +7,7 @@
 #ifndef BOOST_REDIS_RUNNER_HPP
 #define BOOST_REDIS_RUNNER_HPP
 
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/response.hpp>
@@ -47,7 +48,7 @@ struct hello_op {
          runner_->add_hello();
 
          BOOST_ASIO_CORO_YIELD
-         conn_->async_exec(runner_->hello_req_, runner_->hello_resp_, std::move(self));
+         conn_->async_exec(runner_->hello_req_, any_adapter(runner_->hello_resp_), std::move(self));
          logger_.on_hello(ec, runner_->hello_resp_);
 
          if (ec || runner_->has_error_in_response() || is_cancelled(self)) {

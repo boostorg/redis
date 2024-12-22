@@ -7,6 +7,7 @@
 #ifndef BOOST_REDIS_CONNECTION_HPP
 #define BOOST_REDIS_CONNECTION_HPP
 
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/connection_base.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/config.hpp>
@@ -17,7 +18,7 @@
 #include <boost/asio/any_completion_handler.hpp>
 
 #include <chrono>
-#include <memory>
+#include <cstddef>
 #include <limits>
 
 namespace boost::redis {
@@ -256,7 +257,22 @@ public:
       Response& resp = ignore,
       CompletionToken&& token = CompletionToken{})
    {
-      return impl_.async_exec(req, resp, std::forward<CompletionToken>(token));
+      return impl_.async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
+   }
+
+   /** @copydoc async_exec
+    * 
+    * @details This function uses the type-erased @ref any_adapter class, which
+    * encapsulates a reference to a response object.
+    */
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto
+   async_exec(
+      request const& req,
+      any_adapter adapter,
+      CompletionToken&& token = CompletionToken{})
+   {
+      return impl_.async_exec(req, std::move(adapter), std::forward<CompletionToken>(token));
    }
 
    /** @brief Cancel operations.
@@ -392,9 +408,21 @@ public:
 
    /// Calls `boost::redis::basic_connection::async_exec`.
    template <class Response, class CompletionToken>
-   auto async_exec(request const& req, Response& resp, CompletionToken token)
+   auto async_exec(request const& req, Response& resp, CompletionToken&& token)
    {
-      return impl_.async_exec(req, resp, std::move(token));
+      return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
+   }
+
+   /// Calls `boost::redis::basic_connection::async_exec`.
+   template <class CompletionToken>
+   auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token)
+   {
+      return asio::async_initiate<
+         CompletionToken, void(boost::system::error_code, std::size_t)>(
+            [](auto handler, connection* self, request const* req, any_adapter&& adapter)
+            {
+               self->async_exec_impl(*req, std::move(adapter), std::move(handler));
+            }, token, this, &req, std::move(adapter));
    }
 
    /// Calls `boost::redis::basic_connection::cancel`.
@@ -435,6 +463,12 @@ private:
       config const& cfg,
       logger l,
       asio::any_completion_handler<void(boost::system::error_code)> token);
+   
+   void
+   async_exec_impl(
+      request const& req,
+      any_adapter&& adapter,
+      asio::any_completion_handler<void(boost::system::error_code, std::size_t)> token);
 
    basic_connection<executor_type> impl_;
 };
