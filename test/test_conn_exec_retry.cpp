@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
    st.expires_after(std::chrono::seconds{1});
    st.async_wait([&](auto){
       // Cancels the request before receiving the response. This
-      // should cause the thrid request to not complete with error
+      // should cause the third request to not complete with error
       // since it has cancel_if_unresponded = true and cancellation
       // comes after it was written.
       conn->cancel(operation::run);

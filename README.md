@@ -170,7 +170,7 @@ req.push("INCR", "key");
 req.push("QUIT");
 ```
 
-and its response also has three comamnds and can be read in the
+and its response also has three commands and can be read in the
 following response object
 
 ```cpp
@@ -447,7 +447,7 @@ main motivations for choosing an echo server are
 
    * Simple to implement and does not require expertise level in most languages.
    * I/O bound: Echo servers have very low CPU consumption in general
-     and  therefore are excelent to  measure how a program handles concurrent requests.
+     and  therefore are excellent to  measure how a program handles concurrent requests.
    * It simulates very well a typical backend in regard to concurrency.
 
 I also imposed some constraints on the implementations
@@ -510,7 +510,7 @@ in the graph, the reasons are
      I don't know for sure why it is so slow, I suppose it has
      something to do with its lack of automatic
      [pipelining](https://redis.io/docs/manual/pipelining/) support.
-     In fact, the more TCP connections I lauch the worse its
+     In fact, the more TCP connections I launch the worse its
      performance gets.
 
    * Libuv: I left it out because it would require me writing to much
@@ -721,11 +721,11 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   makes it simpler to use the `requirepass` configuration in Redis.
 
 * (Issue [189](https://github.com/boostorg/redis/issues/189)).
-  Fixes narrowing convertion by using `std::size_t` instead of
+  Fixes narrowing conversion by using `std::size_t` instead of
   `std::uint64_t` for the sizes of bulks and aggregates. The code
   relies now on `std::from_chars` returning an error if a value
   greater than 32 is received on platforms on which the size
-  of`std::size_t` is 32.
+  of `std::size_t` is 32.
 
 
 ### Boost 1.84 (First release in Boost)
@@ -797,7 +797,7 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
   would wait for a response to arrive before sending the next one. Now requests
   are continuously coalesced and written to the socket. `request::coalesce`
   became unnecessary and was removed. I could measure significative performance
-  gains with theses changes.
+  gains with these changes.
 
 * Improves serialization examples using Boost.Describe to serialize to JSON and protobuf. See
   cpp20_json.cpp and cpp20_protobuf.cpp for more details.
@@ -1004,7 +1004,7 @@ https://lists.boost.org/Archives/boost/2023/01/253944.php.
 * Fixes a bug in the `connection::async_run(host, port)` overload
   that was causing crashes on reconnection.
 
-* Fixes the executor usage in the connection class. Before theses
+* Fixes the executor usage in the connection class. Before these
   changes it was imposing `any_io_executor` on users.
 
 * `connection::async_receiver_event` is not cancelled anymore when
