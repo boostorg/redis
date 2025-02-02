@@ -144,7 +144,7 @@ public:
 
          conn_->reset();
 
-         // Note: Oder is important here because the writer might
+         // Note: Order is important here because the writer might
          // trigger an async_write before the async_hello thereby
          // causing an authentication problem.
          BOOST_ASIO_CORO_YIELD

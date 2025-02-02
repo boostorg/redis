@@ -405,7 +405,7 @@ public:
 
          conn_->reset();
 
-         // Note: Oder is important here because the writer might
+         // Note: Order is important here because the writer might
          // trigger an async_write before the async_hello thereby
          // causing an authentication problem.
          BOOST_ASIO_CORO_YIELD
@@ -1140,7 +1140,7 @@ private:
       //       until the parsing of a complete message ends.
       //
       //    2. On a new message, in which case we have to determine
-      //       whether the next messag is a push or a response.
+      //       whether the next message is a push or a response.
       //
       if (!on_push_) // Prepare for new message.
          on_push_ = is_next_push();
@@ -1223,7 +1223,7 @@ private:
  *  This connection type uses the asio::any_io_executor and
  *  asio::any_completion_token to reduce compilation times.
  *
- *  For documentaiton of each member function see
+ *  For documentation of each member function see
  *  `boost::redis::basic_connection`.
  */
 class connection {
