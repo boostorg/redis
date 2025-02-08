@@ -54,7 +54,7 @@ auto co_main(config const& cfg) -> net::awaitable<void>
    response<std::string> resp;
 
    // Executes the request.
-   co_await conn->async_exec(req, resp, net::deferred);
+   co_await conn->async_exec(req, resp);
    conn->cancel();
 
    std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
@@ -98,7 +98,7 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    while (conn->will_reconnect()) {
 
       // Reconnect to channels.
-      co_await conn->async_exec(req, ignore, net::deferred);
+      co_await conn->async_exec(req, ignore);
 
       // Loop reading Redis pushes.
       for (;;) {
@@ -246,14 +246,14 @@ response<
 Where both are passed to `async_exec` as showed elsewhere
 
 ```cpp
-co_await conn->async_exec(req, resp, net::deferred);
+co_await conn->async_exec(req, resp);
 ```
 
 If the intention is to ignore responses altogether use `ignore`
 
 ```cpp
 // Ignores the response
-co_await conn->async_exec(req, ignore, net::deferred);
+co_await conn->async_exec(req, ignore);
 ```
 
 Responses that contain nested aggregates or heterogeneous data
@@ -296,7 +296,7 @@ response<
    ...
    > resp;
 
-co_await conn->async_exec(req, resp, net::deferred);
+co_await conn->async_exec(req, resp);
 ```
 
 Everything else stays pretty much the same.
@@ -336,7 +336,7 @@ response<
    exec_resp_type,        // exec
 > resp;
 
-co_await conn->async_exec(req, resp, net::deferred);
+co_await conn->async_exec(req, resp);
 ```
 
 For a complete example see cpp20_containers.cpp.
@@ -384,7 +384,7 @@ using other types
 ```cpp
 // Receives any RESP3 simple or aggregate data type.
 boost::redis::generic_response resp;
-co_await conn->async_exec(req, resp, net::deferred);
+co_await conn->async_exec(req, resp);
 ```
 
 For example, suppose we want to retrieve a hash data structure

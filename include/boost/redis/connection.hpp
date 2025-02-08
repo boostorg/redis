@@ -30,6 +30,7 @@
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/cancel_after.hpp>
 #include <boost/asio/coroutine.hpp>
+#include <boost/asio/deferred.hpp>
 #include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/io_context.hpp>
@@ -573,7 +574,7 @@ public:
    async_run(
       config const& cfg = {},
       Logger l = Logger{},
-      CompletionToken token = CompletionToken{})
+      CompletionToken&& token = {})
    {
       cfg_ = cfg;
       resv_.set_config(cfg);
@@ -611,8 +612,8 @@ public:
     *  bytes.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto async_receive(CompletionToken token = CompletionToken{})
-      { return receive_channel_.async_receive(std::move(token)); }
+   auto async_receive(CompletionToken&& token = {})
+      { return receive_channel_.async_receive(std::forward<CompletionToken>(token)); }
 
    /** @brief Receives server pushes synchronously without blocking.
     *
@@ -676,7 +677,7 @@ public:
    async_exec(
       request const& req,
       Response& resp = ignore,
-      CompletionToken&& token = CompletionToken{})
+      CompletionToken&& token = {})
    {
       return this->async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
@@ -691,7 +692,7 @@ public:
    async_exec(
       request const& req,
       any_adapter adapter,
-      CompletionToken&& token = CompletionToken{})
+      CompletionToken&& token = {})
    {
       auto& adapter_impl = adapter.impl_;
       BOOST_ASSERT_MSG(req.get_expected_responses() <= adapter_impl.supported_response_size, "Request and response have incompatible sizes.");
@@ -936,9 +937,9 @@ private:
          { return !notifier_.is_open();}
 
       template <class CompletionToken>
-      auto async_wait(CompletionToken token)
+      auto async_wait(CompletionToken&& token)
       {
-         return notifier_.async_receive(std::move(token));
+         return notifier_.async_receive(std::forward<CompletionToken>(token));
       }
 
    //private:
@@ -1012,7 +1013,8 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(detail::reader_op<this_type, Logger>{this, l}, token, writer_timer_);
+         >(detail::reader_op<this_type, Logger>{this, l},
+               std::forward<CompletionToken>(token), writer_timer_);
    }
 
    template <class CompletionToken, class Logger>
@@ -1021,7 +1023,7 @@ private:
       return asio::async_compose
          < CompletionToken
          , void(system::error_code)
-         >(detail::writer_op<this_type, Logger>{this, l}, token, writer_timer_);
+         >(detail::writer_op<this_type, Logger>{this, l}, std::forward<CompletionToken>(token), writer_timer_);
    }
 
    [[nodiscard]] bool coalesce_requests()
@@ -1250,8 +1252,8 @@ public:
       { return impl_.get_executor(); }
 
    /// Calls `boost::redis::basic_connection::async_run`.
-   template <class CompletionToken>
-   auto async_run(config const& cfg, logger l, CompletionToken token)
+   template <class CompletionToken = asio::deferred_t>
+   auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
       return asio::async_initiate<
          CompletionToken, void(boost::system::error_code)>(
@@ -1262,17 +1264,9 @@ public:
    }
 
    /// Calls `boost::redis::basic_connection::async_receive`.
-   template <class Response, class CompletionToken>
-   [[deprecated("Set the response with set_receive_response and use the other overload.")]]
-   auto async_receive(Response& response, CompletionToken token)
-   {
-      return impl_.async_receive(response, std::move(token));
-   }
-
-   /// Calls `boost::redis::basic_connection::async_receive`.
-   template <class CompletionToken>
-   auto async_receive(CompletionToken token)
-      { return impl_.async_receive(std::move(token)); }
+   template <class CompletionToken = asio::deferred_t>
+   auto async_receive(CompletionToken&& token = {})
+      { return impl_.async_receive(std::forward<CompletionToken>(token)); }
 
    /// Calls `boost::redis::basic_connection::receive`.
    std::size_t receive(system::error_code& ec)
@@ -1281,15 +1275,19 @@ public:
    }
 
    /// Calls `boost::redis::basic_connection::async_exec`.
-   template <class Response, class CompletionToken>
-   auto async_exec(request const& req, Response& resp, CompletionToken&& token)
+   template <class Response, class CompletionToken = asio::deferred_t>
+   auto async_exec(request const& req, Response& resp, CompletionToken&& token = {})
    {
       return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
 
    /// Calls `boost::redis::basic_connection::async_exec`.
-   template <class CompletionToken>
-   auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token)
+   template <class CompletionToken = asio::deferred_t>
+   auto
+   async_exec(
+       request const& req,
+       any_adapter adapter,
+       CompletionToken&& token = {})
    {
       return asio::async_initiate<
          CompletionToken, void(boost::system::error_code, std::size_t)>(
