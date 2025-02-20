@@ -4,41 +4,39 @@ Boost.Redis is a high-level [Redis](https://redis.io/) client library built on t
 [Boost.Asio](https://www.boost.org/doc/libs/release/doc/html/boost_asio.html)
 that implements the Redis protocol
 [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
-The requirements for using Boost.Redis are:
+The requirements for using Boost.Redis are
 
-* Boost. The library is included in Boost distributions starting with 1.84.
+* Boost 1.84 or higher.
 * C++17 or higher.
 * Redis 6 or higher (must support RESP3).
-* Gcc (11, 12), Clang (11, 13, 14) and Visual Studio (16 2019, 17 2022).
+* GCC (11, 12), Clang (11, 13, 14) and Visual Studio (16 2019, 17 2022).
 * Have basic-level knowledge about [Redis](https://redis.io/docs/)
   and [Boost.Asio](https://www.boost.org/doc/libs/1_82_0/doc/html/boost_asio/overview.html).
 
-The latest release can be downloaded on
-https://github.com/boostorg/redis/releases. The library headers can be
-found in the `include` subdirectory and a compilation of the source
+To use the library it is necessary to include
 
 ```cpp
 #include <boost/redis/src.hpp>
 ```
 
-is required. The simplest way to do it is to included this header in
-no more than one source file in your applications. To build the
-examples and tests cmake is supported, for example
+in no more than one source file in your applications. To build the
+examples and tests with cmake run
 
 ```cpp
 # Linux
-$ BOOST_ROOT=/opt/boost_1_84_0 cmake --preset g++-11
+$ BOOST_ROOT=/opt/boost_1_84_0 cmake -S <source-dir> -B <binary-dir>
 
 # Windows 
 $ cmake -G "Visual Studio 17 2022" -A x64 -B bin64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 ```
 
+For more details see https://github.com/boostorg/cmake.
+
 <a name="connection"></a>
 ## Connection
 
-Let us start with a simple application that uses a short-lived
-connection to send a [ping](https://redis.io/commands/ping/) command
-to Redis
+The code below uses a short-lived connection to
+[ping](https://redis.io/commands/ping/) the Redis server 
 
 ```cpp
 auto co_main(config const& cfg) -> net::awaitable<void>
@@ -50,7 +48,7 @@ auto co_main(config const& cfg) -> net::awaitable<void>
    request req;
    req.push("PING", "Hello world");
 
-   // Response where the PONG response will be stored.
+   // Response object.
    response<std::string> resp;
 
    // Executes the request.
@@ -145,21 +143,18 @@ req.push_range("SUBSCRIBE", std::cbegin(list), std::cend(list));
 req.push_range("HSET", "key", map);
 ```
 
-Sending a request to Redis is performed with `boost::redis::connection::async_exec` as already stated.
-
-### Config flags
-
-The `boost::redis::request::config` object inside the request dictates how the
-`boost::redis::connection` should handle the request in some important situations. The
-reader is advised to read it carefully.
+Sending a request to Redis is performed with `boost::redis::connection::async_exec` as already stated.  The
+`boost::redis::request::config` object inside the request dictates how
+the `boost::redis::connection` the request is handled in some
+situations. The reader is advised to read it carefully.
 
 <a name="responses"></a>
 ## Responses
 
-Boost.Redis uses the following strategy to support Redis responses
+Boost.Redis uses the following strategy to deal with Redis responses
 
-* `boost::redis::request` is used for requests whose number of commands are not dynamic.
-* **Dynamic**: Otherwise use `boost::redis::generic_response`.
+* `boost::redis::request` used for requests whose number of commands are not dynamic.
+* `boost::redis::generic_response` used when the size is dynamic.
 
 For example, the request below has three commands
 
@@ -170,8 +165,8 @@ req.push("INCR", "key");
 req.push("QUIT");
 ```
 
-and its response also has three commands and can be read in the
-following response object
+and therefore its response will also contain three elements which can
+be read in the following reponse object
 
 ```cpp
 response<std::string, int, std::string>
@@ -186,7 +181,7 @@ To ignore responses to individual commands in the request use the tag
 
 ```cpp
 // Ignore the second and last responses.
-response<std::string, boost::redis::ignore_t, std::string, boost::redis::ignore_t>
+response<std::string, ignore_t, std::string, ignore_t>
 ```
 
 The following table provides the resp3-types returned by some Redis
@@ -230,7 +225,7 @@ req.push("QUIT");
 
 ```
 
-can be read in the tuple below
+can be read in the response object below
 
 ```cpp
 response<
@@ -243,7 +238,8 @@ response<
 > resp;
 ```
 
-Where both are passed to `async_exec` as showed elsewhere
+Then, to execute the request and read the response use `async_exec` as
+shown below
 
 ```cpp
 co_await conn->async_exec(req, resp);
@@ -279,15 +275,13 @@ req.push("SUBSCRIBE", "channel");
 req.push("QUIT");
 ```
 
-must be read in this tuple `response<std::string, std::string>`,
-that has static size two.
+must be read in the response object `response<std::string, std::string>`.
 
 ### Null
 
-It is not uncommon for apps to access keys that do not exist or
-that have already expired in the Redis server, to deal with these
-cases Boost.Redis provides support for `std::optional`. To use it,
-wrap your type around `std::optional` like this
+It is not uncommon for apps to access keys that do not exist or that
+have already expired in the Redis server, to deal with these usecases
+wrap the type with an `std::optional` as shown below
 
 ```cpp
 response<
@@ -295,11 +289,9 @@ response<
    std::optional<B>,
    ...
    > resp;
-
-co_await conn->async_exec(req, resp);
 ```
 
-Everything else stays pretty much the same.
+Everything else stays the same.
 
 ### Transactions
 
@@ -321,22 +313,18 @@ use the following response type
 ```cpp
 using boost::redis::ignore;
 
-using exec_resp_type = 
+
+response<
+   ignore_t,  // multi
+   ignore_t,  // QUEUED
+   ignore_t,  // QUEUED
+   ignore_t,  // QUEUED
    response<
       std::optional<std::string>, // get
       std::optional<std::vector<std::string>>, // lrange
       std::optional<std::map<std::string, std::string>> // hgetall
-   >;
-
-response<
-   boost::redis::ignore_t,  // multi
-   boost::redis::ignore_t,  // get
-   boost::redis::ignore_t,  // lrange
-   boost::redis::ignore_t,  // hgetall
-   exec_resp_type,        // exec
+   > // exec
 > resp;
-
-co_await conn->async_exec(req, resp);
 ```
 
 For a complete example see cpp20_containers.cpp.
@@ -350,7 +338,7 @@ commands won't fit in the model presented above, some examples are
 
 * Commands (like `set`) whose responses don't have a fixed
   RESP3 type. Expecting an `int` and receiving a blob-string
-  will result in error.
+  results in an error.
 * RESP3 aggregates that contain nested aggregates can't be read in STL containers.
 * Transactions with a dynamic number of commands can't be read in a `response`.
 
@@ -411,7 +399,7 @@ the following customization points
 void boost_redis_to_bulk(std::string& to, mystruct const& obj);
 
 // Deserialize
-void boost_redis_from_bulk(mystruct& obj, char const* p, std::size_t size, boost::system::error_code& ec)
+void boost_redis_from_bulk(mystruct& u, node_view const& node, boost::system::error_code&)
 ```
 
 These functions are accessed over ADL and therefore they must be
@@ -675,6 +663,28 @@ with the ACCEPT from the review manager can be found here:
 https://lists.boost.org/Archives/boost/2023/01/253944.php.
 
 ## Changelog
+
+### Boost 1.88
+
+* (Issue [233](https://github.com/boostorg/redis/issues/233))
+  To deal with keys that might not exits in the Redis server, the
+  library supports `std::optional`, for example
+  `response<std::optional<std::vector<std::string>>>`. In some cases
+  however, such as the [MGET](https://redis.io/docs/latest/commands/mget/) command,
+  each element in the vector might be non exiting, now it is possible
+  to specify a response as `response<std::optional<std::vector<std::optional<std::string>>>>`.
+
+* (Issue [225](https://github.com/boostorg/redis/issues/225))
+  Use `deferred` as the connection default completion token.
+
+* (Issue [128](https://github.com/boostorg/redis/issues/128))
+  Adds a new `async_exec` overload that allows passing response
+  adapters. This makes it possible to receive Redis responses directly
+  in custom data structures thereby avoiding uncessary data copying.
+  Thanks to Ruben Perez (@anarthal) for implementing this feature.
+
+* There are also other multiple small improvements in this release,
+  users can refer to the git history for more details.
 
 ### Boost 1.87
 

@@ -19,12 +19,14 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace asio = boost::asio;
+namespace resp3 = boost::redis::resp3;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::operation;
 using boost::redis::ignore_t;
 using boost::redis::config;
 using boost::redis::connection;
+using boost::redis::resp3::node_view;
 
 // The protobuf type described in example/person.proto
 using tutorial::person;
@@ -42,12 +44,16 @@ void boost_redis_to_bulk(std::string& to, person const& u)
    if (!u.SerializeToString(&tmp))
       throw boost::system::system_error(boost::redis::error::invalid_data_type);
 
-   boost::redis::resp3::boost_redis_to_bulk(to, tmp);
+   resp3::boost_redis_to_bulk(to, tmp);
 }
 
-void boost_redis_from_bulk(person& u, std::string_view sv, boost::system::error_code& ec)
+void
+boost_redis_from_bulk(
+   person& u,
+   node_view const& node,
+   boost::system::error_code& ec)
 {
-   std::string const tmp {sv};
+   std::string const tmp {node.value};
    if (!u.ParseFromString(tmp))
       ec = boost::redis::error::invalid_data_type;
 }
