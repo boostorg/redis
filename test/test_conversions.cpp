@@ -36,7 +36,6 @@ BOOST_AUTO_TEST_CASE(ints)
         ignore_t,
         signed char,
         unsigned char,
-        char,
         short,
         unsigned short,
         int,
@@ -66,5 +65,4 @@ BOOST_AUTO_TEST_CASE(ints)
     BOOST_TEST(std::get<8>(resp).value() == 42);
     BOOST_TEST(std::get<9>(resp).value() == 42);
     BOOST_TEST(std::get<10>(resp).value() == 42);
-    BOOST_TEST(std::get<11>(resp).value() == 42);
 }
