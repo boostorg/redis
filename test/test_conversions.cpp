@@ -66,3 +66,32 @@ BOOST_AUTO_TEST_CASE(ints)
     BOOST_TEST(std::get<9>(resp).value() == 42);
     BOOST_TEST(std::get<10>(resp).value() == 42);
 }
+
+BOOST_AUTO_TEST_CASE(bools)
+{
+    // Setup
+    net::io_context ioc;
+    auto conn = std::make_shared<connection>(ioc);
+    run(conn);
+
+    // Get a boolean
+    request req;
+    req.push("SET", "key_true", "t");
+    req.push("SET", "key_false", "f");
+    req.push("GET", "key_true");
+    req.push("GET", "key_false");
+
+    response<ignore_t, ignore_t, bool, bool> resp;
+
+    conn->async_exec(req, resp, [conn](error_code ec, std::size_t) {
+        BOOST_TEST(!ec);
+        conn->cancel();
+    });
+
+    // Run the operations
+    ioc.run();
+
+    // Check
+    BOOST_TEST(std::get<2>(resp).value() == true);
+    BOOST_TEST(std::get<3>(resp).value() == false);
+}
