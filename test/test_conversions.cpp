@@ -95,3 +95,29 @@ BOOST_AUTO_TEST_CASE(bools)
     BOOST_TEST(std::get<2>(resp).value() == true);
     BOOST_TEST(std::get<3>(resp).value() == false);
 }
+
+BOOST_AUTO_TEST_CASE(floating_points)
+{
+    // Setup
+    net::io_context ioc;
+    auto conn = std::make_shared<connection>(ioc);
+    run(conn);
+
+    // Get a boolean
+    request req;
+    req.push("SET", "key", "4.12");
+    req.push("GET", "key");
+
+    response<ignore_t, double> resp;
+
+    conn->async_exec(req, resp, [conn](error_code ec, std::size_t) {
+        BOOST_TEST(!ec);
+        conn->cancel();
+    });
+
+    // Run the operations
+    ioc.run();
+
+    // Check
+    BOOST_TEST(std::get<1>(resp).value() == 4.12);
+}
