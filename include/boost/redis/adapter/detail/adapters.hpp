@@ -16,6 +16,7 @@
 
 #include <set>
 #include <optional>
+#include <type_traits>
 #include <unordered_set>
 #include <forward_list>
 #include <system_error>
@@ -37,13 +38,18 @@
 namespace boost::redis::adapter::detail
 {
 
-template <class> struct is_integral : std::false_type {};
+// Exclude bools, char and charXY_t types
+template <class T> struct is_integral_number : std::is_integral<T> {};
+template <> struct is_integral_number<bool> : std::false_type {};
+template <> struct is_integral_number<char> : std::false_type {};
+template <> struct is_integral_number<char16_t> : std::false_type {};
+template <> struct is_integral_number<char32_t> : std::false_type {};
+template <> struct is_integral_number<wchar_t> : std::false_type {};
+#ifdef __cpp_char8_t
+template <> struct is_integral_number<char8_t> : std::false_type {};
+#endif
 
-template <> struct is_integral<long long int         > : std::true_type {};
-template <> struct is_integral<unsigned long long int> : std::true_type {};
-template <> struct is_integral<int                   > : std::true_type {};
-
-template<class T, bool = is_integral<T>::value>
+template<class T, bool = is_integral_number<T>::value>
 struct converter;
 
 template<class T>
