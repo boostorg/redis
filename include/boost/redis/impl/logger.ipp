@@ -74,7 +74,7 @@ void logger::on_ssl_handshake(system::error_code const& ec)
 void
 logger::on_write(
    system::error_code const& ec,
-   std::string const& payload)
+   std::string_view payload)
 {
    if (level_ < level::info)
       return;

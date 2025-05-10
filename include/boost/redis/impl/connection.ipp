@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2024 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -9,18 +9,12 @@
 
 namespace boost::redis {
 
-connection::connection(
-   executor_type ex,
-   asio::ssl::context ctx,
-   std::size_t max_read_size)
-: impl_{ex, std::move(ctx), max_read_size}
+connection::connection(executor_type ex, asio::ssl::context ctx)
+: impl_{ex, std::move(ctx)}
 { }
 
-connection::connection(
-   asio::io_context& ioc,
-   asio::ssl::context ctx,
-   std::size_t max_read_size)
-: impl_{ioc.get_executor(), std::move(ctx), max_read_size}
+connection::connection(asio::io_context& ioc, asio::ssl::context ctx)
+: impl_{ioc.get_executor(), std::move(ctx)}
 { }
 
 void

@@ -97,7 +97,7 @@ public:
     *  @param ec Error code returned by the write operation.
     *  @param payload The payload written to the socket.
     */
-   void on_write(system::error_code const& ec, std::string const& payload);
+   void on_write(system::error_code const& ec, std::string_view payload);
 
    /** @brief Called when the read operation completes.
     *  @ingroup high-level-api

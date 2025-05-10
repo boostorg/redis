@@ -18,14 +18,6 @@
 
 namespace boost::redis {
 
-namespace detail { 
-
-// Forward decl
-template <class Executor>
-class basic_connection;
-
-}
-
 /** @brief A type-erased reference to a response.
  *  @ingroup high-level-api
  *
@@ -39,9 +31,9 @@ class basic_connection;
  *      co_await conn.async_exec(req, any_response(resp));
  *  ```
  */
-class any_adapter
-{
-    using fn_type = std::function<void(std::size_t, resp3::basic_node<std::string_view> const&, system::error_code&)>;
+class any_adapter {
+public:
+    using fn_type = std::function<void(std::size_t, resp3::node_view const&, system::error_code&)>;
 
     struct impl_t {
         fn_type adapt_fn;
@@ -60,7 +52,6 @@ class any_adapter
     template <class Executor>
     friend class basic_connection;
 
-public:
     /**
      * @brief Constructor.
      * 
