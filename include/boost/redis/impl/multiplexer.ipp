@@ -31,7 +31,7 @@ auto multiplexer::elem::notify_error(system::error_code ec) noexcept -> void
       ec_ = ec;
    }
 
-   done_();
+   notify_done();
 }
 
 auto multiplexer::elem::commit_response(std::size_t read_size) -> void
