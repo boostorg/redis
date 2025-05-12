@@ -11,6 +11,7 @@
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connector.hpp>
+#include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
@@ -47,8 +48,6 @@
 #include <array>
 #include <chrono>
 #include <cstddef>
-#include <deque>
-#include <functional>
 #include <memory>
 
 namespace boost::redis {
@@ -111,68 +110,33 @@ using exec_notifier_type = asio::experimental::channel<
 
 template <class Conn>
 struct exec_op {
-   using req_info_type = typename multiplexer::elem;
    using executor_type = typename Conn::executor_type;
 
    Conn* conn_ = nullptr;
    std::shared_ptr<exec_notifier_type<executor_type>> notifier_ = nullptr;
-   std::shared_ptr<req_info_type> info_ = nullptr;
-   asio::coroutine coro_{};
+   detail::exec_fsm fsm_;
 
    template <class Self>
    void operator()(Self& self, system::error_code = {}, std::size_t = 0)
    {
-      BOOST_ASIO_CORO_REENTER(coro_)
-      {
-         // Check whether the user wants to wait for the connection to
-         // be stablished.
-         if (info_->get_request().get_config().cancel_if_not_connected && !conn_->is_open()) {
-            BOOST_ASIO_CORO_YIELD
+      // Invoke the state machine
+      auto act = fsm_.resume(conn_->is_open(), self.get_cancellation_state().cancelled());
+
+      // Do what the FSM said
+      switch (act.type()) {
+         case detail::exec_action_type::immediate:
+            // TODO: this can be replaced by asio::async_immediate
             asio::dispatch(
                asio::get_associated_immediate_executor(self, self.get_io_executor()),
                std::move(self));
-            return self.complete(error::not_connected, 0);
-         }
-
-         conn_->mpx_.add(info_);
-         if (conn_->trigger_write()) {
-            conn_->writer_timer_.cancel();
-         }
-
-EXEC_OP_WAIT:
-         BOOST_ASIO_CORO_YIELD
-         notifier_->async_receive(std::move(self));
-
-         if (info_->get_error()) {
-            self.complete(info_->get_error(), 0);
-            return;
-         }
-
-         if (is_cancelled(self)) {
-            if (!conn_->mpx_.remove(info_)) {
-               using c_t = asio::cancellation_type;
-               auto const c = self.get_cancellation_state().cancelled();
-               if ((c & c_t::terminal) != c_t::none) {
-                  // Cancellation requires closing the connection
-                  // otherwise it stays in inconsistent state.
-                  conn_->cancel(operation::run);
-                  return self.complete(asio::error::operation_aborted, 0);
-               } else {
-                  // Can't implement other cancelation types, ignoring.
-                  self.get_cancellation_state().clear();
-
-                  // TODO: Find out a better way to ignore
-                  // cancelation.
-                  goto EXEC_OP_WAIT;
-               }
-            } else {
-               // Cancelation honored.
-               self.complete(asio::error::operation_aborted, 0);
-               return;
-            }
-         }
-
-         self.complete(info_->get_error(), info_->get_read_size());
+            break;
+         case detail::exec_action_type::write: conn_->writer_timer_.cancel(); break;
+         case detail::exec_action_type::wait_for_response:
+            notifier_->async_receive(std::move(self));
+            break;
+         case detail::exec_action_type::done:
+            notifier_.reset();
+            self.complete(act.error(), act.bytes_read());
       }
    }
 };
@@ -689,7 +653,7 @@ public:
       });
 
       return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
-         detail::exec_op<this_type>{this, notifier, info},
+         detail::exec_op<this_type>{this, notifier, detail::exec_fsm(mpx_, std::move(info))},
          token,
          writer_timer_);
    }

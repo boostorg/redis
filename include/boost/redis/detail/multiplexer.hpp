@@ -43,7 +43,11 @@ struct multiplexer {
 
       void set_done_callback(std::function<void()> f) noexcept { done_ = std::move(f); };
 
-      auto notify_done() noexcept { done_(); }
+      auto notify_done() noexcept
+      {
+         status_ = status::done;
+         done_();
+      }
 
       auto notify_error(system::error_code ec) noexcept -> void;
 
@@ -63,6 +67,12 @@ struct multiplexer {
       auto is_staged() const noexcept
       {
          return status_ == status::staged;
+      }
+
+      [[nodiscard]]
+      bool is_done() const noexcept
+      {
+         return status_ == status::done;
       }
 
       void mark_written() noexcept { status_ = status::written; }
@@ -86,9 +96,10 @@ struct multiplexer {
    private:
       enum class status
       {
-         waiting,
-         staged,
-         written
+         waiting,  // the request hasn't been written yet
+         staged,   // we've issued the write for this request, but it hasn't finished yet
+         written,  // the request has been written successfully
+         done,     // the request has completed and the done callback has been invoked
       };
 
       request const* req_;
