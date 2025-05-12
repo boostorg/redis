@@ -6,16 +6,19 @@
 
 #include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
+
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/use_awaitable.hpp>
-#define BOOST_TEST_MODULE conn-quit
+#define BOOST_TEST_MODULE conn_quit
 #include <boost/test/included/unit_test.hpp>
+
+#include "common.hpp"
+
 #include <chrono>
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <string>
-#include "common.hpp"
 
 namespace net = boost::asio;
 using boost::redis::request;
@@ -40,7 +43,7 @@ BOOST_AUTO_TEST_CASE(issue_181)
    net::steady_timer timer{ioc};
    timer.expires_after(std::chrono::seconds{1});
 
-   auto run_cont = [&](auto ec){
+   auto run_cont = [&](auto ec) {
       std::cout << "async_run1: " << ec.message() << std::endl;
    };
 
@@ -51,7 +54,7 @@ BOOST_AUTO_TEST_CASE(issue_181)
    BOOST_TEST(!conn.run_is_canceled());
 
    // Uses a timer to wait some time until run has been called.
-   auto timer_cont = [&](auto ec){
+   auto timer_cont = [&](auto ec) {
       std::cout << "timer_cont: " << ec.message() << std::endl;
       BOOST_TEST(!conn.run_is_canceled());
       conn.cancel(operation::run);

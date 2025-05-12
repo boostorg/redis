@@ -5,14 +5,17 @@
  */
 
 #include <boost/redis/connection.hpp>
+
 #include <boost/asio/co_spawn.hpp>
-#include <boost/asio/detached.hpp>
 #include <boost/asio/deferred.hpp>
+#include <boost/asio/detached.hpp>
 #include <boost/system/errc.hpp>
-#define BOOST_TEST_MODULE echo-stress
+#define BOOST_TEST_MODULE echo_stress
 #include <boost/test/included/unit_test.hpp>
-#include <iostream>
+
 #include "common.hpp"
+
+#include <iostream>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 
@@ -30,8 +33,7 @@ using boost::redis::error;
 
 std::ostream& operator<<(std::ostream& os, usage const& u)
 {
-   os
-      << "Commands sent: " << u.commands_sent << "\n"
+   os << "Commands sent: " << u.commands_sent << "\n"
       << "Bytes sent: " << u.bytes_sent << "\n"
       << "Responses received: " << u.responses_received << "\n"
       << "Pushes received: " << u.pushes_received << "\n"
@@ -65,11 +67,8 @@ auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::await
    conn->cancel();
 }
 
-auto
-echo_session(
-   std::shared_ptr<connection> conn,
-   std::shared_ptr<request> pubs,
-   int n) -> net::awaitable<void>
+auto echo_session(std::shared_ptr<connection> conn, std::shared_ptr<request> pubs, int n)
+   -> net::awaitable<void>
 {
    for (auto i = 0; i < n; ++i)
       co_await conn->async_exec(*pubs, ignore, net::deferred);
@@ -80,10 +79,12 @@ auto async_echo_stress(std::shared_ptr<connection> conn) -> net::awaitable<void>
    auto ex = co_await net::this_coro::executor;
    auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds::zero();
-   run(conn, cfg,
-       boost::asio::error::operation_aborted,
-       boost::redis::operation::receive,
-       boost::redis::logger::level::crit);
+   run(
+      conn,
+      cfg,
+      boost::asio::error::operation_aborted,
+      boost::redis::operation::receive,
+      boost::redis::logger::level::crit);
 
    request req;
    req.push("SUBSCRIBE", "channel");
@@ -112,7 +113,7 @@ auto async_echo_stress(std::shared_ptr<connection> conn) -> net::awaitable<void>
    // pushes have been received.
    net::co_spawn(ex, push_consumer(conn, total_pushes), net::detached);
 
-   for (int i = 0; i < sessions; ++i) 
+   for (int i = 0; i < sessions; ++i)
       net::co_spawn(ex, echo_session(conn, pubs, msgs), net::detached);
 }
 
@@ -123,15 +124,9 @@ BOOST_AUTO_TEST_CASE(echo_stress)
    net::co_spawn(ioc, async_echo_stress(conn), net::detached);
    ioc.run();
 
-   std::cout
-      << "-------------------\n"
-      << conn->get_usage()
-      << std::endl;
+   std::cout << "-------------------\n" << conn->get_usage() << std::endl;
 }
 
 #else
-BOOST_AUTO_TEST_CASE(dummy)
-{
-   BOOST_TEST(true);
-}
+BOOST_AUTO_TEST_CASE(dummy) { BOOST_TEST(true); }
 #endif

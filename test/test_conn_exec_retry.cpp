@@ -5,13 +5,16 @@
  */
 
 #include <boost/redis/connection.hpp>
+
 #include <boost/asio/awaitable.hpp>
 #include <boost/system/errc.hpp>
 
-#define BOOST_TEST_MODULE conn-exec-retry
+#define BOOST_TEST_MODULE conn_exec_retry
 #include <boost/test/included/unit_test.hpp>
-#include <iostream>
+
 #include "common.hpp"
+
+#include <iostream>
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
@@ -44,7 +47,7 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
 
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});
-   st.async_wait([&](auto){
+   st.async_wait([&](auto) {
       // Cancels the request before receiving the response. This
       // should cause the third request to complete with error
       // although it has cancel_on_connection_lost = false. The reason
@@ -55,17 +58,17 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
       std::cout << "async_wait" << std::endl;
    });
 
-   auto c2 = [&](auto ec, auto){
+   auto c2 = [&](auto ec, auto) {
       std::cout << "c2" << std::endl;
       BOOST_CHECK_EQUAL(ec, boost::asio::error::operation_aborted);
    };
 
-   auto c1 = [&](auto ec, auto){
+   auto c1 = [&](auto ec, auto) {
       std::cout << "c1" << std::endl;
       BOOST_CHECK_EQUAL(ec, boost::asio::error::operation_aborted);
    };
 
-   auto c0 = [&](auto ec, auto){
+   auto c0 = [&](auto ec, auto) {
       std::cout << "c0" << std::endl;
       BOOST_TEST(!ec);
       conn->async_exec(req1, ignore, c1);
@@ -75,13 +78,13 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
    conn->async_exec(req0, ignore, c0);
 
    auto cfg = make_test_config();
-   conn->async_run(cfg, {boost::redis::logger::level::debug},
-      [&](boost::system::error_code const& ec)
-      {
+   conn->async_run(
+      cfg,
+      {boost::redis::logger::level::debug},
+      [&](boost::system::error_code const& ec) {
          std::cout << "async_run: " << ec.message() << std::endl;
          conn->cancel();
-      }
-   );
+      });
 
    ioc.run();
 }
@@ -111,7 +114,7 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
 
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});
-   st.async_wait([&](auto){
+   st.async_wait([&](auto) {
       // Cancels the request before receiving the response. This
       // should cause the third request to not complete with error
       // since it has cancel_if_unresponded = true and cancellation
@@ -119,22 +122,22 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
       conn->cancel(operation::run);
    });
 
-   auto c3 = [&](auto ec, auto){
+   auto c3 = [&](auto ec, auto) {
       std::cout << "c3: " << ec.message() << std::endl;
       BOOST_TEST(!ec);
       conn->cancel();
    };
 
-   auto c2 = [&](auto ec, auto){
+   auto c2 = [&](auto ec, auto) {
       BOOST_TEST(!ec);
       conn->async_exec(req3, ignore, c3);
    };
 
-   auto c1 = [](auto ec, auto){
+   auto c1 = [](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
    };
 
-   auto c0 = [&](auto ec, auto){
+   auto c0 = [&](auto ec, auto) {
       BOOST_TEST(!ec);
       conn->async_exec(req1, ignore, c1);
       conn->async_exec(req2, ignore, c2);
@@ -144,7 +147,7 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
 
    auto cfg = make_test_config();
    cfg.health_check_interval = 5s;
-   conn->async_run(cfg, {}, [&](auto ec){
+   conn->async_run(cfg, {}, [&](auto ec) {
       std::cout << ec.message() << std::endl;
       BOOST_TEST(!!ec);
    });

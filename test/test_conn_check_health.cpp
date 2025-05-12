@@ -6,12 +6,15 @@
 
 #include <boost/redis/connection.hpp>
 #include <boost/redis/response.hpp>
+
 #include <boost/system/errc.hpp>
-#define BOOST_TEST_MODULE check-health
+#define BOOST_TEST_MODULE check_health
 #include <boost/test/included/unit_test.hpp>
+
+#include "common.hpp"
+
 #include <iostream>
 #include <thread>
-#include "common.hpp"
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
@@ -23,7 +26,7 @@ using boost::redis::operation;
 using boost::redis::generic_response;
 using boost::redis::consume_one;
 
-// TODO: Test cancel(health_check) 
+// TODO: Test cancel(health_check)
 
 struct push_callback {
    connection* conn1;
@@ -35,7 +38,7 @@ struct push_callback {
 
    void operator()(error_code ec = {}, std::size_t = 0)
    {
-      BOOST_ASIO_CORO_REENTER (coro) for (;;)
+      BOOST_ASIO_CORO_REENTER(coro) for (;;)
       {
          BOOST_ASIO_CORO_YIELD
          conn2->async_receive(*this);
@@ -94,7 +97,7 @@ BOOST_AUTO_TEST_CASE(check_health)
    auto cfg2 = make_test_config();
    cfg2.health_check_id = "conn2";
    error_code res2;
-   conn2.async_run(cfg2, {}, [&](auto ec){
+   conn2.async_run(cfg2, {}, [&](auto ec) {
       std::cout << "async_run 2 completed: " << ec.message() << std::endl;
       res2 = ec;
    });
@@ -110,8 +113,8 @@ BOOST_AUTO_TEST_CASE(check_health)
    });
 
    //--------------------------------
-   
-   push_callback{&conn1, &conn2, &resp2, &req1}(); // Starts reading pushes.
+
+   push_callback{&conn1, &conn2, &resp2, &req1}();  // Starts reading pushes.
 
    ioc.run();
 
@@ -122,4 +125,3 @@ BOOST_AUTO_TEST_CASE(check_health)
    // to fail.
    std::this_thread::sleep_for(std::chrono::seconds{10});
 }
-

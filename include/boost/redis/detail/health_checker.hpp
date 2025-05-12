@@ -7,19 +7,20 @@
 #ifndef BOOST_REDIS_HEALTH_CHECKER_HPP
 #define BOOST_REDIS_HEALTH_CHECKER_HPP
 
-#include <boost/redis/request.hpp>
-#include <boost/redis/response.hpp>
-#include <boost/redis/operation.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/operation.hpp>
-#include <boost/asio/steady_timer.hpp>
+#include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
+
 #include <boost/asio/compose.hpp>
 #include <boost/asio/consign.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/post.hpp>
-#include <memory>
+#include <boost/asio/steady_timer.hpp>
+
 #include <chrono>
+#include <memory>
 
 namespace boost::redis::detail {
 
@@ -34,7 +35,7 @@ public:
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t = 0)
    {
-      BOOST_ASIO_CORO_REENTER (coro_) for (;;)
+      BOOST_ASIO_CORO_REENTER(coro_) for (;;)
       {
          if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
             logger_.trace("ping_op (1): timeout disabled.");
@@ -84,7 +85,7 @@ public:
    template <class Self>
    void operator()(Self& self, system::error_code ec = {})
    {
-      BOOST_ASIO_CORO_REENTER (coro_) for (;;)
+      BOOST_ASIO_CORO_REENTER(coro_) for (;;)
       {
          if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
             logger_.trace("check_timeout_op (1): timeout disabled.");
@@ -130,11 +131,10 @@ public:
 template <class Executor>
 class health_checker {
 private:
-   using timer_type =
-      asio::basic_waitable_timer<
-         std::chrono::steady_clock,
-         asio::wait_traits<std::chrono::steady_clock>,
-         Executor>;
+   using timer_type = asio::basic_waitable_timer<
+      std::chrono::steady_clock,
+      asio::wait_traits<std::chrono::steady_clock>,
+      Executor>;
 
 public:
    health_checker(Executor ex)
@@ -160,20 +160,22 @@ public:
    template <class Connection, class Logger, class CompletionToken>
    auto async_ping(Connection& conn, Logger l, CompletionToken token)
    {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(ping_op<health_checker, Connection, Logger>{this, &conn, l}, token, conn, ping_timer_);
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         ping_op<health_checker, Connection, Logger>{this, &conn, l},
+         token,
+         conn,
+         ping_timer_);
    }
 
    template <class Connection, class Logger, class CompletionToken>
    auto async_check_timeout(Connection& conn, Logger l, CompletionToken token)
    {
       checker_has_exited_ = false;
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(check_timeout_op<health_checker, Connection, Logger>{this, &conn, l}, token, conn, wait_timer_);
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         check_timeout_op<health_checker, Connection, Logger>{this, &conn, l},
+         token,
+         conn,
+         wait_timer_);
    }
 
 private:
@@ -188,6 +190,6 @@ private:
    bool checker_has_exited_ = false;
 };
 
-} // boost::redis::detail
+}  // namespace boost::redis::detail
 
-#endif // BOOST_REDIS_HEALTH_CHECKER_HPP
+#endif  // BOOST_REDIS_HEALTH_CHECKER_HPP

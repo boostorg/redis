@@ -9,15 +9,16 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/error.hpp>
+
+#include <boost/asio/cancel_after.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/cancel_after.hpp>
-#include <string>
-#include <chrono>
 
-namespace boost::redis::detail
-{
+#include <chrono>
+#include <string>
+
+namespace boost::redis::detail {
 
 template <class Resolver>
 struct resolve_op {
@@ -25,11 +26,12 @@ struct resolve_op {
    asio::coroutine coro{};
 
    template <class Self>
-   void operator()( Self& self
-                  , system::error_code ec = {}
-                  , asio::ip::tcp::resolver::results_type res = {})
+   void operator()(
+      Self& self,
+      system::error_code ec = {},
+      asio::ip::tcp::resolver::results_type res = {})
    {
-      BOOST_ASIO_CORO_REENTER (coro)
+      BOOST_ASIO_CORO_REENTER(coro)
       {
          BOOST_ASIO_CORO_YIELD
          resv_->resv_.async_resolve(
@@ -51,22 +53,22 @@ struct resolve_op {
 template <class Executor>
 class resolver {
 public:
-   resolver(Executor ex) : resv_{ex} {}
+   resolver(Executor ex)
+   : resv_{ex}
+   { }
 
    template <class CompletionToken>
    auto async_resolve(CompletionToken&& token)
    {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(resolve_op<resolver>{this}, token, resv_);
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         resolve_op<resolver>{this},
+         token,
+         resv_);
    }
 
-   void cancel()
-      { resv_.cancel(); }
+   void cancel() { resv_.cancel(); }
 
-   auto const& results() const noexcept
-      { return results_;}
+   auto const& results() const noexcept { return results_; }
 
    void set_config(config const& cfg)
    {
@@ -84,6 +86,6 @@ private:
    asio::ip::tcp::resolver::results_type results_;
 };
 
-} // boost::redis::detail
+}  // namespace boost::redis::detail
 
-#endif // BOOST_REDIS_RESOLVER_HPP
+#endif  // BOOST_REDIS_RESOLVER_HPP

@@ -7,20 +7,20 @@
 #ifndef BOOST_REDIS_ADAPTER_ADAPT_HPP
 #define BOOST_REDIS_ADAPTER_ADAPT_HPP
 
+#include <boost/redis/adapter/detail/response_traits.hpp>
+#include <boost/redis/adapter/detail/result_traits.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/response.hpp>
-#include <boost/redis/adapter/detail/result_traits.hpp>
-#include <boost/redis/adapter/detail/response_traits.hpp>
+
 #include <boost/mp11.hpp>
 #include <boost/system.hpp>
 
-#include <tuple>
 #include <limits>
 #include <string_view>
+#include <tuple>
 #include <variant>
 
-namespace boost::redis::adapter
-{
+namespace boost::redis::adapter {
 
 /** @brief Adapts a type to be used as a response.
  *
@@ -34,7 +34,7 @@ namespace boost::redis::adapter
  *
  *  @param t Tuple containing the responses.
  */
-template<class T>
+template <class T>
 auto boost_redis_adapt(T& t) noexcept
 {
    return detail::response_traits<T>::adapt(t);
@@ -71,10 +71,12 @@ auto boost_redis_adapt(T& t) noexcept
  *  co_await resp3::async_read(socket, dynamic_buffer(buffer), adapt(execs));
  *  @endcode
  */
-template<class T>
+template <class T>
 auto adapt2(T& t = redis::ignore) noexcept
-   { return detail::result_traits<T>::adapt(t); }
+{
+   return detail::result_traits<T>::adapt(t);
+}
 
-} // boost::redis::adapter
+}  // namespace boost::redis::adapter
 
-#endif // BOOST_REDIS_ADAPTER_ADAPT_HPP
+#endif  // BOOST_REDIS_ADAPTER_ADAPT_HPP

@@ -7,8 +7,10 @@
 #include <boost/redis/connection.hpp>
 #define BOOST_TEST_MODULE run
 #include <boost/test/included/unit_test.hpp>
-#include <iostream>
+
 #include "common.hpp"
+
+#include <iostream>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
@@ -22,8 +24,10 @@ using namespace std::chrono_literals;
 
 bool is_host_not_found(error_code ec)
 {
-   if (ec == net::error::netdb_errors::host_not_found) return true;
-   if (ec == net::error::netdb_errors::host_not_found_try_again) return true;
+   if (ec == net::error::netdb_errors::host_not_found)
+      return true;
+   if (ec == net::error::netdb_errors::host_not_found_try_again)
+      return true;
    return false;
 }
 
@@ -40,7 +44,7 @@ BOOST_AUTO_TEST_CASE(resolve_bad_host)
    cfg.reconnect_wait_interval = 0s;
 
    auto conn = std::make_shared<connection>(ioc);
-   conn->async_run(cfg, {}, [](auto ec){
+   conn->async_run(cfg, {}, [](auto ec) {
       BOOST_TEST(is_host_not_found(ec));
    });
 
@@ -97,4 +101,3 @@ BOOST_AUTO_TEST_CASE(connect_bad_port)
 //   run(conn, cfg, boost::redis::error::connect_timeout);
 //   ioc.run();
 //}
-

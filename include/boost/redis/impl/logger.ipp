@@ -5,12 +5,13 @@
  */
 
 #include <boost/redis/logger.hpp>
+
 #include <boost/system/error_code.hpp>
+
 #include <iostream>
 #include <iterator>
 
-namespace boost::redis
-{
+namespace boost::redis {
 
 void logger::write_prefix()
 {
@@ -18,7 +19,9 @@ void logger::write_prefix()
       std::clog << prefix_;
 }
 
-void logger::on_resolve(system::error_code const& ec, asio::ip::tcp::resolver::results_type const& res)
+void logger::on_resolve(
+   system::error_code const& ec,
+   asio::ip::tcp::resolver::results_type const& res)
 {
    if (level_ < level::info)
       return;
@@ -71,10 +74,7 @@ void logger::on_ssl_handshake(system::error_code const& ec)
    std::clog << "SSL handshake: " << ec.message() << std::endl;
 }
 
-void
-logger::on_write(
-   system::error_code const& ec,
-   std::string_view payload)
+void logger::on_write(system::error_code const& ec, std::string_view payload)
 {
    if (level_ < level::info)
       return;
@@ -104,10 +104,7 @@ void logger::on_read(system::error_code const& ec, std::size_t n)
    std::clog << std::endl;
 }
 
-void
-logger::on_hello(
-   system::error_code const& ec,
-   generic_response const& resp)
+void logger::on_hello(system::error_code const& ec, generic_response const& resp)
 {
    if (level_ < level::info)
       return;
@@ -145,4 +142,4 @@ void logger::trace(std::string_view op, system::error_code const& ec)
    std::clog << op << ": " << ec.message() << std::endl;
 }
 
-} // boost::redis
+}  // namespace boost::redis

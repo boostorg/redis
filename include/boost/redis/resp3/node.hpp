@@ -48,10 +48,12 @@ struct basic_node {
 template <class String>
 auto operator==(basic_node<String> const& a, basic_node<String> const& b)
 {
+   // clang-format off
    return a.aggregate_size == b.aggregate_size
        && a.depth == b.depth
        && a.data_type == b.data_type
        && a.value == b.value;
+   // clang-format on
 };
 
 /** @brief A node in the response tree that owns its data
@@ -64,6 +66,6 @@ using node = basic_node<std::string>;
  */
 using node_view = basic_node<std::string_view>;
 
-} // boost::redis::resp3
+}  // namespace boost::redis::resp3
 
-#endif // BOOST_REDIS_RESP3_NODE_HPP
+#endif  // BOOST_REDIS_RESP3_NODE_HPP

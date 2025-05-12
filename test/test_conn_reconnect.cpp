@@ -5,11 +5,14 @@
  */
 
 #include <boost/redis/connection.hpp>
+
 #include <boost/asio/detached.hpp>
-#define BOOST_TEST_MODULE conn-reconnect
+#define BOOST_TEST_MODULE conn_reconnect
 #include <boost/test/included/unit_test.hpp>
-#include <iostream>
+
 #include "common.hpp"
+
+#include <iostream>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/asio/experimental/awaitable_operators.hpp>
@@ -43,7 +46,8 @@ net::awaitable<void> test_reconnect_impl()
       logger l;
       co_await conn->async_exec(req, ignore, net::redirect_error(net::use_awaitable, ec1));
       //BOOST_TEST(!ec);
-      std::cout << "test_reconnect: " << i << " " << ec2.message() << " " << ec1.message() << std::endl;
+      std::cout << "test_reconnect: " << i << " " << ec2.message() << " " << ec1.message()
+                << std::endl;
    }
 
    conn->cancel();
@@ -76,10 +80,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 
    st.expires_after(std::chrono::seconds{1});
    auto cfg = make_test_config();
-   co_await (
-      conn->async_exec(req1, ignore, redir(ec1)) ||
-      st.async_wait(redir(ec3))
-   );
+   co_await (conn->async_exec(req1, ignore, redir(ec1)) || st.async_wait(redir(ec3)));
 
    //BOOST_TEST(!ec1);
    //BOOST_TEST(!ec3);
@@ -87,14 +88,13 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    request req2;
    req2.get_config().cancel_if_not_connected = false;
    req2.get_config().cancel_on_connection_lost = true;
-   req2.get_config().cancel_if_unresponded= true;
+   req2.get_config().cancel_if_unresponded = true;
    req2.push("QUIT");
 
    st.expires_after(std::chrono::seconds{1});
    co_await (
       conn->async_exec(req1, ignore, net::redirect_error(net::use_awaitable, ec1)) ||
-      st.async_wait(net::redirect_error(net::use_awaitable, ec3))
-   );
+      st.async_wait(net::redirect_error(net::use_awaitable, ec3)));
    conn->cancel();
 
    std::cout << "ccc" << std::endl;
@@ -109,8 +109,5 @@ BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
    ioc.run();
 }
 #else
-BOOST_AUTO_TEST_CASE(dummy)
-{
-   BOOST_TEST(true);
-}
+BOOST_AUTO_TEST_CASE(dummy) { BOOST_TEST(true); }
 #endif

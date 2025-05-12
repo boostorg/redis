@@ -9,26 +9,27 @@
 
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/request.hpp>
-#include <boost/redis/response.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
+#include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
+
+#include <boost/asio/cancel_after.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/steady_timer.hpp>
 #include <boost/asio/prepend.hpp>
 #include <boost/asio/ssl.hpp>
-#include <boost/asio/cancel_after.hpp>
-#include <string>
-#include <memory>
-#include <chrono>
+#include <boost/asio/steady_timer.hpp>
 
-namespace boost::redis::detail
-{
+#include <chrono>
+#include <memory>
+#include <string>
+
+namespace boost::redis::detail {
 
 void push_hello(config const& cfg, request& req);
 
@@ -45,7 +46,7 @@ struct hello_op {
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t = 0)
    {
-      BOOST_ASIO_CORO_REENTER (coro_)
+      BOOST_ASIO_CORO_REENTER(coro_)
       {
          runner_->add_hello();
 
@@ -85,21 +86,22 @@ public:
    : runner_{runner}
    , conn_{conn}
    , logger_{l}
-   {}
+   { }
 
    template <class Self>
-   void operator()( Self& self
-                  , order_t order = {}
-                  , system::error_code ec0 = {}
-                  , system::error_code ec1 = {}
-                  , system::error_code ec2 = {}
-                  , system::error_code ec3 = {}
-                  , system::error_code ec4 = {})
+   void operator()(
+      Self& self,
+      order_t order = {},
+      system::error_code ec0 = {},
+      system::error_code ec1 = {},
+      system::error_code ec2 = {},
+      system::error_code ec3 = {},
+      system::error_code ec4 = {})
    {
-      BOOST_ASIO_CORO_REENTER (coro_) for (;;)
+      BOOST_ASIO_CORO_REENTER(coro_) for (;;)
       {
          BOOST_ASIO_CORO_YIELD
-         conn_->resv_.async_resolve(asio::prepend(std::move(self), order_t {}));
+         conn_->resv_.async_resolve(asio::prepend(std::move(self), order_t{}));
 
          logger_.on_resolve(ec0, conn_->resv_.results());
 
@@ -112,7 +114,7 @@ public:
          conn_->ctor_.async_connect(
             conn_->next_layer().next_layer(),
             conn_->resv_.results(),
-            asio::prepend(std::move(self), order_t {}));
+            asio::prepend(std::move(self), order_t{}));
 
          logger_.on_connect(ec0, conn_->ctor_.endpoint());
 
@@ -126,13 +128,8 @@ public:
             conn_->next_layer().async_handshake(
                asio::ssl::stream_base::client,
                asio::prepend(
-                  asio::cancel_after(
-                     runner_->cfg_.ssl_handshake_timeout,
-                     std::move(self)
-                  ),
-                  order_t {}
-               )
-            );
+                  asio::cancel_after(runner_->cfg_.ssl_handshake_timeout, std::move(self)),
+                  order_t{}));
 
             logger_.on_ssl_handshake(ec0);
 
@@ -149,14 +146,22 @@ public:
          // causing an authentication problem.
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
-            [this](auto token) { return runner_->async_hello(*conn_, logger_, token); },
-            [this](auto token) { return conn_->health_checker_.async_ping(*conn_, logger_, token); },
-            [this](auto token) { return conn_->health_checker_.async_check_timeout(*conn_, logger_, token);},
-            [this](auto token) { return conn_->reader(logger_, token);},
-            [this](auto token) { return conn_->writer(logger_, token);}
-         ).async_wait(
-            asio::experimental::wait_for_one_error(),
-            std::move(self));
+            [this](auto token) {
+               return runner_->async_hello(*conn_, logger_, token);
+            },
+            [this](auto token) {
+               return conn_->health_checker_.async_ping(*conn_, logger_, token);
+            },
+            [this](auto token) {
+               return conn_->health_checker_.async_check_timeout(*conn_, logger_, token);
+            },
+            [this](auto token) {
+               return conn_->reader(logger_, token);
+            },
+            [this](auto token) {
+               return conn_->writer(logger_, token);
+            })
+            .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
 
          if (order[0] == 0 && !!ec0) {
             self.complete(ec0);
@@ -184,7 +189,7 @@ public:
          conn_->writer_timer_.expires_after(conn_->cfg_.reconnect_wait_interval);
 
          BOOST_ASIO_CORO_YIELD
-         conn_->writer_timer_.async_wait(asio::prepend(std::move(self), order_t {}));
+         conn_->writer_timer_.async_wait(asio::prepend(std::move(self), order_t{}));
          if (ec0) {
             self.complete(ec0);
             return;
@@ -207,32 +212,28 @@ public:
    : cfg_{cfg}
    { }
 
-   void set_config(config const& cfg)
-   {
-      cfg_ = cfg;
-   }
+   void set_config(config const& cfg) { cfg_ = cfg; }
 
    template <class Connection, class Logger, class CompletionToken>
    auto async_run(Connection& conn, Logger l, CompletionToken token)
    {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(runner_op<runner, Connection, Logger>{this, &conn, l}, token, conn);
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         runner_op<runner, Connection, Logger>{this, &conn, l},
+         token,
+         conn);
    }
 
 private:
-
    template <class, class, class> friend class runner_op;
    template <class, class, class> friend struct hello_op;
 
    template <class Connection, class Logger, class CompletionToken>
    auto async_hello(Connection& conn, Logger l, CompletionToken token)
    {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(hello_op<runner, Connection, Logger>{this, &conn, l}, token, conn);
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         hello_op<runner, Connection, Logger>{this, &conn, l},
+         token,
+         conn);
    }
 
    void add_hello()
@@ -248,12 +249,11 @@ private:
       if (!hello_resp_.has_value())
          return true;
 
-      auto f = [](auto const& e)
-      {
+      auto f = [](auto const& e) {
          switch (e.data_type) {
             case resp3::type::simple_error:
-            case resp3::type::blob_error: return true;
-            default: return false;
+            case resp3::type::blob_error:   return true;
+            default:                        return false;
          }
       };
 
@@ -265,6 +265,6 @@ private:
    config cfg_;
 };
 
-} // boost::redis::detail
+}  // namespace boost::redis::detail
 
-#endif // BOOST_REDIS_RUNNER_HPP
+#endif  // BOOST_REDIS_RUNNER_HPP

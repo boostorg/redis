@@ -6,10 +6,13 @@
 
 #include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
+
 #include <boost/system/errc.hpp>
-#define BOOST_TEST_MODULE conn-exec-error
+#define BOOST_TEST_MODULE conn_exec_error
 #include <boost/test/included/unit_test.hpp>
+
 #include "common.hpp"
+
 #include <iostream>
 
 namespace net = boost::asio;
@@ -38,7 +41,7 @@ BOOST_AUTO_TEST_CASE(no_ignore_error)
 
    auto conn = std::make_shared<connection>(ioc);
 
-   conn->async_exec(req, ignore, [&](auto ec, auto){
+   conn->async_exec(req, ignore, [&](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, error::resp3_simple_error);
       conn->cancel(operation::run);
       conn->cancel(operation::reconnection);
@@ -65,7 +68,7 @@ BOOST_AUTO_TEST_CASE(has_diagnostic)
    auto conn = std::make_shared<connection>(ioc);
 
    response<std::string, std::string> resp;
-   conn->async_exec(req, resp, [&](auto ec, auto){
+   conn->async_exec(req, resp, [&](auto ec, auto) {
       BOOST_TEST(!ec);
 
       // HELLO
@@ -93,8 +96,8 @@ BOOST_AUTO_TEST_CASE(resp3_error_in_cmd_pipeline)
    request req1;
    req1.push("HELLO", "3");
    req1.push("PING", "req1-msg1");
-   req1.push("PING", "req1-msg2", "extra arg"); // Error.
-   req1.push("PING", "req1-msg3"); // Should run ok.
+   req1.push("PING", "req1-msg2", "extra arg");  // Error.
+   req1.push("PING", "req1-msg3");               // Should run ok.
 
    response<ignore_t, std::string, std::string, std::string> resp1;
 
@@ -106,8 +109,7 @@ BOOST_AUTO_TEST_CASE(resp3_error_in_cmd_pipeline)
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
 
-   auto c2 = [&](auto ec, auto)
-   {
+   auto c2 = [&](auto ec, auto) {
       BOOST_TEST(!ec);
       BOOST_TEST(std::get<0>(resp2).has_value());
       BOOST_CHECK_EQUAL(std::get<0>(resp2).value(), "req2-msg1");
@@ -115,8 +117,7 @@ BOOST_AUTO_TEST_CASE(resp3_error_in_cmd_pipeline)
       conn->cancel(operation::reconnection);
    };
 
-   auto c1 = [&](auto ec, auto)
-   {
+   auto c1 = [&](auto ec, auto) {
       BOOST_TEST(!ec);
       BOOST_TEST(std::get<2>(resp1).has_error());
       BOOST_CHECK_EQUAL(std::get<2>(resp1).error().data_type, resp3::type::simple_error);
@@ -142,29 +143,29 @@ BOOST_AUTO_TEST_CASE(error_in_transaction)
    req.push("HELLO", 3);
    req.push("MULTI");
    req.push("PING");
-   req.push("PING", "msg2", "error"); // Error.
+   req.push("PING", "msg2", "error");  // Error.
    req.push("PING");
    req.push("EXEC");
    req.push("PING");
 
    response<
-      ignore_t, // hello
-      ignore_t, // multi
-      ignore_t, // ping
-      ignore_t, // ping
-      ignore_t, // ping
-      response<std::string, std::string, std::string>, // exec
-      std::string // ping
-   > resp;
-
+      ignore_t,                                         // hello
+      ignore_t,                                         // multi
+      ignore_t,                                         // ping
+      ignore_t,                                         // ping
+      ignore_t,                                         // ping
+      response<std::string, std::string, std::string>,  // exec
+      std::string                                       // ping
+      >
+      resp;
 
    net::io_context ioc;
 
    auto conn = std::make_shared<connection>(ioc);
 
-   conn->async_exec(req, resp, [&](auto ec, auto){
+   conn->async_exec(req, resp, [&](auto ec, auto) {
       BOOST_TEST(!ec);
-      
+
       BOOST_TEST(std::get<0>(resp).has_value());
       BOOST_TEST(std::get<1>(resp).has_value());
       BOOST_TEST(std::get<2>(resp).has_value());
@@ -178,7 +179,9 @@ BOOST_AUTO_TEST_CASE(error_in_transaction)
 
       // The ping in the transaction that should be an error.
       BOOST_TEST(std::get<1>(std::get<5>(resp).value()).has_error());
-      BOOST_CHECK_EQUAL(std::get<1>(std::get<5>(resp).value()).error().data_type, resp3::type::simple_error);
+      BOOST_CHECK_EQUAL(
+         std::get<1>(std::get<5>(resp).value()).error().data_type,
+         resp3::type::simple_error);
       auto const diag = std::get<1>(std::get<5>(resp).value()).error().diagnostic;
       BOOST_TEST(!std::empty(diag));
 
@@ -220,19 +223,17 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
    req1.push("PING");
 
    request req2;
-   req2.push("SUBSCRIBE"); // Wrong command synthax.
+   req2.push("SUBSCRIBE");  // Wrong command synthax.
 
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
 
-   auto c2 = [&](auto ec, auto)
-   {
+   auto c2 = [&](auto ec, auto) {
       std::cout << "async_exec: subscribe" << std::endl;
       BOOST_TEST(!ec);
    };
 
-   auto c1 = [&](auto ec, auto)
-   {
+   auto c1 = [&](auto ec, auto) {
       std::cout << "async_exec: hello" << std::endl;
       BOOST_TEST(!ec);
       conn->async_exec(req2, ignore, c2);
@@ -243,8 +244,7 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
    generic_response gresp;
    conn->set_receive_response(gresp);
 
-   auto c3 = [&](auto ec, auto)
-   {
+   auto c3 = [&](auto ec, auto) {
       std::cout << "async_receive" << std::endl;
       BOOST_TEST(!ec);
       BOOST_TEST(gresp.has_error());
@@ -261,4 +261,3 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
 
    ioc.run();
 }
-

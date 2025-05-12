@@ -93,13 +93,13 @@ enum class error
  */
 auto make_error_code(error e) -> system::error_code;
 
-} // boost::redis
+}  // namespace boost::redis
 
 namespace std {
 
-template<>
-struct is_error_code_enum<::boost::redis::error> : std::true_type {};
+template <>
+struct is_error_code_enum<::boost::redis::error> : std::true_type { };
 
-} // std
+}  // namespace std
 
-#endif // BOOST_REDIS_ERROR_HPP
+#endif  // BOOST_REDIS_ERROR_HPP

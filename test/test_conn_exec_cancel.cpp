@@ -5,11 +5,14 @@
  */
 
 #include <boost/redis/connection.hpp>
+
 #include <boost/system/errc.hpp>
-#define BOOST_TEST_MODULE conn-exec-cancel
-#include <boost/test/included/unit_test.hpp>
+#define BOOST_TEST_MODULE conn_exec_cancel
 #include <boost/asio/detached.hpp>
+#include <boost/test/included/unit_test.hpp>
+
 #include "common.hpp"
+
 #include <iostream>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
@@ -57,10 +60,7 @@ auto implicit_cancel_of_req_written() -> net::awaitable<void>
 
    // Achieves implicit cancellation when the timer fires.
    boost::system::error_code ec1, ec2;
-   co_await (
-      conn->async_exec(req1, ignore, redir(ec1)) ||
-      st.async_wait(redir(ec2))
-   );
+   co_await (conn->async_exec(req1, ignore, redir(ec1)) || st.async_wait(redir(ec2)));
 
    conn->cancel();
 
@@ -92,13 +92,11 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
    req1.get_config().cancel_if_unresponded = true;
    req1.push("BLPOP", "any", 0);
 
-   auto c1 = [&](auto ec, auto)
-   {
+   auto c1 = [&](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, net::error::operation_aborted);
    };
 
-   auto c0 = [&](auto ec, auto)
-   {
+   auto c0 = [&](auto ec, auto) {
       BOOST_TEST(!ec);
       conn->async_exec(req1, ignore, c1);
    };
@@ -111,7 +109,7 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
 
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});
-   st.async_wait([&](auto ec){
+   st.async_wait([&](auto ec) {
       BOOST_TEST(!ec);
       conn->cancel(operation::run);
       conn->cancel(operation::reconnection);
@@ -121,8 +119,5 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
 }
 
 #else
-BOOST_AUTO_TEST_CASE(dummy)
-{
-   BOOST_TEST(true);
-}
+BOOST_AUTO_TEST_CASE(dummy) { BOOST_TEST(true); }
 #endif
