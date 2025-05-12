@@ -8,18 +8,21 @@
 
 #include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
+
 #include <boost/asio/as_tuple.hpp>
-#include <boost/asio/detached.hpp>
-#include <boost/asio/consign.hpp>
-#include <boost/asio/redirect_error.hpp>
 #include <boost/asio/awaitable.hpp>
-#include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
-#define BOOST_TEST_MODULE conn-quit
+#include <boost/asio/consign.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/redirect_error.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#define BOOST_TEST_MODULE conn - quit
 #include <boost/test/included/unit_test.hpp>
-#include <tuple>
-#include <iostream>
+
 #include "common.hpp"
+
+#include <iostream>
+#include <tuple>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
@@ -38,8 +41,7 @@ using boost::asio::redirect_error;
 using namespace std::chrono_literals;
 
 // Push consumer
-auto
-receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
    std::cout << "uuu" << std::endl;
    while (conn->will_reconnect()) {
@@ -59,32 +61,31 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    std::cout << "Exiting the receiver." << std::endl;
 }
 
-auto
-periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
-  net::steady_timer timer{co_await net::this_coro::executor};
-  for (int i = 0; i < 10; ++i) {
-    std::cout << "In the loop: " << i << std::endl;
-    timer.expires_after(std::chrono::milliseconds(50));
-    co_await timer.async_wait(net::use_awaitable);
+   net::steady_timer timer{co_await net::this_coro::executor};
+   for (int i = 0; i < 10; ++i) {
+      std::cout << "In the loop: " << i << std::endl;
+      timer.expires_after(std::chrono::milliseconds(50));
+      co_await timer.async_wait(net::use_awaitable);
 
-    // Key is not set so it will cause an error since we are passing
-    // an adapter that does not accept null, this will cause an error
-    // that result in the connection being closed.
-    request req;
-    req.push("GET", "mykey");
-    auto [ec, u] = co_await conn->async_exec(req, ignore, net::as_tuple(net::use_awaitable));
-    if (ec) {
-      std::cout << "(1)Error: " << ec << std::endl;
-    } else {
-      std::cout << "no error: " << std::endl;
-    }
-  }
+      // Key is not set so it will cause an error since we are passing
+      // an adapter that does not accept null, this will cause an error
+      // that result in the connection being closed.
+      request req;
+      req.push("GET", "mykey");
+      auto [ec, u] = co_await conn->async_exec(req, ignore, net::as_tuple(net::use_awaitable));
+      if (ec) {
+         std::cout << "(1)Error: " << ec << std::endl;
+      } else {
+         std::cout << "no error: " << std::endl;
+      }
+   }
 
-  std::cout << "Periodic task done!" << std::endl;
-  conn->cancel(operation::run);
-  conn->cancel(operation::receive);
-  conn->cancel(operation::reconnection);
+   std::cout << "Periodic task done!" << std::endl;
+   conn->cancel(operation::run);
+   conn->cancel(operation::receive);
+   conn->cancel(operation::reconnection);
 }
 
 auto co_main(config) -> net::awaitable<void>
@@ -105,10 +106,8 @@ BOOST_AUTO_TEST_CASE(issue_50)
    ioc.run();
 }
 
-#else // defined(BOOST_ASIO_HAS_CO_AWAIT)
+#else  // defined(BOOST_ASIO_HAS_CO_AWAIT)
 
-BOOST_AUTO_TEST_CASE(issue_50)
-{
-}
+BOOST_AUTO_TEST_CASE(issue_50) { }
 
-#endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
+#endif  // defined(BOOST_ASIO_HAS_CO_AWAIT)

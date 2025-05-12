@@ -8,20 +8,20 @@
 #define BOOST_REDIS_RUNNER_HPP
 
 #include <boost/redis/config.hpp>
-#include <boost/redis/request.hpp>
-#include <boost/redis/response.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
+#include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
+
 #include <boost/asio/compose.hpp>
 #include <boost/asio/coroutine.hpp>
 //#include <boost/asio/ip/tcp.hpp>
-#include <string>
-#include <memory>
 #include <chrono>
+#include <memory>
+#include <string>
 
-namespace boost::redis::detail
-{
+namespace boost::redis::detail {
 
 void push_hello(config const& cfg, request& req);
 
@@ -38,12 +38,15 @@ struct hello_op {
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t = 0)
    {
-      BOOST_ASIO_CORO_REENTER (coro_)
+      BOOST_ASIO_CORO_REENTER(coro_)
       {
          handshaker_->add_hello();
 
          BOOST_ASIO_CORO_YIELD
-         conn_->async_exec(handshaker_->hello_req_, any_adapter(handshaker_->hello_resp_), std::move(self));
+         conn_->async_exec(
+            handshaker_->hello_req_,
+            any_adapter(handshaker_->hello_resp_),
+            std::move(self));
          logger_.on_hello(ec, handshaker_->hello_resp_);
 
          if (ec) {
@@ -66,16 +69,15 @@ struct hello_op {
 template <class Executor>
 class resp3_handshaker {
 public:
-   void set_config(config const& cfg)
-      { cfg_ = cfg; }
+   void set_config(config const& cfg) { cfg_ = cfg; }
 
    template <class Connection, class Logger, class CompletionToken>
    auto async_hello(Connection& conn, Logger l, CompletionToken token)
    {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(hello_op<resp3_handshaker, Connection, Logger>{this, &conn, l}, token, conn);
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         hello_op<resp3_handshaker, Connection, Logger>{this, &conn, l},
+         token,
+         conn);
    }
 
 private:
@@ -94,12 +96,11 @@ private:
       if (!hello_resp_.has_value())
          return true;
 
-      auto f = [](auto const& e)
-      {
+      auto f = [](auto const& e) {
          switch (e.data_type) {
             case resp3::type::simple_error:
-            case resp3::type::blob_error: return true;
-            default: return false;
+            case resp3::type::blob_error:   return true;
+            default:                        return false;
          }
       };
 
@@ -111,6 +112,6 @@ private:
    config cfg_;
 };
 
-} // boost::redis::detail
+}  // namespace boost::redis::detail
 
-#endif // BOOST_REDIS_RUNNER_HPP
+#endif  // BOOST_REDIS_RUNNER_HPP

@@ -7,13 +7,12 @@
 #ifndef BOOST_REDIS_CONFIG_HPP
 #define BOOST_REDIS_CONFIG_HPP
 
-#include <string>
 #include <chrono>
-#include <optional>
 #include <limits>
+#include <optional>
+#include <string>
 
-namespace boost::redis
-{
+namespace boost::redis {
 
 /** @brief Address of a Redis server
  *  @ingroup high-level-api
@@ -88,6 +87,6 @@ struct config {
    std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
 };
 
-} // boost::redis
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_CONFIG_HPP
+#endif  // BOOST_REDIS_CONFIG_HPP

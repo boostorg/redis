@@ -4,17 +4,18 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/detail/resp3_handshaker.hpp>
-#include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/resp3/serialization.hpp>
-#include <boost/redis/resp3/node.hpp>
-#include <boost/redis/resp3/type.hpp>
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
-#define BOOST_TEST_MODULE conn-quit
+#include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/detail/resp3_handshaker.hpp>
+#include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/serialization.hpp>
+#include <boost/redis/resp3/type.hpp>
+#define BOOST_TEST_MODULE conn_quit
 #include <boost/test/included/unit_test.hpp>
-#include <string>
+
 #include <iostream>
+#include <string>
 
 using boost::redis::request;
 using boost::redis::config;
@@ -38,7 +39,7 @@ BOOST_AUTO_TEST_CASE(low_level_sync_sans_io)
       char const* wire = "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n";
       deserialize(wire, adapt2(resp));
 
-      for (auto const& e: resp.value())
+      for (auto const& e : resp.value())
          std::cout << e << std::endl;
 
    } catch (std::exception const& e) {
@@ -82,7 +83,8 @@ BOOST_AUTO_TEST_CASE(config_to_hello_cmd_clientname)
 
    push_hello(cfg, req);
 
-   std::string_view const expected = "*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$11\r\nBoost.Redis\r\n";
+   std::string_view const
+      expected = "*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$11\r\nBoost.Redis\r\n";
    BOOST_CHECK_EQUAL(req.payload(), expected);
 }
 
@@ -96,21 +98,20 @@ BOOST_AUTO_TEST_CASE(config_to_hello_cmd_auth)
 
    push_hello(cfg, req);
 
-   std::string_view const expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
+   std::string_view const
+      expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
    BOOST_CHECK_EQUAL(req.payload(), expected);
 }
 
 BOOST_AUTO_TEST_CASE(issue_210_empty_set)
 {
    try {
-      result<
-         std::tuple<
-            result<int>,
-            result<std::vector<std::string>>,
-            result<std::string>,
-            result<int>
-         >
-      > resp;
+      result<std::tuple<
+         result<int>,
+         result<std::vector<std::string>>,
+         result<std::string>,
+         result<int>>>
+         resp;
 
       char const* wire = "*4\r\n:1\r\n~0\r\n$25\r\nthis_should_not_be_in_set\r\n:2\r\n";
 
@@ -130,16 +131,15 @@ BOOST_AUTO_TEST_CASE(issue_210_empty_set)
 BOOST_AUTO_TEST_CASE(issue_210_non_empty_set_size_one)
 {
    try {
-      result<
-         std::tuple<
-            result<int>,
-            result<std::vector<std::string>>,
-            result<std::string>,
-            result<int>
-         >
-      > resp;
+      result<std::tuple<
+         result<int>,
+         result<std::vector<std::string>>,
+         result<std::string>,
+         result<int>>>
+         resp;
 
-      char const* wire = "*4\r\n:1\r\n~1\r\n$3\r\nfoo\r\n$25\r\nthis_should_not_be_in_set\r\n:2\r\n";
+      char const*
+         wire = "*4\r\n:1\r\n~1\r\n$3\r\nfoo\r\n$25\r\nthis_should_not_be_in_set\r\n:2\r\n";
 
       deserialize(wire, adapt2(resp));
 
@@ -158,16 +158,15 @@ BOOST_AUTO_TEST_CASE(issue_210_non_empty_set_size_one)
 BOOST_AUTO_TEST_CASE(issue_210_non_empty_set_size_two)
 {
    try {
-      result<
-         std::tuple<
-            result<int>,
-            result<std::vector<std::string>>,
-            result<std::string>,
-            result<int>
-         >
-      > resp;
+      result<std::tuple<
+         result<int>,
+         result<std::vector<std::string>>,
+         result<std::string>,
+         result<int>>>
+         resp;
 
-      char const* wire = "*4\r\n:1\r\n~2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$25\r\nthis_should_not_be_in_set\r\n:2\r\n";
+      char const* wire =
+         "*4\r\n:1\r\n~2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$25\r\nthis_should_not_be_in_set\r\n:2\r\n";
 
       deserialize(wire, adapt2(resp));
 
@@ -185,16 +184,11 @@ BOOST_AUTO_TEST_CASE(issue_210_non_empty_set_size_two)
 BOOST_AUTO_TEST_CASE(issue_210_no_nested)
 {
    try {
-      result<
-         std::tuple<
-            result<int>,
-            result<std::string>,
-            result<std::string>,
-            result<std::string>
-         >
-      > resp;
+      result<std::tuple<result<int>, result<std::string>, result<std::string>, result<std::string>>>
+         resp;
 
-      char const* wire = "*4\r\n:1\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$25\r\nthis_should_not_be_in_set\r\n";
+      char const*
+         wire = "*4\r\n:1\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$25\r\nthis_should_not_be_in_set\r\n";
 
       deserialize(wire, adapt2(resp));
 
@@ -278,7 +272,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
    BOOST_CHECK_EQUAL(resp.value().at(1).value, "one");
    BOOST_CHECK_EQUAL(resp.value().at(2).value, "two");
 
-   for (auto const& e: resp.value())
+   for (auto const& e : resp.value())
       std::cout << e << std::endl;
 }
 
@@ -348,7 +342,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    BOOST_TEST(item3.elem_ptr->is_waiting());
 
    // There are three requests to coalesce, a second call should do
-   // nothing. 
+   // nothing.
    BOOST_CHECK_EQUAL(mpx.prepare_write(), 3);
    BOOST_CHECK_EQUAL(mpx.prepare_write(), 0);
 
@@ -381,7 +375,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    // The done status should still be unchanged on requests that
    // expect a response.
    BOOST_TEST(!item1.done);
-   BOOST_TEST( item2.done);
+   BOOST_TEST(item2.done);
    BOOST_TEST(!item3.done);
 
    // Simulates a socket read by putting some data in the read buffer.
@@ -399,8 +393,8 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    BOOST_TEST(mpx.get_read_buffer().empty());
 
    // The last request still did not get a response.
-   BOOST_TEST( item1.done);
-   BOOST_TEST( item2.done);
+   BOOST_TEST(item1.done);
+   BOOST_TEST(item2.done);
    BOOST_TEST(!item3.done);
 
    // TODO: Check the first request was removed from the queue.

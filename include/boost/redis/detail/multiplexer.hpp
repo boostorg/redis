@@ -20,12 +20,11 @@
 #include <deque>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <utility>
-#include <optional>
 
-namespace boost::redis
-{
+namespace boost::redis {
 
 class request;
 
@@ -35,63 +34,61 @@ using tribool = std::optional<bool>;
 
 struct multiplexer {
    using adapter_type = std::function<void(resp3::node_view const&, system::error_code&)>;
-   using pipeline_adapter_type = std::function<void(std::size_t, resp3::node_view const&, system::error_code&)>;
+   using pipeline_adapter_type = std::function<
+      void(std::size_t, resp3::node_view const&, system::error_code&)>;
 
    struct elem {
    public:
       explicit elem(request const& req, pipeline_adapter_type adapter);
 
-      void set_done_callback(std::function<void()> f) noexcept
-         { done_ = std::move(f); };
+      void set_done_callback(std::function<void()> f) noexcept { done_ = std::move(f); };
 
-      auto notify_done() noexcept
-         { done_(); }
+      auto notify_done() noexcept { done_(); }
 
       auto notify_error(system::error_code ec) noexcept -> void;
 
       [[nodiscard]]
       auto is_waiting() const noexcept
-         { return status_ == status::waiting; }
+      {
+         return status_ == status::waiting;
+      }
 
       [[nodiscard]]
       auto is_written() const noexcept
-         { return status_ == status::written; }
+      {
+         return status_ == status::written;
+      }
 
       [[nodiscard]]
       auto is_staged() const noexcept
-         { return status_ == status::staged; }
+      {
+         return status_ == status::staged;
+      }
 
-      void mark_written() noexcept
-         { status_ = status::written; }
+      void mark_written() noexcept { status_ = status::written; }
 
-      void mark_staged() noexcept
-         { status_ = status::staged; }
+      void mark_staged() noexcept { status_ = status::staged; }
 
-      void mark_waiting() noexcept
-         { status_ = status::waiting; }
+      void mark_waiting() noexcept { status_ = status::waiting; }
 
-      auto get_error() const -> system::error_code const&
-         { return ec_; }
+      auto get_error() const -> system::error_code const& { return ec_; }
 
-      auto get_request() const -> request const&
-         { return *req_; }
+      auto get_request() const -> request const& { return *req_; }
 
-      auto get_read_size() const -> std::size_t
-         { return read_size_; }
+      auto get_read_size() const -> std::size_t { return read_size_; }
 
-      auto get_remaining_responses() const -> std::size_t
-         { return remaining_responses_; }
+      auto get_remaining_responses() const -> std::size_t { return remaining_responses_; }
 
       auto commit_response(std::size_t read_size) -> void;
 
-      auto get_adapter() -> adapter_type&
-         { return adapter_; }
+      auto get_adapter() -> adapter_type& { return adapter_; }
 
    private:
       enum class status
-      { waiting
-      , staged
-      , written
+      {
+         waiting,
+         staged,
+         written
       };
 
       request const* req_;
@@ -124,7 +121,9 @@ struct multiplexer {
 
    [[nodiscard]]
    auto const& get_parser() const noexcept
-      { return parser_; }
+   {
+      return parser_;
+   }
 
    //[[nodiscard]]
    auto cancel_waiting() -> std::size_t;
@@ -134,19 +133,27 @@ struct multiplexer {
 
    [[nodiscard]]
    auto get_cancel_run_state() const noexcept -> bool
-      { return cancel_run_called_; }
+   {
+      return cancel_run_called_;
+   }
 
    [[nodiscard]]
    auto get_write_buffer() noexcept -> std::string_view
-      { return std::string_view{write_buffer_}; }
+   {
+      return std::string_view{write_buffer_};
+   }
 
    [[nodiscard]]
    auto get_read_buffer() noexcept -> std::string&
-      { return read_buffer_; }
+   {
+      return read_buffer_;
+   }
 
    [[nodiscard]]
    auto is_data_needed() const noexcept -> bool
-      { return std::empty(read_buffer_); }
+   {
+      return std::empty(read_buffer_);
+   }
 
    // TODO: Change signature to receive an adapter instead of a
    // response.
@@ -160,7 +167,9 @@ struct multiplexer {
 
    [[nodiscard]]
    auto get_usage() const noexcept -> usage
-      { return usage_;}
+   {
+      return usage_;
+   }
 
    [[nodiscard]]
    auto is_writing() const noexcept -> bool;
@@ -189,12 +198,10 @@ private:
    adapter_type receive_adapter_;
 };
 
-auto
-make_elem(
-    request const& req,
-    multiplexer::pipeline_adapter_type adapter) -> std::shared_ptr<multiplexer::elem>;
+auto make_elem(request const& req, multiplexer::pipeline_adapter_type adapter)
+   -> std::shared_ptr<multiplexer::elem>;
 
-} // detail
-} // boost::redis
+}  // namespace detail
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_MULTIPLEXER_HPP
+#endif  // BOOST_REDIS_MULTIPLEXER_HPP

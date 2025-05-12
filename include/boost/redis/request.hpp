@@ -7,19 +7,19 @@
 #ifndef BOOST_REDIS_REQUEST_HPP
 #define BOOST_REDIS_REQUEST_HPP
 
-#include <boost/redis/resp3/type.hpp>
 #include <boost/redis/resp3/serialization.hpp>
+#include <boost/redis/resp3/type.hpp>
 
+#include <algorithm>
 #include <string>
 #include <tuple>
-#include <algorithm>
 
 // NOTE: For some commands like hset it would be a good idea to assert
 // the value type is a pair.
 
 namespace boost::redis {
 
-namespace detail{
+namespace detail {
 auto has_response(std::string_view cmd) -> bool;
 }
 
@@ -80,23 +80,25 @@ public:
     *  
     *  \param cfg Configuration options.
     */
-    explicit
-    request(config cfg = config{true, false, true, true})
-    : cfg_{cfg} {}
+   explicit request(config cfg = config{true, false, true, true})
+   : cfg_{cfg}
+   { }
 
-    //// Returns the number of responses expected for this request.
+   //// Returns the number of responses expected for this request.
    [[nodiscard]] auto get_expected_responses() const noexcept -> std::size_t
-      { return expected_responses_;};
+   {
+      return expected_responses_;
+   };
 
-    //// Returns the number of commands contained in this request.
-   [[nodiscard]] auto get_commands() const noexcept -> std::size_t
-      { return commands_;};
+   //// Returns the number of commands contained in this request.
+   [[nodiscard]] auto get_commands() const noexcept -> std::size_t { return commands_; };
 
-   [[nodiscard]] auto payload() const noexcept -> std::string_view
-      { return payload_;}
+   [[nodiscard]] auto payload() const noexcept -> std::string_view { return payload_; }
 
    [[nodiscard]] auto has_hello_priority() const noexcept -> auto const&
-      { return has_hello_priority_;}
+   {
+      return has_hello_priority_;
+   }
 
    /// Clears the request preserving allocated memory.
    void clear()
@@ -108,14 +110,13 @@ public:
    }
 
    /// Calls std::string::reserve on the internal storage.
-   void reserve(std::size_t new_cap = 0)
-      { payload_.reserve(new_cap); }
+   void reserve(std::size_t new_cap = 0) { payload_.reserve(new_cap); }
 
    /// Returns a const reference to the config object.
-   [[nodiscard]] auto get_config() const noexcept -> auto const& {return cfg_; }
+   [[nodiscard]] auto get_config() const noexcept -> auto const& { return cfg_; }
 
    /// Returns a reference to the config object.
-   [[nodiscard]] auto get_config() noexcept -> auto& {return cfg_; }
+   [[nodiscard]] auto get_config() noexcept -> auto& { return cfg_; }
 
    /** @brief Appends a new command to the end of the request.
     *
@@ -185,13 +186,12 @@ public:
     *  See cpp20_serialization.cpp
     */
    template <class ForwardIterator>
-   void
-   push_range(
+   void push_range(
       std::string_view const& cmd,
       std::string_view const& key,
       ForwardIterator begin,
       ForwardIterator end,
-      typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
+      typename std::iterator_traits<ForwardIterator>::value_type* = nullptr)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
 
@@ -205,7 +205,7 @@ public:
       resp3::add_bulk(payload_, key);
 
       for (; begin != end; ++begin)
-	 resp3::add_bulk(payload_, *begin);
+         resp3::add_bulk(payload_, *begin);
 
       check_cmd(cmd);
    }
@@ -238,12 +238,11 @@ public:
     *  See cpp20_serialization.cpp
     */
    template <class ForwardIterator>
-   void
-   push_range(
+   void push_range(
       std::string_view const& cmd,
       ForwardIterator begin,
       ForwardIterator end,
-      typename std::iterator_traits<ForwardIterator>::value_type * = nullptr)
+      typename std::iterator_traits<ForwardIterator>::value_type* = nullptr)
    {
       using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
 
@@ -256,7 +255,7 @@ public:
       resp3::add_bulk(payload_, cmd);
 
       for (; begin != end; ++begin)
-	 resp3::add_bulk(payload_, *begin);
+         resp3::add_bulk(payload_, *begin);
 
       check_cmd(cmd);
    }
@@ -272,12 +271,11 @@ public:
     *  \tparam A type that can be passed to `std::cbegin()` and `std::cend()`.
     */
    template <class Range>
-   void
-   push_range(
+   void push_range(
       std::string_view const& cmd,
       std::string_view const& key,
       Range const& range,
-      decltype(std::begin(range)) * = nullptr)
+      decltype(std::begin(range))* = nullptr)
    {
       using std::begin;
       using std::end;
@@ -294,11 +292,10 @@ public:
     *  \tparam A type that can be passed to `std::cbegin()` and `std::cend()`.
     */
    template <class Range>
-   void
-   push_range(
+   void push_range(
       std::string_view cmd,
       Range const& range,
-      decltype(std::cbegin(range)) * = nullptr)
+      decltype(std::cbegin(range))* = nullptr)
    {
       using std::cbegin;
       using std::cend;
@@ -324,6 +321,6 @@ private:
    bool has_hello_priority_ = false;
 };
 
-} // boost::redis::resp3
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_REQUEST_HPP
+#endif  // BOOST_REDIS_REQUEST_HPP

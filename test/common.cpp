@@ -1,8 +1,10 @@
-#include "common.hpp"
-#include <iostream>
-#include <cstdlib>
-#include <boost/asio/consign.hpp>
 #include <boost/asio/co_spawn.hpp>
+#include <boost/asio/consign.hpp>
+
+#include "common.hpp"
+
+#include <cstdlib>
+#include <iostream>
 
 namespace net = boost::asio;
 
@@ -18,8 +20,7 @@ struct run_callback {
    }
 };
 
-void
-run(
+void run(
    std::shared_ptr<boost::redis::connection> conn,
    boost::redis::config cfg,
    boost::system::error_code ec,
@@ -31,22 +32,19 @@ run(
 
 static std::string safe_getenv(const char* name, const char* default_value)
 {
-    // MSVC doesn't like getenv
+   // MSVC doesn't like getenv
 #ifdef BOOST_MSVC
 #pragma warning(push)
 #pragma warning(disable : 4996)
 #endif
-    const char* res = std::getenv(name);
+   const char* res = std::getenv(name);
 #ifdef BOOST_MSVC
 #pragma warning(pop)
 #endif
-    return res ? res : default_value;
+   return res ? res : default_value;
 }
 
-std::string get_server_hostname()
-{
-   return safe_getenv("BOOST_REDIS_TEST_SERVER", "localhost");
-}
+std::string get_server_hostname() { return safe_getenv("BOOST_REDIS_TEST_SERVER", "localhost"); }
 
 boost::redis::config make_test_config()
 {
@@ -75,4 +73,4 @@ auto start(net::awaitable<void> op) -> int
 
    return 1;
 }
-#endif // BOOST_ASIO_HAS_CO_AWAIT
+#endif  // BOOST_ASIO_HAS_CO_AWAIT

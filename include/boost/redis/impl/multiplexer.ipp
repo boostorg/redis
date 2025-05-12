@@ -9,8 +9,7 @@
 
 #include <memory>
 
-namespace boost::redis::detail
-{
+namespace boost::redis::detail {
 
 multiplexer::elem::elem(request const& req, pipeline_adapter_type adapter)
 : req_{&req}
@@ -20,8 +19,7 @@ multiplexer::elem::elem(request const& req, pipeline_adapter_type adapter)
 , ec_{{}}
 , read_size_{0}
 {
-   adapter_ = [this, adapter](resp3::node_view const& nd, system::error_code& ec)
-   {
+   adapter_ = [this, adapter](resp3::node_view const& nd, system::error_code& ec) {
       auto const i = req_->get_expected_responses() - remaining_responses_;
       adapter(i, nd, ec);
    };
@@ -75,17 +73,15 @@ void multiplexer::add(std::shared_ptr<elem> const& info)
    reqs_.push_back(info);
 
    if (info->get_request().has_hello_priority()) {
-      auto rend =
-         std::partition_point(std::rbegin(reqs_), std::rend(reqs_), [](auto const& e) {
-            return e->is_waiting();
+      auto rend = std::partition_point(std::rbegin(reqs_), std::rend(reqs_), [](auto const& e) {
+         return e->is_waiting();
       });
 
       std::rotate(std::rbegin(reqs_), std::rbegin(reqs_) + 1, rend);
    }
 }
 
-std::pair<tribool, std::size_t>
-multiplexer::commit_read(system::error_code& ec)
+std::pair<tribool, std::size_t> multiplexer::commit_read(system::error_code& ec)
 {
    // We arrive here in two states:
    //
@@ -97,7 +93,7 @@ multiplexer::commit_read(system::error_code& ec)
    //    2. On a new message, in which case we have to determine
    //       whether the next messag is a push or a response.
    //
-   if (!on_push_) // Prepare for new message.
+   if (!on_push_)  // Prepare for new message.
       on_push_ = is_next_push();
 
    if (on_push_) {
@@ -111,7 +107,9 @@ multiplexer::commit_read(system::error_code& ec)
       return std::make_pair(std::make_optional(true), size);
    }
 
-   BOOST_ASSERT_MSG(is_waiting_response(), "Not waiting for a response (using MONITOR command perhaps?)");
+   BOOST_ASSERT_MSG(
+      is_waiting_response(),
+      "Not waiting for a response (using MONITOR command perhaps?)");
    BOOST_ASSERT(!reqs_.empty());
    BOOST_ASSERT(reqs_.front() != nullptr);
    BOOST_ASSERT(reqs_.front()->get_remaining_responses() != 0);
@@ -148,10 +146,12 @@ std::size_t multiplexer::prepare_write()
 {
    // Coalesces the requests and marks them staged. After a
    // successful write staged requests will be marked as written.
-   auto const point =
-      std::partition_point(std::cbegin(reqs_), std::cend(reqs_), [](auto const& ri) {
+   auto const point = std::partition_point(
+      std::cbegin(reqs_),
+      std::cend(reqs_),
+      [](auto const& ri) {
          return !ri->is_waiting();
-   });
+      });
 
    std::for_each(point, std::cend(reqs_), [this](auto const& ri) {
       // Stage the request.
@@ -166,11 +166,9 @@ std::size_t multiplexer::prepare_write()
    return static_cast<std::size_t>(d);
 }
 
-
 std::size_t multiplexer::cancel_waiting()
 {
-   auto f = [](auto const& ptr)
-   {
+   auto f = [](auto const& ptr) {
       BOOST_ASSERT(ptr != nullptr);
       return !ptr->is_waiting();
    };
@@ -196,8 +194,7 @@ auto multiplexer::cancel_on_conn_lost() -> std::size_t
    }
 
    // Must return false if the request should be removed.
-   auto cond = [](auto const& ptr)
-   {
+   auto cond = [](auto const& ptr) {
       BOOST_ASSERT(ptr != nullptr);
 
       if (ptr->is_waiting()) {
@@ -281,7 +278,7 @@ bool multiplexer::is_next_push() const noexcept
 std::size_t multiplexer::release_push_requests()
 {
    auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-         return !(ptr->is_written() && ptr->get_request().get_expected_responses() == 0);
+      return !(ptr->is_written() && ptr->get_request().get_expected_responses() == 0);
    });
 
    std::for_each(point, std::end(reqs_), [](auto const& ptr) {
@@ -305,17 +302,12 @@ bool multiplexer::is_waiting_response() const noexcept
    return !reqs_.front()->is_waiting();
 }
 
-bool multiplexer::is_writing() const noexcept
-{
-   return !write_buffer_.empty();
-}
+bool multiplexer::is_writing() const noexcept { return !write_buffer_.empty(); }
 
-auto
-make_elem(
-    request const& req,
-    multiplexer::pipeline_adapter_type adapter) -> std::shared_ptr<multiplexer::elem>
+auto make_elem(request const& req, multiplexer::pipeline_adapter_type adapter)
+   -> std::shared_ptr<multiplexer::elem>
 {
    return std::make_shared<multiplexer::elem>(req, std::move(adapter));
 }
 
-}
+}  // namespace boost::redis::detail

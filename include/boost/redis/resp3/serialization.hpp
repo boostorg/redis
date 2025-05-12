@@ -7,10 +7,11 @@
 #ifndef BOOST_REDIS_RESP3_SERIALIZATION_HPP
 #define BOOST_REDIS_RESP3_SERIALIZATION_HPP
 
+#include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/resp3/type.hpp>
+
 #include <boost/system/system_error.hpp>
 #include <boost/throw_exception.hpp>
-#include <boost/redis/resp3/parser.hpp>
 
 #include <string>
 #include <tuple>
@@ -57,12 +58,11 @@ struct add_bulk_impl {
    }
 };
 
-template <class ...Ts>
+template <class... Ts>
 struct add_bulk_impl<std::tuple<Ts...>> {
    static void add(std::string& payload, std::tuple<Ts...> const& t)
    {
-      auto f = [&](auto const&... vs)
-      {
+      auto f = [&](auto const&... vs) {
          using namespace boost::redis::resp3;
          (boost_redis_to_bulk(payload, vs), ...);
       };
@@ -94,19 +94,18 @@ struct bulk_counter;
 
 template <class>
 struct bulk_counter {
-  static constexpr auto size = 1U;
+   static constexpr auto size = 1U;
 };
 
 template <class T, class U>
 struct bulk_counter<std::pair<T, U>> {
-  static constexpr auto size = 2U;
+   static constexpr auto size = 2U;
 };
 
 void add_blob(std::string& payload, std::string_view blob);
 void add_separator(std::string& payload);
 
-namespace detail
-{
+namespace detail {
 
 template <class Adapter>
 void deserialize(std::string_view const& data, Adapter adapter, system::error_code& ec)
@@ -134,11 +133,11 @@ void deserialize(std::string_view const& data, Adapter adapter)
    deserialize(data, adapter, ec);
 
    if (ec)
-       BOOST_THROW_EXCEPTION(system::system_error{ec});
+      BOOST_THROW_EXCEPTION(system::system_error{ec});
 }
 
-}
+}  // namespace detail
 
-} // boost::redis::resp3
+}  // namespace boost::redis::resp3
 
-#endif // BOOST_REDIS_RESP3_SERIALIZATION_HPP
+#endif  // BOOST_REDIS_RESP3_SERIALIZATION_HPP

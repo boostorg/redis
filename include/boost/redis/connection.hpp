@@ -42,7 +42,6 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/assert.hpp>
-
 #include <boost/core/ignore_unused.hpp>
 
 #include <array>
@@ -53,8 +52,7 @@
 #include <memory>
 
 namespace boost::redis {
-namespace detail
-{
+namespace detail {
 
 template <class AsyncReadStream, class DynamicBuffer>
 class append_some_op {
@@ -67,17 +65,15 @@ private:
 
 public:
    append_some_op(AsyncReadStream& stream, DynamicBuffer buf, std::size_t size)
-   : stream_ {stream}
-   , buf_ {std::move(buf)}
+   : stream_{stream}
+   , buf_{std::move(buf)}
    , size_{size}
    { }
 
    template <class Self>
-   void operator()( Self& self
-                  , system::error_code ec = {}
-                  , std::size_t n = 0)
+   void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
-      BOOST_ASIO_CORO_REENTER (coro_)
+      BOOST_ASIO_CORO_REENTER(coro_)
       {
          tmp_ = buf_.size();
          buf_.grow(size_);
@@ -96,22 +92,22 @@ public:
 };
 
 template <class AsyncReadStream, class DynamicBuffer, class CompletionToken>
-auto
-async_append_some(
+auto async_append_some(
    AsyncReadStream& stream,
    DynamicBuffer buffer,
    std::size_t size,
    CompletionToken&& token)
 {
-   return asio::async_compose
-      < CompletionToken
-      , void(system::error_code, std::size_t)
-      >(append_some_op<AsyncReadStream, DynamicBuffer> {stream, buffer, size}, token, stream);
+   return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
+      append_some_op<AsyncReadStream, DynamicBuffer>{stream, buffer, size},
+      token,
+      stream);
 }
 
 template <class Executor>
-using exec_notifier_type =
-  asio::experimental::channel<Executor, void(system::error_code, std::size_t)>;
+using exec_notifier_type = asio::experimental::channel<
+   Executor,
+   void(system::error_code, std::size_t)>;
 
 template <class Conn>
 struct exec_op {
@@ -124,9 +120,9 @@ struct exec_op {
    asio::coroutine coro_{};
 
    template <class Self>
-   void operator()(Self& self , system::error_code = {}, std::size_t = 0)
+   void operator()(Self& self, system::error_code = {}, std::size_t = 0)
    {
-      BOOST_ASIO_CORO_REENTER (coro_)
+      BOOST_ASIO_CORO_REENTER(coro_)
       {
          // Check whether the user wants to wait for the connection to
          // be stablished.
@@ -188,21 +184,19 @@ struct writer_op {
    asio::coroutine coro{};
 
    template <class Self>
-   void operator()( Self& self
-                  , system::error_code ec = {}
-                  , std::size_t n = 0)
+   void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
       ignore_unused(n);
 
-      BOOST_ASIO_CORO_REENTER (coro) for (;;)
+      BOOST_ASIO_CORO_REENTER(coro) for (;;)
       {
          while (conn_->mpx_.prepare_write() != 0) {
             if (conn_->use_ssl()) {
                BOOST_ASIO_CORO_YIELD
                asio::async_write(
-                 conn_->next_layer(),
-                 asio::buffer(conn_->mpx_.get_write_buffer()),
-                 std::move(self));
+                  conn_->next_layer(),
+                  asio::buffer(conn_->mpx_.get_write_buffer()),
+                  std::move(self));
             } else {
                BOOST_ASIO_CORO_YIELD
                asio::async_write(
@@ -248,7 +242,10 @@ struct writer_op {
 
 template <class Conn, class Logger>
 struct reader_op {
-   using dyn_buffer_type = asio::dynamic_string_buffer<char, std::char_traits<char>, std::allocator<char>>;
+   using dyn_buffer_type = asio::dynamic_string_buffer<
+      char,
+      std::char_traits<char>,
+      std::allocator<char>>;
 
    // TODO: Move this to config so the user can fine tune?
    static constexpr std::size_t buffer_growth_hint = 4096;
@@ -259,13 +256,11 @@ struct reader_op {
    asio::coroutine coro{};
 
    template <class Self>
-   void operator()( Self& self
-                  , system::error_code ec = {}
-                  , std::size_t n = 0)
+   void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
       ignore_unused(n);
 
-      BOOST_ASIO_CORO_REENTER (coro) for (;;)
+      BOOST_ASIO_CORO_REENTER(coro) for (;;)
       {
          // Appends some data to the buffer if necessary.
          if (!res_.first.has_value() || conn_->mpx_.is_data_needed()) {
@@ -331,7 +326,6 @@ struct reader_op {
                self.complete(asio::error::operation_aborted);
                return;
             }
-
          }
       }
    }
@@ -350,21 +344,22 @@ public:
    run_op(Conn* conn, Logger l)
    : conn_{conn}
    , logger_{l}
-   {}
+   { }
 
    template <class Self>
-   void operator()( Self& self
-                  , order_t order = {}
-                  , system::error_code ec0 = {}
-                  , system::error_code ec1 = {}
-                  , system::error_code ec2 = {}
-                  , system::error_code ec3 = {}
-                  , system::error_code ec4 = {})
+   void operator()(
+      Self& self,
+      order_t order = {},
+      system::error_code ec0 = {},
+      system::error_code ec1 = {},
+      system::error_code ec2 = {},
+      system::error_code ec3 = {},
+      system::error_code ec4 = {})
    {
-      BOOST_ASIO_CORO_REENTER (coro_) for (;;)
+      BOOST_ASIO_CORO_REENTER(coro_) for (;;)
       {
          BOOST_ASIO_CORO_YIELD
-         conn_->resv_.async_resolve(asio::prepend(std::move(self), order_t {}));
+         conn_->resv_.async_resolve(asio::prepend(std::move(self), order_t{}));
 
          logger_.on_resolve(ec0, conn_->resv_.results());
 
@@ -377,7 +372,7 @@ public:
          conn_->ctor_.async_connect(
             conn_->next_layer().next_layer(),
             conn_->resv_.results(),
-            asio::prepend(std::move(self), order_t {}));
+            asio::prepend(std::move(self), order_t{}));
 
          logger_.on_connect(ec0, conn_->ctor_.endpoint());
 
@@ -391,13 +386,8 @@ public:
             conn_->next_layer().async_handshake(
                asio::ssl::stream_base::client,
                asio::prepend(
-                  asio::cancel_after(
-                     conn_->cfg_.ssl_handshake_timeout,
-                     std::move(self)
-                  ),
-                  order_t {}
-               )
-            );
+                  asio::cancel_after(conn_->cfg_.ssl_handshake_timeout, std::move(self)),
+                  order_t{}));
 
             logger_.on_ssl_handshake(ec0);
 
@@ -414,14 +404,22 @@ public:
          // causing an authentication problem.
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
-            [this](auto token) { return conn_->handshaker_.async_hello(*conn_, logger_, token); },
-            [this](auto token) { return conn_->health_checker_.async_ping(*conn_, logger_, token); },
-            [this](auto token) { return conn_->health_checker_.async_check_timeout(*conn_, logger_, token);},
-            [this](auto token) { return conn_->reader(logger_, token);},
-            [this](auto token) { return conn_->writer(logger_, token);}
-         ).async_wait(
-            asio::experimental::wait_for_one_error(),
-            std::move(self));
+            [this](auto token) {
+               return conn_->handshaker_.async_hello(*conn_, logger_, token);
+            },
+            [this](auto token) {
+               return conn_->health_checker_.async_ping(*conn_, logger_, token);
+            },
+            [this](auto token) {
+               return conn_->health_checker_.async_check_timeout(*conn_, logger_, token);
+            },
+            [this](auto token) {
+               return conn_->reader(logger_, token);
+            },
+            [this](auto token) {
+               return conn_->writer(logger_, token);
+            })
+            .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
 
          if (order[0] == 0 && !!ec0) {
             self.complete(ec0);
@@ -449,7 +447,7 @@ public:
          conn_->writer_timer_.expires_after(conn_->cfg_.reconnect_wait_interval);
 
          BOOST_ASIO_CORO_YIELD
-         conn_->writer_timer_.async_wait(asio::prepend(std::move(self), order_t {}));
+         conn_->writer_timer_.async_wait(asio::prepend(std::move(self), order_t{}));
          if (ec0) {
             self.complete(ec0);
             return;
@@ -465,7 +463,7 @@ public:
    }
 };
 
-} // boost::redis::detail
+}  // namespace detail
 
 /** @brief A SSL connection to the Redis server.
  *  @ingroup high-level-api
@@ -489,24 +487,21 @@ public:
    using executor_type = Executor;
 
    /// Returns the associated executor.
-   executor_type get_executor() noexcept
-      {return writer_timer_.get_executor();}
+   executor_type get_executor() noexcept { return writer_timer_.get_executor(); }
 
    /// Rebinds the socket type to another executor.
    template <class Executor1>
-   struct rebind_executor
-   {
+   struct rebind_executor {
       /// The connection type when rebound to the specified executor.
       using other = basic_connection<Executor1>;
    };
 
    /** @brief Constructor
-    *
-    *  @param ex Executor on which connection operation will run.
-    *  @param ctx SSL context.
-    */
-   explicit
-   basic_connection(
+   *
+   *  @param ex Executor on which connection operation will run.
+   *  @param ctx SSL context.
+   */
+   explicit basic_connection(
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client})
    : ctx_{std::move(ctx)}
@@ -521,8 +516,7 @@ public:
    }
 
    /// Constructs from a context.
-   explicit
-   basic_connection(
+   explicit basic_connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client})
    : basic_connection(ioc.get_executor(), std::move(ctx))
@@ -568,11 +562,7 @@ public:
    template <
       class Logger = logger,
       class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto
-   async_run(
-      config const& cfg = {},
-      Logger l = Logger{},
-      CompletionToken&& token = {})
+   auto async_run(config const& cfg = {}, Logger l = Logger{}, CompletionToken&& token = {})
    {
       cfg_ = cfg;
       resv_.set_config(cfg);
@@ -581,10 +571,10 @@ public:
       handshaker_.set_config(cfg);
       l.set_prefix(cfg.log_prefix);
 
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(detail::run_op<this_type, Logger>{this, l}, token, writer_timer_);
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         detail::run_op<this_type, Logger>{this, l},
+         token,
+         writer_timer_);
    }
 
    /** @brief Receives server side pushes asynchronously.
@@ -611,7 +601,9 @@ public:
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_receive(CompletionToken&& token = {})
-      { return receive_channel_.async_receive(std::forward<CompletionToken>(token)); }
+   {
+      return receive_channel_.async_receive(std::forward<CompletionToken>(token));
+   }
 
    /** @brief Receives server pushes synchronously without blocking.
     *
@@ -628,8 +620,7 @@ public:
    {
       std::size_t size = 0;
 
-      auto f = [&](system::error_code const& ec2, std::size_t n)
-      {
+      auto f = [&](system::error_code const& ec2, std::size_t n) {
          ec = ec2;
          size = n;
       };
@@ -669,13 +660,8 @@ public:
     */
    template <
       class Response = ignore_t,
-      class CompletionToken = asio::default_completion_token_t<executor_type>
-   >
-   auto
-   async_exec(
-      request const& req,
-      Response& resp = ignore,
-      CompletionToken&& token = {})
+      class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
       return this->async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
@@ -686,26 +672,26 @@ public:
     * encapsulates a reference to a response object.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto
-   async_exec(
-      request const& req,
-      any_adapter adapter,
-      CompletionToken&& token = {})
+   auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
    {
       auto& adapter_impl = adapter.impl_;
-      BOOST_ASSERT_MSG(req.get_expected_responses() <= adapter_impl.supported_response_size, "Request and response have incompatible sizes.");
+      BOOST_ASSERT_MSG(
+         req.get_expected_responses() <= adapter_impl.supported_response_size,
+         "Request and response have incompatible sizes.");
 
-      auto notifier = std::make_shared<detail::exec_notifier_type<executor_type>>(get_executor(), 1);
+      auto notifier = std::make_shared<detail::exec_notifier_type<executor_type>>(
+         get_executor(),
+         1);
       auto info = detail::make_elem(req, std::move(adapter_impl.adapt_fn));
 
       info->set_done_callback([notifier]() {
          notifier->try_send(std::error_code{}, 0);
       });
 
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code, std::size_t)
-         >(detail::exec_op<this_type>{this, notifier, info}, token, writer_timer_);
+      return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
+         detail::exec_op<this_type>{this, notifier, info},
+         token,
+         writer_timer_);
    }
 
    /** @brief Cancel operations.
@@ -722,80 +708,72 @@ public:
    void cancel(operation op = operation::all)
    {
       switch (op) {
-         case operation::resolve:
-            resv_.cancel();
-            break;
-         case operation::exec:
-            mpx_.cancel_waiting();
-            break;
+         case operation::resolve: resv_.cancel(); break;
+         case operation::exec:    mpx_.cancel_waiting(); break;
          case operation::reconnection:
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
             break;
-         case operation::run:
-            cancel_run();
-            break;
-         case operation::receive:
-            receive_channel_.cancel();
-            break;
-         case operation::health_check:
-            health_checker_.cancel();
-            break;
+         case operation::run:          cancel_run(); break;
+         case operation::receive:      receive_channel_.cancel(); break;
+         case operation::health_check: health_checker_.cancel(); break;
          case operation::all:
             resv_.cancel();
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
             health_checker_.cancel();
-            cancel_run(); // run
-            receive_channel_.cancel(); // receive
-            mpx_.cancel_waiting(); // exec
+            cancel_run();               // run
+            receive_channel_.cancel();  // receive
+            mpx_.cancel_waiting();      // exec
             break;
          default: /* ignore */;
       }
    }
 
-   auto run_is_canceled() const noexcept
-      { return mpx_.get_cancel_run_state(); }
+   auto run_is_canceled() const noexcept { return mpx_.get_cancel_run_state(); }
 
    /// Returns true if the connection was canceled.
    bool will_reconnect() const noexcept
-      { return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();}
+   {
+      return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();
+   }
 
    /// Returns the ssl context.
-   auto const& get_ssl_context() const noexcept
-      { return ctx_;}
+   auto const& get_ssl_context() const noexcept { return ctx_; }
 
    /// Resets the underlying stream.
    void reset_stream()
-      { stream_ = std::make_unique<next_layer_type>(writer_timer_.get_executor(), ctx_); }
+   {
+      stream_ = std::make_unique<next_layer_type>(writer_timer_.get_executor(), ctx_);
+   }
 
    /// Returns a reference to the next layer.
-   auto& next_layer() noexcept
-      { return *stream_; }
+   auto& next_layer() noexcept { return *stream_; }
 
    /// Returns a const reference to the next layer.
-   auto const& next_layer() const noexcept
-      { return *stream_; }
+   auto const& next_layer() const noexcept { return *stream_; }
 
    /// Sets the response object of `async_receive` operations.
    template <class Response>
    void set_receive_response(Response& response)
-      { mpx_.set_receive_response(response); }
+   {
+      mpx_.set_receive_response(response);
+   }
 
    /// Returns connection usage information.
-   usage get_usage() const noexcept
-      { return mpx_.get_usage(); }
+   usage get_usage() const noexcept { return mpx_.get_usage(); }
 
 private:
    using clock_type = std::chrono::steady_clock;
    using clock_traits_type = asio::wait_traits<clock_type>;
    using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
 
-   using receive_channel_type = asio::experimental::channel<executor_type, void(system::error_code, std::size_t)>;
+   using receive_channel_type = asio::experimental::channel<
+      executor_type,
+      void(system::error_code, std::size_t)>;
    using resolver_type = detail::resolver<Executor>;
    using health_checker_type = detail::health_checker<Executor>;
    using resp3_handshaker_type = detail::resp3_handshaker<executor_type>;
 
-   auto use_ssl() const noexcept
-      { return cfg_.use_ssl;}
+   auto use_ssl() const noexcept { return cfg_.use_ssl; }
 
    void cancel_run()
    {
@@ -813,20 +791,19 @@ private:
    template <class CompletionToken, class Logger>
    auto reader(Logger l, CompletionToken&& token)
    {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(detail::reader_op<this_type, Logger>{this, l},
-               std::forward<CompletionToken>(token), writer_timer_);
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         detail::reader_op<this_type, Logger>{this, l},
+         std::forward<CompletionToken>(token),
+         writer_timer_);
    }
 
    template <class CompletionToken, class Logger>
    auto writer(Logger l, CompletionToken&& token)
    {
-      return asio::async_compose
-         < CompletionToken
-         , void(system::error_code)
-         >(detail::writer_op<this_type, Logger>{this, l}, std::forward<CompletionToken>(token), writer_timer_);
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         detail::writer_op<this_type, Logger>{this, l},
+         std::forward<CompletionToken>(token),
+         writer_timer_);
    }
 
    void close()
@@ -840,10 +817,7 @@ private:
    auto is_open() const noexcept { return stream_->next_layer().is_open(); }
    auto& lowest_layer() noexcept { return stream_->lowest_layer(); }
 
-   [[nodiscard]] bool trigger_write() const noexcept
-   {
-      return is_open() && !mpx_.is_writing();
-   }
+   [[nodiscard]] bool trigger_write() const noexcept { return is_open() && !mpx_.is_writing(); }
 
    asio::ssl::context ctx_;
    std::unique_ptr<next_layer_type> stream_;
@@ -877,43 +851,41 @@ public:
    using executor_type = asio::any_io_executor;
 
    /// Contructs from an executor.
-   explicit
-   connection(
+   explicit connection(
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client});
 
    /// Contructs from a context.
-   explicit
-   connection(
+   explicit connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client});
 
    /// Returns the underlying executor.
-   executor_type get_executor() noexcept
-      { return impl_.get_executor(); }
+   executor_type get_executor() noexcept { return impl_.get_executor(); }
 
    /// Calls `boost::redis::basic_connection::async_run`.
    template <class CompletionToken = asio::deferred_t>
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
-      return asio::async_initiate<
-         CompletionToken, void(boost::system::error_code)>(
-            [](auto handler, connection* self, config const* cfg, logger l)
-            {
-               self->async_run_impl(*cfg, l, std::move(handler));
-            }, token, this, &cfg, l);
+      return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
+         [](auto handler, connection* self, config const* cfg, logger l) {
+            self->async_run_impl(*cfg, l, std::move(handler));
+         },
+         token,
+         this,
+         &cfg,
+         l);
    }
 
    /// Calls `boost::redis::basic_connection::async_receive`.
    template <class CompletionToken = asio::deferred_t>
    auto async_receive(CompletionToken&& token = {})
-      { return impl_.async_receive(std::forward<CompletionToken>(token)); }
+   {
+      return impl_.async_receive(std::forward<CompletionToken>(token));
+   }
 
    /// Calls `boost::redis::basic_connection::receive`.
-   std::size_t receive(system::error_code& ec)
-   {
-      return impl_.receive(ec);
-   }
+   std::size_t receive(system::error_code& ec) { return impl_.receive(ec); }
 
    /// Calls `boost::redis::basic_connection::async_exec`.
    template <class Response, class CompletionToken = asio::deferred_t>
@@ -924,61 +896,53 @@ public:
 
    /// Calls `boost::redis::basic_connection::async_exec`.
    template <class CompletionToken = asio::deferred_t>
-   auto
-   async_exec(
-       request const& req,
-       any_adapter adapter,
-       CompletionToken&& token = {})
+   auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
    {
-      return asio::async_initiate<
-         CompletionToken, void(boost::system::error_code, std::size_t)>(
-            [](auto handler, connection* self, request const* req, any_adapter&& adapter)
-            {
-               self->async_exec_impl(*req, std::move(adapter), std::move(handler));
-            }, token, this, &req, std::move(adapter));
+      return asio::async_initiate<CompletionToken, void(boost::system::error_code, std::size_t)>(
+         [](auto handler, connection* self, request const* req, any_adapter&& adapter) {
+            self->async_exec_impl(*req, std::move(adapter), std::move(handler));
+         },
+         token,
+         this,
+         &req,
+         std::move(adapter));
    }
 
    /// Calls `boost::redis::basic_connection::cancel`.
    void cancel(operation op = operation::all);
 
    /// Calls `boost::redis::basic_connection::will_reconnect`.
-   bool will_reconnect() const noexcept
-      { return impl_.will_reconnect();}
+   bool will_reconnect() const noexcept { return impl_.will_reconnect(); }
 
    /// Calls `boost::redis::basic_connection::next_layer`.
-   auto& next_layer() noexcept
-      { return impl_.next_layer(); }
+   auto& next_layer() noexcept { return impl_.next_layer(); }
 
    /// Calls `boost::redis::basic_connection::next_layer`.
-   auto const& next_layer() const noexcept
-      { return impl_.next_layer(); }
+   auto const& next_layer() const noexcept { return impl_.next_layer(); }
 
    /// Calls `boost::redis::basic_connection::reset_stream`.
-   void reset_stream()
-      { impl_.reset_stream();}
+   void reset_stream() { impl_.reset_stream(); }
 
    /// Sets the response object of `async_receive` operations.
    template <class Response>
    void set_receive_response(Response& response)
-      { impl_.set_receive_response(response); }
+   {
+      impl_.set_receive_response(response);
+   }
 
    /// Returns connection usage information.
-   usage get_usage() const noexcept
-      { return impl_.get_usage(); }
+   usage get_usage() const noexcept { return impl_.get_usage(); }
 
    /// Returns the ssl context.
-   auto const& get_ssl_context() const noexcept
-      { return impl_.get_ssl_context();}
+   auto const& get_ssl_context() const noexcept { return impl_.get_ssl_context(); }
 
 private:
-   void
-   async_run_impl(
+   void async_run_impl(
       config const& cfg,
       logger l,
       asio::any_completion_handler<void(boost::system::error_code)> token);
-   
-   void
-   async_exec_impl(
+
+   void async_exec_impl(
       request const& req,
       any_adapter&& adapter,
       asio::any_completion_handler<void(boost::system::error_code, std::size_t)> token);
@@ -986,6 +950,6 @@ private:
    basic_connection<executor_type> impl_;
 };
 
-} // boost::redis
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_CONNECTION_HPP
+#endif  // BOOST_REDIS_CONNECTION_HPP

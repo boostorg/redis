@@ -6,13 +6,17 @@
 
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/connection.hpp>
-#include <boost/system/errc.hpp>
+
 #include <boost/asio/detached.hpp>
+#include <boost/system/errc.hpp>
+
 #include <string>
-#define BOOST_TEST_MODULE conn-exec
+#define BOOST_TEST_MODULE conn_exec
 #include <boost/test/included/unit_test.hpp>
-#include <iostream>
+
 #include "common.hpp"
+
+#include <iostream>
 
 // TODO: Test whether HELLO won't be inserted passt commands that have
 // been already writen.
@@ -53,7 +57,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
    bool seen2 = false;
    bool seen3 = false;
 
-   conn->async_exec(req1, ignore, [&](auto ec, auto){
+   conn->async_exec(req1, ignore, [&](auto ec, auto) {
       // Second callback to the called.
       std::cout << "req1" << std::endl;
       BOOST_TEST(!ec);
@@ -62,7 +66,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
       seen1 = true;
    });
 
-   conn->async_exec(req2, ignore, [&](auto ec, auto){
+   conn->async_exec(req2, ignore, [&](auto ec, auto) {
       // Last callback to the called.
       std::cout << "req2" << std::endl;
       BOOST_TEST(!ec);
@@ -73,7 +77,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
       conn->cancel(operation::reconnection);
    });
 
-   conn->async_exec(req3, ignore, [&](auto ec, auto){
+   conn->async_exec(req3, ignore, [&](auto ec, auto) {
       // Callback that will be called first.
       std::cout << "req3" << std::endl;
       BOOST_TEST(!ec);
@@ -98,7 +102,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
 
    auto conn = std::make_shared<connection>(ioc);
 
-   conn->async_exec(req, resp, [conn](auto ec, auto){
+   conn->async_exec(req, resp, [conn](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_a_number);
       conn->cancel(operation::reconnection);
    });
@@ -115,7 +119,7 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
-   conn->async_exec(req, ignore, [conn](auto ec, auto){
+   conn->async_exec(req, ignore, [conn](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_connected);
       conn->cancel();
    });
@@ -137,14 +141,14 @@ BOOST_AUTO_TEST_CASE(correct_database)
 
    generic_response resp;
 
-   conn->async_exec(req, resp, [&](auto ec, auto n){
-         BOOST_TEST(!ec);
-         std::clog << "async_exec has completed: " << n << std::endl;
-         conn->cancel();
+   conn->async_exec(req, resp, [&](auto ec, auto n) {
+      BOOST_TEST(!ec);
+      std::clog << "async_exec has completed: " << n << std::endl;
+      conn->cancel();
    });
 
-   conn->async_run(cfg, {}, [](auto){
-         std::clog << "async_run has exited." << std::endl;
+   conn->async_run(cfg, {}, [](auto) {
+      std::clog << "async_run has exited." << std::endl;
    });
 
    ioc.run();
@@ -156,7 +160,7 @@ BOOST_AUTO_TEST_CASE(correct_database)
    auto const index = std::stoi(index_str);
 
    // This check might fail if more than one client is connected to
-   // redis when the CLIENT LIST command is run. 
+   // redis when the CLIENT LIST command is run.
    BOOST_CHECK_EQUAL(cfg.database_index.value(), index);
 }
 
@@ -204,7 +208,7 @@ BOOST_AUTO_TEST_CASE(exec_any_adapter)
 
    auto conn = std::make_shared<connection>(ioc);
 
-   conn->async_exec(req, boost::redis::any_adapter(res), [&](auto ec, auto){
+   conn->async_exec(req, boost::redis::any_adapter(res), [&](auto ec, auto) {
       BOOST_TEST(!ec);
       conn->cancel();
    });
@@ -214,4 +218,3 @@ BOOST_AUTO_TEST_CASE(exec_any_adapter)
 
    BOOST_TEST(std::get<0>(res).value() == "PONG");
 }
-

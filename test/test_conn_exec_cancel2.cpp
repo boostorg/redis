@@ -5,11 +5,14 @@
  */
 
 #include <boost/redis/connection.hpp>
+
 #include <boost/system/errc.hpp>
-#define BOOST_TEST_MODULE conn-exec-cancel
-#include <boost/test/included/unit_test.hpp>
+#define BOOST_TEST_MODULE conn_exec_cancel
 #include <boost/asio/detached.hpp>
+#include <boost/test/included/unit_test.hpp>
+
 #include "common.hpp"
+
 #include <iostream>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
@@ -55,7 +58,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    req1.push("BLPOP", "any", 3);
 
    bool seen = false;
-   conn->async_exec(req1, gresp, [&](auto ec, auto) mutable{
+   conn->async_exec(req1, gresp, [&](auto ec, auto) mutable {
       // No error should occur since the cancelation should be
       // ignored.
       std::cout << "async_exec (1): " << ec.message() << std::endl;
@@ -90,8 +93,5 @@ BOOST_AUTO_TEST_CASE(test_ignore_explicit_cancel_of_req_written)
 }
 
 #else
-BOOST_AUTO_TEST_CASE(dummy)
-{
-   BOOST_TEST(true);
-}
+BOOST_AUTO_TEST_CASE(dummy) { BOOST_TEST(true); }
 #endif

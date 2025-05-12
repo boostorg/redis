@@ -5,9 +5,11 @@
  */
 
 #include <boost/redis/connection.hpp>
-#include <boost/asio/use_awaitable.hpp>
-#include <boost/asio/detached.hpp>
+
 #include <boost/asio/consign.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/use_awaitable.hpp>
+
 #include <iostream>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
@@ -50,4 +52,4 @@ auto co_main(config cfg) -> asio::awaitable<void>
    std::cout << "Response: " << std::get<0>(resp).value() << std::endl;
 }
 
-#endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
+#endif  // defined(BOOST_ASIO_HAS_CO_AWAIT)

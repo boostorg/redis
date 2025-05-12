@@ -5,10 +5,12 @@
  */
 
 #include <boost/redis/connection.hpp>
-#include <boost/asio/signal_set.hpp>
+
+#include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/redirect_error.hpp>
-#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/signal_set.hpp>
+
 #include <iostream>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
@@ -22,10 +24,8 @@ using boost::system::error_code;
 using boost::redis::connection;
 using namespace std::chrono_literals;
 
-auto
-echo_server_session(
-   asio::ip::tcp::socket socket,
-   std::shared_ptr<connection> conn) -> asio::awaitable<void>
+auto echo_server_session(asio::ip::tcp::socket socket, std::shared_ptr<connection> conn)
+   -> asio::awaitable<void>
 {
    request req;
    response<std::string> resp;
@@ -67,4 +67,4 @@ auto co_main(config cfg) -> asio::awaitable<void>
    conn->cancel();
 }
 
-#endif // defined(BOOST_ASIO_HAS_CO_AWAIT)
+#endif  // defined(BOOST_ASIO_HAS_CO_AWAIT)

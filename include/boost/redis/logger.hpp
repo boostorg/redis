@@ -8,10 +8,14 @@
 #define BOOST_REDIS_LOGGER_HPP
 
 #include <boost/redis/response.hpp>
+
 #include <boost/asio/ip/tcp.hpp>
+
 #include <string>
 
-namespace boost::system {class error_code;}
+namespace boost::system {
+class error_code;
+}
 
 namespace boost::redis {
 
@@ -66,7 +70,7 @@ public:
     */
    logger(level l = level::debug)
    : level_{l}
-   {}
+   { }
 
    /** @brief Called when the resolve operation completes.
     *  @ingroup high-level-api
@@ -120,10 +124,7 @@ public:
     *
     *  @param prefix The prefix.
     */
-   void set_prefix(std::string_view prefix)
-   {
-      prefix_ = prefix;
-   }
+   void set_prefix(std::string_view prefix) { prefix_ = prefix; }
 
    void trace(std::string_view message);
    void trace(std::string_view op, system::error_code const& ec);
@@ -134,6 +135,6 @@ private:
    std::string_view prefix_;
 };
 
-} // boost::redis
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_LOGGER_HPP
+#endif  // BOOST_REDIS_LOGGER_HPP
