@@ -369,7 +369,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
 
    // The staged status should now have changed to written.
    BOOST_TEST(item1.elem_ptr->is_written());
-   BOOST_TEST(item2.elem_ptr->is_written());
+   BOOST_TEST(item2.elem_ptr->is_done());
    BOOST_TEST(item3.elem_ptr->is_written());
 
    // The done status should still be unchanged on requests that

@@ -119,24 +119,32 @@ struct exec_op {
    template <class Self>
    void operator()(Self& self, system::error_code = {}, std::size_t = 0)
    {
-      // Invoke the state machine
-      auto act = fsm_.resume(conn_->is_open(), self.get_cancellation_state().cancelled());
+      while (true) {
+         // Invoke the state machine
+         auto act = fsm_.resume(conn_->is_open(), self.get_cancellation_state().cancelled());
 
-      // Do what the FSM said
-      switch (act.type()) {
-         case detail::exec_action_type::immediate:
-            // TODO: this can be replaced by asio::async_immediate
-            asio::dispatch(
-               asio::get_associated_immediate_executor(self, self.get_io_executor()),
-               std::move(self));
-            break;
-         case detail::exec_action_type::write: conn_->writer_timer_.cancel(); break;
-         case detail::exec_action_type::wait_for_response:
-            notifier_->async_receive(std::move(self));
-            break;
-         case detail::exec_action_type::done:
-            notifier_.reset();
-            self.complete(act.error(), act.bytes_read());
+         // Do what the FSM said
+         switch (act.type()) {
+            case detail::exec_action_type::immediate:
+               // TODO: this can be replaced by asio::async_immediate
+               asio::dispatch(
+                  asio::get_associated_immediate_executor(self, self.get_io_executor()),
+                  std::move(self));
+               return;
+            case detail::exec_action_type::write:
+               conn_->writer_timer_.cancel();
+               continue;  // this action does not require yielding
+            case detail::exec_action_type::wait_for_response:
+               notifier_->async_receive(std::move(self));
+               return;
+            case detail::exec_action_type::cancel_run:
+               conn_->cancel(operation::run);
+               continue;  // this action does not require yielding
+            case detail::exec_action_type::done:
+               notifier_.reset();
+               self.complete(act.error(), act.bytes_read());
+               return;
+         }
       }
    }
 };

@@ -31,6 +31,7 @@ enum class exec_action_type
    done,               // Call the final handler
    write,              // Notify the writer task
    wait_for_response,  // Wait to be notified
+   cancel_run,         // Cancel the connection's run operation
 };
 
 class exec_action {
@@ -95,8 +96,10 @@ class exec_fsm {
             // We can only honor terminal cancellations here. If this is the case, clear the callback
             // so that when we get a response for this request, it does nothing
             // TODO: we could also honor other cancellation types here if the request is waiting
+            // TODO: we could likely do better here and mark the request as cancelled, removing
+            // the done callback and the adapter. But this requires further exploration
             if (!!(cancel_state & asio::cancellation_type_t::terminal)) {
-               elem_->set_done_callback([] { });
+               BOOST_REDIS_YIELD(resume_point_, 4, exec_action_type::cancel_run)
                return exec_action{asio::error::operation_aborted};
             }
 
