@@ -72,7 +72,8 @@ struct elem_and_request {
    std::shared_ptr<multiplexer::elem> elm;
    std::weak_ptr<multiplexer::elem> weak_elm;  // check that we free memory
 
-   elem_and_request()
+   elem_and_request(request::config cfg = {})
+   : req(cfg)
    {
       // Empty requests are not valid. The request needs to be populated before creating the element
       req.push("get", "mykey");
@@ -171,12 +172,34 @@ void test_success_write_in_progress()
    BOOST_TEST(input2.weak_elm.expired());
 }
 
+// The request was configured to be cancelled on connection error, and the connection is closed
+void test_cancel_if_not_connected()
+{
+   // Setup
+   multiplexer mpx;
+   request::config cfg;
+   cfg.cancel_if_not_connected = true;
+   elem_and_request input(cfg);
+   exec_fsm fsm(mpx, std::move(input.elm));
+
+   // Initiate. We're not connected, so the request gets cancelled
+   auto act = fsm.resume(false, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::immediate);
+
+   act = fsm.resume(false, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action(error::not_connected));
+
+   // We didn't leave memory behind
+   BOOST_TEST(input.weak_elm.expired());
+}
+
 }  // namespace
 
 int main()
 {
    test_success();
    test_success_write_in_progress();
+   test_cancel_if_not_connected();
 
    return boost::report_errors();
 }
