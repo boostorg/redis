@@ -65,6 +65,7 @@ std::ostream& operator<<(std::ostream& os, exec_action act)
 
 namespace {
 
+// The happy path
 void test_success()
 {
    // Setup
@@ -102,6 +103,7 @@ void test_success()
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
+   BOOST_TEST_EQ(adapter_calls, 1);
    BOOST_TEST_EQ(done_calls, 1);
 
    // This will awaken the exec operation, and should complete the operation
@@ -112,10 +114,78 @@ void test_success()
    BOOST_TEST(weak_elm.expired());
 }
 
+// The writer task is still writing the previous message when the request arrives
+void test_success_write_in_progress()
+{
+   // Setup
+   multiplexer mpx;
+   request req1, req2;
+   req1.push("get", "mykey");
+   req2.push("get", "ourkey");
+   int done1_calls = 0, done2_calls = 0, adapter1_calls = 0, adapter2_calls = 0;
+   auto elm1 = std::make_shared<multiplexer::elem>(
+      req1,
+      [&adapter1_calls](std::size_t, resp3::node_view const&, error_code&) {
+         ++adapter1_calls;
+      });
+   elm1->set_done_callback([&done1_calls] {
+      ++done1_calls;
+   });
+   auto elm2 = std::make_shared<multiplexer::elem>(
+      req2,
+      [&adapter2_calls](std::size_t, resp3::node_view const&, error_code&) {
+         ++adapter2_calls;
+      });
+   elm2->set_done_callback([&done2_calls] {
+      ++done2_calls;
+   });
+   std::weak_ptr<multiplexer::elem> weak_elm1(elm1), weak_elm2(elm2);
+   exec_fsm fsm(mpx, std::move(elm2));
+   error_code ec;
+
+   // The multiplexer is writing another request, but hasn't finished yet
+   mpx.add(elm1);
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request placed in the buffer
+
+   // Initiate. We're already writing, so we directly wait (when this write finishes, the next one will be triggered)
+   auto act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
+
+   // The first write finishes, and the second one starts
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request placed in the buffer
+
+   // The first read is successful
+   mpx.get_read_buffer() = "$5\r\nhello\r\n";
+   auto req_status = mpx.commit_read(ec);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
+   BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
+   BOOST_TEST_EQ(done1_calls, 1);
+   BOOST_TEST_EQ(done2_calls, 0);  // the 2nd request is still in-progress
+
+   // The second read is successful
+   mpx.get_read_buffer() = "$3\r\nbye\r\n";
+   req_status = mpx.commit_read(ec);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
+   BOOST_TEST_EQ(req_status.second, 9u);            // the entire buffer was consumed
+   BOOST_TEST_EQ(done2_calls, 1);
+
+   // This will awaken the exec operation, and should complete the operation
+   act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action(error_code(), 9u));
+
+   // All memory should have been freed by now
+   BOOST_TEST(weak_elm2.expired());
+}
+
 }  // namespace
 
 int main()
 {
    test_success();
+   test_success_write_in_progress();
+
    return boost::report_errors();
 }
