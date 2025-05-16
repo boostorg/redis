@@ -57,15 +57,15 @@ BOOST_AUTO_TEST_CASE(ints)
 
    // Check
    BOOST_TEST(std::get<1>(resp).value() == 42);
-   BOOST_TEST(std::get<2>(resp).value() == 42);
+   BOOST_TEST(std::get<2>(resp).value() == 42u);
    BOOST_TEST(std::get<3>(resp).value() == 42);
-   BOOST_TEST(std::get<4>(resp).value() == 42);
+   BOOST_TEST(std::get<4>(resp).value() == 42u);
    BOOST_TEST(std::get<5>(resp).value() == 42);
-   BOOST_TEST(std::get<6>(resp).value() == 42);
+   BOOST_TEST(std::get<6>(resp).value() == 42u);
    BOOST_TEST(std::get<7>(resp).value() == 42);
-   BOOST_TEST(std::get<8>(resp).value() == 42);
+   BOOST_TEST(std::get<8>(resp).value() == 42u);
    BOOST_TEST(std::get<9>(resp).value() == 42);
-   BOOST_TEST(std::get<10>(resp).value() == 42);
+   BOOST_TEST(std::get<10>(resp).value() == 42u);
 }
 
 BOOST_AUTO_TEST_CASE(bools)

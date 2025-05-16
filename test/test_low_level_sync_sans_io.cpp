@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(issue_210_non_empty_set_size_one)
       deserialize(wire, adapt2(resp));
 
       BOOST_CHECK_EQUAL(std::get<0>(resp.value()).value(), 1);
-      BOOST_CHECK_EQUAL(std::get<1>(resp.value()).value().size(), 1);
+      BOOST_CHECK_EQUAL(std::get<1>(resp.value()).value().size(), 1u);
       BOOST_CHECK_EQUAL(std::get<1>(resp.value()).value().at(0), std::string{"foo"});
       BOOST_CHECK_EQUAL(std::get<2>(resp.value()).value(), "this_should_not_be_in_set");
       BOOST_CHECK_EQUAL(std::get<3>(resp.value()).value(), 2);
@@ -264,11 +264,11 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
    auto const ret = mpx.commit_read(ec);
 
    BOOST_TEST(ret.first.value());
-   BOOST_CHECK_EQUAL(ret.second, 16);
+   BOOST_CHECK_EQUAL(ret.second, 16u);
 
    // TODO: Provide operator << for generic_response so we can compare
    // the whole vector.
-   BOOST_CHECK_EQUAL(resp.value().size(), 3);
+   BOOST_CHECK_EQUAL(resp.value().size(), 3u);
    BOOST_CHECK_EQUAL(resp.value().at(1).value, "one");
    BOOST_CHECK_EQUAL(resp.value().at(2).value, "two");
 
@@ -294,11 +294,11 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
    ret = mpx.commit_read(ec);
 
    BOOST_TEST(ret.first.value());
-   BOOST_CHECK_EQUAL(ret.second, 16);
+   BOOST_CHECK_EQUAL(ret.second, 16u);
 
    // TODO: Provide operator << for generic_response so we can compare
    // the whole vector.
-   BOOST_CHECK_EQUAL(resp.value().size(), 3);
+   BOOST_CHECK_EQUAL(resp.value().size(), 3u);
    BOOST_CHECK_EQUAL(resp.value().at(1).value, "one");
    BOOST_CHECK_EQUAL(resp.value().at(2).value, "two");
 }
@@ -343,8 +343,8 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
 
    // There are three requests to coalesce, a second call should do
    // nothing.
-   BOOST_CHECK_EQUAL(mpx.prepare_write(), 3);
-   BOOST_CHECK_EQUAL(mpx.prepare_write(), 0);
+   BOOST_CHECK_EQUAL(mpx.prepare_write(), 3u);
+   BOOST_CHECK_EQUAL(mpx.prepare_write(), 0u);
 
    // After coalescing the requests for writing their statuses should
    // be changed to "staged".
@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
 
    // There are no waiting requests to cancel since they are all
    // staged.
-   BOOST_CHECK_EQUAL(mpx.cancel_waiting(), 0);
+   BOOST_CHECK_EQUAL(mpx.cancel_waiting(), 0u);
 
    // Since the requests haven't been sent (written) the done
    // callback should not have been called yet.
@@ -365,7 +365,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    // The commit_write call informs the multiplexer the payload was
    // sent (e.g.  written to the socket). This step releases requests
    // that has no response.
-   BOOST_CHECK_EQUAL(mpx.commit_write(), 1);
+   BOOST_CHECK_EQUAL(mpx.commit_write(), 1u);
 
    // The staged status should now have changed to written.
    BOOST_TEST(item1.elem_ptr->is_written());
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
 
    // The read operation should have been successfull.
    BOOST_TEST(ret.first.has_value());
-   BOOST_TEST(ret.second != 0);
+   BOOST_TEST(ret.second != 0u);
 
    // The read buffer should also be empty now
    BOOST_TEST(mpx.get_read_buffer().empty());
