@@ -16,7 +16,7 @@ multiplexer::elem::elem(request const& req, pipeline_adapter_type adapter)
 , adapter_{}
 , remaining_responses_{req.get_expected_responses()}
 , status_{status::waiting}
-, ec_{{}}
+, ec_{}
 , read_size_{0}
 {
    adapter_ = [this, adapter](resp3::node_view const& nd, system::error_code& ec) {
