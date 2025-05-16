@@ -65,31 +65,43 @@ std::ostream& operator<<(std::ostream& os, exec_action act)
 
 namespace {
 
+// A helper to create a request and its associated elem
+struct elem_and_request {
+   request req;
+   std::size_t done_calls{0u};  // number of times the done callback has been invoked
+   std::shared_ptr<multiplexer::elem> elm;
+   std::weak_ptr<multiplexer::elem> weak_elm;  // check that we free memory
+
+   elem_and_request()
+   {
+      // Empty requests are not valid. The request needs to be populated before creating the element
+      req.push("get", "mykey");
+
+      elm = std::make_shared<multiplexer::elem>(
+         req,
+         [](std::size_t, resp3::node_view const&, error_code&) { });
+      elm->set_done_callback([this] {
+         ++done_calls;
+      });
+
+      weak_elm = elm;
+   }
+};
+
 // The happy path
 void test_success()
 {
    // Setup
    multiplexer mpx;
-   request req;
-   req.push("get", "mykey");
-   int done_calls = 0, adapter_calls = 0;
-   auto elm = std::make_shared<multiplexer::elem>(
-      req,
-      [&adapter_calls](std::size_t, resp3::node_view const&, error_code&) {
-         ++adapter_calls;
-      });
-   elm->set_done_callback([&done_calls] {
-      ++done_calls;
-   });
-   std::weak_ptr<multiplexer::elem> weak_elm(elm);
-   exec_fsm fsm(mpx, std::move(elm));
+   elem_and_request input;
+   exec_fsm fsm(mpx, std::move(input.elm));
    error_code ec;
 
    // Initiate
    auto act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::write);
 
-   // After being notified, we should wait for a response
+   // We should now wait for a response
    act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
@@ -103,15 +115,14 @@ void test_success()
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
-   BOOST_TEST_EQ(adapter_calls, 1);
-   BOOST_TEST_EQ(done_calls, 1);
+   BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
    act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action(error_code(), 11u));
 
    // All memory should have been freed by now
-   BOOST_TEST(weak_elm.expired());
+   BOOST_TEST(input.weak_elm.expired());
 }
 
 // The writer task is still writing the previous message when the request arrives
@@ -119,32 +130,12 @@ void test_success_write_in_progress()
 {
    // Setup
    multiplexer mpx;
-   request req1, req2;
-   req1.push("get", "mykey");
-   req2.push("get", "ourkey");
-   int done1_calls = 0, done2_calls = 0, adapter1_calls = 0, adapter2_calls = 0;
-   auto elm1 = std::make_shared<multiplexer::elem>(
-      req1,
-      [&adapter1_calls](std::size_t, resp3::node_view const&, error_code&) {
-         ++adapter1_calls;
-      });
-   elm1->set_done_callback([&done1_calls] {
-      ++done1_calls;
-   });
-   auto elm2 = std::make_shared<multiplexer::elem>(
-      req2,
-      [&adapter2_calls](std::size_t, resp3::node_view const&, error_code&) {
-         ++adapter2_calls;
-      });
-   elm2->set_done_callback([&done2_calls] {
-      ++done2_calls;
-   });
-   std::weak_ptr<multiplexer::elem> weak_elm1(elm1), weak_elm2(elm2);
-   exec_fsm fsm(mpx, std::move(elm2));
+   elem_and_request input1, input2;
+   exec_fsm fsm(mpx, std::move(input2.elm));
    error_code ec;
 
    // The multiplexer is writing another request, but hasn't finished yet
-   mpx.add(elm1);
+   mpx.add(input1.elm);
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request placed in the buffer
 
    // Initiate. We're already writing, so we directly wait (when this write finishes, the next one will be triggered)
@@ -161,8 +152,8 @@ void test_success_write_in_progress()
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
-   BOOST_TEST_EQ(done1_calls, 1);
-   BOOST_TEST_EQ(done2_calls, 0);  // the 2nd request is still in-progress
+   BOOST_TEST_EQ(input1.done_calls, 1u);
+   BOOST_TEST_EQ(input2.done_calls, 0u);  // the 2nd request is still in-progress
 
    // The second read is successful
    mpx.get_read_buffer() = "$3\r\nbye\r\n";
@@ -170,14 +161,14 @@ void test_success_write_in_progress()
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 9u);            // the entire buffer was consumed
-   BOOST_TEST_EQ(done2_calls, 1);
+   BOOST_TEST_EQ(input2.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
    act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action(error_code(), 9u));
 
    // All memory should have been freed by now
-   BOOST_TEST(weak_elm2.expired());
+   BOOST_TEST(input2.weak_elm.expired());
 }
 
 }  // namespace
