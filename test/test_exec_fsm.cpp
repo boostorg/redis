@@ -14,8 +14,6 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
-#include "boost/system/detail/error_code.hpp"
-
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -82,7 +80,8 @@ void test_success()
    elm->set_done_callback([&done_calls] {
       ++done_calls;
    });
-   exec_fsm fsm(mpx, elm);
+   std::weak_ptr<multiplexer::elem> weak_elm(elm);
+   exec_fsm fsm(mpx, std::move(elm));
    error_code ec;
 
    // Initiate
@@ -108,6 +107,9 @@ void test_success()
    // This will awaken the exec operation, and should complete the operation
    act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action(error_code(), 11u));
+
+   // All memory should have been freed by now
+   BOOST_TEST(weak_elm.expired());
 }
 
 }  // namespace
