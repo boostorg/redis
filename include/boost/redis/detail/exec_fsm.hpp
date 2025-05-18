@@ -76,9 +76,10 @@ class exec_fsm {
          // Add the request to the multiplexer
          mpx_->add(elem_);
 
-         // If the multiplexer is idle and the connection is open, trigger a write
-         if (connection_is_open && !mpx_->is_writing())
-            BOOST_REDIS_YIELD(resume_point_, 2, exec_action_type::write)
+         // Notify the writer task that there is work to do. If the task is not
+         // listening (e.g. it's already writing or the connection is not healthy),
+         // this is a no-op
+         BOOST_REDIS_YIELD(resume_point_, 2, exec_action_type::write)
 
          // TODO: properly handle cancellation at this point
 
