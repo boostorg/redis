@@ -126,52 +126,6 @@ void test_success()
    BOOST_TEST(input.weak_elm.expired());
 }
 
-// The writer task is still writing the previous message when the request arrives
-void test_success_write_in_progress()
-{
-   // Setup
-   multiplexer mpx;
-   elem_and_request input1, input2;
-   exec_fsm fsm(mpx, std::move(input2.elm));
-   error_code ec;
-
-   // The multiplexer is writing another request, but hasn't finished yet
-   mpx.add(input1.elm);
-   BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request placed in the buffer
-
-   // Initiate. We're already writing, so we directly wait (when this write finishes, the next one will be triggered)
-   auto act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
-
-   // The first write finishes, and the second one starts
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
-   BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request placed in the buffer
-
-   // The first read is successful
-   mpx.get_read_buffer() = "$5\r\nhello\r\n";
-   auto req_status = mpx.commit_read(ec);
-   BOOST_TEST_EQ(ec, error_code());
-   BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
-   BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
-   BOOST_TEST_EQ(input1.done_calls, 1u);
-   BOOST_TEST_EQ(input2.done_calls, 0u);  // the 2nd request is still in-progress
-
-   // The second read is successful
-   mpx.get_read_buffer() = "$3\r\nbye\r\n";
-   req_status = mpx.commit_read(ec);
-   BOOST_TEST_EQ(ec, error_code());
-   BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
-   BOOST_TEST_EQ(req_status.second, 9u);            // the entire buffer was consumed
-   BOOST_TEST_EQ(input2.done_calls, 1u);
-
-   // This will awaken the exec operation, and should complete the operation
-   act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action(error_code(), 9u));
-
-   // All memory should have been freed by now
-   BOOST_TEST(input2.weak_elm.expired());
-}
-
 // The request was configured to be cancelled on connection error, and the connection is closed
 void test_cancel_if_not_connected()
 {
@@ -193,13 +147,50 @@ void test_cancel_if_not_connected()
    BOOST_TEST(input.weak_elm.expired());
 }
 
+// The connection is closed when we start the request, but the request was configured to wait
+void test_not_connected()
+{
+   // Setup
+   multiplexer mpx;
+   elem_and_request input;
+   exec_fsm fsm(mpx, std::move(input.elm));
+   error_code ec;
+
+   // Initiate
+   auto act = fsm.resume(false, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::write);
+
+   // We should now wait for a response
+   act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
+
+   // Simulate a successful write
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request was placed in the packet to write
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
+
+   // Simulate a successful read
+   mpx.get_read_buffer() = "$5\r\nhello\r\n";
+   auto req_status = mpx.commit_read(ec);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
+   BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
+   BOOST_TEST_EQ(input.done_calls, 1u);
+
+   // This will awaken the exec operation, and should complete the operation
+   act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action(error_code(), 11u));
+
+   // All memory should have been freed by now
+   BOOST_TEST(input.weak_elm.expired());
+}
+
 }  // namespace
 
 int main()
 {
    test_success();
-   test_success_write_in_progress();
    test_cancel_if_not_connected();
+   test_not_connected();
 
    return boost::report_errors();
 }
