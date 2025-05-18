@@ -11,6 +11,7 @@
 #include <boost/redis/request.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -21,6 +22,7 @@
 #include <utility>
 
 using namespace boost::redis;
+namespace asio = boost::asio;
 using detail::exec_fsm;
 using detail::multiplexer;
 using detail::exec_action_type;
@@ -184,6 +186,43 @@ void test_not_connected()
    BOOST_TEST(input.weak_elm.expired());
 }
 
+//
+// Cancellations
+//
+
+#define BOOST_TEST_EQ_MSG(lhs, rhs, msg)                                                     \
+   if (!BOOST_TEST_EQ(lhs, rhs)) {                                                           \
+      BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Failure happened in context: " << msg << std::endl; \
+   }
+
+void test_cancel_waiting()
+{
+   // TODO: test other cancel types
+   // Setup
+   multiplexer mpx;
+   elem_and_request input, input2;
+   exec_fsm fsm(mpx, std::move(input.elm));
+
+   // Another request enters the multiplexer, so it's busy when we start
+   mpx.add(input2.elm);
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+
+   // Initiate
+   auto act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::write);
+
+   act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
+
+   // We get notified because the request got cancelled
+   act = fsm.resume(true, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted));
+   BOOST_TEST(input.weak_elm.expired());  // we didn't leave memory behind
+}
+
+// TODO: cancel terminal not waiting
+// TODO: cancel other types not waiting
+
 }  // namespace
 
 int main()
@@ -191,6 +230,7 @@ int main()
    test_success();
    test_cancel_if_not_connected();
    test_not_connected();
+   test_cancel_waiting();
 
    return boost::report_errors();
 }
