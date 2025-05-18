@@ -61,6 +61,13 @@ class exec_fsm {
    multiplexer* mpx_{nullptr};
    std::shared_ptr<multiplexer::elem> elem_;
 
+   static bool is_cancellation(asio::cancellation_type_t type)
+   {
+      return !!(
+         type & (asio::cancellation_type_t::total | asio::cancellation_type_t::partial |
+                 asio::cancellation_type_t::terminal));
+   }
+
    exec_action resume_impl(bool connection_is_open, asio::cancellation_type_t cancel_state)
    {
       switch (resume_point_) {
@@ -78,10 +85,8 @@ class exec_fsm {
 
          // Notify the writer task that there is work to do. If the task is not
          // listening (e.g. it's already writing or the connection is not healthy),
-         // this is a no-op
+         // this is a no-op. Since this is sync, no cancellation can happen here.
          BOOST_REDIS_YIELD(resume_point_, 2, exec_action_type::write)
-
-         // TODO: properly handle cancellation at this point
 
          while (true) {
             // Wait until we get notified. This will return once the request completes,
@@ -95,17 +100,20 @@ class exec_fsm {
                   elem_->get_error() ? 0u : elem_->get_read_size()};
             }
 
-            // We can only honor terminal cancellations here. If this is the case, clear the callback
-            // so that when we get a response for this request, it does nothing
-            // TODO: we could also honor other cancellation types here if the request is waiting
+            // If we're cancelled, try to remove the request from the queue. This will only
+            // succeed if the request is waiting (wasn't written yet)
+            if (is_cancellation(cancel_state) && mpx_->remove(elem_)) {
+               return exec_action{asio::error::operation_aborted};
+            }
+
+            // If we hit a terminal cancellation, tear down the connection.
+            // Otherwise, go back to waiting.
             // TODO: we could likely do better here and mark the request as cancelled, removing
             // the done callback and the adapter. But this requires further exploration
             if (!!(cancel_state & asio::cancellation_type_t::terminal)) {
                BOOST_REDIS_YIELD(resume_point_, 4, exec_action_type::cancel_run)
                return exec_action{asio::error::operation_aborted};
             }
-
-            // If we couldn't honor the requested cancellation type, go back to waiting
          }
       }
 
