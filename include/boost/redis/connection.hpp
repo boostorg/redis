@@ -354,7 +354,7 @@ public:
       system::error_code ec1 = {},
       system::error_code ec2 = {},
       system::error_code ec3 = {},
-      system::error_code ec4 = {})
+      system::error_code = {})
    {
       BOOST_ASIO_CORO_REENTER(coro_) for (;;)
       {
