@@ -27,9 +27,9 @@ auto example(boost::asio::ip::tcp::endpoint ep, std::string msg, int n) -> net::
       auto dbuffer = net::dynamic_buffer(buffer);
       for (int i = 0; i < n; ++i) {
          co_await net::async_write(socket, net::buffer(msg));
-         auto n = co_await net::async_read_until(socket, dbuffer, "\n");
+         auto bytes_read = co_await net::async_read_until(socket, dbuffer, "\n");
          //std::printf("> %s", buffer.data());
-         dbuffer.consume(n);
+         dbuffer.consume(bytes_read);
       }
 
       //std::printf("Ok: %s", msg.data());

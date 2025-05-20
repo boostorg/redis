@@ -66,7 +66,7 @@ struct converter<T, true> {
 template <>
 struct converter<bool, false> {
    template <class String>
-   static void apply(bool& t, resp3::basic_node<String> const& node, system::error_code& ec)
+   static void apply(bool& t, resp3::basic_node<String> const& node, system::error_code&)
    {
       t = *node.value.data() == 't';
    }
