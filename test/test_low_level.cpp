@@ -9,10 +9,9 @@
 #include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/response.hpp>
 
-#define BOOST_TEST_MODULE low level
+#define BOOST_TEST_MODULE low_level
 #include <boost/test/included/unit_test.hpp>
 
-#include <iostream>
 #include <map>
 #include <optional>
 #include <sstream>
