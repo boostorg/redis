@@ -31,7 +31,7 @@ local requirements =
         ]
         [ ac.check-library /openssl//ssl    : <library>/openssl//ssl/<link>shared : <build>no ]
         [ ac.check-library /openssl//crypto : <library>/openssl//crypto/<link>shared : <build>no ]
-        <library>/boost/test//boost_unit_test_framework
+        <library>/boost/test//boost_unit_test_framework/<warnings-as-errors>off
     ;
 
 
