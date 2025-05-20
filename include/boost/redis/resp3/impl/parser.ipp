@@ -10,6 +10,7 @@
 #include <boost/assert.hpp>
 
 #include <charconv>
+#include <cstddef>
 #include <limits>
 
 namespace boost::redis::resp3 {
@@ -177,7 +178,7 @@ auto parser::consume_impl(type t, std::string_view elem, system::error_code& ec)
       case type::attribute:
       case type::map:
       {
-         std::size_t l = -1;
+         std::size_t l = static_cast<std::size_t>(-1);
          to_int(l, elem, ec);
          if (ec)
             return {};
