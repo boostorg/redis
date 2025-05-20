@@ -143,8 +143,6 @@ auto make_blob()
    str[1000] = '\r';
    str[1001] = '\n';
    return str;
-
-   return str;
 }
 
 auto const blob = make_blob();
