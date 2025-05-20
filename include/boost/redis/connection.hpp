@@ -414,12 +414,10 @@ public:
             return;
          }
 
-         // It is safe to use the writer timer here because we are not
-         // connected.
-         conn_->writer_timer_.expires_after(conn_->cfg_.reconnect_wait_interval);
+         conn_->reconnect_timer_.expires_after(conn_->cfg_.reconnect_wait_interval);
 
          BOOST_ASIO_CORO_YIELD
-         conn_->writer_timer_.async_wait(asio::prepend(std::move(self), order_t{}));
+         conn_->reconnect_timer_.async_wait(asio::prepend(std::move(self), order_t{}));
          if (ec0) {
             self.complete(ec0);
             return;
@@ -479,6 +477,7 @@ public:
    : ctx_{std::move(ctx)}
    , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
    , writer_timer_{ex}
+   , reconnect_timer_{ex}
    , receive_channel_{ex, 256}
    , resv_{ex}
    , health_checker_{ex}
@@ -798,6 +797,7 @@ private:
    // also more suitable than a channel and the notify operation does
    // not suspend.
    timer_type writer_timer_;
+   timer_type reconnect_timer_;  // to wait the reconnection period
    receive_channel_type receive_channel_;
    resolver_type resv_;
    detail::connector ctor_;
