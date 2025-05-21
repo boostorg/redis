@@ -33,6 +33,8 @@ using boost::redis::request;
 using boost::redis::response;
 using namespace std::chrono_literals;
 
+namespace {
+
 // Sends three requests where one of them has a hello with a priority
 // set, which means it should be executed first.
 BOOST_AUTO_TEST_CASE(hello_priority)
@@ -238,3 +240,5 @@ BOOST_AUTO_TEST_CASE(exec_any_adapter)
 
    BOOST_TEST(std::get<0>(res).value() == "PONG");
 }
+
+}  // namespace
