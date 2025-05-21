@@ -633,6 +633,16 @@ public:
     *
     *  Where the second parameter is the size of the response received
     *  in bytes.
+    *
+    * @par Per-operation cancellation
+    * This operation supports per-operation cancellation. The following cancellation types
+    * are supported:
+    *
+    *   - `asio::cancellation_type_t::terminal`. Always supported. May cause the current
+    *     `async_run` operation to be cancelled.
+    *   - `asio::cancellation_type_t::partial` and `asio::cancellation_type_t::total`.
+    *     Supported only if the request hasn't been written to the network yet.
+    *
     */
    template <
       class Response = ignore_t,
