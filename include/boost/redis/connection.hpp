@@ -119,6 +119,11 @@ struct exec_op {
    template <class Self>
    void operator()(Self& self, system::error_code = {}, std::size_t = 0)
    {
+      // Enable all cancellation types. This may cause an allocation, so
+      // do it only when starting
+      if (fsm_.is_initial())
+         self.reset_cancellation_state(asio::enable_total_cancellation());
+
       while (true) {
          // Invoke the state machine
          auto act = fsm_.resume(conn_->is_open(), self.get_cancellation_state().cancelled());

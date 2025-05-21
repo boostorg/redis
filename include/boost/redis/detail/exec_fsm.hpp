@@ -128,6 +128,9 @@ public:
    , elem_(std::move(elem))
    { }
 
+   // Have we run the FSM at least once?
+   bool is_initial() const { return resume_point_ == 0; }
+
    exec_action resume(bool connection_is_open, asio::cancellation_type_t cancel_state)
    {
       // When completing, we should deallocate any temporary storage we acquired
