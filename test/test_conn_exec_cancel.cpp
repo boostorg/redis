@@ -127,33 +127,48 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
    ioc.run();
 }
 
-// We can cancel requests that haven't been written yet
+// We can cancel requests that haven't been written yet.
+// All cancellation types are supported here.
 BOOST_AUTO_TEST_CASE(test_cancel_pending)
 {
-   // Setup
-   net::io_context ctx;
-   connection conn(ctx);
-   request req;
-   req.push("get", "mykey");
+   struct {
+      const char* name;
+      net::cancellation_type_t cancel_type;
+   } test_cases[] = {
+      {"terminal", net::cancellation_type_t::terminal},
+      {"partial",  net::cancellation_type_t::partial },
+      {"total",    net::cancellation_type_t::total   },
+   };
 
-   // Issue a request without calling async_run(), so the request stays waiting forever
-   net::cancellation_signal sig;
-   bool called = false;
-   conn.async_exec(
-      req,
-      ignore,
-      net::bind_cancellation_slot(sig.slot(), [&](error_code ec, std::size_t sz) {
-         BOOST_TEST(ec == net::error::operation_aborted);
-         BOOST_TEST(sz == 0u);
-         called = true;
-      }));
+   for (const auto& tc : test_cases) {
+      BOOST_TEST_CONTEXT(tc.name)
+      {
+         // Setup
+         net::io_context ctx;
+         connection conn(ctx);
+         request req;
+         req.push("get", "mykey");
 
-   // Issue a cancellation
-   sig.emit(net::cancellation_type_t::terminal);
+         // Issue a request without calling async_run(), so the request stays waiting forever
+         net::cancellation_signal sig;
+         bool called = false;
+         conn.async_exec(
+            req,
+            ignore,
+            net::bind_cancellation_slot(sig.slot(), [&](error_code ec, std::size_t sz) {
+               BOOST_TEST(ec == net::error::operation_aborted);
+               BOOST_TEST(sz == 0u);
+               called = true;
+            }));
 
-   // Prevent the test for deadlocking in case of failure
-   ctx.run_for(3s);
-   BOOST_TEST(called);
+         // Issue a cancellation
+         sig.emit(tc.cancel_type);
+
+         // Prevent the test for deadlocking in case of failure
+         ctx.run_for(3s);
+         BOOST_TEST(called);
+      }
+   }
 }
 
 #else
