@@ -6,12 +6,12 @@
 
 #include <boost/redis/connection.hpp>
 
-#include <boost/asio/detached.hpp>
 #define BOOST_TEST_MODULE conn_reconnect
 #include <boost/test/included/unit_test.hpp>
 
 #include "common.hpp"
 
+#include <exception>
 #include <iostream>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
@@ -26,8 +26,9 @@ using boost::redis::logger;
 using boost::redis::operation;
 using boost::redis::connection;
 using namespace std::chrono_literals;
-
 using namespace boost::asio::experimental::awaitable_operators;
+
+namespace {
 
 net::awaitable<void> test_reconnect_impl()
 {
@@ -41,13 +42,12 @@ net::awaitable<void> test_reconnect_impl()
 
    int i = 0;
    for (; i < 5; ++i) {
-      error_code ec1, ec2;
+      error_code ec;
       auto cfg = make_test_config();
       logger l;
-      co_await conn->async_exec(req, ignore, net::redirect_error(net::use_awaitable, ec1));
+      co_await conn->async_exec(req, ignore, net::redirect_error(ec));
       //BOOST_TEST(!ec);
-      std::cout << "test_reconnect: " << i << " " << ec2.message() << " " << ec1.message()
-                << std::endl;
+      std::cout << "test_reconnect: " << i << " " << ec.message() << std::endl;
    }
 
    conn->cancel();
@@ -59,8 +59,14 @@ net::awaitable<void> test_reconnect_impl()
 BOOST_AUTO_TEST_CASE(test_reconnect)
 {
    net::io_context ioc;
-   net::co_spawn(ioc, test_reconnect_impl(), net::detached);
-   ioc.run();
+   bool finished = false;
+   net::co_spawn(ioc, test_reconnect_impl(), [&finished](std::exception_ptr exc) {
+      finished = true;
+      if (exc)
+         std::rethrow_exception(exc);
+   });
+   ioc.run_for(10s);
+   BOOST_TEST(finished);
 }
 
 auto async_test_reconnect_timeout() -> net::awaitable<void>
@@ -105,9 +111,16 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
 {
    net::io_context ioc;
-   net::co_spawn(ioc, async_test_reconnect_timeout(), net::detached);
-   ioc.run();
+   bool finished = false;
+   net::co_spawn(ioc, async_test_reconnect_timeout(), [&finished](std::exception_ptr exc) {
+      finished = true;
+      if (exc)
+         std::rethrow_exception(exc);
+   });
+   ioc.run_for(10s);
+   BOOST_TEST(finished);
 }
-#else
-BOOST_AUTO_TEST_CASE(dummy) { BOOST_TEST(true); }
+
+}  // namespace
+
 #endif
