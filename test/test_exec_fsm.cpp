@@ -195,29 +195,42 @@ void test_not_connected()
       BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Failure happened in context: " << msg << std::endl; \
    }
 
+// If the request is waiting, all cancellation types are supported
 void test_cancel_waiting()
 {
-   // TODO: test other cancel types
-   // Setup
-   multiplexer mpx;
-   elem_and_request input, input2;
-   exec_fsm fsm(mpx, std::move(input.elm));
+   constexpr struct {
+      const char* name;
+      asio::cancellation_type_t type;
+   } test_cases[] = {
+      {"terminal", asio::cancellation_type_t::terminal                                     },
+      {"partial",  asio::cancellation_type_t::partial                                      },
+      {"total",    asio::cancellation_type_t::total                                        },
+      {"mixed",    asio::cancellation_type_t::partial | asio::cancellation_type_t::terminal},
+      {"all",      asio::cancellation_type_t::all                                          },
+   };
 
-   // Another request enters the multiplexer, so it's busy when we start
-   mpx.add(input2.elm);
-   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+   for (const auto& tc : test_cases) {
+      // Setup
+      multiplexer mpx;
+      elem_and_request input, input2;
+      exec_fsm fsm(mpx, std::move(input.elm));
 
-   // Initiate
-   auto act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::write);
+      // Another request enters the multiplexer, so it's busy when we start
+      mpx.add(input2.elm);
+      BOOST_TEST_EQ_MSG(mpx.prepare_write(), 1u, tc.name);
 
-   act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
+      // Initiate and wait
+      auto act = fsm.resume(true, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::write, tc.name);
 
-   // We get notified because the request got cancelled
-   act = fsm.resume(true, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted));
-   BOOST_TEST(input.weak_elm.expired());  // we didn't leave memory behind
+      act = fsm.resume(true, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
+
+      // We get notified because the request got cancelled
+      act = fsm.resume(true, tc.type);
+      BOOST_TEST_EQ_MSG(act, exec_action(asio::error::operation_aborted), tc.name);
+      BOOST_TEST_EQ_MSG(input.weak_elm.expired(), true, tc.name);  // we didn't leave memory behind
+   }
 }
 
 // TODO: cancel terminal not waiting
