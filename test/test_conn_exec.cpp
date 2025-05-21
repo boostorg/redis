@@ -31,6 +31,7 @@ using boost::redis::ignore;
 using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
+using namespace std::chrono_literals;
 
 // Sends three requests where one of them has a hello with a priority
 // set, which means it should be executed first.
@@ -87,7 +88,10 @@ BOOST_AUTO_TEST_CASE(hello_priority)
    });
 
    run(conn);
-   ioc.run();
+   ioc.run_for(10s);
+   BOOST_TEST(seen1);
+   BOOST_TEST(seen2);
+   BOOST_TEST(seen3);
 }
 
 // Tries to receive a string in an int and gets an error.
@@ -101,14 +105,17 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    net::io_context ioc;
 
    auto conn = std::make_shared<connection>(ioc);
+   bool finished = false;
 
-   conn->async_exec(req, resp, [conn](auto ec, auto) {
+   conn->async_exec(req, resp, [conn, &finished](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_a_number);
       conn->cancel(operation::reconnection);
+      finished = true;
    });
 
    run(conn);
-   ioc.run();
+   ioc.run_for(10s);
+   BOOST_TEST(finished);
 }
 
 BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
@@ -119,12 +126,15 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
 
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
-   conn->async_exec(req, ignore, [conn](auto ec, auto) {
+   bool finished = false;
+   conn->async_exec(req, ignore, [conn, &finished](auto ec, auto) {
       BOOST_CHECK_EQUAL(ec, boost::redis::error::not_connected);
       conn->cancel();
+      finished = true;
    });
 
-   ioc.run();
+   ioc.run_for(10s);
+   BOOST_TEST(finished);
 }
 
 BOOST_AUTO_TEST_CASE(correct_database)
@@ -141,19 +151,25 @@ BOOST_AUTO_TEST_CASE(correct_database)
 
    generic_response resp;
 
+   bool exec_finished = false, run_finished = false;
+
    conn->async_exec(req, resp, [&](auto ec, auto n) {
       BOOST_TEST(!ec);
       std::clog << "async_exec has completed: " << n << std::endl;
       conn->cancel();
+      exec_finished = true;
    });
 
-   conn->async_run(cfg, {}, [](auto) {
+   conn->async_run(cfg, {}, [&run_finished](auto) {
       std::clog << "async_run has exited." << std::endl;
+      run_finished = true;
    });
 
-   ioc.run();
+   ioc.run_for(10s);
+   BOOST_TEST_REQUIRE(exec_finished);
+   BOOST_TEST_REQUIRE(run_finished);
 
-   assert(!resp.value().empty());
+   BOOST_TEST_REQUIRE(!resp.value().empty());
    auto const& value = resp.value().front().value;
    auto const pos = value.find("db=");
    auto const index_str = value.substr(pos + 3, 1);
@@ -192,7 +208,7 @@ BOOST_AUTO_TEST_CASE(large_number_of_concurrent_requests_issue_170)
       });
    }
 
-   ioc.run();
+   ioc.run_for(10s);
 
    BOOST_CHECK_EQUAL(counter, repeat);
 }
@@ -208,13 +224,17 @@ BOOST_AUTO_TEST_CASE(exec_any_adapter)
 
    auto conn = std::make_shared<connection>(ioc);
 
+   bool finished = false;
+
    conn->async_exec(req, boost::redis::any_adapter(res), [&](auto ec, auto) {
       BOOST_TEST(!ec);
       conn->cancel();
+      finished = true;
    });
 
    run(conn);
-   ioc.run();
+   ioc.run_for(10s);
+   BOOST_TEST_REQUIRE(finished);
 
    BOOST_TEST(std::get<0>(res).value() == "PONG");
 }
