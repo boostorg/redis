@@ -32,28 +32,31 @@ macro(make_test TEST_NAME STANDARD)
   add_test(${EXE_NAME} ${EXE_NAME})
 endmacro()
 
+# Unit tests
+make_test(test_low_level 17)
+make_test(test_request 17)
+make_test(test_low_level_sync_sans_io 17)
+make_test(test_any_adapter 17)
+make_test(test_conversions 17)
+make_test(test_exec_fsm 17)
+
+
+# Tests that require a real Redis server
 make_test(test_conn_quit 17)
 # TODO: Configure a Redis server with TLS in the CI and reenable this test.
 #make_test(test_conn_tls 17)
-make_test(test_low_level 17)
 make_test(test_conn_exec_retry 17)
 make_test(test_conn_exec_error 17)
-make_test(test_request 17)
 make_test(test_run 17)
-make_test(test_low_level_sync_sans_io 17)
 make_test(test_conn_check_health 17)
-
 make_test(test_conn_exec 20)
 make_test(test_conn_push 20)
 make_test(test_conn_reconnect 20)
 make_test(test_conn_exec_cancel 20)
 make_test(test_conn_exec_cancel2 20)
 make_test(test_conn_echo_stress 20)
-make_test(test_any_adapter 17)
-make_test(test_conversions 17)
 make_test(test_issue_50 20)
 make_test(test_issue_181 17)
-make_test(test_exec_fsm 17)
 
 # Coverage
 set(
