@@ -233,7 +233,33 @@ void test_cancel_waiting()
    }
 }
 
-// TODO: cancel terminal not waiting
+// If the request is being processed and terminal cancellation got requested, we cancel the connection
+void test_cancel_not_waiting_terminal()
+{
+   // Setup
+   multiplexer mpx;
+   elem_and_request input;
+   exec_fsm fsm(mpx, std::move(input.elm));
+
+   // Initiate
+   auto act = fsm.resume(false, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::write);
+
+   act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
+
+   // The multiplexer starts writing the request
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request was placed in the packet to write
+
+   // A cancellation arrives
+   act = fsm.resume(true, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, exec_action_type::cancel_run);
+   act = fsm.resume(true, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted));
+
+   // The object needs to survive here, otherwise an inconsistent connection state is created
+}
+
 // TODO: cancel other types not waiting
 
 }  // namespace
@@ -244,6 +270,7 @@ int main()
    test_cancel_if_not_connected();
    test_not_connected();
    test_cancel_waiting();
+   test_cancel_not_waiting_terminal();
 
    return boost::report_errors();
 }
