@@ -13,6 +13,7 @@ endif()
 add_library(boost_redis_src STATIC boost_redis.cpp)
 target_compile_features(boost_redis_src PRIVATE cxx_std_17)
 target_link_libraries(boost_redis_src PRIVATE boost_redis_project_options)
+target_compile_definitions(boost_redis_src PUBLIC BOOST_ALLOW_DEPRECATED) # we need to still test deprecated fns
 
 # Test utils
 add_library(boost_redis_tests_common STATIC common.cpp)
