@@ -234,7 +234,7 @@ void test_cancel_waiting()
 }
 
 // If the request is being processed and terminal cancellation got requested, we cancel the connection
-void test_cancel_not_waiting_terminal()
+void test_cancel_notwaiting_terminal()
 {
    // Setup
    multiplexer mpx;
@@ -260,7 +260,56 @@ void test_cancel_not_waiting_terminal()
    // The object needs to survive here, otherwise an inconsistent connection state is created
 }
 
-// TODO: cancel other types not waiting
+// If the request is being processed and other types of cancellation got requested, we ignore the cancellation
+void test_cancel_notwaiting_notterminal()
+{
+   constexpr struct {
+      const char* name;
+      asio::cancellation_type_t type;
+   } test_cases[] = {
+      {"partial", asio::cancellation_type_t::partial                                   },
+      {"total",   asio::cancellation_type_t::total                                     },
+      {"mixed",   asio::cancellation_type_t::partial | asio::cancellation_type_t::total},
+   };
+
+   for (const auto& tc : test_cases) {
+      // Setup
+      multiplexer mpx;
+      elem_and_request input;
+      exec_fsm fsm(mpx, std::move(input.elm));
+      error_code ec;
+
+      // Initiate
+      auto act = fsm.resume(true, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::write, tc.name);
+
+      act = fsm.resume(true, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
+
+      // Simulate a successful write
+      BOOST_TEST_EQ_MSG(mpx.prepare_write(), 1u, tc.name);
+      BOOST_TEST_EQ_MSG(mpx.commit_write(), 0u, tc.name);  // all requests expect a response
+
+      // We got requested a cancellation here, but we can't honor it
+      act = fsm.resume(true, tc.type);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
+
+      // Simulate a successful read
+      mpx.get_read_buffer() = "$5\r\nhello\r\n";
+      auto req_status = mpx.commit_read(ec);
+      BOOST_TEST_EQ_MSG(ec, error_code(), tc.name);
+      BOOST_TEST_EQ_MSG(req_status.first.value(), false, tc.name);  // it wasn't a push
+      BOOST_TEST_EQ_MSG(req_status.second, 11u, tc.name);  // the entire buffer was consumed
+      BOOST_TEST_EQ_MSG(input.done_calls, 1u, tc.name);
+
+      // This will awaken the exec operation, and should complete the operation
+      act = fsm.resume(true, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action(error_code(), 11u), tc.name);
+
+      // All memory should have been freed by now
+      BOOST_TEST_EQ_MSG(input.weak_elm.expired(), true, tc.name);
+   }
+}
 
 }  // namespace
 
@@ -270,7 +319,8 @@ int main()
    test_cancel_if_not_connected();
    test_not_connected();
    test_cancel_waiting();
-   test_cancel_not_waiting_terminal();
+   test_cancel_notwaiting_terminal();
+   test_cancel_notwaiting_notterminal();
 
    return boost::report_errors();
 }
