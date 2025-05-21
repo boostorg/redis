@@ -26,7 +26,6 @@
 
 #include <boost/asio/any_completion_handler.hpp>
 #include <boost/asio/any_io_executor.hpp>
-#include <boost/asio/associated_immediate_executor.hpp>
 #include <boost/asio/basic_stream_socket.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/buffer.hpp>
@@ -35,6 +34,7 @@
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
+#include <boost/asio/immediate.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/prepend.hpp>
@@ -131,10 +131,7 @@ struct exec_op {
          // Do what the FSM said
          switch (act.type()) {
             case detail::exec_action_type::immediate:
-               // TODO: this can be replaced by asio::async_immediate
-               asio::dispatch(
-                  asio::get_associated_immediate_executor(self, self.get_io_executor()),
-                  std::move(self));
+               asio::async_immediate(self.get_io_executor(), std::move(self));
                return;
             case detail::exec_action_type::write:
                conn_->writer_timer_.cancel();
