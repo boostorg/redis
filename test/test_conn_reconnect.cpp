@@ -14,7 +14,6 @@
 
 #include "common.hpp"
 
-#include <exception>
 #include <iostream>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
@@ -71,18 +70,7 @@ net::awaitable<void> test_reconnect_impl()
 }
 
 // Test whether the client works after a reconnect.
-BOOST_AUTO_TEST_CASE(test_reconnect)
-{
-   net::io_context ioc;
-   bool finished = false;
-   net::co_spawn(ioc, test_reconnect_impl(), [&finished](std::exception_ptr exc) {
-      finished = true;
-      if (exc)
-         std::rethrow_exception(exc);
-   });
-   ioc.run_for(10s);
-   BOOST_TEST(finished);
-}
+BOOST_AUTO_TEST_CASE(test_reconnect) { run_coroutine_test(test_reconnect_impl()); }
 
 auto async_test_reconnect_timeout() -> net::awaitable<void>
 {
@@ -125,15 +113,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 
 BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
 {
-   net::io_context ioc;
-   bool finished = false;
-   net::co_spawn(ioc, async_test_reconnect_timeout(), [&finished](std::exception_ptr exc) {
-      finished = true;
-      if (exc)
-         std::rethrow_exception(exc);
-   });
-   ioc.run_for(10s);
-   BOOST_TEST(finished);
+   run_coroutine_test(async_test_reconnect_timeout());
 }
 
 }  // namespace

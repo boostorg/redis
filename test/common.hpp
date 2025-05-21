@@ -15,7 +15,7 @@ inline auto redir(boost::system::error_code& ec)
 {
    return boost::asio::redirect_error(boost::asio::use_awaitable, ec);
 }
-auto start(boost::asio::awaitable<void> op) -> int;
+void run_coroutine_test(boost::asio::awaitable<void>);
 #endif  // BOOST_ASIO_HAS_CO_AWAIT
 
 boost::redis::config make_test_config();
