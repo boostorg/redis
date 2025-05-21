@@ -65,6 +65,12 @@ std::ostream& operator<<(std::ostream& os, exec_action act)
 
 }  // namespace boost::redis::detail
 
+// Prints a message on failure. Useful for parameterized tests
+#define BOOST_TEST_EQ_MSG(lhs, rhs, msg)                                                     \
+   if (!BOOST_TEST_EQ(lhs, rhs)) {                                                           \
+      BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Failure happened in context: " << msg << std::endl; \
+   }
+
 namespace {
 
 // A helper to create a request and its associated elem
@@ -189,11 +195,6 @@ void test_not_connected()
 //
 // Cancellations
 //
-
-#define BOOST_TEST_EQ_MSG(lhs, rhs, msg)                                                     \
-   if (!BOOST_TEST_EQ(lhs, rhs)) {                                                           \
-      BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Failure happened in context: " << msg << std::endl; \
-   }
 
 // If the request is waiting, all cancellation types are supported
 void test_cancel_waiting()
