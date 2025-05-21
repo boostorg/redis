@@ -5,18 +5,27 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/ignore.hpp>
+#include <boost/redis/request.hpp>
 
+#include <boost/asio/bind_cancellation_slot.hpp>
+#include <boost/asio/cancellation_signal.hpp>
+#include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/system/errc.hpp>
+
+#include <cstddef>
 #define BOOST_TEST_MODULE conn_exec_cancel
 #include <boost/asio/detached.hpp>
 #include <boost/test/included/unit_test.hpp>
 
 #include "common.hpp"
 
-#include <iostream>
-
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 #include <boost/asio/experimental/awaitable_operators.hpp>
+
+using namespace std::chrono_literals;
 
 // NOTE1: I have observed that if hello and
 // blpop are sent toguether, Redis will send the response of hello
@@ -116,6 +125,35 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
    });
 
    ioc.run();
+}
+
+// We can cancel requests that haven't been written yet
+BOOST_AUTO_TEST_CASE(test_cancel_pending)
+{
+   // Setup
+   net::io_context ctx;
+   connection conn(ctx);
+   request req;
+   req.push("get", "mykey");
+
+   // Issue a request without calling async_run(), so the request stays waiting forever
+   net::cancellation_signal sig;
+   bool called = false;
+   conn.async_exec(
+      req,
+      ignore,
+      net::bind_cancellation_slot(sig.slot(), [&](error_code ec, std::size_t sz) {
+         BOOST_TEST(ec == net::error::operation_aborted);
+         BOOST_TEST(sz == 0u);
+         called = true;
+      }));
+
+   // Issue a cancellation
+   sig.emit(net::cancellation_type_t::terminal);
+
+   // Prevent the test for deadlocking in case of failure
+   ctx.run_for(3s);
+   BOOST_TEST(called);
 }
 
 #else
