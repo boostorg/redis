@@ -44,7 +44,7 @@ make_test(test_low_level_sync_sans_io 17)
 make_test(test_conn_check_health 17)
 
 make_test(test_conn_exec 20)
-make_test(test_conn_push 20)
+make_test(test_conn_push 17)
 make_test(test_conn_reconnect 20)
 make_test(test_conn_exec_cancel 20)
 make_test(test_conn_exec_cancel2 20)
