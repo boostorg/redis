@@ -4,7 +4,10 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/connection.hpp>
+
+#include <boost/system/error_code.hpp>
 
 #define BOOST_TEST_MODULE conn_reconnect
 #include <boost/test/included/unit_test.hpp>
@@ -34,25 +37,37 @@ net::awaitable<void> test_reconnect_impl()
 {
    auto ex = co_await net::this_coro::executor;
 
-   request req;
-   req.push("QUIT");
+   request quit_req;
+   quit_req.push("QUIT");
+
+   // cancel_on_connection_lost is required because async_run might detect the failure
+   // after the 2nd async_exec is issued
+   request regular_req;
+   regular_req.push("GET", "mykey");
+   regular_req.get_config().cancel_on_connection_lost = false;
 
    auto conn = std::make_shared<connection>(ex);
-   run(conn);
+   boost::redis::config cfg;
+   cfg.reconnect_wait_interval = 100ms;  // make the test run faster
+   run(conn, std::move(cfg));
 
-   int i = 0;
-   for (; i < 5; ++i) {
-      error_code ec;
-      auto cfg = make_test_config();
-      logger l;
-      co_await conn->async_exec(req, ignore, net::redirect_error(ec));
-      //BOOST_TEST(!ec);
-      std::cout << "test_reconnect: " << i << " " << ec.message() << std::endl;
+   for (int i = 0; i < 3; ++i) {
+      BOOST_TEST_CONTEXT("i=" << i)
+      {
+         // Issue a quit request, which will cause the server to close the connection.
+         // This request will fail
+         error_code ec;
+         co_await conn->async_exec(quit_req, ignore, net::redirect_error(ec));
+         BOOST_TEST(ec == error_code());
+
+         // This should trigger reconnection, which will now succeed.
+         // We should be able to execute requests successfully now.
+         co_await conn->async_exec(regular_req, ignore, net::redirect_error(ec));
+         BOOST_TEST(ec == error_code());
+      }
    }
 
    conn->cancel();
-   BOOST_CHECK_EQUAL(i, 5);
-   co_return;
 }
 
 // Test whether the client works after a reconnect.
