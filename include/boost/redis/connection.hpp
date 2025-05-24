@@ -252,7 +252,7 @@ struct reader_op {
 
    Conn* conn_;
    Logger logger_;
-   std::pair<tribool, std::size_t> res_{std::make_pair(std::make_optional(false), 0)};
+   std::pair<tribool, std::size_t> res_{std::make_pair(std::nullopt, 0)};
    asio::coroutine coro{};
 
    template <class Self>
@@ -263,52 +263,58 @@ struct reader_op {
       BOOST_ASIO_CORO_REENTER(coro) for (;;)
       {
          // Appends some data to the buffer if necessary.
-         if (!res_.first.has_value() || conn_->mpx_.is_data_needed()) {
-            if (conn_->use_ssl()) {
-               BOOST_ASIO_CORO_YIELD
-               async_append_some(
-                  conn_->next_layer(),
-                  dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
-                  conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
-                  std::move(self));
-            } else {
-               BOOST_ASIO_CORO_YIELD
-               async_append_some(
-                  conn_->next_layer().next_layer(),
-                  dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
-                  conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
-                  std::move(self));
-            }
-
-            logger_.on_read(ec, n);
-
-            // The connection is not viable after an error.
-            if (ec) {
-               logger_.trace("reader_op (1)", ec);
-               conn_->cancel(operation::run);
-               self.complete(ec);
-               return;
-            }
-
-            // Somebody might have canceled implicitly or explicitly
-            // while we were suspended and after queueing so we have to
-            // check.
-            if (!conn_->is_open()) {
-               logger_.trace("reader_op (2): connection is closed.");
-               self.complete(ec);
-               return;
-            }
+         if (conn_->use_ssl()) {
+            BOOST_ASIO_CORO_YIELD
+            async_append_some(
+               conn_->next_layer(),
+               dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
+               conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
+               std::move(self));
+         } else {
+            BOOST_ASIO_CORO_YIELD
+            async_append_some(
+               conn_->next_layer().next_layer(),
+               dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
+               conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
+               std::move(self));
          }
 
-         res_ = conn_->mpx_.commit_read(ec);
+         logger_.on_read(ec, n);
+
+         // The connection is not viable after an error.
          if (ec) {
-            logger_.trace("reader_op (3)", ec);
+            logger_.trace("reader_op (1)", ec);
             conn_->cancel(operation::run);
             self.complete(ec);
             return;
          }
 
-         if (res_.first.has_value() && res_.first.value()) {
+         // The connection might have been canceled implicitly or
+         // explicitly while the read op above was suspended or after
+         // queueing so we have to check.
+         if (!conn_->is_open()) {
+            logger_.trace("reader_op (2): connection is closed.");
+            self.complete(ec);
+            return;
+         }
+
+         while (!conn_->mpx_.get_read_buffer().empty()) {
+            res_ = conn_->mpx_.process_next(ec);
+
+            if (ec) {
+               logger_.trace("reader_op (3)", ec);
+               conn_->cancel(operation::run);
+               self.complete(ec);
+               return;
+            }
+
+            if (!res_.first.has_value()) {
+            // Needs more data. Break from the loop so we can read
+            // from the socket.
+            break;
+         }
+
+         if (res_.first.value()) {
             if (!conn_->receive_channel_.try_send(ec, res_.second)) {
                BOOST_ASIO_CORO_YIELD
                conn_->receive_channel_.async_send(ec, res_.second, std::move(self));
@@ -323,8 +329,9 @@ struct reader_op {
 
             if (!conn_->is_open()) {
                logger_.trace("reader_op (5): connection is closed.");
-               self.complete(asio::error::operation_aborted);
-               return;
+                  self.complete(asio::error::operation_aborted);
+                  return;
+               }
             }
          }
       }

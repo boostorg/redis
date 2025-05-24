@@ -114,7 +114,7 @@ struct multiplexer {
    auto commit_write() -> std::size_t;
 
    [[nodiscard]]
-   auto commit_read(system::error_code& ec) -> std::pair<tribool, std::size_t>;
+   auto process_next(system::error_code& ec) -> std::pair<tribool, std::size_t>;
 
    auto add(std::shared_ptr<elem> const& ptr) -> void;
    auto reset() -> void;
@@ -150,9 +150,9 @@ struct multiplexer {
    }
 
    [[nodiscard]]
-   auto is_data_needed() const noexcept -> bool
+   auto get_read_buffer() const noexcept -> std::string const&
    {
-      return std::empty(read_buffer_);
+      return read_buffer_;
    }
 
    // TODO: Change signature to receive an adapter instead of a
