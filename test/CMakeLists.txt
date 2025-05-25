@@ -9,6 +9,7 @@ if (MSVC)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(boost_redis_project_options INTERFACE -Wall -Wextra -Werror)
 endif()
+target_compile_definitions(boost_redis_project_options INTERFACE BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
 
 add_library(boost_redis_src STATIC boost_redis.cpp)
 target_compile_features(boost_redis_src PRIVATE cxx_std_17)
