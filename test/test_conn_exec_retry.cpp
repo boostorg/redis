@@ -6,8 +6,9 @@
 
 #include <boost/redis/connection.hpp>
 
-#include <boost/asio/awaitable.hpp>
-#include <boost/system/errc.hpp>
+#include <boost/system/error_code.hpp>
+
+#include <cstddef>
 
 #define BOOST_TEST_MODULE conn_exec_retry
 #include <boost/test/included/unit_test.hpp>
@@ -46,31 +47,40 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
    auto conn = std::make_shared<connection>(ioc);
 
    net::steady_timer st{ioc};
+
+   bool timer_finished = false, c2_called = false, c1_called = false, c0_called = false,
+        run_finished = false;
+
    st.expires_after(std::chrono::seconds{1});
-   st.async_wait([&](auto) {
+   st.async_wait([&](error_code ec) {
       // Cancels the request before receiving the response. This
       // should cause the third request to complete with error
       // although it has cancel_on_connection_lost = false. The reason
       // being it has already been written so
       // cancel_on_connection_lost does not apply.
+      timer_finished = true;
+      std::clog << "async_wait" << std::endl;
+      BOOST_TEST(ec == error_code());
       conn->cancel(operation::run);
       conn->cancel(operation::reconnection);
-      std::cout << "async_wait" << std::endl;
    });
 
-   auto c2 = [&](auto ec, auto) {
-      std::cout << "c2" << std::endl;
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::operation_aborted);
+   auto c2 = [&](error_code ec, std::size_t) {
+      c2_called = true;
+      std::clog << "c2" << std::endl;
+      BOOST_TEST(ec == net::error::operation_aborted);
    };
 
-   auto c1 = [&](auto ec, auto) {
-      std::cout << "c1" << std::endl;
-      BOOST_CHECK_EQUAL(ec, boost::asio::error::operation_aborted);
+   auto c1 = [&](error_code ec, std::size_t) {
+      c1_called = true;
+      std::clog << "c1" << std::endl;
+      BOOST_TEST(ec == net::error::operation_aborted);
    };
 
-   auto c0 = [&](auto ec, auto) {
-      std::cout << "c0" << std::endl;
-      BOOST_TEST(!ec);
+   auto c0 = [&](error_code ec, std::size_t) {
+      c0_called = true;
+      std::clog << "c0" << std::endl;
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req1, ignore, c1);
       conn->async_exec(req2, ignore, c2);
    };
@@ -78,15 +88,19 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
    conn->async_exec(req0, ignore, c0);
 
    auto cfg = make_test_config();
-   conn->async_run(
-      cfg,
-      {boost::redis::logger::level::debug},
-      [&](boost::system::error_code const& ec) {
-         std::cout << "async_run: " << ec.message() << std::endl;
-         conn->cancel();
-      });
+   conn->async_run(cfg, {boost::redis::logger::level::debug}, [&](error_code ec) {
+      run_finished = true;
+      std::clog << "async_run: " << ec.message() << std::endl;
+      conn->cancel();
+   });
 
-   ioc.run();
+   ioc.run_for(10s);
+
+   BOOST_TEST(timer_finished);
+   BOOST_TEST(c0_called);
+   BOOST_TEST(c1_called);
+   BOOST_TEST(c2_called);
+   BOOST_TEST(run_finished);
 }
 
 BOOST_AUTO_TEST_CASE(request_retry_true)
@@ -113,32 +127,46 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
    auto conn = std::make_shared<connection>(ioc);
 
    net::steady_timer st{ioc};
+
+   bool timer_finished = false, c0_called = false, c1_called = false, c2_called = false,
+        c3_called = false, run_finished = false;
+
    st.expires_after(std::chrono::seconds{1});
-   st.async_wait([&](auto) {
+   st.async_wait([&](error_code ec) {
       // Cancels the request before receiving the response. This
       // should cause the third request to not complete with error
       // since it has cancel_if_unresponded = true and cancellation
       // comes after it was written.
+      timer_finished = true;
+      std::clog << "async_wait" << std::endl;
+      BOOST_TEST(ec == error_code());
       conn->cancel(operation::run);
    });
 
-   auto c3 = [&](auto ec, auto) {
-      std::cout << "c3: " << ec.message() << std::endl;
-      BOOST_TEST(!ec);
+   auto c3 = [&](error_code ec, std::size_t) {
+      c3_called = true;
+      std::clog << "c3" << std::endl;
+      BOOST_TEST(ec == error_code());
       conn->cancel();
    };
 
-   auto c2 = [&](auto ec, auto) {
-      BOOST_TEST(!ec);
+   auto c2 = [&](error_code ec, std::size_t) {
+      c2_called = true;
+      std::clog << "c2" << std::endl;
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req3, ignore, c3);
    };
 
-   auto c1 = [](auto ec, auto) {
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
+   auto c1 = [&](error_code ec, std::size_t) {
+      c1_called = true;
+      std::clog << "c1" << std::endl;
+      BOOST_TEST(ec == net::error::operation_aborted);
    };
 
-   auto c0 = [&](auto ec, auto) {
-      BOOST_TEST(!ec);
+   auto c0 = [&](error_code ec, std::size_t) {
+      c0_called = true;
+      std::clog << "c0" << std::endl;
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req1, ignore, c1);
       conn->async_exec(req2, ignore, c2);
    };
@@ -147,10 +175,18 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
 
    auto cfg = make_test_config();
    cfg.health_check_interval = 5s;
-   conn->async_run(cfg, {}, [&](auto ec) {
+   conn->async_run(cfg, {}, [&](error_code ec) {
+      run_finished = true;
       std::cout << ec.message() << std::endl;
-      BOOST_TEST(!!ec);
+      BOOST_TEST(ec != error_code());
    });
 
-   ioc.run();
+   ioc.run_for(10s);
+
+   BOOST_TEST(timer_finished);
+   BOOST_TEST(c0_called);
+   BOOST_TEST(c1_called);
+   BOOST_TEST(c2_called);
+   BOOST_TEST(c3_called);
+   BOOST_TEST(run_finished);
 }
