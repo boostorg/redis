@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(large_number_of_concurrent_requests_issue_170)
    conn->async_run(cfg, {}, net::detached);
 
    int counter = 0;
-   int const repeat = 8000;
+   constexpr int repeat = 8000;
 
    for (int i = 0; i < repeat; ++i) {
       auto req = std::make_shared<request>();
