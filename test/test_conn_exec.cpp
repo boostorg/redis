@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(large_number_of_concurrent_requests_issue_170)
    for (int i = 0; i < repeat; ++i) {
       auto req = std::make_shared<request>();
       req->push("PING", payload);
-      conn->async_exec(*req, ignore, [req, &counter, conn](error_code ec, std::size_t) {
+      conn->async_exec(*req, ignore, [=, &counter](error_code ec, std::size_t) {
          BOOST_TEST(ec == error_code());
          if (++counter == repeat)
             conn->cancel();
