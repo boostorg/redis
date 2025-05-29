@@ -14,7 +14,6 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/redirect_error.hpp>
-#include <boost/asio/use_awaitable.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <exception>

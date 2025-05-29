@@ -16,6 +16,7 @@
 #include "common.hpp"
 
 #include <chrono>
+#include <iostream>
 
 namespace net = boost::asio;
 using boost::redis::request;
@@ -45,6 +46,7 @@ BOOST_AUTO_TEST_CASE(issue_181)
    bool run_finished = false;
 
    auto run_cont = [&](error_code ec) {
+      std::cout << "async_run1: " << ec.message() << std::endl;
       BOOST_TEST(ec == net::error::operation_aborted);
       run_finished = true;
    };
@@ -57,6 +59,7 @@ BOOST_AUTO_TEST_CASE(issue_181)
 
    // Uses a timer to wait some time until run has been called.
    auto timer_cont = [&](error_code ec) {
+      std::cout << "timer_cont: " << ec.message() << std::endl;
       BOOST_TEST(ec == error_code());
       BOOST_TEST(!conn.run_is_canceled());
       conn.cancel(operation::run);

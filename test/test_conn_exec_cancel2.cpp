@@ -12,6 +12,8 @@
 
 #include "common.hpp"
 
+#include <iostream>
+
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 
 // NOTE1: Sends hello separately. I have observed that if hello and
@@ -57,6 +59,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
    bool seen = false;
    conn->async_exec(req1, gresp, [&](error_code ec, std::size_t) {
       // No error should occur since the cancellation should be ignored
+      std::cout << "async_exec (1): " << ec.message() << std::endl;
       BOOST_TEST(ec == error_code());
       seen = true;
    });

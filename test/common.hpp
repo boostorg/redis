@@ -29,4 +29,7 @@ void run(
    boost::redis::operation op = boost::redis::operation::receive,
    boost::redis::logger::level l = boost::redis::logger::level::debug);
 
+// The timeout for tests involving communication to a real server.
+// Some tests use a longer timeout by multiplying this value by some
+// integral number.
 inline constexpr std::chrono::seconds test_timeout{30};
