@@ -124,4 +124,6 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
 
 }  // namespace
 
+#else
+BOOST_AUTO_TEST_CASE(dummy) { }
 #endif

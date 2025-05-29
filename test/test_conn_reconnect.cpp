@@ -118,4 +118,6 @@ BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
 
 }  // namespace
 
+#else
+BOOST_AUTO_TEST_CASE(dummy) { }
 #endif

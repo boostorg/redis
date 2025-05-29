@@ -87,4 +87,6 @@ BOOST_AUTO_TEST_CASE(test_ignore_explicit_cancel_of_req_written)
 
 }  // namespace
 
+#else
+BOOST_AUTO_TEST_CASE(dummy) { }
 #endif

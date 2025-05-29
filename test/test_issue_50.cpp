@@ -123,4 +123,6 @@ BOOST_AUTO_TEST_CASE(issue_50)
 
 }  // namespace
 
+#else
+BOOST_AUTO_TEST_CASE(dummy) { }
 #endif  // defined(BOOST_ASIO_HAS_CO_AWAIT)

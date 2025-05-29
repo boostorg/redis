@@ -149,4 +149,6 @@ BOOST_AUTO_TEST_CASE(echo_stress)
 
 }  // namespace
 
+#else
+BOOST_AUTO_TEST_CASE(dummy) { }
 #endif
