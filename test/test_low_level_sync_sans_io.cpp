@@ -261,7 +261,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
    mpx.get_read_buffer() = ">2\r\n+one\r\n+two\r\n";
 
    boost::system::error_code ec;
-   auto const ret = mpx.commit_read(ec);
+   auto const ret = mpx.consume_next(ec);
 
    BOOST_TEST(ret.first.value());
    BOOST_CHECK_EQUAL(ret.second, 16u);
@@ -286,12 +286,12 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
    mpx.get_read_buffer() = ">2\r\n+one\r";
 
    boost::system::error_code ec;
-   auto ret = mpx.commit_read(ec);
+   auto ret = mpx.consume_next(ec);
 
    BOOST_TEST(!ret.first.has_value());
 
    mpx.get_read_buffer().append("\n+two\r\n");
-   ret = mpx.commit_read(ec);
+   ret = mpx.consume_next(ec);
 
    BOOST_TEST(ret.first.value());
    BOOST_CHECK_EQUAL(ret.second, 16u);
@@ -381,9 +381,9 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    // Simulates a socket read by putting some data in the read buffer.
    mpx.get_read_buffer().append("+one\r\n");
 
-   // Informs the multiplexer the read operation is concluded.
+   // Consumes the next message in the read buffer.
    boost::system::error_code ec;
-   auto const ret = mpx.commit_read(ec);
+   auto const ret = mpx.consume_next(ec);
 
    // The read operation should have been successfull.
    BOOST_TEST(ret.first.has_value());
