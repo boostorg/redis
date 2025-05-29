@@ -13,7 +13,6 @@
 
 #include <cstddef>
 #include <exception>
-#include <memory>
 #define BOOST_TEST_MODULE echo_stress
 #include <boost/test/included/unit_test.hpp>
 
@@ -54,14 +53,14 @@ std::ostream& operator<<(std::ostream& os, usage const& u)
 
 namespace {
 
-auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::awaitable<void>
+auto push_consumer(connection& conn, int expected) -> net::awaitable<void>
 {
    int c = 0;
    for (error_code ec;;) {
-      conn->receive(ec);
+      conn.receive(ec);
       if (ec == error::sync_receive_push_failed) {
          ec = {};
-         co_await conn->async_receive(net::redirect_error(ec));
+         co_await conn.async_receive(net::redirect_error(ec));
       } else if (!ec) {
          //std::cout << "Skipping suspension." << std::endl;
       }
@@ -74,14 +73,13 @@ auto push_consumer(std::shared_ptr<connection> conn, int expected) -> net::await
          break;
    }
 
-   conn->cancel();
+   conn.cancel();
 }
 
-auto echo_session(std::shared_ptr<connection> conn, std::shared_ptr<request> pubs, int n)
-   -> net::awaitable<void>
+auto echo_session(connection& conn, const request& pubs, int n) -> net::awaitable<void>
 {
    for (auto i = 0; i < n; ++i)
-      co_await conn->async_exec(*pubs, ignore);
+      co_await conn.async_exec(pubs, ignore);
 }
 
 void rethrow_on_error(std::exception_ptr exc)
@@ -94,7 +92,7 @@ BOOST_AUTO_TEST_CASE(echo_stress)
 {
    // Setup
    net::io_context ctx;
-   auto conn = std::make_shared<connection>(ctx);
+   connection conn{ctx};
    auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds::zero();
 
@@ -112,14 +110,14 @@ BOOST_AUTO_TEST_CASE(echo_stress)
    // This is the total number of pushes we will receive.
    constexpr int total_pushes = sessions * msgs * n_pubs + 1;
 
-   auto pubs = std::make_shared<request>();
-   pubs->push("PING");
+   request pubs;
+   pubs.push("PING");
    for (int i = 0; i < n_pubs; ++i)
-      pubs->push("PUBLISH", "channel", "payload");
+      pubs.push("PUBLISH", "channel", "payload");
 
    // Run the connection
    bool run_finished = false, subscribe_finished = false;
-   conn->async_run(cfg, logger{logger::level::crit}, [conn, &run_finished](error_code ec) {
+   conn.async_run(cfg, logger{logger::level::crit}, [&run_finished](error_code ec) {
       run_finished = true;
       BOOST_TEST(ec == net::error::operation_aborted);
       std::clog << "async_run finished" << std::endl;
@@ -128,7 +126,7 @@ BOOST_AUTO_TEST_CASE(echo_stress)
    // Subscribe, then launch the coroutines
    request req;
    req.push("SUBSCRIBE", "channel");
-   conn->async_exec(req, ignore, [&](error_code ec, std::size_t) {
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
       subscribe_finished = true;
       BOOST_TEST(ec == error_code());
 
@@ -146,7 +144,7 @@ BOOST_AUTO_TEST_CASE(echo_stress)
    BOOST_TEST(subscribe_finished);
 
    // Print statistics
-   std::cout << "-------------------\n" << conn->get_usage() << std::endl;
+   std::cout << "-------------------\n" << conn.get_usage() << std::endl;
 }
 
 }  // namespace
