@@ -70,7 +70,10 @@ net::awaitable<void> test_reconnect_impl()
 }
 
 // Test whether the client works after a reconnect.
-BOOST_AUTO_TEST_CASE(test_reconnect) { run_coroutine_test(test_reconnect_impl()); }
+BOOST_AUTO_TEST_CASE(test_reconnect)
+{
+   run_coroutine_test(test_reconnect_impl(), 5 * test_timeout);
+}
 
 auto async_test_reconnect_timeout() -> net::awaitable<void>
 {

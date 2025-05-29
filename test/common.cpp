@@ -56,7 +56,7 @@ boost::redis::config make_test_config()
 }
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
-void run_coroutine_test(net::awaitable<void> op)
+void run_coroutine_test(net::awaitable<void> op, std::chrono::steady_clock::duration timeout)
 {
    net::io_context ioc;
    bool finished = false;
@@ -65,7 +65,7 @@ void run_coroutine_test(net::awaitable<void> op)
          std::rethrow_exception(p);
       finished = true;
    });
-   ioc.run_for(test_timeout);
+   ioc.run_for(timeout);
    if (!finished)
       throw std::runtime_error("Coroutine test did not finish");
 }

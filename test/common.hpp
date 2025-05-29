@@ -11,12 +11,19 @@
 #include <chrono>
 #include <memory>
 
+// The timeout for tests involving communication to a real server.
+// Some tests use a longer timeout by multiplying this value by some
+// integral number.
+inline constexpr std::chrono::seconds test_timeout{30};
+
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
 inline auto redir(boost::system::error_code& ec)
 {
    return boost::asio::redirect_error(boost::asio::use_awaitable, ec);
 }
-void run_coroutine_test(boost::asio::awaitable<void>);
+void run_coroutine_test(
+   boost::asio::awaitable<void>,
+   std::chrono::steady_clock::duration timeout = test_timeout);
 #endif  // BOOST_ASIO_HAS_CO_AWAIT
 
 boost::redis::config make_test_config();
@@ -28,8 +35,3 @@ void run(
    boost::system::error_code ec = boost::asio::error::operation_aborted,
    boost::redis::operation op = boost::redis::operation::receive,
    boost::redis::logger::level l = boost::redis::logger::level::debug);
-
-// The timeout for tests involving communication to a real server.
-// Some tests use a longer timeout by multiplying this value by some
-// integral number.
-inline constexpr std::chrono::seconds test_timeout{30};
