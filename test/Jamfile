@@ -52,7 +52,6 @@ local tests =
     test_request
     test_low_level_sync_sans_io
     test_any_adapter
-    test_conversions
 ;
 
 # Build and run the tests

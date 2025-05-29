@@ -37,7 +37,6 @@ make_test(test_low_level)
 make_test(test_request)
 make_test(test_low_level_sync_sans_io)
 make_test(test_any_adapter)
-make_test(test_conversions)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)
@@ -55,6 +54,7 @@ make_test(test_conn_exec_cancel2)
 make_test(test_conn_echo_stress)
 make_test(test_issue_50)
 make_test(test_issue_181)
+make_test(test_conversions)
 
 # Coverage
 set(
