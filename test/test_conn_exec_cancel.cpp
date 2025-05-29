@@ -68,8 +68,8 @@ auto implicit_cancel_of_req_written() -> net::awaitable<void>
 
    // I have observed this produces terminal cancellation so it can't
    // be ignored, an error is expected.
-   BOOST_CHECK_EQUAL(ec1, net::error::operation_aborted);
-   BOOST_TEST(!ec2);
+   BOOST_TEST(ec1 == net::error::operation_aborted);
+   BOOST_TEST(ec2 == error_code());
 }
 
 BOOST_AUTO_TEST_CASE(test_ignore_implicit_cancel_of_req_written)
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
    };
 
    auto c0 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req1, ignore, c1);
    };
 
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});
    st.async_wait([&](error_code ec) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->cancel(operation::run);
       conn->cancel(operation::reconnection);
    });
