@@ -8,6 +8,7 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <chrono>
 #include <memory>
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
@@ -27,3 +28,5 @@ void run(
    boost::system::error_code ec = boost::asio::error::operation_aborted,
    boost::redis::operation op = boost::redis::operation::receive,
    boost::redis::logger::level l = boost::redis::logger::level::debug);
+
+inline constexpr std::chrono::seconds test_timeout{30};

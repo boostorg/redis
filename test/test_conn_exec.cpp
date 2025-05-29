@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(hello_priority)
    });
 
    run(conn);
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
    BOOST_TEST(seen1);
    BOOST_TEST(seen2);
    BOOST_TEST(seen3);
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    });
 
    run(conn);
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
    BOOST_TEST(finished);
 }
 
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
       finished = true;
    });
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
    BOOST_TEST(finished);
 }
 
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(correct_database)
       run_finished = true;
    });
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
    BOOST_TEST_REQUIRE(exec_finished);
    BOOST_TEST_REQUIRE(run_finished);
 
@@ -211,7 +211,7 @@ BOOST_AUTO_TEST_CASE(large_number_of_concurrent_requests_issue_170)
       });
    }
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_CHECK_EQUAL(counter, repeat);
 }
@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(exec_any_adapter)
    });
 
    run(conn);
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
    BOOST_TEST_REQUIRE(finished);
 
    BOOST_TEST(std::get<0>(res).value() == "PONG");

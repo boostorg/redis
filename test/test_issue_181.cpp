@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(issue_181)
 
    timer.async_wait(timer_cont);
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(run_finished);
 }

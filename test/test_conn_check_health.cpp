@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(check_health)
 
    push_callback{&conn1, &conn2, &resp2, &req1}();  // Starts reading pushes.
 
-   ioc.run_for(30s);
+   ioc.run_for(2 * test_timeout);
 
    BOOST_TEST(run1_finished);
    BOOST_TEST(run2_finished);

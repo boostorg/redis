@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
       conn->cancel();
    });
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(push_received);
    BOOST_TEST(c1_called);
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(push_received1)
    });
 
    run(conn);
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(exec_finished);
    BOOST_TEST(push_received);
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
 
    run(conn);
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
    BOOST_TEST(exec_finished);
    BOOST_TEST(push_received);
 
@@ -229,7 +229,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
       run_finished = true;
    });
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
    BOOST_TEST(push_received);
    BOOST_TEST(exec_finished);
    BOOST_TEST(run_finished);
@@ -327,7 +327,7 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
 
    run(conn, make_test_config(), {});
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
    BOOST_TEST(finished);
 }
 

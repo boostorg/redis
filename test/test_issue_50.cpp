@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(issue_50)
       run_finished = true;
    });
 
-   ctx.run_for(30s);
+   ctx.run_for(2 * test_timeout);
 
    BOOST_TEST(receiver_finished);
    BOOST_TEST(periodic_finished);

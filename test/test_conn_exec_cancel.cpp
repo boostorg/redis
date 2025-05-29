@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
       conn->cancel(operation::reconnection);
    });
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
    BOOST_TEST(finished);
 }
 

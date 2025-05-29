@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(echo_stress)
    });
 
    // Run the test
-   ctx.run_for(30s);
+   ctx.run_for(2 * test_timeout);
    BOOST_TEST(run_finished);
    BOOST_TEST(subscribe_finished);
 

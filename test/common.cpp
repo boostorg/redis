@@ -66,7 +66,7 @@ void run_coroutine_test(net::awaitable<void> op)
          std::rethrow_exception(p);
       finished = true;
    });
-   ioc.run_for(std::chrono::seconds(10));
+   ioc.run_for(test_timeout);
    if (!finished)
       throw std::runtime_error("Coroutine test did not finish");
 }

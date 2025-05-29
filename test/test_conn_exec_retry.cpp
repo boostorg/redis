@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(request_retry_false)
       conn->cancel();
    });
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(timer_finished);
    BOOST_TEST(c0_called);
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(request_retry_true)
       BOOST_TEST(ec != error_code());
    });
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(timer_finished);
    BOOST_TEST(c0_called);

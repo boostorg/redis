@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(resolve_bad_host)
       BOOST_TEST(is_host_not_found(ec), "is_host_not_found(ec) is false, with ec = " << ec);
    });
 
-   ioc.run_for(100s);
+   ioc.run_for(4 * test_timeout);
    BOOST_TEST(run_finished);
 }
 
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(resolve_with_timeout)
       BOOST_TEST(ec != error_code());
    });
 
-   ioc.run_for(100s);
+   ioc.run_for(4 * test_timeout);
    BOOST_TEST(run_finished);
 }
 
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(connect_bad_port)
       BOOST_TEST(ec != error_code());
    });
 
-   ioc.run_for(100s);
+   ioc.run_for(4 * test_timeout);
    BOOST_TEST(run_finished);
 }
 

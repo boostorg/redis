@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(no_ignore_error)
 
    run(conn);
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(exec_finished);
 }
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(has_diagnostic)
 
    run(conn);
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(exec_finished);
 }
@@ -148,7 +148,7 @@ BOOST_AUTO_TEST_CASE(resp3_error_in_cmd_pipeline)
    conn->async_exec(req1, resp1, c1);
    run(conn);
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(c1_called);
    BOOST_TEST(c2_called);
@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(error_in_transaction)
 
    run(conn);
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(finished);
 }
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
 
    run(conn);
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(c1_called);
    BOOST_TEST(c2_called);

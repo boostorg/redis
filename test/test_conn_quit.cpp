@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(test_async_run_exits)
    cfg.reconnect_wait_interval = 0s;
    run(conn, cfg);
 
-   ioc.run_for(10s);
+   ioc.run_for(test_timeout);
 
    BOOST_TEST(c1_called);
    BOOST_TEST(c2_called);
