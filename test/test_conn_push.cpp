@@ -51,17 +51,22 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
 
    auto conn = std::make_shared<connection>(ioc);
 
-   auto c3 = [](auto ec, auto...) {
+   bool push_received = false, c1_called = false, c2_called = false, c3_called = false;
+
+   auto c3 = [&](error_code ec, std::size_t) {
+      c3_called = true;
       std::cout << "c3: " << ec.message() << std::endl;
    };
 
-   auto c2 = [&, conn](auto ec, auto...) {
-      BOOST_TEST(!ec);
+   auto c2 = [&, conn](error_code ec, std::size_t) {
+      c2_called = true;
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req3, ignore, c3);
    };
 
-   auto c1 = [&, conn](auto ec, auto...) {
-      BOOST_TEST(!ec);
+   auto c1 = [&, conn](error_code ec, std::size_t) {
+      c1_called = true;
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req2, ignore, c2);
    };
 
@@ -69,10 +74,9 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
 
    run(conn, make_test_config(), {});
 
-   bool push_received = false;
-   conn->async_receive([&, conn](auto ec, auto) {
+   conn->async_receive([&, conn](error_code ec, std::size_t) {
       std::cout << "async_receive" << std::endl;
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       push_received = true;
       conn->cancel();
    });
@@ -80,6 +84,9 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
    ioc.run_for(10s);
 
    BOOST_TEST(push_received);
+   BOOST_TEST(c1_called);
+   BOOST_TEST(c2_called);
+   BOOST_TEST(c3_called);
 }
 
 BOOST_AUTO_TEST_CASE(push_received1)
@@ -95,17 +102,19 @@ BOOST_AUTO_TEST_CASE(push_received1)
    req.push("SUBSCRIBE", "channel1");
    req.push("SUBSCRIBE", "channel2");
 
-   conn->async_exec(req, ignore, [conn](auto ec, auto) {
+   bool push_received = false, exec_finished = false;
+
+   conn->async_exec(req, ignore, [&, conn](error_code ec, std::size_t) {
+      exec_finished = true;
       std::cout << "async_exec" << std::endl;
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
    });
 
-   bool push_async_received = false;
-   conn->async_receive([&, conn](auto ec, auto) {
+   conn->async_receive([&, conn](error_code ec, std::size_t) {
+      push_received = true;
       std::cout << "(1) async_receive" << std::endl;
 
-      BOOST_TEST(!ec);
-      push_async_received = true;
+      BOOST_TEST(ec == error_code());
 
       // Receives the second push synchronously.
       error_code ec2;
@@ -127,7 +136,8 @@ BOOST_AUTO_TEST_CASE(push_received1)
    run(conn);
    ioc.run_for(10s);
 
-   BOOST_TEST(push_async_received);
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(push_received);
 }
 
 BOOST_AUTO_TEST_CASE(push_filtered_out)
@@ -145,15 +155,15 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
 
    bool exec_finished = false, push_received = false;
 
-   conn->async_exec(req, resp, [conn, &exec_finished](auto ec, auto) {
-      BOOST_TEST(!ec);
+   conn->async_exec(req, resp, [conn, &exec_finished](error_code ec, std::size_t) {
       exec_finished = true;
+      BOOST_TEST(ec == error_code());
    });
 
-   conn->async_receive([&, conn](auto ec, auto) {
-      BOOST_TEST(!ec);
-      conn->cancel(operation::reconnection);
+   conn->async_receive([&, conn](error_code ec, std::size_t) {
       push_received = true;
+      BOOST_TEST(ec == error_code());
+      conn->cancel(operation::reconnection);
    });
 
    run(conn);
@@ -263,52 +273,52 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
    bool finished = false;
 
    auto c11 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->cancel(operation::reconnection);
       finished = true;
    };
    auto c10 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req3, ignore, c11);
    };
    auto c9 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req2, ignore, c10);
    };
    auto c8 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req1, ignore, c9);
    };
    auto c7 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req2, ignore, c8);
    };
    auto c6 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req2, ignore, c7);
    };
    auto c5 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req1, ignore, c6);
    };
    auto c4 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req2, ignore, c5);
    };
    auto c3 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req1, ignore, c4);
    };
    auto c2 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req2, ignore, c3);
    };
    auto c1 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req2, ignore, c2);
    };
    auto c0 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req1, ignore, c1);
    };
 
