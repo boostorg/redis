@@ -5,12 +5,12 @@
  */
 
 #include <boost/redis/connection.hpp>
+
+#include <boost/system/error_code.hpp>
 #define BOOST_TEST_MODULE run
 #include <boost/test/included/unit_test.hpp>
 
 #include "common.hpp"
-
-#include <iostream>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
@@ -21,6 +21,8 @@ using redis::logger;
 using redis::operation;
 using boost::system::error_code;
 using namespace std::chrono_literals;
+
+namespace {
 
 bool is_host_not_found(error_code ec)
 {
@@ -34,6 +36,7 @@ bool is_host_not_found(error_code ec)
 BOOST_AUTO_TEST_CASE(resolve_bad_host)
 {
    net::io_context ioc;
+   connection conn{ioc};
 
    auto cfg = make_test_config();
    cfg.addr.host = "Atibaia";
@@ -43,17 +46,20 @@ BOOST_AUTO_TEST_CASE(resolve_bad_host)
    cfg.health_check_interval = 10h;
    cfg.reconnect_wait_interval = 0s;
 
-   auto conn = std::make_shared<connection>(ioc);
-   conn->async_run(cfg, {}, [](auto ec) {
-      BOOST_TEST(is_host_not_found(ec));
+   bool run_finished = true;
+   conn.async_run(cfg, {}, [&run_finished](error_code ec) {
+      run_finished = true;
+      BOOST_TEST(is_host_not_found(ec), "is_host_not_found(ec) is false, with ec = " << ec);
    });
 
-   ioc.run();
+   ioc.run_for(100s);
+   BOOST_TEST(run_finished);
 }
 
 BOOST_AUTO_TEST_CASE(resolve_with_timeout)
 {
    net::io_context ioc;
+   connection conn{ioc};
 
    auto cfg = make_test_config();
    cfg.addr.host = "occase.de";
@@ -63,14 +69,20 @@ BOOST_AUTO_TEST_CASE(resolve_with_timeout)
    cfg.health_check_interval = 10h;
    cfg.reconnect_wait_interval = 0s;
 
-   auto conn = std::make_shared<connection>(ioc);
-   run(conn, cfg);
-   ioc.run();
+   bool run_finished = true;
+   conn.async_run(cfg, {}, [&run_finished](error_code ec) {
+      run_finished = true;
+      BOOST_TEST(ec != error_code());
+   });
+
+   ioc.run_for(100s);
+   BOOST_TEST(run_finished);
 }
 
 BOOST_AUTO_TEST_CASE(connect_bad_port)
 {
    net::io_context ioc;
+   connection conn{ioc};
 
    auto cfg = make_test_config();
    cfg.addr.host = "127.0.0.1";
@@ -80,9 +92,14 @@ BOOST_AUTO_TEST_CASE(connect_bad_port)
    cfg.health_check_interval = 10h;
    cfg.reconnect_wait_interval = 0s;
 
-   auto conn = std::make_shared<connection>(ioc);
-   run(conn, cfg, net::error::connection_refused);
-   ioc.run();
+   bool run_finished = true;
+   conn.async_run(cfg, {}, [&run_finished](error_code ec) {
+      run_finished = true;
+      BOOST_TEST(ec != error_code());
+   });
+
+   ioc.run_for(100s);
+   BOOST_TEST(run_finished);
 }
 
 // Hard to test.
@@ -101,3 +118,5 @@ BOOST_AUTO_TEST_CASE(connect_bad_port)
 //   run(conn, cfg, boost::redis::error::connect_timeout);
 //   ioc.run();
 //}
+
+}  // namespace
