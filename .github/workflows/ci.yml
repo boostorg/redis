@@ -188,6 +188,22 @@ jobs:
             build-type: 'Release'
             cxxflags: '-stdlib=libc++'
             ldflags: '-lc++'
+          
+          - toolset: clang-19
+            install: 'clang-19'
+            os: ubuntu-latest
+            cxxstd: '23'
+            build-type: 'Debug'
+            cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
+            ldflags: '-fsanitize=address -fsanitize=undefined'
+          
+          - toolset: gcc-14
+            install: 'g++-14'
+            os: ubuntu-latest
+            cxxstd: '23'
+            build-type: 'Debug'
+            cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
+            ldflags: '-fsanitize=address -fsanitize=undefined'
 
     runs-on: ${{ matrix.os }}
     env:
