@@ -15,7 +15,7 @@ services:
       - 6379:6379
       - 6380:6380
   builder:
-    image: ubuntu:22.04
+    image: $IMAGE
     container_name: builder
     tty: true
     environment:
