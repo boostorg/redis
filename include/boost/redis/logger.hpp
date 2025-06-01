@@ -12,6 +12,7 @@
 #include <boost/asio/ip/tcp.hpp>
 
 #include <string>
+#include <string_view>
 
 namespace boost::system {
 class error_code;
@@ -132,7 +133,7 @@ public:
 private:
    void write_prefix();
    level level_;
-   std::string_view prefix_;
+   std::string prefix_;
 };
 
 }  // namespace boost::redis
