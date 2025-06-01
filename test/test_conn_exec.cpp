@@ -198,22 +198,22 @@ BOOST_AUTO_TEST_CASE(large_number_of_concurrent_requests_issue_170)
    cfg.health_check_interval = std::chrono::seconds(0);
    conn->async_run(cfg, {}, net::detached);
 
-   int counter = 0;
    constexpr int repeat = 8000;
+   int remaining = repeat;
 
    for (int i = 0; i < repeat; ++i) {
       auto req = std::make_shared<request>();
       req->push("PING", payload);
-      conn->async_exec(*req, ignore, [=, &counter](error_code ec, std::size_t) {
+      conn->async_exec(*req, ignore, [req, &remaining, conn](error_code ec, std::size_t) {
          BOOST_TEST(ec == error_code());
-         if (++counter == repeat)
+         if (--remaining == 0)
             conn->cancel();
       });
    }
 
    ioc.run_for(test_timeout);
 
-   BOOST_CHECK_EQUAL(counter, repeat);
+   BOOST_TEST(remaining == 0);
 }
 
 BOOST_AUTO_TEST_CASE(exec_any_adapter)
