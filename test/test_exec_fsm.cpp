@@ -120,7 +120,7 @@ void test_success()
 
    // Simulate a successful read
    mpx.get_read_buffer() = "$5\r\nhello\r\n";
-   auto req_status = mpx.commit_read(ec);
+   auto req_status = mpx.consume_next(ec);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
@@ -178,7 +178,7 @@ void test_not_connected()
 
    // Simulate a successful read
    mpx.get_read_buffer() = "$5\r\nhello\r\n";
-   auto req_status = mpx.commit_read(ec);
+   auto req_status = mpx.consume_next(ec);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
@@ -297,7 +297,7 @@ void test_cancel_notwaiting_notterminal()
 
       // Simulate a successful read
       mpx.get_read_buffer() = "$5\r\nhello\r\n";
-      auto req_status = mpx.commit_read(ec);
+      auto req_status = mpx.consume_next(ec);
       BOOST_TEST_EQ_MSG(ec, error_code(), tc.name);
       BOOST_TEST_EQ_MSG(req_status.first.value(), false, tc.name);  // it wasn't a push
       BOOST_TEST_EQ_MSG(req_status.second, 11u, tc.name);  // the entire buffer was consumed
