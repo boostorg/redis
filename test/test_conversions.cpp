@@ -4,11 +4,12 @@
  * accompanying file LICENSE.txt)
  */
 
-#include "boost/redis/ignore.hpp"
-#include "boost/system/detail/error_code.hpp"
-#define BOOST_TEST_MODULE conversions
 #include <boost/redis/connection.hpp>
+#include <boost/redis/ignore.hpp>
 
+#include <boost/system/error_code.hpp>
+
+#define BOOST_TEST_MODULE conversions
 #include <boost/test/included/unit_test.hpp>
 
 #include "common.hpp"
@@ -19,6 +20,8 @@ using boost::redis::ignore_t;
 using boost::redis::request;
 using boost::redis::response;
 using boost::system::error_code;
+
+namespace {
 
 BOOST_AUTO_TEST_CASE(ints)
 {
@@ -47,13 +50,17 @@ BOOST_AUTO_TEST_CASE(ints)
       unsigned long long>
       resp;
 
-   conn->async_exec(req, resp, [conn](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+   bool finished = false;
+
+   conn->async_exec(req, resp, [conn, &finished](error_code ec, std::size_t) {
+      finished = true;
+      BOOST_TEST(ec == error_code());
       conn->cancel();
    });
 
    // Run the operations
-   ioc.run();
+   ioc.run_for(test_timeout);
+   BOOST_TEST(finished);
 
    // Check
    BOOST_TEST(std::get<1>(resp).value() == 42);
@@ -84,13 +91,16 @@ BOOST_AUTO_TEST_CASE(bools)
 
    response<ignore_t, ignore_t, bool, bool> resp;
 
-   conn->async_exec(req, resp, [conn](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+   bool finished = false;
+
+   conn->async_exec(req, resp, [conn, &finished](error_code ec, std::size_t) {
+      finished = true;
+      BOOST_TEST(ec == error_code());
       conn->cancel();
    });
 
    // Run the operations
-   ioc.run();
+   ioc.run_for(test_timeout);
 
    // Check
    BOOST_TEST(std::get<2>(resp).value() == true);
@@ -111,14 +121,20 @@ BOOST_AUTO_TEST_CASE(floating_points)
 
    response<ignore_t, double> resp;
 
-   conn->async_exec(req, resp, [conn](error_code ec, std::size_t) {
-      BOOST_TEST(!ec);
+   bool finished = false;
+
+   conn->async_exec(req, resp, [conn, &finished](error_code ec, std::size_t) {
+      finished = true;
+      BOOST_TEST(ec == error_code());
       conn->cancel();
    });
 
    // Run the operations
-   ioc.run();
+   ioc.run_for(test_timeout);
+   BOOST_TEST(finished);
 
    // Check
    BOOST_TEST(std::get<1>(resp).value() == 4.12);
 }
+
+}  // namespace

@@ -28,7 +28,7 @@
 using namespace std::chrono_literals;
 
 // NOTE1: I have observed that if hello and
-// blpop are sent toguether, Redis will send the response of hello
+// blpop are sent together, Redis will send the response of hello
 // right away, not waiting for blpop.
 
 namespace net = boost::asio;
@@ -45,6 +45,8 @@ using boost::redis::logger;
 using boost::redis::connection;
 using namespace std::chrono_literals;
 
+namespace {
+
 auto implicit_cancel_of_req_written() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
@@ -57,7 +59,7 @@ auto implicit_cancel_of_req_written() -> net::awaitable<void>
    // See NOTE1.
    request req0;
    req0.push("PING");
-   co_await conn->async_exec(req0, ignore, net::use_awaitable);
+   co_await conn->async_exec(req0, ignore);
 
    // Will be cancelled after it has been written but before the
    // response arrives.
@@ -75,15 +77,13 @@ auto implicit_cancel_of_req_written() -> net::awaitable<void>
 
    // I have observed this produces terminal cancellation so it can't
    // be ignored, an error is expected.
-   BOOST_CHECK_EQUAL(ec1, net::error::operation_aborted);
-   BOOST_TEST(!ec2);
+   BOOST_TEST(ec1 == net::error::operation_aborted);
+   BOOST_TEST(ec2 == error_code());
 }
 
 BOOST_AUTO_TEST_CASE(test_ignore_implicit_cancel_of_req_written)
 {
-   net::io_context ioc;
-   net::co_spawn(ioc, implicit_cancel_of_req_written(), net::detached);
-   ioc.run();
+   run_coroutine_test(implicit_cancel_of_req_written());
 }
 
 BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
@@ -101,12 +101,15 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
    req1.get_config().cancel_if_unresponded = true;
    req1.push("BLPOP", "any", 0);
 
-   auto c1 = [&](auto ec, auto) {
+   bool finished = false;
+
+   auto c1 = [&](error_code ec, std::size_t) {
       BOOST_CHECK_EQUAL(ec, net::error::operation_aborted);
+      finished = true;
    };
 
-   auto c0 = [&](auto ec, auto) {
-      BOOST_TEST(!ec);
+   auto c0 = [&](error_code ec, std::size_t) {
+      BOOST_TEST(ec == error_code());
       conn->async_exec(req1, ignore, c1);
    };
 
@@ -118,13 +121,14 @@ BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
 
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});
-   st.async_wait([&](auto ec) {
-      BOOST_TEST(!ec);
+   st.async_wait([&](error_code ec) {
+      BOOST_TEST(ec == error_code());
       conn->cancel(operation::run);
       conn->cancel(operation::reconnection);
    });
 
-   ioc.run();
+   ioc.run_for(test_timeout);
+   BOOST_TEST(finished);
 }
 
 // We can cancel requests that haven't been written yet.
@@ -171,6 +175,8 @@ BOOST_AUTO_TEST_CASE(test_cancel_pending)
    }
 }
 
+}  // namespace
+
 #else
-BOOST_AUTO_TEST_CASE(dummy) { BOOST_TEST(true); }
+BOOST_AUTO_TEST_CASE(dummy) { }
 #endif

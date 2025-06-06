@@ -81,7 +81,7 @@ void multiplexer::add(std::shared_ptr<elem> const& info)
    }
 }
 
-std::pair<tribool, std::size_t> multiplexer::commit_read(system::error_code& ec)
+std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec)
 {
    // We arrive here in two states:
    //

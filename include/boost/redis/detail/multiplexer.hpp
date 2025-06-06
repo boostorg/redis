@@ -124,8 +124,10 @@ struct multiplexer {
    // they don't have a response e.g. SUBSCRIBE.
    auto commit_write() -> std::size_t;
 
+   // If the tribool contains no value more data is needed, otherwise
+   // if the value is true the message consumed is a push.
    [[nodiscard]]
-   auto commit_read(system::error_code& ec) -> std::pair<tribool, std::size_t>;
+   auto consume_next(system::error_code& ec) -> std::pair<tribool, std::size_t>;
 
    auto add(std::shared_ptr<elem> const& ptr) -> void;
    auto reset() -> void;
@@ -161,9 +163,9 @@ struct multiplexer {
    }
 
    [[nodiscard]]
-   auto is_data_needed() const noexcept -> bool
+   auto get_read_buffer() const noexcept -> std::string const&
    {
-      return std::empty(read_buffer_);
+      return read_buffer_;
    }
 
    // TODO: Change signature to receive an adapter instead of a
