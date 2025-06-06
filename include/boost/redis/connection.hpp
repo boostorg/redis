@@ -10,11 +10,10 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/connector.hpp>
 #include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/detail/resolver.hpp>
+#include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/resp3_handshaker.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
@@ -48,9 +47,8 @@
 #include <array>
 #include <chrono>
 #include <cstddef>
-#include <deque>
-#include <functional>
 #include <memory>
+#include <utility>
 
 namespace boost::redis {
 namespace detail {
@@ -192,19 +190,11 @@ struct writer_op {
       BOOST_ASIO_CORO_REENTER(coro) for (;;)
       {
          while (conn_->mpx_.prepare_write() != 0) {
-            if (conn_->use_ssl()) {
-               BOOST_ASIO_CORO_YIELD
-               asio::async_write(
-                  conn_->next_layer(),
-                  asio::buffer(conn_->mpx_.get_write_buffer()),
-                  std::move(self));
-            } else {
-               BOOST_ASIO_CORO_YIELD
-               asio::async_write(
-                  conn_->next_layer().next_layer(),
-                  asio::buffer(conn_->mpx_.get_write_buffer()),
-                  std::move(self));
-            }
+            BOOST_ASIO_CORO_YIELD
+            asio::async_write(
+               conn_->stream_,
+               asio::buffer(conn_->mpx_.get_write_buffer()),
+               std::move(self));
 
             logger_.on_write(ec, conn_->mpx_.get_write_buffer());
 
@@ -262,21 +252,12 @@ struct reader_op {
       BOOST_ASIO_CORO_REENTER(coro) for (;;)
       {
          // Appends some data to the buffer if necessary.
-         if (conn_->use_ssl()) {
-            BOOST_ASIO_CORO_YIELD
-            async_append_some(
-               conn_->next_layer(),
-               dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
-               conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
-               std::move(self));
-         } else {
-            BOOST_ASIO_CORO_YIELD
-            async_append_some(
-               conn_->next_layer().next_layer(),
-               dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
-               conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
-               std::move(self));
-         }
+         BOOST_ASIO_CORO_YIELD
+         async_append_some(
+            conn_->stream_,
+            dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
+            conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
+            std::move(self));
 
          logger_.on_read(ec, n);
 
@@ -351,6 +332,12 @@ public:
    { }
 
    template <class Self>
+   void operator()(Self& self, system::error_code ec)
+   {
+      (*this)(self, order_t{}, ec);
+   }
+
+   template <class Self>
    void operator()(
       Self& self,
       order_t order = {},
@@ -362,43 +349,14 @@ public:
    {
       BOOST_ASIO_CORO_REENTER(coro_) for (;;)
       {
+         // Try to connect
          BOOST_ASIO_CORO_YIELD
-         conn_->resv_.async_resolve(asio::prepend(std::move(self), order_t{}));
+         conn_->stream_.async_connect(&conn_->cfg_, logger_, std::move(self));
 
-         logger_.on_resolve(ec0, conn_->resv_.results());
-
+         // If we failed, try again
          if (ec0) {
             self.complete(ec0);
             return;
-         }
-
-         BOOST_ASIO_CORO_YIELD
-         conn_->ctor_.async_connect(
-            conn_->next_layer().next_layer(),
-            conn_->resv_.results(),
-            asio::prepend(std::move(self), order_t{}));
-
-         logger_.on_connect(ec0, conn_->ctor_.endpoint());
-
-         if (ec0) {
-            self.complete(ec0);
-            return;
-         }
-
-         if (conn_->use_ssl()) {
-            BOOST_ASIO_CORO_YIELD
-            conn_->next_layer().async_handshake(
-               asio::ssl::stream_base::client,
-               asio::prepend(
-                  asio::cancel_after(conn_->cfg_.ssl_handshake_timeout, std::move(self)),
-                  order_t{}));
-
-            logger_.on_ssl_handshake(ec0);
-
-            if (ec0) {
-               self.complete(ec0);
-               return;
-            }
          }
 
          conn_->mpx_.reset();
@@ -459,8 +417,6 @@ public:
             self.complete(asio::error::operation_aborted);
             return;
          }
-
-         conn_->reset_stream();
       }
    }
 };
@@ -506,12 +462,10 @@ public:
    explicit basic_connection(
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client})
-   : ctx_{std::move(ctx)}
-   , stream_{std::make_unique<next_layer_type>(ex, ctx_)}
+   : stream_{ex, std::move(ctx)}
    , writer_timer_{ex}
    , reconnect_timer_{ex}
    , receive_channel_{ex, 256}
-   , resv_{ex}
    , health_checker_{ex}
    {
       set_receive_response(ignore);
@@ -568,8 +522,6 @@ public:
    auto async_run(config const& cfg = {}, Logger l = Logger{}, CompletionToken&& token = {})
    {
       cfg_ = cfg;
-      resv_.set_config(cfg);
-      ctor_.set_config(cfg);
       health_checker_.set_config(cfg);
       handshaker_.set_config(cfg);
       l.set_prefix(cfg.log_prefix);
@@ -711,7 +663,7 @@ public:
    void cancel(operation op = operation::all)
    {
       switch (op) {
-         case operation::resolve: resv_.cancel(); break;
+         case operation::resolve: stream_.cancel_resolve(); break;
          case operation::exec:    mpx_.cancel_waiting(); break;
          case operation::reconnection:
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
@@ -720,7 +672,7 @@ public:
          case operation::receive:      receive_channel_.cancel(); break;
          case operation::health_check: health_checker_.cancel(); break;
          case operation::all:
-            resv_.cancel();
+            stream_.cancel_resolve();
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
             health_checker_.cancel();
             cancel_run();               // run
@@ -740,25 +692,25 @@ public:
    }
 
    /// Returns the ssl context.
-   auto const& get_ssl_context() const noexcept { return ctx_; }
+   auto const& get_ssl_context() const noexcept { return stream_.get_ssl_context(); }
 
    /// Resets the underlying stream.
-   void reset_stream()
-   {
-      stream_ = std::make_unique<next_layer_type>(writer_timer_.get_executor(), ctx_);
-   }
+   BOOST_DEPRECATED(
+      "This function is no longer necessary and is currently a no-op. connection resets the stream "
+      "internally as required. This function will be removed in subsequent releases")
+   void reset_stream() { }
 
    /// Returns a reference to the next layer.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto& next_layer() noexcept { return *stream_; }
+   auto& next_layer() noexcept { return stream_.next_layer(); }
 
    /// Returns a const reference to the next layer.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto const& next_layer() const noexcept { return *stream_; }
+   auto const& next_layer() const noexcept { return stream_.next_layer(); }
 
    /// Sets the response object of `async_receive` operations.
    template <class Response>
@@ -778,7 +730,6 @@ private:
    using receive_channel_type = asio::experimental::channel<
       executor_type,
       void(system::error_code, std::size_t)>;
-   using resolver_type = detail::resolver<Executor>;
    using health_checker_type = detail::health_checker<Executor>;
    using resp3_handshaker_type = detail::resp3_handshaker<executor_type>;
 
@@ -786,7 +737,7 @@ private:
 
    void cancel_run()
    {
-      close();
+      stream_.close();
       writer_timer_.cancel();
       receive_channel_.cancel();
       mpx_.cancel_on_conn_lost();
@@ -815,21 +766,11 @@ private:
          writer_timer_);
    }
 
-   void close()
-   {
-      if (stream_->next_layer().is_open()) {
-         system::error_code ec;
-         stream_->next_layer().close(ec);
-      }
-   }
-
-   auto is_open() const noexcept { return stream_->next_layer().is_open(); }
-   auto& lowest_layer() noexcept { return stream_->lowest_layer(); }
+   auto is_open() const noexcept { return stream_.is_open(); }
 
    [[nodiscard]] bool trigger_write() const noexcept { return is_open() && !mpx_.is_writing(); }
 
-   asio::ssl::context ctx_;
-   std::unique_ptr<next_layer_type> stream_;
+   detail::redis_stream<Executor> stream_;
 
    // Notice we use a timer to simulate a condition-variable. It is
    // also more suitable than a channel and the notify operation does
@@ -837,8 +778,6 @@ private:
    timer_type writer_timer_;
    timer_type reconnect_timer_;  // to wait the reconnection period
    receive_channel_type receive_channel_;
-   resolver_type resv_;
-   detail::connector ctor_;
    health_checker_type health_checker_;
    resp3_handshaker_type handshaker_;
 
@@ -937,7 +876,10 @@ public:
    auto const& next_layer() const noexcept { return impl_.next_layer(); }
 
    /// Calls `boost::redis::basic_connection::reset_stream`.
-   void reset_stream() { impl_.reset_stream(); }
+   BOOST_DEPRECATED(
+      "This function is no longer necessary and is currently a no-op. connection resets the stream "
+      "internally as required. This function will be removed in subsequent releases")
+   void reset_stream() { }
 
    /// Sets the response object of `async_receive` operations.
    template <class Response>
