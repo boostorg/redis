@@ -144,9 +144,17 @@ public:
    , stream_{std::move(ex), ssl_ctx_}
    { }
 
+   // Executor. Required to satisfy the AsyncStream concept
    using executor_type = Executor;
    executor_type get_executor() noexcept { return resolv_.get_executor(); }
 
+   // Accessors
+   const auto& get_ssl_context() const noexcept { return ssl_ctx_; }
+   bool is_open() const { return stream_.next_layer().is_open(); }
+   auto& next_layer() { return stream_; }
+   const auto& next_layer() const { return stream_; }
+
+   // I/O
    template <class Logger, class CompletionToken>
    auto async_connect(const config* cfg, Logger l, CompletionToken&& token)
    {
@@ -177,6 +185,7 @@ public:
       }
    }
 
+   // Cleanup
    void cancel_resolve() { resolv_.cancel(); }
 
    void close()
@@ -186,14 +195,6 @@ public:
          stream_.next_layer().close(ec);
       }
    }
-
-   // TODO: ssl::context has no const methods. This should be marked as deprecated and removed
-   const auto& get_ssl_context() const noexcept { return ssl_ctx_; }
-
-   bool is_open() const { return stream_.next_layer().is_open(); }
-
-   auto& next_layer() { return stream_; }
-   const auto& next_layer() const { return stream_; }
 };
 
 }  // namespace detail
