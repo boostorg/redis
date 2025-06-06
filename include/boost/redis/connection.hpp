@@ -692,6 +692,9 @@ public:
    }
 
    /// Returns the ssl context.
+   BOOST_DEPRECATED(
+      "ssl::context has no const methods, so this function should not be called. Set up any "
+      "required TLS configuration before passing the ssl::context to the connection's constructor.")
    auto const& get_ssl_context() const noexcept { return stream_.get_ssl_context(); }
 
    /// Resets the underlying stream.
@@ -892,6 +895,9 @@ public:
    usage get_usage() const noexcept { return impl_.get_usage(); }
 
    /// Returns the ssl context.
+   BOOST_DEPRECATED(
+      "ssl::context has no const methods, so this function should not be called. Set up any "
+      "required TLS configuration before passing the ssl::context to the connection's constructor.")
    auto const& get_ssl_context() const noexcept { return impl_.get_ssl_context(); }
 
 private:
