@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 
 namespace net = boost::asio;
 
@@ -55,22 +56,17 @@ boost::redis::config make_test_config()
 }
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
-auto start(net::awaitable<void> op) -> int
+void run_coroutine_test(net::awaitable<void> op, std::chrono::steady_clock::duration timeout)
 {
-   try {
-      net::io_context ioc;
-      net::co_spawn(ioc, std::move(op), [](std::exception_ptr p) {
-         if (p)
-            std::rethrow_exception(p);
-      });
-      ioc.run();
-
-      return 0;
-
-   } catch (std::exception const& e) {
-      std::cerr << "start> " << e.what() << std::endl;
-   }
-
-   return 1;
+   net::io_context ioc;
+   bool finished = false;
+   net::co_spawn(ioc, std::move(op), [&finished](std::exception_ptr p) {
+      if (p)
+         std::rethrow_exception(p);
+      finished = true;
+   });
+   ioc.run_for(timeout);
+   if (!finished)
+      throw std::runtime_error("Coroutine test did not finish");
 }
 #endif  // BOOST_ASIO_HAS_CO_AWAIT

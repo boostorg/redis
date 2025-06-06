@@ -12,22 +12,21 @@
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
-#include <boost/asio/consign.hpp>
-#include <boost/asio/detached.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/redirect_error.hpp>
-#include <boost/asio/use_awaitable.hpp>
-#define BOOST_TEST_MODULE conn - quit
+#include <boost/system/error_code.hpp>
+
+#include <exception>
+#define BOOST_TEST_MODULE issue50
 #include <boost/test/included/unit_test.hpp>
 
 #include "common.hpp"
 
 #include <iostream>
-#include <tuple>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace net = boost::asio;
-using steady_timer = net::use_awaitable_t<>::as_default_on_t<net::steady_timer>;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore;
@@ -36,9 +35,9 @@ using boost::redis::config;
 using boost::redis::operation;
 using boost::redis::connection;
 using boost::system::error_code;
-using boost::asio::use_awaitable;
-using boost::asio::redirect_error;
 using namespace std::chrono_literals;
+
+namespace {
 
 // Push consumer
 auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
@@ -50,7 +49,7 @@ auto receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
       for (;;) {
          std::cout << "aaaa" << std::endl;
          error_code ec;
-         co_await conn->async_receive(redirect_error(use_awaitable, ec));
+         co_await conn->async_receive(net::redirect_error(ec));
          if (ec) {
             std::cout << "Error in async_receive" << std::endl;
             break;
@@ -67,14 +66,14 @@ auto periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
    for (int i = 0; i < 10; ++i) {
       std::cout << "In the loop: " << i << std::endl;
       timer.expires_after(std::chrono::milliseconds(50));
-      co_await timer.async_wait(net::use_awaitable);
+      co_await timer.async_wait();
 
       // Key is not set so it will cause an error since we are passing
       // an adapter that does not accept null, this will cause an error
       // that result in the connection being closed.
       request req;
       req.push("GET", "mykey");
-      auto [ec, u] = co_await conn->async_exec(req, ignore, net::as_tuple(net::use_awaitable));
+      auto [ec, u] = co_await conn->async_exec(req, ignore, net::as_tuple);
       if (ec) {
          std::cout << "(1)Error: " << ec << std::endl;
       } else {
@@ -88,26 +87,41 @@ auto periodic_task(std::shared_ptr<connection> conn) -> net::awaitable<void>
    conn->cancel(operation::reconnection);
 }
 
-auto co_main(config) -> net::awaitable<void>
-{
-   auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
-
-   net::co_spawn(ex, receiver(conn), net::detached);
-   net::co_spawn(ex, periodic_task(conn), net::detached);
-   auto cfg = make_test_config();
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
-}
-
 BOOST_AUTO_TEST_CASE(issue_50)
 {
-   net::io_context ioc;
-   net::co_spawn(ioc, co_main({}), net::detached);
-   ioc.run();
+   bool receiver_finished = false, periodic_finished = false, run_finished = false;
+
+   net::io_context ctx;
+   auto conn = std::make_shared<connection>(ctx.get_executor());
+
+   // Launch the receiver
+   net::co_spawn(ctx, receiver(conn), [&](std::exception_ptr exc) {
+      if (exc)
+         std::rethrow_exception(exc);
+      receiver_finished = true;
+   });
+
+   // Launch the period task
+   net::co_spawn(ctx, periodic_task(conn), [&](std::exception_ptr exc) {
+      if (exc)
+         std::rethrow_exception(exc);
+      periodic_finished = true;
+   });
+
+   // Launch run
+   conn->async_run(make_test_config(), {}, [&](error_code) {
+      run_finished = true;
+   });
+
+   ctx.run_for(2 * test_timeout);
+
+   BOOST_TEST(receiver_finished);
+   BOOST_TEST(periodic_finished);
+   BOOST_TEST(run_finished);
 }
 
-#else  // defined(BOOST_ASIO_HAS_CO_AWAIT)
+}  // namespace
 
-BOOST_AUTO_TEST_CASE(issue_50) { }
-
+#else
+BOOST_AUTO_TEST_CASE(dummy) { }
 #endif  // defined(BOOST_ASIO_HAS_CO_AWAIT)

@@ -48,10 +48,9 @@ lib redis_test_common
 # B2 runs tests in parallel, and some tests rely on having exclusive
 # access to a Redis server, so we only run the ones that don't require a DB server.
 local tests =
-    test_low_level_sync_sans_io
     test_low_level
     test_request
-    test_run
+    test_low_level_sync_sans_io
     test_any_adapter
 ;
 
