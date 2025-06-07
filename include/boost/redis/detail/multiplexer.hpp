@@ -43,7 +43,7 @@ struct multiplexer {
 
       void set_done_callback(std::function<void()> f) noexcept { done_ = std::move(f); };
 
-      auto notify_done() noexcept
+      auto notify_done() noexcept -> void
       {
          status_ = status::done;
          done_();
