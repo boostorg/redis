@@ -95,9 +95,7 @@ class exec_fsm {
 
             // If the request has completed (with error or not), we're done
             if (elem_->is_done()) {
-               return exec_action{
-                  elem_->get_error(),
-                  elem_->get_error() ? 0u : elem_->get_read_size()};
+               return exec_action{elem_->get_error(), elem_->get_read_size()};
             }
 
             // If we're cancelled, try to remove the request from the queue. This will only
