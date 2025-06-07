@@ -69,6 +69,12 @@ class redis_stream {
       {
          BOOST_ASIO_CORO_REENTER(coro)
          {
+            // ssl::stream doesn't support being re-used. If we're to use
+            // TLS and the stream has been used, re-create it.
+            // Must be done before anything else is done on the stream
+            if (cfg->use_ssl && obj.ssl_stream_used_)
+               obj.reset_stream();
+
             // Resolve the server's address
             BOOST_ASIO_CORO_YIELD
             obj.resolv_.async_resolve(
@@ -100,11 +106,6 @@ class redis_stream {
             }
 
             if (cfg->use_ssl) {
-               // If the SSL stream has been used before, we need to re-create it.
-               // This avoids exposing reset_stream
-               if (obj.ssl_stream_used_)
-                  obj.reset_stream();
-
                // Mark the SSL stream as used
                obj.ssl_stream_used_ = true;
 
