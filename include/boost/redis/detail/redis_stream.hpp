@@ -35,7 +35,7 @@ template <class Executor>
 class redis_stream {
    asio::ssl::context ssl_ctx_;
    asio::ip::basic_resolver<asio::ip::tcp, Executor> resolv_;
-   asio::steady_timer::template rebind_executor<Executor>::other timer_;
+   typename asio::steady_timer::template rebind_executor<Executor>::other timer_;
    asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>> stream_;
    bool ssl_stream_used_{};
    bool use_ssl_{};
