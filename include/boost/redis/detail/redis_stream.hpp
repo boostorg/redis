@@ -86,14 +86,10 @@ class redis_stream {
             }
 
             // Connect to the address that the resolver provided us
-            // TODO: is there a reason why this completion condition is here?
             BOOST_ASIO_CORO_YIELD
             asio::async_connect(
                obj.stream_.next_layer(),
                std::move(resolver_results),
-               [](system::error_code const&, auto const&) {
-                  return true;
-               },
                asio::cancel_after(obj.timer_, cfg->connect_timeout, std::move(self)));
 
             // Note: logging is performed in the specialized operator() function.
