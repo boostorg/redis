@@ -79,7 +79,7 @@ auto push_consumer(connection& conn, int expected) -> net::awaitable<void>
 auto echo_session(connection& conn, const request& pubs, int n) -> net::awaitable<void>
 {
    for (auto i = 0; i < n; ++i)
-      co_await conn.async_exec(pubs, ignore);
+      co_await conn.async_exec(pubs);
 }
 
 void rethrow_on_error(std::exception_ptr exc)

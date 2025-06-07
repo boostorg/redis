@@ -882,8 +882,8 @@ public:
    std::size_t receive(system::error_code& ec) { return impl_.receive(ec); }
 
    /// Calls `boost::redis::basic_connection::async_exec`.
-   template <class Response, class CompletionToken = asio::deferred_t>
-   auto async_exec(request const& req, Response& resp, CompletionToken&& token = {})
+   template <class Response = ignore_t, class CompletionToken = asio::deferred_t>
+   auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
       return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
