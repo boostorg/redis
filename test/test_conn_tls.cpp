@@ -5,8 +5,10 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/ignore.hpp>
 
 #include <boost/asio/ssl/host_name_verification.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -17,11 +19,8 @@
 #include "common.hpp"
 
 namespace net = boost::asio;
-
-using boost::redis::connection;
-using boost::redis::request;
-using boost::redis::response;
-using boost::redis::config;
+using namespace boost::redis;
+using namespace std::chrono_literals;
 using boost::system::error_code;
 
 namespace {
@@ -138,6 +137,56 @@ BOOST_AUTO_TEST_CASE(exec_custom_ssl_context)
    BOOST_TEST(exec_finished);
    BOOST_TEST(run_finished);
    BOOST_TEST(std::get<0>(resp).value() == ping_value);
+}
+
+// After an error, a TLS connection can recover.
+// Force an error using QUIT, then issue a regular request to verify that we could reconnect
+BOOST_AUTO_TEST_CASE(reconnection)
+{
+   // Setup
+   net::io_context ioc;
+   net::steady_timer timer{ioc};
+   connection conn{ioc};
+   auto const cfg = make_tls_config();
+
+   request ping_request;
+   ping_request.push("PING", "some_value");
+
+   request quit_request;
+   quit_request.push("QUIT");
+
+   bool exec_finished = false, run_finished = false;
+
+   // Run the connection
+   conn.async_run(cfg, {}, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST(ec == net::error::operation_aborted);
+   });
+
+   // The PING is the end of the callback chain
+   auto ping_callback = [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST(ec == error_code());
+      conn.cancel();
+   };
+
+   auto quit_callback = [&](error_code ec, std::size_t) {
+      BOOST_TEST(ec == error_code());
+
+      // If a request is issued immediately after QUIT, the request sometimes
+      // fails, probably due to a race condition. This dispatches any pending
+      // handlers, triggering the reconnection process.
+      // TODO: this should not be required.
+      ioc.poll();
+      conn.async_exec(ping_request, ignore, ping_callback);
+   };
+
+   conn.async_exec(quit_request, ignore, quit_callback);
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
 }
 
 }  // namespace
