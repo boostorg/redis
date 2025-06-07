@@ -37,7 +37,7 @@ make_test(test_low_level)
 make_test(test_request)
 make_test(test_low_level_sync_sans_io)
 make_test(test_any_adapter)
-make_test(test_exec_fsm 17)
+make_test(test_exec_fsm)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)
