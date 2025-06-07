@@ -40,8 +40,7 @@ make_test(test_any_adapter)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)
-# TODO: Configure a Redis server with TLS in the CI and reenable this test.
-#make_test(test_conn_tls)
+make_test(test_conn_tls)
 make_test(test_conn_exec_retry)
 make_test(test_conn_exec_error)
 make_test(test_run)
