@@ -118,7 +118,8 @@ class redis_stream {
 
                // If this failed, we can't continue
                if (ec) {
-                  self.complete(ec);
+                  self.complete(
+                     ec == asio::error::operation_aborted ? error::ssl_handshake_timeout : ec);
                   return;
                }
 
