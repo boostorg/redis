@@ -108,6 +108,8 @@ void test_success()
 
    // Initiate
    auto act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
+   act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::write);
 
    // We should now wait for a response
@@ -145,6 +147,8 @@ void test_parse_error()
 
    // Initiate
    auto act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
+   act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::write);
 
    // We should now wait for a response
@@ -205,6 +209,8 @@ void test_not_connected()
 
    // Initiate
    auto act = fsm.resume(false, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
+   act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::write);
 
    // We should now wait for a response
@@ -261,8 +267,9 @@ void test_cancel_waiting()
 
       // Initiate and wait
       auto act = fsm.resume(true, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::setup_cancellation, tc.name);
+      act = fsm.resume(true, cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::write, tc.name);
-
       act = fsm.resume(true, cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
 
@@ -283,6 +290,8 @@ void test_cancel_notwaiting_terminal()
 
    // Initiate
    auto act = fsm.resume(false, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
+   act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::write);
 
    act = fsm.resume(true, cancellation_type_t::none);
@@ -321,6 +330,8 @@ void test_cancel_notwaiting_notterminal()
 
       // Initiate
       auto act = fsm.resume(true, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::setup_cancellation, tc.name);
+      act = fsm.resume(true, cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::write, tc.name);
 
       act = fsm.resume(true, cancellation_type_t::none);

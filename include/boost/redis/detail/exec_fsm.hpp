@@ -28,11 +28,12 @@ namespace boost::redis::detail {
 // What should we do next?
 enum class exec_action_type
 {
-   immediate,          // Invoke asio::async_immediate to avoid re-entrancy problems
-   done,               // Call the final handler
-   write,              // Notify the writer task
-   wait_for_response,  // Wait to be notified
-   cancel_run,         // Cancel the connection's run operation
+   setup_cancellation,  // Set up the cancellation types supported by the composed operation
+   immediate,           // Invoke asio::async_immediate to avoid re-entrancy problems
+   done,                // Call the final handler
+   write,               // Notify the writer task
+   wait_for_response,   // Wait to be notified
+   cancel_run,          // Cancel the connection's run operation
 };
 
 class exec_action {
@@ -80,18 +81,23 @@ class exec_fsm {
             return system::error_code(error::not_connected);
          }
 
+         // No more immediate errors. Set up the supported cancellation types.
+         // This is required to get partial and total cancellations.
+         // This is a potentially allocating operation, so do it as late as we can.
+         BOOST_REDIS_YIELD(resume_point_, 2, exec_action_type::setup_cancellation)
+
          // Add the request to the multiplexer
          mpx_->add(elem_);
 
          // Notify the writer task that there is work to do. If the task is not
          // listening (e.g. it's already writing or the connection is not healthy),
          // this is a no-op. Since this is sync, no cancellation can happen here.
-         BOOST_REDIS_YIELD(resume_point_, 2, exec_action_type::write)
+         BOOST_REDIS_YIELD(resume_point_, 3, exec_action_type::write)
 
          while (true) {
             // Wait until we get notified. This will return once the request completes,
             // or upon any kind of cancellation
-            BOOST_REDIS_YIELD(resume_point_, 3, exec_action_type::wait_for_response)
+            BOOST_REDIS_YIELD(resume_point_, 4, exec_action_type::wait_for_response)
 
             // If the request has completed (with error or not), we're done
             if (elem_->is_done()) {
@@ -109,7 +115,7 @@ class exec_fsm {
             // TODO: we could likely do better here and mark the request as cancelled, removing
             // the done callback and the adapter. But this requires further exploration
             if (!!(cancel_state & asio::cancellation_type_t::terminal)) {
-               BOOST_REDIS_YIELD(resume_point_, 4, exec_action_type::cancel_run)
+               BOOST_REDIS_YIELD(resume_point_, 5, exec_action_type::cancel_run)
                return exec_action{asio::error::operation_aborted};
             }
          }
@@ -125,9 +131,6 @@ public:
    : mpx_(&mpx)
    , elem_(std::move(elem))
    { }
-
-   // Have we run the FSM at least once?
-   bool is_initial() const { return resume_point_ == 0; }
 
    exec_action resume(bool connection_is_open, asio::cancellation_type_t cancel_state)
    {
