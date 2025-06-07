@@ -134,6 +134,45 @@ void test_success()
    BOOST_TEST(input.weak_elm.expired());
 }
 
+// The request encountered an error while parsing
+void test_parse_error()
+{
+   // Setup
+   multiplexer mpx;
+   elem_and_request input;
+   exec_fsm fsm(mpx, std::move(input.elm));
+   error_code ec;
+
+   // Initiate
+   auto act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::write);
+
+   // We should now wait for a response
+   act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
+
+   // Simulate a successful write
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request was placed in the packet to write
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
+
+   // Simulate a read that will trigger an error.
+   // The second field should be a number (rather than the empty string).
+   // Note that although part of the buffer was consumed, the multiplexer
+   // currently throws this information away.
+   mpx.get_read_buffer() = "*2\r\n$5\r\nhello\r\n:\r\n";
+   auto req_status = mpx.consume_next(ec);
+   BOOST_TEST_EQ(ec, error::empty_field);
+   BOOST_TEST_EQ(req_status.second, 0u);
+   BOOST_TEST_EQ(input.done_calls, 1u);
+
+   // This will awaken the exec operation, and should complete the operation
+   act = fsm.resume(true, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action(error::empty_field, 0u));
+
+   // All memory should have been freed by now
+   BOOST_TEST(input.weak_elm.expired());
+}
+
 // The request was configured to be cancelled on connection error, and the connection is closed
 void test_cancel_if_not_connected()
 {
@@ -317,6 +356,7 @@ void test_cancel_notwaiting_notterminal()
 int main()
 {
    test_success();
+   test_parse_error();
    test_cancel_if_not_connected();
    test_not_connected();
    test_cancel_waiting();
