@@ -132,7 +132,7 @@ struct exec_op {
             case detail::exec_action_type::immediate:
                asio::async_immediate(self.get_io_executor(), std::move(self));
                return;
-            case detail::exec_action_type::write:
+            case detail::exec_action_type::notify_writer:
                conn_->writer_timer_.cancel();
                continue;  // this action does not require yielding
             case detail::exec_action_type::wait_for_response:

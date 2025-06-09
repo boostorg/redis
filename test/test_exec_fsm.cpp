@@ -38,7 +38,7 @@ std::ostream& operator<<(std::ostream& os, exec_action_type type)
    switch (type) {
       case exec_action_type::immediate:         return os << "exec_action_type::immediate";
       case exec_action_type::done:              return os << "exec_action_type::done";
-      case exec_action_type::write:             return os << "exec_action_type::write";
+      case exec_action_type::notify_writer:     return os << "exec_action_type::notify_writer";
       case exec_action_type::wait_for_response: return os << "exec_action_type::wait_for_response";
       case exec_action_type::cancel_run:        return os << "exec_action_type::cancel_run";
       default:                                  return os << "<unknown exec_action_type>";
@@ -110,7 +110,7 @@ void test_success()
    auto act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
    act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::write);
+   BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
    act = fsm.resume(true, cancellation_type_t::none);
@@ -149,7 +149,7 @@ void test_parse_error()
    auto act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
    act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::write);
+   BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
    act = fsm.resume(true, cancellation_type_t::none);
@@ -211,7 +211,7 @@ void test_not_connected()
    auto act = fsm.resume(false, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
    act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::write);
+   BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
    act = fsm.resume(true, cancellation_type_t::none);
@@ -269,7 +269,7 @@ void test_cancel_waiting()
       auto act = fsm.resume(true, cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::setup_cancellation, tc.name);
       act = fsm.resume(true, cancellation_type_t::none);
-      BOOST_TEST_EQ_MSG(act, exec_action_type::write, tc.name);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::notify_writer, tc.name);
       act = fsm.resume(true, cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
 
@@ -292,7 +292,7 @@ void test_cancel_notwaiting_terminal()
    auto act = fsm.resume(false, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
    act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::write);
+   BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    act = fsm.resume(true, cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
@@ -332,7 +332,7 @@ void test_cancel_notwaiting_notterminal()
       auto act = fsm.resume(true, cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::setup_cancellation, tc.name);
       act = fsm.resume(true, cancellation_type_t::none);
-      BOOST_TEST_EQ_MSG(act, exec_action_type::write, tc.name);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::notify_writer, tc.name);
 
       act = fsm.resume(true, cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);

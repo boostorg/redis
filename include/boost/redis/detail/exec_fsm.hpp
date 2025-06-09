@@ -31,7 +31,7 @@ enum class exec_action_type
    setup_cancellation,  // Set up the cancellation types supported by the composed operation
    immediate,           // Invoke asio::async_immediate to avoid re-entrancy problems
    done,                // Call the final handler
-   write,               // Notify the writer task
+   notify_writer,       // Notify the writer task
    wait_for_response,   // Wait to be notified
    cancel_run,          // Cancel the connection's run operation
 };
@@ -92,7 +92,7 @@ class exec_fsm {
          // Notify the writer task that there is work to do. If the task is not
          // listening (e.g. it's already writing or the connection is not healthy),
          // this is a no-op. Since this is sync, no cancellation can happen here.
-         BOOST_REDIS_YIELD(resume_point_, 3, exec_action_type::write)
+         BOOST_REDIS_YIELD(resume_point_, 3, exec_action_type::notify_writer)
 
          while (true) {
             // Wait until we get notified. This will return once the request completes,
