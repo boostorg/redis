@@ -9,13 +9,9 @@
 #ifndef BOOST_REDIS_EXEC_FSM_HPP
 #define BOOST_REDIS_EXEC_FSM_HPP
 
-#include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/request.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
-#include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -62,86 +58,13 @@ class exec_fsm {
    multiplexer* mpx_{nullptr};
    std::shared_ptr<multiplexer::elem> elem_;
 
-   static bool is_cancellation(asio::cancellation_type_t type)
-   {
-      return !!(
-         type & (asio::cancellation_type_t::total | asio::cancellation_type_t::partial |
-                 asio::cancellation_type_t::terminal));
-   }
-
-   exec_action resume_impl(bool connection_is_open, asio::cancellation_type_t cancel_state)
-   {
-      switch (resume_point_) {
-         BOOST_REDIS_CORO_INITIAL
-
-         // Check whether the user wants to wait for the connection to
-         // be established.
-         if (elem_->get_request().get_config().cancel_if_not_connected && !connection_is_open) {
-            BOOST_REDIS_YIELD(resume_point_, 1, exec_action_type::immediate)
-            return system::error_code(error::not_connected);
-         }
-
-         // No more immediate errors. Set up the supported cancellation types.
-         // This is required to get partial and total cancellations.
-         // This is a potentially allocating operation, so do it as late as we can.
-         BOOST_REDIS_YIELD(resume_point_, 2, exec_action_type::setup_cancellation)
-
-         // Add the request to the multiplexer
-         mpx_->add(elem_);
-
-         // Notify the writer task that there is work to do. If the task is not
-         // listening (e.g. it's already writing or the connection is not healthy),
-         // this is a no-op. Since this is sync, no cancellation can happen here.
-         BOOST_REDIS_YIELD(resume_point_, 3, exec_action_type::notify_writer)
-
-         while (true) {
-            // Wait until we get notified. This will return once the request completes,
-            // or upon any kind of cancellation
-            BOOST_REDIS_YIELD(resume_point_, 4, exec_action_type::wait_for_response)
-
-            // If the request has completed (with error or not), we're done
-            if (elem_->is_done()) {
-               return exec_action{elem_->get_error(), elem_->get_read_size()};
-            }
-
-            // If we're cancelled, try to remove the request from the queue. This will only
-            // succeed if the request is waiting (wasn't written yet)
-            if (is_cancellation(cancel_state) && mpx_->remove(elem_)) {
-               return exec_action{asio::error::operation_aborted};
-            }
-
-            // If we hit a terminal cancellation, tear down the connection.
-            // Otherwise, go back to waiting.
-            // TODO: we could likely do better here and mark the request as cancelled, removing
-            // the done callback and the adapter. But this requires further exploration
-            if (!!(cancel_state & asio::cancellation_type_t::terminal)) {
-               BOOST_REDIS_YIELD(resume_point_, 5, exec_action_type::cancel_run)
-               return exec_action{asio::error::operation_aborted};
-            }
-         }
-      }
-
-      // We should never get here
-      BOOST_ASSERT(false);
-      return exec_action{system::error_code()};
-   }
-
 public:
    exec_fsm(multiplexer& mpx, std::shared_ptr<multiplexer::elem> elem) noexcept
    : mpx_(&mpx)
    , elem_(std::move(elem))
    { }
 
-   exec_action resume(bool connection_is_open, asio::cancellation_type_t cancel_state)
-   {
-      // When completing, we should deallocate any temporary storage we acquired
-      // for the operation before invoking the final handler.
-      // This intercepts the returned action to implement this.
-      auto act = resume_impl(connection_is_open, cancel_state);
-      if (act.type() == exec_action_type::done)
-         elem_.reset();
-      return act;
-   }
+   exec_action resume(bool connection_is_open, asio::cancellation_type_t cancel_state);
 };
 
 }  // namespace boost::redis::detail
