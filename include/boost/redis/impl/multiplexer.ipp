@@ -31,7 +31,7 @@ auto multiplexer::elem::notify_error(system::error_code ec) noexcept -> void
       ec_ = ec;
    }
 
-   done_();
+   notify_done();
 }
 
 auto multiplexer::elem::commit_response(std::size_t read_size) -> void
@@ -119,6 +119,7 @@ std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec
 
    if (ec) {
       reqs_.front()->notify_error(ec);
+      reqs_.pop_front();
       return std::make_pair(std::make_optional(false), 0);
    }
 
