@@ -84,6 +84,12 @@ enum class error
 
    /// Resp3 hello command error
    resp3_hello,
+
+   /// The configuration specified a UNIX socket address, but UNIX sockets are not supported by the system.
+   unix_sockets_unsupported,
+
+   /// The configuration specified UNIX sockets with SSL, which is not supported.
+   unix_sockets_ssl_unsupported,
 };
 
 /** \internal

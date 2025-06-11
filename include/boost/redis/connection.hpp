@@ -290,6 +290,18 @@ struct reader_op {
    }
 };
 
+inline system::error_code check_config(const config& cfg)
+{
+   if (!cfg.unix_socket.empty()) {
+#ifndef BOOST_ASIO_HAS_LOCAL_SOCKETS
+      return error::unix_sockets_unsupported;
+#endif
+      if (cfg.use_ssl)
+         return error::unix_sockets_ssl_unsupported;
+   }
+   return system::error_code{};
+}
+
 template <class Conn, class Logger>
 class run_op {
 private:
@@ -321,75 +333,85 @@ public:
       system::error_code ec3 = {},
       system::error_code = {})
    {
-      BOOST_ASIO_CORO_REENTER(coro_) for (;;)
+      BOOST_ASIO_CORO_REENTER(coro_)
       {
-         // Try to connect
-         BOOST_ASIO_CORO_YIELD
-         conn_->stream_.async_connect(&conn_->cfg_, logger_, std::move(self));
-
-         // If we failed, try again
+         // Check config
+         ec0 = check_config(conn_->cfg_);
          if (ec0) {
+            logger_.log_error("Invalid configuration", ec0);
+            BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
             self.complete(ec0);
-            return;
          }
 
-         conn_->mpx_.reset();
+         for (;;) {
+            // Try to connect
+            BOOST_ASIO_CORO_YIELD
+            conn_->stream_.async_connect(&conn_->cfg_, logger_, std::move(self));
 
-         // Note: Order is important here because the writer might
-         // trigger an async_write before the async_hello thereby
-         // causing an authentication problem.
-         BOOST_ASIO_CORO_YIELD
-         asio::experimental::make_parallel_group(
-            [this](auto token) {
-               return conn_->handshaker_.async_hello(*conn_, logger_, token);
-            },
-            [this](auto token) {
-               return conn_->health_checker_.async_ping(*conn_, logger_, token);
-            },
-            [this](auto token) {
-               return conn_->health_checker_.async_check_timeout(*conn_, logger_, token);
-            },
-            [this](auto token) {
-               return conn_->reader(logger_, token);
-            },
-            [this](auto token) {
-               return conn_->writer(logger_, token);
-            })
-            .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
+            // If we failed, try again
+            if (ec0) {
+               self.complete(ec0);
+               return;
+            }
 
-         if (order[0] == 0 && !!ec0) {
-            self.complete(ec0);
-            return;
-         }
+            conn_->mpx_.reset();
 
-         if (order[0] == 2 && ec2 == error::pong_timeout) {
-            self.complete(ec1);
-            return;
-         }
+            // Note: Order is important here because the writer might
+            // trigger an async_write before the async_hello thereby
+            // causing an authentication problem.
+            BOOST_ASIO_CORO_YIELD
+            asio::experimental::make_parallel_group(
+               [this](auto token) {
+                  return conn_->handshaker_.async_hello(*conn_, logger_, token);
+               },
+               [this](auto token) {
+                  return conn_->health_checker_.async_ping(*conn_, logger_, token);
+               },
+               [this](auto token) {
+                  return conn_->health_checker_.async_check_timeout(*conn_, logger_, token);
+               },
+               [this](auto token) {
+                  return conn_->reader(logger_, token);
+               },
+               [this](auto token) {
+                  return conn_->writer(logger_, token);
+               })
+               .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
 
-         // The receive operation must be cancelled because channel
-         // subscription does not survive a reconnection but requires
-         // re-subscription.
-         conn_->cancel(operation::receive);
+            if (order[0] == 0 && !!ec0) {
+               self.complete(ec0);
+               return;
+            }
 
-         if (!conn_->will_reconnect()) {
-            conn_->cancel(operation::reconnection);
-            self.complete(ec3);
-            return;
-         }
+            if (order[0] == 2 && ec2 == error::pong_timeout) {
+               self.complete(ec1);
+               return;
+            }
 
-         conn_->reconnect_timer_.expires_after(conn_->cfg_.reconnect_wait_interval);
+            // The receive operation must be cancelled because channel
+            // subscription does not survive a reconnection but requires
+            // re-subscription.
+            conn_->cancel(operation::receive);
 
-         BOOST_ASIO_CORO_YIELD
-         conn_->reconnect_timer_.async_wait(asio::prepend(std::move(self), order_t{}));
-         if (ec0) {
-            self.complete(ec0);
-            return;
-         }
+            if (!conn_->will_reconnect()) {
+               conn_->cancel(operation::reconnection);
+               self.complete(ec3);
+               return;
+            }
 
-         if (!conn_->will_reconnect()) {
-            self.complete(asio::error::operation_aborted);
-            return;
+            conn_->reconnect_timer_.expires_after(conn_->cfg_.reconnect_wait_interval);
+
+            BOOST_ASIO_CORO_YIELD
+            conn_->reconnect_timer_.async_wait(asio::prepend(std::move(self), order_t{}));
+            if (ec0) {
+               self.complete(ec0);
+               return;
+            }
+
+            if (!conn_->will_reconnect()) {
+               self.complete(asio::error::operation_aborted);
+               return;
+            }
          }
       }
    }

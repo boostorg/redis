@@ -17,13 +17,12 @@
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/ip/basic_resolver.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/local/stream_protocol.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/ssl/stream_base.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
-
-#include "boost/system/detail/error_code.hpp"
 
 #include <utility>
 
@@ -31,16 +30,34 @@ namespace boost {
 namespace redis {
 namespace detail {
 
+// What transport is redis_stream using?
+enum class transport_type
+{
+   tcp,          // plaintext TCP
+   tcp_tls,      // TLS over TCP
+   unix_socket,  // UNIX sockets
+};
+
 template <class Executor>
 class redis_stream {
    asio::ssl::context ssl_ctx_;
    asio::ip::basic_resolver<asio::ip::tcp, Executor> resolv_;
    typename asio::steady_timer::template rebind_executor<Executor>::other timer_;
    asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>> stream_;
-   bool ssl_stream_used_{};
-   bool use_ssl_{};
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+   asio::basic_stream_socket<asio::local::stream_protocol, Executor> unix_socket_;
+#endif
+
+   transport_type transport_{transport_type::tcp};
+   bool ssl_stream_used_{false};
 
    void reset_stream() { stream_ = {resolv_.get_executor(), ssl_ctx_}; }
+
+   static transport_type transport_from_config(const config& cfg)
+   {
+      return cfg.unix_socket.empty() ? (cfg.use_ssl ? transport_type::tcp_tls : transport_type::tcp)
+                                     : transport_type::unix_socket;
+   }
 
    template <class Logger>
    struct connect_op {
@@ -69,63 +86,83 @@ class redis_stream {
       {
          BOOST_ASIO_CORO_REENTER(coro)
          {
-            // ssl::stream doesn't support being re-used. If we're to use
-            // TLS and the stream has been used, re-create it.
-            // Must be done before anything else is done on the stream
-            if (cfg->use_ssl && obj.ssl_stream_used_)
-               obj.reset_stream();
+            // Record the transport that we will be using
+            obj.transport_ = transport_from_config(*cfg);
 
-            // Resolve the server's address
-            BOOST_ASIO_CORO_YIELD
-            obj.resolv_.async_resolve(
-               cfg->addr.host,
-               cfg->addr.port,
-               asio::cancel_after(obj.timer_, cfg->resolve_timeout, std::move(self)));
-
-            // Log it
-            lgr.on_resolve(ec, resolver_results);
-
-            // If this failed, we can't continue
-            if (ec) {
-               self.complete(ec == asio::error::operation_aborted ? error::resolve_timeout : ec);
-               return;
-            }
-
-            // Connect to the address that the resolver provided us
-            BOOST_ASIO_CORO_YIELD
-            asio::async_connect(
-               obj.stream_.next_layer(),
-               std::move(resolver_results),
-               asio::cancel_after(obj.timer_, cfg->connect_timeout, std::move(self)));
-
-            // Note: logging is performed in the specialized operator() function.
-            // If this failed, we can't continue
-            if (ec) {
-               self.complete(ec == asio::error::operation_aborted ? error::connect_timeout : ec);
-               return;
-            }
-
-            if (cfg->use_ssl) {
-               // Mark the SSL stream as used
-               obj.ssl_stream_used_ = true;
-
-               // If we were configured to use TLS, perform the handshake
+            if (obj.transport_ == transport_type::unix_socket) {
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+               // Directly connect to the socket
                BOOST_ASIO_CORO_YIELD
-               obj.stream_.async_handshake(
-                  asio::ssl::stream_base::client,
-                  asio::cancel_after(obj.timer_, cfg->ssl_handshake_timeout, std::move(self)));
+               obj.unix_socket_.async_connect(
+                  cfg->unix_socket,
+                  asio::cancel_after(obj.timer_, cfg->connect_timeout, std::move(self)));
 
-               lgr.on_ssl_handshake(ec);
+               // Log it
+               lgr.on_connect(ec, cfg->unix_socket);
 
                // If this failed, we can't continue
                if (ec) {
-                  self.complete(
-                     ec == asio::error::operation_aborted ? error::ssl_handshake_timeout : ec);
+                  self.complete(ec == asio::error::operation_aborted ? error::connect_timeout : ec);
+                  return;
+               }
+#else
+               BOOST_ASSERT(false);
+#endif
+            } else {
+               // ssl::stream doesn't support being re-used. If we're to use
+               // TLS and the stream has been used, re-create it.
+               // Must be done before anything else is done on the stream
+               if (cfg->use_ssl && obj.ssl_stream_used_)
+                  obj.reset_stream();
+
+               BOOST_ASIO_CORO_YIELD
+               obj.resolv_.async_resolve(
+                  cfg->addr.host,
+                  cfg->addr.port,
+                  asio::cancel_after(obj.timer_, cfg->resolve_timeout, std::move(self)));
+
+               // Log it
+               lgr.on_resolve(ec, resolver_results);
+
+               // If this failed, we can't continue
+               if (ec) {
+                  self.complete(ec == asio::error::operation_aborted ? error::resolve_timeout : ec);
                   return;
                }
 
-               // Record that we're using SSL
-               obj.use_ssl_ = true;
+               // Connect to the address that the resolver provided us
+               BOOST_ASIO_CORO_YIELD
+               asio::async_connect(
+                  obj.stream_.next_layer(),
+                  std::move(resolver_results),
+                  asio::cancel_after(obj.timer_, cfg->connect_timeout, std::move(self)));
+
+               // Note: logging is performed in the specialized operator() function.
+               // If this failed, we can't continue
+               if (ec) {
+                  self.complete(ec == asio::error::operation_aborted ? error::connect_timeout : ec);
+                  return;
+               }
+
+               if (cfg->use_ssl) {
+                  // Mark the SSL stream as used
+                  obj.ssl_stream_used_ = true;
+
+                  // If we were configured to use TLS, perform the handshake
+                  BOOST_ASIO_CORO_YIELD
+                  obj.stream_.async_handshake(
+                     asio::ssl::stream_base::client,
+                     asio::cancel_after(obj.timer_, cfg->ssl_handshake_timeout, std::move(self)));
+
+                  lgr.on_ssl_handshake(ec);
+
+                  // If this failed, we can't continue
+                  if (ec) {
+                     self.complete(
+                        ec == asio::error::operation_aborted ? error::ssl_handshake_timeout : ec);
+                     return;
+                  }
+               }
             }
 
             // Done
@@ -139,7 +176,10 @@ public:
    : ssl_ctx_{std::move(ssl_ctx)}
    , resolv_{ex}
    , timer_{ex}
-   , stream_{std::move(ex), ssl_ctx_}
+   , stream_{ex, ssl_ctx_}
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+   , unix_socket_{std::move(ex)}
+#endif
    { }
 
    // Executor. Required to satisfy the AsyncStream concept
@@ -161,25 +201,56 @@ public:
          token);
    }
 
+   // These functions should only be used with callbacks (e.g. within async_compose function bodies)
    template <class ConstBufferSequence, class CompletionToken>
-   auto async_write_some(const ConstBufferSequence& buffers, CompletionToken&& token)
+   void async_write_some(const ConstBufferSequence& buffers, CompletionToken&& token)
    {
-      if (use_ssl_) {
-         return stream_.async_write_some(buffers, std::forward<CompletionToken>(token));
-      } else {
-         return stream_.next_layer().async_write_some(
-            buffers,
-            std::forward<CompletionToken>(token));
+      switch (transport_) {
+         case transport_type::tcp:
+         {
+            stream_.next_layer().async_write_some(buffers, std::forward<CompletionToken>(token));
+            break;
+         }
+         case transport_type::tcp_tls:
+         {
+            stream_.async_write_some(buffers, std::forward<CompletionToken>(token));
+            break;
+         }
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+         case transport_type::unix_socket:
+         {
+            unix_socket_.async_write_some(buffers, std::forward<CompletionToken>(token));
+            break;
+         }
+#endif
+         default: BOOST_ASSERT(false);
       }
    }
 
    template <class MutableBufferSequence, class CompletionToken>
-   auto async_read_some(const MutableBufferSequence& buffers, CompletionToken&& token)
+   void async_read_some(const MutableBufferSequence& buffers, CompletionToken&& token)
    {
-      if (use_ssl_) {
-         return stream_.async_read_some(buffers, std::forward<CompletionToken>(token));
-      } else {
-         return stream_.next_layer().async_read_some(buffers, std::forward<CompletionToken>(token));
+      switch (transport_) {
+         case transport_type::tcp:
+         {
+            return stream_.next_layer().async_read_some(
+               buffers,
+               std::forward<CompletionToken>(token));
+            break;
+         }
+         case transport_type::tcp_tls:
+         {
+            return stream_.async_read_some(buffers, std::forward<CompletionToken>(token));
+            break;
+         }
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+         case transport_type::unix_socket:
+         {
+            unix_socket_.async_read_some(buffers, std::forward<CompletionToken>(token));
+            break;
+         }
+#endif
+         default: BOOST_ASSERT(false);
       }
    }
 
@@ -188,10 +259,13 @@ public:
 
    void close()
    {
-      if (stream_.next_layer().is_open()) {
-         system::error_code ec;
+      system::error_code ec;
+      if (stream_.next_layer().is_open())
          stream_.next_layer().close(ec);
-      }
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+      if (unix_socket_.is_open())
+         unix_socket_.close();
+#endif
    }
 };
 

@@ -88,6 +88,9 @@ public:
     *  @param ep Endpoint to which the connection connected.
     */
    void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+   void on_connect(system::error_code const& ec, std::string_view unix_socket_ep);
+#endif
 
    /** @brief Called when the ssl handshake operation completes.
     *  @ingroup high-level-api
@@ -129,6 +132,7 @@ public:
 
    void trace(std::string_view message);
    void trace(std::string_view op, system::error_code const& ec);
+   void log_error(std::string_view op, system::error_code const& ec);
 
 private:
    void write_prefix();

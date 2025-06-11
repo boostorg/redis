@@ -34,6 +34,11 @@ struct config {
    /// Address of the Redis server.
    address addr = address{"127.0.0.1", "6379"};
 
+   /// The UNIX socket path where the server is listening. If non-empty,
+   /// communication with the server will happen using UNIX sockets, and addr will be ignored.
+   /// UNIX sockets can't be used with SSL: if non-empty, use_ssl must be false.
+   std::string unix_socket;
+
    /** @brief Username passed to the
     * [HELLO](https://redis.io/commands/hello/) command.  If left
     * empty `HELLO` will be sent without authentication parameters.
