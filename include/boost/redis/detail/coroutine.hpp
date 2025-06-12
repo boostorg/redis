@@ -25,7 +25,7 @@
 #define BOOST_REDIS_YIELD(resume_point_var, resume_point_id, ...) \
    {                                                              \
       resume_point_var = resume_point_id;                         \
-      return __VA_ARGS__;                                         \
+      return {__VA_ARGS__};                                       \
       case resume_point_id:                                       \
       {                                                           \
       }                                                           \

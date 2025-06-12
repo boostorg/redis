@@ -15,6 +15,7 @@
 #include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/resp3_handshaker.hpp>
 #include <boost/redis/error.hpp>
@@ -217,74 +218,49 @@ struct reader_op {
    static constexpr std::size_t buffer_growth_hint = 4096;
 
    Conn* conn_;
-   std::pair<tribool, std::size_t> res_{std::make_pair(std::nullopt, 0)};
-   asio::coroutine coro{};
+   detail::reader_fsm fsm_;
+
+public:
+   reader_op(Conn& conn) noexcept
+   : conn_{&conn}
+   , fsm_{conn.mpx_}
+   { }
 
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
-      BOOST_ASIO_CORO_REENTER(coro) for (;;)
-      {
-         // Appends some data to the buffer if necessary.
-         BOOST_ASIO_CORO_YIELD
-         async_append_some(
-            conn_->stream_,
-            dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
-            conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
-            std::move(self));
+      using dyn_buffer_type = asio::dynamic_string_buffer<
+         char,
+         std::char_traits<char>,
+         std::allocator<char>>;
 
-         conn_->logger_.on_read(ec, n);
+      for (;;) {
+         auto act = fsm_.resume(n, ec, self.get_cancellation_state().cancelled());
 
-         // The connection is not viable after an error.
-         if (ec) {
-            conn_->logger_.trace("reader_op (1)", ec);
-            conn_->cancel(operation::run);
-            self.complete(ec);
-            return;
-         }
+         conn_->logger_.on_fsm_resume(act);
 
-         // The connection might have been canceled while this op was
-         // suspended or after queueing so we have to check.
-         if (!conn_->is_open()) {
-            conn_->logger_.trace("reader_op (2): connection is closed.");
-            self.complete(ec);
-            return;
-         }
-
-         while (!conn_->mpx_.get_read_buffer().empty()) {
-            res_ = conn_->mpx_.consume_next(ec);
-
-            if (ec) {
-               conn_->logger_.trace("reader_op (3)", ec);
-               conn_->cancel(operation::run);
-               self.complete(ec);
+         switch (act.type_) {
+            case reader_fsm::action::type::setup_cancellation:
+               self.reset_cancellation_state(asio::enable_terminal_cancellation());
+               continue;
+            case reader_fsm::action::type::needs_more:
+            case reader_fsm::action::type::append_some:
+               async_append_some(
+                  conn_->stream_,
+                  dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
+                  conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
+                  std::move(self));
                return;
-            }
-
-            if (!res_.first.has_value()) {
-               // More data is needed.
-               break;
-            }
-
-            if (res_.first.value()) {
-               if (!conn_->receive_channel_.try_send(ec, res_.second)) {
-                  BOOST_ASIO_CORO_YIELD
-                  conn_->receive_channel_.async_send(ec, res_.second, std::move(self));
-               }
-
-               if (ec) {
-                  conn_->logger_.trace("reader_op (4)", ec);
-                  conn_->cancel(operation::run);
-                  self.complete(ec);
+            case reader_fsm::action::type::notify_push_receiver:
+               if (conn_->receive_channel_.try_send(ec, act.push_size_)) {
+                  continue;
+               } else {
+                  conn_->receive_channel_.async_send(ec, act.push_size_, std::move(self));
                   return;
                }
-
-               if (!conn_->is_open()) {
-                  conn_->logger_.trace("reader_op (5): connection is closed.");
-                  self.complete(asio::error::operation_aborted);
-                  return;
-               }
-            }
+               return;
+            case reader_fsm::action::type::cancel_run: conn_->cancel(operation::run); continue;
+            case reader_fsm::action::type::done:       self.complete(act.ec_); return;
          }
       }
    }
@@ -844,7 +820,7 @@ private:
    auto reader(CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::reader_op<this_type>{this},
+         detail::reader_op<this_type>{*this},
          std::forward<CompletionToken>(token),
          writer_timer_);
    }
