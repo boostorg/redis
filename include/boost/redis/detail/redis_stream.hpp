@@ -35,18 +35,18 @@ enum class transport_type
 {
    tcp,          // plaintext TCP
    tcp_tls,      // TLS over TCP
-   unix_socket,  // UNIX sockets
+   unix_socket,  // UNIX domain sockets
 };
 
 template <class Executor>
 class redis_stream {
    asio::ssl::context ssl_ctx_;
    asio::ip::basic_resolver<asio::ip::tcp, Executor> resolv_;
-   typename asio::steady_timer::template rebind_executor<Executor>::other timer_;
    asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>> stream_;
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
    asio::basic_stream_socket<asio::local::stream_protocol, Executor> unix_socket_;
 #endif
+   typename asio::steady_timer::template rebind_executor<Executor>::other timer_;
 
    transport_type transport_{transport_type::tcp};
    bool ssl_stream_used_{false};
@@ -183,11 +183,11 @@ public:
    explicit redis_stream(Executor ex, asio::ssl::context&& ssl_ctx)
    : ssl_ctx_{std::move(ssl_ctx)}
    , resolv_{ex}
-   , timer_{ex}
    , stream_{ex, ssl_ctx_}
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
-   , unix_socket_{std::move(ex)}
+   , unix_socket_{ex}
 #endif
+   , timer_{std::move(ex)}
    { }
 
    // Executor. Required to satisfy the AsyncStream concept
