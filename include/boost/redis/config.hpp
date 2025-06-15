@@ -7,6 +7,8 @@
 #ifndef BOOST_REDIS_CONFIG_HPP
 #define BOOST_REDIS_CONFIG_HPP
 
+#include <boost/config.hpp>
+
 #include <chrono>
 #include <limits>
 #include <optional>
@@ -56,6 +58,10 @@ struct config {
    std::string health_check_id = "Boost.Redis";
 
    /// Logger prefix, see `boost::redis::logger`.
+   BOOST_DEPRECATED(
+      "Setting the logger prefix should be done by creating a logger using "
+      "boost::redis::make_clog_logger or constructing a logger object with a user-supplied "
+      "function. This member is deprecated and will be removed in subsequent releases.")
    std::string log_prefix = "(Boost.Redis) ";
 
    /// Time the resolve operation is allowed to last.
