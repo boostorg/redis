@@ -134,27 +134,6 @@ void test_switch_between_transports()
    auto unix_cfg = make_test_config();
    unix_cfg.unix_socket = unix_socket_path;
 
-   auto on_exec_1 = [&](error_code ec, std::size_t) {
-      std::cout << "Exec 1 finished\n";
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_EQ(std::get<0>(res1).value(), "hello");
-      conn.cancel();
-   };
-
-   auto on_exec_2 = [&](error_code ec, std::size_t) {
-      std::cout << "Exec 2 finished\n";
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_EQ(std::get<0>(res2).value(), "hello");
-      conn.cancel();
-   };
-
-   auto on_exec_3 = [&](error_code ec, std::size_t) {
-      std::cout << "Exec 3 finished\n";
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_EQ(std::get<0>(res3).value(), "hello");
-      conn.cancel();
-   };
-
    // After the last TCP/TLS run, exit
    auto on_run_tls_2 = [&](error_code ec) {
       finished = true;
@@ -169,7 +148,12 @@ void test_switch_between_transports()
 
       // Change to using TCP with TLS again
       conn.async_run(unix_cfg, {}, on_run_tls_2);
-      conn.async_exec(req, res3, on_exec_3);
+      conn.async_exec(req, res3, [&](error_code ec, std::size_t) {
+         std::cout << "Exec 3 finished\n";
+         BOOST_TEST_EQ(ec, error_code());
+         BOOST_TEST_EQ(std::get<0>(res3).value(), "hello");
+         conn.cancel();
+      });
    };
 
    // After TCP/TLS, change to UNIX sockets
@@ -178,12 +162,22 @@ void test_switch_between_transports()
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
 
       conn.async_run(unix_cfg, {}, on_run_unix);
-      conn.async_exec(req, res2, on_exec_2);
+      conn.async_exec(req, res2, [&](error_code ec, std::size_t) {
+         std::cout << "Exec 2 finished\n";
+         BOOST_TEST_EQ(ec, error_code());
+         BOOST_TEST_EQ(std::get<0>(res2).value(), "hello");
+         conn.cancel();
+      });
    };
 
    // Start with TCP/TLS
    conn.async_run(tcp_tls_cfg, {}, on_run_tls_1);
-   conn.async_exec(req, res1, on_exec_1);
+   conn.async_exec(req, res1, [&](error_code ec, std::size_t) {
+      std::cout << "Exec 1 finished\n";
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(res1).value(), "hello");
+      conn.cancel();
+   });
 
    // Run the test
    ioc.run_for(test_timeout);
