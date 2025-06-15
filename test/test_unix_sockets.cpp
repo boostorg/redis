@@ -15,6 +15,7 @@
 #include "common.hpp"
 
 #include <cstddef>
+#include <iostream>
 #include <string>
 #include <string_view>
 
@@ -114,7 +115,81 @@ void test_reconnection()
    BOOST_TEST(run_finished);
 }
 
-// switch
+// We can freely switch between UNIX sockets and other transports
+void test_switch_between_transports()
+{
+   // Setup
+   net::io_context ioc;
+   net::steady_timer timer{ioc};
+   connection conn{ioc};
+   request req;
+   response<std::string> res1, res2, res3;
+   req.push("PING", "hello");
+   bool finished = false;
+
+   // Create configurations for TLS and UNIX connections
+   auto tcp_tls_cfg = make_test_config();
+   tcp_tls_cfg.use_ssl = true;
+   tcp_tls_cfg.addr.port = "6380";
+   auto unix_cfg = make_test_config();
+   unix_cfg.unix_socket = unix_socket_path;
+
+   auto on_exec_1 = [&](error_code ec, std::size_t) {
+      std::cout << "Exec 1 finished\n";
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(res1).value(), "hello");
+      conn.cancel();
+   };
+
+   auto on_exec_2 = [&](error_code ec, std::size_t) {
+      std::cout << "Exec 2 finished\n";
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(res2).value(), "hello");
+      conn.cancel();
+   };
+
+   auto on_exec_3 = [&](error_code ec, std::size_t) {
+      std::cout << "Exec 3 finished\n";
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(res3).value(), "hello");
+      conn.cancel();
+   };
+
+   // After the last TCP/TLS run, exit
+   auto on_run_tls_2 = [&](error_code ec) {
+      finished = true;
+      std::cout << "Run (TCP/TLS 2) finished\n";
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   };
+
+   // After UNIX sockets, switch back to TCP/tLS
+   auto on_run_unix = [&](error_code ec) {
+      std::cout << "Run (UNIX) finished\n";
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+
+      // Change to using TCP with TLS again
+      conn.async_run(unix_cfg, {}, on_run_tls_2);
+      conn.async_exec(req, res3, on_exec_3);
+   };
+
+   // After TCP/TLS, change to UNIX sockets
+   auto on_run_tls_1 = [&](error_code ec) {
+      std::cout << "Run (TCP/TLS 1) finished\n";
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+
+      conn.async_run(unix_cfg, {}, on_run_unix);
+      conn.async_exec(req, res2, on_exec_2);
+   };
+
+   // Start with TCP/TLS
+   conn.async_run(tcp_tls_cfg, {}, on_run_tls_1);
+   conn.async_exec(req, res1, on_exec_1);
+
+   // Run the test
+   ioc.run_for(test_timeout);
+   BOOST_TEST(finished);
+}
+
 // invalid config: tls
 // invalid config: not supported
 
@@ -124,6 +199,7 @@ int main()
 {
    test_exec();
    test_reconnection();
+   test_switch_between_transports();
 
    return boost::report_errors();
 }
