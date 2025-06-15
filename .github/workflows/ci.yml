@@ -197,8 +197,8 @@ jobs:
             cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
             ldflags: '-fsanitize=address -fsanitize=undefined'
 
-          - toolset: gcc-13
-            install: 'g++-13'
+          - toolset: gcc-14
+            install: 'g++-14'
             container: ubuntu:24.04
             cxxstd: '23'
             build-type: 'Debug'
