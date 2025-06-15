@@ -42,7 +42,7 @@ inline void format_error_code(system::error_code ec, std::string& to)
 
 boost::redis::logger boost::redis::make_clog_logger(logger::level lvl, std::string prefix)
 {
-   return logger(lvl, [prefix = std::move(prefix)](std::string_view msg_) {
+   return logger(lvl, [prefix = std::move(prefix)](logger::level, std::string_view msg_) {
       std::clog << prefix << msg_ << std::endl;
    });
 }
@@ -72,7 +72,7 @@ void boost::redis::detail::connection_logger::on_resolve(
       }
    }
 
-   logger_.fn(msg_);
+   logger_.fn(logger::level::info, msg_);
 }
 
 void boost::redis::detail::connection_logger::on_connect(
@@ -90,7 +90,7 @@ void boost::redis::detail::connection_logger::on_connect(
       format_tcp_endpoint(ep, msg_);
    }
 
-   logger_.fn(msg_);
+   logger_.fn(logger::level::info, msg_);
 }
 
 void boost::redis::detail::connection_logger::on_ssl_handshake(system::error_code const& ec)
@@ -101,7 +101,7 @@ void boost::redis::detail::connection_logger::on_ssl_handshake(system::error_cod
    msg_ = "SSL handshake: ";
    format_error_code(ec, msg_);
 
-   logger_.fn(msg_);
+   logger_.fn(logger::level::info, msg_);
 }
 
 void boost::redis::detail::connection_logger::on_write(system::error_code const& ec, std::size_t n)
@@ -117,7 +117,7 @@ void boost::redis::detail::connection_logger::on_write(system::error_code const&
       msg_ += " bytes written.";
    }
 
-   logger_.fn(msg_);
+   logger_.fn(logger::level::info, msg_);
 }
 
 void boost::redis::detail::connection_logger::on_read(system::error_code const& ec, std::size_t n)
@@ -133,7 +133,7 @@ void boost::redis::detail::connection_logger::on_read(system::error_code const& 
       msg_ += " bytes read.";
    }
 
-   logger_.fn(msg_);
+   logger_.fn(logger::level::info, msg_);
 }
 
 void boost::redis::detail::connection_logger::on_hello(
@@ -155,14 +155,14 @@ void boost::redis::detail::connection_logger::on_hello(
       msg_ += "success";
    }
 
-   logger_.fn(msg_);
+   logger_.fn(logger::level::info, msg_);
 }
 
 void boost::redis::detail::connection_logger::trace(std::string_view message)
 {
    if (logger_.lvl < logger::level::debug)
       return;
-   logger_.fn(message);
+   logger_.fn(logger::level::debug, message);
 }
 
 void boost::redis::detail::connection_logger::trace(
@@ -176,5 +176,5 @@ void boost::redis::detail::connection_logger::trace(
    msg_ += ": ";
    format_error_code(ec, msg_);
 
-   logger_.fn(msg_);
+   logger_.fn(logger::level::debug, msg_);
 }

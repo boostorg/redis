@@ -66,13 +66,13 @@ struct logger {
     *
     *  @param l Log level.
     */
-   logger(level l = level::debug, std::function<void(std::string_view)> fn = {})
+   logger(level l = level::debug, std::function<void(level, std::string_view)> fn = {})
    : lvl{l}
    , fn{std::move(fn)}
    { }
 
    level lvl;
-   std::function<void(std::string_view)> fn;
+   std::function<void(level, std::string_view)> fn;
 };
 
 /// Creates a logger that logs messages to std::clog, prefixed by prefix.
