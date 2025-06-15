@@ -147,7 +147,8 @@ BOOST_AUTO_TEST_CASE(reconnection)
    net::io_context ioc;
    net::steady_timer timer{ioc};
    connection conn{ioc};
-   auto const cfg = make_tls_config();
+   auto cfg = make_tls_config();
+   cfg.reconnect_wait_interval = 10ms;  // make the test run faster
 
    request ping_request;
    ping_request.push("PING", "some_value");
