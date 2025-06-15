@@ -28,9 +28,9 @@ using boost::redis::connection;
 
 auto co_main(config cfg) -> asio::awaitable<void>
 {
-   // If unix_socket is set to a non-empty string, UNIX sockets will be used
+   // If unix_socket is set to a non-empty string, UNIX domain sockets will be used
    // instead of TCP. Set this value to the path where your server is listening.
-   // UNIX connections work in the same way as TCP connections.
+   // UNIX domain socket connections work in the same way as TCP connections.
    cfg.unix_socket = "/tmp/redis-socks/redis.sock";
 
    auto conn = std::make_shared<connection>(co_await asio::this_coro::executor);
@@ -51,7 +51,7 @@ auto co_main(config cfg) -> asio::awaitable<void>
 
 auto co_main(config) -> asio::awaitable<void>
 {
-   std::cout << "Sorry, your system does not support UNIX sockets\n";
+   std::cout << "Sorry, your system does not support UNIX domain sockets\n";
    co_return;
 }
 
