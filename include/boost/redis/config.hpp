@@ -36,7 +36,7 @@ struct config {
 
    /// The UNIX socket path where the server is listening. If non-empty,
    /// communication with the server will happen using UNIX sockets, and addr will be ignored.
-   /// UNIX sockets can't be used with SSL: if non-empty, use_ssl must be false.
+   /// UNIX sockets can't be used with SSL: if `unix_socket` is non-empty, `use_ssl` must be false.
    std::string unix_socket;
 
    /** @brief Username passed to the
