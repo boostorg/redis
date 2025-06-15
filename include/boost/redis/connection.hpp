@@ -176,10 +176,9 @@ EXEC_OP_WAIT:
    }
 };
 
-template <class Conn, class Logger>
+template <class Conn>
 struct writer_op {
    Conn* conn_;
-   Logger logger_;
    asio::coroutine coro{};
 
    template <class Self>
@@ -196,10 +195,10 @@ struct writer_op {
                asio::buffer(conn_->mpx_.get_write_buffer()),
                std::move(self));
 
-            logger_.on_write(ec, conn_->mpx_.get_write_buffer());
+            log_write(conn_->logger_, ec, conn_->mpx_.get_write_buffer());
 
             if (ec) {
-               logger_.trace("writer_op (1)", ec);
+               trace(conn_->logger_, "writer_op (1)", ec);
                conn_->cancel(operation::run);
                self.complete(ec);
                return;
@@ -211,7 +210,7 @@ struct writer_op {
             // successful write might had already been queued, so we
             // have to check here before proceeding.
             if (!conn_->is_open()) {
-               logger_.trace("writer_op (2): connection is closed.");
+               trace(conn_->logger_, "writer_op (2): connection is closed.");
                self.complete({});
                return;
             }
@@ -220,7 +219,7 @@ struct writer_op {
          BOOST_ASIO_CORO_YIELD
          conn_->writer_timer_.async_wait(std::move(self));
          if (!conn_->is_open()) {
-            logger_.trace("writer_op (3): connection is closed.");
+            trace(conn_->logger_, "writer_op (3): connection is closed.");
             // Notice this is not an error of the op, stoping was
             // requested from the outside, so we complete with
             // success.
@@ -231,7 +230,7 @@ struct writer_op {
    }
 };
 
-template <class Conn, class Logger>
+template <class Conn>
 struct reader_op {
    using dyn_buffer_type = asio::dynamic_string_buffer<
       char,
@@ -242,7 +241,6 @@ struct reader_op {
    static constexpr std::size_t buffer_growth_hint = 4096;
 
    Conn* conn_;
-   Logger logger_;
    std::pair<tribool, std::size_t> res_{std::make_pair(std::nullopt, 0)};
    asio::coroutine coro{};
 
@@ -259,11 +257,11 @@ struct reader_op {
             conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
             std::move(self));
 
-         logger_.on_read(ec, n);
+         log_read(conn_->logger_, ec, n);
 
          // The connection is not viable after an error.
          if (ec) {
-            logger_.trace("reader_op (1)", ec);
+            trace(conn_->logger_, "reader_op (1)", ec);
             conn_->cancel(operation::run);
             self.complete(ec);
             return;
@@ -272,7 +270,7 @@ struct reader_op {
          // The connection might have been canceled while this op was
          // suspended or after queueing so we have to check.
          if (!conn_->is_open()) {
-            logger_.trace("reader_op (2): connection is closed.");
+            trace(conn_->logger_, "reader_op (2): connection is closed.");
             self.complete(ec);
             return;
          }
@@ -281,7 +279,7 @@ struct reader_op {
             res_ = conn_->mpx_.consume_next(ec);
 
             if (ec) {
-               logger_.trace("reader_op (3)", ec);
+               trace(conn_->logger_, "reader_op (3)", ec);
                conn_->cancel(operation::run);
                self.complete(ec);
                return;
@@ -299,14 +297,14 @@ struct reader_op {
                }
 
                if (ec) {
-                  logger_.trace("reader_op (4)", ec);
+                  trace(conn_->logger_, "reader_op (4)", ec);
                   conn_->cancel(operation::run);
                   self.complete(ec);
                   return;
                }
 
                if (!conn_->is_open()) {
-                  logger_.trace("reader_op (5): connection is closed.");
+                  trace(conn_->logger_, "reader_op (5): connection is closed.");
                   self.complete(asio::error::operation_aborted);
                   return;
                }
@@ -316,19 +314,17 @@ struct reader_op {
    }
 };
 
-template <class Conn, class Logger>
+template <class Conn>
 class run_op {
 private:
    Conn* conn_ = nullptr;
-   Logger logger_;
    asio::coroutine coro_{};
 
    using order_t = std::array<std::size_t, 5>;
 
 public:
-   run_op(Conn* conn, Logger l)
+   run_op(Conn* conn)
    : conn_{conn}
-   , logger_{l}
    { }
 
    template <class Self>
@@ -351,7 +347,7 @@ public:
       {
          // Try to connect
          BOOST_ASIO_CORO_YIELD
-         conn_->stream_.async_connect(&conn_->cfg_, logger_, std::move(self));
+         conn_->stream_.async_connect(&conn_->cfg_, &conn_->logger_, std::move(self));
 
          // If we failed, try again
          if (ec0) {
@@ -367,19 +363,19 @@ public:
          BOOST_ASIO_CORO_YIELD
          asio::experimental::make_parallel_group(
             [this](auto token) {
-               return conn_->handshaker_.async_hello(*conn_, logger_, token);
+               return conn_->handshaker_.async_hello(*conn_, token);
             },
             [this](auto token) {
-               return conn_->health_checker_.async_ping(*conn_, logger_, token);
+               return conn_->health_checker_.async_ping(*conn_, token);
             },
             [this](auto token) {
-               return conn_->health_checker_.async_check_timeout(*conn_, logger_, token);
+               return conn_->health_checker_.async_check_timeout(*conn_, token);
             },
             [this](auto token) {
-               return conn_->reader(logger_, token);
+               return conn_->reader(token);
             },
             [this](auto token) {
-               return conn_->writer(logger_, token);
+               return conn_->writer(token);
             })
             .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
 
@@ -516,18 +512,17 @@ public:
     *  For example on how to call this function refer to
     *  cpp20_intro.cpp or any other example.
     */
-   template <
-      class Logger = logger,
-      class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto async_run(config const& cfg = {}, Logger l = Logger{}, CompletionToken&& token = {})
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto async_run(config const& cfg = {}, logger l = {}, CompletionToken&& token = {})
    {
       cfg_ = cfg;
       health_checker_.set_config(cfg);
       handshaker_.set_config(cfg);
-      l.set_prefix(cfg.log_prefix);
+      detail::fix_default_logger(l, cfg.log_prefix);
+      logger_ = std::move(l);
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::run_op<this_type, Logger>{this, l},
+         detail::run_op<this_type>{this},
          token,
          writer_timer_);
    }
@@ -746,25 +741,28 @@ private:
       mpx_.cancel_on_conn_lost();
    }
 
-   template <class, class> friend struct detail::reader_op;
-   template <class, class> friend struct detail::writer_op;
+   template <class> friend struct detail::reader_op;
+   template <class> friend struct detail::writer_op;
    template <class> friend struct detail::exec_op;
-   template <class, class> friend class detail::run_op;
+   template <class, class> friend struct detail::hello_op;
+   template <class, class> friend class detail::ping_op;
+   template <class> friend class detail::run_op;
+   template <class, class> friend class detail::check_timeout_op;
 
-   template <class CompletionToken, class Logger>
-   auto reader(Logger l, CompletionToken&& token)
+   template <class CompletionToken>
+   auto reader(CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::reader_op<this_type, Logger>{this, l},
+         detail::reader_op<this_type>{this},
          std::forward<CompletionToken>(token),
          writer_timer_);
    }
 
-   template <class CompletionToken, class Logger>
-   auto writer(Logger l, CompletionToken&& token)
+   template <class CompletionToken>
+   auto writer(CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::writer_op<this_type, Logger>{this, l},
+         detail::writer_op<this_type>{this},
          std::forward<CompletionToken>(token),
          writer_timer_);
    }
@@ -786,6 +784,7 @@ private:
 
    config cfg_;
    detail::multiplexer mpx_;
+   logger logger_{};
 };
 
 /** \brief A basic_connection that type erases the executor.

@@ -9,6 +9,7 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/error.hpp>
+#include <boost/redis/logger.hpp>
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/cancel_after.hpp>
@@ -22,8 +23,6 @@
 #include <boost/asio/ssl/stream_base.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
-
-#include "boost/system/detail/error_code.hpp"
 
 #include <utility>
 
@@ -42,11 +41,10 @@ class redis_stream {
 
    void reset_stream() { stream_ = {resolv_.get_executor(), ssl_ctx_}; }
 
-   template <class Logger>
    struct connect_op {
       redis_stream& obj;
       const config* cfg;
-      Logger lgr;
+      const logger* lgr;
       asio::coroutine coro{};
 
       // This overload will be used for connects. We only need the endpoint
@@ -57,7 +55,7 @@ class redis_stream {
          system::error_code ec,
          const asio::ip::tcp::endpoint& selected_endpoint)
       {
-         lgr.on_connect(ec, selected_endpoint);
+         log_connect(*lgr, ec, selected_endpoint);
          (*this)(self, ec);
       }
 
@@ -83,7 +81,7 @@ class redis_stream {
                asio::cancel_after(obj.timer_, cfg->resolve_timeout, std::move(self)));
 
             // Log it
-            lgr.on_resolve(ec, resolver_results);
+            log_resolve(*lgr, ec, resolver_results);
 
             // If this failed, we can't continue
             if (ec) {
@@ -115,7 +113,7 @@ class redis_stream {
                   asio::ssl::stream_base::client,
                   asio::cancel_after(obj.timer_, cfg->ssl_handshake_timeout, std::move(self)));
 
-               lgr.on_ssl_handshake(ec);
+               log_ssl_handshake(*lgr, ec);
 
                // If this failed, we can't continue
                if (ec) {
@@ -153,11 +151,11 @@ public:
    const auto& next_layer() const { return stream_; }
 
    // I/O
-   template <class Logger, class CompletionToken>
-   auto async_connect(const config* cfg, Logger l, CompletionToken&& token)
+   template <class CompletionToken>
+   auto async_connect(const config* cfg, const logger* l, CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         connect_op<Logger>{*this, cfg, l},
+         connect_op{*this, cfg, l},
          token);
    }
 

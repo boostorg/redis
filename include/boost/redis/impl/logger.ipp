@@ -6,140 +6,173 @@
 
 #include <boost/redis/logger.hpp>
 
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <iostream>
-#include <iterator>
+#include <string>
 
 namespace boost::redis {
 
-void logger::write_prefix()
+void detail::fix_default_logger(logger& l, std::string_view prefix)
 {
-   if (!std::empty(prefix_))
-      std::clog << prefix_;
+   if (!l.fn) {
+      l.fn = [owning_prefix = std::string(prefix)](std::string_view msg) {
+         std::clog << owning_prefix << msg << std::endl;
+      };
+   }
 }
 
-void logger::on_resolve(
+namespace detail {
+
+inline void format_tcp_endpoint(const asio::ip::tcp::endpoint& ep, std::string& to)
+{
+   // This formatting is inspired by Asio's endpoint operator<<
+   const auto& addr = ep.address();
+   if (addr.is_v6())
+      to += '[';
+   to += addr.to_string();
+   if (addr.is_v6())
+      to += ']';
+   to += ':';
+   to += std::to_string(ep.port());  // TODO: we could probably use to_chars here
+}
+
+}  // namespace detail
+
+void detail::log_resolve(
+   const logger& l,
    system::error_code const& ec,
    asio::ip::tcp::resolver::results_type const& res)
 {
-   if (level_ < level::info)
+   if (l.lvl < log_level::info)
       return;
 
-   write_prefix();
-
-   std::clog << "resolve results: ";
+   // TODO: can we make this non-allocating?
+   std::string msg;
 
    if (ec) {
-      std::clog << ec.message() << std::endl;
+      msg += "Error resolving the server hostname: ";
+      msg += ec.what();
    } else {
-      auto begin = std::cbegin(res);
-      auto end = std::cend(res);
+      msg += "Resolve results: ";
+      auto iter = res.cbegin();
+      auto end = res.cend();
 
-      if (begin == end)
-         return;
-
-      std::clog << begin->endpoint();
-      for (auto iter = std::next(begin); iter != end; ++iter)
-         std::clog << ", " << iter->endpoint();
+      if (iter != end) {
+         format_tcp_endpoint(iter->endpoint(), msg);
+         ++iter;
+         for (; iter != end; ++iter) {
+            msg += ", ";
+            format_tcp_endpoint(iter->endpoint(), msg);
+         }
+      }
    }
 
-   std::clog << std::endl;
+   l.fn(msg);
 }
 
-void logger::on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep)
+void detail::log_connect(
+   const logger& l,
+   system::error_code const& ec,
+   asio::ip::tcp::endpoint const& ep)
 {
-   if (level_ < level::info)
+   if (l.lvl < log_level::info)
       return;
 
-   write_prefix();
-
-   std::clog << "connected to ";
-
-   if (ec)
-      std::clog << ec.message() << std::endl;
-   else
-      std::clog << ep;
-
-   std::clog << std::endl;
-}
-
-void logger::on_ssl_handshake(system::error_code const& ec)
-{
-   if (level_ < level::info)
-      return;
-
-   write_prefix();
-
-   std::clog << "SSL handshake: " << ec.message() << std::endl;
-}
-
-void logger::on_write(system::error_code const& ec, std::string_view payload)
-{
-   if (level_ < level::info)
-      return;
-
-   write_prefix();
-
-   if (ec)
-      std::clog << "writer_op: " << ec.message();
-   else
-      std::clog << "writer_op: " << std::size(payload) << " bytes written.";
-
-   std::clog << std::endl;
-}
-
-void logger::on_read(system::error_code const& ec, std::size_t n)
-{
-   if (level_ < level::info)
-      return;
-
-   write_prefix();
-
-   if (ec)
-      std::clog << "reader_op: " << ec.message();
-   else
-      std::clog << "reader_op: " << n << " bytes read.";
-
-   std::clog << std::endl;
-}
-
-void logger::on_hello(system::error_code const& ec, generic_response const& resp)
-{
-   if (level_ < level::info)
-      return;
-
-   write_prefix();
+   std::string msg;
 
    if (ec) {
-      std::clog << "hello_op: " << ec.message();
-      if (resp.has_error())
-         std::clog << " (" << resp.error().diagnostic << ")";
+      msg += "Failed connecting to the server: ";
+      msg += ec.what();
    } else {
-      std::clog << "hello_op: Success";
+      msg += "Connected to ";
+      format_tcp_endpoint(ep, msg);
    }
 
-   std::clog << std::endl;
+   l.fn(msg);
 }
 
-void logger::trace(std::string_view message)
+void detail::log_ssl_handshake(const logger& l, system::error_code const& ec)
 {
-   if (level_ < level::debug)
+   if (l.lvl < log_level::info)
       return;
 
-   write_prefix();
+   std::string msg{"SSL handshake: "};
+   msg += ec.what();
 
-   std::clog << message << std::endl;
+   l.fn(msg);
 }
 
-void logger::trace(std::string_view op, system::error_code const& ec)
+void detail::log_write(const logger& l, system::error_code const& ec, std::string_view payload)
 {
-   if (level_ < level::debug)
+   if (l.lvl < log_level::info)
       return;
 
-   write_prefix();
+   std::string msg{"writer_op: "};
+   if (ec) {
+      msg += ec.what();
+   } else {
+      msg += std::to_string(payload.size());
+      msg += " bytes written.";
+   }
 
-   std::clog << op << ": " << ec.message() << std::endl;
+   l.fn(msg);
+}
+
+void detail::log_read(const logger& l, system::error_code const& ec, std::size_t n)
+{
+   if (l.lvl < log_level::info)
+      return;
+
+   std::string msg{"reader_op: "};
+   if (ec) {
+      msg += ec.what();
+   } else {
+      msg += std::to_string(n);
+      msg += " bytes read.";
+   }
+
+   l.fn(msg);
+}
+
+void detail::log_hello(const logger& l, system::error_code const& ec, generic_response const& resp)
+{
+   if (l.lvl < log_level::info)
+      return;
+
+   std::string msg{"hello_op: "};
+   if (ec) {
+      msg += ec.what();
+      if (resp.has_error()) {
+         msg += " (";
+         msg += resp.error().diagnostic;
+         msg += ')';
+      }
+   } else {
+      msg += "success";
+   }
+
+   l.fn(msg);
+}
+
+void detail::trace(const logger& l, std::string_view message)
+{
+   if (l.lvl < log_level::debug)
+      return;
+   l.fn(message);
+}
+
+void detail::trace(const logger& l, std::string_view op, system::error_code const& ec)
+{
+   if (l.lvl < log_level::debug)
+      return;
+
+   std::string msg{op};
+   msg += ": ";
+   msg += ec.what();
+
+   l.fn(msg);
 }
 
 }  // namespace boost::redis
