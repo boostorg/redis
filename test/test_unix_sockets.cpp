@@ -69,7 +69,6 @@ void test_reconnection()
 {
    // Setup
    net::io_context ioc;
-   net::steady_timer timer{ioc};
    connection conn{ioc};
    auto cfg = make_test_config();
    cfg.unix_socket = unix_socket_path;
@@ -120,7 +119,6 @@ void test_switch_between_transports()
 {
    // Setup
    net::io_context ioc;
-   net::steady_timer timer{ioc};
    connection conn{ioc};
    request req;
    response<std::string> res1, res2, res3;
@@ -184,7 +182,30 @@ void test_switch_between_transports()
    BOOST_TEST(finished);
 }
 
-// invalid config: tls
+// Trying to enable TLS and UNIX sockets at the same time
+// is an error and makes async_run exit immediately
+void test_error_unix_tls()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   auto cfg = make_test_config();
+   cfg.use_ssl = true;
+   cfg.addr.port = "6380";
+   cfg.unix_socket = unix_socket_path;
+   bool finished = false;
+
+   // Run the connection
+   conn.async_run(cfg, {}, [&finished](error_code ec) {
+      BOOST_TEST_EQ(ec, error::unix_sockets_ssl_unsupported);
+      finished = true;
+   });
+
+   // Run the test
+   ioc.run_for(test_timeout);
+   BOOST_TEST(finished);
+}
+
 // invalid config: not supported
 
 }  // namespace
@@ -194,6 +215,7 @@ int main()
    test_exec();
    test_reconnection();
    test_switch_between_transports();
+   test_error_unix_tls();
 
    return boost::report_errors();
 }

@@ -308,6 +308,7 @@ private:
    Conn* conn_ = nullptr;
    Logger logger_;
    asio::coroutine coro_{};
+   system::error_code stored_ec_;
 
    using order_t = std::array<std::size_t, 5>;
 
@@ -339,8 +340,10 @@ public:
          ec0 = check_config(conn_->cfg_);
          if (ec0) {
             logger_.log_error("Invalid configuration", ec0);
+            stored_ec_ = ec0;
             BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
-            self.complete(ec0);
+            self.complete(stored_ec_);
+            return;
          }
 
          for (;;) {
