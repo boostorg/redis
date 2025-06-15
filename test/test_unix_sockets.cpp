@@ -63,7 +63,57 @@ void test_exec()
    BOOST_TEST_EQ(std::get<0>(res).value(), "unix"sv);
 }
 
-// reconnect
+// If the connection is lost when using a UNIX socket, we can reconnect
+void test_reconnection()
+{
+   // Setup
+   net::io_context ioc;
+   net::steady_timer timer{ioc};
+   connection conn{ioc};
+   auto cfg = make_test_config();
+   cfg.unix_socket = unix_socket_path;
+   cfg.reconnect_wait_interval = 10ms;  // make the test run faster
+
+   request ping_request;
+   ping_request.push("PING", "some_value");
+
+   request quit_request;
+   quit_request.push("QUIT");
+
+   bool exec_finished = false, run_finished = false;
+
+   // Run the connection
+   conn.async_run(cfg, {}, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST(ec == net::error::operation_aborted);
+   });
+
+   // The PING is the end of the callback chain
+   auto ping_callback = [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST(ec == error_code());
+      conn.cancel();
+   };
+
+   auto quit_callback = [&](error_code ec, std::size_t) {
+      BOOST_TEST(ec == error_code());
+
+      // If a request is issued immediately after QUIT, the request sometimes
+      // fails, probably due to a race condition. This dispatches any pending
+      // handlers, triggering the reconnection process.
+      // TODO: this should not be required.
+      ioc.poll();
+      conn.async_exec(ping_request, ignore, ping_callback);
+   };
+
+   conn.async_exec(quit_request, ignore, quit_callback);
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+}
+
 // switch
 // invalid config: tls
 // invalid config: not supported
@@ -73,6 +123,7 @@ void test_exec()
 int main()
 {
    test_exec();
+   test_reconnection();
 
    return boost::report_errors();
 }
