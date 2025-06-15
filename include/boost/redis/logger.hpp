@@ -19,36 +19,6 @@
 
 namespace boost::redis {
 
-enum class log_level
-{
-   /// Disabled
-   disabled,
-
-   /// Emergency
-   emerg,
-
-   /// Alert
-   alert,
-
-   /// Critical
-   crit,
-
-   /// Error
-   err,
-
-   /// Warning
-   warning,
-
-   /// Notice
-   notice,
-
-   /// Info
-   info,
-
-   /// Debug
-   debug,
-};
-
 /** @brief Logger class
  *  @ingroup high-level-api
  *
@@ -59,8 +29,38 @@ enum class log_level
  *  with logger::level::emerg to the connection.
  */
 struct logger {
-   // Kept for compatibility. TODO: deprecate
-   using level = log_level;
+   /** @brief Syslog-like log levels
+    *  @ingroup high-level-api
+    */
+   enum class level
+   {
+      /// Disabled
+      disabled,
+
+      /// Emergency
+      emerg,
+
+      /// Alert
+      alert,
+
+      /// Critical
+      crit,
+
+      /// Error
+      err,
+
+      /// Warning
+      warning,
+
+      /// Notice
+      notice,
+
+      /// Info
+      info,
+
+      /// Debug
+      debug,
+   };
 
    /** @brief Constructor
     *  @ingroup high-level-api

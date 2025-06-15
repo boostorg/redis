@@ -43,7 +43,7 @@ void detail::log_resolve(
    system::error_code const& ec,
    asio::ip::tcp::resolver::results_type const& res)
 {
-   if (l.lvl < log_level::info)
+   if (l.lvl < logger::level::info)
       return;
 
    // TODO: can we make this non-allocating?
@@ -75,7 +75,7 @@ void detail::log_connect(
    system::error_code const& ec,
    asio::ip::tcp::endpoint const& ep)
 {
-   if (l.lvl < log_level::info)
+   if (l.lvl < logger::level::info)
       return;
 
    std::string msg;
@@ -93,7 +93,7 @@ void detail::log_connect(
 
 void detail::log_ssl_handshake(const logger& l, system::error_code const& ec)
 {
-   if (l.lvl < log_level::info)
+   if (l.lvl < logger::level::info)
       return;
 
    std::string msg{"SSL handshake: "};
@@ -104,7 +104,7 @@ void detail::log_ssl_handshake(const logger& l, system::error_code const& ec)
 
 void detail::log_write(const logger& l, system::error_code const& ec, std::string_view payload)
 {
-   if (l.lvl < log_level::info)
+   if (l.lvl < logger::level::info)
       return;
 
    std::string msg{"writer_op: "};
@@ -120,7 +120,7 @@ void detail::log_write(const logger& l, system::error_code const& ec, std::strin
 
 void detail::log_read(const logger& l, system::error_code const& ec, std::size_t n)
 {
-   if (l.lvl < log_level::info)
+   if (l.lvl < logger::level::info)
       return;
 
    std::string msg{"reader_op: "};
@@ -136,7 +136,7 @@ void detail::log_read(const logger& l, system::error_code const& ec, std::size_t
 
 void detail::log_hello(const logger& l, system::error_code const& ec, generic_response const& resp)
 {
-   if (l.lvl < log_level::info)
+   if (l.lvl < logger::level::info)
       return;
 
    std::string msg{"hello_op: "};
@@ -156,14 +156,14 @@ void detail::log_hello(const logger& l, system::error_code const& ec, generic_re
 
 void detail::trace(const logger& l, std::string_view message)
 {
-   if (l.lvl < log_level::debug)
+   if (l.lvl < logger::level::debug)
       return;
    l.fn(message);
 }
 
 void detail::trace(const logger& l, std::string_view op, system::error_code const& ec)
 {
-   if (l.lvl < log_level::debug)
+   if (l.lvl < logger::level::debug)
       return;
 
    std::string msg{op};
