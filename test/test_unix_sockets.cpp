@@ -4,23 +4,20 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/asio/local/basic_endpoint.hpp>
-
-#include <iostream>
-
-#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
-
 #include <boost/redis/connection.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
 #include <boost/asio/error.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/local/basic_endpoint.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
 #include "common.hpp"
 
 #include <cstddef>
+#include <iostream>
 #include <string>
 #include <string_view>
 
@@ -31,6 +28,8 @@ using namespace std::chrono_literals;
 using namespace std::string_view_literals;
 
 namespace {
+
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
 
 constexpr std::string_view unix_socket_path = "/tmp/redis-socks/redis.sock";
 
@@ -211,22 +210,44 @@ void test_error_unix_tls()
    BOOST_TEST(finished);
 }
 
-// invalid config: not supported
+#else
+
+// Trying to enable TLS and UNIX sockets at the same time
+// is an error and makes async_run exit immediately
+void test_unix_not_supported()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   auto cfg = make_test_config();
+   cfg.unix_socket = "/some/path.sock";
+   bool finished = false;
+
+   // Run the connection
+   conn.async_run(cfg, {}, [&finished](error_code ec) {
+      BOOST_TEST_EQ(ec, error::unix_sockets_unsupported);
+      finished = true;
+   });
+
+   // Run the test
+   ioc.run_for(test_timeout);
+   BOOST_TEST(finished);
+}
+
+#endif
 
 }  // namespace
 
 int main()
 {
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
    test_exec();
    test_reconnection();
    test_switch_between_transports();
    test_error_unix_tls();
+#else
+   test_unix_not_supported();
+#endif
 
    return boost::report_errors();
 }
-
-#else
-
-int main() { std::cout << "UNIX sockets are not supported\n"; }
-
-#endif
