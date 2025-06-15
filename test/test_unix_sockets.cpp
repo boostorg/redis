@@ -4,6 +4,12 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/asio/local/basic_endpoint.hpp>
+
+#include <iostream>
+
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+
 #include <boost/redis/connection.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
@@ -15,7 +21,6 @@
 #include "common.hpp"
 
 #include <cstddef>
-#include <iostream>
 #include <string>
 #include <string_view>
 
@@ -219,3 +224,9 @@ int main()
 
    return boost::report_errors();
 }
+
+#else
+
+int main() { std::cout << "UNIX sockets are not supported\n"; }
+
+#endif
