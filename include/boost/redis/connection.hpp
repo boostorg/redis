@@ -195,7 +195,7 @@ struct writer_op {
                asio::buffer(conn_->mpx_.get_write_buffer()),
                std::move(self));
 
-            conn_->logger_.on_write(ec, conn_->mpx_.get_write_buffer());
+            conn_->logger_.on_write(ec, conn_->mpx_.get_write_buffer().size());
 
             if (ec) {
                conn_->logger_.trace("writer_op (1)", ec);

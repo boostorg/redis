@@ -95,7 +95,7 @@ public:
    void on_resolve(system::error_code const& ec, asio::ip::tcp::resolver::results_type const& res);
    void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
    void on_ssl_handshake(system::error_code const& ec);
-   void on_write(system::error_code const& ec, std::string_view payload);
+   void on_write(system::error_code const& ec, std::size_t n);
    void on_read(system::error_code const& ec, std::size_t n);
    void on_hello(system::error_code const& ec, generic_response const& resp);
    void trace(std::string_view message);

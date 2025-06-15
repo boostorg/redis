@@ -54,13 +54,11 @@ void boost::redis::detail::connection_logger::on_resolve(
    if (logger_.lvl < logger::level::info)
       return;
 
-   msg_.clear();
-
    if (ec) {
-      msg_ += "Error resolving the server hostname: ";
+      msg_ = "Error resolving the server hostname: ";
       format_error_code(ec, msg_);
    } else {
-      msg_ += "Resolve results: ";
+      msg_ = "Resolve results: ";
       auto iter = res.cbegin();
       auto end = res.cend();
 
@@ -84,13 +82,11 @@ void boost::redis::detail::connection_logger::on_connect(
    if (logger_.lvl < logger::level::info)
       return;
 
-   msg_.clear();
-
    if (ec) {
-      msg_ += "Failed connecting to the server: ";
+      msg_ = "Failed connecting to the server: ";
       format_error_code(ec, msg_);
    } else {
-      msg_ += "Connected to ";
+      msg_ = "Connected to ";
       format_tcp_endpoint(ep, msg_);
    }
 
@@ -102,15 +98,13 @@ void boost::redis::detail::connection_logger::on_ssl_handshake(system::error_cod
    if (logger_.lvl < logger::level::info)
       return;
 
-   std::string msg_{"SSL handshake: "};
+   msg_ = "SSL handshake: ";
    format_error_code(ec, msg_);
 
    logger_.fn(msg_);
 }
 
-void boost::redis::detail::connection_logger::on_write(
-   system::error_code const& ec,
-   std::string_view payload)
+void boost::redis::detail::connection_logger::on_write(system::error_code const& ec, std::size_t n)
 {
    if (logger_.lvl < logger::level::info)
       return;
@@ -119,7 +113,7 @@ void boost::redis::detail::connection_logger::on_write(
    if (ec) {
       format_error_code(ec, msg_);
    } else {
-      msg_ += std::to_string(payload.size());
+      msg_ += std::to_string(n);
       msg_ += " bytes written.";
    }
 
