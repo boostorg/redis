@@ -44,7 +44,7 @@ class redis_stream {
    struct connect_op {
       redis_stream& obj;
       const config* cfg;
-      const logger* lgr;
+      connection_logger* lgr;
       asio::coroutine coro{};
 
       // This overload will be used for connects. We only need the endpoint
@@ -55,7 +55,7 @@ class redis_stream {
          system::error_code ec,
          const asio::ip::tcp::endpoint& selected_endpoint)
       {
-         log_connect(*lgr, ec, selected_endpoint);
+         lgr->on_connect(ec, selected_endpoint);
          (*this)(self, ec);
       }
 
@@ -81,7 +81,7 @@ class redis_stream {
                asio::cancel_after(obj.timer_, cfg->resolve_timeout, std::move(self)));
 
             // Log it
-            log_resolve(*lgr, ec, resolver_results);
+            lgr->on_resolve(ec, resolver_results);
 
             // If this failed, we can't continue
             if (ec) {
@@ -113,7 +113,7 @@ class redis_stream {
                   asio::ssl::stream_base::client,
                   asio::cancel_after(obj.timer_, cfg->ssl_handshake_timeout, std::move(self)));
 
-               log_ssl_handshake(*lgr, ec);
+               lgr->on_ssl_handshake(ec);
 
                // If this failed, we can't continue
                if (ec) {
@@ -152,7 +152,7 @@ public:
 
    // I/O
    template <class CompletionToken>
-   auto async_connect(const config* cfg, const logger* l, CompletionToken&& token)
+   auto async_connect(const config* cfg, connection_logger* l, CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          connect_op{*this, cfg, l},

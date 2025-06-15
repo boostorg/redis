@@ -10,7 +10,6 @@
 #include <boost/redis/response.hpp>
 
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/core/span.hpp>
 
 #include <cstddef>
 #include <functional>
@@ -82,18 +81,26 @@ logger make_clog_logger(logger::level lvl, std::string prefix);
 
 namespace detail {
 
-// Logging functions
-void log_resolve(
-   const logger& l,
-   system::error_code const& ec,
-   asio::ip::tcp::resolver::results_type const& res);
-void log_connect(const logger& l, system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
-void log_ssl_handshake(const logger& l, system::error_code const& ec);
-void log_write(const logger& l, system::error_code const& ec, std::string_view payload);
-void log_read(const logger& l, system::error_code const& ec, std::size_t n);
-void log_hello(const logger& l, system::error_code const& ec, generic_response const& resp);
-void trace(const logger& l, std::string_view message);
-void trace(const logger& l, std::string_view op, system::error_code const& ec);
+// Wraps a logger and a string buffer for re-use, and provides
+// utility functions to format the log messages that we use
+class connection_logger {
+   logger logger_;
+   std::string msg_;
+
+public:
+   connection_logger() = default;
+
+   void reset(logger&& logger) { logger_ = std::move(logger); }
+
+   void on_resolve(system::error_code const& ec, asio::ip::tcp::resolver::results_type const& res);
+   void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
+   void on_ssl_handshake(system::error_code const& ec);
+   void on_write(system::error_code const& ec, std::string_view payload);
+   void on_read(system::error_code const& ec, std::size_t n);
+   void on_hello(system::error_code const& ec, generic_response const& resp);
+   void trace(std::string_view message);
+   void trace(std::string_view op, system::error_code const& ec);
+};
 
 }  // namespace detail
 

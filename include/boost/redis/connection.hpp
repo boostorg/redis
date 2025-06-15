@@ -195,10 +195,10 @@ struct writer_op {
                asio::buffer(conn_->mpx_.get_write_buffer()),
                std::move(self));
 
-            log_write(conn_->logger_, ec, conn_->mpx_.get_write_buffer());
+            conn_->logger_.on_write(ec, conn_->mpx_.get_write_buffer());
 
             if (ec) {
-               trace(conn_->logger_, "writer_op (1)", ec);
+               conn_->logger_.trace("writer_op (1)", ec);
                conn_->cancel(operation::run);
                self.complete(ec);
                return;
@@ -210,7 +210,7 @@ struct writer_op {
             // successful write might had already been queued, so we
             // have to check here before proceeding.
             if (!conn_->is_open()) {
-               trace(conn_->logger_, "writer_op (2): connection is closed.");
+               conn_->logger_.trace("writer_op (2): connection is closed.");
                self.complete({});
                return;
             }
@@ -219,7 +219,7 @@ struct writer_op {
          BOOST_ASIO_CORO_YIELD
          conn_->writer_timer_.async_wait(std::move(self));
          if (!conn_->is_open()) {
-            trace(conn_->logger_, "writer_op (3): connection is closed.");
+            conn_->logger_.trace("writer_op (3): connection is closed.");
             // Notice this is not an error of the op, stoping was
             // requested from the outside, so we complete with
             // success.
@@ -257,11 +257,11 @@ struct reader_op {
             conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
             std::move(self));
 
-         log_read(conn_->logger_, ec, n);
+         conn_->logger_.on_read(ec, n);
 
          // The connection is not viable after an error.
          if (ec) {
-            trace(conn_->logger_, "reader_op (1)", ec);
+            conn_->logger_.trace("reader_op (1)", ec);
             conn_->cancel(operation::run);
             self.complete(ec);
             return;
@@ -270,7 +270,7 @@ struct reader_op {
          // The connection might have been canceled while this op was
          // suspended or after queueing so we have to check.
          if (!conn_->is_open()) {
-            trace(conn_->logger_, "reader_op (2): connection is closed.");
+            conn_->logger_.trace("reader_op (2): connection is closed.");
             self.complete(ec);
             return;
          }
@@ -279,7 +279,7 @@ struct reader_op {
             res_ = conn_->mpx_.consume_next(ec);
 
             if (ec) {
-               trace(conn_->logger_, "reader_op (3)", ec);
+               conn_->logger_.trace("reader_op (3)", ec);
                conn_->cancel(operation::run);
                self.complete(ec);
                return;
@@ -297,14 +297,14 @@ struct reader_op {
                }
 
                if (ec) {
-                  trace(conn_->logger_, "reader_op (4)", ec);
+                  conn_->logger_.trace("reader_op (4)", ec);
                   conn_->cancel(operation::run);
                   self.complete(ec);
                   return;
                }
 
                if (!conn_->is_open()) {
-                  trace(conn_->logger_, "reader_op (5): connection is closed.");
+                  conn_->logger_.trace("reader_op (5): connection is closed.");
                   self.complete(asio::error::operation_aborted);
                   return;
                }
@@ -519,9 +519,9 @@ public:
       health_checker_.set_config(cfg);
       handshaker_.set_config(cfg);
       if (l.fn)
-         logger_ = std::move(l);
+         logger_.reset(std::move(l));
       else
-         logger_ = make_clog_logger(l.lvl, cfg_.log_prefix);
+         logger_.reset(make_clog_logger(l.lvl, cfg_.log_prefix));
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          detail::run_op<this_type>{this},
@@ -786,7 +786,7 @@ private:
 
    config cfg_;
    detail::multiplexer mpx_;
-   logger logger_{};
+   detail::connection_logger logger_;
 };
 
 /** \brief A basic_connection that type erases the executor.
