@@ -36,6 +36,17 @@ inline void format_tcp_endpoint(const asio::ip::tcp::endpoint& ep, std::string& 
    to += std::to_string(ep.port());  // TODO: we could probably use to_chars here
 }
 
+inline void format_error_code(system::error_code ec, std::string& to)
+{
+   // Using error_code::what() includes any source code info
+   // that the error may contain, making the messages too long.
+   // This implementation was taken from error_code::what()
+   to += ec.message();
+   to += " [";
+   to += ec.to_string();
+   to += ']';
+}
+
 }  // namespace detail
 
 void detail::log_resolve(
@@ -51,7 +62,7 @@ void detail::log_resolve(
 
    if (ec) {
       msg += "Error resolving the server hostname: ";
-      msg += ec.what();
+      format_error_code(ec, msg);
    } else {
       msg += "Resolve results: ";
       auto iter = res.cbegin();
@@ -82,7 +93,7 @@ void detail::log_connect(
 
    if (ec) {
       msg += "Failed connecting to the server: ";
-      msg += ec.what();
+      format_error_code(ec, msg);
    } else {
       msg += "Connected to ";
       format_tcp_endpoint(ep, msg);
@@ -97,7 +108,7 @@ void detail::log_ssl_handshake(const logger& l, system::error_code const& ec)
       return;
 
    std::string msg{"SSL handshake: "};
-   msg += ec.what();
+   format_error_code(ec, msg);
 
    l.fn(msg);
 }
@@ -109,7 +120,7 @@ void detail::log_write(const logger& l, system::error_code const& ec, std::strin
 
    std::string msg{"writer_op: "};
    if (ec) {
-      msg += ec.what();
+      format_error_code(ec, msg);
    } else {
       msg += std::to_string(payload.size());
       msg += " bytes written.";
@@ -125,7 +136,7 @@ void detail::log_read(const logger& l, system::error_code const& ec, std::size_t
 
    std::string msg{"reader_op: "};
    if (ec) {
-      msg += ec.what();
+      format_error_code(ec, msg);
    } else {
       msg += std::to_string(n);
       msg += " bytes read.";
@@ -141,7 +152,7 @@ void detail::log_hello(const logger& l, system::error_code const& ec, generic_re
 
    std::string msg{"hello_op: "};
    if (ec) {
-      msg += ec.what();
+      format_error_code(ec, msg);
       if (resp.has_error()) {
          msg += " (";
          msg += resp.error().diagnostic;
@@ -168,7 +179,7 @@ void detail::trace(const logger& l, std::string_view op, system::error_code cons
 
    std::string msg{op};
    msg += ": ";
-   msg += ec.what();
+   format_error_code(ec, msg);
 
    l.fn(msg);
 }
