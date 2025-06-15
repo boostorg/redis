@@ -16,3 +16,4 @@ services:
       - BOOST_REDIS_TEST_SERVER=redis
     volumes:
       - ../:/boost-redis
+      - /tmp/redis-socks:/tmp/redis-socks
