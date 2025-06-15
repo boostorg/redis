@@ -4,7 +4,7 @@ services:
     entrypoint: "/docker/entrypoint.sh"
     volumes:
       - ./docker:/docker
-      - /tmp/redis-socks:/tmp/socks
+      - /tmp/redis-socks:/tmp/redis-socks
     ports:
       - 6379:6379
       - 6380:6380

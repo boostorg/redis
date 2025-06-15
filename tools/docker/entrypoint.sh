@@ -4,7 +4,7 @@
 
 set -e
 
-chmod 777 /tmp/socks
+chmod 777 /tmp/redis-socks
 
 redis-server \
     --tls-port 6380 \
@@ -12,5 +12,5 @@ redis-server \
     --tls-key-file /docker/tls/server.key \
     --tls-ca-cert-file /docker/tls/ca.crt \
     --tls-auth-clients no \
-    --unixsocket /tmp/socks/redis.sock \
+    --unixsocket /tmp/redis-socks/redis.sock \
     --unixsocketperm 777
