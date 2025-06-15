@@ -12,16 +12,7 @@
 #include <iostream>
 #include <string>
 
-namespace boost::redis {
-
-std::function<void(std::string_view)> detail::make_clog_function(std::string prefix)
-{
-   return [prefix = std::move(prefix)](std::string_view msg) {
-      std::clog << prefix << msg << std::endl;
-   };
-}
-
-namespace detail {
+namespace boost::redis::detail {
 
 inline void format_tcp_endpoint(const asio::ip::tcp::endpoint& ep, std::string& to)
 {
@@ -33,7 +24,7 @@ inline void format_tcp_endpoint(const asio::ip::tcp::endpoint& ep, std::string& 
    if (addr.is_v6())
       to += ']';
    to += ':';
-   to += std::to_string(ep.port());  // TODO: we could probably use to_chars here
+   to += std::to_string(ep.port());
 }
 
 inline void format_error_code(system::error_code ec, std::string& to)
@@ -47,9 +38,16 @@ inline void format_error_code(system::error_code ec, std::string& to)
    to += ']';
 }
 
-}  // namespace detail
+}  // namespace boost::redis::detail
 
-void detail::log_resolve(
+boost::redis::logger boost::redis::make_clog_logger(logger::level lvl, std::string prefix)
+{
+   return logger(lvl, [prefix = std::move(prefix)](std::string_view msg) {
+      std::clog << prefix << msg << std::endl;
+   });
+}
+
+void boost::redis::detail::log_resolve(
    const logger& l,
    system::error_code const& ec,
    asio::ip::tcp::resolver::results_type const& res)
@@ -81,7 +79,7 @@ void detail::log_resolve(
    l.fn(msg);
 }
 
-void detail::log_connect(
+void boost::redis::detail::log_connect(
    const logger& l,
    system::error_code const& ec,
    asio::ip::tcp::endpoint const& ep)
@@ -102,7 +100,7 @@ void detail::log_connect(
    l.fn(msg);
 }
 
-void detail::log_ssl_handshake(const logger& l, system::error_code const& ec)
+void boost::redis::detail::log_ssl_handshake(const logger& l, system::error_code const& ec)
 {
    if (l.lvl < logger::level::info)
       return;
@@ -113,7 +111,10 @@ void detail::log_ssl_handshake(const logger& l, system::error_code const& ec)
    l.fn(msg);
 }
 
-void detail::log_write(const logger& l, system::error_code const& ec, std::string_view payload)
+void boost::redis::detail::log_write(
+   const logger& l,
+   system::error_code const& ec,
+   std::string_view payload)
 {
    if (l.lvl < logger::level::info)
       return;
@@ -129,7 +130,7 @@ void detail::log_write(const logger& l, system::error_code const& ec, std::strin
    l.fn(msg);
 }
 
-void detail::log_read(const logger& l, system::error_code const& ec, std::size_t n)
+void boost::redis::detail::log_read(const logger& l, system::error_code const& ec, std::size_t n)
 {
    if (l.lvl < logger::level::info)
       return;
@@ -145,7 +146,10 @@ void detail::log_read(const logger& l, system::error_code const& ec, std::size_t
    l.fn(msg);
 }
 
-void detail::log_hello(const logger& l, system::error_code const& ec, generic_response const& resp)
+void boost::redis::detail::log_hello(
+   const logger& l,
+   system::error_code const& ec,
+   generic_response const& resp)
 {
    if (l.lvl < logger::level::info)
       return;
@@ -165,14 +169,14 @@ void detail::log_hello(const logger& l, system::error_code const& ec, generic_re
    l.fn(msg);
 }
 
-void detail::trace(const logger& l, std::string_view message)
+void boost::redis::detail::trace(const logger& l, std::string_view message)
 {
    if (l.lvl < logger::level::debug)
       return;
    l.fn(message);
 }
 
-void detail::trace(const logger& l, std::string_view op, system::error_code const& ec)
+void boost::redis::detail::trace(const logger& l, std::string_view op, system::error_code const& ec)
 {
    if (l.lvl < logger::level::debug)
       return;
@@ -183,5 +187,3 @@ void detail::trace(const logger& l, std::string_view op, system::error_code cons
 
    l.fn(msg);
 }
-
-}  // namespace boost::redis

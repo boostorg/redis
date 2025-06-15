@@ -76,10 +76,11 @@ struct logger {
    std::function<void(std::string_view)> fn;
 };
 
-namespace detail {
+/// Creates a logger that logs messages to std::clog, prefixed by prefix.
+/// Ignores messages with level less than lvl.
+logger make_clog_logger(logger::level lvl, std::string prefix);
 
-// Creates the default logging function. To be used if logger::fn is not specified
-std::function<void(std::string_view)> make_clog_function(std::string prefix);
+namespace detail {
 
 // Logging functions
 void log_resolve(

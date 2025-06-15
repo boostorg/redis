@@ -518,9 +518,10 @@ public:
       cfg_ = cfg;
       health_checker_.set_config(cfg);
       handshaker_.set_config(cfg);
-      logger_ = std::move(l);
-      if (!logger_.fn)
-         logger_.fn = detail::make_clog_function(cfg_.log_prefix);
+      if (l.fn)
+         logger_ = std::move(l);
+      else
+         logger_ = make_clog_logger(l.lvl, cfg_.log_prefix);
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          detail::run_op<this_type>{this},
