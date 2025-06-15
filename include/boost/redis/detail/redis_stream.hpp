@@ -55,8 +55,16 @@ class redis_stream {
 
    static transport_type transport_from_config(const config& cfg)
    {
-      return cfg.unix_socket.empty() ? (cfg.use_ssl ? transport_type::tcp_tls : transport_type::tcp)
-                                     : transport_type::unix_socket;
+      if (cfg.unix_socket.empty()) {
+         if (cfg.use_ssl) {
+            return transport_type::tcp_tls;
+         } else {
+            return transport_type::tcp;
+         }
+      } else {
+         BOOST_ASSERT(!cfg.use_ssl);
+         return transport_type::unix_socket;
+      }
    }
 
    template <class Logger>
