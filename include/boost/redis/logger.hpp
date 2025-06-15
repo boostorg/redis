@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <string>
 #include <string_view>
 
 namespace boost::redis {
@@ -58,7 +59,7 @@ enum class log_level
  *  with logger::level::emerg to the connection.
  */
 struct logger {
-   // Kept for compatibility. Deprecate
+   // Kept for compatibility. TODO: deprecate
    using level = log_level;
 
    /** @brief Constructor
@@ -77,9 +78,10 @@ struct logger {
 
 namespace detail {
 
-void fix_default_logger(logger& l, std::string_view prefix);
+// Creates the default logging function. To be used if logger::fn is not specified
+std::function<void(std::string_view)> make_clog_function(std::string prefix);
 
-// TODO: I'd move these to where they're required
+// Logging functions
 void log_resolve(
    const logger& l,
    system::error_code const& ec,

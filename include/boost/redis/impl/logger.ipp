@@ -14,13 +14,11 @@
 
 namespace boost::redis {
 
-void detail::fix_default_logger(logger& l, std::string_view prefix)
+std::function<void(std::string_view)> detail::make_clog_function(std::string prefix)
 {
-   if (!l.fn) {
-      l.fn = [owning_prefix = std::string(prefix)](std::string_view msg) {
-         std::clog << owning_prefix << msg << std::endl;
-      };
-   }
+   return [prefix = std::move(prefix)](std::string_view msg) {
+      std::clog << prefix << msg << std::endl;
+   };
 }
 
 namespace detail {
