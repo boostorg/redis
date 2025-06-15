@@ -775,9 +775,7 @@ private:
          writer_timer_);
    }
 
-   auto is_open() const noexcept { return stream_.is_open(); }
-
-   [[nodiscard]] bool trigger_write() const noexcept { return is_open() && !mpx_.is_writing(); }
+   bool is_open() const noexcept { return stream_.is_open(); }
 
    detail::redis_stream<Executor> stream_;
 

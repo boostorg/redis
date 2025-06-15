@@ -188,7 +188,11 @@ public:
 
    // Accessors
    const auto& get_ssl_context() const noexcept { return ssl_ctx_; }
-   bool is_open() const { return stream_.next_layer().is_open(); }
+   bool is_open() const
+   {
+      return transport_ == transport_type::unix_socket ? unix_socket_.is_open()
+                                                       : stream_.next_layer().is_open();
+   }
    auto& next_layer() { return stream_; }
    const auto& next_layer() const { return stream_; }
 
