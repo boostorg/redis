@@ -14,7 +14,6 @@
 
 #include <cstddef>
 #include <iostream>
-#include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 #include <string_view>
 
@@ -83,10 +82,10 @@ auto main(int argc, char* argv[]) -> int
 
       conn.async_exec(req, resp, [&](boost::system::error_code ec, std::size_t /* bytes_read*/) {
          if (ec) {
-            std::cerr << "Request failed: " << ec.what() << std::endl;
+            spdlog::error("Request failed: {}", ec.what());
             exit(1);
          } else {
-            std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
+            spdlog::info("PING: {}", std::get<0>(resp).value());
          }
          conn.cancel();
       });
@@ -95,7 +94,7 @@ auto main(int argc, char* argv[]) -> int
       ioc.run();
 
    } catch (std::exception const& e) {
-      std::cerr << "Error: " << e.what() << std::endl;
+      spdlog::error("Error: {}", e.what());
       return 1;
    }
 }
