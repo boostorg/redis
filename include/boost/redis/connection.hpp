@@ -454,11 +454,13 @@ public:
       using other = basic_connection<Executor1>;
    };
 
-   // TODO: document the logger param
    /** @brief Constructor
    *
    *  @param ex Executor on which connection operation will run.
    *  @param ctx SSL context.
+   *  @param lgr Logger configuration. It can be used to filter messages by level
+   *             and customize logging. By default, `logger::level::info` messages
+   *             and higher are logged to `stderr`.
    */
    explicit basic_connection(
       executor_type ex,
@@ -475,7 +477,15 @@ public:
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
    }
 
-   // TODO: document
+   /** @brief Constructor
+    *
+    *  @param ex Executor on which connection operation will run.
+    *  @param lgr Logger configuration. It can be used to filter messages by level
+    *             and customize logging. By default, `logger::level::info` messages
+    *             and higher are logged to `stderr`.
+    *
+    * An SSL context with default settings will be created.
+    */
    basic_connection(executor_type ex, logger lgr)
    : basic_connection(
         std::move(ex),
@@ -491,7 +501,7 @@ public:
    : basic_connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 
-   // TODO: document
+   /// Constructs from a context.
    basic_connection(asio::io_context& ctx, logger lgr)
    : basic_connection(
         ctx.get_executor(),
@@ -524,7 +534,6 @@ public:
     *  `boost::redis::connection::cancel(operation::reconnection)`.
     *
     *  @param cfg Configuration paramters.
-    *  @param l Logger object. The interface expected is specified in the class `boost::redis::logger`.
     *  @param token Completion token.
     *
     *  The completion token must have the following signature
@@ -535,6 +544,31 @@ public:
     *
     *  For example on how to call this function refer to
     *  cpp20_intro.cpp or any other example.
+    */
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto async_run(config const& cfg, CompletionToken&& token = {})
+   {
+      cfg_ = cfg;
+      health_checker_.set_config(cfg);
+      handshaker_.set_config(cfg);
+
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         detail::run_op<this_type>{this},
+         token,
+         writer_timer_);
+   }
+
+   /**
+    * @copydoc async_run
+    *
+    * This function accepts an extra logger parameter. The passed logger
+    * will be used by the connection, overwriting any logger passed to the connection's
+    * constructor.
+    *
+    * @par Deprecated
+    * The logger should be passed to the connection's constructor instead of using this
+    * function. Use the overload without a logger parameter, instead. This function is
+    * deprecated and will be removed in subsequent releases.
     */
    BOOST_DEPRECATED(
       "Passing a logger to async_run is deprecated. "
@@ -550,19 +584,15 @@ public:
       return async_run(cfg, std::forward<CompletionToken>(token));
    }
 
-   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto async_run(config const& cfg, CompletionToken&& token = {})
-   {
-      cfg_ = cfg;
-      health_checker_.set_config(cfg);
-      handshaker_.set_config(cfg);
-
-      return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::run_op<this_type>{this},
-         token,
-         writer_timer_);
-   }
-
+   /**
+    * @copydoc async_run
+    *
+    * Uses a default-constructed config object to run the connection.
+    *
+    * @par Deprecated
+    * This function is deprecated and will be removed in subsequent releases.
+    * Use the overload taking an explicit config object, instead.
+    */
    BOOST_DEPRECATED(
       "Running without an explicit config object is deprecated."
       "Please create a config object and pass it to async_run.")
@@ -854,12 +884,28 @@ public:
    /// Executor type.
    using executor_type = asio::any_io_executor;
 
-   /// Contructs from an executor.
+   /** @brief Constructor
+    *
+    *  @param ex Executor on which connection operation will run.
+    *  @param ctx SSL context.
+    *  @param lgr Logger configuration. It can be used to filter messages by level
+    *             and customize logging. By default, `logger::level::info` messages
+    *             and higher are logged to `stderr`.
+    */
    explicit connection(
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       logger lgr = detail::default_logger());
 
+   /** @brief Constructor
+    *
+    *  @param ex Executor on which connection operation will run.
+    *  @param lgr Logger configuration. It can be used to filter messages by level
+    *             and customize logging. By default, `logger::level::info` messages
+    *             and higher are logged to `stderr`.
+    *
+    * An SSL context with default settings will be created.
+    */
    connection(executor_type ex, logger lgr)
    : connection(
         std::move(ex),
@@ -867,7 +913,7 @@ public:
         std::move(lgr))
    { }
 
-   /// Contructs from a context.
+   /// Constructs from a context.
    explicit connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
@@ -875,6 +921,7 @@ public:
    : connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 
+   /// Constructs from a context.
    connection(asio::io_context& ioc, logger lgr)
    : connection(
         ioc.get_executor(),
@@ -885,7 +932,18 @@ public:
    /// Returns the underlying executor.
    executor_type get_executor() noexcept { return impl_.get_executor(); }
 
-   /// Calls `boost::redis::basic_connection::async_run`.
+   /**
+    * @brief Calls `boost::redis::basic_connection::async_run`.
+    *
+    * This function accepts an extra logger parameter. The passed logger
+    * will be used by the connection, overwriting any logger passed to the connection's
+    * constructor.
+    *
+    * @par Deprecated
+    * The logger should be passed to the connection's constructor instead of using this
+    * function. Use the overload without a logger parameter, instead. This function is
+    * deprecated and will be removed in subsequent releases.
+    */
    BOOST_DEPRECATED(
       "Passing a logger to async_run is deprecated. "
       "Please pass it to the connection's constructor, instead.")
