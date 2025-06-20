@@ -407,6 +407,26 @@ imported in the global namespace by the user.  In the
 [Examples](#examples) section the reader can find examples showing how
 to serialize using json and [protobuf](https://protobuf.dev/).
 
+<a name="logging"></a>
+
+### Logging
+
+`connection::async_run` is a complex algorithm, with features like built-in reconnection.
+This can make configuration problems, like a misconfigured hostname, difficult to debug -
+Boost.Redis will keep retrying to connect to the same hostname over and over.
+For this reason, Boost.Redis incorporates a lightweight logging solution, and
+**will log some status messages to stderr by default**.
+
+
+
+* Logger is configured in async_run, as a logger object.
+* The connection logs messages using the logger. Every message is associated a syslog-like severity tag.
+* logger can be passed a first level parameter. Only messages with a severity equal to or higher than the configured severity will be logged.
+* Logging can be disabled by passing a `logger{logger::level::disabled}` to async_run.
+* Logging is customizable. `logger` accepts a second parameter, a `std::function<void(logger::level, std::string_view)>`
+  that defines what the logger does. Link to the spdlog example.
+
+
 <a name="examples"></a>
 ## Examples
 
@@ -423,6 +443,7 @@ The examples below show how to use the features discussed so far
 * cpp20_chat_room.cpp: A command line chat built on Redis pubsub.
 * cpp17_intro.cpp: Uses callbacks and requires C++17.
 * cpp17_intro_sync.cpp: Runs `async_run` in a separate thread and performs synchronous calls to `async_exec`.
+* cpp17_spdlog.cpp: Shows how to use third-party logging libraries like `spdlog` with Boost.Redis.
 
 The main function used in some async examples has been factored out in
 the main.cpp file.
