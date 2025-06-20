@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <iterator>
+#include <string_view>
 
 namespace boost::redis {
 
@@ -63,6 +64,25 @@ void logger::on_connect(system::error_code const& ec, asio::ip::tcp::endpoint co
 
    std::clog << std::endl;
 }
+
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+void logger::on_connect(system::error_code const& ec, std::string_view unix_socket_ep)
+{
+   if (level_ < level::info)
+      return;
+
+   write_prefix();
+
+   std::clog << "connected to ";
+
+   if (ec)
+      std::clog << ec.message() << std::endl;
+   else
+      std::clog << unix_socket_ep;
+
+   std::clog << std::endl;
+}
+#endif
 
 void logger::on_ssl_handshake(system::error_code const& ec)
 {
@@ -135,6 +155,16 @@ void logger::trace(std::string_view message)
 void logger::trace(std::string_view op, system::error_code const& ec)
 {
    if (level_ < level::debug)
+      return;
+
+   write_prefix();
+
+   std::clog << op << ": " << ec.message() << std::endl;
+}
+
+void logger::log_error(std::string_view op, system::error_code const& ec)
+{
+   if (level_ < level::err)
       return;
 
    write_prefix();

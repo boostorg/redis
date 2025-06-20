@@ -196,6 +196,13 @@ jobs:
             build-type: 'Debug'
             cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
             ldflags: '-fsanitize=address -fsanitize=undefined'
+
+          - toolset: gcc-14
+            install: 'g++-14'
+            container: ubuntu:24.04
+            cxxstd: '23'
+            build-type: 'Debug'
+            cxxflags: '-DBOOST_ASIO_DISABLE_LOCAL_SOCKETS=1' # If a system had no UNIX socket support, we build correctly
           
           - toolset: gcc-14
             install: 'g++-14'
