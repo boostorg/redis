@@ -107,7 +107,7 @@ class redis_stream {
                   asio::cancel_after(obj.timer_, cfg->connect_timeout, std::move(self)));
 
                // Log it
-               lgr.on_connect(ec, cfg->unix_socket);
+               lgr->on_connect(ec, cfg->unix_socket);
 
                // If this failed, we can't continue
                if (ec) {
@@ -131,7 +131,7 @@ class redis_stream {
                   asio::cancel_after(obj.timer_, cfg->resolve_timeout, std::move(self)));
 
                // Log it
-               lgr.on_resolve(ec, resolver_results);
+               lgr->on_resolve(ec, resolver_results);
 
                // If this failed, we can't continue
                if (ec) {
@@ -163,7 +163,7 @@ class redis_stream {
                      asio::ssl::stream_base::client,
                      asio::cancel_after(obj.timer_, cfg->ssl_handshake_timeout, std::move(self)));
 
-                  lgr.on_ssl_handshake(ec);
+                  lgr->on_ssl_handshake(ec);
 
                   // If this failed, we can't continue
                   if (ec) {

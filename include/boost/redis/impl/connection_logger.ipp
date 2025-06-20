@@ -161,23 +161,23 @@ void connection_logger::on_hello(system::error_code const& ec, generic_response 
    logger_.fn(logger::level::info, msg_);
 }
 
-void connection_logger::trace(std::string_view message)
+void connection_logger::log(logger::level lvl, std::string_view message)
 {
-   if (logger_.lvl < logger::level::debug)
+   if (logger_.lvl < lvl)
       return;
-   logger_.fn(logger::level::debug, message);
+   logger_.fn(lvl, message);
 }
 
-void connection_logger::trace(std::string_view op, system::error_code const& ec)
+void connection_logger::log(logger::level lvl, std::string_view op, system::error_code const& ec)
 {
-   if (logger_.lvl < logger::level::debug)
+   if (logger_.lvl < lvl)
       return;
 
    msg_ = op;
    msg_ += ": ";
    format_error_code(ec, msg_);
 
-   logger_.fn(logger::level::debug, msg_);
+   logger_.fn(lvl, msg_);
 }
 
 }  // namespace boost::redis::detail

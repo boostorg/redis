@@ -11,6 +11,8 @@
 
 #include <boost/system/error_code.hpp>
 
+#include <string_view>
+
 namespace boost::redis::detail {
 
 // Wraps a logger and a string buffer for re-use, and provides
@@ -28,14 +30,18 @@ public:
 
    void on_resolve(system::error_code const& ec, asio::ip::tcp::resolver::results_type const& res);
    void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
+   void on_connect(system::error_code const& ec, std::string_view unix_socket_ep);
    void on_ssl_handshake(system::error_code const& ec);
    void on_write(system::error_code const& ec, std::size_t n);
    void on_read(system::error_code const& ec, std::size_t n);
    void on_hello(system::error_code const& ec, generic_response const& resp);
-   void trace(std::string_view message);
-   void trace(std::string_view op, system::error_code const& ec);
-   void on_connect(system::error_code const& ec, std::string_view unix_socket_ep);
-   void log_error(std::string_view op, system::error_code const& ec);
+   void log(logger::level lvl, std::string_view msg);
+   void log(logger::level lvl, std::string_view op, system::error_code const& ec);
+   void trace(std::string_view message) { log(logger::level::debug, message); }
+   void trace(std::string_view op, system::error_code const& ec)
+   {
+      log(logger::level::debug, op, ec);
+   }
 };
 
 }  // namespace boost::redis::detail

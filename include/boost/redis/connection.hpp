@@ -335,7 +335,7 @@ public:
       {
          ec0 = check_config(conn_->cfg_);
          if (ec0) {
-            conn_->logger_.trace("Invalid configuration", ec0);  // TODO: should be error
+            conn_->logger_.log(logger::level::err, "Invalid configuration", ec0);
             stored_ec_ = ec0;
             BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
             self.complete(stored_ec_);
