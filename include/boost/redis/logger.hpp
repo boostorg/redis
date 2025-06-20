@@ -51,17 +51,32 @@ struct logger {
       debug,
    };
 
-   /** @brief Constructor
-    *  @ingroup high-level-api
+   /** @brief Constructor from a level.
     *
-    *  @param l Log level.
+    * Constructs a logger with the specified level
+    * and a logging function that prints messages to stderr.
+    *
+    * @param l The value to set @ref lvl to.
+    *
+    * @par Exceptions
+    * No-throw guarantee.
+    */
+   logger(level l = level::info);
+
+   /** @brief Constructor from a level and a function.
+    *
+    * Constructs a logger by setting its members to the specified values.
+    *
+    * @param l The value to set @ref lvl to.
+    * @param fn The value to set @ref fn to.
+    *
+    * @par Exceptions
+    * No-throw guarantee.
     */
    logger(level l, std::function<void(level, std::string_view)> fn)
    : lvl{l}
    , fn{std::move(fn)}
    { }
-
-   logger(level l = level::info);
 
    /**
     * @brief Defines a severity filter for messages.
