@@ -495,7 +495,7 @@ public:
       if (l.fn)
          logger_.reset(std::move(l));
       else
-         logger_.reset(make_clog_logger(l.lvl, cfg_.log_prefix));
+         logger_.reset(make_stderr_logger(l.lvl, cfg_.log_prefix));
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          detail::run_op<this_type>{this},
