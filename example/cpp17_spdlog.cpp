@@ -45,7 +45,7 @@ static spdlog::level::level_enum to_spdlog_level(redis::logger::level lvl)
 // by Boost.Redis whenever a message is to be logged.
 static void do_log(redis::logger::level level, std::string_view msg)
 {
-   spdlog::log(to_spdlog_level(level), "(Boost.Redis) {}\n", msg);
+   spdlog::log(to_spdlog_level(level), "(Boost.Redis) {}", msg);
 }
 
 auto main(int argc, char* argv[]) -> int
