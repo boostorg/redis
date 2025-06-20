@@ -417,14 +417,32 @@ Boost.Redis will keep retrying to connect to the same hostname over and over.
 For this reason, Boost.Redis incorporates a lightweight logging solution, and
 **will log some status messages to stderr by default**.
 
+Logging can be customized by passing a `logger` object to the `connection`'s constructor.
 
+For example, logging can be disabled by writing:
 
-* Logger is configured in async_run, as a logger object.
-* The connection logs messages using the logger. Every message is associated a syslog-like severity tag.
-* logger can be passed a first level parameter. Only messages with a severity equal to or higher than the configured severity will be logged.
-* Logging can be disabled by passing a `logger{logger::level::disabled}` to async_run.
-* Logging is customizable. `logger` accepts a second parameter, a `std::function<void(logger::level, std::string_view)>`
-  that defines what the logger does. Link to the spdlog example.
+```cpp
+asio::io_context ioc;
+redis::connection conn {ioc, redis::logger{redis::logger::level::disabled}};
+```
+
+Every message logged by the library is attached a
+[syslog-like severity](https://en.wikipedia.org/wiki/Syslog#Severity_level)
+tag (a `logger::level`).
+You can filter messages by severity by creating a `logger` with a specific level:
+
+```cpp
+asio::io_context ioc;
+
+// Logs to stderr messages with severity >= level::error.
+// This will hide all informational output.
+redis::connection conn {ioc, redis::logger{redis::logger::level::error}};
+```
+
+`logger`'s constructor accepts a `std::function<(logger::level, std::string_view)>`
+as second argument. If supplied, Boost.Redis will call this function when logging
+instead of printing to stderr. This can be used to integrate third-party logging
+libraries. See our [spdlog integration example](example/cpp17_spdlog.cpp) for sample code.
 
 
 <a name="examples"></a>
