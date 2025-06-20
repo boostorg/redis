@@ -34,6 +34,8 @@ public:
    void on_hello(system::error_code const& ec, generic_response const& resp);
    void trace(std::string_view message);
    void trace(std::string_view op, system::error_code const& ec);
+   void on_connect(system::error_code const& ec, std::string_view unix_socket_ep);
+   void log_error(std::string_view op, system::error_code const& ec);
 };
 
 }  // namespace boost::redis::detail

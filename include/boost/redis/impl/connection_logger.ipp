@@ -82,6 +82,22 @@ void connection_logger::on_connect(system::error_code const& ec, asio::ip::tcp::
    logger_.fn(logger::level::info, msg_);
 }
 
+void connection_logger::on_connect(system::error_code const& ec, std::string_view unix_socket_ep)
+{
+   if (logger_.lvl < logger::level::info)
+      return;
+
+   if (ec) {
+      msg_ = "Failed connecting to the server: ";
+      format_error_code(ec, msg_);
+   } else {
+      msg_ = "Connected to ";
+      msg_ += unix_socket_ep;
+   }
+
+   logger_.fn(logger::level::info, msg_);
+}
+
 void connection_logger::on_ssl_handshake(system::error_code const& ec)
 {
    if (logger_.lvl < logger::level::info)

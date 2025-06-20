@@ -434,6 +434,7 @@ The examples below show how to use the features discussed so far
 
 * cpp20_intro.cpp: Does not use awaitable operators.
 * cpp20_intro_tls.cpp: Communicates over TLS.
+* cpp20_unix_sockets.cpp: Communicates over UNIX domain sockets.
 * cpp20_containers.cpp: Shows how to send and receive STL containers and how to use transactions.
 * cpp20_json.cpp: Shows how to serialize types using Boost.Json.
 * cpp20_protobuf.cpp: Shows how to serialize types using protobuf.

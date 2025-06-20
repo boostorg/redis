@@ -55,6 +55,7 @@ make_test(test_conn_echo_stress)
 make_test(test_issue_50)
 make_test(test_issue_181)
 make_test(test_conversions)
+make_test(test_unix_sockets)
 
 # Coverage
 set(
