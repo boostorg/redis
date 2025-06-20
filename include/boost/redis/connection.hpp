@@ -535,7 +535,9 @@ public:
     *  For example on how to call this function refer to
     *  cpp20_intro.cpp or any other example.
     */
-   // TODO: deprecate
+   BOOST_DEPRECATED(
+      "Passing a logger to async_run is deprecated. "
+      "Please pass it to the connection's constructor, instead.")
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
@@ -560,6 +562,9 @@ public:
          writer_timer_);
    }
 
+   BOOST_DEPRECATED(
+      "Running without an explicit config object is deprecated."
+      "Please create a config object and pass it to async_run.")
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(CompletionToken&& token = {})
    {
@@ -880,7 +885,9 @@ public:
    executor_type get_executor() noexcept { return impl_.get_executor(); }
 
    /// Calls `boost::redis::basic_connection::async_run`.
-   // TODO: deprecate
+   BOOST_DEPRECATED(
+      "Passing a logger to async_run is deprecated. "
+      "Please pass it to the connection's constructor, instead.")
    template <class CompletionToken = asio::deferred_t>
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
