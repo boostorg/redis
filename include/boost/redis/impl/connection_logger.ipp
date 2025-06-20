@@ -4,7 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/detail/conection_logger.hpp>
+#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/logger.hpp>
 
 #include <boost/asio/ip/tcp.hpp>
@@ -36,6 +36,15 @@ inline void format_error_code(system::error_code ec, std::string& to)
    to += " [";
    to += ec.to_string();
    to += ']';
+}
+
+template <class Fn>
+inline void do_log(connection_logger& lgr, logger::level msg_level, Fn fn)
+{
+   if (lgr.lvl < msg_level)
+      return;
+
+   fn()
 }
 
 void connection_logger::on_resolve(

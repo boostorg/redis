@@ -8,7 +8,7 @@
 #define BOOST_REDIS_RUNNER_HPP
 
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/conection_logger.hpp>
+#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>

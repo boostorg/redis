@@ -10,7 +10,7 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/conection_logger.hpp>
+#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/detail/helper.hpp>
