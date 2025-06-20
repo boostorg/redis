@@ -11,7 +11,6 @@
 
 #include <boost/asio/ip/tcp.hpp>
 
-#include <cstddef>
 #include <functional>
 #include <string>
 #include <string_view>
