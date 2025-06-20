@@ -65,7 +65,7 @@ struct logger {
     *
     *  @param l Log level.
     */
-   logger(level l = level::debug, std::function<void(level, std::string_view)> fn = {})
+   logger(level l = level::info, std::function<void(level, std::string_view)> fn = {})
    : lvl{l}
    , fn{std::move(fn)}
    { }
