@@ -74,10 +74,6 @@ struct logger {
    std::function<void(level, std::string_view)> fn;
 };
 
-/// Creates a logger that logs messages to stderr, prefixed by prefix.
-/// Ignores messages with level less than lvl.
-logger make_stderr_logger(logger::level lvl, std::string prefix);
-
 }  // namespace boost::redis
 
 #endif  // BOOST_REDIS_LOGGER_HPP

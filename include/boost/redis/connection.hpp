@@ -50,6 +50,7 @@
 #include <chrono>
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <utility>
 
 namespace boost::redis {
@@ -416,8 +417,8 @@ public:
    }
 };
 
-// TODO: I think that this should be done in logger's default constructor
-inline logger default_logger() { return make_stderr_logger(logger::level::info, "(Boost.Redis) "); }
+logger default_logger();
+logger make_stderr_logger(logger::level lvl, std::string prefix);
 
 }  // namespace detail
 
@@ -544,7 +545,7 @@ public:
       if (l.fn)
          logger_.reset(std::move(l));
       else
-         logger_.reset(make_stderr_logger(l.lvl, cfg_.log_prefix));
+         logger_.reset(detail::make_stderr_logger(l.lvl, cfg_.log_prefix));
 
       return async_run(cfg, std::forward<CompletionToken>(token));
    }
