@@ -79,31 +79,6 @@ struct logger {
 /// Ignores messages with level less than lvl.
 logger make_clog_logger(logger::level lvl, std::string prefix);
 
-namespace detail {
-
-// Wraps a logger and a string buffer for re-use, and provides
-// utility functions to format the log messages that we use
-class connection_logger {
-   logger logger_;
-   std::string msg_;
-
-public:
-   connection_logger() = default;
-
-   void reset(logger&& logger) { logger_ = std::move(logger); }
-
-   void on_resolve(system::error_code const& ec, asio::ip::tcp::resolver::results_type const& res);
-   void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
-   void on_ssl_handshake(system::error_code const& ec);
-   void on_write(system::error_code const& ec, std::size_t n);
-   void on_read(system::error_code const& ec, std::size_t n);
-   void on_hello(system::error_code const& ec, generic_response const& resp);
-   void trace(std::string_view message);
-   void trace(std::string_view op, system::error_code const& ec);
-};
-
-}  // namespace detail
-
 }  // namespace boost::redis
 
 #endif  // BOOST_REDIS_LOGGER_HPP

@@ -10,6 +10,7 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/conection_logger.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/detail/helper.hpp>
@@ -17,7 +18,6 @@
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/resp3_handshaker.hpp>
 #include <boost/redis/error.hpp>
-#include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/type.hpp>

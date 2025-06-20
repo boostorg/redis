@@ -8,8 +8,8 @@
 #define BOOST_REDIS_REDIS_STREAM_HPP
 
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/conection_logger.hpp>
 #include <boost/redis/error.hpp>
-#include <boost/redis/logger.hpp>
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/cancel_after.hpp>
