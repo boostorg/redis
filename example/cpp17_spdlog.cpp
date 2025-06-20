@@ -58,21 +58,23 @@ auto main(int argc, char* argv[]) -> int
       // Create an execution context, required to create any I/O objects
       asio::io_context ioc;
 
-      // Create a connection to connect to Redis
-      redis::connection conn{ioc};
+      // Create a connection to connect to Redis, and pass it a custom logger.
+      // Boost.Redis will call do_log whenever it needs to log a message.
+      // Note that the function will only be called for messages with level >= info
+      // (i.e. filtering is done by Boost.Redis).
+      redis::connection conn{
+         ioc,
+         redis::logger{redis::logger::level::info, do_log}
+      };
 
       // Configuration to connect to the server
       redis::config cfg;
       cfg.addr.host = argv[1];
       cfg.addr.port = argv[2];
 
-      // Construct a spdlog logger. Note that Boost.Redis will only call the
-      // passed function for messages with level >= info.
-      redis::logger lgr{redis::logger::level::info, do_log};
-
-      // Run the connection with the specified configuration and logger.
+      // Run the connection with the specified configuration.
       // This will establish the connection and keep it healthy
-      conn.async_run(cfg, std::move(lgr), asio::detached);
+      conn.async_run(cfg, asio::detached);
 
       // Execute a request
       redis::request req;
