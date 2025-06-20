@@ -416,6 +416,9 @@ public:
    }
 };
 
+// TODO: I think that this should be done in logger's default constructor
+inline logger default_logger() { return make_stderr_logger(logger::level::info, "(Boost.Redis) "); }
+
 }  // namespace detail
 
 /** @brief A SSL connection to the Redis server.
@@ -449,6 +452,7 @@ public:
       using other = basic_connection<Executor1>;
    };
 
+   // TODO: document the logger param
    /** @brief Constructor
    *
    *  @param ex Executor on which connection operation will run.
@@ -456,22 +460,41 @@ public:
    */
    explicit basic_connection(
       executor_type ex,
-      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client})
+      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
+      logger lgr = detail::default_logger())
    : stream_{ex, std::move(ctx)}
    , writer_timer_{ex}
    , reconnect_timer_{ex}
    , receive_channel_{ex, 256}
    , health_checker_{ex}
+   , logger_{std::move(lgr)}
    {
       set_receive_response(ignore);
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
    }
 
+   // TODO: document
+   basic_connection(executor_type ex, logger lgr)
+   : basic_connection(
+        std::move(ex),
+        asio::ssl::context{asio::ssl::context::tlsv12_client},
+        std::move(lgr))
+   { }
+
    /// Constructs from a context.
    explicit basic_connection(
       asio::io_context& ioc,
-      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client})
-   : basic_connection(ioc.get_executor(), std::move(ctx))
+      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
+      logger lgr = detail::default_logger())
+   : basic_connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
+   { }
+
+   // TODO: document
+   basic_connection(asio::io_context& ctx, logger lgr)
+   : basic_connection(
+        ctx.get_executor(),
+        asio::ssl::context{asio::ssl::context::tlsv12_client},
+        std::move(lgr))
    { }
 
    /** @brief Starts underlying connection operations.
@@ -511,21 +534,35 @@ public:
     *  For example on how to call this function refer to
     *  cpp20_intro.cpp or any other example.
     */
+   // TODO: deprecate
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto async_run(config const& cfg = {}, logger l = {}, CompletionToken&& token = {})
+   auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
-      cfg_ = cfg;
-      health_checker_.set_config(cfg);
-      handshaker_.set_config(cfg);
       if (l.fn)
          logger_.reset(std::move(l));
       else
          logger_.reset(make_stderr_logger(l.lvl, cfg_.log_prefix));
 
+      return async_run(cfg, std::forward<CompletionToken>(token));
+   }
+
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto async_run(config const& cfg, CompletionToken&& token = {})
+   {
+      cfg_ = cfg;
+      health_checker_.set_config(cfg);
+      handshaker_.set_config(cfg);
+
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          detail::run_op<this_type>{this},
          token,
          writer_timer_);
+   }
+
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto async_run(CompletionToken&& token = {})
+   {
+      return async_run(config{}, std::forward<CompletionToken>(token));
    }
 
    /** @brief Receives server side pushes asynchronously.
@@ -813,28 +850,60 @@ public:
    /// Contructs from an executor.
    explicit connection(
       executor_type ex,
-      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client});
+      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
+      logger lgr = detail::default_logger());
+
+   connection(executor_type ex, logger lgr)
+   : connection(
+        std::move(ex),
+        asio::ssl::context{asio::ssl::context::tlsv12_client},
+        std::move(lgr))
+   { }
 
    /// Contructs from a context.
    explicit connection(
       asio::io_context& ioc,
-      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client});
+      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
+      logger lgr = detail::default_logger())
+   : connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
+   { }
+
+   connection(asio::io_context& ioc, logger lgr)
+   : connection(
+        ioc.get_executor(),
+        asio::ssl::context{asio::ssl::context::tlsv12_client},
+        std::move(lgr))
+   { }
 
    /// Returns the underlying executor.
    executor_type get_executor() noexcept { return impl_.get_executor(); }
 
    /// Calls `boost::redis::basic_connection::async_run`.
+   // TODO: deprecate
    template <class CompletionToken = asio::deferred_t>
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
          [](auto handler, connection* self, config const* cfg, logger l) {
-            self->async_run_impl(*cfg, l, std::move(handler));
+            self->async_run_impl(*cfg, std::move(l), std::move(handler));
          },
          token,
          this,
          &cfg,
-         l);
+         std::move(l));
+   }
+
+   /// Calls `boost::redis::basic_connection::async_run`.
+   template <class CompletionToken = asio::deferred_t>
+   auto async_run(config const& cfg, CompletionToken&& token = {})
+   {
+      return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
+         [](auto handler, connection* self, config const* cfg) {
+            self->async_run_impl(*cfg, std::move(handler));
+         },
+         token,
+         this,
+         &cfg);
    }
 
    /// Calls `boost::redis::basic_connection::async_receive`.
@@ -911,7 +980,11 @@ public:
 private:
    void async_run_impl(
       config const& cfg,
-      logger l,
+      logger&& l,
+      asio::any_completion_handler<void(boost::system::error_code)> token);
+
+   void async_run_impl(
+      config const& cfg,
       asio::any_completion_handler<void(boost::system::error_code)> token);
 
    void async_exec_impl(

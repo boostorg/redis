@@ -24,7 +24,9 @@ class connection_logger {
    std::string msg_;
 
 public:
-   connection_logger() = default;
+   connection_logger(logger&& logger) noexcept
+   : logger_(std::move(logger))
+   { }
 
    void reset(logger&& logger) { logger_ = std::move(logger); }
 

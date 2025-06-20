@@ -5,25 +5,30 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/logger.hpp>
 
 #include <cstddef>
+#include <utility>
 
 namespace boost::redis {
 
-connection::connection(executor_type ex, asio::ssl::context ctx)
-: impl_{ex, std::move(ctx)}
-{ }
-
-connection::connection(asio::io_context& ioc, asio::ssl::context ctx)
-: impl_{ioc.get_executor(), std::move(ctx)}
+connection::connection(executor_type ex, asio::ssl::context ctx, logger lgr)
+: impl_{std::move(ex), std::move(ctx), std::move(lgr)}
 { }
 
 void connection::async_run_impl(
    config const& cfg,
-   logger l,
+   logger&& l,
    asio::any_completion_handler<void(boost::system::error_code)> token)
 {
-   impl_.async_run(cfg, l, std::move(token));
+   impl_.async_run(cfg, std::move(l), std::move(token));
+}
+
+void connection::async_run_impl(
+   config const& cfg,
+   asio::any_completion_handler<void(boost::system::error_code)> token)
+{
+   impl_.async_run(cfg, std::move(token));
 }
 
 void connection::async_exec_impl(
