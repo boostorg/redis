@@ -38,15 +38,6 @@ inline void format_error_code(system::error_code ec, std::string& to)
    to += ']';
 }
 
-template <class Fn>
-inline void do_log(connection_logger& lgr, logger::level msg_level, Fn fn)
-{
-   if (lgr.lvl < msg_level)
-      return;
-
-   fn()
-}
-
 void connection_logger::on_resolve(
    system::error_code const& ec,
    asio::ip::tcp::resolver::results_type const& res)
