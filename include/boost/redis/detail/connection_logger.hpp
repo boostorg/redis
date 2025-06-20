@@ -8,7 +8,9 @@
 #define BOOST_REDIS_CONNECTION_LOGGER_HPP
 
 #include <boost/redis/logger.hpp>
+#include <boost/redis/response.hpp>
 
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <string_view>

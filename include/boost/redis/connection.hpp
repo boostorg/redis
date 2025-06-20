@@ -417,7 +417,6 @@ public:
    }
 };
 
-logger default_logger();
 logger make_stderr_logger(logger::level lvl, std::string prefix);
 
 }  // namespace detail
@@ -465,7 +464,7 @@ public:
    explicit basic_connection(
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
-      logger lgr = detail::default_logger())
+      logger lgr = {})
    : stream_{ex, std::move(ctx)}
    , writer_timer_{ex}
    , reconnect_timer_{ex}
@@ -497,7 +496,7 @@ public:
    explicit basic_connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
-      logger lgr = detail::default_logger())
+      logger lgr = {})
    : basic_connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 
@@ -561,9 +560,11 @@ public:
    /**
     * @copydoc async_run
     *
-    * This function accepts an extra logger parameter. The passed logger
-    * will be used by the connection, overwriting any logger passed to the connection's
-    * constructor.
+    * This function accepts an extra logger parameter. The passed `logger::lvl`
+    * will be used, but `logger::fn` will be ignored. Instead, a function
+    * that logs to `stderr` using `config::prefix` will be used.
+    * This keeps backwards compatibility with previous versions.
+    * Any logger configured in the constructor will be overriden.
     *
     * @par Deprecated
     * The logger should be passed to the connection's constructor instead of using this
@@ -576,11 +577,7 @@ public:
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
-      if (l.fn)
-         logger_.reset(std::move(l));
-      else
-         logger_.reset(detail::make_stderr_logger(l.lvl, cfg_.log_prefix));
-
+      logger_.reset(detail::make_stderr_logger(l.lvl, cfg_.log_prefix));
       return async_run(cfg, std::forward<CompletionToken>(token));
    }
 
@@ -895,7 +892,7 @@ public:
    explicit connection(
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
-      logger lgr = detail::default_logger());
+      logger lgr = {});
 
    /** @brief Constructor
     *
@@ -917,7 +914,7 @@ public:
    explicit connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
-      logger lgr = detail::default_logger())
+      logger lgr = {})
    : connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 

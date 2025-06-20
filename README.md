@@ -439,7 +439,7 @@ asio::io_context ioc;
 redis::connection conn {ioc, redis::logger{redis::logger::level::error}};
 ```
 
-`logger`'s constructor accepts a `std::function<(logger::level, std::string_view)>`
+`logger`'s constructor accepts a `std::function<void(logger::level, std::string_view)>`
 as second argument. If supplied, Boost.Redis will call this function when logging
 instead of printing to stderr. This can be used to integrate third-party logging
 libraries. See our [spdlog integration example](example/cpp17_spdlog.cpp) for sample code.
