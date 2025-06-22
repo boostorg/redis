@@ -24,6 +24,14 @@ struct file_deleter {
 };
 using unique_file = std::unique_ptr<FILE, file_deleter>;
 
+unique_file create_temporary()
+{
+   unique_file f{std::tmpfile()};
+   if (!BOOST_TEST_NE(f.get(), nullptr))
+      exit(1);
+   return f;
+}
+
 std::string get_file_contents(FILE* f)
 {
    std::fseek(f, 0, SEEK_END);
@@ -38,14 +46,23 @@ std::string get_file_contents(FILE* f)
 
 void test_regular()
 {
-   unique_file f{std::tmpfile()};
-   if (!BOOST_TEST_NE(f.get(), nullptr))
-      exit(1);
-
+   auto f = create_temporary();
    detail::log_to_file(f.get(), "something happened");
+   BOOST_TEST_EQ(get_file_contents(f.get()), "(Boost.Redis) something happened\n");
+}
 
-   auto contents = get_file_contents(f.get());
-   BOOST_TEST_EQ(contents, "(Boost.Redis) something happened\n");
+void test_empty_message()
+{
+   auto f = create_temporary();
+   detail::log_to_file(f.get(), {});
+   BOOST_TEST_EQ(get_file_contents(f.get()), "(Boost.Redis) \n");
+}
+
+void test_empty_prefix()
+{
+   auto f = create_temporary();
+   detail::log_to_file(f.get(), {}, "");
+   BOOST_TEST_EQ(get_file_contents(f.get()), "\n");
 }
 
 }  // namespace
@@ -53,6 +70,8 @@ void test_regular()
 int main()
 {
    test_regular();
+   test_empty_message();
+   test_empty_prefix();
 
    return boost::report_errors();
 }
