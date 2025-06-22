@@ -37,13 +37,15 @@ unique_file create_temporary()
 
 std::string get_file_contents(FILE* f)
 {
-   std::fseek(f, 0, SEEK_END);
+   if (!BOOST_TEST_EQ(std::fseek(f, 0, SEEK_END), 0))
+      exit(1);
    long fsize = std::ftell(f);
    if (!BOOST_TEST_GE(fsize, 0))
       exit(1);
    std::rewind(f);
    std::string res(fsize, 0);
-   std::fread(res.data(), res.size(), 1u, f);
+   if (!BOOST_TEST_EQ(std::fread(res.data(), res.size(), 1u, f), fsize))
+      exit(1);
    return res;
 }
 
