@@ -133,7 +133,7 @@ auto transaction(std::shared_ptr<connection> conn) -> awaitable<void>
 awaitable<void> co_main(config cfg)
 {
    auto conn = std::make_shared<connection>(co_await asio::this_coro::executor);
-   conn->async_run(cfg, {}, consign(detached, conn));
+   conn->async_run(cfg, consign(detached, conn));
 
    co_await store(conn);
    co_await transaction(conn);

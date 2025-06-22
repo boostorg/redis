@@ -64,7 +64,7 @@ asio::awaitable<void> co_main(config cfg)
 {
    auto ex = co_await asio::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
+   conn->async_run(cfg, asio::consign(asio::detached, conn));
 
    person p;
    p.set_name("Louis");

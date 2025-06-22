@@ -87,7 +87,7 @@ auto co_main(config cfg) -> asio::awaitable<void>
    auto ex = co_await asio::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
    asio::co_spawn(ex, receiver(conn), asio::detached);
-   conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
+   conn->async_run(cfg, asio::consign(asio::detached, conn));
 
    signal_set sig_set(ex, SIGINT, SIGTERM);
    co_await sig_set.async_wait();

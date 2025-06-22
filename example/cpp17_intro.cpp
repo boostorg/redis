@@ -34,7 +34,7 @@ auto main(int argc, char* argv[]) -> int
       asio::io_context ioc;
       connection conn{ioc};
 
-      conn.async_run(cfg, {}, asio::detached);
+      conn.async_run(cfg, asio::detached);
 
       conn.async_exec(req, resp, [&](auto ec, auto) {
          if (!ec)
