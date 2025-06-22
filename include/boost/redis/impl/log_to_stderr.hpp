@@ -26,7 +26,7 @@ inline void log_to_stderr(std::string_view msg, const char* prefix = "(Boost.Red
    // Precision should be an int when passed to fprintf. Technically,
    // message could be larger than INT_MAX. Impose a sane limit on message sizes
    // to prevent memory problems
-   int precision = (std::min)(msg.size(), static_cast<std::size_t>(0xffffu));
+   auto precision = static_cast<int>((std::min)(msg.size(), static_cast<std::size_t>(0xffffu)));
 
    // Log the message. None of our messages should contain NULL bytes, so this should be OK.
    // We choose fprintf over std::clog because it's safe in multi-threaded environments.

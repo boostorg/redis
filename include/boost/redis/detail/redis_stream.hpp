@@ -68,7 +68,6 @@ class redis_stream {
       }
    }
 
-   template <class Logger>
    struct connect_op {
       redis_stream& obj;
       const config* cfg;
