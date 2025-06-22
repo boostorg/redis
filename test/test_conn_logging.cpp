@@ -33,10 +33,6 @@ namespace {
 //     logging can be disabled
 //     logging can be changed verbosity
 // connection logging tests
-//     basic_connection constructor 1
-//     basic_connection constructor 2
-//     basic_connection constructor context 1
-//     basic_connection constructor context 2
 //     basic_connection async_run with logger
 //     connection constructor 1
 //     connection constructor 2
@@ -74,6 +70,23 @@ void test_basic_connection_constructor_executor_1()
    BOOST_TEST_EQ(messages.size(), 1u);
 }
 
+void test_basic_connection_constructor_context_1()
+{
+   // Setup
+   net::io_context ioc;
+   std::vector<std::string> messages;
+   logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
+      messages.emplace_back(msg);
+   });
+   basic_connection<net::io_context::executor_type> conn{ioc, std::move(lgr)};
+
+   // Produce some logging
+   run_with_invalid_config(ioc, conn);
+
+   // Some logging was produced
+   BOOST_TEST_EQ(messages.size(), 1u);
+}
+
 void test_basic_connection_constructor_executor_2()
 {
    // Setup
@@ -94,12 +107,34 @@ void test_basic_connection_constructor_executor_2()
    BOOST_TEST_EQ(messages.size(), 1u);
 }
 
+void test_basic_connection_constructor_context_2()
+{
+   // Setup
+   net::io_context ioc;
+   std::vector<std::string> messages;
+   logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
+      messages.emplace_back(msg);
+   });
+   basic_connection<net::io_context::executor_type> conn{
+      ioc,
+      net::ssl::context{net::ssl::context::tlsv12_client},
+      std::move(lgr)};
+
+   // Produce some logging
+   run_with_invalid_config(ioc, conn);
+
+   // Some logging was produced
+   BOOST_TEST_EQ(messages.size(), 1u);
+}
+
 }  // namespace
 
 int main()
 {
    test_basic_connection_constructor_executor_1();
    test_basic_connection_constructor_executor_2();
+   test_basic_connection_constructor_context_1();
+   test_basic_connection_constructor_context_2();
 
    return boost::report_errors();
 }
