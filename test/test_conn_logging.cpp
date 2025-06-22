@@ -53,80 +53,7 @@ void run_with_invalid_config(net::io_context& ioc, Conn& conn)
    ioc.run_for(test_timeout);
 }
 
-void test_basic_connection_constructor_executor_1()
-{
-   // Setup
-   net::io_context ioc;
-   std::vector<std::string> messages;
-   logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
-      messages.emplace_back(msg);
-   });
-   basic_connection<net::io_context::executor_type> conn{ioc.get_executor(), std::move(lgr)};
-
-   // Produce some logging
-   run_with_invalid_config(ioc, conn);
-
-   // Some logging was produced
-   BOOST_TEST_EQ(messages.size(), 1u);
-}
-
-void test_basic_connection_constructor_context_1()
-{
-   // Setup
-   net::io_context ioc;
-   std::vector<std::string> messages;
-   logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
-      messages.emplace_back(msg);
-   });
-   basic_connection<net::io_context::executor_type> conn{ioc, std::move(lgr)};
-
-   // Produce some logging
-   run_with_invalid_config(ioc, conn);
-
-   // Some logging was produced
-   BOOST_TEST_EQ(messages.size(), 1u);
-}
-
-void test_basic_connection_constructor_executor_2()
-{
-   // Setup
-   net::io_context ioc;
-   std::vector<std::string> messages;
-   logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
-      messages.emplace_back(msg);
-   });
-   basic_connection<net::io_context::executor_type> conn{
-      ioc.get_executor(),
-      net::ssl::context{net::ssl::context::tlsv12_client},
-      std::move(lgr)};
-
-   // Produce some logging
-   run_with_invalid_config(ioc, conn);
-
-   // Some logging was produced
-   BOOST_TEST_EQ(messages.size(), 1u);
-}
-
-void test_basic_connection_constructor_context_2()
-{
-   // Setup
-   net::io_context ioc;
-   std::vector<std::string> messages;
-   logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
-      messages.emplace_back(msg);
-   });
-   basic_connection<net::io_context::executor_type> conn{
-      ioc,
-      net::ssl::context{net::ssl::context::tlsv12_client},
-      std::move(lgr)};
-
-   // Produce some logging
-   run_with_invalid_config(ioc, conn);
-
-   // Some logging was produced
-   BOOST_TEST_EQ(messages.size(), 1u);
-}
-
+template <class Conn>
 void test_connection_constructor_executor_1()
 {
    // Setup
@@ -135,7 +62,7 @@ void test_connection_constructor_executor_1()
    logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
       messages.emplace_back(msg);
    });
-   connection conn{ioc.get_executor(), std::move(lgr)};
+   Conn conn{ioc.get_executor(), std::move(lgr)};
 
    // Produce some logging
    run_with_invalid_config(ioc, conn);
@@ -144,6 +71,7 @@ void test_connection_constructor_executor_1()
    BOOST_TEST_EQ(messages.size(), 1u);
 }
 
+template <class Conn>
 void test_connection_constructor_context_1()
 {
    // Setup
@@ -152,7 +80,7 @@ void test_connection_constructor_context_1()
    logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
       messages.emplace_back(msg);
    });
-   connection conn{ioc, std::move(lgr)};
+   Conn conn{ioc, std::move(lgr)};
 
    // Produce some logging
    run_with_invalid_config(ioc, conn);
@@ -161,6 +89,7 @@ void test_connection_constructor_context_1()
    BOOST_TEST_EQ(messages.size(), 1u);
 }
 
+template <class Conn>
 void test_connection_constructor_executor_2()
 {
    // Setup
@@ -169,7 +98,7 @@ void test_connection_constructor_executor_2()
    logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
       messages.emplace_back(msg);
    });
-   connection conn{
+   Conn conn{
       ioc.get_executor(),
       net::ssl::context{net::ssl::context::tlsv12_client},
       std::move(lgr)};
@@ -181,6 +110,7 @@ void test_connection_constructor_executor_2()
    BOOST_TEST_EQ(messages.size(), 1u);
 }
 
+template <class Conn>
 void test_connection_constructor_context_2()
 {
    // Setup
@@ -189,7 +119,7 @@ void test_connection_constructor_context_2()
    logger lgr(logger::level::info, [&](logger::level, std::string_view msg) {
       messages.emplace_back(msg);
    });
-   connection conn{ioc, net::ssl::context{net::ssl::context::tlsv12_client}, std::move(lgr)};
+   Conn conn{ioc, net::ssl::context{net::ssl::context::tlsv12_client}, std::move(lgr)};
 
    // Produce some logging
    run_with_invalid_config(ioc, conn);
@@ -202,15 +132,18 @@ void test_connection_constructor_context_2()
 
 int main()
 {
-   test_basic_connection_constructor_executor_1();
-   test_basic_connection_constructor_executor_2();
-   test_basic_connection_constructor_context_1();
-   test_basic_connection_constructor_context_2();
+   // basic_connection
+   using basic_conn_t = basic_connection<net::io_context::executor_type>;
+   test_connection_constructor_executor_1<basic_conn_t>();
+   test_connection_constructor_executor_2<basic_conn_t>();
+   test_connection_constructor_context_1<basic_conn_t>();
+   test_connection_constructor_context_2<basic_conn_t>();
 
-   test_connection_constructor_executor_1();
-   test_connection_constructor_executor_2();
-   test_connection_constructor_context_1();
-   test_connection_constructor_context_2();
+   // connection
+   test_connection_constructor_executor_1<connection>();
+   test_connection_constructor_executor_2<connection>();
+   test_connection_constructor_context_1<connection>();
+   test_connection_constructor_context_2<connection>();
 
    return boost::report_errors();
 }
