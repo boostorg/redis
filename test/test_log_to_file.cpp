@@ -44,7 +44,7 @@ std::string get_file_contents(FILE* f)
       exit(1);
    std::rewind(f);
    std::string res(fsize, 0);
-   if (!BOOST_TEST_EQ(std::fread(res.data(), res.size(), 1u, f), fsize))
+   if (!BOOST_TEST_EQ(std::fread(res.data(), 1u, res.size(), f), fsize))
       exit(1);
    return res;
 }
