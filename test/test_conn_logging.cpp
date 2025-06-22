@@ -6,19 +6,20 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/connection.hpp>
+#include <boost/redis/logger.hpp>
 
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ssl/context.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/error_code.hpp>
 
-#include "boost/asio/io_context.hpp"
-#include "boost/asio/ssl/context.hpp"
-#include "boost/redis/config.hpp"
-#include "boost/redis/logger.hpp"
-#include "boost/system/detail/error_code.hpp"
 #include "common.hpp"
 
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 using boost::system::error_code;
@@ -28,18 +29,8 @@ using namespace boost::redis;
 namespace {
 
 // user tests
-//     logging is enabled by default
-//     a custom logger can be used
 //     logging can be disabled
 //     logging can be changed verbosity
-// connection logging tests
-//     basic_connection async_run with logger
-//     connection constructor 1
-//     connection constructor 2
-//     connection constructor context 1
-//     connection constructor context 2
-//     connection async_run with logger keeps working
-//     connection async_run with logger and prefix keeps working
 
 template <class Conn>
 void run_with_invalid_config(net::io_context& ioc, Conn& conn)
@@ -128,6 +119,23 @@ void test_connection_constructor_context_2()
    BOOST_TEST_EQ(messages.size(), 1u);
 }
 
+void test_disable_logging()
+{
+   // Setup
+   net::io_context ioc;
+   std::vector<std::string> messages;
+   logger lgr(logger::level::disabled, [&](logger::level, std::string_view msg) {
+      messages.emplace_back(msg);
+   });
+   connection conn{ioc, std::move(lgr)};
+
+   // Produce some logging
+   run_with_invalid_config(ioc, conn);
+
+   // Some logging was produced
+   BOOST_TEST_EQ(messages.size(), 0u);
+}
+
 }  // namespace
 
 int main()
@@ -144,6 +152,8 @@ int main()
    test_connection_constructor_executor_2<connection>();
    test_connection_constructor_context_1<connection>();
    test_connection_constructor_context_2<connection>();
+
+   test_disable_logging();
 
    return boost::report_errors();
 }
