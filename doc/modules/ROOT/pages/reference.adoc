@@ -1,0 +1,46 @@
+
+
+[#reference]
+= Reference
+
+
+
+[width=100%,cols=1]
+|===
+1+| *Types*
+| xref:reference:boost/redis/address.adoc[`address`]
+| xref:reference:boost/redis/config.adoc[`config`]
+| xref:reference:boost/redis/connection.adoc[`connection`]
+| xref:reference:boost/redis/basic_connection.adoc[`basic_connection`]
+| xref:reference:boost/redis/error.adoc[`error`]
+| xref:reference:boost/redis/ignore_t.adoc[`ignore_t`]
+| xref:reference:boost/redis/logger.adoc[`logger`]
+| xref:reference:boost/redis/operation.adoc[`operation`]
+| xref:reference:boost/redis/request.adoc[`request`]
+| xref:reference:boost/redis/response.adoc[`response`]
+| xref:reference:boost/redis/generic_response.adoc[`generic_response`]
+| xref:reference:boost/redis/usage.adoc[`usage`]
+// TODO: logger level
+// TODO: adapter
+
+|===
+
+
+
+[width=100%]
+|===
+1+| *Variables*
+
+xref:reference:boost/redis/ignore.adoc[`ignore`]
+
+
+|===
+
+[width=100%]
+|===
+1+| *Functions*
+
+xref:reference:boost/redis/consume_one.adoc[`consume_one`]
+
+
+|===

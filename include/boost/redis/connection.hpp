@@ -873,17 +873,20 @@ public:
    /// Calls `boost::redis::basic_connection::will_reconnect`.
    bool will_reconnect() const noexcept { return impl_.will_reconnect(); }
 
-   /// Calls `boost::redis::basic_connection::next_layer`.
+   /// Calls boost::redis::basic_connection::next_layer.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto& next_layer() noexcept { return impl_.next_layer(); }
+   asio::ssl::stream<asio::ip::tcp::socket>& next_layer() noexcept { return impl_.next_layer(); }
 
    /// Calls `boost::redis::basic_connection::next_layer`.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto const& next_layer() const noexcept { return impl_.next_layer(); }
+   asio::ssl::stream<asio::ip::tcp::socket> const& next_layer() const noexcept
+   {
+      return impl_.next_layer();
+   }
 
    /// Calls `boost::redis::basic_connection::reset_stream`.
    BOOST_DEPRECATED(
