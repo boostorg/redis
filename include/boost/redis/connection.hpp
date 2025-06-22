@@ -574,8 +574,9 @@ public:
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    BOOST_DEPRECATED(
-      "Passing a logger to async_run is deprecated. "
-      "Please pass it to the connection's constructor, instead.")
+      "The async_run overload taking a logger argument is deprecated. "
+      "Please pass the logger to the connection's constructor, instead, "
+      "and use the other async_run overloads.")
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
       set_run_logger(l, cfg);
@@ -951,8 +952,9 @@ public:
     */
    template <class CompletionToken = asio::deferred_t>
    BOOST_DEPRECATED(
-      "Passing a logger to async_run is deprecated. "
-      "Please pass it to the connection's constructor, instead.")
+      "The async_run overload taking a logger argument is deprecated. "
+      "Please pass the logger to the connection's constructor, instead, "
+      "and use the other async_run overloads.")
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
