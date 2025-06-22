@@ -437,9 +437,8 @@ public:
    using this_type = basic_connection<Executor>;
 
    /// Type of the next layer
-   using next_layer_type =
-      BOOST_DEPRECATED("This typedef is deprecated, and will be removed with next_layer().")
-         asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>>;
+   BOOST_DEPRECATED("This typedef is deprecated, and will be removed with next_layer().")
+   typedef asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>> next_layer_type;
 
    /// Executor type
    using executor_type = Executor;
