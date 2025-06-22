@@ -7,8 +7,6 @@
 #ifndef BOOST_REDIS_CONFIG_HPP
 #define BOOST_REDIS_CONFIG_HPP
 
-#include <boost/config.hpp>
-
 #include <chrono>
 #include <limits>
 #include <optional>

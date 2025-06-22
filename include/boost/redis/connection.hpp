@@ -312,7 +312,7 @@ private:
    using order_t = std::array<std::size_t, 5>;
 
 public:
-   run_op(Conn* conn)
+   run_op(Conn* conn) noexcept
    : conn_{conn}
    { }
 
@@ -334,6 +334,7 @@ public:
    {
       BOOST_ASIO_CORO_REENTER(coro_)
       {
+         // Check config
          ec0 = check_config(conn_->cfg_);
          if (ec0) {
             conn_->logger_.log(logger::level::err, "Invalid configuration", ec0);

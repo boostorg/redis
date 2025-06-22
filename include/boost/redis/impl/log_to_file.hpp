@@ -17,7 +17,6 @@
 namespace boost::redis::detail {
 
 // Shared by several ipp files
-// TODO: test edge cases here
 inline void log_to_file(FILE* f, std::string_view msg, const char* prefix = "(Boost.Redis) ")
 {
    // If the message is empty, data() might return a null pointer
