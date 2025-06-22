@@ -18,7 +18,7 @@ namespace boost::redis::detail {
 
 // Shared by several ipp files
 // TODO: test edge cases here
-inline void log_to_stderr(std::string_view msg, const char* prefix = "(Boost.Redis) ")
+inline void log_to_file(FILE* f, std::string_view msg, const char* prefix = "(Boost.Redis) ")
 {
    // If the message is empty, data() might return a null pointer
    const char* msg_ptr = msg.empty() ? "" : msg.data();
@@ -30,7 +30,7 @@ inline void log_to_stderr(std::string_view msg, const char* prefix = "(Boost.Red
 
    // Log the message. None of our messages should contain NULL bytes, so this should be OK.
    // We choose fprintf over std::clog because it's safe in multi-threaded environments.
-   std::fprintf(stderr, "%s%.*s\n", prefix, precision, msg_ptr);
+   std::fprintf(f, "%s%.*s\n", prefix, precision, msg_ptr);
 }
 
 }  // namespace boost::redis::detail

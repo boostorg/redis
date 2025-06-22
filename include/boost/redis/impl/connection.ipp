@@ -5,9 +5,10 @@
  */
 
 #include <boost/redis/connection.hpp>
-#include <boost/redis/impl/log_to_stderr.hpp>
+#include <boost/redis/impl/log_to_file.hpp>
 
 #include <cstddef>
+#include <cstdio>
 #include <string_view>
 #include <utility>
 
@@ -16,7 +17,7 @@ namespace boost::redis {
 logger detail::make_stderr_logger(logger::level lvl, std::string prefix)
 {
    return logger(lvl, [prefix = std::move(prefix)](logger::level, std::string_view msg) {
-      log_to_stderr(msg, prefix.c_str());
+      log_to_file(stderr, msg, prefix.c_str());
    });
 }
 

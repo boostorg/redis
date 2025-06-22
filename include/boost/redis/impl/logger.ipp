@@ -6,9 +6,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/redis/impl/log_to_stderr.hpp>
+#include <boost/redis/impl/log_to_file.hpp>
 #include <boost/redis/logger.hpp>
 
+#include <cstdio>
 #include <string_view>
 
 namespace boost::redis {
@@ -16,7 +17,7 @@ namespace boost::redis {
 logger::logger(level l)
 : lvl{l}
 , fn{[](level, std::string_view msg) {
-   detail::log_to_stderr(msg);
+   detail::log_to_file(stderr, msg);
 }}
 { }
 
