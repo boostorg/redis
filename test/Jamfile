@@ -53,6 +53,7 @@ local tests =
     test_low_level_sync_sans_io
     test_any_adapter
     test_exec_fsm
+    test_log_to_file
 ;
 
 # Build and run the tests
