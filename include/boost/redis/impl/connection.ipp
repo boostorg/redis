@@ -29,7 +29,10 @@ void connection::async_run_impl(
    logger&& l,
    asio::any_completion_handler<void(boost::system::error_code)> token)
 {
-   impl_.async_run(cfg, std::move(l), std::move(token));
+   // Avoid calling the basic_connection::async_run overload taking a logger
+   // because it generates deprecated messages when building this file
+   impl_.set_run_logger(l, cfg);
+   impl_.async_run(cfg, std::move(token));
 }
 
 void connection::async_run_impl(

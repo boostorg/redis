@@ -437,8 +437,9 @@ public:
    using this_type = basic_connection<Executor>;
 
    /// Type of the next layer
-   BOOST_DEPRECATED("This typedef is deprecated, and will be removed with next_layer().")
-   using next_layer_type = asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>>;
+   using next_layer_type =
+      BOOST_DEPRECATED("This typedef is deprecated, and will be removed with next_layer().")
+         asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>>;
 
    /// Executor type
    using executor_type = Executor;
@@ -571,13 +572,13 @@ public:
     * function. Use the overload without a logger parameter, instead. This function is
     * deprecated and will be removed in subsequent releases.
     */
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    BOOST_DEPRECATED(
       "Passing a logger to async_run is deprecated. "
       "Please pass it to the connection's constructor, instead.")
-   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
-      logger_.reset(detail::make_stderr_logger(l.lvl, cfg_.log_prefix));
+      set_run_logger(l, cfg);
       return async_run(cfg, std::forward<CompletionToken>(token));
    }
 
@@ -590,10 +591,10 @@ public:
     * This function is deprecated and will be removed in subsequent releases.
     * Use the overload taking an explicit config object, instead.
     */
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    BOOST_DEPRECATED(
       "Running without an explicit config object is deprecated."
       "Please create a config object and pass it to async_run.")
-   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(CompletionToken&& token = {})
    {
       return async_run(config{}, std::forward<CompletionToken>(token));
@@ -823,6 +824,12 @@ private:
       mpx_.cancel_on_conn_lost();
    }
 
+   // Used by both this class and connection
+   void set_run_logger(const logger& lgr, const config& cfg)
+   {
+      logger_.reset(detail::make_stderr_logger(lgr.lvl, cfg.log_prefix));
+   }
+
    template <class> friend struct detail::reader_op;
    template <class> friend struct detail::writer_op;
    template <class> friend struct detail::exec_op;
@@ -830,6 +837,7 @@ private:
    template <class, class> friend class detail::ping_op;
    template <class> friend class detail::run_op;
    template <class, class> friend class detail::check_timeout_op;
+   friend class connection;
 
    template <class CompletionToken>
    auto reader(CompletionToken&& token)
@@ -941,10 +949,10 @@ public:
     * function. Use the overload without a logger parameter, instead. This function is
     * deprecated and will be removed in subsequent releases.
     */
+   template <class CompletionToken = asio::deferred_t>
    BOOST_DEPRECATED(
       "Passing a logger to async_run is deprecated. "
       "Please pass it to the connection's constructor, instead.")
-   template <class CompletionToken = asio::deferred_t>
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
