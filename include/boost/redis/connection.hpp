@@ -1021,13 +1021,13 @@ public:
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto& next_layer() noexcept { return impl_.next_layer(); }
+   auto& next_layer() noexcept { return impl_.stream_.next_layer(); }
 
    /// Calls `boost::redis::basic_connection::next_layer`.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto const& next_layer() const noexcept { return impl_.next_layer(); }
+   auto const& next_layer() const noexcept { return impl_.stream_.next_layer(); }
 
    /// Calls `boost::redis::basic_connection::reset_stream`.
    BOOST_DEPRECATED(
@@ -1049,7 +1049,7 @@ public:
    BOOST_DEPRECATED(
       "ssl::context has no const methods, so this function should not be called. Set up any "
       "required TLS configuration before passing the ssl::context to the connection's constructor.")
-   auto const& get_ssl_context() const noexcept { return impl_.get_ssl_context(); }
+   auto const& get_ssl_context() const noexcept { return impl_.stream_.get_ssl_context(); }
 
 private:
    void async_run_impl(
