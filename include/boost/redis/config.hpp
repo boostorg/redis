@@ -62,11 +62,13 @@ struct config {
    /// Message used by the health-checker in `boost::redis::connection::async_run`.
    std::string health_check_id = "Boost.Redis";
 
-   /// Logger prefix, see `boost::redis::logger`.
-   BOOST_DEPRECATED(
-      "Setting the logger prefix should be done by creating a logger using "
-      "boost::redis::make_clog_logger or constructing a logger object with a user-supplied "
-      "function. This member is deprecated and will be removed in subsequent releases.")
+   /**
+    * @brief (Deprecated) Sets the logger prefix, a string printed before log messages.
+    * 
+    * Setting a prefix in this struct is deprecated. If you need to change how log messages
+    * look like, please construct a logger object passing a formatting function, and use that
+    * logger in connection's constructor. This member will be removed in subsequent releases.
+    */
    std::string log_prefix = "(Boost.Redis) ";
 
    /// Time the resolve operation is allowed to last.
