@@ -579,7 +579,7 @@ public:
       "and use the other async_run overloads.")
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
-      set_run_logger(l, cfg);
+      set_stderr_logger(l.lvl, cfg);
       return async_run(cfg, std::forward<CompletionToken>(token));
    }
 
@@ -826,9 +826,9 @@ private:
    }
 
    // Used by both this class and connection
-   void set_run_logger(const logger& lgr, const config& cfg)
+   void set_stderr_logger(logger::level lvl, const config& cfg)
    {
-      logger_.reset(detail::make_stderr_logger(lgr.lvl, cfg.log_prefix));
+      logger_.reset(detail::make_stderr_logger(lvl, cfg.log_prefix));
    }
 
    template <class> friend struct detail::reader_op;

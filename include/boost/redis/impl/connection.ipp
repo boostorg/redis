@@ -32,7 +32,7 @@ void connection::async_run_impl(
 {
    // Avoid calling the basic_connection::async_run overload taking a logger
    // because it generates deprecated messages when building this file
-   impl_.set_run_logger(l, cfg);
+   impl_.set_stderr_logger(l.lvl, cfg);
    impl_.async_run(cfg, std::move(token));
 }
 
