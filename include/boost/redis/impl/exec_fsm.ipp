@@ -25,11 +25,7 @@ inline bool is_cancellation(asio::cancellation_type_t type)
               asio::cancellation_type_t::terminal));
 }
 
-}  // namespace boost::redis::detail
-
-boost::redis::detail::exec_action boost::redis::detail::exec_fsm::resume(
-   bool connection_is_open,
-   asio::cancellation_type_t cancel_state)
+exec_action exec_fsm::resume(bool connection_is_open, asio::cancellation_type_t cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
@@ -90,5 +86,7 @@ boost::redis::detail::exec_action boost::redis::detail::exec_fsm::resume(
    BOOST_ASSERT(false);
    return exec_action{system::error_code()};
 }
+
+}  // namespace boost::redis::detail
 
 #endif

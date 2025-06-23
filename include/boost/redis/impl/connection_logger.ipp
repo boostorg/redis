@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2024 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -13,6 +13,38 @@
 #include <string>
 
 namespace boost::redis::detail {
+
+#define BOOST_REDIS_READER_SWITCH_CASE(elem) \
+   case reader_fsm::action::type::elem: return "reader_fsm::action::type::" #elem
+
+#define BOOST_REDIS_EXEC_SWITCH_CASE(elem) \
+   case exec_action_type::elem: return "exec_action_type::" #elem
+
+auto to_string(reader_fsm::action::type t) noexcept -> char const*
+{
+   switch (t) {
+      BOOST_REDIS_READER_SWITCH_CASE(setup_cancellation);
+      BOOST_REDIS_READER_SWITCH_CASE(append_some);
+      BOOST_REDIS_READER_SWITCH_CASE(needs_more);
+      BOOST_REDIS_READER_SWITCH_CASE(notify_push_receiver);
+      BOOST_REDIS_READER_SWITCH_CASE(cancel_run);
+      BOOST_REDIS_READER_SWITCH_CASE(done);
+      default: return "action::type::<invalid type>";
+   }
+}
+
+auto to_string(exec_action_type t) noexcept -> char const*
+{
+   switch (t) {
+      BOOST_REDIS_EXEC_SWITCH_CASE(setup_cancellation);
+      BOOST_REDIS_EXEC_SWITCH_CASE(immediate);
+      BOOST_REDIS_EXEC_SWITCH_CASE(done);
+      BOOST_REDIS_EXEC_SWITCH_CASE(notify_writer);
+      BOOST_REDIS_EXEC_SWITCH_CASE(wait_for_response);
+      BOOST_REDIS_EXEC_SWITCH_CASE(cancel_run);
+      default: return "exec_action_type::<invalid type>";
+   }
+}
 
 inline void format_tcp_endpoint(const asio::ip::tcp::endpoint& ep, std::string& to)
 {
@@ -125,20 +157,21 @@ void connection_logger::on_write(system::error_code const& ec, std::size_t n)
    logger_.fn(logger::level::info, msg_);
 }
 
-void connection_logger::on_read(system::error_code const& ec, std::size_t n)
+void connection_logger::on_fsm_resume(reader_fsm::action const& action)
 {
-   if (logger_.lvl < logger::level::info)
+   if (logger_.lvl < logger::level::debug)
       return;
 
-   msg_ = "reader_op: ";
-   if (ec) {
-      format_error_code(ec, msg_);
-   } else {
-      msg_ += std::to_string(n);
-      msg_ += " bytes read.";
-   }
+   std::string msg;
+   msg += "(";
+   msg += to_string(action.type_);
+   msg += ", ";
+   msg += std::to_string(action.push_size_);
+   msg += ", ";
+   msg += action.ec_.message();
+   msg += ")";
 
-   logger_.fn(logger::level::info, msg_);
+   logger_.fn(logger::level::debug, msg);
 }
 
 void connection_logger::on_hello(system::error_code const& ec, generic_response const& resp)

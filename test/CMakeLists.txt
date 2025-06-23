@@ -40,6 +40,7 @@ make_test(test_any_adapter)
 make_test(test_exec_fsm)
 make_test(test_log_to_file)
 make_test(test_conn_logging)
+make_test(test_reader_fsm)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)
