@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/impl/connection.ipp>
+#include <boost/redis/impl/connection_logger.ipp>
 #include <boost/redis/impl/error.ipp>
 #include <boost/redis/impl/exec_fsm.ipp>
 #include <boost/redis/impl/ignore.ipp>

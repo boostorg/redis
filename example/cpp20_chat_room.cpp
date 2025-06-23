@@ -86,7 +86,7 @@ auto co_main(config cfg) -> awaitable<void>
 
    co_spawn(ex, receiver(conn), detached);
    co_spawn(ex, publisher(stream, conn), detached);
-   conn->async_run(cfg, {}, consign(detached, conn));
+   conn->async_run(cfg, consign(detached, conn));
 
    signal_set sig_set{ex, SIGINT, SIGTERM};
    co_await sig_set.async_wait();

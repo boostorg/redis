@@ -5,11 +5,10 @@ target_link_libraries(boost_redis_project_options INTERFACE boost_redis)
 if (MSVC)
   # C4459: name hides outer scope variable is issued by Asio
   target_compile_options(boost_redis_project_options INTERFACE /bigobj /W4 /WX /wd4459)
-  target_compile_definitions(boost_redis_project_options INTERFACE _WIN32_WINNT=0x0601)
+  target_compile_definitions(boost_redis_project_options INTERFACE _WIN32_WINNT=0x0601 _CRT_SECURE_NO_WARNINGS=1)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(boost_redis_project_options INTERFACE -Wall -Wextra -Werror)
 endif()
-target_compile_definitions(boost_redis_project_options INTERFACE BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
 
 add_library(boost_redis_src STATIC boost_redis.cpp)
 target_compile_features(boost_redis_src PRIVATE cxx_std_17)
@@ -29,6 +28,7 @@ macro(make_test TEST_NAME)
     boost_redis_project_options
     Boost::unit_test_framework
   )
+  target_compile_definitions(${EXE_NAME} PRIVATE BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
   add_test(${EXE_NAME} ${EXE_NAME})
 endmacro()
 
@@ -38,6 +38,8 @@ make_test(test_request)
 make_test(test_low_level_sync_sans_io)
 make_test(test_any_adapter)
 make_test(test_exec_fsm)
+make_test(test_log_to_file)
+make_test(test_conn_logging)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)

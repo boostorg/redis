@@ -34,7 +34,7 @@ auto co_main(config cfg) -> asio::awaitable<void>
    cfg.unix_socket = "/tmp/redis-socks/redis.sock";
 
    auto conn = std::make_shared<connection>(co_await asio::this_coro::executor);
-   conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
+   conn->async_run(cfg, asio::consign(asio::detached, conn));
 
    request req;
    req.push("PING");

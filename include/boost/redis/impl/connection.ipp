@@ -5,25 +5,42 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/impl/log_to_file.hpp>
 
 #include <cstddef>
+#include <cstdio>
+#include <string_view>
+#include <utility>
 
 namespace boost::redis {
 
-connection::connection(executor_type ex, asio::ssl::context ctx)
-: impl_{ex, std::move(ctx)}
-{ }
+logger detail::make_stderr_logger(logger::level lvl, std::string prefix)
+{
+   return logger(lvl, [prefix = std::move(prefix)](logger::level, std::string_view msg) {
+      log_to_file(stderr, msg, prefix.c_str());
+   });
+}
 
-connection::connection(asio::io_context& ioc, asio::ssl::context ctx)
-: impl_{ioc.get_executor(), std::move(ctx)}
+connection::connection(executor_type ex, asio::ssl::context ctx, logger lgr)
+: impl_{std::move(ex), std::move(ctx), std::move(lgr)}
 { }
 
 void connection::async_run_impl(
    config const& cfg,
-   logger l,
+   logger&& l,
    asio::any_completion_handler<void(boost::system::error_code)> token)
 {
-   impl_.async_run(cfg, l, std::move(token));
+   // Avoid calling the basic_connection::async_run overload taking a logger
+   // because it generates deprecated messages when building this file
+   impl_.set_stderr_logger(l.lvl, cfg);
+   impl_.async_run(cfg, std::move(token));
+}
+
+void connection::async_run_impl(
+   config const& cfg,
+   asio::any_completion_handler<void(boost::system::error_code)> token)
+{
+   impl_.async_run(cfg, std::move(token));
 }
 
 void connection::async_exec_impl(

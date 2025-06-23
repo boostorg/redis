@@ -7,30 +7,17 @@
 #ifndef BOOST_REDIS_LOGGER_HPP
 #define BOOST_REDIS_LOGGER_HPP
 
-#include <boost/redis/response.hpp>
-
-#include <boost/asio/ip/tcp.hpp>
-
-#include <string>
+#include <functional>
 #include <string_view>
-
-namespace boost::system {
-class error_code;
-}
 
 namespace boost::redis {
 
-/** @brief Logger class
+/** @brief Defines logging configuration
  *  @ingroup high-level-api
  *
- *  The class can be passed to the connection objects to log to `std::clog`
- *
- *  Notice that currently this class has no stable interface. Users
- *  that don't want any logging can disable it by contructing a logger
- *  with logger::level::emerg to the connection.
+ *  See the member descriptions for more info.
  */
-class logger {
-public:
+struct logger {
    /** @brief Syslog-like log levels
     *  @ingroup high-level-api
     */
@@ -61,83 +48,51 @@ public:
       info,
 
       /// Debug
-      debug
+      debug,
    };
 
-   /** @brief Constructor
-    *  @ingroup high-level-api
+   /** @brief Constructor from a level.
     *
-    *  @param l Log level.
+    * Constructs a logger with the specified level
+    * and a logging function that prints messages to stderr.
+    *
+    * @param l The value to set @ref lvl to.
+    *
+    * @par Exceptions
+    * No-throw guarantee.
     */
-   logger(level l = level::debug)
-   : level_{l}
+   logger(level l = level::info);
+
+   /** @brief Constructor from a level and a function.
+    *
+    * Constructs a logger by setting its members to the specified values.
+    *
+    * @param l The value to set @ref lvl to.
+    * @param fn The value to set @ref fn to.
+    *
+    * @par Exceptions
+    * No-throw guarantee.
+    */
+   logger(level l, std::function<void(level, std::string_view)> fn)
+   : lvl{l}
+   , fn{std::move(fn)}
    { }
 
-   /** @brief Called when the resolve operation completes.
-    *  @ingroup high-level-api
+   /**
+    * @brief Defines a severity filter for messages.
     *
-    *  @param ec Error returned by the resolve operation.
-    *  @param res Resolve results.
+    * Only messages with a level >= to the one specified by the logger
+    * will be logged.
     */
-   void on_resolve(system::error_code const& ec, asio::ip::tcp::resolver::results_type const& res);
+   level lvl;
 
-   /** @brief Called when the connect operation completes.
-    *  @ingroup high-level-api
+   /**
+    * @brief Defines a severity filter for messages.
     *
-    *  @param ec Error returned by the connect operation.
-    *  @param ep Endpoint to which the connection connected.
+    * Only messages with a level >= to the one specified by the logger
+    * will be logged.
     */
-   void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
-#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
-   void on_connect(system::error_code const& ec, std::string_view unix_socket_ep);
-#endif
-
-   /** @brief Called when the ssl handshake operation completes.
-    *  @ingroup high-level-api
-    *
-    *  @param ec Error returned by the handshake operation.
-    */
-   void on_ssl_handshake(system::error_code const& ec);
-
-   /** @brief Called when the write operation completes.
-    *  @ingroup high-level-api
-    *
-    *  @param ec Error code returned by the write operation.
-    *  @param payload The payload written to the socket.
-    */
-   void on_write(system::error_code const& ec, std::string_view payload);
-
-   /** @brief Called when the read operation completes.
-    *  @ingroup high-level-api
-    *
-    *  @param ec Error code returned by the read operation.
-    *  @param n Number of bytes read.
-    */
-   void on_read(system::error_code const& ec, std::size_t n);
-
-   /** @brief Called when the `HELLO` request completes.
-    *  @ingroup high-level-api
-    *
-    *  @param ec Error code returned by the async_exec operation.
-    *  @param resp Response sent by the Redis server.
-    */
-   void on_hello(system::error_code const& ec, generic_response const& resp);
-
-   /** @brief Sets a prefix to every log message
-    *  @ingroup high-level-api
-    *
-    *  @param prefix The prefix.
-    */
-   void set_prefix(std::string_view prefix) { prefix_ = prefix; }
-
-   void trace(std::string_view message);
-   void trace(std::string_view op, system::error_code const& ec);
-   void log_error(std::string_view op, system::error_code const& ec);
-
-private:
-   void write_prefix();
-   level level_;
-   std::string prefix_;
+   std::function<void(level, std::string_view)> fn;
 };
 
 }  // namespace boost::redis

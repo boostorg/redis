@@ -58,7 +58,7 @@ auto co_main(config cfg) -> asio::awaitable<void>
 {
    auto ex = co_await asio::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
-   conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
+   conn->async_run(cfg, asio::consign(asio::detached, conn));
 
    // user object that will be stored in Redis in json format.
    user const u{"Joao", "58", "Brazil"};

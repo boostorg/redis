@@ -25,10 +25,9 @@ void run(
    std::shared_ptr<boost::redis::connection> conn,
    boost::redis::config cfg,
    boost::system::error_code ec,
-   boost::redis::operation op,
-   boost::redis::logger::level l)
+   boost::redis::operation op)
 {
-   conn->async_run(cfg, {l}, run_callback{conn, op, ec});
+   conn->async_run(cfg, run_callback{conn, op, ec});
 }
 
 static std::string safe_getenv(const char* name, const char* default_value)

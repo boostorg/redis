@@ -51,3 +51,12 @@ endif()
 if (NOT MSVC)
   make_example(cpp20_chat_room 20)
 endif()
+
+# We build and test the spdlog integration example only if the library is found
+find_package(spdlog)
+if (spdlog_FOUND)
+  make_testable_example(cpp17_spdlog 17)
+  target_link_libraries(cpp17_spdlog PRIVATE spdlog::spdlog)
+else()
+  message(STATUS "Skipping the spdlog example because the spdlog package couldn't be found")
+endif()
