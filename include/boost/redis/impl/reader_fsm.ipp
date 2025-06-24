@@ -48,7 +48,7 @@ reader_fsm::action reader_fsm::resume(
                break;
             }
 
-            if (res_.first.value()) {
+            if (!res_.first.value()) {
                BOOST_REDIS_YIELD(resume_point_, 6, action::type::notify_push_receiver, res_.second)
                if (ec) {
                   action_after_resume_ = {action::type::done, 0u, ec};

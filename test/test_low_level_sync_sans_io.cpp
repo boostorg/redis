@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
    boost::system::error_code ec;
    auto const ret = mpx.consume_next(ec);
 
-   BOOST_TEST(ret.first.value());
+   BOOST_TEST(!ret.first.value());
    BOOST_CHECK_EQUAL(ret.second, 16u);
 
    // TODO: Provide operator << for generic_response so we can compare
@@ -293,7 +293,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
    mpx.get_read_buffer().append("\n+two\r\n");
    ret = mpx.consume_next(ec);
 
-   BOOST_TEST(ret.first.value());
+   BOOST_TEST(!ret.first.value());
    BOOST_CHECK_EQUAL(ret.second, 16u);
 
    // TODO: Provide operator << for generic_response so we can compare

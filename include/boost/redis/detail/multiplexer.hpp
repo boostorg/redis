@@ -125,7 +125,7 @@ struct multiplexer {
    auto commit_write() -> std::size_t;
 
    // If the tribool contains no value more data is needed, otherwise
-   // if the value is true the message consumed is a push.
+   // if the value is true the message consumed is not a push.
    [[nodiscard]]
    auto consume_next(system::error_code& ec) -> std::pair<tribool, std::size_t>;
 

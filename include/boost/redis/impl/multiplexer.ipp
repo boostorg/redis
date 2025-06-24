@@ -101,10 +101,10 @@ std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec
          return std::make_pair(std::nullopt, 0);
 
       if (ec)
-         return std::make_pair(std::make_optional(true), 0);
+         return std::make_pair(std::make_optional(false), 0);
 
       auto const size = on_finish_parsing(true);
-      return std::make_pair(std::make_optional(true), size);
+      return std::make_pair(std::make_optional(false), size);
    }
 
    BOOST_ASSERT_MSG(
@@ -120,7 +120,7 @@ std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec
    if (ec) {
       reqs_.front()->notify_error(ec);
       reqs_.pop_front();
-      return std::make_pair(std::make_optional(false), 0);
+      return std::make_pair(std::make_optional(true), 0);
    }
 
    reqs_.front()->commit_response(parser_.get_consumed());
@@ -131,7 +131,7 @@ std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec
    }
 
    auto const size = on_finish_parsing(false);
-   return std::make_pair(std::make_optional(false), size);
+   return std::make_pair(std::make_optional(true), size);
 }
 
 void multiplexer::reset()

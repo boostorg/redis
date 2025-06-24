@@ -120,7 +120,7 @@ void test_success()
    mpx.get_read_buffer() = "$5\r\nhello\r\n";
    auto req_status = mpx.consume_next(ec);
    BOOST_TEST_EQ(ec, error_code());
-   BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
+   BOOST_TEST_EQ(req_status.first.value(), true);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
    BOOST_TEST_EQ(input.done_calls, 1u);
 
@@ -221,7 +221,7 @@ void test_not_connected()
    mpx.get_read_buffer() = "$5\r\nhello\r\n";
    auto req_status = mpx.consume_next(ec);
    BOOST_TEST_EQ(ec, error_code());
-   BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
+   BOOST_TEST_EQ(req_status.first.value(), true);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
    BOOST_TEST_EQ(input.done_calls, 1u);
 
@@ -345,7 +345,7 @@ void test_cancel_notwaiting_notterminal()
       mpx.get_read_buffer() = "$5\r\nhello\r\n";
       auto req_status = mpx.consume_next(ec);
       BOOST_TEST_EQ_MSG(ec, error_code(), tc.name);
-      BOOST_TEST_EQ_MSG(req_status.first.value(), false, tc.name);  // it wasn't a push
+      BOOST_TEST_EQ_MSG(req_status.first.value(), true, tc.name);  // it wasn't a push
       BOOST_TEST_EQ_MSG(req_status.second, 11u, tc.name);  // the entire buffer was consumed
       BOOST_TEST_EQ_MSG(input.done_calls, 1u, tc.name);
 
