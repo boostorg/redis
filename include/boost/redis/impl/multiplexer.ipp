@@ -25,13 +25,10 @@ multiplexer::elem::elem(request const& req, pipeline_adapter_type adapter)
    };
 }
 
-auto multiplexer::elem::notify_error(system::error_code ec) noexcept -> void
+auto multiplexer::elem::set_error(system::error_code const& ec) noexcept -> void
 {
-   if (!ec_) {
+   if (!ec_)
       ec_ = ec;
-   }
-
-   notify_done();
 }
 
 auto multiplexer::elem::commit_response(std::size_t read_size) -> void
@@ -40,7 +37,7 @@ auto multiplexer::elem::commit_response(std::size_t read_size) -> void
    --remaining_responses_;
 }
 
-bool multiplexer::remove(std::shared_ptr<elem> const& ptr)
+bool multiplexer::remove(elem_ptr_type const& ptr)
 {
    if (ptr->is_waiting()) {
       reqs_.erase(std::remove(std::begin(reqs_), std::end(reqs_), ptr));
@@ -68,7 +65,7 @@ std::size_t multiplexer::commit_write()
    return release_push_requests();
 }
 
-void multiplexer::add(std::shared_ptr<elem> const& info)
+void multiplexer::add(elem_ptr_type const& info)
 {
    reqs_.push_back(info);
 
@@ -118,7 +115,8 @@ std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec
       return std::make_pair(std::nullopt, 0);
 
    if (ec) {
-      reqs_.front()->notify_error(ec);
+      reqs_.front()->set_error(ec);
+      reqs_.front()->notify_done();
       reqs_.pop_front();
       return std::make_pair(std::make_optional(true), 0);
    }
@@ -179,7 +177,8 @@ std::size_t multiplexer::cancel_waiting()
    auto const ret = std::distance(point, std::end(reqs_));
 
    std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-      ptr->notify_error({asio::error::operation_aborted});
+      ptr->set_error({asio::error::operation_aborted});
+      ptr->notify_done();
    });
 
    reqs_.erase(point, std::end(reqs_));
@@ -210,7 +209,8 @@ auto multiplexer::cancel_on_conn_lost() -> std::size_t
    auto const ret = std::distance(point, std::end(reqs_));
 
    std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-      ptr->notify_error({asio::error::operation_aborted});
+      ptr->set_error({asio::error::operation_aborted});
+      ptr->notify_done();
    });
 
    reqs_.erase(point, std::end(reqs_));
@@ -306,7 +306,7 @@ bool multiplexer::is_waiting_response() const noexcept
 bool multiplexer::is_writing() const noexcept { return !write_buffer_.empty(); }
 
 auto make_elem(request const& req, multiplexer::pipeline_adapter_type adapter)
-   -> std::shared_ptr<multiplexer::elem>
+   -> multiplexer::elem_ptr_type
 {
    return std::make_shared<multiplexer::elem>(req, std::move(adapter));
 }

@@ -49,7 +49,7 @@ struct multiplexer {
          done_();
       }
 
-      auto notify_error(system::error_code ec) noexcept -> void;
+      auto set_error(system::error_code const& ec) noexcept -> void;
 
       [[nodiscard]]
       auto is_waiting() const noexcept
@@ -115,7 +115,9 @@ struct multiplexer {
       std::size_t read_size_;
    };
 
-   auto remove(std::shared_ptr<elem> const& ptr) -> bool;
+   using elem_ptr_type = std::shared_ptr<elem>;
+
+   auto remove(elem_ptr_type const& ptr) -> bool;
 
    [[nodiscard]]
    auto prepare_write() -> std::size_t;
@@ -129,7 +131,7 @@ struct multiplexer {
    [[nodiscard]]
    auto consume_next(system::error_code& ec) -> std::pair<tribool, std::size_t>;
 
-   auto add(std::shared_ptr<elem> const& ptr) -> void;
+   auto add(elem_ptr_type const& ptr) -> void;
    auto reset() -> void;
 
    [[nodiscard]]
@@ -203,7 +205,7 @@ private:
 
    std::string read_buffer_;
    std::string write_buffer_;
-   std::deque<std::shared_ptr<elem>> reqs_;
+   std::deque<elem_ptr_type> reqs_;
    resp3::parser parser_{};
    bool on_push_ = false;
    bool cancel_run_called_ = false;
@@ -212,7 +214,7 @@ private:
 };
 
 auto make_elem(request const& req, multiplexer::pipeline_adapter_type adapter)
-   -> std::shared_ptr<multiplexer::elem>;
+   -> multiplexer::elem_ptr_type;
 
 }  // namespace detail
 }  // namespace boost::redis
