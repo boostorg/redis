@@ -223,7 +223,7 @@ struct reader_op {
 public:
    reader_op(Conn& conn) noexcept
    : conn_{&conn}
-   , fsm_{conn.mpx_}
+   , fsm_{conn.mpx_, [&conn](std::size_t size){return conn.receive_channel_.try_send(system::error_code(), size);}}
    { }
 
    template <class Self>
@@ -252,12 +252,7 @@ public:
                   std::move(self));
                return;
             case reader_fsm::action::type::notify_push_receiver:
-               if (conn_->receive_channel_.try_send(ec, act.push_size_)) {
-                  continue;
-               } else {
-                  conn_->receive_channel_.async_send(ec, act.push_size_, std::move(self));
-                  return;
-               }
+               conn_->receive_channel_.async_send(ec, act.push_size_, std::move(self));
                return;
             case reader_fsm::action::type::cancel_run: conn_->cancel(operation::run); continue;
             case reader_fsm::action::type::done:       self.complete(act.ec_); return;

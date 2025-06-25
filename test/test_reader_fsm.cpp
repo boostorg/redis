@@ -35,12 +35,16 @@ std::ostream& operator<<(std::ostream& os, reader_fsm::action::type t)
 // Operators
 namespace {
 
+// Sync push notifier that always fails so that the fsm has to suspend
+// so that the caller can notify it asynchronously.
+auto sync_push_notifier = [](std::size_t){return false;};
+
 void test_push()
 {
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_response(resp);
-   reader_fsm fsm{mpx};
+   reader_fsm fsm{mpx, sync_push_notifier};
    error_code ec;
    action act;
 
@@ -85,7 +89,7 @@ void test_read_needs_more()
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_response(resp);
-   reader_fsm fsm{mpx};
+   reader_fsm fsm{mpx, sync_push_notifier};
    error_code ec;
    action act;
 
@@ -130,7 +134,7 @@ void test_read_error()
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_response(resp);
-   reader_fsm fsm{mpx};
+   reader_fsm fsm{mpx, sync_push_notifier};
    error_code ec;
    action act;
 
@@ -160,7 +164,7 @@ void test_parse_error()
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_response(resp);
-   reader_fsm fsm{mpx};
+   reader_fsm fsm{mpx, sync_push_notifier};
    error_code ec;
    action act;
 
@@ -190,7 +194,7 @@ void test_push_deliver_error()
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_response(resp);
-   reader_fsm fsm{mpx};
+   reader_fsm fsm{mpx, sync_push_notifier};
    error_code ec;
    action act;
 
@@ -219,10 +223,53 @@ void test_push_deliver_error()
    BOOST_TEST_EQ(act.ec_, error_code{net::error::operation_aborted});
 }
 
+void test_sync_send_push()
+{
+   auto push_notifier = [i = 0](std::size_t) mutable
+   {
+      // When i == 3 we are simulating that the push channel became
+      // full and an async notification is necessary.
+      return ++i != 3;
+   };
+
+   multiplexer mpx;
+   generic_response resp;
+   mpx.set_receive_response(resp);
+   reader_fsm fsm{mpx, push_notifier};
+   error_code ec;
+   action act;
+
+   // Initiate
+   act = fsm.resume(0, ec, cancellation_type_t::none);
+   BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
+   act = fsm.resume(0, ec, cancellation_type_t::none);
+   BOOST_TEST_EQ(act.type_, action::type::append_some);
+
+   // The fsm is asking for data.
+   mpx.get_read_buffer().append(">1\r\n+msg1\r\n");
+   mpx.get_read_buffer().append(">1\r\n+msg2 \r\n");
+   mpx.get_read_buffer().append(">1\r\n+msg3  \r\n");
+   auto const bytes_read = mpx.get_read_buffer().size();
+
+   // Only the last push has to be notified asynchronously. The other
+   // ones have been notified synchronously by the callback passed in
+   // the constructor.
+   act = fsm.resume(bytes_read, ec, cancellation_type_t::none);
+   BOOST_TEST_EQ(act.type_, action::type::notify_push_receiver);
+   BOOST_TEST_EQ(act.push_size_, 13u);
+   BOOST_TEST_EQ(act.ec_, error_code());
+
+   // All pushes were delivered so the fsm should demand more data
+   act = fsm.resume(0, ec, cancellation_type_t::none);
+   BOOST_TEST_EQ(act.type_, action::type::append_some);
+   BOOST_TEST_EQ(act.ec_, error_code());
+}
+
 }  // namespace
 
 int main()
 {
+   test_sync_send_push();
    test_push_deliver_error();
    test_read_needs_more();
    test_push();

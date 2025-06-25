@@ -10,8 +10,9 @@
 
 namespace boost::redis::detail {
 
-reader_fsm::reader_fsm(multiplexer& mpx) noexcept
+reader_fsm::reader_fsm(multiplexer& mpx, push_notifier_type push_notifier) noexcept
 : mpx_{&mpx}
+, push_notifier_{std::move(push_notifier)}
 { }
 
 reader_fsm::action reader_fsm::resume(
@@ -48,20 +49,13 @@ reader_fsm::action reader_fsm::resume(
                break;
             }
 
-            if (!res_.first.value()) {
+            if (!res_.first.value() && !push_notifier_(res_.second)) {
                BOOST_REDIS_YIELD(resume_point_, 6, action::type::notify_push_receiver, res_.second)
                if (ec) {
                   action_after_resume_ = {action::type::done, 0u, ec};
                   BOOST_REDIS_YIELD(resume_point_, 7, action::type::cancel_run)
                   return action_after_resume_;
                }
-            } else {
-               // TODO: Here we should notify the exec operation that
-               // it can be completed. This will improve log clarity
-               // and will make this code symmetrical in how it
-               // handles pushes and other messages. The new action
-               // type can be named notify_exec. To do that we need to
-               // refactor the multiplexer.
             }
          }
       }

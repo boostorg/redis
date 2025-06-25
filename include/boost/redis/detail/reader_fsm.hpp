@@ -13,11 +13,14 @@
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
+#include <functional>
 
 namespace boost::redis::detail {
 
 class reader_fsm {
 public:
+   using push_notifier_type = std::function<bool(std::size_t)>;
+
    struct action {
       enum class type
       {
@@ -34,7 +37,8 @@ public:
       system::error_code ec_ = {};
    };
 
-   explicit reader_fsm(multiplexer& mpx) noexcept;
+   explicit
+   reader_fsm(multiplexer& mpx, push_notifier_type push_notifier) noexcept;
 
    action resume(
       std::size_t bytes_read,
@@ -46,6 +50,7 @@ private:
    action action_after_resume_;
    action::type next_read_type_ = action::type::append_some;
    multiplexer* mpx_ = nullptr;
+   push_notifier_type push_notifier_;
    std::pair<tribool, std::size_t> res_{std::make_pair(std::nullopt, 0)};
 };
 
