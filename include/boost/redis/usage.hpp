@@ -7,6 +7,8 @@
 #ifndef BOOST_REDIS_USAGE_HPP
 #define BOOST_REDIS_USAGE_HPP
 
+#include <cstddef>
+
 namespace boost::redis {
 
 /** @brief Connection usage information.
