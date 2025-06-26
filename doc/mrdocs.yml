@@ -11,5 +11,6 @@ include-symbols:
   - "boost::redis::**"
 exclude-symbols:
   - "boost::redis::detail::**"
+  - "boost::redis::basic_connection::run_is_canceled"
 base-url: https://github.com/boostorg/redis/blob/master/include/
 use-system-libc: true
