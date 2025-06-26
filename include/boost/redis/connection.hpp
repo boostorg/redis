@@ -405,15 +405,14 @@ logger make_stderr_logger(logger::level lvl, std::string prefix);
  *  commands can be sent at any time. For more details, please see the
  *  documentation of each individual function.
  *
- *  @tparam Socket The socket type e.g. asio::ip::tcp::socket.
- *
+ *  @tparam Executor The executor type used to create any required I/O objects.
  */
 template <class Executor>
 class basic_connection {
 public:
    using this_type = basic_connection<Executor>;
 
-   /// Type of the next layer
+   /// (Deprecated) Type of the next layer
    BOOST_DEPRECATED("This typedef is deprecated, and will be removed with next_layer().")
    typedef asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>> next_layer_type;
 

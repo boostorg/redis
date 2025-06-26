@@ -5,4 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#define BOOST_ALLOW_DEPRECATED  // avoid mrdocs errors with the BOOST_DEPRECATED macro
+
 #include <boost/redis.hpp>
