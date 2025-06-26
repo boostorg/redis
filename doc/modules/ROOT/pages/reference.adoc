@@ -42,13 +42,13 @@ xref:reference:boost/redis/response.adoc[`response`]
 
 xref:reference:boost/redis/generic_response.adoc[`generic_response`]
 
-xref:reference:boost/redis/consume_one.adoc[`consume_one`]
+xref:reference:boost/redis/consume_one-08.adoc[`consume_one`]
 
 
 |
 xref:reference:boost/redis/adapter/boost_redis_adapt.adoc[`boost_redis_adapt`]
 
-xref:reference:boost/redis/adapters/adapt2.adoc[`adapter::adapt2`]
+xref:reference:boost/redis/adapter/adapt2.adoc[`adapter::adapt2`]
 
 xref:reference:boost/redis/adapter/ignore.adoc[`adapter::ignore`]
 
@@ -69,7 +69,7 @@ xref:reference:boost/redis/resp3/parser.adoc[`parser`]
 
 xref:reference:boost/redis/resp3/parse.adoc[`parse`]
 
-xref:reference:boost/redis/resp3/boost_redis_to_bulk.adoc[`boost_redis_to_bulk`]
+xref:reference:boost/redis/resp3/boost_redis_to_bulk-08.adoc[`boost_redis_to_bulk`]
 
 xref:reference:boost/redis/resp3/type.adoc[`type`]
 
