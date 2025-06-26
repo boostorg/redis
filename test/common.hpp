@@ -33,5 +33,4 @@ void run(
    std::shared_ptr<boost::redis::connection> conn,
    boost::redis::config cfg = make_test_config(),
    boost::system::error_code ec = boost::asio::error::operation_aborted,
-   boost::redis::operation op = boost::redis::operation::receive,
-   boost::redis::logger::level l = boost::redis::logger::level::debug);
+   boost::redis::operation op = boost::redis::operation::receive);

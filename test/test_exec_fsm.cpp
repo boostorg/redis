@@ -33,16 +33,12 @@ using boost::asio::cancellation_type_t;
 // Operators
 namespace boost::redis::detail {
 
+extern auto to_string(exec_action_type t) noexcept -> char const*;
+
 std::ostream& operator<<(std::ostream& os, exec_action_type type)
 {
-   switch (type) {
-      case exec_action_type::immediate:         return os << "exec_action_type::immediate";
-      case exec_action_type::done:              return os << "exec_action_type::done";
-      case exec_action_type::notify_writer:     return os << "exec_action_type::notify_writer";
-      case exec_action_type::wait_for_response: return os << "exec_action_type::wait_for_response";
-      case exec_action_type::cancel_run:        return os << "exec_action_type::cancel_run";
-      default:                                  return os << "<unknown exec_action_type>";
-   }
+   os << to_string(type);
+   return os;
 }
 
 bool operator==(exec_action lhs, exec_action rhs) noexcept

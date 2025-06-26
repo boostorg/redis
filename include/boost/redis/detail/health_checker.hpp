@@ -9,6 +9,7 @@
 
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
@@ -20,16 +21,14 @@
 #include <boost/asio/steady_timer.hpp>
 
 #include <chrono>
-#include <memory>
 
 namespace boost::redis::detail {
 
-template <class HealthChecker, class Connection, class Logger>
+template <class HealthChecker, class Connection>
 class ping_op {
 public:
    HealthChecker* checker_ = nullptr;
    Connection* conn_ = nullptr;
-   Logger logger_;
    asio::coroutine coro_{};
 
    template <class Self>
@@ -38,7 +37,7 @@ public:
       BOOST_ASIO_CORO_REENTER(coro_) for (;;)
       {
          if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
-            logger_.trace("ping_op (1): timeout disabled.");
+            conn_->logger_.trace("ping_op (1): timeout disabled.");
             BOOST_ASIO_CORO_YIELD
             asio::post(std::move(self));
             self.complete({});
@@ -46,7 +45,7 @@ public:
          }
 
          if (checker_->checker_has_exited_) {
-            logger_.trace("ping_op (2): checker has exited.");
+            conn_->logger_.trace("ping_op (2): checker has exited.");
             self.complete({});
             return;
          }
@@ -54,7 +53,7 @@ public:
          BOOST_ASIO_CORO_YIELD
          conn_->async_exec(checker_->req_, any_adapter(checker_->resp_), std::move(self));
          if (ec) {
-            logger_.trace("ping_op (3)", ec);
+            conn_->logger_.trace("ping_op (3)", ec);
             checker_->wait_timer_.cancel();
             self.complete(ec);
             return;
@@ -66,7 +65,7 @@ public:
          BOOST_ASIO_CORO_YIELD
          checker_->ping_timer_.async_wait(std::move(self));
          if (ec) {
-            logger_.trace("ping_op (4)", ec);
+            conn_->logger_.trace("ping_op (4)", ec);
             self.complete(ec);
             return;
          }
@@ -74,12 +73,11 @@ public:
    }
 };
 
-template <class HealthChecker, class Connection, class Logger>
+template <class HealthChecker, class Connection>
 class check_timeout_op {
 public:
    HealthChecker* checker_ = nullptr;
    Connection* conn_ = nullptr;
-   Logger logger_;
    asio::coroutine coro_{};
 
    template <class Self>
@@ -88,7 +86,7 @@ public:
       BOOST_ASIO_CORO_REENTER(coro_) for (;;)
       {
          if (checker_->ping_interval_ == std::chrono::seconds::zero()) {
-            logger_.trace("check_timeout_op (1): timeout disabled.");
+            conn_->logger_.trace("check_timeout_op (1): timeout disabled.");
             BOOST_ASIO_CORO_YIELD
             asio::post(std::move(self));
             self.complete({});
@@ -100,20 +98,20 @@ public:
          BOOST_ASIO_CORO_YIELD
          checker_->wait_timer_.async_wait(std::move(self));
          if (ec) {
-            logger_.trace("check_timeout_op (2)", ec);
+            conn_->logger_.trace("check_timeout_op (2)", ec);
             self.complete(ec);
             return;
          }
 
          if (checker_->resp_.has_error()) {
             // TODO: Log the error.
-            logger_.trace("check_timeout_op (3): Response error.");
+            conn_->logger_.trace("check_timeout_op (3): Response error.");
             self.complete({});
             return;
          }
 
          if (checker_->resp_.value().empty()) {
-            logger_.trace("check_timeout_op (4): pong timeout.");
+            conn_->logger_.trace("check_timeout_op (4): pong timeout.");
             checker_->ping_timer_.cancel();
             conn_->cancel(operation::run);
             checker_->checker_has_exited_ = true;
@@ -157,30 +155,30 @@ public:
       wait_timer_.cancel();
    }
 
-   template <class Connection, class Logger, class CompletionToken>
-   auto async_ping(Connection& conn, Logger l, CompletionToken token)
+   template <class Connection, class CompletionToken>
+   auto async_ping(Connection& conn, CompletionToken token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         ping_op<health_checker, Connection, Logger>{this, &conn, l},
+         ping_op<health_checker, Connection>{this, &conn},
          token,
          conn,
          ping_timer_);
    }
 
-   template <class Connection, class Logger, class CompletionToken>
-   auto async_check_timeout(Connection& conn, Logger l, CompletionToken token)
+   template <class Connection, class CompletionToken>
+   auto async_check_timeout(Connection& conn, CompletionToken token)
    {
       checker_has_exited_ = false;
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         check_timeout_op<health_checker, Connection, Logger>{this, &conn, l},
+         check_timeout_op<health_checker, Connection>{this, &conn},
          token,
          conn,
          wait_timer_);
    }
 
 private:
-   template <class, class, class> friend class ping_op;
-   template <class, class, class> friend class check_timeout_op;
+   template <class, class> friend class ping_op;
+   template <class, class> friend class check_timeout_op;
 
    timer_type ping_timer_;
    timer_type wait_timer_;

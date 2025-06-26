@@ -33,7 +33,7 @@ public:
       // Starts a thread that will can io_context::run on which the
       // connection will run.
       thread_ = std::thread{[this, cfg]() {
-         conn_->async_run(cfg, {}, asio::detached);
+         conn_->async_run(cfg, asio::detached);
          ioc_.run();
       }};
    }

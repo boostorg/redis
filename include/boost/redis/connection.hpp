@@ -10,10 +10,12 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/resp3_handshaker.hpp>
 #include <boost/redis/error.hpp>
@@ -49,6 +51,7 @@
 #include <chrono>
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <utility>
 
 namespace boost::redis {
@@ -150,10 +153,9 @@ struct exec_op {
    }
 };
 
-template <class Conn, class Logger>
+template <class Conn>
 struct writer_op {
    Conn* conn_;
-   Logger logger_;
    asio::coroutine coro{};
 
    template <class Self>
@@ -170,10 +172,10 @@ struct writer_op {
                asio::buffer(conn_->mpx_.get_write_buffer()),
                std::move(self));
 
-            logger_.on_write(ec, conn_->mpx_.get_write_buffer());
+            conn_->logger_.on_write(ec, conn_->mpx_.get_write_buffer().size());
 
             if (ec) {
-               logger_.trace("writer_op (1)", ec);
+               conn_->logger_.trace("writer_op (1)", ec);
                conn_->cancel(operation::run);
                self.complete(ec);
                return;
@@ -185,7 +187,7 @@ struct writer_op {
             // successful write might had already been queued, so we
             // have to check here before proceeding.
             if (!conn_->is_open()) {
-               logger_.trace("writer_op (2): connection is closed.");
+               conn_->logger_.trace("writer_op (2): connection is closed.");
                self.complete({});
                return;
             }
@@ -194,7 +196,7 @@ struct writer_op {
          BOOST_ASIO_CORO_YIELD
          conn_->writer_timer_.async_wait(std::move(self));
          if (!conn_->is_open()) {
-            logger_.trace("writer_op (3): connection is closed.");
+            conn_->logger_.trace("writer_op (3): connection is closed.");
             // Notice this is not an error of the op, stoping was
             // requested from the outside, so we complete with
             // success.
@@ -205,7 +207,7 @@ struct writer_op {
    }
 };
 
-template <class Conn, class Logger>
+template <class Conn>
 struct reader_op {
    using dyn_buffer_type = asio::dynamic_string_buffer<
       char,
@@ -216,75 +218,49 @@ struct reader_op {
    static constexpr std::size_t buffer_growth_hint = 4096;
 
    Conn* conn_;
-   Logger logger_;
-   std::pair<tribool, std::size_t> res_{std::make_pair(std::nullopt, 0)};
-   asio::coroutine coro{};
+   detail::reader_fsm fsm_;
+
+public:
+   reader_op(Conn& conn) noexcept
+   : conn_{&conn}
+   , fsm_{conn.mpx_}
+   { }
 
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
-      BOOST_ASIO_CORO_REENTER(coro) for (;;)
-      {
-         // Appends some data to the buffer if necessary.
-         BOOST_ASIO_CORO_YIELD
-         async_append_some(
-            conn_->stream_,
-            dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
-            conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
-            std::move(self));
+      using dyn_buffer_type = asio::dynamic_string_buffer<
+         char,
+         std::char_traits<char>,
+         std::allocator<char>>;
 
-         logger_.on_read(ec, n);
+      for (;;) {
+         auto act = fsm_.resume(n, ec, self.get_cancellation_state().cancelled());
 
-         // The connection is not viable after an error.
-         if (ec) {
-            logger_.trace("reader_op (1)", ec);
-            conn_->cancel(operation::run);
-            self.complete(ec);
-            return;
-         }
+         conn_->logger_.on_fsm_resume(act);
 
-         // The connection might have been canceled while this op was
-         // suspended or after queueing so we have to check.
-         if (!conn_->is_open()) {
-            logger_.trace("reader_op (2): connection is closed.");
-            self.complete(ec);
-            return;
-         }
-
-         while (!conn_->mpx_.get_read_buffer().empty()) {
-            res_ = conn_->mpx_.consume_next(ec);
-
-            if (ec) {
-               logger_.trace("reader_op (3)", ec);
-               conn_->cancel(operation::run);
-               self.complete(ec);
+         switch (act.type_) {
+            case reader_fsm::action::type::setup_cancellation:
+               self.reset_cancellation_state(asio::enable_terminal_cancellation());
+               continue;
+            case reader_fsm::action::type::needs_more:
+            case reader_fsm::action::type::append_some:
+               async_append_some(
+                  conn_->stream_,
+                  dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
+                  conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
+                  std::move(self));
                return;
-            }
-
-            if (!res_.first.has_value()) {
-               // More data is needed.
-               break;
-            }
-
-            if (res_.first.value()) {
-               if (!conn_->receive_channel_.try_send(ec, res_.second)) {
-                  BOOST_ASIO_CORO_YIELD
-                  conn_->receive_channel_.async_send(ec, res_.second, std::move(self));
-               }
-
-               if (ec) {
-                  logger_.trace("reader_op (4)", ec);
-                  conn_->cancel(operation::run);
-                  self.complete(ec);
+            case reader_fsm::action::type::notify_push_receiver:
+               if (conn_->receive_channel_.try_send(ec, act.push_size_)) {
+                  continue;
+               } else {
+                  conn_->receive_channel_.async_send(ec, act.push_size_, std::move(self));
                   return;
                }
-
-               if (!conn_->is_open()) {
-                  logger_.trace("reader_op (5): connection is closed.");
-                  self.complete(asio::error::operation_aborted);
-                  return;
-               }
-            }
+               return;
+            case reader_fsm::action::type::cancel_run: conn_->cancel(operation::run); continue;
+            case reader_fsm::action::type::done:       self.complete(act.ec_); return;
          }
       }
    }
@@ -302,20 +278,18 @@ inline system::error_code check_config(const config& cfg)
    return system::error_code{};
 }
 
-template <class Conn, class Logger>
+template <class Conn>
 class run_op {
 private:
    Conn* conn_ = nullptr;
-   Logger logger_;
    asio::coroutine coro_{};
    system::error_code stored_ec_;
 
    using order_t = std::array<std::size_t, 5>;
 
 public:
-   run_op(Conn* conn, Logger l)
+   run_op(Conn* conn) noexcept
    : conn_{conn}
-   , logger_{l}
    { }
 
    template <class Self>
@@ -339,7 +313,7 @@ public:
          // Check config
          ec0 = check_config(conn_->cfg_);
          if (ec0) {
-            logger_.log_error("Invalid configuration", ec0);
+            conn_->logger_.log(logger::level::err, "Invalid configuration", ec0);
             stored_ec_ = ec0;
             BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
             self.complete(stored_ec_);
@@ -349,7 +323,7 @@ public:
          for (;;) {
             // Try to connect
             BOOST_ASIO_CORO_YIELD
-            conn_->stream_.async_connect(&conn_->cfg_, logger_, std::move(self));
+            conn_->stream_.async_connect(&conn_->cfg_, &conn_->logger_, std::move(self));
 
             // If we failed, try again
             if (ec0) {
@@ -365,19 +339,19 @@ public:
             BOOST_ASIO_CORO_YIELD
             asio::experimental::make_parallel_group(
                [this](auto token) {
-                  return conn_->handshaker_.async_hello(*conn_, logger_, token);
+                  return conn_->handshaker_.async_hello(*conn_, token);
                },
                [this](auto token) {
-                  return conn_->health_checker_.async_ping(*conn_, logger_, token);
+                  return conn_->health_checker_.async_ping(*conn_, token);
                },
                [this](auto token) {
-                  return conn_->health_checker_.async_check_timeout(*conn_, logger_, token);
+                  return conn_->health_checker_.async_check_timeout(*conn_, token);
                },
                [this](auto token) {
-                  return conn_->reader(logger_, token);
+                  return conn_->reader(token);
                },
                [this](auto token) {
-                  return conn_->writer(logger_, token);
+                  return conn_->writer(token);
                })
                .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
 
@@ -420,6 +394,8 @@ public:
    }
 };
 
+logger make_stderr_logger(logger::level lvl, std::string prefix);
+
 }  // namespace detail
 
 /** @brief A SSL connection to the Redis server.
@@ -438,7 +414,8 @@ public:
    using this_type = basic_connection<Executor>;
 
    /// Type of the next layer
-   using next_layer_type = asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>>;
+   BOOST_DEPRECATED("This typedef is deprecated, and will be removed with next_layer().")
+   typedef asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>> next_layer_type;
 
    /// Executor type
    using executor_type = Executor;
@@ -457,25 +434,55 @@ public:
    *
    *  @param ex Executor on which connection operation will run.
    *  @param ctx SSL context.
+   *  @param lgr Logger configuration. It can be used to filter messages by level
+   *             and customize logging. By default, `logger::level::info` messages
+   *             and higher are logged to `stderr`.
    */
    explicit basic_connection(
       executor_type ex,
-      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client})
+      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
+      logger lgr = {})
    : stream_{ex, std::move(ctx)}
    , writer_timer_{ex}
    , reconnect_timer_{ex}
    , receive_channel_{ex, 256}
    , health_checker_{ex}
+   , logger_{std::move(lgr)}
    {
       set_receive_response(ignore);
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
    }
 
+   /** @brief Constructor
+    *
+    *  @param ex Executor on which connection operation will run.
+    *  @param lgr Logger configuration. It can be used to filter messages by level
+    *             and customize logging. By default, `logger::level::info` messages
+    *             and higher are logged to `stderr`.
+    *
+    * An SSL context with default settings will be created.
+    */
+   basic_connection(executor_type ex, logger lgr)
+   : basic_connection(
+        std::move(ex),
+        asio::ssl::context{asio::ssl::context::tlsv12_client},
+        std::move(lgr))
+   { }
+
    /// Constructs from a context.
    explicit basic_connection(
       asio::io_context& ioc,
-      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client})
-   : basic_connection(ioc.get_executor(), std::move(ctx))
+      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
+      logger lgr = {})
+   : basic_connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
+   { }
+
+   /// Constructs from a context.
+   basic_connection(asio::io_context& ctx, logger lgr)
+   : basic_connection(
+        ctx.get_executor(),
+        asio::ssl::context{asio::ssl::context::tlsv12_client},
+        std::move(lgr))
    { }
 
    /** @brief Starts underlying connection operations.
@@ -503,7 +510,6 @@ public:
     *  `boost::redis::connection::cancel(operation::reconnection)`.
     *
     *  @param cfg Configuration paramters.
-    *  @param l Logger object. The interface expected is specified in the class `boost::redis::logger`.
     *  @param token Completion token.
     *
     *  The completion token must have the following signature
@@ -515,20 +521,60 @@ public:
     *  For example on how to call this function refer to
     *  cpp20_intro.cpp or any other example.
     */
-   template <
-      class Logger = logger,
-      class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto async_run(config const& cfg = {}, Logger l = Logger{}, CompletionToken&& token = {})
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto async_run(config const& cfg, CompletionToken&& token = {})
    {
       cfg_ = cfg;
       health_checker_.set_config(cfg);
       handshaker_.set_config(cfg);
-      l.set_prefix(cfg.log_prefix);
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::run_op<this_type, Logger>{this, l},
+         detail::run_op<this_type>{this},
          token,
          writer_timer_);
+   }
+
+   /**
+    * @copydoc async_run
+    *
+    * This function accepts an extra logger parameter. The passed `logger::lvl`
+    * will be used, but `logger::fn` will be ignored. Instead, a function
+    * that logs to `stderr` using `config::prefix` will be used.
+    * This keeps backwards compatibility with previous versions.
+    * Any logger configured in the constructor will be overriden.
+    *
+    * @par Deprecated
+    * The logger should be passed to the connection's constructor instead of using this
+    * function. Use the overload without a logger parameter, instead. This function is
+    * deprecated and will be removed in subsequent releases.
+    */
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   BOOST_DEPRECATED(
+      "The async_run overload taking a logger argument is deprecated. "
+      "Please pass the logger to the connection's constructor, instead, "
+      "and use the other async_run overloads.")
+   auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
+   {
+      set_stderr_logger(l.lvl, cfg);
+      return async_run(cfg, std::forward<CompletionToken>(token));
+   }
+
+   /**
+    * @copydoc async_run
+    *
+    * Uses a default-constructed config object to run the connection.
+    *
+    * @par Deprecated
+    * This function is deprecated and will be removed in subsequent releases.
+    * Use the overload taking an explicit config object, instead.
+    */
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   BOOST_DEPRECATED(
+      "Running without an explicit config object is deprecated."
+      "Please create a config object and pass it to async_run.")
+   auto async_run(CompletionToken&& token = {})
+   {
+      return async_run(config{}, std::forward<CompletionToken>(token));
    }
 
    /** @brief Receives server side pushes asynchronously.
@@ -755,25 +801,35 @@ private:
       mpx_.cancel_on_conn_lost();
    }
 
-   template <class, class> friend struct detail::reader_op;
-   template <class, class> friend struct detail::writer_op;
-   template <class> friend struct detail::exec_op;
-   template <class, class> friend class detail::run_op;
+   // Used by both this class and connection
+   void set_stderr_logger(logger::level lvl, const config& cfg)
+   {
+      logger_.reset(detail::make_stderr_logger(lvl, cfg.log_prefix));
+   }
 
-   template <class CompletionToken, class Logger>
-   auto reader(Logger l, CompletionToken&& token)
+   template <class> friend struct detail::reader_op;
+   template <class> friend struct detail::writer_op;
+   template <class> friend struct detail::exec_op;
+   template <class, class> friend struct detail::hello_op;
+   template <class, class> friend class detail::ping_op;
+   template <class> friend class detail::run_op;
+   template <class, class> friend class detail::check_timeout_op;
+   friend class connection;
+
+   template <class CompletionToken>
+   auto reader(CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::reader_op<this_type, Logger>{this, l},
+         detail::reader_op<this_type>{*this},
          std::forward<CompletionToken>(token),
          writer_timer_);
    }
 
-   template <class CompletionToken, class Logger>
-   auto writer(Logger l, CompletionToken&& token)
+   template <class CompletionToken>
+   auto writer(CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::writer_op<this_type, Logger>{this, l},
+         detail::writer_op<this_type>{this},
          std::forward<CompletionToken>(token),
          writer_timer_);
    }
@@ -793,6 +849,7 @@ private:
 
    config cfg_;
    detail::multiplexer mpx_;
+   detail::connection_logger logger_;
 };
 
 /** \brief A basic_connection that type erases the executor.
@@ -809,31 +866,94 @@ public:
    /// Executor type.
    using executor_type = asio::any_io_executor;
 
-   /// Contructs from an executor.
+   /** @brief Constructor
+    *
+    *  @param ex Executor on which connection operation will run.
+    *  @param ctx SSL context.
+    *  @param lgr Logger configuration. It can be used to filter messages by level
+    *             and customize logging. By default, `logger::level::info` messages
+    *             and higher are logged to `stderr`.
+    */
    explicit connection(
       executor_type ex,
-      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client});
+      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
+      logger lgr = {});
 
-   /// Contructs from a context.
+   /** @brief Constructor
+    *
+    *  @param ex Executor on which connection operation will run.
+    *  @param lgr Logger configuration. It can be used to filter messages by level
+    *             and customize logging. By default, `logger::level::info` messages
+    *             and higher are logged to `stderr`.
+    *
+    * An SSL context with default settings will be created.
+    */
+   connection(executor_type ex, logger lgr)
+   : connection(
+        std::move(ex),
+        asio::ssl::context{asio::ssl::context::tlsv12_client},
+        std::move(lgr))
+   { }
+
+   /// Constructs from a context.
    explicit connection(
       asio::io_context& ioc,
-      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client});
+      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
+      logger lgr = {})
+   : connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
+   { }
+
+   /// Constructs from a context.
+   connection(asio::io_context& ioc, logger lgr)
+   : connection(
+        ioc.get_executor(),
+        asio::ssl::context{asio::ssl::context::tlsv12_client},
+        std::move(lgr))
+   { }
 
    /// Returns the underlying executor.
    executor_type get_executor() noexcept { return impl_.get_executor(); }
 
-   /// Calls `boost::redis::basic_connection::async_run`.
+   /**
+    * @brief Calls `boost::redis::basic_connection::async_run`.
+    *
+    * This function accepts an extra logger parameter. The passed logger
+    * will be used by the connection, overwriting any logger passed to the connection's
+    * constructor.
+    *
+    * @par Deprecated
+    * The logger should be passed to the connection's constructor instead of using this
+    * function. Use the overload without a logger parameter, instead. This function is
+    * deprecated and will be removed in subsequent releases.
+    */
    template <class CompletionToken = asio::deferred_t>
+   BOOST_DEPRECATED(
+      "The async_run overload taking a logger argument is deprecated. "
+      "Please pass the logger to the connection's constructor, instead, "
+      "and use the other async_run overloads.")
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
          [](auto handler, connection* self, config const* cfg, logger l) {
-            self->async_run_impl(*cfg, l, std::move(handler));
+            self->async_run_impl(*cfg, std::move(l), std::move(handler));
          },
          token,
          this,
          &cfg,
-         l);
+         std::move(l));
+   }
+
+   /// Calls `boost::redis::basic_connection::async_run`.
+   template <class CompletionToken = asio::deferred_t>
+   auto async_run(config const& cfg, CompletionToken&& token = {})
+   {
+      return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
+         [](auto handler, connection* self, config const* cfg) {
+            self->async_run_impl(*cfg, std::move(handler));
+         },
+         token,
+         this,
+         &cfg);
    }
 
    /// Calls `boost::redis::basic_connection::async_receive`.
@@ -877,7 +997,10 @@ public:
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   asio::ssl::stream<asio::ip::tcp::socket>& next_layer() noexcept { return impl_.next_layer(); }
+   asio::ssl::stream<asio::ip::tcp::socket>& next_layer() noexcept
+   {
+      return impl_.stream_.next_layer();
+   }
 
    /// Calls `boost::redis::basic_connection::next_layer`.
    BOOST_DEPRECATED(
@@ -885,7 +1008,7 @@ public:
       "the other member functions to interact with the connection.")
    asio::ssl::stream<asio::ip::tcp::socket> const& next_layer() const noexcept
    {
-      return impl_.next_layer();
+      return impl_.stream_.next_layer();
    }
 
    /// Calls `boost::redis::basic_connection::reset_stream`.
@@ -908,12 +1031,16 @@ public:
    BOOST_DEPRECATED(
       "ssl::context has no const methods, so this function should not be called. Set up any "
       "required TLS configuration before passing the ssl::context to the connection's constructor.")
-   auto const& get_ssl_context() const noexcept { return impl_.get_ssl_context(); }
+   auto const& get_ssl_context() const noexcept { return impl_.stream_.get_ssl_context(); }
 
 private:
    void async_run_impl(
       config const& cfg,
-      logger l,
+      logger&& l,
+      asio::any_completion_handler<void(boost::system::error_code)> token);
+
+   void async_run_impl(
+      config const& cfg,
       asio::any_completion_handler<void(boost::system::error_code)> token);
 
    void async_exec_impl(

@@ -407,6 +407,44 @@ imported in the global namespace by the user.  In the
 [Examples](#examples) section the reader can find examples showing how
 to serialize using json and [protobuf](https://protobuf.dev/).
 
+<a name="logging"></a>
+
+### Logging
+
+`connection::async_run` is a complex algorithm, with features like built-in reconnection.
+This can make configuration problems, like a misconfigured hostname, difficult to debug -
+Boost.Redis will keep retrying to connect to the same hostname over and over.
+For this reason, Boost.Redis incorporates a lightweight logging solution, and
+**will log some status messages to stderr by default**.
+
+Logging can be customized by passing a `logger` object to the `connection`'s constructor.
+
+For example, logging can be disabled by writing:
+
+```cpp
+asio::io_context ioc;
+redis::connection conn {ioc, redis::logger{redis::logger::level::disabled}};
+```
+
+Every message logged by the library is attached a
+[syslog-like severity](https://en.wikipedia.org/wiki/Syslog#Severity_level)
+tag (a `logger::level`).
+You can filter messages by severity by creating a `logger` with a specific level:
+
+```cpp
+asio::io_context ioc;
+
+// Logs to stderr messages with severity >= level::error.
+// This will hide all informational output.
+redis::connection conn {ioc, redis::logger{redis::logger::level::error}};
+```
+
+`logger`'s constructor accepts a `std::function<void(logger::level, std::string_view)>`
+as second argument. If supplied, Boost.Redis will call this function when logging
+instead of printing to stderr. This can be used to integrate third-party logging
+libraries. See our [spdlog integration example](example/cpp17_spdlog.cpp) for sample code.
+
+
 <a name="examples"></a>
 ## Examples
 
@@ -424,6 +462,7 @@ The examples below show how to use the features discussed so far
 * cpp20_chat_room.cpp: A command line chat built on Redis pubsub.
 * cpp17_intro.cpp: Uses callbacks and requires C++17.
 * cpp17_intro_sync.cpp: Runs `async_run` in a separate thread and performs synchronous calls to `async_exec`.
+* cpp17_spdlog.cpp: Shows how to use third-party logging libraries like `spdlog` with Boost.Redis.
 
 The main function used in some async examples has been factored out in
 the main.cpp file.

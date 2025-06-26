@@ -5,11 +5,13 @@
  */
 
 #include <boost/redis/impl/connection.ipp>
+#include <boost/redis/impl/connection_logger.ipp>
 #include <boost/redis/impl/error.ipp>
 #include <boost/redis/impl/exec_fsm.ipp>
 #include <boost/redis/impl/ignore.ipp>
 #include <boost/redis/impl/logger.ipp>
 #include <boost/redis/impl/multiplexer.ipp>
+#include <boost/redis/impl/reader_fsm.ipp>
 #include <boost/redis/impl/request.ipp>
 #include <boost/redis/impl/resp3_handshaker.ipp>
 #include <boost/redis/impl/response.ipp>

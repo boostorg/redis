@@ -8,17 +8,15 @@
 #define BOOST_REDIS_RUNNER_HPP
 
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/error.hpp>
-#include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
 #include <boost/asio/compose.hpp>
 #include <boost/asio/coroutine.hpp>
-//#include <boost/asio/ip/tcp.hpp>
-#include <chrono>
-#include <memory>
+
 #include <string>
 
 namespace boost::redis::detail {
@@ -28,11 +26,10 @@ void push_hello(config const& cfg, request& req);
 // TODO: Can we avoid this whole function whose only purpose is to
 // check for an error in the hello response and complete with an error
 // so that the parallel group that starts it can exit?
-template <class Handshaker, class Connection, class Logger>
+template <class Handshaker, class Connection>
 struct hello_op {
    Handshaker* handshaker_ = nullptr;
    Connection* conn_ = nullptr;
-   Logger logger_;
    asio::coroutine coro_{};
 
    template <class Self>
@@ -47,7 +44,7 @@ struct hello_op {
             handshaker_->hello_req_,
             any_adapter(handshaker_->hello_resp_),
             std::move(self));
-         logger_.on_hello(ec, handshaker_->hello_resp_);
+         conn_->logger_.on_hello(ec, handshaker_->hello_resp_);
 
          if (ec) {
             conn_->cancel(operation::run);
@@ -71,17 +68,17 @@ class resp3_handshaker {
 public:
    void set_config(config const& cfg) { cfg_ = cfg; }
 
-   template <class Connection, class Logger, class CompletionToken>
-   auto async_hello(Connection& conn, Logger l, CompletionToken token)
+   template <class Connection, class CompletionToken>
+   auto async_hello(Connection& conn, CompletionToken token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         hello_op<resp3_handshaker, Connection, Logger>{this, &conn, l},
+         hello_op<resp3_handshaker, Connection>{this, &conn},
          token,
          conn);
    }
 
 private:
-   template <class, class, class> friend struct hello_op;
+   template <class, class> friend struct hello_op;
 
    void add_hello()
    {

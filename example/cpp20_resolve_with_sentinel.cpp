@@ -44,10 +44,9 @@ auto resolve_master_address(std::vector<address> const& addresses) -> asio::awai
       // TODO: async_run and async_exec should be lauched in
       // parallel here so we can wait for async_run completion
       // before eventually calling it again.
-      conn->async_run(cfg, {}, asio::consign(asio::detached, conn));
+      conn->async_run(cfg, asio::consign(asio::detached, conn));
       co_await conn->async_exec(req, resp, redir(ec));
       conn->cancel();
-      conn->reset_stream();
       if (!ec && std::get<0>(resp))
          co_return address{
             std::get<0>(resp).value().value().at(0),
