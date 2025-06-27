@@ -107,6 +107,13 @@ struct response_traits<response<Ts...>> {
    static auto adapt(response_type& r) noexcept { return adapter_type{r}; }
 };
 
+template <>
+struct response_traits<generic_flat_response> {
+   using response_type = generic_flat_response;
+   using adapter_type = vector_adapter<response_type>;
+
+   static auto adapt(response_type& v) noexcept { return adapter_type{v}; }
+};
 }  // namespace boost::redis::adapter::detail
 
 #endif  // BOOST_REDIS_ADAPTER_DETAIL_RESPONSE_TRAITS_HPP
