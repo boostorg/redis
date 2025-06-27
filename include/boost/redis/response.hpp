@@ -34,7 +34,7 @@ using response = std::tuple<adapter::result<Ts>...>;
  */
 using generic_response = adapter::result<std::vector<resp3::node>>;
 
-struct flat_response_impl {
+struct flat_response_value {
 private:
    class iterator {
    public:
@@ -44,7 +44,7 @@ private:
       using reference = value_type;
       using iterator_category = std::forward_iterator_tag;
 
-      explicit iterator(flat_response_impl* owner, std::size_t i) noexcept
+      explicit iterator(flat_response_value* owner, std::size_t i) noexcept
       : owner_(owner)
       , index_(i)
       { }
@@ -61,8 +61,13 @@ private:
       bool operator!=(const iterator& other) const { return !(*this == other); }
 
    private:
-      flat_response_impl* owner_;
+      flat_response_value* owner_;
       std::size_t index_;
+   };
+
+   struct offset_node : resp3::node_view {
+      std::size_t offset{};
+      std::size_t size{};
    };
 
 public:
@@ -79,37 +84,36 @@ public:
    template <typename String>
    void push_back(const resp3::basic_node<String>& nd)
    {
-      resp3::offset_node new_node;
+      offset_node new_node;
       new_node.data_type = nd.data_type;
       new_node.aggregate_size = nd.aggregate_size;
       new_node.depth = nd.depth;
       new_node.offset = data_.size();
       new_node.size = nd.value.size();
 
-      data_ += std::string{std::cbegin(nd.value), std::cend(nd.value)};
-
+      data_.append(nd.value.data());
       view_.push_back(std::move(new_node));
    }
 
 private:
-   resp3::node_view make_node_view(const resp3::offset_node& n)
+   resp3::node_view make_node_view(const offset_node& nd)
    {
-      return resp3::node_view{
-         .data_type = n.data_type,
-         .aggregate_size = n.aggregate_size,
-         .depth = n.depth,
-         .value = std::string_view{data_.data() + n.offset, n.size}
-      };
+      resp3::node_view result;
+      result.data_type = nd.data_type;
+      result.aggregate_size = nd.aggregate_size;
+      result.depth = nd.depth;
+      result.value = std::string_view{data_.data() + nd.offset, nd.size};
+      return result;
    }
 
    std::string data_;
-   std::vector<resp3::offset_node> view_;
+   std::vector<offset_node> view_;
 };
 
 /**
  * TODO: documentation
  */
-using generic_flat_response = adapter::result<flat_response_impl>;
+using generic_flat_response = adapter::result<flat_response_value>;
 
 /** @brief Consume on response from a generic response
  *

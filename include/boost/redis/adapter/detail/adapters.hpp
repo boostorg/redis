@@ -172,12 +172,12 @@ public:
 };
 
 template <>
-class general_aggregate<result<flat_response_impl>> {
+class general_aggregate<result<flat_response_value>> {
 private:
-   result<flat_response_impl>* result_;
+   result<flat_response_value>* result_;
 
 public:
-   explicit general_aggregate(result<flat_response_impl>* c = nullptr)
+   explicit general_aggregate(result<flat_response_value>* c = nullptr)
    : result_(c)
    { }
    template <class String>
@@ -192,8 +192,7 @@ public:
                std::string{std::cbegin(nd.value), std::cend(nd.value)}
             };
             break;
-         default:
-            result_->value().push_back(nd);
+         default: result_->value().push_back(nd);
       }
    }
 };
