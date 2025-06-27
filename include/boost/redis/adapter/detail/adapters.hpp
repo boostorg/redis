@@ -12,6 +12,7 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
+#include <boost/redis/response.hpp>
 
 #include <boost/assert.hpp>
 
@@ -166,6 +167,33 @@ public:
                nd.depth,
                std::string{std::cbegin(nd.value), std::cend(nd.value)}
             });
+      }
+   }
+};
+
+template <>
+class general_aggregate<result<flat_response_impl>> {
+private:
+   result<flat_response_impl>* result_;
+
+public:
+   explicit general_aggregate(result<flat_response_impl>* c = nullptr)
+   : result_(c)
+   { }
+   template <class String>
+   void operator()(resp3::basic_node<String> const& nd, system::error_code&)
+   {
+      BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
+      switch (nd.data_type) {
+         case resp3::type::blob_error:
+         case resp3::type::simple_error:
+            *result_ = error{
+               nd.data_type,
+               std::string{std::cbegin(nd.value), std::cend(nd.value)}
+            };
+            break;
+         default:
+            result_->value().push_back(nd);
       }
    }
 };

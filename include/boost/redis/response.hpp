@@ -34,6 +34,83 @@ using response = std::tuple<adapter::result<Ts>...>;
  */
 using generic_response = adapter::result<std::vector<resp3::node>>;
 
+struct flat_response_impl {
+private:
+   class iterator {
+   public:
+      using value_type = resp3::node_view;
+      using difference_type = std::ptrdiff_t;
+      using pointer = void;
+      using reference = value_type;
+      using iterator_category = std::forward_iterator_tag;
+
+      explicit iterator(flat_response_impl* owner, std::size_t i) noexcept
+      : owner_(owner)
+      , index_(i)
+      { }
+
+      value_type operator*() const { return owner_->operator[](index_); }
+
+      iterator& operator++()
+      {
+         ++index_;
+         return *this;
+      }
+
+      bool operator==(const iterator& other) const { return index_ == other.index_; }
+      bool operator!=(const iterator& other) const { return !(*this == other); }
+
+   private:
+      flat_response_impl* owner_;
+      std::size_t index_;
+   };
+
+public:
+   resp3::node_view at(std::size_t index) { return make_node_view(view_.at(index)); }
+
+   std::size_t size() { return view_.size(); }
+
+   resp3::node_view operator[](std::size_t index) { return make_node_view(view_[index]); }
+
+   iterator begin() { return iterator{this, 0}; }
+
+   iterator end() { return iterator{this, view_.size()}; }
+
+   template <typename String>
+   void push_back(const resp3::basic_node<String>& nd)
+   {
+      resp3::offset_node new_node;
+      new_node.data_type = nd.data_type;
+      new_node.aggregate_size = nd.aggregate_size;
+      new_node.depth = nd.depth;
+      new_node.offset = data_.size();
+      new_node.size = nd.value.size();
+
+      data_ += std::string{std::cbegin(nd.value), std::cend(nd.value)};
+
+      view_.push_back(std::move(new_node));
+   }
+
+private:
+   resp3::node_view make_node_view(const resp3::offset_node& n)
+   {
+      return resp3::node_view{
+         .data_type = n.data_type,
+         .aggregate_size = n.aggregate_size,
+         .depth = n.depth,
+         .value = std::string_view{data_.data() + n.offset, n.size}
+      };
+   }
+
+   std::string data_;
+   std::vector<resp3::offset_node> view_;
+};
+
+/**
+ * TODO: documentation
+ */
+using generic_flat_response = adapter::result<flat_response_impl>;
+
 /** @brief Consume on response from a generic response
  *
  *  This function rotates the elements so that the start of the next

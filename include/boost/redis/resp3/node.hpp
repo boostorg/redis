@@ -66,6 +66,14 @@ using node = basic_node<std::string>;
  */
 using node_view = basic_node<std::string_view>;
 
+/**
+ * TODO: documentation
+ */
+struct offset_node : node_view {
+   std::size_t offset{};
+   std::size_t size{};
+};
+
 }  // namespace boost::redis::resp3
 
 #endif  // BOOST_REDIS_RESP3_NODE_HPP
