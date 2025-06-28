@@ -68,6 +68,12 @@ private:
    };
 
 public:
+   void reserve(std::size_t new_cap, std::size_t elem_length)
+   {
+      data_.reserve(new_cap * elem_length);
+      view_.reserve(new_cap);
+   }
+
    resp3::node_view at(std::size_t index) { return make_node_view(view_.at(index)); }
 
    std::size_t size() { return view_.size(); }
