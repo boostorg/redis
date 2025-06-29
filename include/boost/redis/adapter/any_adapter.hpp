@@ -26,10 +26,11 @@ namespace boost::redis {
  *
  *  Given a response object `resp` that can be passed to `async_exec`, the following two
  *  statements have the same effect:
- *  ```
+ *
+ *  @code
  *      co_await conn.async_exec(req, resp);
  *      co_await conn.async_exec(req, any_response(resp));
- *  ```
+ *  @endcode
  */
 class any_adapter {
 public:
