@@ -429,7 +429,7 @@ public:
       using other = basic_connection<Executor1>;
    };
 
-   /** @brief Constructor
+   /** @brief Constructor from an executor.
    *
    *  @param ex Executor on which connection operation will run.
    *  @param ctx SSL context.
@@ -452,7 +452,7 @@ public:
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
    }
 
-   /** @brief Constructor
+   /** @brief Constructor from an executor and a logger.
     *
     *  @param ex Executor on which connection operation will run.
     *  @param lgr Logger configuration. It can be used to filter messages by level
@@ -468,7 +468,7 @@ public:
         std::move(lgr))
    { }
 
-   /// Constructs from a context.
+   /// Constructor from an io_context.
    explicit basic_connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
@@ -476,7 +476,7 @@ public:
    : basic_connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 
-   /// Constructs from a context.
+   /// Constructor from an io_context and a logger.
    basic_connection(asio::io_context& ctx, logger lgr)
    : basic_connection(
         ctx.get_executor(),
@@ -498,17 +498,17 @@ public:
     *     timeout with value zero will disable health-checks.  If the Redis
     *     server does not respond to a health-check within two times the value
     *     specified here, it will be considered unresponsive and the connection
-    *     will be closed and a new connection will be stablished.
+    *     will be closed and a new connection will be established.
     *  5. Starts read and write operations with the Redis
     *  server. More specifically it will trigger the write of all
     *  requests i.e. calls to `async_exec` that happened prior to this
     *  call.
     *
     *  When a connection is lost for any reason, a new one is
-    *  stablished automatically. To disable reconnection call
+    *  established automatically. To disable reconnection call
     *  `boost::redis::connection::cancel(operation::reconnection)`.
     *
-    *  @param cfg Configuration paramters.
+    *  @param cfg Configuration parameters.
     *  @param token Completion token.
     *
     *  The completion token must have the following signature
@@ -534,7 +534,8 @@ public:
    }
 
    /**
-    * @copydoc async_run
+    * @brief (Deprecated) Starts underlying connection operations.
+    * @copydetail async_run
     *
     * This function accepts an extra logger parameter. The passed `logger::lvl`
     * will be used, but `logger::fn` will be ignored. Instead, a function
@@ -559,7 +560,8 @@ public:
    }
 
    /**
-    * @copydoc async_run
+    * @brief (Deprecated) Starts underlying connection operations.
+    * @copydetail async_run
     *
     * Uses a default-constructed config object to run the connection.
     *
@@ -739,35 +741,35 @@ public:
 
    auto run_is_canceled() const noexcept { return mpx_.get_cancel_run_state(); }
 
-   /// Returns true if the connection was canceled.
+   /// Returns true if the connection will try to reconnect if an error is encountered.
    bool will_reconnect() const noexcept
    {
       return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();
    }
 
-   /// Returns the ssl context.
+   /// (Deprecated) Returns the ssl context.
    BOOST_DEPRECATED(
       "ssl::context has no const methods, so this function should not be called. Set up any "
       "required TLS configuration before passing the ssl::context to the connection's constructor.")
-   auto const& get_ssl_context() const noexcept { return stream_.get_ssl_context(); }
+   asio::ssl::context const& get_ssl_context() const noexcept { return stream_.get_ssl_context(); }
 
-   /// Resets the underlying stream.
+   /// (Deprecated) Resets the underlying stream.
    BOOST_DEPRECATED(
       "This function is no longer necessary and is currently a no-op. connection resets the stream "
       "internally as required. This function will be removed in subsequent releases")
    void reset_stream() { }
 
-   /// Returns a reference to the next layer.
+   /// (Deprecated) Returns a reference to the next layer.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto& next_layer() noexcept { return stream_.next_layer(); }
+   next_layer_type& next_layer() noexcept { return stream_.next_layer(); }
 
-   /// Returns a const reference to the next layer.
+   /// (Deprecated) Returns a const reference to the next layer.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto const& next_layer() const noexcept { return stream_.next_layer(); }
+   next_layer_type const& next_layer() const noexcept { return stream_.next_layer(); }
 
    /// Sets the response object of `async_receive` operations.
    template <class Response>
@@ -858,14 +860,14 @@ private:
  *  asio::any_completion_token to reduce compilation times.
  *
  *  For documentation of each member function see
- *  `boost::redis::basic_connection`.
+ *  @ref boost::redis::basic_connection.
  */
 class connection {
 public:
    /// Executor type.
    using executor_type = asio::any_io_executor;
 
-   /** @brief Constructor
+   /** @brief Constructor from an executor.
     *
     *  @param ex Executor on which connection operation will run.
     *  @param ctx SSL context.
@@ -878,7 +880,7 @@ public:
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       logger lgr = {});
 
-   /** @brief Constructor
+   /** @brief Constructor from an executor.
     *
     *  @param ex Executor on which connection operation will run.
     *  @param lgr Logger configuration. It can be used to filter messages by level
@@ -894,7 +896,7 @@ public:
         std::move(lgr))
    { }
 
-   /// Constructs from a context.
+   /// Constructor from an io_context.
    explicit connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
@@ -902,7 +904,7 @@ public:
    : connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 
-   /// Constructs from a context.
+   /// Constructor from an io_context and a logger.
    connection(asio::io_context& ioc, logger lgr)
    : connection(
         ioc.get_executor(),
@@ -914,7 +916,7 @@ public:
    executor_type get_executor() noexcept { return impl_.get_executor(); }
 
    /**
-    * @brief Calls `boost::redis::basic_connection::async_run`.
+    * @brief (Deprecated) Calls @ref boost::redis::basic_connection::async_run.
     *
     * This function accepts an extra logger parameter. The passed logger
     * will be used by the connection, overwriting any logger passed to the connection's
@@ -942,7 +944,7 @@ public:
          std::move(l));
    }
 
-   /// Calls `boost::redis::basic_connection::async_run`.
+   /// Calls @ref boost::redis::basic_connection::async_run.
    template <class CompletionToken = asio::deferred_t>
    auto async_run(config const& cfg, CompletionToken&& token = {})
    {
@@ -955,24 +957,24 @@ public:
          &cfg);
    }
 
-   /// Calls `boost::redis::basic_connection::async_receive`.
+   /// Calls @ref boost::redis::basic_connection::async_receive.
    template <class CompletionToken = asio::deferred_t>
    auto async_receive(CompletionToken&& token = {})
    {
       return impl_.async_receive(std::forward<CompletionToken>(token));
    }
 
-   /// Calls `boost::redis::basic_connection::receive`.
+   /// Calls @ref boost::redis::basic_connection::receive.
    std::size_t receive(system::error_code& ec) { return impl_.receive(ec); }
 
-   /// Calls `boost::redis::basic_connection::async_exec`.
+   /// Calls @ref boost::redis::basic_connection::async_exec.
    template <class Response = ignore_t, class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
       return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
 
-   /// Calls `boost::redis::basic_connection::async_exec`.
+   /// Calls @ref boost::redis::basic_connection::async_exec.
    template <class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
    {
@@ -986,13 +988,13 @@ public:
          std::move(adapter));
    }
 
-   /// Calls `boost::redis::basic_connection::cancel`.
+   /// Calls @ref boost::redis::basic_connection::cancel.
    void cancel(operation op = operation::all);
 
-   /// Calls `boost::redis::basic_connection::will_reconnect`.
+   /// Calls @ref boost::redis::basic_connection::will_reconnect.
    bool will_reconnect() const noexcept { return impl_.will_reconnect(); }
 
-   /// Calls boost::redis::basic_connection::next_layer.
+   /// (Deprecated) Calls @ref boost::redis::basic_connection::next_layer.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
@@ -1001,7 +1003,7 @@ public:
       return impl_.stream_.next_layer();
    }
 
-   /// Calls `boost::redis::basic_connection::next_layer`.
+   /// (Deprecated) Calls @ref boost::redis::basic_connection::next_layer.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
@@ -1010,7 +1012,7 @@ public:
       return impl_.stream_.next_layer();
    }
 
-   /// Calls `boost::redis::basic_connection::reset_stream`.
+   /// (Deprecated) Calls @ref boost::redis::basic_connection::reset_stream.
    BOOST_DEPRECATED(
       "This function is no longer necessary and is currently a no-op. connection resets the stream "
       "internally as required. This function will be removed in subsequent releases")
@@ -1026,11 +1028,14 @@ public:
    /// Returns connection usage information.
    usage get_usage() const noexcept { return impl_.get_usage(); }
 
-   /// Returns the ssl context.
+   /// (Deprecated) Returns the ssl context.
    BOOST_DEPRECATED(
       "ssl::context has no const methods, so this function should not be called. Set up any "
       "required TLS configuration before passing the ssl::context to the connection's constructor.")
-   auto const& get_ssl_context() const noexcept { return impl_.stream_.get_ssl_context(); }
+   asio::ssl::context const& get_ssl_context() const noexcept
+   {
+      return impl_.stream_.get_ssl_context();
+   }
 
 private:
    void async_run_impl(
