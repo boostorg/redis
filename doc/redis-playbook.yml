@@ -7,8 +7,9 @@
 
 site:
   url: https://test.com/ # TODO: change this
-  title: Boost.Redis documentation
+  title: Boost.Redis
   robots: allow
+  start_page: redis::index.adoc
 
 antora:
   extensions:
@@ -42,6 +43,7 @@ ui:
   bundle:
     url: https://github.com/boostorg/website-v2-docs/releases/download/ui-master/ui-bundle.zip
     snapshot: true
+  output_dir: redis/_
 
 output:
-  dir: ../__build/doc
+  dir: html
