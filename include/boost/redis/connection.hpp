@@ -517,7 +517,7 @@ public:
     *      connects to one of the endpoints obtained during name resolution.
     *      For UNIX domain socket connections, it connects to @ref boost::redis::config::unix_socket.
     *  @li If @ref boost::redis::config::use_ssl is `true`, performs the TLS handshake.
-    *  @li Sends a <a href="https://redis.io/commands/hello/">HELLO</a> command where
+    *  @li Sends a `HELLO` command where
     *      each of its parameters are read from `cfg`.
     *  @li Starts a health-check operation where ping commands are sent
     *      at intervals specified by
