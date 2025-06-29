@@ -17,7 +17,8 @@ namespace boost::redis::resp3 {
 
 /** @brief RESP3 data types.
   
-    The RESP3 specification can be found at https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md.
+    The RESP3 specification can be found at
+    <a href="https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md"></a>
  */
 enum class type
 {  /// Aggregate
@@ -59,17 +60,25 @@ enum class type
 };
 
 /** @brief Converts the data type to a string.
- *  @param t RESP3 type.
+ *
+ *  @relates type
+ *  @param t The type to convert.
  */
 auto to_string(type t) noexcept -> char const*;
 
 /** @brief Writes the type to the output stream.
+ *
+ *  @relates type
  *  @param os Output stream.
- *  @param t RESP3 type.
+ *  @param t The type to stream.
  */
 auto operator<<(std::ostream& os, type t) -> std::ostream&;
 
-/* Checks whether the data type is an aggregate.
+/** @brief Checks whether the data type is an aggregate.
+ *  
+ *  @relates type
+ *  @param t The type to check.
+ *  @returns True if the given type is an aggregate.
  */
 constexpr auto is_aggregate(type t) noexcept -> bool
 {
