@@ -20,8 +20,8 @@ exclude-symbols:
   - "boost::redis::any_adapter::fn_type"
   - "boost::redis::any_adapter::create_impl"
   - "boost::redis::any_adapter::impl_"
-  - "boost::redis::any_adapter::basic_connection"
 see-below:
   - "boost::redis::adapter::ignore"
+sort-members: false
 base-url: https://github.com/boostorg/redis/blob/master/include/
 use-system-libc: true
