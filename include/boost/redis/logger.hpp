@@ -12,15 +12,12 @@
 
 namespace boost::redis {
 
-/** @brief Defines logging configuration
- *  @ingroup high-level-api
+/** @brief Defines logging configuration.
  *
  *  See the member descriptions for more info.
  */
 struct logger {
-   /** @brief Syslog-like log levels
-    *  @ingroup high-level-api
-    */
+   /// Syslog-like log levels.
    enum class level
    {
       /// Disabled

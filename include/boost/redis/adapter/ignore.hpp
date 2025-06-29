@@ -12,12 +12,9 @@
 
 #include <boost/system/error_code.hpp>
 
-#include <string>
-
 namespace boost::redis::adapter {
 
-/** @brief An adapter that ignores responses
- *  @ingroup high-level-api
+/** @brief An adapter that ignores responses.
  *
  *  RESP3 errors won't be ignored.
  */

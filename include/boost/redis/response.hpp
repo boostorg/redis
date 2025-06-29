@@ -18,14 +18,11 @@
 
 namespace boost::redis {
 
-/** @brief Response with compile-time size.
- *  @ingroup high-level-api
- */
+/// Response with compile-time size.
 template <class... Ts>
 using response = std::tuple<adapter::result<Ts>...>;
 
 /** @brief A generic response to a request
- *  @ingroup high-level-api
  *
  *  This response type can store any type of RESP3 data structure.  It
  *  contains the

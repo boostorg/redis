@@ -12,7 +12,6 @@
 namespace boost::redis {
 
 /** @brief Connection usage information.
- *  @ingroup high-level-api
  *
  *  @note: To simplify the implementation, the commands_sent and
  *  bytes_sent in the struct below are computed just before writing to

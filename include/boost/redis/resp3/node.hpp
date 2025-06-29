@@ -11,8 +11,7 @@
 
 namespace boost::redis::resp3 {
 
-/** \brief A node in the response tree.
- *  \ingroup high-level-api
+/** @brief A node in the response tree.
  *
  *  RESP3 can contain recursive data structures: A map of sets of
  *  vector of etc. As it is parsed each element is passed to user
@@ -56,14 +55,10 @@ auto operator==(basic_node<String> const& a, basic_node<String> const& b)
    // clang-format on
 };
 
-/** @brief A node in the response tree that owns its data
- *  @ingroup high-level-api
- */
+/// A node in the response tree that owns its data.
 using node = basic_node<std::string>;
 
-/** @brief A node view in the response tree
- *  @ingroup high-level-api
- */
+/// A node in the response tree that does not own its data.
 using node_view = basic_node<std::string_view>;
 
 }  // namespace boost::redis::resp3

@@ -15,8 +15,7 @@
 
 namespace boost::redis::resp3 {
 
-/** \brief RESP3 data types.
-    \ingroup high-level-api
+/** @brief RESP3 data types.
   
     The RESP3 specification can be found at https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md.
  */
@@ -59,16 +58,14 @@ enum class type
    invalid
 };
 
-/** \brief Converts the data type to a string.
- *  \ingroup high-level-api
- *  \param t RESP3 type.
+/** @brief Converts the data type to a string.
+ *  @param t RESP3 type.
  */
 auto to_string(type t) noexcept -> char const*;
 
-/** \brief Writes the type to the output stream.
- *  \ingroup high-level-api
- *  \param os Output stream.
- *  \param t RESP3 type.
+/** @brief Writes the type to the output stream.
+ *  @param os Output stream.
+ *  @param t RESP3 type.
  */
 auto operator<<(std::ostream& os, type t) -> std::ostream&;
 

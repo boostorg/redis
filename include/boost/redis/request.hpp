@@ -23,8 +23,7 @@ namespace detail {
 auto has_response(std::string_view cmd) -> bool;
 }
 
-/** \brief Creates Redis requests.
- *  \ingroup high-level-api
+/** @brief Creates Redis requests.
  *  
  *  A request is composed of one or more Redis commands and is
  *  referred to in the redis documentation as a pipeline, see
@@ -47,19 +46,19 @@ class request {
 public:
    /// Request configuration options.
    struct config {
-      /** \brief If `true` calls to `connection::async_exec` will
+      /** @brief If `true` calls to `connection::async_exec` will
        * complete with error if the connection is lost while the
        * request hasn't been sent yet.
        */
       bool cancel_on_connection_lost = true;
 
-      /** \brief If `true` `connection::async_exec` will complete with
+      /** @brief If `true` `connection::async_exec` will complete with
        * `boost::redis::error::not_connected` if the call happens
        * before the connection with Redis was established.
        */
       bool cancel_if_not_connected = false;
 
-      /** \brief If `false` `connection::async_exec` will not
+      /** @brief If `false` `connection::async_exec` will not
        * automatically cancel this request if the connection is lost.
        * Affects only requests that have been written to the socket
        * but remained unresponded when
@@ -67,7 +66,7 @@ public:
        */
       bool cancel_if_unresponded = true;
 
-      /** \brief If this request has a `HELLO` command and this flag
+      /** @brief If this request has a `HELLO` command and this flag
        * is `true`, the `boost::redis::connection` will move it to the
        * front of the queue of awaiting requests. This makes it
        * possible to send `HELLO` and authenticate before other
@@ -76,9 +75,9 @@ public:
       bool hello_with_priority = true;
    };
 
-   /** \brief Constructor
+   /** @brief Constructor
     *  
-    *  \param cfg Configuration options.
+    *  @param cfg Configuration options.
     */
    explicit request(config cfg = config{true, false, true, true})
    : cfg_{cfg}
@@ -130,8 +129,8 @@ public:
     *  will add the `set` command with value "some string" and an
     *  expiration of 2 seconds.
     *
-    *  \param cmd The command e.g redis or sentinel command.
-    *  \param args Command arguments.
+    *  @param cmd The command e.g redis or sentinel command.
+    *  @param args Command arguments.
     *  \tparam Ts Non-string types will be converted to string by calling `boost_redis_to_bulk` on each argument. This function must be made available over ADL and must have the following signature
     *
     *  @code
@@ -170,10 +169,10 @@ public:
     *  req.push_range("HSET", "key", std::cbegin(map), std::cend(map));
     *  @endcode
     *  
-    *  \param cmd The command e.g. Redis or Sentinel command.
-    *  \param key The command key.
-    *  \param begin Iterator to the begin of the range.
-    *  \param end Iterator to the end of the range.
+    *  @param cmd The command e.g. Redis or Sentinel command.
+    *  @param key The command key.
+    *  @param begin Iterator to the begin of the range.
+    *  @param end Iterator to the end of the range.
     *  \tparam Ts Non-string types will be converted to string by calling `boost_redis_to_bulk` on each argument. This function must be made available over ADL and must have the following signature
     *
     *  @code
@@ -223,9 +222,9 @@ public:
     *  req.push("SUBSCRIBE", std::cbegin(channels), std::cend(channels));
     *  \endcode
     *
-    *  \param cmd The Redis command
-    *  \param begin Iterator to the begin of the range.
-    *  \param end Iterator to the end of the range.
+    *  @param cmd The Redis command
+    *  @param begin Iterator to the begin of the range.
+    *  @param end Iterator to the end of the range.
     *  \tparam ForwardIterator If the value type is not a std::string it will be converted to a string by calling `boost_redis_to_bulk`. This function must be made available over ADL and must have the following signature
     *
     *  @code
@@ -265,9 +264,9 @@ public:
     *  Equivalent to the overload taking a range of begin and end
     *  iterators.
     *
-    *  \param cmd Redis command.
-    *  \param key Redis key.
-    *  \param range Range to send e.g. `std::map`.
+    *  @param cmd Redis command.
+    *  @param key Redis key.
+    *  @param range Range to send e.g. `std::map`.
     *  \tparam A type that can be passed to `std::cbegin()` and `std::cend()`.
     */
    template <class Range>
@@ -287,8 +286,8 @@ public:
     *  Equivalent to the overload taking a range of begin and end
     *  iterators.
     *
-    *  \param cmd Redis command.
-    *  \param range Range to send e.g. `std::map`.
+    *  @param cmd Redis command.
+    *  @param range Range to send e.g. `std::map`.
     *  \tparam A type that can be passed to `std::cbegin()` and `std::cend()`.
     */
    template <class Range>

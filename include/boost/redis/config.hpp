@@ -14,9 +14,7 @@
 
 namespace boost::redis {
 
-/** @brief Address of a Redis server
- *  @ingroup high-level-api
- */
+/// Address of a Redis server.
 struct address {
    /// Redis host.
    std::string host = "127.0.0.1";
@@ -24,9 +22,7 @@ struct address {
    std::string port = "6379";
 };
 
-/** @brief Configure parameters used by the connection classes
- *  @ingroup high-level-api
- */
+/// Configure parameters used by the connection classes.
 struct config {
    /// Uses SSL instead of a plain connection.
    bool use_ssl = false;

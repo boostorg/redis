@@ -41,7 +41,6 @@ auto boost_redis_adapt(T& t) noexcept
 }
 
 /** @brief Adapts user data to read operations.
- *  @ingroup low-level-api
  *
  *  STL containers, \c resp3::response and built-in types are supported and
  *  can be used in conjunction with \c std::optional<T>.

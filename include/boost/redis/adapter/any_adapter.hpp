@@ -20,7 +20,6 @@
 namespace boost::redis {
 
 /** @brief A type-erased reference to a response.
- *  @ingroup high-level-api
  *
  *  A type-erased response adapter. It can be executed using @ref connection::async_exec.
  *  Using this type instead of raw response references enables separate compilation.

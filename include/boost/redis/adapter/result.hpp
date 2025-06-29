@@ -17,9 +17,7 @@
 
 namespace boost::redis::adapter {
 
-/** @brief Stores any resp3 error
- *  @ingroup high-level-api
- */
+/// Stores any resp3 error.
 struct error {
    /// RESP3 error data type.
    resp3::type data_type = resp3::type::invalid;
@@ -47,9 +45,7 @@ inline bool operator==(error const& a, error const& b)
  */
 inline bool operator!=(error const& a, error const& b) { return !(a == b); }
 
-/** @brief Stores response to individual Redis commands
- *  @ingroup high-level-api
- */
+/// Stores response to individual Redis commands.
 template <class Value>
 using result = system::result<Value, error>;
 

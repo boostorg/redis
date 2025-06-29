@@ -407,7 +407,6 @@ logger make_stderr_logger(logger::level lvl, std::string prefix);
 }  // namespace detail
 
 /** @brief A SSL connection to the Redis server.
- *  @ingroup high-level-api
  *
  *  This class keeps a healthy connection to the Redis instance where
  *  commands can be sent at any time. For more details, please see the
@@ -861,8 +860,7 @@ private:
    detail::connection_logger logger_;
 };
 
-/** \brief A basic_connection that type erases the executor.
- *  \ingroup high-level-api
+/**  @brief A basic_connection that type erases the executor.
  *
  *  This connection type uses the asio::any_io_executor and
  *  asio::any_completion_token to reduce compilation times.

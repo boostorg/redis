@@ -16,7 +16,6 @@
 namespace boost::redis {
 
 /** @brief Type used to ignore responses.
- *  @ingroup high-level-api
  *
  *  For example
  *
@@ -30,7 +29,6 @@ namespace boost::redis {
 using ignore_t = std::decay_t<decltype(std::ignore)>;
 
 /** @brief Global ignore object.
- *  @ingroup high-level-api
  *
  *  Can be used to ignore responses to a request
  *
