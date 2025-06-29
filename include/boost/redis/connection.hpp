@@ -292,29 +292,44 @@ public:
    : conn_{conn}
    { }
 
-   template <class Self>
-   void operator()(Self& self, system::error_code ec)
-   {
-      (*this)(self, order_t{}, ec);
-   }
-
+   // Called after the parallel group finishes
    template <class Self>
    void operator()(
       Self& self,
-      order_t order = {},
-      system::error_code ec0 = {},
-      system::error_code ec1 = {},
-      system::error_code ec2 = {},
-      system::error_code ec3 = {},
-      system::error_code = {})
+      order_t order,
+      system::error_code ec0,
+      system::error_code ec1,
+      system::error_code ec2,
+      system::error_code ec3,
+      system::error_code)
+   {
+      system::error_code final_ec;
+
+      if (order[0] == 0 && !!ec0) {
+         // The hello op finished first and with an error
+         final_ec = ec0;
+      } else if (order[0] == 2 && ec2 == error::pong_timeout) {
+         // The check ping timeout finished first. Use the ping error code
+         final_ec = ec1;
+      } else {
+         // Use the reader error code
+         final_ec = ec3;
+      }
+
+      (*this)(self, final_ec);
+   }
+
+   // TODO: this op doesn't handle per-operation cancellation correctly
+   template <class Self>
+   void operator()(Self& self, system::error_code ec = {})
    {
       BOOST_ASIO_CORO_REENTER(coro_)
       {
          // Check config
-         ec0 = check_config(conn_->cfg_);
-         if (ec0) {
-            conn_->logger_.log(logger::level::err, "Invalid configuration", ec0);
-            stored_ec_ = ec0;
+         ec = check_config(conn_->cfg_);
+         if (ec) {
+            conn_->logger_.log(logger::level::err, "Invalid configuration", ec);
+            stored_ec_ = ec;
             BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
             self.complete(stored_ec_);
             return;
@@ -325,66 +340,59 @@ public:
             BOOST_ASIO_CORO_YIELD
             conn_->stream_.async_connect(&conn_->cfg_, &conn_->logger_, std::move(self));
 
-            // If we failed, try again
-            if (ec0) {
-               self.complete(ec0);
-               return;
+            // If we were successful, run all the connection tasks
+            if (!ec) {
+               conn_->mpx_.reset();
+
+               // Note: Order is important here because the writer might
+               // trigger an async_write before the async_hello thereby
+               // causing an authentication problem.
+               BOOST_ASIO_CORO_YIELD
+               asio::experimental::make_parallel_group(
+                  [this](auto token) {
+                     return conn_->handshaker_.async_hello(*conn_, token);
+                  },
+                  [this](auto token) {
+                     return conn_->health_checker_.async_ping(*conn_, token);
+                  },
+                  [this](auto token) {
+                     return conn_->health_checker_.async_check_timeout(*conn_, token);
+                  },
+                  [this](auto token) {
+                     return conn_->reader(token);
+                  },
+                  [this](auto token) {
+                     return conn_->writer(token);
+                  })
+                  .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
+
+               // The parallel group result will be translated into a single error
+               // code by the specialized operator() overload
+
+               // The receive operation must be cancelled because channel
+               // subscription does not survive a reconnection but requires
+               // re-subscription.
+               conn_->cancel(operation::receive);
             }
 
-            conn_->mpx_.reset();
-
-            // Note: Order is important here because the writer might
-            // trigger an async_write before the async_hello thereby
-            // causing an authentication problem.
-            BOOST_ASIO_CORO_YIELD
-            asio::experimental::make_parallel_group(
-               [this](auto token) {
-                  return conn_->handshaker_.async_hello(*conn_, token);
-               },
-               [this](auto token) {
-                  return conn_->health_checker_.async_ping(*conn_, token);
-               },
-               [this](auto token) {
-                  return conn_->health_checker_.async_check_timeout(*conn_, token);
-               },
-               [this](auto token) {
-                  return conn_->reader(token);
-               },
-               [this](auto token) {
-                  return conn_->writer(token);
-               })
-               .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
-
-            if (order[0] == 0 && !!ec0) {
-               self.complete(ec0);
-               return;
-            }
-
-            if (order[0] == 2 && ec2 == error::pong_timeout) {
-               self.complete(ec1);
-               return;
-            }
-
-            // The receive operation must be cancelled because channel
-            // subscription does not survive a reconnection but requires
-            // re-subscription.
-            conn_->cancel(operation::receive);
-
+            // If we are not going to try again, we're done
             if (!conn_->will_reconnect()) {
-               conn_->cancel(operation::reconnection);
-               self.complete(ec3);
+               self.complete(ec);
                return;
             }
 
+            // Wait for the reconnection interval
             conn_->reconnect_timer_.expires_after(conn_->cfg_.reconnect_wait_interval);
-
             BOOST_ASIO_CORO_YIELD
-            conn_->reconnect_timer_.async_wait(asio::prepend(std::move(self), order_t{}));
-            if (ec0) {
-               self.complete(ec0);
+            conn_->reconnect_timer_.async_wait(std::move(self));
+
+            // If the timer was cancelled, exit
+            if (ec) {
+               self.complete(ec);
                return;
             }
 
+            // If we won't reconnect, exit
             if (!conn_->will_reconnect()) {
                self.complete(asio::error::operation_aborted);
                return;
