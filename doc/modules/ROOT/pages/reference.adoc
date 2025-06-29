@@ -3,13 +3,14 @@
 [#reference]
 = Reference
 
-[width=100%,cols="4*"]
+[width=100%,cols="5*"]
 |===
 
 | *Connections*
 | *Requests and responses*
 | *Adapters*
 | *RESP3 protocol*
+| *Unstable low-level APIs*
 
 |
 xref:reference:boost/redis/connection.adoc[`connection`]
@@ -50,8 +51,6 @@ xref:reference:boost/redis/consume_one-08.adoc[`consume_one`]
 |
 xref:reference:boost/redis/adapter/boost_redis_adapt.adoc[`boost_redis_adapt`]
 
-xref:reference:boost/redis/adapter/adapt2.adoc[`adapter::adapt2`]
-
 xref:reference:boost/redis/adapter/ignore.adoc[`adapter::ignore`]
 
 xref:reference:boost/redis/adapter/error.adoc[`adapter::error`]
@@ -67,15 +66,19 @@ xref:reference:boost/redis/resp3/node.adoc[`node`]
 
 xref:reference:boost/redis/resp3/node_view.adoc[`node_view`]
 
-xref:reference:boost/redis/resp3/parser.adoc[`parser`]
-
-xref:reference:boost/redis/resp3/parse.adoc[`parse`]
-
 xref:reference:boost/redis/resp3/boost_redis_to_bulk-08.adoc[`boost_redis_to_bulk`]
 
 xref:reference:boost/redis/resp3/type.adoc[`type`]
 
 xref:reference:boost/redis/resp3/is_aggregate.adoc[`is_aggregate`]
 
+
+|
+
+xref:reference:boost/redis/adapter/adapt2.adoc[`adapter::adapt2`]
+
+xref:reference:boost/redis/resp3/parser.adoc[`parser`]
+
+xref:reference:boost/redis/resp3/parse.adoc[`parse`]
 
 |===
