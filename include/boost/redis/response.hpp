@@ -44,7 +44,7 @@ using generic_response = adapter::result<std::vector<resp3::node>>;
  * req.push("PING", "three");
  *
  * generic_response resp;
- * co_await conn->async_exec(req, resp, asio::deferred);
+ * co_await conn.async_exec(req, resp);
  *
  * std::cout << "PING: " << resp.value().front().value << std::endl;
  * consume_one(resp);
@@ -53,7 +53,7 @@ using generic_response = adapter::result<std::vector<resp3::node>>;
  * std::cout << "PING: " << resp.value().front().value << std::endl;
  * @endcode
  *
- * is
+ * Is:
  *
  * @code
  * PING: one
@@ -65,11 +65,18 @@ using generic_response = adapter::result<std::vector<resp3::node>>;
  * efficient for responses with a large number of elements. It was
  * introduced mainly to deal with buffers server pushes as shown in
  * the cpp20_subscriber.cpp example. In the future queue-like
- * responses might be introduced to consume in O(1) operations. 
+ * responses might be introduced to consume in O(1) operations.
+ *
+ * @param r The response to modify.
+ * @param ec Will be populated in case of error.
  */
 void consume_one(generic_response& r, system::error_code& ec);
 
-/// Throwing overload of `consume_one`.
+/**
+ * @brief Throwing overload of `consume_one`.
+ *
+ * @param r The response to modify.
+ */
 void consume_one(generic_response& r);
 
 }  // namespace boost::redis
