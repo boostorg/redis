@@ -51,7 +51,7 @@ struct logger {
    /** @brief Constructor from a level.
     *
     * Constructs a logger with the specified level
-    * and a logging function that prints messages to stderr.
+    * and a logging function that prints messages to `stderr`.
     *
     * @param l The value to set @ref lvl to.
     *

@@ -90,9 +90,10 @@ enum class error
    unix_sockets_ssl_unsupported,
 };
 
-/** \internal
- *  @brief Creates a error_code object from an error.
- *  @param e Error code.
+/**
+ * @brief Creates a error_code object from an error.
+ *
+ * @param e Error code.
  */
 auto make_error_code(error e) -> system::error_code;
 
