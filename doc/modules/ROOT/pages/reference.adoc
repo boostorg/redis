@@ -38,6 +38,8 @@ xref:reference:boost/redis/ignore.adoc[`ignore`]
 
 xref:reference:boost/redis/request.adoc[`request`]
 
+xref:reference:boost/redis/request/config.adoc[`request::config`]
+
 xref:reference:boost/redis/response.adoc[`response`]
 
 xref:reference:boost/redis/generic_response.adoc[`generic_response`]

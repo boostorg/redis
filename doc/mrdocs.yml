@@ -20,6 +20,8 @@ exclude-symbols:
   - "boost::redis::any_adapter::fn_type"
   - "boost::redis::any_adapter::create_impl"
   - "boost::redis::any_adapter::impl_"
+  - "boost::redis::request::payload"
+  - "boost::redis::request::has_hello_priority"
 see-below:
   - "boost::redis::adapter::ignore"
 sort-members: false
