@@ -426,9 +426,6 @@ public:
    /// The type of the executor associated to this object.
    using executor_type = Executor;
 
-   /// Returns the associated executor.
-   executor_type get_executor() noexcept { return writer_timer_.get_executor(); }
-
    /// Rebinds the socket type to another executor.
    template <class Executor1>
    struct rebind_executor {
@@ -438,7 +435,7 @@ public:
 
    /** @brief Constructor from an executor.
    *
-   *  @param ex Executor on which connection operation will run.
+   *  @param ex Executor used to create all internal I/O objects.
    *  @param ctx SSL context.
    *  @param lgr Logger configuration. It can be used to filter messages by level
    *             and customize logging. By default, `logger::level::info` messages
@@ -461,7 +458,7 @@ public:
 
    /** @brief Constructor from an executor and a logger.
     *
-    *  @param ex Executor on which connection operation will run.
+    *  @param ex Executor used to create all internal I/O objects.
     *  @param lgr Logger configuration. It can be used to filter messages by level
     *             and customize logging. By default, `logger::level::info` messages
     *             and higher are logged to `stderr`.
@@ -475,7 +472,15 @@ public:
         std::move(lgr))
    { }
 
-   /// Constructor from an io_context.
+   /**
+    * @brief Constructor from an `io_context`.
+    * 
+    * @param ioc I/O context used to create all internal I/O objects.
+    * @param ctx SSL context.
+    * @param lgr Logger configuration. It can be used to filter messages by level
+    *            and customize logging. By default, `logger::level::info` messages
+    *            and higher are logged to `stderr`.
+    */
    explicit basic_connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
@@ -483,13 +488,23 @@ public:
    : basic_connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 
-   /// Constructor from an io_context and a logger.
-   basic_connection(asio::io_context& ctx, logger lgr)
+   /**
+    * @brief Constructor from an `io_context` and a logger.
+    * 
+    * @param ioc I/O context used to create all internal I/O objects.
+    * @param lgr Logger configuration. It can be used to filter messages by level
+    *            and customize logging. By default, `logger::level::info` messages
+    *            and higher are logged to `stderr`.
+    */
+   basic_connection(asio::io_context& ioc, logger lgr)
    : basic_connection(
-        ctx.get_executor(),
+        ioc.get_executor(),
         asio::ssl::context{asio::ssl::context::tlsv12_client},
         std::move(lgr))
    { }
+
+   /// Returns the associated executor.
+   executor_type get_executor() noexcept { return writer_timer_.get_executor(); }
 
    /** @brief Starts the underlying connection operations.
     *
@@ -941,8 +956,8 @@ private:
 
 /**  @brief A basic_connection that type erases the executor.
  *
- *  This connection type uses the asio::any_io_executor and
- *  asio::any_completion_token to reduce compilation times.
+ *  This connection type uses `asio::any_io_executor` and
+ *  `asio::any_completion_token` to reduce compilation times.
  *
  *  For documentation of each member function see
  *  @ref boost::redis::basic_connection.
@@ -954,7 +969,7 @@ public:
 
    /** @brief Constructor from an executor.
     *
-    *  @param ex Executor on which connection operation will run.
+    *  @param ex Executor used to create all internal I/O objects.
     *  @param ctx SSL context.
     *  @param lgr Logger configuration. It can be used to filter messages by level
     *             and customize logging. By default, `logger::level::info` messages
@@ -965,9 +980,9 @@ public:
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       logger lgr = {});
 
-   /** @brief Constructor from an executor.
+   /** @brief Constructor from an executor and a logger.
     *
-    *  @param ex Executor on which connection operation will run.
+    *  @param ex Executor used to create all internal I/O objects.
     *  @param lgr Logger configuration. It can be used to filter messages by level
     *             and customize logging. By default, `logger::level::info` messages
     *             and higher are logged to `stderr`.
@@ -981,7 +996,15 @@ public:
         std::move(lgr))
    { }
 
-   /// Constructor from an io_context.
+   /**
+    * @brief Constructor from an `io_context`.
+    * 
+    * @param ioc I/O context used to create all internal I/O objects.
+    * @param ctx SSL context.
+    * @param lgr Logger configuration. It can be used to filter messages by level
+    *            and customize logging. By default, `logger::level::info` messages
+    *            and higher are logged to `stderr`.
+    */
    explicit connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
@@ -989,7 +1012,14 @@ public:
    : connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 
-   /// Constructor from an io_context and a logger.
+   /**
+    * @brief Constructor from an `io_context` and a logger.
+    * 
+    * @param ioc I/O context used to create all internal I/O objects.
+    * @param lgr Logger configuration. It can be used to filter messages by level
+    *            and customize logging. By default, `logger::level::info` messages
+    *            and higher are logged to `stderr`.
+    */
    connection(asio::io_context& ioc, logger lgr)
    : connection(
         ioc.get_executor(),
@@ -999,6 +1029,24 @@ public:
 
    /// Returns the underlying executor.
    executor_type get_executor() noexcept { return impl_.get_executor(); }
+
+   /**
+    * @brief Calls @ref boost::redis::basic_connection::async_run.
+    *
+    * @param cfg Configuration parameters.
+    * @param token Completion token.
+    */
+   template <class CompletionToken = asio::deferred_t>
+   auto async_run(config const& cfg, CompletionToken&& token = {})
+   {
+      return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
+         [](auto handler, connection* self, config const* cfg) {
+            self->async_run_impl(*cfg, std::move(handler));
+         },
+         token,
+         this,
+         &cfg);
+   }
 
    /**
     * @brief (Deprecated) Calls @ref boost::redis::basic_connection::async_run.
@@ -1011,6 +1059,10 @@ public:
     * The logger should be passed to the connection's constructor instead of using this
     * function. Use the overload without a logger parameter, instead. This function is
     * deprecated and will be removed in subsequent releases.
+    *
+    * @param cfg Configuration parameters.
+    * @param l Logger.
+    * @param token Completion token.
     */
    template <class CompletionToken = asio::deferred_t>
    BOOST_DEPRECATED(
@@ -1029,37 +1081,36 @@ public:
          std::move(l));
    }
 
-   /// Calls @ref boost::redis::basic_connection::async_run.
-   template <class CompletionToken = asio::deferred_t>
-   auto async_run(config const& cfg, CompletionToken&& token = {})
-   {
-      return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
-         [](auto handler, connection* self, config const* cfg) {
-            self->async_run_impl(*cfg, std::move(handler));
-         },
-         token,
-         this,
-         &cfg);
-   }
-
-   /// Calls @ref boost::redis::basic_connection::async_receive.
+   /// @copydoc basic_connection::async_receive
    template <class CompletionToken = asio::deferred_t>
    auto async_receive(CompletionToken&& token = {})
    {
       return impl_.async_receive(std::forward<CompletionToken>(token));
    }
 
-   /// Calls @ref boost::redis::basic_connection::receive.
+   /// @copydoc basic_connection::receive
    std::size_t receive(system::error_code& ec) { return impl_.receive(ec); }
 
-   /// Calls @ref boost::redis::basic_connection::async_exec.
+   /**
+    * @brief Calls @ref boost::redis::basic_connection::async_exec.
+    *
+    * @param req The request to be executed.
+    * @param resp The response object to parse data into.
+    * @param token Completion token.
+    */
    template <class Response = ignore_t, class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
       return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
 
-   /// Calls @ref boost::redis::basic_connection::async_exec.
+   /**
+    * @brief Calls @ref boost::redis::basic_connection::async_exec.
+    *
+    * @param req The request to be executed.
+    * @param adapter An adapter object referencing a response to place data into.
+    * @param token Completion token.
+    */
    template <class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
    {
@@ -1073,10 +1124,10 @@ public:
          std::move(adapter));
    }
 
-   /// Calls @ref boost::redis::basic_connection::cancel.
+   /// @copydoc basic_connection::cancel
    void cancel(operation op = operation::all);
 
-   /// Calls @ref boost::redis::basic_connection::will_reconnect.
+   /// @copydoc basic_connection::will_reconnect
    bool will_reconnect() const noexcept { return impl_.will_reconnect(); }
 
    /// (Deprecated) Calls @ref boost::redis::basic_connection::next_layer.
@@ -1097,23 +1148,23 @@ public:
       return impl_.stream_.next_layer();
    }
 
-   /// (Deprecated) Calls @ref boost::redis::basic_connection::reset_stream.
+   /// @copydoc basic_connection::reset_stream
    BOOST_DEPRECATED(
       "This function is no longer necessary and is currently a no-op. connection resets the stream "
       "internally as required. This function will be removed in subsequent releases")
    void reset_stream() { }
 
-   /// Sets the response object of `async_receive` operations.
+   /// @copydoc basic_connection::set_receive_response
    template <class Response>
    void set_receive_response(Response& response)
    {
       impl_.set_receive_response(response);
    }
 
-   /// Returns connection usage information.
+   /// @copydoc basic_connection::get_usage
    usage get_usage() const noexcept { return impl_.get_usage(); }
 
-   /// (Deprecated) Returns the ssl context.
+   /// @copydoc basic_connection::get_ssl_context
    BOOST_DEPRECATED(
       "ssl::context has no const methods, so this function should not be called. Set up any "
       "required TLS configuration before passing the ssl::context to the connection's constructor.")
