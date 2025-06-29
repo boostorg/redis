@@ -49,6 +49,11 @@ inline bool operator!=(error const& a, error const& b) { return !(a == b); }
 template <class Value>
 using result = system::result<Value, error>;
 
+/**
+ * @brief Allows using @ref error with `boost::system::result`.
+ * @param e The error to throw.
+ * @relates error
+ */
 BOOST_NORETURN inline void throw_exception_from_error(error const& e, boost::source_location const&)
 {
    system::error_code ec;
