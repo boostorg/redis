@@ -2,5 +2,6 @@
 * xref:requests_responses.adoc[]
 * xref:serialization.adoc[]
 * xref:logging.adoc[]
+* xref:benchmarks.adoc[]
 * xref:reference.adoc[Reference]
 
