@@ -23,7 +23,7 @@ namespace boost::redis::adapter {
  *  The types T1, T2, etc can be any STL container, any integer type
  *  and `std::string`.
  *
- *  @param T The response type.
+ *  @tparam T The response type.
  */
 template <class T>
 auto boost_redis_adapt(T& t) noexcept
