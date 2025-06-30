@@ -351,6 +351,7 @@ jobs:
     
     - name: Build docs
       run: |
-        cd ~/boost-root
+        export BOOST_SRC_DIR=~/boost-root # prevent Antora from cloning Boost again
+        cd $BOOST_SRC_DIR
         ./b2 libs/redis/doc
     
