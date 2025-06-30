@@ -4,5 +4,6 @@
 * xref:logging.adoc[]
 * xref:benchmarks.adoc[]
 * xref:comparison.adoc[]
+* xref:examples.adoc[]
 * xref:reference.adoc[Reference]
 
