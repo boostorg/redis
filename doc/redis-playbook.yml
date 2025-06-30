@@ -47,3 +47,7 @@ ui:
 
 output:
   dir: html
+
+runtime:
+  log:
+    failure_level: error
