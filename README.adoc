@@ -1,0 +1,2 @@
+
+include::doc/modules/ROOT/pages/index.adoc
