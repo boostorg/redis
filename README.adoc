@@ -1,2 +1,2 @@
 
-include::doc/modules/ROOT/pages/index.adoc
+include::doc/modules/ROOT/pages/index.adoc[]
