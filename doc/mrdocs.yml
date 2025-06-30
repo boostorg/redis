@@ -5,9 +5,8 @@
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
 
-# TODO: this shouldn't use compile_commands.json
 source-root: ../include
-compilation-database: ./compile_commands.json
+compilation-database: ./CMakeLists.txt
 include-symbols:
   - "boost::redis::**"
 exclude-symbols:
