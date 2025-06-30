@@ -109,7 +109,7 @@ def _setup_boost(
     copytree(
         str(source_dir),
         str(lib_dir),
-        ignore=ignore_patterns('__build*__', '.git')
+        ignore=ignore_patterns('__build*__')
     )
 
     # Install Boost dependencies
