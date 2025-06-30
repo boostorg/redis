@@ -13,3 +13,7 @@ nav:
 ext:
   cpp-reference:
     config: doc/mrdocs.yml
+  collector:
+    scan:
+      dir: example
+      into: modules/ROOT/examples
