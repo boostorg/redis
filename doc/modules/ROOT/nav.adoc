@@ -7,3 +7,4 @@
 * xref:examples.adoc[]
 * xref:reference.adoc[Reference]
 * xref:acknowledgements.adoc[]
+* xref:changelog.adoc[]
