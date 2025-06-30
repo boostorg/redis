@@ -6,7 +6,7 @@
 #
 
 site:
-  url: https://test.com/ # TODO: change this
+  url: https://github.com/boostorg/redis/blob/master
   title: Boost.Redis
   robots: allow
   start_page: redis::index.adoc
