@@ -1,5 +1,10 @@
-// xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`connection::async_exec`]
-// xref:reference:boost/redis/basic_connection/async_run-04.adoc[`connection::async_run`]
+//
+// Copyright (c) 2025 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
 = Requests and responses
 

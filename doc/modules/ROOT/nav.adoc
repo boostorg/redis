@@ -1,4 +1,5 @@
 * xref:index.adoc[Introduction]
-* xref:01_requests_responses.adoc[]
+* xref:requests_responses.adoc[]
+* xref:serialization.adoc[]
 * xref:reference.adoc[Reference]
 
