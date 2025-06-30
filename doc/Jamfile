@@ -8,7 +8,7 @@
 # Adapted from Boost.Unordered
 make html/index.html : build_antora.sh : @run-script ;
 
-# this runs the antora script
+# Runs the Antora script
 actions run-script
 {
     bash -x $(>)
