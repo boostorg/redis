@@ -336,7 +336,8 @@ jobs:
           --variant debug,release
 
   # Checks that we don't have any errors in docs
-  check-docs: 
+  check-docs:
+    name: Check docs
     defaults:
       run:
         shell: bash
@@ -353,4 +354,4 @@ jobs:
       run: |
         cd ~/boost-root
         ./b2 libs/redis/doc
-    
+        [ -f ~/boost-root/libs/redis/doc/html/index.html ]
