@@ -17,3 +17,4 @@ export BOOST_SRC_DIR=$(realpath $SCRIPT_DIR/../../..)
 
 npm ci
 npx antora --log-format=pretty redis-playbook.yml
+find $BOOST_SRC_DIR/libs/redis/doc/html/
