@@ -24,7 +24,6 @@ antora:
           tag: 'develop'
           variable: 'BOOST_SRC_DIR'
           system-env: 'BOOST_SRC_DIR'
-    - require: '@antora/collector-extension'
 
 asciidoc:
   attributes:
