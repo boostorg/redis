@@ -28,9 +28,10 @@ The documentation assumes basic-level knowledge about https://redis.io/docs/[Red
 
 To use the library it is necessary to include the following:
 
-```cpp
+[source,cpp]
+----
 #include <boost/redis/src.hpp>
-```
+----
 
 in exactly one source file in your applications. Otherwise, the library is header-only.
 
@@ -45,9 +46,36 @@ https://redis.io/commands/ping/[ping] a Redis server:
 
 [source,cpp]
 ----
-include::example$cpp20_intro.cpp[tag=includes]
+#include <boost/redis/connection.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/consign.hpp>
+#include <boost/asio/detached.hpp>
+#include <iostream>
 
-include::example$cpp20_intro.cpp[tag=main]
+namespace net = boost::asio;
+using boost::redis::request;
+using boost::redis::response;
+using boost::redis::config;
+using boost::redis::connection;
+
+auto co_main(config const& cfg) -> net::awaitable<void>
+{
+   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
+   conn->async_run(cfg, {}, net::consign(net::detached, conn));
+
+   // A request containing only a ping command.
+   request req;
+   req.push("PING", "Hello world");
+
+   // Response object.
+   response<std::string> resp;
+
+   // Executes the request.
+   co_await conn->async_exec(req, resp);
+   conn->cancel();
+
+   std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
+}
 ----
 
 The roles played by the `async_run` and `async_exec` functions are:
