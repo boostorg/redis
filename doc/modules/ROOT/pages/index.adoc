@@ -107,5 +107,9 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 == Further reading
 
-TODO: place some links here
+Here is a list of topics that you might be interested in:
 
+* xref:requests_responses.adoc[More on requests and responses].
+* xref:serialization.adoc[Serializing and parsing into custom types].
+* xref:logging.adoc[Configuring logging].
+* xref:examples.adoc[Examples].
