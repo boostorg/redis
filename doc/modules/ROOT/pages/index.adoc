@@ -39,26 +39,9 @@ https://redis.io/commands/ping/[ping] a Redis server:
 
 [source,cpp]
 ----
+include::example$cpp20_intro.cpp[tag=includes]
 
-// TODO: includes
-auto co_main(config const& cfg) -> net::awaitable<void>
-{
-   auto conn = std::make_shared<connection>(co_await net::this_coro::executor);
-   conn->async_run(cfg, {}, net::consign(net::detached, conn));
-
-   // A request containing only a ping command.
-   request req;
-   req.push("PING", "Hello world");
-
-   // Response object.
-   response<std::string> resp;
-
-   // Executes the request.
-   co_await conn->async_exec(req, resp);
-   conn->cancel();
-
-   std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
-}
+include::example$cpp20_intro.cpp[tag=main]
 ----
 
 The roles played by the `async_run` and `async_exec` functions are:
