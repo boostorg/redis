@@ -21,6 +21,11 @@ antora:
           variable: 'BOOST_SRC_DIR'
           system-env: 'BOOST_SRC_DIR'
 
+asciidoc:
+  attributes:
+    # Scrolling problems appear without this
+    page-pagination: ''
+
 content:
   sources:
     - url: ..
