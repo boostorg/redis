@@ -262,7 +262,7 @@
   only as it requires `boost::asio::deferred`. 
 
 * Moves from `boost::optional` to `std::optional`. This is part of
-  moving to C++17.
+  moving to pass:[C++17].
 
 * Changes the behaviour of the second `aedis::connection::async_run` overload
   so that it always returns an error when the connection is lost.

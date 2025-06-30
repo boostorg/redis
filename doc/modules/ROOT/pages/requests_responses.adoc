@@ -104,7 +104,7 @@ To map these RESP3 types into a pass:[C++] data structure use the table below:
 [cols="3*"]
 |===
 
-| *RESP3 type*   | *Possible C++ type*                                        | *Type*
+| *RESP3 type*   | *Possible pass:[C++] type*                                        | *Type*
 
 | Simple-string  | `std::string`                                              | Simple
 | Simple-error   | `std::string`                                              | Simple

@@ -18,7 +18,7 @@ https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md[RESP
 The requirements for using Boost.Redis are:
 
 * Boost 1.84 or higher. Boost.Redis is included in Boost installations since Boost 1.84.
-* C++17 or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
+* pass:[C++17] or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
 * Redis 6 or higher (must support RESP3).
 * OpenSSL.
 
