@@ -6,4 +6,4 @@
 * xref:comparison.adoc[]
 * xref:examples.adoc[]
 * xref:reference.adoc[Reference]
-
+* xref:acknowledgements.adoc[]
