@@ -854,7 +854,7 @@ public:
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   next_layer_type& next_layer() noexcept { return stream_.next_layer(); }
+   auto& next_layer() noexcept { return stream_.next_layer(); }
 
    /**
     * @brief (Deprecated) Returns a reference to the next layer.
@@ -870,7 +870,7 @@ public:
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   next_layer_type const& next_layer() const noexcept { return stream_.next_layer(); }
+   auto const& next_layer() const noexcept { return stream_.next_layer(); }
 
    /// Sets the response object of @ref async_receive operations.
    template <class Response>
