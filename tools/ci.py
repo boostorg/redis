@@ -295,6 +295,8 @@ def _run_b2_tests(
         'toolset={}'.format(toolset),
         'cxxstd={}'.format(cxxstd),
         'variant={}'.format(variant),
+        'warnings=extra',
+        'warnings-as-errors=on',
         '-j4',
         'libs/redis/test'
     ])

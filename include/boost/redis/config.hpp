@@ -7,12 +7,12 @@
 #ifndef BOOST_REDIS_CONFIG_HPP
 #define BOOST_REDIS_CONFIG_HPP
 
-#include <string>
 #include <chrono>
+#include <limits>
 #include <optional>
+#include <string>
 
-namespace boost::redis
-{
+namespace boost::redis {
 
 /** @brief Address of a Redis server
  *  @ingroup high-level-api
@@ -33,6 +33,11 @@ struct config {
 
    /// Address of the Redis server.
    address addr = address{"127.0.0.1", "6379"};
+
+   /// The UNIX domain socket path where the server is listening. If non-empty,
+   /// communication with the server will happen using UNIX domain sockets, and addr will be ignored.
+   /// UNIX domain sockets can't be used with SSL: if `unix_socket` is non-empty, `use_ssl` must be false.
+   std::string unix_socket;
 
    /** @brief Username passed to the
     * [HELLO](https://redis.io/commands/hello/) command.  If left
@@ -55,7 +60,13 @@ struct config {
    /// Message used by the health-checker in `boost::redis::connection::async_run`.
    std::string health_check_id = "Boost.Redis";
 
-   /// Logger prefix, see `boost::redis::logger`.
+   /**
+    * @brief (Deprecated) Sets the logger prefix, a string printed before log messages.
+    * 
+    * Setting a prefix in this struct is deprecated. If you need to change how log messages
+    * look like, please construct a logger object passing a formatting function, and use that
+    * logger in connection's constructor. This member will be removed in subsequent releases.
+    */
    std::string log_prefix = "(Boost.Redis) ";
 
    /// Time the resolve operation is allowed to last.
@@ -78,8 +89,15 @@ struct config {
     *  To disable reconnection pass zero as duration.
     */
    std::chrono::steady_clock::duration reconnect_wait_interval = std::chrono::seconds{1};
+
+   /** @brief Maximum size of a socket read.
+    *  
+    *  Sets a limit on how much data is allowed to be read into the
+    *  read buffer. It can be used to prevent DDOS.
+    */
+   std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
 };
 
-} // boost::redis
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_CONFIG_HPP
+#endif  // BOOST_REDIS_CONFIG_HPP

@@ -8,9 +8,10 @@
 #define BOOST_REDIS_RESP3_TYPE_HPP
 
 #include <boost/assert.hpp>
+
 #include <ostream>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace boost::redis::resp3 {
 
@@ -20,42 +21,42 @@ namespace boost::redis::resp3 {
     The RESP3 specification can be found at https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md.
  */
 enum class type
-{ /// Aggregate
-  array,
-  /// Aaggregate
-  push,
-  /// Aggregate
-  set,
-  /// Aggregate
-  map,
-  /// Aggregate
-  attribute,
-  /// Simple
-  simple_string,
-  /// Simple
-  simple_error,
-  /// Simple
-  number,
-  /// Simple
-  doublean,
-  /// Simple
-  boolean,
-  /// Simple
-  big_number,
-  /// Simple
-  null,
-  /// Simple
-  blob_error,
-  /// Simple
-  verbatim_string,
-  /// Simple
-  blob_string,
-  /// Simple
-  streamed_string,
-  /// Simple
-  streamed_string_part,
-  /// Invalid
-  invalid
+{  /// Aggregate
+   array,
+   /// Aaggregate
+   push,
+   /// Aggregate
+   set,
+   /// Aggregate
+   map,
+   /// Aggregate
+   attribute,
+   /// Simple
+   simple_string,
+   /// Simple
+   simple_error,
+   /// Simple
+   number,
+   /// Simple
+   doublean,
+   /// Simple
+   boolean,
+   /// Simple
+   big_number,
+   /// Simple
+   null,
+   /// Simple
+   blob_error,
+   /// Simple
+   verbatim_string,
+   /// Simple
+   blob_string,
+   /// Simple
+   streamed_string,
+   /// Simple
+   streamed_string_part,
+   /// Invalid
+   invalid
 };
 
 /** \brief Converts the data type to a string.
@@ -81,7 +82,7 @@ constexpr auto is_aggregate(type t) noexcept -> bool
       case type::set:
       case type::map:
       case type::attribute: return true;
-      default: return false;
+      default:              return false;
    }
 }
 
@@ -92,7 +93,7 @@ constexpr auto element_multiplicity(type t) noexcept -> std::size_t
    switch (t) {
       case type::map:
       case type::attribute: return 2ULL;
-      default: return 1ULL;
+      default:              return 1ULL;
    }
 }
 
@@ -141,10 +142,10 @@ constexpr auto to_type(char c) noexcept -> type
       case '*': return type::array;
       case '|': return type::attribute;
       case '%': return type::map;
-      default: return type::invalid;
+      default:  return type::invalid;
    }
 }
 
-} // boost::redis::resp3
+}  // namespace boost::redis::resp3
 
-#endif // BOOST_REDIS_RESP3_TYPE_HPP
+#endif  // BOOST_REDIS_RESP3_TYPE_HPP

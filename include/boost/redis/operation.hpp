@@ -15,7 +15,8 @@ namespace boost::redis {
  *  The operations listed below can be passed to the
  *  `boost::redis::connection::cancel` member function.
  */
-enum class operation {
+enum class operation
+{
    /// Resolve operation.
    resolve,
    /// Connect operation.
@@ -36,6 +37,6 @@ enum class operation {
    all,
 };
 
-} // boost::redis
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_OPERATION_HPP
+#endif  // BOOST_REDIS_OPERATION_HPP

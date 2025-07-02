@@ -13,8 +13,7 @@
 #include <tuple>
 #include <type_traits>
 
-namespace boost::redis
-{
+namespace boost::redis {
 
 /** @brief Type used to ignore responses.
  *  @ingroup high-level-api
@@ -44,6 +43,6 @@ using ignore_t = std::decay_t<decltype(std::ignore)>;
  */
 extern ignore_t ignore;
 
-} // boost::redis
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_IGNORE_HPP
+#endif  // BOOST_REDIS_IGNORE_HPP

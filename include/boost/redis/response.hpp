@@ -7,16 +7,16 @@
 #ifndef BOOST_REDIS_RESPONSE_HPP
 #define BOOST_REDIS_RESPONSE_HPP
 
-#include <boost/redis/resp3/node.hpp>
 #include <boost/redis/adapter/result.hpp>
+#include <boost/redis/resp3/node.hpp>
+
 #include <boost/system.hpp>
 
-#include <vector>
 #include <string>
 #include <tuple>
+#include <vector>
 
-namespace boost::redis
-{
+namespace boost::redis {
 
 /** @brief Response with compile-time size.
  *  @ingroup high-level-api
@@ -75,6 +75,6 @@ void consume_one(generic_response& r, system::error_code& ec);
 /// Throwing overload of `consume_one`.
 void consume_one(generic_response& r);
 
-} // boost::redis
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_RESPONSE_HPP
+#endif  // BOOST_REDIS_RESPONSE_HPP

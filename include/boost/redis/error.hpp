@@ -84,6 +84,12 @@ enum class error
 
    /// Resp3 hello command error
    resp3_hello,
+
+   /// The configuration specified a UNIX socket address, but UNIX sockets are not supported by the system.
+   unix_sockets_unsupported,
+
+   /// The configuration specified UNIX sockets with SSL, which is not supported.
+   unix_sockets_ssl_unsupported,
 };
 
 /** \internal
@@ -93,13 +99,13 @@ enum class error
  */
 auto make_error_code(error e) -> system::error_code;
 
-} // boost::redis
+}  // namespace boost::redis
 
 namespace std {
 
-template<>
-struct is_error_code_enum<::boost::redis::error> : std::true_type {};
+template <>
+struct is_error_code_enum<::boost::redis::error> : std::true_type { };
 
-} // std
+}  // namespace std
 
-#endif // BOOST_REDIS_ERROR_HPP
+#endif  // BOOST_REDIS_ERROR_HPP

@@ -7,8 +7,7 @@
 #ifndef BOOST_REDIS_USAGE_HPP
 #define BOOST_REDIS_USAGE_HPP
 
-namespace boost::redis
-{
+namespace boost::redis {
 
 /** @brief Connection usage information.
  *  @ingroup high-level-api
@@ -38,6 +37,6 @@ struct usage {
    std::size_t push_bytes_received = 0;
 };
 
-} // boost::redis
+}  // namespace boost::redis
 
-#endif // BOOST_REDIS_USAGE_HPP
+#endif  // BOOST_REDIS_USAGE_HPP
