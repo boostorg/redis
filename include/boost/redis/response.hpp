@@ -32,89 +32,48 @@ using response = std::tuple<adapter::result<Ts>...>;
 using generic_response = adapter::result<std::vector<resp3::node>>;
 
 struct flat_response_value {
-private:
-   class iterator {
-   public:
-      using value_type = resp3::node_view;
-      using difference_type = std::ptrdiff_t;
-      using pointer = void;
-      using reference = value_type;
-      using iterator_category = std::forward_iterator_tag;
-
-      explicit iterator(flat_response_value* owner, std::size_t i) noexcept
-      : owner_(owner)
-      , index_(i)
-      { }
-
-      value_type operator*() const { return owner_->operator[](index_); }
-
-      iterator& operator++()
-      {
-         ++index_;
-         return *this;
-      }
-
-      bool operator==(const iterator& other) const { return index_ == other.index_; }
-      bool operator!=(const iterator& other) const { return !(*this == other); }
-
-   private:
-      flat_response_value* owner_;
-      std::size_t index_;
-   };
-
-   struct offset_node : resp3::node_view {
-      std::size_t offset{};
-      std::size_t size{};
-   };
-
 public:
-   void reserve(std::size_t new_cap, std::size_t elem_length)
+   /// Reserve capacity for nodes and data storage.
+   void reserve(std::size_t num_nodes, std::size_t string_size)
    {
-      data_.reserve(new_cap * elem_length);
-      view_.reserve(new_cap);
+      data_.reserve(num_nodes * string_size);
+      view_.reserve(num_nodes);
    }
 
-   resp3::node_view at(std::size_t index) { return make_node_view(view_.at(index)); }
-
-   std::size_t size() { return view_.size(); }
-
-   resp3::node_view operator[](std::size_t index) { return make_node_view(view_[index]); }
-
-   iterator begin() { return iterator{this, 0}; }
-
-   iterator end() { return iterator{this, view_.size()}; }
+   std::vector<resp3::offset_node> const& view() const { return view_; }
+   std::vector<resp3::offset_node>& view() { return view_; }
 
    template <typename String>
    void push_back(const resp3::basic_node<String>& nd)
    {
-      offset_node new_node;
+      resp3::offset_string offset_string;
+      offset_string.offset = data_.size();
+      offset_string.size = nd.value.size();
+
+      data_.append(nd.value.data());
+
+      offset_string.data = std::string_view{
+         data_.data() + offset_string.offset,
+         offset_string.size};
+
+      resp3::offset_node new_node;
       new_node.data_type = nd.data_type;
       new_node.aggregate_size = nd.aggregate_size;
       new_node.depth = nd.depth;
-      new_node.offset = data_.size();
-      new_node.size = nd.value.size();
+      new_node.value = std::move(offset_string);
 
-      data_.append(nd.value.data());
       view_.push_back(std::move(new_node));
    }
 
 private:
-   resp3::node_view make_node_view(const offset_node& nd)
-   {
-      resp3::node_view result;
-      result.data_type = nd.data_type;
-      result.aggregate_size = nd.aggregate_size;
-      result.depth = nd.depth;
-      result.value = std::string_view{data_.data() + nd.offset, nd.size};
-      return result;
-   }
-
    std::string data_;
-   std::vector<offset_node> view_;
+   std::vector<resp3::offset_node> view_;
 };
 
-/**
- * TODO: documentation
+/** @brief A memory-efficient generic response to a request.
+ *  @ingroup high-level-api
+ * 
+ *  Uses a compact buffer to store RESP3 data with reduced allocations.
  */
 using generic_flat_response = adapter::result<flat_response_value>;
 
@@ -159,12 +118,18 @@ using generic_flat_response = adapter::result<flat_response_value>;
  */
 void consume_one(generic_response& r, system::error_code& ec);
 
-/**
- * @brief Throwing overload of `consume_one`.
- *
- * @param r The response to modify.
- */
-void consume_one(generic_response& r);
+/// Consume on response from a generic flat response
+void consume_one(generic_flat_response& r, system::error_code& ec);
+
+/// Throwing overload of `consume_one`.
+template <typename Response>
+void consume_one(Response& r)
+{
+   system::error_code ec;
+   consume_one(r, ec);
+   if (ec)
+      throw system::system_error(ec);
+}
 
 }  // namespace boost::redis
 
