@@ -37,8 +37,6 @@ namespace boost::redis::resp3 {
  *
  *  @param payload Storage on which data will be copied into.
  *  @param data Data that will be serialized and stored in `payload`.
- *
- *  See more in @ref serialization.
  */
 void boost_redis_to_bulk(std::string& payload, std::string_view data);
 

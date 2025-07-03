@@ -1,43 +1,51 @@
-# Boost.Redis
+//
+// Copyright (c) 2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
-Boost.Redis is a high-level [Redis](https://redis.io/) client library built on top of
-[Boost.Asio](https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html)
+[#intro]
+= Introduction
+
+Boost.Redis is a high-level https://redis.io/[Redis] client library built on top of
+https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html[Boost.Asio]
 that implements the Redis protocol
-[RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
+https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md[RESP3].
 
-Full documentation is [here](https://www.boost.org/doc/libs/master/libs/redis/index.html).
-
-## Requirements
+== Requirements
 
 The requirements for using Boost.Redis are:
 
 * Boost 1.84 or higher. Boost.Redis is included in Boost installations since Boost 1.84.
-* C++17 or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
+* pass:[C++17] or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
 * Redis 6 or higher (must support RESP3).
 * OpenSSL.
 
-The documentation assumes basic-level knowledge about [Redis](https://redis.io/docs/) and [Boost.Asio](https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html).
+The documentation assumes basic-level knowledge about https://redis.io/docs/[Redis] and https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html[Boost.Asio].
 
-## Building the library
+== Building the library
 
 To use the library it is necessary to include the following:
 
-```cpp
+[source,cpp]
+----
 #include <boost/redis/src.hpp>
-```
+----
 
 in exactly one source file in your applications. Otherwise, the library is header-only.
 
 Boost.Redis unconditionally requires OpenSSL. Targets using Boost.Redis need to link
 to the OpenSSL libraries.
 
-## Tutorial
+== Tutorial
 
 The code below uses a short-lived connection to
-[ping](https://redis.io/commands/ping/) a Redis server:
+https://redis.io/commands/ping/[ping] a Redis server:
 
 
-```cpp
+[source,cpp]
+----
 #include <boost/redis/connection.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/consign.hpp>
@@ -68,31 +76,32 @@ auto co_main(config const& cfg) -> net::awaitable<void>
 
    std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
 }
-```
+----
 
 The roles played by the `async_run` and `async_exec` functions are:
 
-* `connection::async_exec`: executes the commands contained in the
+* xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`connection::async_exec`]: executes the commands contained in the
   request and stores the individual responses in the response object. Can
   be called from multiple places in your code concurrently.
-* `connection::async_run`: keeps the connection healthy. It takes care of hostname resolution, session establishment, health-checks, reconnection and coordination of low-level read and write operations. It should be called only once per connection, regardless of the number of requests to execute.
+* xref:reference:boost/redis/basic_connection/async_run-04.adoc[`connection::async_run`]: keeps the connection healthy. It takes care of hostname resolution, session establishment, health-checks, reconnection and coordination of low-level read and write operations. It should be called only once per connection, regardless of the number of requests to execute.
 
-## Server pushes
+== Server pushes
 
 Redis servers can also send a variety of pushes to the client. Some of
 them are:
 
-* [Pubsub messages](https://redis.io/docs/manual/pubsub/).
-* [Keyspace notifications](https://redis.io/docs/manual/keyspace-notifications/).
-* [Client-side caching](https://redis.io/docs/manual/client-side-caching/).
+* https://redis.io/docs/manual/pubsub/[Pubsub messages].
+* https://redis.io/docs/manual/keyspace-notifications/[Keyspace notifications].
+* https://redis.io/docs/manual/client-side-caching/[Client-side caching].
 
 The connection class supports server pushes by means of the
-`connection::async_receive` function, which can be
+xref:reference:boost/redis/basic_connection/async_receive.adoc[`connection::async_receive`] function, which can be
 called in the same connection that is being used to execute commands.
 The coroutine below shows how to use it:
 
 
-```cpp
+[source,cpp]
+----
 auto
 receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 {
@@ -122,8 +131,13 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
       }
    }
 }
-```
+----
 
-## Further reading
+== Further reading
 
-Full documentation is [here](https://www.boost.org/doc/libs/master/libs/redis/index.html).
+Here is a list of topics that you might be interested in:
+
+* xref:requests_responses.adoc[More on requests and responses].
+* xref:serialization.adoc[Serializing and parsing into custom types].
+* xref:logging.adoc[Configuring logging].
+* xref:examples.adoc[Examples].

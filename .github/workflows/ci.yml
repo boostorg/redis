@@ -334,3 +334,24 @@ jobs:
           --toolset ${{ matrix.toolset }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --variant debug,release
+
+  # Checks that we don't have any errors in docs
+  check-docs:
+    name: Check docs
+    defaults:
+      run:
+        shell: bash
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Boost
+      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+    
+    - name: Build docs
+      run: |
+        cd ~/boost-root
+        ./b2 libs/redis/doc
+        [ -f ~/boost-root/libs/redis/doc/html/index.html ]
