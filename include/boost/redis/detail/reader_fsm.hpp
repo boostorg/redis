@@ -18,6 +18,9 @@ namespace boost::redis::detail {
 
 class reader_fsm {
 public:
+   // TODO: Move this to config so the user can fine tune?
+   static constexpr std::size_t buffer_growth_hint = 4096;
+
    struct action {
       enum class type
       {

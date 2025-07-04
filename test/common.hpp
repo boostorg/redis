@@ -2,6 +2,7 @@
 
 #include <boost/redis/connection.hpp>
 #include <boost/redis/operation.hpp>
+#include <boost/redis/detail/multiplexer.hpp>
 
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/redirect_error.hpp>
@@ -34,3 +35,14 @@ void run(
    boost::redis::config cfg = make_test_config(),
    boost::system::error_code ec = boost::asio::error::operation_aborted,
    boost::redis::operation op = boost::redis::operation::receive);
+
+inline
+void append_read_data(boost::redis::detail::multiplexer& mpx, std::string const& data)
+{
+   mpx.prepare_append(data.size());
+   auto const buffer = mpx.get_append_buffer();
+   BOOST_ASSERT(buffer.second == data.size());
+   std::copy(data.begin(), data.end(), buffer.first);
+   mpx.commit_append(data.size());
+}
+

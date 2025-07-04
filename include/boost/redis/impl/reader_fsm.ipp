@@ -24,7 +24,9 @@ reader_fsm::action reader_fsm::resume(
       BOOST_REDIS_YIELD(resume_point_, 1, action::type::setup_cancellation)
 
       for (;;) {
+         mpx_->prepare_append(buffer_growth_hint);
          BOOST_REDIS_YIELD(resume_point_, 2, next_read_type_)
+         mpx_->commit_append(bytes_read);
          if (ec) {
             // TODO: If an error occurred but data was read (i.e.
             // bytes_read != 0) we should try to process that data and

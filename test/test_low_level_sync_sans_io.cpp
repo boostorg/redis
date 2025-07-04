@@ -17,6 +17,8 @@
 #include <iostream>
 #include <string>
 
+#include "common.hpp"
+
 using boost::redis::request;
 using boost::redis::config;
 using boost::redis::detail::push_hello;
@@ -290,7 +292,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
 
    BOOST_TEST(!ret.first.has_value());
 
-   mpx.get_read_buffer().append("\n+two\r\n");
+   append_read_data(mpx, "\n+two\r\n");
    ret = mpx.consume_next(ec);
 
    BOOST_TEST(ret.first.value());
@@ -379,7 +381,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    BOOST_TEST(!item3.done);
 
    // Simulates a socket read by putting some data in the read buffer.
-   mpx.get_read_buffer().append("+one\r\n");
+   append_read_data(mpx, "+one\r\n");
 
    // Consumes the next message in the read buffer.
    boost::system::error_code ec;

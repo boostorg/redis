@@ -157,13 +157,18 @@ struct multiplexer {
    }
 
    [[nodiscard]]
-   auto get_read_buffer() noexcept -> std::string&
+   auto get_append_buffer() noexcept -> std::pair<char*, std::size_t>
    {
-      return read_buffer_;
+      auto const size = read_buffer_.size();
+
+      return
+      std::make_pair(
+         read_buffer_.data() + old_read_buf_size_,
+         size - old_read_buf_size_);
    }
 
    [[nodiscard]]
-   auto get_read_buffer() const noexcept -> std::string const&
+   auto get_read_buffer() const noexcept -> std::string_view
    {
       return read_buffer_;
    }
@@ -187,6 +192,23 @@ struct multiplexer {
    [[nodiscard]]
    auto is_writing() const noexcept -> bool;
 
+   // Prepare the read buffer to append more data. size_hint is the
+   // size that will be made available at the end of the read buffer.
+   // After copying data the actual size has to be commited with
+   // commit_append.
+   auto prepare_append(std::size_t size_hint) -> void
+   {
+      old_read_buf_size_ = read_buffer_.size();
+      read_buffer_.resize(old_read_buf_size_ + size_hint);
+
+      // TODO: limit buffer growth to conn_->cfg_.max_read_size.
+   }
+
+   auto commit_append(std::size_t read_size) -> void
+   {
+      read_buffer_.resize(old_read_buf_size_ + read_size);
+   }
+
 private:
    [[nodiscard]]
    auto is_waiting_response() const noexcept -> bool;
@@ -209,6 +231,7 @@ private:
    bool cancel_run_called_ = false;
    usage usage_;
    adapter_type receive_adapter_;
+   std::size_t old_read_buf_size_ = 0;
 };
 
 auto make_elem(request const& req, multiplexer::pipeline_adapter_type adapter)
