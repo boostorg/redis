@@ -88,6 +88,9 @@ enum class error
 
    /// The configuration specified UNIX sockets with SSL, which is not supported.
    unix_sockets_ssl_unsupported,
+
+   /// The size of the read buffer would exceed it maximum configured value.
+   exceeds_maximum_read_buffer_size,
 };
 
 /**

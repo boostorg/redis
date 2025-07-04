@@ -67,8 +67,6 @@ public:
    [[nodiscard]]
    auto done() const noexcept -> bool;
 
-   auto get_suggested_buffer_growth(std::size_t hint) const noexcept -> std::size_t;
-
    auto get_consumed() const noexcept -> std::size_t;
 
    auto consume(std::string_view view, system::error_code& ec) noexcept -> result;

@@ -88,12 +88,20 @@ struct config {
     */
    std::chrono::steady_clock::duration reconnect_wait_interval = std::chrono::seconds{1};
 
-   /** @brief Maximum size of a socket read, in bytes.
+   /** @brief Maximum size of the read-buffer in bytes.
     *  
     *  Sets a limit on how much data is allowed to be read into the
     *  read buffer. It can be used to prevent DDOS.
     */
    std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
+
+   /** @brief read_buffer_append_size
+    *
+    * The size by which the read buffer grows when more space is
+    * needed. There is no need to set this too high because memory is
+    * reused and the growth will tend to zero.
+    */
+   std::size_t read_buffer_append_size = 4096;
 };
 
 }  // namespace boost::redis

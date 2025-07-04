@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/operation.hpp>
 
 #include <boost/asio/awaitable.hpp>
@@ -34,3 +35,5 @@ void run(
    boost::redis::config cfg = make_test_config(),
    boost::system::error_code ec = boost::asio::error::operation_aborted,
    boost::redis::operation op = boost::redis::operation::receive);
+
+void append_read_data(boost::redis::detail::reader_fsm& fsm, std::string_view data);
