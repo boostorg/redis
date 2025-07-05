@@ -31,6 +31,52 @@ using response = std::tuple<adapter::result<Ts>...>;
  */
 using generic_response = adapter::result<std::vector<resp3::node>>;
 
+/**
+ * Forward declaration to allow friendship with the template class 
+ * that manages filling of flat_response_value.
+ */
+namespace adapter::detail {
+template <typename Result>
+class general_aggregate;
+}
+
+struct flat_response_value {
+public:
+   /// Reserve capacity for nodes and data storage.
+   void reserve(std::size_t num_nodes, std::size_t string_size)
+   {
+      data_.reserve(num_nodes * string_size);
+      view_.reserve(num_nodes);
+   }
+
+   std::vector<resp3::offset_node> const& view() const { return view_; }
+   std::vector<resp3::offset_node>& view() { return view_; }
+
+   void set_view()
+   {
+      for (auto& node : view_) {
+         auto& offset_string = node.value;
+         offset_string.data = std::string_view{
+            data_.data() + offset_string.offset,
+            offset_string.size};
+      }
+   }
+
+private:
+   template <typename T>
+   friend class adapter::detail::general_aggregate;
+
+   std::string data_;
+   std::vector<resp3::offset_node> view_;
+};
+
+/** @brief A memory-efficient generic response to a request.
+ *  @ingroup high-level-api
+ * 
+ *  Uses a compact buffer to store RESP3 data with reduced allocations.
+ */
+using generic_flat_response = adapter::result<flat_response_value>;
+
 /** @brief Consume on response from a generic response
  *
  *  This function rotates the elements so that the start of the next
@@ -72,12 +118,22 @@ using generic_response = adapter::result<std::vector<resp3::node>>;
  */
 void consume_one(generic_response& r, system::error_code& ec);
 
+/// Consume on response from a generic flat response
+void consume_one(generic_flat_response& r, system::error_code& ec);
+
 /**
  * @brief Throwing overload of `consume_one`.
  *
  * @param r The response to modify.
  */
-void consume_one(generic_response& r);
+template <typename Response>
+void consume_one(Response& r)
+{
+   system::error_code ec;
+   consume_one(r, ec);
+   if (ec)
+      throw system::system_error(ec);
+}
 
 }  // namespace boost::redis
 

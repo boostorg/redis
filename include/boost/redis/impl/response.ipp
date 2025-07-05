@@ -11,15 +11,30 @@
 
 namespace boost::redis {
 
-void consume_one(generic_response& r, system::error_code& ec)
+namespace {
+template <typename Container>
+auto& get_value(Container& c)
+{
+   return c;
+}
+
+template <>
+auto& get_value(flat_response_value& c)
+{
+   return c.view();
+}
+
+template <typename Response>
+void consume_one_impl(Response& r, system::error_code& ec)
 {
    if (r.has_error())
       return;  // Nothing to consume.
 
-   if (std::empty(r.value()))
+   auto& value = get_value(r.value());
+   if (std::empty(value))
       return;  // Nothing to consume.
 
-   auto const depth = r.value().front().depth;
+   auto const depth = value.front().depth;
 
    // To simplify we will refuse to consume any data-type that is not
    // a root node. I think there is no use for that and it is complex
@@ -33,17 +48,15 @@ void consume_one(generic_response& r, system::error_code& ec)
       return e.depth == depth;
    };
 
-   auto match = std::find_if(std::next(std::cbegin(r.value())), std::cend(r.value()), f);
+   auto match = std::find_if(std::next(std::cbegin(value)), std::cend(value), f);
 
-   r.value().erase(std::cbegin(r.value()), match);
+   value.erase(std::cbegin(value), match);
 }
 
-void consume_one(generic_response& r)
-{
-   system::error_code ec;
-   consume_one(r, ec);
-   if (ec)
-      throw system::system_error(ec);
-}
+}  // namespace
+
+void consume_one(generic_response& r, system::error_code& ec) { consume_one_impl(r, ec); }
+
+void consume_one(generic_flat_response& r, system::error_code& ec) { consume_one_impl(r, ec); }
 
 }  // namespace boost::redis

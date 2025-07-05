@@ -12,6 +12,7 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
+#include <boost/redis/response.hpp>
 
 #include <boost/assert.hpp>
 
@@ -138,6 +139,26 @@ void boost_redis_from_bulk(T& t, resp3::basic_node<String> const& node, system::
 
 //================================================
 
+using done_fn_type = std::function<void()>;
+
+template <typename T>
+auto prepare_done(T&) noexcept -> done_fn_type
+{
+   return [] { };
+}
+
+template <typename T>
+auto prepare_done(generic_flat_response& resp) noexcept -> done_fn_type
+{
+   return [resp]() mutable {
+      if (resp.has_value()) {
+         resp.value().set_view();
+      }
+   };
+}
+
+//================================================
+
 template <class Result>
 class general_aggregate {
 private:
@@ -166,6 +187,47 @@ public:
                nd.depth,
                std::string{std::cbegin(nd.value), std::cend(nd.value)}
             });
+      }
+   }
+};
+
+template <>
+class general_aggregate<result<flat_response_value>> {
+private:
+   result<flat_response_value>* result_;
+
+public:
+   explicit general_aggregate(result<flat_response_value>* c = nullptr)
+   : result_(c)
+   { }
+   template <class String>
+   void operator()(resp3::basic_node<String> const& nd, system::error_code&)
+   {
+      BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
+      switch (nd.data_type) {
+         case resp3::type::blob_error:
+         case resp3::type::simple_error:
+            *result_ = error{
+               nd.data_type,
+               std::string{std::cbegin(nd.value), std::cend(nd.value)}
+            };
+            break;
+         default:
+            auto& data = result_->value().data_;
+
+            resp3::offset_string offset_string;
+            offset_string.offset = data.size();
+            offset_string.size = nd.value.size();
+
+            data.append(nd.value.data(), nd.value.size());
+
+            resp3::offset_node new_node;
+            new_node.data_type = nd.data_type;
+            new_node.aggregate_size = nd.aggregate_size;
+            new_node.depth = nd.depth;
+            new_node.value = std::move(offset_string);
+
+            result_->value().view_.push_back(std::move(new_node));
       }
    }
 };

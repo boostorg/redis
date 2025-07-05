@@ -59,6 +59,14 @@ using node = basic_node<std::string>;
 /// A node in the response tree that does not own its data.
 using node_view = basic_node<std::string_view>;
 
+struct offset_string {
+   std::string_view data;
+   std::size_t offset{};
+   std::size_t size{};
+};
+
+using offset_node = basic_node<offset_string>;
+
 }  // namespace boost::redis::resp3
 
 #endif  // BOOST_REDIS_RESP3_NODE_HPP
