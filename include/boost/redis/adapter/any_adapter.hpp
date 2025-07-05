@@ -53,6 +53,7 @@ public:
    static auto create_impl(T& resp) -> impl_t
    {
       using namespace boost::redis::adapter;
+
       return [adapter2 = boost_redis_adapt(resp)](
                   any_adapter::parse_event ev,
                   resp3::node_view const& nd,
