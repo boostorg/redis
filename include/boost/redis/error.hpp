@@ -11,9 +11,7 @@
 
 namespace boost::redis {
 
-/** \brief Generic errors.
- *  \ingroup high-level-api
- */
+/// Generic errors.
 enum class error
 {
    /// Invalid RESP3 type.
@@ -92,10 +90,10 @@ enum class error
    unix_sockets_ssl_unsupported,
 };
 
-/** \internal
- *  \brief Creates a error_code object from an error.
- *  \param e Error code.
- *  \ingroup any
+/**
+ * @brief Creates a error_code object from an error.
+ *
+ * @param e Error code.
  */
 auto make_error_code(error e) -> system::error_code;
 

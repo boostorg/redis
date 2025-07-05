@@ -13,11 +13,10 @@
 
 namespace boost::redis::detail {
 
-/** \brief Writes a request synchronously.
- *  \ingroup low-level-api
+/** @brief Writes a request synchronously.
  *
- *  \param stream Stream to write the request to.
- *  \param req Request to write.
+ *  @param stream Stream to write the request to.
+ *  @param req Request to write.
  */
 template <class SyncWriteStream>
 auto write(SyncWriteStream& stream, request const& req)
@@ -31,12 +30,11 @@ auto write(SyncWriteStream& stream, request const& req, system::error_code& ec)
    return asio::write(stream, asio::buffer(req.payload()), ec);
 }
 
-/** \brief Writes a request asynchronously.
- *  \ingroup low-level-api
+/** @brief Writes a request asynchronously.
  *
- *  \param stream Stream to write the request to.
- *  \param req Request to write.
- *  \param token Asio completion token.
+ *  @param stream Stream to write the request to.
+ *  @param req Request to write.
+ *  @param token Asio completion token.
  */
 template <
    class AsyncWriteStream,

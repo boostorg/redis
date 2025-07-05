@@ -18,14 +18,11 @@
 
 namespace boost::redis {
 
-/** @brief Response with compile-time size.
- *  @ingroup high-level-api
- */
+/// Response with compile-time size.
 template <class... Ts>
 using response = std::tuple<adapter::result<Ts>...>;
 
 /** @brief A generic response to a request
- *  @ingroup high-level-api
  *
  *  This response type can store any type of RESP3 data structure.  It
  *  contains the
@@ -99,7 +96,7 @@ using generic_flat_response = adapter::result<flat_response_value>;
  * req.push("PING", "three");
  *
  * generic_response resp;
- * co_await conn->async_exec(req, resp, asio::deferred);
+ * co_await conn.async_exec(req, resp);
  *
  * std::cout << "PING: " << resp.value().front().value << std::endl;
  * consume_one(resp);
@@ -108,7 +105,7 @@ using generic_flat_response = adapter::result<flat_response_value>;
  * std::cout << "PING: " << resp.value().front().value << std::endl;
  * @endcode
  *
- * is
+ * Is:
  *
  * @code
  * PING: one
@@ -120,14 +117,21 @@ using generic_flat_response = adapter::result<flat_response_value>;
  * efficient for responses with a large number of elements. It was
  * introduced mainly to deal with buffers server pushes as shown in
  * the cpp20_subscriber.cpp example. In the future queue-like
- * responses might be introduced to consume in O(1) operations. 
+ * responses might be introduced to consume in O(1) operations.
+ *
+ * @param r The response to modify.
+ * @param ec Will be populated in case of error.
  */
 void consume_one(generic_response& r, system::error_code& ec);
 
 /// Consume on response from a generic flat response
 void consume_one(generic_flat_response& r, system::error_code& ec);
 
-/// Throwing overload of `consume_one`.
+/**
+ * @brief Throwing overload of `consume_one`.
+ *
+ * @param r The response to modify.
+ */
 template <typename Response>
 void consume_one(Response& r)
 {

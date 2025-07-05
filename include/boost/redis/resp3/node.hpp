@@ -11,16 +11,13 @@
 
 namespace boost::redis::resp3 {
 
-/** \brief A node in the response tree.
- *  \ingroup high-level-api
+/** @brief A node in the response tree.
  *
- *  RESP3 can contain recursive data structures: A map of sets of
- *  vector of etc. As it is parsed each element is passed to user
- *  callbacks (push parser). The signature of this
- *  callback is `f(resp3::node<std::string_view)`. This class is called a node
+ *  RESP3 can contain recursive data structures, like a map of sets of
+ *  vectors. This class is called a node
  *  because it can be seen as the element of the response tree. It
- *  is a template so that users can use it with owing strings e.g.
- *  `std::string` or `boost::static_string` etc.
+ *  is a template so that users can use it with any string type, like
+ *  `std::string` or `boost::static_string`.
  *
  *  @tparam String A `std::string`-like type.
  */
@@ -56,14 +53,10 @@ auto operator==(basic_node<String> const& a, basic_node<String> const& b)
    // clang-format on
 };
 
-/** @brief A node in the response tree that owns its data
- *  @ingroup high-level-api
- */
+/// A node in the response tree that owns its data.
 using node = basic_node<std::string>;
 
-/** @brief A node view in the response tree
- *  @ingroup high-level-api
- */
+/// A node in the response tree that does not own its data.
 using node_view = basic_node<std::string_view>;
 
 struct offset_string {
