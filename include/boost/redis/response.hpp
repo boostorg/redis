@@ -31,6 +31,15 @@ using response = std::tuple<adapter::result<Ts>...>;
  */
 using generic_response = adapter::result<std::vector<resp3::node>>;
 
+/**
+ * Forward declaration to allow friendship with the template class 
+ * that manages filling of flat_response_value.
+ */
+namespace adapter::detail {
+template <typename Result>
+class general_aggregate;
+}
+
 struct flat_response_value {
 public:
    /// Reserve capacity for nodes and data storage.
@@ -43,24 +52,6 @@ public:
    std::vector<resp3::offset_node> const& view() const { return view_; }
    std::vector<resp3::offset_node>& view() { return view_; }
 
-   template <typename String>
-   void push_back(const resp3::basic_node<String>& nd)
-   {
-      resp3::offset_string offset_string;
-      offset_string.offset = data_.size();
-      offset_string.size = nd.value.size();
-
-      data_.append(nd.value.data(), nd.value.size());
-
-      resp3::offset_node new_node;
-      new_node.data_type = nd.data_type;
-      new_node.aggregate_size = nd.aggregate_size;
-      new_node.depth = nd.depth;
-      new_node.value = std::move(offset_string);
-
-      view_.push_back(std::move(new_node));
-   }
-
    void set_view()
    {
       for (auto& node : view_) {
@@ -72,6 +63,9 @@ public:
    }
 
 private:
+   template <typename T>
+   friend class adapter::detail::general_aggregate;
+
    std::string data_;
    std::vector<resp3::offset_node> view_;
 };
