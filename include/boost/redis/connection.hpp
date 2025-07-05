@@ -694,7 +694,8 @@ public:
          1);
       auto info = detail::make_elem(req, std::move(adapter_impl.adapt_fn));
 
-      info->set_done_callback([notifier]() {
+      info->set_done_callback([notifier, prepare_done = std::move(adapter_impl.prepare_done_fn)]() {
+         prepare_done();
          notifier->try_send(std::error_code{}, 0);
       });
 

@@ -34,10 +34,13 @@ namespace boost::redis {
  */
 class any_adapter {
 public:
-   using fn_type = std::function<void(std::size_t, resp3::node_view const&, system::error_code&)>;
+   using adapt_fn_type = std::function<
+      void(std::size_t, resp3::node_view const&, system::error_code&)>;
+   using done_fn_type = std::function<void()>;
 
    struct impl_t {
-      fn_type adapt_fn;
+      adapt_fn_type adapt_fn;
+      done_fn_type prepare_done_fn;
       std::size_t supported_response_size;
    } impl_;
 
@@ -47,7 +50,7 @@ public:
       using namespace boost::redis::adapter;
       auto adapter = boost_redis_adapt(resp);
       std::size_t size = adapter.get_supported_response_size();
-      return {std::move(adapter), size};
+      return {std::move(adapter), detail::prepare_done(resp), size};
    }
 
    template <class Executor>
