@@ -139,6 +139,24 @@ void boost_redis_from_bulk(T& t, resp3::basic_node<String> const& node, system::
 
 //================================================
 
+template <typename T>
+auto prepare_done(T&) noexcept -> std::function<void()>
+{
+   return [] { };
+}
+
+template <typename T>
+auto prepare_done(generic_flat_response& resp) noexcept -> std::function<void()>
+{
+   return [resp]() mutable {
+      if (resp.has_value()) {
+         resp.value().set_view();
+      }
+   };
+}
+
+//================================================
+
 template <class Result>
 class general_aggregate {
 private:

@@ -50,11 +50,7 @@ public:
       offset_string.offset = data_.size();
       offset_string.size = nd.value.size();
 
-      data_.append(nd.value.data());
-
-      offset_string.data = std::string_view{
-         data_.data() + offset_string.offset,
-         offset_string.size};
+      data_.append(nd.value.data(), nd.value.size());
 
       resp3::offset_node new_node;
       new_node.data_type = nd.data_type;
@@ -63,6 +59,16 @@ public:
       new_node.value = std::move(offset_string);
 
       view_.push_back(std::move(new_node));
+   }
+
+   void set_view()
+   {
+      for (auto& node : view_) {
+         auto& offset_string = node.value;
+         offset_string.data = std::string_view{
+            data_.data() + offset_string.offset,
+            offset_string.size};
+      }
    }
 
 private:
