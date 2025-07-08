@@ -407,29 +407,24 @@ logger make_stderr_logger(logger::level lvl, std::string prefix);
 }  // namespace detail
 
 /** @brief A SSL connection to the Redis server.
- *  @ingroup high-level-api
  *
  *  This class keeps a healthy connection to the Redis instance where
  *  commands can be sent at any time. For more details, please see the
  *  documentation of each individual function.
  *
- *  @tparam Socket The socket type e.g. asio::ip::tcp::socket.
- *
+ *  @tparam Executor The executor type used to create any required I/O objects.
  */
 template <class Executor>
 class basic_connection {
 public:
    using this_type = basic_connection<Executor>;
 
-   /// Type of the next layer
+   /// (Deprecated) Type of the next layer
    BOOST_DEPRECATED("This typedef is deprecated, and will be removed with next_layer().")
    typedef asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>> next_layer_type;
 
-   /// Executor type
+   /// The type of the executor associated to this object.
    using executor_type = Executor;
-
-   /// Returns the associated executor.
-   executor_type get_executor() noexcept { return writer_timer_.get_executor(); }
 
    /// Rebinds the socket type to another executor.
    template <class Executor1>
@@ -438,9 +433,9 @@ public:
       using other = basic_connection<Executor1>;
    };
 
-   /** @brief Constructor
+   /** @brief Constructor from an executor.
    *
-   *  @param ex Executor on which connection operation will run.
+   *  @param ex Executor used to create all internal I/O objects.
    *  @param ctx SSL context.
    *  @param lgr Logger configuration. It can be used to filter messages by level
    *             and customize logging. By default, `logger::level::info` messages
@@ -461,9 +456,9 @@ public:
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
    }
 
-   /** @brief Constructor
+   /** @brief Constructor from an executor and a logger.
     *
-    *  @param ex Executor on which connection operation will run.
+    *  @param ex Executor used to create all internal I/O objects.
     *  @param lgr Logger configuration. It can be used to filter messages by level
     *             and customize logging. By default, `logger::level::info` messages
     *             and higher are logged to `stderr`.
@@ -477,7 +472,15 @@ public:
         std::move(lgr))
    { }
 
-   /// Constructs from a context.
+   /**
+    * @brief Constructor from an `io_context`.
+    * 
+    * @param ioc I/O context used to create all internal I/O objects.
+    * @param ctx SSL context.
+    * @param lgr Logger configuration. It can be used to filter messages by level
+    *            and customize logging. By default, `logger::level::info` messages
+    *            and higher are logged to `stderr`.
+    */
    explicit basic_connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
@@ -485,40 +488,52 @@ public:
    : basic_connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 
-   /// Constructs from a context.
-   basic_connection(asio::io_context& ctx, logger lgr)
+   /**
+    * @brief Constructor from an `io_context` and a logger.
+    * 
+    * @param ioc I/O context used to create all internal I/O objects.
+    * @param lgr Logger configuration. It can be used to filter messages by level
+    *            and customize logging. By default, `logger::level::info` messages
+    *            and higher are logged to `stderr`.
+    */
+   basic_connection(asio::io_context& ioc, logger lgr)
    : basic_connection(
-        ctx.get_executor(),
+        ioc.get_executor(),
         asio::ssl::context{asio::ssl::context::tlsv12_client},
         std::move(lgr))
    { }
 
-   /** @brief Starts underlying connection operations.
+   /// Returns the associated executor.
+   executor_type get_executor() noexcept { return writer_timer_.get_executor(); }
+
+   /** @brief Starts the underlying connection operations.
     *
-    *  This member function provides the following functionality
+    * This function establishes a connection to the Redis server and keeps
+    * it healthy by performing the following operations:
     *
-    *  1. Resolve the address passed on `boost::redis::config::addr`.
-    *  2. Connect to one of the results obtained in the resolve operation.
-    *  3. Send a [HELLO](https://redis.io/commands/hello/) command where each of its parameters are read from `cfg`.
-    *  4. Start a health-check operation where ping commands are sent
-    *     at intervals specified in
-    *     `boost::redis::config::health_check_interval`.  The message passed to
-    *     `PING` will be `boost::redis::config::health_check_id`.  Passing a
-    *     timeout with value zero will disable health-checks.  If the Redis
-    *     server does not respond to a health-check within two times the value
-    *     specified here, it will be considered unresponsive and the connection
-    *     will be closed and a new connection will be stablished.
-    *  5. Starts read and write operations with the Redis
-    *  server. More specifically it will trigger the write of all
-    *  requests i.e. calls to `async_exec` that happened prior to this
-    *  call.
+    *  @li For TCP connections, resolves the server hostname passed in
+    *      @ref boost::redis::config::addr.
+    *  @li Establishes a physical connection to the server. For TCP connections,
+    *      connects to one of the endpoints obtained during name resolution.
+    *      For UNIX domain socket connections, it connects to @ref boost::redis::config::unix_socket.
+    *  @li If @ref boost::redis::config::use_ssl is `true`, performs the TLS handshake.
+    *  @li Sends a `HELLO` command where
+    *      each of its parameters are read from `cfg`.
+    *  @li Starts a health-check operation where ping commands are sent
+    *      at intervals specified by
+    *      @ref boost::redis::config::health_check_interval. 
+    *      The message passed to `PING` will be @ref boost::redis::config::health_check_id. 
+    *      Passing an interval with a zero value will disable health-checks. If the Redis
+    *      server does not respond to a health-check within two times the value
+    *      specified here, it will be considered unresponsive and the connection
+    *      will be closed.
+    *  @li Starts read and write operations. Requests issued using @ref async_exec
+    *      before `async_run` is called will be written to the server immediately.
     *
     *  When a connection is lost for any reason, a new one is
-    *  stablished automatically. To disable reconnection call
-    *  `boost::redis::connection::cancel(operation::reconnection)`.
-    *
-    *  @param cfg Configuration paramters.
-    *  @param token Completion token.
+    *  established automatically. To disable reconnection call
+    *  `boost::redis::connection::cancel(operation::reconnection)`
+    *  or set @ref boost::redis::config::reconnect_wait_interval to zero.
     *
     *  The completion token must have the following signature
     *
@@ -528,6 +543,9 @@ public:
     *
     *  For example on how to call this function refer to
     *  cpp20_intro.cpp or any other example.
+    *
+    *  @param cfg Configuration parameters.
+    *  @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(config const& cfg, CompletionToken&& token = {})
@@ -543,7 +561,8 @@ public:
    }
 
    /**
-    * @copydoc async_run
+    * @brief (Deprecated) Starts the underlying connection operations.
+    * @copydetail async_run
     *
     * This function accepts an extra logger parameter. The passed `logger::lvl`
     * will be used, but `logger::fn` will be ignored. Instead, a function
@@ -555,6 +574,10 @@ public:
     * The logger should be passed to the connection's constructor instead of using this
     * function. Use the overload without a logger parameter, instead. This function is
     * deprecated and will be removed in subsequent releases.
+    *
+    * @param cfg Configuration parameters.
+    * @param l Logger.
+    * @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    BOOST_DEPRECATED(
@@ -568,13 +591,16 @@ public:
    }
 
    /**
-    * @copydoc async_run
+    * @brief (Deprecated) Starts the underlying connection operations.
+    * @copydetail async_run
     *
     * Uses a default-constructed config object to run the connection.
     *
     * @par Deprecated
     * This function is deprecated and will be removed in subsequent releases.
     * Use the overload taking an explicit config object, instead.
+    *
+    * @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    BOOST_DEPRECATED(
@@ -589,13 +615,11 @@ public:
     *
     *  When pushes arrive and there is no `async_receive` operation in
     *  progress, pushed data, requests, and responses will be paused
-    *  until `async_receive` is called again.  Apps will usually want
+    *  until `async_receive` is called again. Apps will usually want
     *  to call `async_receive` in a loop. 
     *
     *  To cancel an ongoing receive operation apps should call
-    *  `connection::cancel(operation::receive)`.
-    *
-    *  @param token Completion token.
+    *  `basic_connection::cancel(operation::receive)`.
     *
     *  For an example see cpp20_subscriber.cpp. The completion token must
     *  have the following signature
@@ -606,6 +630,8 @@ public:
     *
     *  Where the second parameter is the size of the push received in
     *  bytes.
+    * 
+    *  @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_receive(CompletionToken&& token = {})
@@ -618,10 +644,9 @@ public:
     *  Receives a server push synchronously by calling `try_receive` on
     *  the underlying channel. If the operation fails because
     *  `try_receive` returns `false`, `ec` will be set to
-    *  `boost::redis::error::sync_receive_push_failed`.
+    *  @ref boost::redis::error::sync_receive_push_failed.
     *
     *  @param ec Contains the error if any occurred.
-    *
     *  @returns The number of bytes read from the socket.
     */
    std::size_t receive(system::error_code& ec)
@@ -652,12 +677,9 @@ public:
     *  underlying stream.  Multiple concurrent calls to this function
     *  will be automatically queued by the implementation.
     *
-    *  @param req Request.
-    *  @param resp Response.
-    *  @param token Completion token.
+    *  For an example see cpp20_echo_server.cpp.
     *
-    *  For an example see cpp20_echo_server.cpp. The completion token must
-    *  have the following signature
+    * The completion token must have the following signature:
     *
     *  @code
     *  void f(system::error_code, std::size_t);
@@ -670,11 +692,18 @@ public:
     * This operation supports per-operation cancellation. The following cancellation types
     * are supported:
     *
-    *   - `asio::cancellation_type_t::terminal`. Always supported. May cause the current
-    *     `async_run` operation to be cancelled.
-    *   - `asio::cancellation_type_t::partial` and `asio::cancellation_type_t::total`.
-    *     Supported only if the request hasn't been written to the network yet.
+    *   @li `asio::cancellation_type_t::terminal`. Always supported. May cause the current
+    *       `async_run` operation to be cancelled.
+    *   @li `asio::cancellation_type_t::partial` and `asio::cancellation_type_t::total`.
+    *       Supported only if the request hasn't been written to the network yet.
     *
+    * @par Object lifetimes
+    * Both `req` and `res` should be kept alive until the operation completes.
+    * No copies of the request object are made.
+    *
+    *  @param req The request to be executed.
+    *  @param resp The response object to parse data into.
+    *  @param token Completion token.
     */
    template <
       class Response = ignore_t,
@@ -684,10 +713,43 @@ public:
       return this->async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
 
-   /** @copydoc async_exec
-    * 
-    * @details This function uses the type-erased @ref any_adapter class, which
-    * encapsulates a reference to a response object.
+   /** @brief Executes commands on the Redis server asynchronously.
+    *
+    *  This function sends a request to the Redis server and waits for
+    *  the responses to each individual command in the request. If the
+    *  request contains only commands that don't expect a response,
+    *  the completion occurs after it has been written to the
+    *  underlying stream.  Multiple concurrent calls to this function
+    *  will be automatically queued by the implementation.
+    *
+    *  For an example see cpp20_echo_server.cpp.
+    *
+    * The completion token must have the following signature:
+    *
+    *  @code
+    *  void f(system::error_code, std::size_t);
+    *  @endcode
+    *
+    *  Where the second parameter is the size of the response received
+    *  in bytes.
+    *
+    * @par Per-operation cancellation
+    * This operation supports per-operation cancellation. The following cancellation types
+    * are supported:
+    *
+    *   @li `asio::cancellation_type_t::terminal`. Always supported. May cause the current
+    *       `async_run` operation to be cancelled.
+    *   @li `asio::cancellation_type_t::partial` and `asio::cancellation_type_t::total`.
+    *       Supported only if the request hasn't been written to the network yet.
+    *
+    * @par Object lifetimes
+    * Both `req` and any response object referenced by `adapter`
+    * should be kept alive until the operation completes.
+    * No copies of the request object are made.
+    *
+    *  @param req The request to be executed.
+    *  @param adapter An adapter object referencing a response to place data into.
+    *  @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
@@ -714,14 +776,14 @@ public:
 
    /** @brief Cancel operations.
     *
-    *  @li `operation::exec`: Cancels operations started with
+    *  @li `operation::exec`: cancels operations started with
     *  `async_exec`. Affects only requests that haven't been written
     *  yet.
-    *  @li operation::run: Cancels the `async_run` operation.
-    *  @li operation::receive: Cancels any ongoing calls to `async_receive`.
-    *  @li operation::all: Cancels all operations listed above.
+    *  @li `operation::run`: cancels the `async_run` operation.
+    *  @li `operation::receive`: cancels any ongoing calls to `async_receive`.
+    *  @li `operation::all`: cancels all operations listed above.
     *
-    *  @param op: The operation to be cancelled.
+    *  @param op The operation to be cancelled.
     */
    void cancel(operation op = operation::all)
    {
@@ -748,37 +810,69 @@ public:
 
    auto run_is_canceled() const noexcept { return mpx_.get_cancel_run_state(); }
 
-   /// Returns true if the connection was canceled.
+   /// Returns true if the connection will try to reconnect if an error is encountered.
    bool will_reconnect() const noexcept
    {
       return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();
    }
 
-   /// Returns the ssl context.
+   /**
+    * @brief (Deprecated) Returns the ssl context.
+    * 
+    * `ssl::context` has no const methods, so this function should not be called.
+    * Any TLS configuration should be set up by passing an `ssl::context`
+    * to the connection's constructor.
+    *
+    * @returns The SSL context.
+    */
    BOOST_DEPRECATED(
       "ssl::context has no const methods, so this function should not be called. Set up any "
       "required TLS configuration before passing the ssl::context to the connection's constructor.")
-   auto const& get_ssl_context() const noexcept { return stream_.get_ssl_context(); }
+   asio::ssl::context const& get_ssl_context() const noexcept { return stream_.get_ssl_context(); }
 
-   /// Resets the underlying stream.
+   /**
+    * @brief (Deprecated) Resets the underlying stream.
+    * 
+    * This function is no longer necessary and is currently a no-op.
+    */
    BOOST_DEPRECATED(
       "This function is no longer necessary and is currently a no-op. connection resets the stream "
       "internally as required. This function will be removed in subsequent releases")
    void reset_stream() { }
 
-   /// Returns a reference to the next layer.
+   /**
+    * @brief (Deprecated) Returns a reference to the next layer.
+    *
+    * This function returns a dummy object for connections using UNIX domain sockets.
+    *
+    * @par Deprecated
+    * Accessing the underlying stream is deprecated and will be removed in the next release.
+    * Use the other member functions to interact with the connection.
+    *
+    * @returns A reference to the underlying SSL stream object.
+    */
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
    auto& next_layer() noexcept { return stream_.next_layer(); }
 
-   /// Returns a const reference to the next layer.
+   /**
+    * @brief (Deprecated) Returns a reference to the next layer.
+    *
+    * This function returns a dummy object for connections using UNIX domain sockets.
+    *
+    * @par Deprecated
+    * Accessing the underlying stream is deprecated and will be removed in the next release.
+    * Use the other member functions to interact with the connection.
+    *
+    * @returns A reference to the underlying SSL stream object.
+    */
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
    auto const& next_layer() const noexcept { return stream_.next_layer(); }
 
-   /// Sets the response object of `async_receive` operations.
+   /// Sets the response object of @ref async_receive operations.
    template <class Response>
    void set_receive_response(Response& response)
    {
@@ -860,23 +954,22 @@ private:
    detail::connection_logger logger_;
 };
 
-/** \brief A basic_connection that type erases the executor.
- *  \ingroup high-level-api
+/**  @brief A basic_connection that type erases the executor.
  *
- *  This connection type uses the asio::any_io_executor and
- *  asio::any_completion_token to reduce compilation times.
+ *  This connection type uses `asio::any_io_executor` and
+ *  `asio::any_completion_token` to reduce compilation times.
  *
  *  For documentation of each member function see
- *  `boost::redis::basic_connection`.
+ *  @ref boost::redis::basic_connection.
  */
 class connection {
 public:
    /// Executor type.
    using executor_type = asio::any_io_executor;
 
-   /** @brief Constructor
+   /** @brief Constructor from an executor.
     *
-    *  @param ex Executor on which connection operation will run.
+    *  @param ex Executor used to create all internal I/O objects.
     *  @param ctx SSL context.
     *  @param lgr Logger configuration. It can be used to filter messages by level
     *             and customize logging. By default, `logger::level::info` messages
@@ -887,9 +980,9 @@ public:
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       logger lgr = {});
 
-   /** @brief Constructor
+   /** @brief Constructor from an executor and a logger.
     *
-    *  @param ex Executor on which connection operation will run.
+    *  @param ex Executor used to create all internal I/O objects.
     *  @param lgr Logger configuration. It can be used to filter messages by level
     *             and customize logging. By default, `logger::level::info` messages
     *             and higher are logged to `stderr`.
@@ -903,7 +996,15 @@ public:
         std::move(lgr))
    { }
 
-   /// Constructs from a context.
+   /**
+    * @brief Constructor from an `io_context`.
+    * 
+    * @param ioc I/O context used to create all internal I/O objects.
+    * @param ctx SSL context.
+    * @param lgr Logger configuration. It can be used to filter messages by level
+    *            and customize logging. By default, `logger::level::info` messages
+    *            and higher are logged to `stderr`.
+    */
    explicit connection(
       asio::io_context& ioc,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
@@ -911,7 +1012,14 @@ public:
    : connection(ioc.get_executor(), std::move(ctx), std::move(lgr))
    { }
 
-   /// Constructs from a context.
+   /**
+    * @brief Constructor from an `io_context` and a logger.
+    * 
+    * @param ioc I/O context used to create all internal I/O objects.
+    * @param lgr Logger configuration. It can be used to filter messages by level
+    *            and customize logging. By default, `logger::level::info` messages
+    *            and higher are logged to `stderr`.
+    */
    connection(asio::io_context& ioc, logger lgr)
    : connection(
         ioc.get_executor(),
@@ -923,7 +1031,25 @@ public:
    executor_type get_executor() noexcept { return impl_.get_executor(); }
 
    /**
-    * @brief Calls `boost::redis::basic_connection::async_run`.
+    * @brief Calls @ref boost::redis::basic_connection::async_run.
+    *
+    * @param cfg Configuration parameters.
+    * @param token Completion token.
+    */
+   template <class CompletionToken = asio::deferred_t>
+   auto async_run(config const& cfg, CompletionToken&& token = {})
+   {
+      return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
+         [](auto handler, connection* self, config const* cfg) {
+            self->async_run_impl(*cfg, std::move(handler));
+         },
+         token,
+         this,
+         &cfg);
+   }
+
+   /**
+    * @brief (Deprecated) Calls @ref boost::redis::basic_connection::async_run.
     *
     * This function accepts an extra logger parameter. The passed logger
     * will be used by the connection, overwriting any logger passed to the connection's
@@ -933,6 +1059,10 @@ public:
     * The logger should be passed to the connection's constructor instead of using this
     * function. Use the overload without a logger parameter, instead. This function is
     * deprecated and will be removed in subsequent releases.
+    *
+    * @param cfg Configuration parameters.
+    * @param l Logger.
+    * @param token Completion token.
     */
    template <class CompletionToken = asio::deferred_t>
    BOOST_DEPRECATED(
@@ -951,37 +1081,36 @@ public:
          std::move(l));
    }
 
-   /// Calls `boost::redis::basic_connection::async_run`.
-   template <class CompletionToken = asio::deferred_t>
-   auto async_run(config const& cfg, CompletionToken&& token = {})
-   {
-      return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
-         [](auto handler, connection* self, config const* cfg) {
-            self->async_run_impl(*cfg, std::move(handler));
-         },
-         token,
-         this,
-         &cfg);
-   }
-
-   /// Calls `boost::redis::basic_connection::async_receive`.
+   /// @copydoc basic_connection::async_receive
    template <class CompletionToken = asio::deferred_t>
    auto async_receive(CompletionToken&& token = {})
    {
       return impl_.async_receive(std::forward<CompletionToken>(token));
    }
 
-   /// Calls `boost::redis::basic_connection::receive`.
+   /// @copydoc basic_connection::receive
    std::size_t receive(system::error_code& ec) { return impl_.receive(ec); }
 
-   /// Calls `boost::redis::basic_connection::async_exec`.
+   /**
+    * @brief Calls @ref boost::redis::basic_connection::async_exec.
+    *
+    * @param req The request to be executed.
+    * @param resp The response object to parse data into.
+    * @param token Completion token.
+    */
    template <class Response = ignore_t, class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
       return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
    }
 
-   /// Calls `boost::redis::basic_connection::async_exec`.
+   /**
+    * @brief Calls @ref boost::redis::basic_connection::async_exec.
+    *
+    * @param req The request to be executed.
+    * @param adapter An adapter object referencing a response to place data into.
+    * @param token Completion token.
+    */
    template <class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
    {
@@ -995,45 +1124,54 @@ public:
          std::move(adapter));
    }
 
-   /// Calls `boost::redis::basic_connection::cancel`.
+   /// @copydoc basic_connection::cancel
    void cancel(operation op = operation::all);
 
-   /// Calls `boost::redis::basic_connection::will_reconnect`.
+   /// @copydoc basic_connection::will_reconnect
    bool will_reconnect() const noexcept { return impl_.will_reconnect(); }
 
-   /// Calls `boost::redis::basic_connection::next_layer`.
+   /// (Deprecated) Calls @ref boost::redis::basic_connection::next_layer.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto& next_layer() noexcept { return impl_.stream_.next_layer(); }
+   asio::ssl::stream<asio::ip::tcp::socket>& next_layer() noexcept
+   {
+      return impl_.stream_.next_layer();
+   }
 
-   /// Calls `boost::redis::basic_connection::next_layer`.
+   /// (Deprecated) Calls @ref boost::redis::basic_connection::next_layer.
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto const& next_layer() const noexcept { return impl_.stream_.next_layer(); }
+   asio::ssl::stream<asio::ip::tcp::socket> const& next_layer() const noexcept
+   {
+      return impl_.stream_.next_layer();
+   }
 
-   /// Calls `boost::redis::basic_connection::reset_stream`.
+   /// @copydoc basic_connection::reset_stream
    BOOST_DEPRECATED(
       "This function is no longer necessary and is currently a no-op. connection resets the stream "
       "internally as required. This function will be removed in subsequent releases")
    void reset_stream() { }
 
-   /// Sets the response object of `async_receive` operations.
+   /// @copydoc basic_connection::set_receive_response
    template <class Response>
    void set_receive_response(Response& response)
    {
       impl_.set_receive_response(response);
    }
 
-   /// Returns connection usage information.
+   /// @copydoc basic_connection::get_usage
    usage get_usage() const noexcept { return impl_.get_usage(); }
 
-   /// Returns the ssl context.
+   /// @copydoc basic_connection::get_ssl_context
    BOOST_DEPRECATED(
       "ssl::context has no const methods, so this function should not be called. Set up any "
       "required TLS configuration before passing the ssl::context to the connection's constructor.")
-   auto const& get_ssl_context() const noexcept { return impl_.stream_.get_ssl_context(); }
+   asio::ssl::context const& get_ssl_context() const noexcept
+   {
+      return impl_.stream_.get_ssl_context();
+   }
 
 private:
    void async_run_impl(
