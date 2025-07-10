@@ -50,6 +50,8 @@ struct error_category_impl : system::error_category {
                    "supported by the system.";
          case error::unix_sockets_ssl_unsupported:
             return "The configuration specified UNIX sockets with SSL, which is not supported.";
+         case error::exceeds_maximum_read_buffer_size:
+            return "The size of the read buffer would exceed it maximum configured value";
          default: BOOST_ASSERT(false); return "Boost.Redis error.";
       }
    }

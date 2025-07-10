@@ -14,6 +14,8 @@
 #define BOOST_TEST_MODULE conn_quit
 #include <boost/test/included/unit_test.hpp>
 
+#include "common.hpp"
+
 #include <iostream>
 #include <string>
 
@@ -258,10 +260,8 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
    generic_response resp;
    mpx.set_receive_response(resp);
 
-   mpx.get_read_buffer() = ">2\r\n+one\r\n+two\r\n";
-
    boost::system::error_code ec;
-   auto const ret = mpx.consume_next(ec);
+   auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
 
    BOOST_TEST(ret.first.value());
    BOOST_CHECK_EQUAL(ret.second, 16u);
@@ -282,16 +282,17 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
    generic_response resp;
    mpx.set_receive_response(resp);
 
+   std::string msg;
    // Only part of the message.
-   mpx.get_read_buffer() = ">2\r\n+one\r";
+   msg += ">2\r\n+one\r";
 
    boost::system::error_code ec;
-   auto ret = mpx.consume_next(ec);
+   auto ret = mpx.consume_next(msg, ec);
 
    BOOST_TEST(!ret.first.has_value());
 
-   mpx.get_read_buffer().append("\n+two\r\n");
-   ret = mpx.consume_next(ec);
+   msg += "\n+two\r\n";
+   ret = mpx.consume_next(msg, ec);
 
    BOOST_TEST(ret.first.value());
    BOOST_CHECK_EQUAL(ret.second, 16u);
@@ -378,19 +379,13 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    BOOST_TEST(item2.done);
    BOOST_TEST(!item3.done);
 
-   // Simulates a socket read by putting some data in the read buffer.
-   mpx.get_read_buffer().append("+one\r\n");
-
    // Consumes the next message in the read buffer.
    boost::system::error_code ec;
-   auto const ret = mpx.consume_next(ec);
+   auto const ret = mpx.consume_next("+one\r\n", ec);
 
    // The read operation should have been successfull.
    BOOST_TEST(ret.first.has_value());
    BOOST_TEST(ret.second != 0u);
-
-   // The read buffer should also be empty now
-   BOOST_TEST(mpx.get_read_buffer().empty());
 
    // The last request still did not get a response.
    BOOST_TEST(item1.done);

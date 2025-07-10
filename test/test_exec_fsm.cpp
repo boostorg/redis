@@ -15,6 +15,8 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
+#include "common.hpp"
+
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -117,8 +119,7 @@ void test_success()
    BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
 
    // Simulate a successful read
-   mpx.get_read_buffer() = "$5\r\nhello\r\n";
-   auto req_status = mpx.consume_next(ec);
+   auto req_status = mpx.consume_next("$5\r\nhello\r\n", ec);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
@@ -159,10 +160,9 @@ void test_parse_error()
    // The second field should be a number (rather than the empty string).
    // Note that although part of the buffer was consumed, the multiplexer
    // currently throws this information away.
-   mpx.get_read_buffer() = "*2\r\n$5\r\nhello\r\n:\r\n";
-   auto req_status = mpx.consume_next(ec);
+   auto req_status = mpx.consume_next("*2\r\n$5\r\nhello\r\n:\r\n", ec);
    BOOST_TEST_EQ(ec, error::empty_field);
-   BOOST_TEST_EQ(req_status.second, 0u);
+   BOOST_TEST_EQ(req_status.second, 15u);
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
@@ -218,8 +218,7 @@ void test_not_connected()
    BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
 
    // Simulate a successful read
-   mpx.get_read_buffer() = "$5\r\nhello\r\n";
-   auto req_status = mpx.consume_next(ec);
+   auto req_status = mpx.consume_next("$5\r\nhello\r\n", ec);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
    BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
@@ -342,8 +341,7 @@ void test_cancel_notwaiting_notterminal()
       BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
 
       // Simulate a successful read
-      mpx.get_read_buffer() = "$5\r\nhello\r\n";
-      auto req_status = mpx.consume_next(ec);
+      auto req_status = mpx.consume_next("$5\r\nhello\r\n", ec);
       BOOST_TEST_EQ_MSG(ec, error_code(), tc.name);
       BOOST_TEST_EQ_MSG(req_status.first.value(), false, tc.name);  // it wasn't a push
       BOOST_TEST_EQ_MSG(req_status.second, 11u, tc.name);  // the entire buffer was consumed
