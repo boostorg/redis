@@ -20,6 +20,7 @@
 #include <charconv>
 #include <deque>
 #include <forward_list>
+#include <iostream>
 #include <list>
 #include <map>
 #include <optional>
@@ -140,17 +141,17 @@ void boost_redis_from_bulk(T& t, resp3::basic_node<String> const& node, system::
 //================================================
 
 template <typename T>
-auto prepare_done(T&) noexcept
+inline auto prepare_done(T*) noexcept
 {
    return [] { };
 }
 
-template <typename T>
-auto prepare_done(generic_flat_response& resp) noexcept
+template <>
+inline auto prepare_done(generic_flat_response* resp) noexcept
 {
-   return [resp]() mutable {
-      if (resp.has_value()) {
-         resp.value().set_view();
+   return [resp] {
+      if (resp->has_value()) {
+         resp->value().set_view();
       }
    };
 }
