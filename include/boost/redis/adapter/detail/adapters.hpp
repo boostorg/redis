@@ -139,16 +139,14 @@ void boost_redis_from_bulk(T& t, resp3::basic_node<String> const& node, system::
 
 //================================================
 
-using done_fn_type = std::function<void()>;
-
 template <typename T>
-auto prepare_done(T&) noexcept -> done_fn_type
+auto prepare_done(T&) noexcept
 {
    return [] { };
 }
 
 template <typename T>
-auto prepare_done(generic_flat_response& resp) noexcept -> done_fn_type
+auto prepare_done(generic_flat_response& resp) noexcept
 {
    return [resp]() mutable {
       if (resp.has_value()) {
