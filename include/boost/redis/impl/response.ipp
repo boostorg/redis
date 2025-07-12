@@ -59,4 +59,20 @@ void consume_one(generic_response& r, system::error_code& ec) { consume_one_impl
 
 void consume_one(generic_flat_response& r, system::error_code& ec) { consume_one_impl(r, ec); }
 
+void consume_one(generic_response& r)
+{
+   system::error_code ec;
+   consume_one(r, ec);
+   if (ec)
+      throw system::system_error(ec);
+}
+
+void consume_one(generic_flat_response& r)
+{
+   system::error_code ec;
+   consume_one(r, ec);
+   if (ec)
+      throw system::system_error(ec);
+}
+
 }  // namespace boost::redis
