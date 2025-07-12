@@ -36,7 +36,7 @@ class any_adapter {
 public:
    using adapt_fn_type = std::function<
       void(std::size_t, resp3::node_view const&, system::error_code&)>;
-   using done_fn_type = adapter::detail::done_fn_type;
+   using done_fn_type = std::function<void()>;
 
    struct impl_t {
       adapt_fn_type adapt_fn;
