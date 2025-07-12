@@ -18,7 +18,7 @@ using boost::system::error_code;
 using net::cancellation_type_t;
 using redis::detail::reader_fsm;
 using redis::detail::multiplexer;
-using redis::generic_response;
+using redis::generic_flat_response;
 using action = redis::detail::reader_fsm::action;
 
 namespace boost::redis::detail {
@@ -38,7 +38,7 @@ namespace {
 void test_push()
 {
    multiplexer mpx;
-   generic_response resp;
+   generic_flat_response resp;
    mpx.set_receive_response(resp);
    reader_fsm fsm{mpx};
    error_code ec;
@@ -83,7 +83,7 @@ void test_push()
 void test_read_needs_more()
 {
    multiplexer mpx;
-   generic_response resp;
+   generic_flat_response resp;
    mpx.set_receive_response(resp);
    reader_fsm fsm{mpx};
    error_code ec;
@@ -128,7 +128,7 @@ void test_read_needs_more()
 void test_read_error()
 {
    multiplexer mpx;
-   generic_response resp;
+   generic_flat_response resp;
    mpx.set_receive_response(resp);
    reader_fsm fsm{mpx};
    error_code ec;
@@ -158,7 +158,7 @@ void test_read_error()
 void test_parse_error()
 {
    multiplexer mpx;
-   generic_response resp;
+   generic_flat_response resp;
    mpx.set_receive_response(resp);
    reader_fsm fsm{mpx};
    error_code ec;
@@ -188,7 +188,7 @@ void test_parse_error()
 void test_push_deliver_error()
 {
    multiplexer mpx;
-   generic_response resp;
+   generic_flat_response resp;
    mpx.set_receive_response(resp);
    reader_fsm fsm{mpx};
    error_code ec;
