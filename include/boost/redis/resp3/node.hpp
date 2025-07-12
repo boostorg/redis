@@ -63,7 +63,11 @@ struct offset_string {
    std::string_view data;
    std::size_t offset{};
    std::size_t size{};
+
+   operator std::string() const { return std::string{data}; }
 };
+
+inline std::ostream& operator<<(std::ostream& os, offset_string const& s) { return os << s.data; }
 
 using offset_node = basic_node<offset_string>;
 

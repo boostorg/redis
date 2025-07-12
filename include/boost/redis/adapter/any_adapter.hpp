@@ -50,7 +50,7 @@ public:
       using namespace boost::redis::adapter;
       auto adapter = boost_redis_adapt(resp);
       std::size_t size = adapter.get_supported_response_size();
-      return {std::move(adapter), detail::prepare_done(resp), size};
+      return {std::move(adapter), detail::prepare_done(&resp), size};
    }
 
    template <class Executor>

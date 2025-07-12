@@ -23,7 +23,7 @@ using connection = boost::redis::connection;
 using boost::redis::request;
 using boost::redis::ignore;
 using boost::redis::operation;
-using boost::redis::generic_response;
+using boost::redis::generic_flat_response;
 using boost::redis::consume_one;
 using namespace std::chrono_literals;
 
@@ -34,7 +34,7 @@ namespace {
 struct push_callback {
    connection* conn1;
    connection* conn2;
-   generic_response* resp2;
+   generic_flat_response* resp2;
    request* req1;
    int i = 0;
    boost::asio::coroutine coro{};
@@ -52,7 +52,7 @@ struct push_callback {
 
          BOOST_TEST(resp2->has_value());
          BOOST_TEST(!resp2->value().empty());
-         std::clog << "Event> " << resp2->value().front().value << std::endl;
+         std::clog << "Event> " << resp2->value().view().front().value << std::endl;
          consume_one(*resp2);
 
          ++i;
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(check_health)
 
    request req2;
    req2.push("MONITOR");
-   generic_response resp2;
+   generic_flat_response resp2;
    conn2.set_receive_response(resp2);
 
    conn2.async_exec(req2, ignore, [&exec_finished](error_code ec, std::size_t) {

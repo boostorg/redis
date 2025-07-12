@@ -13,6 +13,7 @@
 #include <boost/test/included/unit_test.hpp>
 
 using boost::redis::generic_response;
+using boost::redis::generic_flat_response;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::any_adapter;
@@ -23,10 +24,12 @@ BOOST_AUTO_TEST_CASE(any_adapter_response_types)
    response<int> r1;
    response<int, std::string> r2;
    generic_response r3;
+   generic_flat_response r4;
 
    BOOST_CHECK_NO_THROW(any_adapter{r1});
    BOOST_CHECK_NO_THROW(any_adapter{r2});
    BOOST_CHECK_NO_THROW(any_adapter{r3});
+   BOOST_CHECK_NO_THROW(any_adapter{r4});
    BOOST_CHECK_NO_THROW(any_adapter{ignore});
 }
 

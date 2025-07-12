@@ -26,7 +26,7 @@
 namespace net = boost::asio;
 using boost::redis::config;
 using boost::redis::connection;
-using boost::redis::generic_response;
+using boost::redis::generic_flat_response;
 using boost::redis::ignore;
 using boost::redis::operation;
 using boost::redis::request;
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(correct_database)
    request req;
    req.push("CLIENT", "LIST");
 
-   generic_response resp;
+   generic_flat_response resp;
 
    bool exec_finished = false, run_finished = false;
 
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(correct_database)
    BOOST_TEST_REQUIRE(run_finished);
 
    BOOST_TEST_REQUIRE(!resp.value().empty());
-   auto const& value = resp.value().front().value;
+   std::string value = resp.value().view().front().value;
    auto const pos = value.find("db=");
    auto const index_str = value.substr(pos + 3, 1);
    auto const index = std::stoi(index_str);
