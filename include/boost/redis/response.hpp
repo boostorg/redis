@@ -49,6 +49,18 @@ public:
       view_.reserve(num_nodes);
    }
 
+   void clear()
+   {
+      data_.clear();
+      view_.clear();
+   }
+
+   std::size_t size() const noexcept { return view_.size(); }
+   bool empty() noexcept { return view_.empty(); }
+
+   resp3::offset_node& at(std::size_t index) { return view_.at(index); }
+   resp3::offset_node const& at(std::size_t index) const { return view_.at(index); }
+
    std::vector<resp3::offset_node> const& view() const { return view_; }
    std::vector<resp3::offset_node>& view() { return view_; }
 
