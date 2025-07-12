@@ -121,15 +121,13 @@ void consume_one(generic_response& r, system::error_code& ec);
 /// Consume on response from a generic flat response
 void consume_one(generic_flat_response& r, system::error_code& ec);
 
-/// Throwing overload of `consume_one`.
-template <typename Response>
-void consume_one(Response& r)
-{
-   system::error_code ec;
-   consume_one(r, ec);
-   if (ec)
-      throw system::system_error(ec);
-}
+/**
+ * @brief Throwing overloads of `consume_one`.
+ *
+ * @param r The response to modify.
+ */
+void consume_one(generic_response& r);
+void consume_one(generic_flat_response& r);
 
 }  // namespace boost::redis
 
