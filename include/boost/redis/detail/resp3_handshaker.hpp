@@ -44,7 +44,7 @@ struct hello_op {
             handshaker_->hello_req_,
             any_adapter(handshaker_->hello_resp_),
             std::move(self));
-         conn_->logger_.on_hello(ec, handshaker_->hello_resp_);
+         conn_->impl_->logger_.on_hello(ec, handshaker_->hello_resp_);
 
          if (ec) {
             conn_->cancel(operation::run);
