@@ -7,11 +7,11 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/detail/resp3_handshaker.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
-#include <boost/redis/detail/read_buffer.hpp>
 #define BOOST_TEST_MODULE conn_quit
 #include <boost/test/included/unit_test.hpp>
 
@@ -404,12 +404,14 @@ BOOST_AUTO_TEST_CASE(read_buffer_prepare_error)
    read_buffer buf;
 
    // Usual case, max size is bigger then requested size.
-   auto ec = buf.prepare_append(10, 10);
+   buf.set_config({10, 10});
+   auto ec = buf.prepare_append();
    BOOST_TEST(!ec);
    buf.commit_append(10);
 
    // Corner case, max size is equal to the requested size.
-   ec = buf.prepare_append(10, 20);
+   buf.set_config({10, 20});
+   ec = buf.prepare_append();
    BOOST_TEST(!ec);
    buf.commit_append(10);
    buf.consume_committed(20);
@@ -417,7 +419,8 @@ BOOST_AUTO_TEST_CASE(read_buffer_prepare_error)
    auto const tmp = buf;
 
    // Error case, max size is smaller to the requested size.
-   ec = buf.prepare_append(10, 9);
+   buf.set_config({10, 9});
+   ec = buf.prepare_append();
    BOOST_TEST(ec == error_code{boost::redis::error::exceeds_maximum_read_buffer_size});
 
    // Check that an error call has no side effects.
@@ -431,7 +434,8 @@ BOOST_AUTO_TEST_CASE(read_buffer_prepare_consume_only_committed_data)
 
    read_buffer buf;
 
-   auto ec = buf.prepare_append(10, 10);
+   buf.set_config({10, 10});
+   auto ec = buf.prepare_append();
    BOOST_TEST(!ec);
 
    // No data has been committed yet so nothing can be consummed.
@@ -452,7 +456,8 @@ BOOST_AUTO_TEST_CASE(read_buffer_check_buffer_size)
 
    read_buffer buf;
 
-   auto ec = buf.prepare_append(10, 10);
+   buf.set_config({10, 10});
+   auto ec = buf.prepare_append();
    BOOST_TEST(!ec);
 
    BOOST_CHECK_EQUAL(buf.get_append_buffer().size(), 10u);

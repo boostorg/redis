@@ -69,9 +69,9 @@ void run_coroutine_test(net::awaitable<void> op, std::chrono::steady_clock::dura
 }
 #endif  // BOOST_ASIO_HAS_CO_AWAIT
 
-void append_read_data(boost::redis::detail::reader_fsm& fsm, std::string_view data)
+void append_read_data(boost::redis::detail::read_buffer& rbuf, std::string_view data)
 {
-   auto const buffer = fsm.get_append_buffer();
+   auto const buffer = rbuf.get_append_buffer();
    BOOST_ASSERT(data.size() <= buffer.size());
    std::copy(data.begin(), data.end(), buffer.begin());
 }
