@@ -72,7 +72,7 @@ struct connection_impl {
       Executor,
       void(system::error_code, std::size_t)>;
 
-   detail::redis_stream<Executor> stream_;
+   redis_stream<Executor> stream_;
 
    // Notice we use a timer to simulate a condition-variable. It is
    // also more suitable than a channel and the notify operation does
@@ -84,8 +84,8 @@ struct connection_impl {
    resp3_handshaker_type handshaker_;
 
    config cfg_;
-   detail::multiplexer mpx_;
-   detail::connection_logger logger_;
+   multiplexer mpx_;
+   connection_logger logger_;
 
    using executor_type = Executor;
 
@@ -94,7 +94,7 @@ struct connection_impl {
    struct exec_op {
       connection_impl* obj_ = nullptr;
       std::shared_ptr<exec_notifier_type> notifier_ = nullptr;
-      detail::exec_fsm fsm_;
+      exec_fsm fsm_;
 
       template <class Self>
       void operator()(Self& self, system::error_code = {}, std::size_t = 0)
@@ -105,22 +105,22 @@ struct connection_impl {
 
             // Do what the FSM said
             switch (act.type()) {
-               case detail::exec_action_type::setup_cancellation:
+               case exec_action_type::setup_cancellation:
                   self.reset_cancellation_state(asio::enable_total_cancellation());
                   continue;  // this action does not require yielding
-               case detail::exec_action_type::immediate:
+               case exec_action_type::immediate:
                   asio::async_immediate(self.get_io_executor(), std::move(self));
                   return;
-               case detail::exec_action_type::notify_writer:
+               case exec_action_type::notify_writer:
                   obj_->writer_timer_.cancel();
                   continue;  // this action does not require yielding
-               case detail::exec_action_type::wait_for_response:
+               case exec_action_type::wait_for_response:
                   notifier_->async_receive(std::move(self));
                   return;
-               case detail::exec_action_type::cancel_run:
+               case exec_action_type::cancel_run:
                   obj_->cancel(operation::run);
                   continue;  // this action does not require yielding
-               case detail::exec_action_type::done:
+               case exec_action_type::done:
                   notifier_.reset();
                   self.complete(act.error(), act.bytes_read());
                   return;
@@ -188,14 +188,14 @@ struct connection_impl {
          "Request and response have incompatible sizes.");
 
       auto notifier = std::make_shared<exec_notifier_type>(writer_timer_.get_executor(), 1);
-      auto info = detail::make_elem(req, std::move(adapter_impl.adapt_fn));
+      auto info = make_elem(req, std::move(adapter_impl.adapt_fn));
 
       info->set_done_callback([notifier]() {
          notifier->try_send(std::error_code{}, 0);
       });
 
       return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
-         exec_op{this, notifier, detail::exec_fsm(mpx_, std::move(info))},
+         exec_op{this, notifier, exec_fsm(mpx_, std::move(info))},
          token,
          writer_timer_);
    }
@@ -389,7 +389,7 @@ private:
    auto reader(CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::reader_op<Executor>{*conn_},
+         reader_op<Executor>{*conn_},
          std::forward<CompletionToken>(token),
          conn_->writer_timer_);
    }
@@ -398,7 +398,7 @@ private:
    auto writer(CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::writer_op<Executor>{conn_},
+         writer_op<Executor>{conn_},
          std::forward<CompletionToken>(token),
          conn_->writer_timer_);
    }
