@@ -13,14 +13,13 @@
 
 namespace boost::redis::detail {
 
-system::error_code
-read_buffer::prepare_append(std::size_t append_size, std::size_t max_buffer_size)
+system::error_code read_buffer::prepare_append()
 {
    BOOST_ASSERT(append_buf_begin_ == buffer_.size());
 
-   auto const new_size = append_buf_begin_ + append_size;
+   auto const new_size = append_buf_begin_ + cfg_.read_buffer_append_size;
 
-   if (new_size > max_buffer_size) {
+   if (new_size > cfg_.max_read_size) {
       return error::exceeds_maximum_read_buffer_size;
    }
 
@@ -57,7 +56,8 @@ void read_buffer::clear()
 
 std::size_t read_buffer::consume_committed(std::size_t size)
 {
-   // Consumes only committed data.
+   // For convenience, if the requested size is larger than the
+   // committed buffer we cap it to the maximum.
    if (size > append_buf_begin_)
       size = append_buf_begin_;
 
@@ -67,21 +67,13 @@ std::size_t read_buffer::consume_committed(std::size_t size)
    return size;
 }
 
-void read_buffer::reserve(std::size_t n)
-{
-   buffer_.reserve(n);
-}
+void read_buffer::reserve(std::size_t n) { buffer_.reserve(n); }
 
 bool operator==(read_buffer const& lhs, read_buffer const& rhs)
 {
-   return
-      lhs.buffer_ == rhs.buffer_ &&
-      lhs.append_buf_begin_ == rhs.append_buf_begin_;
+   return lhs.buffer_ == rhs.buffer_ && lhs.append_buf_begin_ == rhs.append_buf_begin_;
 }
 
-bool operator!=(read_buffer const& lhs, read_buffer const& rhs)
-{
-   return !(lhs == rhs);
-}
+bool operator!=(read_buffer const& lhs, read_buffer const& rhs) { return !(lhs == rhs); }
 
 }  // namespace boost::redis::detail

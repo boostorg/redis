@@ -88,7 +88,7 @@ struct config {
     */
    std::chrono::steady_clock::duration reconnect_wait_interval = std::chrono::seconds{1};
 
-   /** @brief Maximum size of the read-buffer in bytes.
+   /** @brief Maximum size of the socket read-buffer in bytes.
     *  
     *  Sets a limit on how much data is allowed to be read into the
     *  read buffer. It can be used to prevent DDOS.
@@ -98,8 +98,9 @@ struct config {
    /** @brief read_buffer_append_size
     *
     * The size by which the read buffer grows when more space is
-    * needed. There is no need to set this too high because memory is
-    * reused and the growth will tend to zero.
+    * needed. This can help avoiding some memory allocations. Once the
+    * maximum size is reached no more memory allocations are made
+    * since the buffer is reused.
     */
    std::size_t read_buffer_append_size = 4096;
 };

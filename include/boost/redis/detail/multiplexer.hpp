@@ -14,7 +14,7 @@
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/usage.hpp>
 
-#include <boost/system.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <algorithm>
 #include <deque>
