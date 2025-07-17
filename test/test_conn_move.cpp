@@ -27,9 +27,43 @@ using namespace boost::redis;
 
 namespace {
 
+// Move constructing a connection doesn't leave dangling pointers
+void test_conn_move_construct()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn_prev(ioc);
+   connection conn(std::move(conn_prev));
+   request req;
+   req.push("PING", "something");
+   response<std::string> res;
+
+   bool run_finished = false, exec_finished = false;
+
+   // Run the connection
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   // Launch a PING
+   conn.async_exec(req, res, [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST_EQ(ec, error_code());
+      conn.cancel();
+   });
+
+   ioc.run_for(test_timeout);
+
+   // Check
+   BOOST_TEST(run_finished);
+   BOOST_TEST(exec_finished);
+   BOOST_TEST_EQ(std::get<0>(res).value(), "something");
+}
+
 // Moving a connection is safe even when it's running,
 // and it doesn't leave dangling pointers
-void test_conn_move()
+void test_conn_move_assign_while_running()
 {
    // Setup
    net::io_context ioc;
@@ -65,14 +99,14 @@ void test_conn_move()
    BOOST_TEST(run_finished);
    BOOST_TEST(exec_finished);
    BOOST_TEST_EQ(std::get<0>(res).value(), "something");
-   BOOST_TEST_EQ(std::get<0>(res).value(), "something");
 }
 
 }  // namespace
 
 int main()
 {
-   test_conn_move();
+   test_conn_move_construct();
+   test_conn_move_assign_while_running();
 
    return boost::report_errors();
 }
