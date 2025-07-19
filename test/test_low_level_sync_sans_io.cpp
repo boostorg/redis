@@ -7,12 +7,15 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/detail/resp3_handshaker.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
 #define BOOST_TEST_MODULE conn_quit
 #include <boost/test/included/unit_test.hpp>
+
+#include "common.hpp"
 
 #include <iostream>
 #include <string>
@@ -30,6 +33,7 @@ using boost::redis::generic_response;
 using boost::redis::resp3::node;
 using boost::redis::resp3::to_string;
 using boost::redis::any_adapter;
+using boost::system::error_code;
 
 BOOST_AUTO_TEST_CASE(low_level_sync_sans_io)
 {
@@ -258,10 +262,8 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
    generic_response resp;
    mpx.set_receive_response(resp);
 
-   mpx.get_read_buffer() = ">2\r\n+one\r\n+two\r\n";
-
    boost::system::error_code ec;
-   auto const ret = mpx.consume_next(ec);
+   auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
 
    BOOST_TEST(ret.first.value());
    BOOST_CHECK_EQUAL(ret.second, 16u);
@@ -282,16 +284,17 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
    generic_response resp;
    mpx.set_receive_response(resp);
 
+   std::string msg;
    // Only part of the message.
-   mpx.get_read_buffer() = ">2\r\n+one\r";
+   msg += ">2\r\n+one\r";
 
    boost::system::error_code ec;
-   auto ret = mpx.consume_next(ec);
+   auto ret = mpx.consume_next(msg, ec);
 
    BOOST_TEST(!ret.first.has_value());
 
-   mpx.get_read_buffer().append("\n+two\r\n");
-   ret = mpx.consume_next(ec);
+   msg += "\n+two\r\n";
+   ret = mpx.consume_next(msg, ec);
 
    BOOST_TEST(ret.first.value());
    BOOST_CHECK_EQUAL(ret.second, 16u);
@@ -378,19 +381,13 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    BOOST_TEST(item2.done);
    BOOST_TEST(!item3.done);
 
-   // Simulates a socket read by putting some data in the read buffer.
-   mpx.get_read_buffer().append("+one\r\n");
-
    // Consumes the next message in the read buffer.
    boost::system::error_code ec;
-   auto const ret = mpx.consume_next(ec);
+   auto const ret = mpx.consume_next("+one\r\n", ec);
 
    // The read operation should have been successfull.
    BOOST_TEST(ret.first.has_value());
    BOOST_TEST(ret.second != 0u);
-
-   // The read buffer should also be empty now
-   BOOST_TEST(mpx.get_read_buffer().empty());
 
    // The last request still did not get a response.
    BOOST_TEST(item1.done);
@@ -398,4 +395,70 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    BOOST_TEST(!item3.done);
 
    // TODO: Check the first request was removed from the queue.
+}
+
+BOOST_AUTO_TEST_CASE(read_buffer_prepare_error)
+{
+   using boost::redis::detail::read_buffer;
+
+   read_buffer buf;
+
+   // Usual case, max size is bigger then requested size.
+   buf.set_config({10, 10});
+   auto ec = buf.prepare_append();
+   BOOST_TEST(!ec);
+   buf.commit_append(10);
+
+   // Corner case, max size is equal to the requested size.
+   buf.set_config({10, 20});
+   ec = buf.prepare_append();
+   BOOST_TEST(!ec);
+   buf.commit_append(10);
+   buf.consume_committed(20);
+
+   auto const tmp = buf;
+
+   // Error case, max size is smaller to the requested size.
+   buf.set_config({10, 9});
+   ec = buf.prepare_append();
+   BOOST_TEST(ec == error_code{boost::redis::error::exceeds_maximum_read_buffer_size});
+
+   // Check that an error call has no side effects.
+   auto const res = buf == tmp;
+   BOOST_TEST(res);
+}
+
+BOOST_AUTO_TEST_CASE(read_buffer_prepare_consume_only_committed_data)
+{
+   using boost::redis::detail::read_buffer;
+
+   read_buffer buf;
+
+   buf.set_config({10, 10});
+   auto ec = buf.prepare_append();
+   BOOST_TEST(!ec);
+
+   // No data has been committed yet so nothing can be consummed.
+   BOOST_CHECK_EQUAL(buf.consume_committed(5), 0u);
+
+   buf.commit_append(10);
+
+   // All five bytes can be consumed.
+   BOOST_CHECK_EQUAL(buf.consume_committed(5), 5u);
+
+   // Only the remaining five bytes can be consumed
+   BOOST_CHECK_EQUAL(buf.consume_committed(7), 5u);
+}
+
+BOOST_AUTO_TEST_CASE(read_buffer_check_buffer_size)
+{
+   using boost::redis::detail::read_buffer;
+
+   read_buffer buf;
+
+   buf.set_config({10, 10});
+   auto ec = buf.prepare_append();
+   BOOST_TEST(!ec);
+
+   BOOST_CHECK_EQUAL(buf.get_append_buffer().size(), 10u);
 }

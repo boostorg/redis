@@ -6,12 +6,14 @@
 
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 
 namespace boost::redis::detail {
 
-reader_fsm::reader_fsm(multiplexer& mpx) noexcept
-: mpx_{&mpx}
+reader_fsm::reader_fsm(read_buffer& rbuf, multiplexer& mpx) noexcept
+: read_buffer_{&rbuf}
+, mpx_{&mpx}
 { }
 
 reader_fsm::action reader_fsm::resume(
@@ -24,22 +26,32 @@ reader_fsm::action reader_fsm::resume(
       BOOST_REDIS_YIELD(resume_point_, 1, action::type::setup_cancellation)
 
       for (;;) {
-         BOOST_REDIS_YIELD(resume_point_, 2, next_read_type_)
+         ec = read_buffer_->prepare_append();
+         if (ec) {
+            action_after_resume_ = {action::type::done, 0, ec};
+            BOOST_REDIS_YIELD(resume_point_, 2, action::type::cancel_run)
+            return action_after_resume_;
+         }
+
+         BOOST_REDIS_YIELD(resume_point_, 3, next_read_type_)
+         read_buffer_->commit_append(bytes_read);
          if (ec) {
             // TODO: If an error occurred but data was read (i.e.
             // bytes_read != 0) we should try to process that data and
             // deliver it to the user before calling cancel_run.
             action_after_resume_ = {action::type::done, bytes_read, ec};
-            BOOST_REDIS_YIELD(resume_point_, 3, action::type::cancel_run)
+            BOOST_REDIS_YIELD(resume_point_, 4, action::type::cancel_run)
             return action_after_resume_;
          }
 
          next_read_type_ = action::type::append_some;
-         while (!mpx_->get_read_buffer().empty()) {
-            res_ = mpx_->consume_next(ec);
+         while (read_buffer_->get_committed_size() != 0) {
+            res_ = mpx_->consume_next(read_buffer_->get_committed_buffer(), ec);
             if (ec) {
+               // TODO: Perhaps log what has not been consumed to aid
+               // debugging.
                action_after_resume_ = {action::type::done, res_.second, ec};
-               BOOST_REDIS_YIELD(resume_point_, 4, action::type::cancel_run)
+               BOOST_REDIS_YIELD(resume_point_, 5, action::type::cancel_run)
                return action_after_resume_;
             }
 
@@ -47,6 +59,8 @@ reader_fsm::action reader_fsm::resume(
                next_read_type_ = action::type::needs_more;
                break;
             }
+
+            read_buffer_->consume_committed(res_.second);
 
             if (res_.first.value()) {
                BOOST_REDIS_YIELD(resume_point_, 6, action::type::notify_push_receiver, res_.second)

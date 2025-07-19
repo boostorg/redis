@@ -34,17 +34,6 @@ void parser::reset()
    sizes_[0] = 2;  // The sentinel must be more than 1.
 }
 
-std::size_t parser::get_suggested_buffer_growth(std::size_t hint) const noexcept
-{
-   if (!bulk_expected())
-      return hint;
-
-   if (hint < bulk_length_ + 2)
-      return bulk_length_ + 2;
-
-   return hint;
-}
-
 std::size_t parser::get_consumed() const noexcept { return consumed_; }
 
 bool parser::done() const noexcept
