@@ -86,7 +86,8 @@ struct elem_and_request {
 
       elm = std::make_shared<multiplexer::elem>(
          req,
-         [](std::size_t, resp3::node_view const&, error_code&) { });
+         [](parse_event, resp3::node_view const&, error_code&) { });
+
       elm->set_done_callback([this] {
          ++done_calls;
       });

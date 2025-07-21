@@ -51,7 +51,7 @@ public:
          }
 
          BOOST_ASIO_CORO_YIELD
-         conn_->async_exec(checker_->req_, any_adapter(checker_->resp_), std::move(self));
+         conn_->async_exec(checker_->req_, make_any_adapter(checker_->resp_), std::move(self));
          if (ec) {
             conn_->logger_.trace("ping_op (3)", ec);
             checker_->wait_timer_.cancel();
