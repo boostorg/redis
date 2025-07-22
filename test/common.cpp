@@ -50,7 +50,6 @@ boost::redis::config make_test_config()
 {
    boost::redis::config cfg;
    cfg.addr.host = get_server_hostname();
-   cfg.max_read_size = 1000000;
    return cfg;
 }
 
@@ -69,3 +68,10 @@ void run_coroutine_test(net::awaitable<void> op, std::chrono::steady_clock::dura
       throw std::runtime_error("Coroutine test did not finish");
 }
 #endif  // BOOST_ASIO_HAS_CO_AWAIT
+
+void append_read_data(boost::redis::detail::read_buffer& rbuf, std::string_view data)
+{
+   auto const buffer = rbuf.get_append_buffer();
+   BOOST_ASSERT(data.size() <= buffer.size());
+   std::copy(data.begin(), data.end(), buffer.begin());
+}

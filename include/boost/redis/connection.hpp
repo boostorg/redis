@@ -57,56 +57,6 @@
 namespace boost::redis {
 namespace detail {
 
-template <class AsyncReadStream, class DynamicBuffer>
-class append_some_op {
-private:
-   AsyncReadStream& stream_;
-   DynamicBuffer buf_;
-   std::size_t size_ = 0;
-   std::size_t tmp_ = 0;
-   asio::coroutine coro_{};
-
-public:
-   append_some_op(AsyncReadStream& stream, DynamicBuffer buf, std::size_t size)
-   : stream_{stream}
-   , buf_{std::move(buf)}
-   , size_{size}
-   { }
-
-   template <class Self>
-   void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
-   {
-      BOOST_ASIO_CORO_REENTER(coro_)
-      {
-         tmp_ = buf_.size();
-         buf_.grow(size_);
-
-         BOOST_ASIO_CORO_YIELD
-         stream_.async_read_some(buf_.data(tmp_, size_), std::move(self));
-         if (ec) {
-            self.complete(ec, 0);
-            return;
-         }
-
-         buf_.shrink(buf_.size() - tmp_ - n);
-         self.complete({}, n);
-      }
-   }
-};
-
-template <class AsyncReadStream, class DynamicBuffer, class CompletionToken>
-auto async_append_some(
-   AsyncReadStream& stream,
-   DynamicBuffer buffer,
-   std::size_t size,
-   CompletionToken&& token)
-{
-   return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
-      append_some_op<AsyncReadStream, DynamicBuffer>{stream, buffer, size},
-      token,
-      stream);
-}
-
 template <class Executor>
 using exec_notifier_type = asio::experimental::channel<
    Executor,
@@ -209,31 +159,18 @@ struct writer_op {
 
 template <class Conn>
 struct reader_op {
-   using dyn_buffer_type = asio::dynamic_string_buffer<
-      char,
-      std::char_traits<char>,
-      std::allocator<char>>;
-
-   // TODO: Move this to config so the user can fine tune?
-   static constexpr std::size_t buffer_growth_hint = 4096;
-
    Conn* conn_;
    detail::reader_fsm fsm_;
 
 public:
    reader_op(Conn& conn) noexcept
    : conn_{&conn}
-   , fsm_{conn.mpx_}
+   , fsm_{conn.read_buffer_, conn.mpx_}
    { }
 
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
-      using dyn_buffer_type = asio::dynamic_string_buffer<
-         char,
-         std::char_traits<char>,
-         std::allocator<char>>;
-
       for (;;) {
          auto act = fsm_.resume(n, ec, self.get_cancellation_state().cancelled());
 
@@ -245,11 +182,10 @@ public:
                continue;
             case reader_fsm::action::type::needs_more:
             case reader_fsm::action::type::append_some:
-               async_append_some(
-                  conn_->stream_,
-                  dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
-                  conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
-                  std::move(self));
+            {
+               auto const buf = conn_->read_buffer_.get_append_buffer();
+               conn_->stream_.async_read_some(asio::buffer(buf), std::move(self));
+            }
                return;
             case reader_fsm::action::type::notify_push_receiver:
                if (conn_->receive_channel_.try_send(ec, act.push_size_)) {
@@ -342,6 +278,7 @@ public:
 
             // If we were successful, run all the connection tasks
             if (!ec) {
+               conn_->read_buffer_.clear();
                conn_->mpx_.reset();
 
                // Note: Order is important here because the writer might
@@ -553,6 +490,11 @@ public:
       cfg_ = cfg;
       health_checker_.set_config(cfg);
       handshaker_.set_config(cfg);
+      read_buffer_.set_config({cfg.read_buffer_append_size, cfg.max_read_size});
+
+      // Reserve some memory to avoid excessive memory allocations in
+      // the first reads.
+      read_buffer_.reserve(4048u);
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          detail::run_op<this_type>{this},
@@ -950,6 +892,7 @@ private:
    resp3_handshaker_type handshaker_;
 
    config cfg_;
+   detail::read_buffer read_buffer_;
    detail::multiplexer mpx_;
    detail::connection_logger logger_;
 };

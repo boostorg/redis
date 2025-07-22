@@ -6,7 +6,6 @@
 
 #ifndef BOOST_REDIS_READER_FSM_HPP
 #define BOOST_REDIS_READER_FSM_HPP
-
 #include <boost/redis/detail/multiplexer.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
@@ -15,6 +14,8 @@
 #include <cstddef>
 
 namespace boost::redis::detail {
+
+class read_buffer;
 
 class reader_fsm {
 public:
@@ -30,11 +31,11 @@ public:
       };
 
       type type_ = type::setup_cancellation;
-      std::size_t push_size_ = 0;
+      std::size_t push_size_ = 0u;
       system::error_code ec_ = {};
    };
 
-   explicit reader_fsm(multiplexer& mpx) noexcept;
+   explicit reader_fsm(read_buffer& rbuf, multiplexer& mpx) noexcept;
 
    action resume(
       std::size_t bytes_read,
@@ -43,6 +44,7 @@ public:
 
 private:
    int resume_point_{0};
+   read_buffer* read_buffer_ = nullptr;
    action action_after_resume_;
    action::type next_read_type_ = action::type::append_some;
    multiplexer* mpx_ = nullptr;
