@@ -26,10 +26,10 @@ void push_hello(config const& cfg, request& req);
 // TODO: Can we avoid this whole function whose only purpose is to
 // check for an error in the hello response and complete with an error
 // so that the parallel group that starts it can exit?
-template <class Handshaker, class Connection>
+template <class Handshaker, class ConnectionImpl>
 struct hello_op {
    Handshaker* handshaker_ = nullptr;
-   Connection* conn_ = nullptr;
+   ConnectionImpl* conn_ = nullptr;
    asio::coroutine coro_{};
 
    template <class Self>
@@ -68,11 +68,11 @@ class resp3_handshaker {
 public:
    void set_config(config const& cfg) { cfg_ = cfg; }
 
-   template <class Connection, class CompletionToken>
-   auto async_hello(Connection& conn, CompletionToken token)
+   template <class ConnectionImpl, class CompletionToken>
+   auto async_hello(ConnectionImpl& conn, CompletionToken token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         hello_op<resp3_handshaker, Connection>{this, &conn},
+         hello_op<resp3_handshaker, ConnectionImpl>{this, &conn},
          token,
          conn);
    }
