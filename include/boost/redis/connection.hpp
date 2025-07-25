@@ -503,7 +503,11 @@ public:
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       logger lgr = {})
-   : impl_(new detail::connection_impl<Executor>{std::move(ex), std::move(ctx), std::move(lgr)})
+   : impl_(
+        std::make_unique<detail::connection_impl<Executor>>(
+           std::move(ex),
+           std::move(ctx),
+           std::move(lgr)))
    { }
 
    /** @brief Constructor from an executor and a logger.
