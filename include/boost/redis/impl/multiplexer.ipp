@@ -81,7 +81,7 @@ void multiplexer::add(std::shared_ptr<elem> const& info)
    }
 }
 
-std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec)
+tribool multiplexer::consume_next_impl(std::string_view data, system::error_code& ec)
 {
    // We arrive here in two states:
    //
@@ -93,18 +93,16 @@ std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec
    //    2. On a new message, in which case we have to determine
    //       whether the next messag is a push or a response.
    //
+
+   BOOST_ASSERT(!data.empty());
    if (!on_push_)  // Prepare for new message.
-      on_push_ = is_next_push();
+      on_push_ = is_next_push(data);
 
    if (on_push_) {
-      if (!resp3::parse(parser_, read_buffer_, receive_adapter_, ec))
-         return std::make_pair(std::nullopt, 0);
+      if (!resp3::parse(parser_, data, receive_adapter_, ec))
+         return std::nullopt;
 
-      if (ec)
-         return std::make_pair(std::make_optional(true), 0);
-
-      auto const size = on_finish_parsing(true);
-      return std::make_pair(std::make_optional(true), size);
+      return std::make_optional(true);
    }
 
    BOOST_ASSERT_MSG(
@@ -114,13 +112,13 @@ std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec
    BOOST_ASSERT(reqs_.front() != nullptr);
    BOOST_ASSERT(reqs_.front()->get_remaining_responses() != 0);
 
-   if (!resp3::parse(parser_, read_buffer_, reqs_.front()->get_adapter(), ec))
-      return std::make_pair(std::nullopt, 0);
+   if (!resp3::parse(parser_, data, reqs_.front()->get_adapter(), ec))
+      return std::nullopt;
 
    if (ec) {
       reqs_.front()->notify_error(ec);
       reqs_.pop_front();
-      return std::make_pair(std::make_optional(false), 0);
+      return std::make_optional(false);
    }
 
    reqs_.front()->commit_response(parser_.get_consumed());
@@ -130,14 +128,31 @@ std::pair<tribool, std::size_t> multiplexer::consume_next(system::error_code& ec
       reqs_.pop_front();
    }
 
-   auto const size = on_finish_parsing(false);
-   return std::make_pair(std::make_optional(false), size);
+   return std::make_optional(false);
+}
+
+std::pair<tribool, std::size_t> multiplexer::consume_next(
+   std::string_view data,
+   system::error_code& ec)
+{
+   auto const ret = consume_next_impl(data, ec);
+   auto const consumed = parser_.get_consumed();
+   if (ec) {
+      return std::make_pair(ret, consumed);
+   }
+
+   if (ret.has_value()) {
+      parser_.reset();
+      commit_usage(ret.value(), consumed);
+      return std::make_pair(ret, consumed);
+   }
+
+   return std::make_pair(std::nullopt, consumed);
 }
 
 void multiplexer::reset()
 {
    write_buffer_.clear();
-   read_buffer_.clear();
    parser_.reset();
    on_push_ = false;
    cancel_run_called_ = false;
@@ -222,35 +237,29 @@ auto multiplexer::cancel_on_conn_lost() -> std::size_t
    return ret;
 }
 
-std::size_t multiplexer::on_finish_parsing(bool is_push)
+void multiplexer::commit_usage(bool is_push, std::size_t size)
 {
    if (is_push) {
       usage_.pushes_received += 1;
-      usage_.push_bytes_received += parser_.get_consumed();
+      usage_.push_bytes_received += size;
+      on_push_ = false;
    } else {
       usage_.responses_received += 1;
-      usage_.response_bytes_received += parser_.get_consumed();
+      usage_.response_bytes_received += size;
    }
-
-   on_push_ = false;
-   read_buffer_.erase(0, parser_.get_consumed());
-   auto const size = parser_.get_consumed();
-   parser_.reset();
-   return size;
 }
 
-bool multiplexer::is_next_push() const noexcept
+bool multiplexer::is_next_push(std::string_view data) const noexcept
 {
-   BOOST_ASSERT(!read_buffer_.empty());
-
    // Useful links to understand the heuristics below.
    //
    // - https://github.com/redis/redis/issues/11784
    // - https://github.com/redis/redis/issues/6426
    // - https://github.com/boostorg/redis/issues/170
 
-   // The message's resp3 type is a push.
-   if (resp3::to_type(read_buffer_.front()) == resp3::type::push)
+   // Test if the message resp3 type is a push.
+   BOOST_ASSERT(!data.empty());
+   if (resp3::to_type(data.front()) == resp3::type::push)
       return true;
 
    // This is non-push type and the requests queue is empty. I have

@@ -8,13 +8,13 @@
 #define BOOST_REDIS_MULTIPLEXER_HPP
 
 #include <boost/redis/adapter/adapt.hpp>
-#include <boost/redis/adapter/any_adapter.hpp>
-#include <boost/redis/config.hpp>
-#include <boost/redis/operation.hpp>
+#include <boost/redis/detail/read_buffer.hpp>
+#include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/usage.hpp>
 
-#include <boost/asio/experimental/channel.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <algorithm>
 #include <deque>
@@ -32,7 +32,8 @@ namespace detail {
 
 using tribool = std::optional<bool>;
 
-struct multiplexer {
+class multiplexer {
+public:
    using adapter_type = std::function<void(resp3::node_view const&, system::error_code&)>;
    using pipeline_adapter_type = std::function<
       void(std::size_t, resp3::node_view const&, system::error_code&)>;
@@ -127,7 +128,8 @@ struct multiplexer {
    // If the tribool contains no value more data is needed, otherwise
    // if the value is true the message consumed is a push.
    [[nodiscard]]
-   auto consume_next(system::error_code& ec) -> std::pair<tribool, std::size_t>;
+   auto consume_next(std::string_view data, system::error_code& ec)
+      -> std::pair<tribool, std::size_t>;
 
    auto add(std::shared_ptr<elem> const& ptr) -> void;
    auto reset() -> void;
@@ -156,18 +158,6 @@ struct multiplexer {
       return std::string_view{write_buffer_};
    }
 
-   [[nodiscard]]
-   auto get_read_buffer() noexcept -> std::string&
-   {
-      return read_buffer_;
-   }
-
-   [[nodiscard]]
-   auto get_read_buffer() const noexcept -> std::string const&
-   {
-      return read_buffer_;
-   }
-
    // TODO: Change signature to receive an adapter instead of a
    // response.
    template <class Response>
@@ -191,17 +181,18 @@ private:
    [[nodiscard]]
    auto is_waiting_response() const noexcept -> bool;
 
-   [[nodiscard]]
-   auto on_finish_parsing(bool is_push) -> std::size_t;
+   void commit_usage(bool is_push, std::size_t size);
 
    [[nodiscard]]
-   auto is_next_push() const noexcept -> bool;
+   auto is_next_push(std::string_view data) const noexcept -> bool;
 
    // Releases the number of requests that have been released.
    [[nodiscard]]
    auto release_push_requests() -> std::size_t;
 
-   std::string read_buffer_;
+   [[nodiscard]]
+   tribool consume_next_impl(std::string_view data, system::error_code& ec);
+
    std::string write_buffer_;
    std::deque<std::shared_ptr<elem>> reqs_;
    resp3::parser parser_{};
