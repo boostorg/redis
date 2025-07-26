@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(correct_database)
    auto conn = std::make_shared<connection>(ioc);
 
    request req;
-   req.push("CLIENT", "LIST");
+   req.push("CLIENT", "INFO");
 
    generic_response resp;
 
