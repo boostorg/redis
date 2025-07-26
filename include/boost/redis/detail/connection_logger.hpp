@@ -48,7 +48,7 @@ public:
    }
 
    template <class Fn>
-   void log(logger::level lvl, Fn fn)
+   void log_fn(logger::level lvl, Fn fn)
    {
       if (logger_.lvl < lvl)
          return;

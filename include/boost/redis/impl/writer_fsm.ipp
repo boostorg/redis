@@ -24,7 +24,7 @@ namespace boost::redis::detail {
 
 inline void log_write_success(connection_logger& logger, std::size_t bytes_written)
 {
-   logger.log(logger::level::info, [bytes_written](std::string& buff) {
+   logger.log_fn(logger::level::info, [bytes_written](std::string& buff) {
       buff = "Writer task: ";
       buff += std::to_string(bytes_written);
       buff += " bytes written.";
