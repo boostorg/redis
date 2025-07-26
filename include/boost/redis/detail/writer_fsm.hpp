@@ -9,18 +9,16 @@
 #ifndef BOOST_REDIS_WRITER_FSM_HPP
 #define BOOST_REDIS_WRITER_FSM_HPP
 
-#include <boost/redis/detail/connection_logger.hpp>
-#include <boost/redis/detail/coroutine.hpp>
-#include <boost/redis/detail/is_cancellation.hpp>
-#include <boost/redis/detail/multiplexer.hpp>
-
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
 #include <boost/system/error_code.hpp>
 
 // Sans-io algorithm for the writer task, as a finite state machine
 
 namespace boost::redis::detail {
+
+// Forward decls
+class connection_logger;
+class multiplexer;
 
 // What should we do next?
 enum class writer_action_type
@@ -61,46 +59,7 @@ public:
    , logger_(&logger)
    { }
 
-   writer_action resume(system::error_code ec, asio::cancellation_type_t cancel_state)
-   {
-      // TODO: move logging
-      // TODO: move to ipp
-
-      switch (resume_point_) {
-         BOOST_REDIS_CORO_INITIAL
-
-         while (mpx_->prepare_write() != 0u) {
-            BOOST_REDIS_YIELD(resume_point_, 1, writer_action_type::write)
-            logger_->on_write(ec, mpx_->get_write_buffer().size());
-
-            if (ec) {
-               logger_->trace("writer_op (1): error: ", ec);
-               stored_ec_ = ec;
-               BOOST_REDIS_YIELD(resume_point_, 2, writer_action_type::cancel_run)
-               return ec;
-            }
-
-            mpx_->commit_write();
-
-            // Check for cancellations
-            if (is_cancellation(cancel_state)) {
-               logger_->trace("writer_op (2): cancelled.");
-               return system::error_code(asio::error::operation_aborted);
-            }
-         }
-
-         // Wait for a request to be ready
-         BOOST_REDIS_YIELD(resume_point_, 3, writer_action_type::wait)
-
-         // Check for cancellations
-         if (is_cancellation(cancel_state)) {
-            logger_->trace("writer_op (3): cancelled.");
-            return system::error_code(asio::error::operation_aborted);
-         }
-      }
-
-      return system::error_code();
-   }
+   writer_action resume(system::error_code ec, asio::cancellation_type_t cancel_state);
 };
 
 }  // namespace boost::redis::detail
