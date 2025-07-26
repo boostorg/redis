@@ -113,12 +113,43 @@ void test_log_message_errorcode()
    BOOST_TEST_EQ(fix.num_msgs, 2u);
 }
 
+// log with a function
+void test_log_fn()
+{
+   // Setup
+   fixture fix{logger::level::warning};
+
+   // Issuing a message with level > the one configured logs it
+   fix.logger.log_fn(logger::level::alert, [](std::string& buff) {
+      buff = "Some message";
+   });
+   BOOST_TEST_EQ(fix.num_msgs, 1u);
+   BOOST_TEST_EQ(fix.msg_level, logger::level::alert);
+   BOOST_TEST_EQ(fix.msg, "Some message");
+
+   // Issuing a message with level == the one configured logs it.
+   // Internal buffers are cleared.
+   fix.logger.log_fn(logger::level::warning, [](std::string& buff) {
+      buff = "This is another message.";
+   });
+   BOOST_TEST_EQ(fix.num_msgs, 2u);
+   BOOST_TEST_EQ(fix.msg_level, logger::level::warning);
+   BOOST_TEST_EQ(fix.msg, "This is another message.");
+
+   // Issuing a message with level < the one configured does not log it.
+   fix.logger.log_fn(logger::level::info, [](std::string& buff) {
+      buff = "This message should not be logged.";
+   });
+   BOOST_TEST_EQ(fix.num_msgs, 2u);
+}
+
 }  // namespace
 
 int main()
 {
    test_log_message();
    test_log_message_errorcode();
+   test_log_fn();
 
    return boost::report_errors();
 }
