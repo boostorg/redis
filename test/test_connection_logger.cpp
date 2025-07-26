@@ -7,10 +7,11 @@
 //
 
 #include <boost/redis/detail/connection_logger.hpp>
+#include <boost/redis/error.hpp>
+#include <boost/redis/logger.hpp>
 
+#include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
-
-#include "boost/redis/logger.hpp"
 
 #include <cstddef>
 #include <ostream>
@@ -19,6 +20,7 @@
 
 using namespace boost::redis;
 using detail::connection_logger;
+using boost::system::error_code;
 
 namespace boost::redis {
 
@@ -85,11 +87,38 @@ void test_log_message()
    BOOST_TEST_EQ(fix.num_msgs, 2u);
 }
 
+// log with a message and an error code
+void test_log_message_errorcode()
+{
+   // Setup
+   fixture fix{logger::level::warning};
+
+   // Issuing a message with level > the one configured logs it
+   fix.logger.log(logger::level::alert, "Some message", error::connect_timeout);
+   BOOST_TEST_EQ(fix.num_msgs, 1u);
+   BOOST_TEST_EQ(fix.msg_level, logger::level::alert);
+   BOOST_TEST_EQ(fix.msg, "Some message: Connect timeout. [boost.redis:18]");
+
+   // Issuing a message with level == the one configured logs it.
+   // Internal buffers are cleared.
+   // Source code info is not printed
+   constexpr auto loc = BOOST_CURRENT_LOCATION;
+   fix.logger.log(logger::level::warning, "Other thing", error_code(error::empty_field, &loc));
+   BOOST_TEST_EQ(fix.num_msgs, 2u);
+   BOOST_TEST_EQ(fix.msg_level, logger::level::warning);
+   BOOST_TEST_EQ(fix.msg, "Other thing: Expected field value is empty. [boost.redis:5]");
+
+   // Issuing a message with level < the one configured does not log it.
+   fix.logger.log(logger::level::info, "bad", error::expects_resp3_map);
+   BOOST_TEST_EQ(fix.num_msgs, 2u);
+}
+
 }  // namespace
 
 int main()
 {
    test_log_message();
+   test_log_message_errorcode();
 
    return boost::report_errors();
 }
