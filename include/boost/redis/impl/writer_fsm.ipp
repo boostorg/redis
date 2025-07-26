@@ -29,33 +29,39 @@ writer_action writer_fsm::resume(system::error_code ec, asio::cancellation_type_
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
-      while (mpx_->prepare_write() != 0u) {
-         BOOST_REDIS_YIELD(resume_point_, 1, writer_action_type::write)
-         logger_->on_write(ec, mpx_->get_write_buffer().size());
+      for (;;) {
+         // Attempt to write while we have requests ready to send
+         while (mpx_->prepare_write() != 0u) {
+            // Write
+            BOOST_REDIS_YIELD(resume_point_, 1, writer_action_type::write)
+            logger_->on_write(ec, mpx_->get_write_buffer().size());
 
-         if (ec) {
-            logger_->trace("writer_op (1): error: ", ec);
-            stored_ec_ = ec;
-            BOOST_REDIS_YIELD(resume_point_, 2, writer_action_type::cancel_run)
-            return ec;
+            // A failed write means that we should tear down the connection
+            if (ec) {
+               logger_->trace("writer_op (1): error: ", ec);
+               stored_ec_ = ec;
+               BOOST_REDIS_YIELD(resume_point_, 2, writer_action_type::cancel_run)
+               return ec;
+            }
+
+            // Mark requests as written
+            mpx_->commit_write();
+
+            // Check for cancellations
+            if (is_cancellation(cancel_state)) {
+               logger_->trace("writer_op (2): cancelled.");
+               return system::error_code(asio::error::operation_aborted);
+            }
          }
 
-         mpx_->commit_write();
+         // No more requests ready to be written. Wait for more
+         BOOST_REDIS_YIELD(resume_point_, 3, writer_action_type::wait)
 
          // Check for cancellations
          if (is_cancellation(cancel_state)) {
-            logger_->trace("writer_op (2): cancelled.");
+            logger_->trace("writer_op (3): cancelled.");
             return system::error_code(asio::error::operation_aborted);
          }
-      }
-
-      // Wait for a request to be ready
-      BOOST_REDIS_YIELD(resume_point_, 3, writer_action_type::wait)
-
-      // Check for cancellations
-      if (is_cancellation(cancel_state)) {
-         logger_->trace("writer_op (3): cancelled.");
-         return system::error_code(asio::error::operation_aborted);
       }
    }
 
