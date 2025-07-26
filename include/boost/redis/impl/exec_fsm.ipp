@@ -11,7 +11,7 @@
 
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
-#include <boost/redis/detail/is_cancellation.hpp>
+#include <boost/redis/impl/is_cancellation.hpp>
 #include <boost/redis/request.hpp>
 
 #include <boost/asio/error.hpp>

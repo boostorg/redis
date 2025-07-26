@@ -11,9 +11,9 @@
 
 #include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/coroutine.hpp>
-#include <boost/redis/detail/is_cancellation.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
+#include <boost/redis/impl/is_cancellation.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
