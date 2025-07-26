@@ -11,19 +11,13 @@
 
 namespace boost::redis::detail {
 
-multiplexer::elem::elem(request const& req, pipeline_adapter_type adapter)
+multiplexer::elem::elem(request const& req, any_adapter adapter)
 : req_{&req}
-, adapter_{}
-, remaining_responses_{req.get_expected_responses()}
+, adapter_{any_adapter_wrapper{adapter, req.get_expected_responses()}}
 , status_{status::waiting}
 , ec_{}
 , read_size_{0}
-{
-   adapter_ = [this, adapter](resp3::node_view const& nd, system::error_code& ec) {
-      auto const i = req_->get_expected_responses() - remaining_responses_;
-      adapter(i, nd, ec);
-   };
-}
+{ }
 
 auto multiplexer::elem::notify_error(system::error_code ec) noexcept -> void
 {
@@ -110,7 +104,7 @@ tribool multiplexer::consume_next_impl(std::string_view data, system::error_code
       "Not waiting for a response (using MONITOR command perhaps?)");
    BOOST_ASSERT(!reqs_.empty());
    BOOST_ASSERT(reqs_.front() != nullptr);
-   BOOST_ASSERT(reqs_.front()->get_remaining_responses() != 0);
+   BOOST_ASSERT(reqs_.front()->get_adapter().get_remaining_responses() != 0);
 
    if (!resp3::parse(parser_, data, reqs_.front()->get_adapter(), ec))
       return std::nullopt;
@@ -122,7 +116,7 @@ tribool multiplexer::consume_next_impl(std::string_view data, system::error_code
    }
 
    reqs_.front()->commit_response(parser_.get_consumed());
-   if (reqs_.front()->get_remaining_responses() == 0) {
+   if (reqs_.front()->get_adapter().get_remaining_responses() == 0) {
       // Done with this request.
       reqs_.front()->notify_done();
       reqs_.pop_front();
@@ -274,7 +268,7 @@ bool multiplexer::is_next_push(std::string_view data) const noexcept
 
    // The request does not expect any response but we got one. This
    // may happen if for example, subscribe with wrong syntax.
-   if (reqs_.front()->get_remaining_responses() == 0)
+   if (reqs_.front()->get_adapter().get_remaining_responses() == 0)
       return true;
 
    // Added to deal with MONITOR and also to fix PR170 which
@@ -314,8 +308,12 @@ bool multiplexer::is_waiting_response() const noexcept
 
 bool multiplexer::is_writing() const noexcept { return !write_buffer_.empty(); }
 
-auto make_elem(request const& req, multiplexer::pipeline_adapter_type adapter)
-   -> std::shared_ptr<multiplexer::elem>
+void multiplexer::set_receive_response(any_adapter adapter)
+{
+   receive_adapter_ = any_adapter_wrapper{std::move(adapter), static_cast<std::size_t>(-1)};
+}
+
+auto make_elem(request const& req, any_adapter adapter) -> std::shared_ptr<multiplexer::elem>
 {
    return std::make_shared<multiplexer::elem>(req, std::move(adapter));
 }

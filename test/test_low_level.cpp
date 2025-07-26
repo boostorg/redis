@@ -595,8 +595,12 @@ BOOST_AUTO_TEST_CASE(adapter)
    response<std::string, int, ignore_t> resp;
 
    auto f = boost_redis_adapt(resp);
-   f(0, resp3::basic_node<std::string_view>{type::simple_string, 1, 0, "Hello"}, ec);
-   f(1, resp3::basic_node<std::string_view>{type::number, 1, 0, "42"}, ec);
+   f.on_init();
+   f.on_node(resp3::node_view{type::simple_string, 1, 0, "Hello"}, ec);
+   f.on_done();
+   f.on_init();
+   f.on_node(resp3::node_view{type::number, 1, 0, "42"}, ec);
+   f.on_done();
 
    BOOST_CHECK_EQUAL(std::get<0>(resp).value(), "Hello");
    BOOST_TEST(!ec);
@@ -614,7 +618,7 @@ BOOST_AUTO_TEST_CASE(adapter_as)
 
    for (auto const& e : set_expected1a.value()) {
       error_code ec;
-      adapter(e, ec);
+      adapter.on_node(e, ec);
    }
 }
 

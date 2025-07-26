@@ -32,16 +32,21 @@ using boost::redis::detail::multiplexer;
 using boost::redis::generic_response;
 using boost::redis::resp3::node;
 using boost::redis::resp3::to_string;
-using boost::redis::any_adapter;
+using boost::redis::detail::make_any_adapter;
 using boost::system::error_code;
+
+#define RESP3_SET_PART1 "~6\r\n+orange\r"
+#define RESP3_SET_PART2 "\n+apple\r\n+one"
+#define RESP3_SET_PART3 "\r\n+two\r"
+#define RESP3_SET_PART4 "\n+three\r\n+orange\r\n"
+char const* resp3_set = RESP3_SET_PART1 RESP3_SET_PART2 RESP3_SET_PART3 RESP3_SET_PART4;
 
 BOOST_AUTO_TEST_CASE(low_level_sync_sans_io)
 {
    try {
       result<std::set<std::string>> resp;
 
-      char const* wire = "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n";
-      deserialize(wire, adapt2(resp));
+      deserialize(resp3_set, adapt2(resp));
 
       for (auto const& e : resp.value())
          std::cout << e << std::endl;
@@ -260,7 +265,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
 {
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(resp);
+   mpx.set_receive_response(make_any_adapter(resp));
 
    boost::system::error_code ec;
    auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
@@ -282,7 +287,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
 {
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(resp);
+   mpx.set_receive_response(make_any_adapter(resp));
 
    std::string msg;
    // Only part of the message.
@@ -318,7 +323,7 @@ struct test_item {
       // to Redis.
       req.push(cmd_with_response ? "PING" : "SUBSCRIBE", "cmd-arg");
 
-      elem_ptr = std::make_shared<multiplexer::elem>(req, any_adapter(resp).impl_.adapt_fn);
+      elem_ptr = std::make_shared<multiplexer::elem>(req, make_any_adapter(resp));
 
       elem_ptr->set_done_callback([this]() {
          done = true;
@@ -461,4 +466,49 @@ BOOST_AUTO_TEST_CASE(read_buffer_check_buffer_size)
    BOOST_TEST(!ec);
 
    BOOST_CHECK_EQUAL(buf.get_append_buffer().size(), 10u);
+}
+
+BOOST_AUTO_TEST_CASE(check_counter_adapter)
+{
+   using boost::redis::parse_event;
+   using boost::redis::detail::any_adapter_wrapper;
+   using boost::redis::resp3::parse;
+   using boost::redis::resp3::parser;
+   using boost::redis::resp3::node_view;
+   using boost::system::error_code;
+
+   int init = 0;
+   int node = 0;
+   int done = 0;
+
+   auto counter_adapter = [&](parse_event ev, node_view const&, error_code&) mutable {
+      switch (ev) {
+         case parse_event::init: init++; break;
+         case parse_event::node: node++; break;
+         case parse_event::done: done++; break;
+      }
+   };
+
+   any_adapter_wrapper wrapped{counter_adapter, 1};
+
+   error_code ec;
+   parser p;
+
+   auto const ret1 = parse(p, RESP3_SET_PART1, wrapped, ec);
+   auto const ret2 = parse(p, RESP3_SET_PART1 RESP3_SET_PART2, wrapped, ec);
+   auto const ret3 = parse(p, RESP3_SET_PART1 RESP3_SET_PART2 RESP3_SET_PART3, wrapped, ec);
+   auto const ret4 = parse(
+      p,
+      RESP3_SET_PART1 RESP3_SET_PART2 RESP3_SET_PART3 RESP3_SET_PART4,
+      wrapped,
+      ec);
+
+   BOOST_TEST(!ret1);
+   BOOST_TEST(!ret2);
+   BOOST_TEST(!ret3);
+   BOOST_TEST(ret4);
+
+   BOOST_CHECK_EQUAL(init, 1);
+   BOOST_CHECK_EQUAL(node, 7);
+   BOOST_CHECK_EQUAL(done, 1);
 }
