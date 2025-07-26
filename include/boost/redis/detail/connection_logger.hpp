@@ -37,7 +37,6 @@ public:
    void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
    void on_connect(system::error_code const& ec, std::string_view unix_socket_ep);
    void on_ssl_handshake(system::error_code const& ec);
-   void on_write(system::error_code const& ec, std::size_t n);
    void on_fsm_resume(reader_fsm::action const& action);
    void on_hello(system::error_code const& ec, generic_response const& resp);
    void log(logger::level lvl, std::string_view msg);
@@ -46,6 +45,15 @@ public:
    void trace(std::string_view op, system::error_code const& ec)
    {
       log(logger::level::debug, op, ec);
+   }
+
+   template <class Fn>
+   void log(logger::level lvl, Fn fn)
+   {
+      if (logger_.lvl < lvl)
+         return;
+      fn(msg_);
+      logger_.fn(lvl, msg_);
    }
 };
 

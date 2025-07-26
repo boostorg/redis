@@ -22,10 +22,17 @@
 
 namespace boost::redis::detail {
 
+inline void log_write_success(connection_logger& logger, std::size_t bytes_written)
+{
+   logger.log(logger::level::info, [bytes_written](std::string& buff) {
+      buff = "Writer task: ";
+      buff += std::to_string(bytes_written);
+      buff += " bytes written.";
+   });
+}
+
 writer_action writer_fsm::resume(system::error_code ec, asio::cancellation_type_t cancel_state)
 {
-   // TODO: move logging
-
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
@@ -34,22 +41,24 @@ writer_action writer_fsm::resume(system::error_code ec, asio::cancellation_type_
          while (mpx_->prepare_write() != 0u) {
             // Write
             BOOST_REDIS_YIELD(resume_point_, 1, writer_action_type::write)
-            logger_->on_write(ec, mpx_->get_write_buffer().size());
 
             // A failed write means that we should tear down the connection
             if (ec) {
-               logger_->trace("writer_op (1): error: ", ec);
+               logger_->log(logger::level::err, "Writer task error: ", ec);
                stored_ec_ = ec;
                BOOST_REDIS_YIELD(resume_point_, 2, writer_action_type::cancel_run)
-               return ec;
+               return stored_ec_;
             }
+
+            // Log what we wrote
+            log_write_success(*logger_, mpx_->get_write_buffer().size());
 
             // Mark requests as written
             mpx_->commit_write();
 
             // Check for cancellations
             if (is_cancellation(cancel_state)) {
-               logger_->trace("writer_op (2): cancelled.");
+               logger_->trace("Writer task cancelled (1).");
                return system::error_code(asio::error::operation_aborted);
             }
          }
@@ -59,7 +68,7 @@ writer_action writer_fsm::resume(system::error_code ec, asio::cancellation_type_
 
          // Check for cancellations
          if (is_cancellation(cancel_state)) {
-            logger_->trace("writer_op (3): cancelled.");
+            logger_->trace("Writer task cancelled (2).");
             return system::error_code(asio::error::operation_aborted);
          }
       }
