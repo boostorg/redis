@@ -36,9 +36,8 @@ std::ostream& operator<<(std::ostream& os, logger::level lvl)
       case logger::level::warning:  return os << "logger::level::warning";
       case logger::level::notice:   return os << "logger::level::notice";
       case logger::level::info:     return os << "logger::level::info";
-      case logger::level::debug:
-         return os << "logger::level::debug";
-         return os << "<unknown logger::level>";
+      case logger::level::debug:    return os << "logger::level::debug";
+      default:                      return os << "<unknown logger::level>";
    }
 }
 
