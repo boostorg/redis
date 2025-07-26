@@ -11,19 +11,13 @@
 
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
+#include <boost/redis/detail/is_cancellation.hpp>
 #include <boost/redis/request.hpp>
 
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
 
 namespace boost::redis::detail {
-
-inline bool is_cancellation(asio::cancellation_type_t type)
-{
-   return !!(
-      type & (asio::cancellation_type_t::total | asio::cancellation_type_t::partial |
-              asio::cancellation_type_t::terminal));
-}
 
 exec_action exec_fsm::resume(bool connection_is_open, asio::cancellation_type_t cancel_state)
 {
