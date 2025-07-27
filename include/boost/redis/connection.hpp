@@ -18,6 +18,7 @@
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/resp3_handshaker.hpp>
+#include <boost/redis/detail/writer_fsm.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
@@ -209,52 +210,31 @@ struct connection_impl {
 template <class Executor>
 struct writer_op {
    connection_impl<Executor>* conn_;
-   asio::coroutine coro{};
+   writer_fsm fsm_;
+
+   explicit writer_op(connection_impl<Executor>& conn) noexcept
+   : conn_(&conn)
+   , fsm_(conn.mpx_, conn.logger_)
+   { }
 
    template <class Self>
-   void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
+   void operator()(Self& self, system::error_code ec = {}, std::size_t = {})
    {
-      ignore_unused(n);
+      for (;;) {
+         auto act = fsm_.resume(ec, self.get_cancellation_state().cancelled());
 
-      BOOST_ASIO_CORO_REENTER(coro) for (;;)
-      {
-         while (conn_->mpx_.prepare_write() != 0) {
-            BOOST_ASIO_CORO_YIELD
-            asio::async_write(
-               conn_->stream_,
-               asio::buffer(conn_->mpx_.get_write_buffer()),
-               std::move(self));
-
-            conn_->logger_.on_write(ec, conn_->mpx_.get_write_buffer().size());
-
-            if (ec) {
-               conn_->logger_.trace("writer_op (1)", ec);
+         switch (act.type()) {
+            case writer_action_type::done: self.complete(act.error()); return;
+            case writer_action_type::write:
+               asio::async_write(
+                  conn_->stream_,
+                  asio::buffer(conn_->mpx_.get_write_buffer()),
+                  std::move(self));
+               return;
+            case writer_action_type::wait: conn_->writer_timer_.async_wait(std::move(self)); return;
+            case writer_action_type::cancel_run:
                conn_->cancel(operation::run);
-               self.complete(ec);
-               return;
-            }
-
-            conn_->mpx_.commit_write();
-
-            // A socket.close() may have been called while a
-            // successful write might had already been queued, so we
-            // have to check here before proceeding.
-            if (!conn_->is_open()) {
-               conn_->logger_.trace("writer_op (2): connection is closed.");
-               self.complete({});
-               return;
-            }
-         }
-
-         BOOST_ASIO_CORO_YIELD
-         conn_->writer_timer_.async_wait(std::move(self));
-         if (!conn_->is_open()) {
-            conn_->logger_.trace("writer_op (3): connection is closed.");
-            // Notice this is not an error of the op, stoping was
-            // requested from the outside, so we complete with
-            // success.
-            self.complete({});
-            return;
+               continue;  // This op doesn't need yielding
          }
       }
    }
@@ -339,7 +319,7 @@ private:
    auto writer(CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         writer_op<Executor>{conn_},
+         writer_op<Executor>{*conn_},
          std::forward<CompletionToken>(token),
          conn_->writer_timer_);
    }
