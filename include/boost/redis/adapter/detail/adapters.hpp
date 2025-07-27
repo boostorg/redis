@@ -160,12 +160,14 @@ public:
             };
             break;
          default:
-            result_->value().push_back({
-               nd.data_type,
-               nd.aggregate_size,
-               nd.depth,
-               std::string{std::cbegin(nd.value), std::cend(nd.value)}
-            });
+            if (result_->has_value()) {
+               (**result_).push_back({
+                  nd.data_type,
+                  nd.aggregate_size,
+                  nd.depth,
+                  std::string{std::cbegin(nd.value), std::cend(nd.value)}
+               });
+            }
       }
    }
 };
