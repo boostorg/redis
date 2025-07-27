@@ -138,7 +138,7 @@ struct connection_impl {
    , health_checker_{ex}
    , logger_{std::move(lgr)}
    {
-      set_receive_response(ignore);
+      set_receive_adapter(any_adapter{ignore});
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
 
       // Reserve some memory to avoid excessive memory allocations in
@@ -200,13 +200,7 @@ struct connection_impl {
          writer_timer_);
    }
 
-   template <class Response>
-   void set_receive_response(Response& response)
-   {
-      auto adapter = detail::make_any_adapter(response);
-      mpx_.set_receive_response(std::move(adapter));
-   }
-
+   void set_receive_adapter(any_adapter adapter) { mpx_.set_receive_adapter(std::move(adapter)); }
 };
 
 template <class Executor>
@@ -506,11 +500,10 @@ public:
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       logger lgr = {})
-   : impl_(
-        std::make_unique<detail::connection_impl<Executor>>(
-           std::move(ex),
-           std::move(ctx),
-           std::move(lgr)))
+   : impl_(std::make_unique<detail::connection_impl<Executor>>(
+        std::move(ex),
+        std::move(ctx),
+        std::move(lgr)))
    { }
 
    /** @brief Constructor from an executor and a logger.
@@ -770,7 +763,7 @@ public:
    {
       return this->async_exec(
          req,
-         detail::make_any_adapter(resp),
+         any_adapter{resp},
          std::forward<CompletionToken>(token));
    }
 
@@ -897,9 +890,9 @@ public:
 
    /// Sets the response object of @ref async_receive operations.
    template <class Response>
-   void set_receive_response(Response& response)
+   void set_receive_response(Response& resp)
    {
-      impl_->set_receive_response(response);
+      impl_->set_receive_adapter(any_adapter{resp});
    }
 
    /// Returns connection usage information.
@@ -1076,7 +1069,10 @@ public:
    template <class Response = ignore_t, class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
-      return async_exec(req, detail::make_any_adapter(resp), std::forward<CompletionToken>(token));
+      return async_exec(
+         req,
+         any_adapter{resp},
+         std::forward<CompletionToken>(token));
    }
 
    /**

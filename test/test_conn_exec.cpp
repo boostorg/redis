@@ -31,7 +31,7 @@ using boost::redis::ignore;
 using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::detail::make_any_adapter;
+using boost::redis::any_adapter;
 using boost::system::error_code;
 using namespace std::chrono_literals;
 
@@ -230,7 +230,7 @@ BOOST_AUTO_TEST_CASE(exec_any_adapter)
 
    bool finished = false;
 
-   conn->async_exec(req, make_any_adapter(res), [&](error_code ec, std::size_t) {
+   conn->async_exec(req, res, [&](error_code ec, std::size_t) {
       BOOST_TEST(ec == error_code());
       conn->cancel();
       finished = true;

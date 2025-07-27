@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -16,7 +16,7 @@ using boost::redis::generic_response;
 using boost::redis::response;
 using boost::redis::ignore;
 using boost::redis::any_adapter;
-using boost::redis::detail::make_any_adapter;
+using boost::redis::any_adapter;
 
 BOOST_AUTO_TEST_CASE(any_adapter_response_types)
 {
@@ -25,17 +25,17 @@ BOOST_AUTO_TEST_CASE(any_adapter_response_types)
    response<int, std::string> r2;
    generic_response r3;
 
-   BOOST_CHECK_NO_THROW(make_any_adapter(r1));
-   BOOST_CHECK_NO_THROW(make_any_adapter(r2));
-   BOOST_CHECK_NO_THROW(make_any_adapter(r3));
-   BOOST_CHECK_NO_THROW(make_any_adapter(ignore));
+   BOOST_CHECK_NO_THROW(any_adapter{r1});
+   BOOST_CHECK_NO_THROW(any_adapter{r2});
+   BOOST_CHECK_NO_THROW(any_adapter{r3});
+   BOOST_CHECK_NO_THROW(any_adapter{ignore});
 }
 
 BOOST_AUTO_TEST_CASE(any_adapter_copy_move)
 {
    // any_adapter can be copied/moved
    response<int, std::string> r;
-   auto ad1 = make_any_adapter(r);
+   auto ad1 = any_adapter{r};
 
    // copy constructor
    auto ad2 = any_adapter(ad1);

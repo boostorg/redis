@@ -20,19 +20,19 @@
 #include <iostream>
 #include <string>
 
-using boost::redis::request;
-using boost::redis::config;
-using boost::redis::detail::push_hello;
-using boost::redis::response;
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
-using boost::redis::resp3::detail::deserialize;
-using boost::redis::ignore_t;
+using boost::redis::config;
 using boost::redis::detail::multiplexer;
+using boost::redis::detail::push_hello;
 using boost::redis::generic_response;
+using boost::redis::ignore_t;
+using boost::redis::request;
+using boost::redis::resp3::detail::deserialize;
 using boost::redis::resp3::node;
 using boost::redis::resp3::to_string;
-using boost::redis::detail::make_any_adapter;
+using boost::redis::response;
+using boost::redis::any_adapter;
 using boost::system::error_code;
 
 #define RESP3_SET_PART1 "~6\r\n+orange\r"
@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
 {
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(make_any_adapter(resp));
+   mpx.set_receive_adapter(any_adapter{resp});
 
    boost::system::error_code ec;
    auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
 {
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(make_any_adapter(resp));
+   mpx.set_receive_adapter(any_adapter{resp});
 
    std::string msg;
    // Only part of the message.
@@ -323,7 +323,7 @@ struct test_item {
       // to Redis.
       req.push(cmd_with_response ? "PING" : "SUBSCRIBE", "cmd-arg");
 
-      elem_ptr = std::make_shared<multiplexer::elem>(req, make_any_adapter(resp));
+      elem_ptr = std::make_shared<multiplexer::elem>(req, any_adapter{resp});
 
       elem_ptr->set_done_callback([this]() {
          done = true;
@@ -470,8 +470,7 @@ BOOST_AUTO_TEST_CASE(read_buffer_check_buffer_size)
 
 BOOST_AUTO_TEST_CASE(check_counter_adapter)
 {
-   using boost::redis::parse_event;
-   using boost::redis::detail::any_adapter_wrapper;
+   using boost::redis::any_adapter;
    using boost::redis::resp3::parse;
    using boost::redis::resp3::parser;
    using boost::redis::resp3::node_view;
@@ -481,15 +480,15 @@ BOOST_AUTO_TEST_CASE(check_counter_adapter)
    int node = 0;
    int done = 0;
 
-   auto counter_adapter = [&](parse_event ev, node_view const&, error_code&) mutable {
+   auto counter_adapter = [&](any_adapter::parse_event ev, node_view const&, error_code&) mutable {
       switch (ev) {
-         case parse_event::init: init++; break;
-         case parse_event::node: node++; break;
-         case parse_event::done: done++; break;
+         case any_adapter::parse_event::init: init++; break;
+         case any_adapter::parse_event::node: node++; break;
+         case any_adapter::parse_event::done: done++; break;
       }
    };
 
-   any_adapter_wrapper wrapped{counter_adapter, 1};
+   any_adapter wrapped{any_adapter::impl_t{counter_adapter}};
 
    error_code ec;
    parser p;

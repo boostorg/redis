@@ -83,10 +83,7 @@ struct elem_and_request {
    {
       // Empty requests are not valid. The request needs to be populated before creating the element
       req.push("get", "mykey");
-
-      elm = std::make_shared<multiplexer::elem>(
-         req,
-         [](parse_event, resp3::node_view const&, error_code&) { });
+      elm = std::make_shared<multiplexer::elem>(req, any_adapter{});
 
       elm->set_done_callback([this] {
          ++done_calls;

@@ -85,9 +85,11 @@ public:
 
       auto get_read_size() const -> std::size_t { return read_size_; }
 
+      auto get_remaining_responses() const -> std::size_t { return remaining_responses_; }
+
       auto commit_response(std::size_t read_size) -> void;
 
-      auto get_adapter() -> any_adapter_wrapper& { return adapter_; }
+      auto get_adapter() -> any_adapter& { return adapter_; }
 
    private:
       enum class status
@@ -99,8 +101,7 @@ public:
       };
 
       request const* req_;
-      any_adapter_wrapper adapter_;
-
+      any_adapter adapter_;
       std::function<void()> done_;
 
       // Contains the number of commands that haven't been read yet.
@@ -153,7 +154,7 @@ public:
       return std::string_view{write_buffer_};
    }
 
-   void set_receive_response(any_adapter adapter);
+   void set_receive_adapter(any_adapter adapter);
 
    [[nodiscard]]
    auto get_usage() const noexcept -> usage
@@ -186,7 +187,7 @@ private:
    bool on_push_ = false;
    bool cancel_run_called_ = false;
    usage usage_;
-   any_adapter_wrapper receive_adapter_;
+   any_adapter receive_adapter_;
 };
 
 auto make_elem(request const& req, any_adapter adapter) -> std::shared_ptr<multiplexer::elem>;

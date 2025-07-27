@@ -19,18 +19,6 @@
 
 namespace boost::redis {
 
-/** @brief Parse events that an adapter must support.
- */
-enum class parse_event
-{
-   /// Called before the parser starts processing data
-   init,
-   /// Called for each and every node of RESP3 data
-   node,
-   /// Called when done processing a complete RESP3 message
-   done
-};
-
 /** @brief A type-erased reference to a response.
  *
  *  A type-erased response adapter. It can be executed using @ref connection::async_exec.
@@ -41,62 +29,85 @@ enum class parse_event
  *
  *  @code
  *      co_await conn.async_exec(req, resp);
- *      co_await conn.async_exec(req, any_adapter(...));
+ *      co_await conn.async_exec(req, any_response(resp));
  *  @endcode
  */
-using any_adapter = std::function<void(parse_event, resp3::node_view const&, system::error_code&)>;
-
-namespace detail {
-
-template <class T>
-auto make_any_adapter(T& resp) -> any_adapter
-{
-   using namespace boost::redis::adapter;
-
-   return [adapter = boost_redis_adapt(
-              resp)](parse_event ev, resp3::node_view const& nd, system::error_code& ec) mutable {
-      switch (ev) {
-         case parse_event::init: adapter.on_init(); break;
-         case parse_event::node: adapter.on_node(nd, ec); break;
-         case parse_event::done: adapter.on_done(); break;
-      }
-   };
-}
-
-class any_adapter_wrapper {
+class any_adapter {
 public:
-   any_adapter_wrapper(any_adapter adapter = {}, std::size_t expected_responses = 0u)
-   : adapter_{std::move(adapter)}
-   , expected_responses_{expected_responses}
+   /** @brief Parse events that an adapter must support.
+    */
+   enum class parse_event
+   {
+      /// Called before the parser starts processing data
+      init,
+      /// Called for each and every node of RESP3 data
+      node,
+      /// Called when done processing a complete RESP3 message
+      done
+   };
+
+   /// The type erased implementation type.
+   using impl_t = std::function<void(parse_event, resp3::node_view const&, system::error_code&)>;
+
+   template <class T>
+   static auto create_impl(T& resp) -> impl_t
+   {
+      using namespace boost::redis::adapter;
+      return [adapter2 = boost_redis_adapt(resp)](
+                  any_adapter::parse_event ev,
+                  resp3::node_view const& nd,
+                  system::error_code& ec) mutable {
+         switch (ev) {
+            case parse_event::init: adapter2.on_init(); break;
+            case parse_event::node: adapter2.on_node(nd, ec); break;
+            case parse_event::done: adapter2.on_done(); break;
+         }
+      };
+   }
+
+   /// Contructs from a type erased adaper
+   any_adapter(impl_t fn = [](parse_event, resp3::node_view const&, system::error_code&) { })
+   : impl_{std::move(fn)}
    { }
 
+   /**
+     * @brief Constructor.
+     * 
+     * Creates a type-erased response adapter from `resp` by calling
+     * `boost_redis_adapt`. `T` must be a valid Redis response type.
+     * Any type passed to @ref connection::async_exec qualifies.
+     *
+     * This object stores a reference to `resp`, which must be kept alive
+     * while `*this` is being used.
+     */
+   template <class T, class = std::enable_if_t<!std::is_same_v<T, any_adapter>>>
+   explicit any_adapter(T& resp)
+   : impl_(create_impl(resp))
+   { }
+
+   /// Calls the implementation with the arguments `impl_(parse_event::init, ...);`
    void on_init()
    {
       system::error_code ec;
-      adapter_(parse_event::init, {}, ec);
+      impl_(parse_event::init, {}, ec);
    };
 
+   /// Calls the implementation with the arguments `impl_(parse_event::done, ...);`
    void on_done()
    {
       system::error_code ec;
-      adapter_(parse_event::done, {}, ec);
-      BOOST_ASSERT(expected_responses_ != 0u);
-      expected_responses_ -= 1;
+      impl_(parse_event::done, {}, ec);
    };
 
+   /// Calls the implementation with the arguments `impl_(parse_event::node, ...);`
    void on_node(resp3::node_view const& nd, system::error_code& ec)
    {
-      adapter_(parse_event::node, nd, ec);
+      impl_(parse_event::node, nd, ec);
    };
 
-   auto get_remaining_responses() const -> std::size_t { return expected_responses_; }
-
 private:
-   any_adapter adapter_;
-   std::size_t expected_responses_ = 0;
+   impl_t impl_;
 };
-
-}  // namespace detail
 
 }  // namespace boost::redis
 
