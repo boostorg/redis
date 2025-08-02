@@ -11,19 +11,14 @@
 
 namespace boost::redis::detail {
 
-multiplexer::elem::elem(request const& req, pipeline_adapter_type adapter)
+multiplexer::elem::elem(request const& req, any_adapter adapter)
 : req_{&req}
-, adapter_{}
+, adapter_{std::move(adapter)}
 , remaining_responses_{req.get_expected_responses()}
 , status_{status::waiting}
 , ec_{}
 , read_size_{0}
-{
-   adapter_ = [this, adapter](resp3::node_view const& nd, system::error_code& ec) {
-      auto const i = req_->get_expected_responses() - remaining_responses_;
-      adapter(i, nd, ec);
-   };
-}
+{ }
 
 auto multiplexer::elem::notify_error(system::error_code ec) noexcept -> void
 {
@@ -314,8 +309,12 @@ bool multiplexer::is_waiting_response() const noexcept
 
 bool multiplexer::is_writing() const noexcept { return !write_buffer_.empty(); }
 
-auto make_elem(request const& req, multiplexer::pipeline_adapter_type adapter)
-   -> std::shared_ptr<multiplexer::elem>
+void multiplexer::set_receive_adapter(any_adapter adapter)
+{
+   receive_adapter_ = std::move(adapter);
+}
+
+auto make_elem(request const& req, any_adapter adapter) -> std::shared_ptr<multiplexer::elem>
 {
    return std::make_shared<multiplexer::elem>(req, std::move(adapter));
 }

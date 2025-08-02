@@ -180,18 +180,14 @@ struct response_error_tag { };
 response_error_tag error_tag_obj;
 
 struct response_error_adapter {
-   void operator()(
-      std::size_t,
+   void on_init() { }
+   void on_done() { }
+
+   void on_node(
       boost::redis::resp3::basic_node<std::string_view> const&,
       boost::system::error_code& ec)
    {
       ec = boost::redis::error::incompatible_size;
-   }
-
-   [[nodiscard]]
-   auto get_supported_response_size() const noexcept
-   {
-      return static_cast<std::size_t>(-1);
    }
 };
 

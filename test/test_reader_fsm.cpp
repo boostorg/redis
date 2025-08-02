@@ -23,6 +23,7 @@ using redis::detail::reader_fsm;
 using redis::detail::multiplexer;
 using redis::detail::read_buffer;
 using redis::generic_response;
+using redis::any_adapter;
 using action = redis::detail::reader_fsm::action;
 
 namespace boost::redis::detail {
@@ -44,7 +45,7 @@ void test_push()
    read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(resp);
+   mpx.set_receive_adapter(any_adapter{resp});
    reader_fsm fsm{rbuf, mpx};
    error_code ec;
    action act;
@@ -92,7 +93,7 @@ void test_read_needs_more()
    read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(resp);
+   mpx.set_receive_adapter(any_adapter{resp});
    reader_fsm fsm{rbuf, mpx};
    error_code ec;
    action act;
@@ -138,7 +139,7 @@ void test_read_error()
    read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(resp);
+   mpx.set_receive_adapter(any_adapter{resp});
    reader_fsm fsm{rbuf, mpx};
    error_code ec;
    action act;
@@ -169,7 +170,7 @@ void test_parse_error()
    read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(resp);
+   mpx.set_receive_adapter(any_adapter{resp});
    reader_fsm fsm{rbuf, mpx};
    error_code ec;
    action act;
@@ -200,7 +201,7 @@ void test_push_deliver_error()
    read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(resp);
+   mpx.set_receive_adapter(any_adapter{resp});
    reader_fsm fsm{rbuf, mpx};
    error_code ec;
    action act;
@@ -236,7 +237,7 @@ void test_max_read_buffer_size()
    rbuf.set_config({5, 7});
    multiplexer mpx;
    generic_response resp;
-   mpx.set_receive_response(resp);
+   mpx.set_receive_adapter(any_adapter{resp});
    reader_fsm fsm{rbuf, mpx};
    error_code ec;
    action act;
