@@ -110,8 +110,11 @@ struct connection_impl {
                   self.reset_cancellation_state(asio::enable_total_cancellation());
                   continue;  // this action does not require yielding
                case exec_action_type::immediate:
-                  asio::async_immediate(self.get_io_executor(), std::move(self));
+               {
+                  auto io_ex = self.get_io_executor();
+                  asio::async_immediate(io_ex, std::move(self));
                   return;
+               }
                case exec_action_type::notify_writer:
                   obj_->writer_timer_.cancel();
                   continue;  // this action does not require yielding
@@ -387,7 +390,11 @@ public:
          if (ec) {
             conn_->logger_.log(logger::level::err, "Invalid configuration", ec);
             stored_ec_ = ec;
-            BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
+            BOOST_ASIO_CORO_YIELD
+            {
+               auto io_ex = self.get_io_executor();
+               asio::async_immediate(io_ex, std::move(self));
+            }
             self.complete(stored_ec_);
             return;
          }
