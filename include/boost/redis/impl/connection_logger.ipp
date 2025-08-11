@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/detail/connection_logger.hpp>
+#include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/logger.hpp>
 
 #include <boost/asio/ip/tcp.hpp>
@@ -137,22 +138,6 @@ void connection_logger::on_ssl_handshake(system::error_code const& ec)
 
    msg_ = "SSL handshake: ";
    format_error_code(ec, msg_);
-
-   logger_.fn(logger::level::info, msg_);
-}
-
-void connection_logger::on_write(system::error_code const& ec, std::size_t n)
-{
-   if (logger_.lvl < logger::level::info)
-      return;
-
-   msg_ = "writer_op: ";
-   if (ec) {
-      format_error_code(ec, msg_);
-   } else {
-      msg_ += std::to_string(n);
-      msg_ += " bytes written.";
-   }
 
    logger_.fn(logger::level::info, msg_);
 }
