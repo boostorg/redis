@@ -36,7 +36,7 @@ using generic_response = adapter::result<std::vector<resp3::node>>;
  * that manages filling of flat_response_value.
  */
 namespace adapter::detail {
-template <typename Result>
+template <class Result>
 class general_aggregate;
 }
 

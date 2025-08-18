@@ -65,9 +65,12 @@ struct offset_string {
    std::size_t size{};
 
    operator std::string() const { return std::string{data}; }
-};
 
-inline std::ostream& operator<<(std::ostream& os, offset_string const& s) { return os << s.data; }
+   friend std::ostream& operator<<(std::ostream& os, offset_string const& s)
+   {
+      return os << s.data;
+   }
+};
 
 using offset_node = basic_node<offset_string>;
 
