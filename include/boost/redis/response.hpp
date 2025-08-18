@@ -64,6 +64,7 @@ public:
    std::vector<resp3::offset_node> const& view() const { return view_; }
    std::vector<resp3::offset_node>& view() { return view_; }
 
+private:
    void set_view()
    {
       for (auto& node : view_) {
@@ -74,7 +75,6 @@ public:
       }
    }
 
-private:
    template <typename T>
    friend class adapter::detail::general_aggregate;
 
