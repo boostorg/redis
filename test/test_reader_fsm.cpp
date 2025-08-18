@@ -23,7 +23,7 @@ using redis::detail::reader_fsm;
 using redis::detail::multiplexer;
 using redis::generic_flat_response;
 using redis::detail::read_buffer;
-using redis::generic_response;
+using redis::generic_flat_response;
 using redis::any_adapter;
 using action = redis::detail::reader_fsm::action;
 
@@ -170,7 +170,7 @@ void test_parse_error()
 {
    read_buffer rbuf;
    multiplexer mpx;
-   generic_response resp;
+   generic_flat_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
    reader_fsm fsm{rbuf, mpx};
    error_code ec;
@@ -237,7 +237,7 @@ void test_max_read_buffer_size()
    read_buffer rbuf;
    rbuf.set_config({5, 7});
    multiplexer mpx;
-   generic_response resp;
+   generic_flat_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
    reader_fsm fsm{rbuf, mpx};
    error_code ec;

@@ -25,7 +25,7 @@ using boost::redis::adapter::result;
 using boost::redis::config;
 using boost::redis::detail::multiplexer;
 using boost::redis::detail::push_hello;
-using boost::redis::generic_response;
+using boost::redis::generic_flat_response;
 using boost::redis::ignore_t;
 using boost::redis::request;
 using boost::redis::resp3::detail::deserialize;
@@ -264,7 +264,7 @@ std::ostream& operator<<(std::ostream& os, node const& nd)
 BOOST_AUTO_TEST_CASE(multiplexer_push)
 {
    multiplexer mpx;
-   generic_response resp;
+   generic_flat_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
 
    boost::system::error_code ec;
@@ -276,17 +276,17 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
    // TODO: Provide operator << for generic_response so we can compare
    // the whole vector.
    BOOST_CHECK_EQUAL(resp.value().size(), 3u);
-   BOOST_CHECK_EQUAL(resp.value().at(1).value, "one");
-   BOOST_CHECK_EQUAL(resp.value().at(2).value, "two");
+   BOOST_CHECK_EQUAL(resp.value().at(1).value.data, "one");
+   BOOST_CHECK_EQUAL(resp.value().at(2).value.data, "two");
 
-   for (auto const& e : resp.value())
-      std::cout << e << std::endl;
+   for (auto const& e : resp.value().view())
+      std::cout << e.value.data << std::endl;
 }
 
 BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
 {
    multiplexer mpx;
-   generic_response resp;
+   generic_flat_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
 
    std::string msg;
@@ -307,13 +307,13 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
    // TODO: Provide operator << for generic_response so we can compare
    // the whole vector.
    BOOST_CHECK_EQUAL(resp.value().size(), 3u);
-   BOOST_CHECK_EQUAL(resp.value().at(1).value, "one");
-   BOOST_CHECK_EQUAL(resp.value().at(2).value, "two");
+   BOOST_CHECK_EQUAL(resp.value().at(1).value.data, "one");
+   BOOST_CHECK_EQUAL(resp.value().at(2).value.data, "two");
 }
 
 struct test_item {
    request req;
-   generic_response resp;
+   generic_flat_response resp;
    std::shared_ptr<multiplexer::elem> elem_ptr;
    bool done = false;
 
