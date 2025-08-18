@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
    BOOST_CHECK_EQUAL(resp.value().at(2).value.data, "two");
 
    for (auto const& e : resp.value().view())
-      std::cout << e.value.data << std::endl;
+      std::cout << e.value << std::endl;
 }
 
 BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
