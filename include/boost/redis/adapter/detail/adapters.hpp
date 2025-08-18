@@ -138,26 +138,6 @@ void boost_redis_from_bulk(T& t, resp3::basic_node<String> const& node, system::
    from_bulk_impl<T>::apply(t, node, ec);
 }
 
-//================================================
-
-template <typename T>
-inline auto prepare_done(T*) noexcept
-{
-   return [] { };
-}
-
-template <>
-inline auto prepare_done(generic_flat_response* resp) noexcept
-{
-   return [resp] {
-      if (resp->has_value()) {
-         resp->value().set_view();
-      }
-   };
-}
-
-//================================================
-
 template <class Result>
 class general_aggregate {
 private:
@@ -205,6 +185,15 @@ public:
    explicit general_aggregate(result<flat_response_value>* c = nullptr)
    : result_(c)
    { }
+
+   void on_init() { }
+   void on_done()
+   {
+      if (result_->has_value()) {
+         result_->value().set_view();
+      }
+   }
+
    template <class String>
    void operator()(resp3::basic_node<String> const& nd, system::error_code&)
    {
