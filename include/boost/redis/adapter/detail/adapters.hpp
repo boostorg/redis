@@ -204,22 +204,7 @@ public:
                std::string{std::cbegin(nd.value), std::cend(nd.value)}
             };
             break;
-         default:
-            auto& data = result_->value().data_;
-
-            resp3::offset_string offset_string;
-            offset_string.offset = data.size();
-            offset_string.size = nd.value.size();
-
-            data.append(nd.value.data(), nd.value.size());
-
-            resp3::offset_node new_node;
-            new_node.data_type = nd.data_type;
-            new_node.aggregate_size = nd.aggregate_size;
-            new_node.depth = nd.depth;
-            new_node.value = std::move(offset_string);
-
-            result_->value().view_.push_back(std::move(new_node));
+         default: result_->value().add_node(nd);
       }
    }
 };
