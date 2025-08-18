@@ -167,8 +167,12 @@ public:
    explicit general_aggregate(Result* c = nullptr)
    : result_(c)
    { }
+
+   void on_init() { }
+   void on_done() { }
+
    template <class String>
-   void operator()(resp3::basic_node<String> const& nd, system::error_code&)
+   void on_node(resp3::basic_node<String> const& nd, system::error_code&)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
       switch (nd.data_type) {
@@ -199,8 +203,12 @@ public:
    explicit general_aggregate(result<flat_response_value>* c = nullptr)
    : result_(c)
    { }
+
+   void on_init() { }
+   void on_done() { }
+
    template <class String>
-   void operator()(resp3::basic_node<String> const& nd, system::error_code&)
+   void on_node(resp3::basic_node<String> const& nd, system::error_code&)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
       switch (nd.data_type) {
@@ -241,8 +249,11 @@ public:
    : result_(t)
    { }
 
+   void on_init() { }
+   void on_done() { }
+
    template <class String>
-   void operator()(resp3::basic_node<String> const& nd, system::error_code&)
+   void on_node(resp3::basic_node<String> const& nd, system::error_code&)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
       switch (nd.data_type) {
@@ -267,8 +278,11 @@ class simple_impl {
 public:
    void on_value_available(Result&) { }
 
+   void on_init() { }
+   void on_done() { }
+
    template <class String>
-   void operator()(Result& result, resp3::basic_node<String> const& node, system::error_code& ec)
+   void on_node(Result& result, resp3::basic_node<String> const& node, system::error_code& ec)
    {
       if (is_aggregate(node.data_type)) {
          ec = redis::error::expects_resp3_simple_type;
@@ -287,8 +301,11 @@ private:
 public:
    void on_value_available(Result& result) { hint_ = std::end(result); }
 
+   void on_init() { }
+   void on_done() { }
+
    template <class String>
-   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
+   void on_node(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
          if (nd.data_type != resp3::type::set)
@@ -318,8 +335,11 @@ private:
 public:
    void on_value_available(Result& result) { current_ = std::end(result); }
 
+   void on_init() { }
+   void on_done() { }
+
    template <class String>
-   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
+   void on_node(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
          if (element_multiplicity(nd.data_type) != 2)
@@ -353,8 +373,11 @@ class vector_impl {
 public:
    void on_value_available(Result&) { }
 
+   void on_init() { }
+   void on_done() { }
+
    template <class String>
-   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
+   void on_node(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
          auto const m = element_multiplicity(nd.data_type);
@@ -374,8 +397,11 @@ private:
 public:
    void on_value_available(Result&) { }
 
+   void on_init() { }
+   void on_done() { }
+
    template <class String>
-   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
+   void on_node(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (is_aggregate(nd.data_type)) {
          if (i_ != -1) {
@@ -405,8 +431,11 @@ template <class Result>
 struct list_impl {
    void on_value_available(Result&) { }
 
+   void on_init() { }
+   void on_done() { }
+
    template <class String>
-   void operator()(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
+   void on_node(Result& result, resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       if (!is_aggregate(nd.data_type)) {
          BOOST_ASSERT(nd.aggregate_size == 1);
@@ -529,8 +558,11 @@ public:
       }
    }
 
+   void on_init() { impl_.on_init(); }
+   void on_done() { impl_.on_done(); }
+
    template <class String>
-   void operator()(resp3::basic_node<String> const& nd, system::error_code& ec)
+   void on_node(resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
 
@@ -541,7 +573,7 @@ public:
          return;
 
       BOOST_ASSERT(result_);
-      impl_(result_->value(), nd, ec);
+      impl_.on_node(result_->value(), nd, ec);
    }
 };
 
@@ -575,8 +607,11 @@ public:
    : result_(o)
    { }
 
+   void on_init() { impl_.on_init(); }
+   void on_done() { impl_.on_done(); }
+
    template <class String>
-   void operator()(resp3::basic_node<String> const& nd, system::error_code& ec)
+   void on_node(resp3::basic_node<String> const& nd, system::error_code& ec)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
 
@@ -594,7 +629,7 @@ public:
          impl_.on_value_available(result_->value().value());
       }
 
-      impl_(result_->value().value(), nd, ec);
+      impl_.on_node(result_->value().value(), nd, ec);
    }
 };
 

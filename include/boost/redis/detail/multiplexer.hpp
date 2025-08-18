@@ -9,12 +9,13 @@
 
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
-#include <boost/redis/config.hpp>
-#include <boost/redis/operation.hpp>
+#include <boost/redis/detail/read_buffer.hpp>
+#include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/usage.hpp>
 
-#include <boost/asio/experimental/channel.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <algorithm>
 #include <deque>
@@ -32,14 +33,11 @@ namespace detail {
 
 using tribool = std::optional<bool>;
 
-struct multiplexer {
-   using adapter_type = std::function<void(resp3::node_view const&, system::error_code&)>;
-   using pipeline_adapter_type = std::function<
-      void(std::size_t, resp3::node_view const&, system::error_code&)>;
-
+class multiplexer {
+public:
    struct elem {
    public:
-      explicit elem(request const& req, pipeline_adapter_type adapter);
+      explicit elem(request const& req, any_adapter adapter);
 
       void set_done_callback(std::function<void()> f) noexcept { done_ = std::move(f); };
 
@@ -91,7 +89,7 @@ struct multiplexer {
 
       auto commit_response(std::size_t read_size) -> void;
 
-      auto get_adapter() -> adapter_type& { return adapter_; }
+      auto get_adapter() -> any_adapter& { return adapter_; }
 
    private:
       enum class status
@@ -103,8 +101,7 @@ struct multiplexer {
       };
 
       request const* req_;
-      adapter_type adapter_;
-
+      any_adapter adapter_;
       std::function<void()> done_;
 
       // Contains the number of commands that haven't been read yet.
@@ -127,7 +124,8 @@ struct multiplexer {
    // If the tribool contains no value more data is needed, otherwise
    // if the value is true the message consumed is a push.
    [[nodiscard]]
-   auto consume_next(system::error_code& ec) -> std::pair<tribool, std::size_t>;
+   auto consume_next(std::string_view data, system::error_code& ec)
+      -> std::pair<tribool, std::size_t>;
 
    auto add(std::shared_ptr<elem> const& ptr) -> void;
    auto reset() -> void;
@@ -156,27 +154,7 @@ struct multiplexer {
       return std::string_view{write_buffer_};
    }
 
-   [[nodiscard]]
-   auto get_read_buffer() noexcept -> std::string&
-   {
-      return read_buffer_;
-   }
-
-   [[nodiscard]]
-   auto get_read_buffer() const noexcept -> std::string const&
-   {
-      return read_buffer_;
-   }
-
-   // TODO: Change signature to receive an adapter instead of a
-   // response.
-   template <class Response>
-   void set_receive_response(Response& response)
-   {
-      using namespace boost::redis::adapter;
-      auto g = boost_redis_adapt(response);
-      receive_adapter_ = adapter::detail::make_adapter_wrapper(g);
-   }
+   void set_receive_adapter(any_adapter adapter);
 
    [[nodiscard]]
    auto get_usage() const noexcept -> usage
@@ -191,28 +169,28 @@ private:
    [[nodiscard]]
    auto is_waiting_response() const noexcept -> bool;
 
-   [[nodiscard]]
-   auto on_finish_parsing(bool is_push) -> std::size_t;
+   void commit_usage(bool is_push, std::size_t size);
 
    [[nodiscard]]
-   auto is_next_push() const noexcept -> bool;
+   auto is_next_push(std::string_view data) const noexcept -> bool;
 
    // Releases the number of requests that have been released.
    [[nodiscard]]
    auto release_push_requests() -> std::size_t;
 
-   std::string read_buffer_;
+   [[nodiscard]]
+   tribool consume_next_impl(std::string_view data, system::error_code& ec);
+
    std::string write_buffer_;
    std::deque<std::shared_ptr<elem>> reqs_;
    resp3::parser parser_{};
    bool on_push_ = false;
    bool cancel_run_called_ = false;
    usage usage_;
-   adapter_type receive_adapter_;
+   any_adapter receive_adapter_;
 };
 
-auto make_elem(request const& req, multiplexer::pipeline_adapter_type adapter)
-   -> std::shared_ptr<multiplexer::elem>;
+auto make_elem(request const& req, any_adapter adapter) -> std::shared_ptr<multiplexer::elem>;
 
 }  // namespace detail
 }  // namespace boost::redis

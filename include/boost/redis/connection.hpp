@@ -57,105 +57,155 @@
 namespace boost::redis {
 namespace detail {
 
-template <class AsyncReadStream, class DynamicBuffer>
-class append_some_op {
-private:
-   AsyncReadStream& stream_;
-   DynamicBuffer buf_;
-   std::size_t size_ = 0;
-   std::size_t tmp_ = 0;
-   asio::coroutine coro_{};
+template <class Executor>
+struct connection_impl {
+   using clock_type = std::chrono::steady_clock;
+   using clock_traits_type = asio::wait_traits<clock_type>;
+   using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, Executor>;
 
-public:
-   append_some_op(AsyncReadStream& stream, DynamicBuffer buf, std::size_t size)
-   : stream_{stream}
-   , buf_{std::move(buf)}
-   , size_{size}
-   { }
+   using receive_channel_type = asio::experimental::channel<
+      Executor,
+      void(system::error_code, std::size_t)>;
+   using health_checker_type = detail::health_checker<Executor>;
+   using resp3_handshaker_type = detail::resp3_handshaker<Executor>;
+   using exec_notifier_type = asio::experimental::channel<
+      Executor,
+      void(system::error_code, std::size_t)>;
 
-   template <class Self>
-   void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
-   {
-      BOOST_ASIO_CORO_REENTER(coro_)
+   redis_stream<Executor> stream_;
+
+   // Notice we use a timer to simulate a condition-variable. It is
+   // also more suitable than a channel and the notify operation does
+   // not suspend.
+   timer_type writer_timer_;
+   timer_type reconnect_timer_;  // to wait the reconnection period
+   receive_channel_type receive_channel_;
+   health_checker_type health_checker_;
+   resp3_handshaker_type handshaker_;
+
+   config cfg_;
+   multiplexer mpx_;
+   connection_logger logger_;
+   read_buffer read_buffer_;
+
+   using executor_type = Executor;
+
+   executor_type get_executor() noexcept { return writer_timer_.get_executor(); }
+
+   struct exec_op {
+      connection_impl* obj_ = nullptr;
+      std::shared_ptr<exec_notifier_type> notifier_ = nullptr;
+      exec_fsm fsm_;
+
+      template <class Self>
+      void operator()(Self& self, system::error_code = {}, std::size_t = 0)
       {
-         tmp_ = buf_.size();
-         buf_.grow(size_);
+         while (true) {
+            // Invoke the state machine
+            auto act = fsm_.resume(obj_->is_open(), self.get_cancellation_state().cancelled());
 
-         BOOST_ASIO_CORO_YIELD
-         stream_.async_read_some(buf_.data(tmp_, size_), std::move(self));
-         if (ec) {
-            self.complete(ec, 0);
-            return;
+            // Do what the FSM said
+            switch (act.type()) {
+               case exec_action_type::setup_cancellation:
+                  self.reset_cancellation_state(asio::enable_total_cancellation());
+                  continue;  // this action does not require yielding
+               case exec_action_type::immediate:
+                  asio::async_immediate(self.get_io_executor(), std::move(self));
+                  return;
+               case exec_action_type::notify_writer:
+                  obj_->writer_timer_.cancel();
+                  continue;  // this action does not require yielding
+               case exec_action_type::wait_for_response:
+                  notifier_->async_receive(std::move(self));
+                  return;
+               case exec_action_type::cancel_run:
+                  obj_->cancel(operation::run);
+                  continue;  // this action does not require yielding
+               case exec_action_type::done:
+                  notifier_.reset();
+                  self.complete(act.error(), act.bytes_read());
+                  return;
+            }
          }
+      }
+   };
 
-         buf_.shrink(buf_.size() - tmp_ - n);
-         self.complete({}, n);
+   connection_impl(Executor&& ex, asio::ssl::context&& ctx, logger&& lgr)
+   : stream_{ex, std::move(ctx)}
+   , writer_timer_{ex}
+   , reconnect_timer_{ex}
+   , receive_channel_{ex, 256}
+   , health_checker_{ex}
+   , logger_{std::move(lgr)}
+   {
+      set_receive_adapter(any_adapter{ignore});
+      writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
+
+      // Reserve some memory to avoid excessive memory allocations in
+      // the first reads.
+      read_buffer_.reserve(4096u);
+   }
+
+   void cancel(operation op)
+   {
+      switch (op) {
+         case operation::resolve: stream_.cancel_resolve(); break;
+         case operation::exec:    mpx_.cancel_waiting(); break;
+         case operation::reconnection:
+            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
+            break;
+         case operation::run:          cancel_run(); break;
+         case operation::receive:      receive_channel_.cancel(); break;
+         case operation::health_check: health_checker_.cancel(); break;
+         case operation::all:
+            stream_.cancel_resolve();
+            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
+            health_checker_.cancel();
+            cancel_run();               // run
+            receive_channel_.cancel();  // receive
+            mpx_.cancel_waiting();      // exec
+            break;
+         default: /* ignore */;
       }
    }
-};
 
-template <class AsyncReadStream, class DynamicBuffer, class CompletionToken>
-auto async_append_some(
-   AsyncReadStream& stream,
-   DynamicBuffer buffer,
-   std::size_t size,
-   CompletionToken&& token)
-{
-   return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
-      append_some_op<AsyncReadStream, DynamicBuffer>{stream, buffer, size},
-      token,
-      stream);
-}
+   void cancel_run()
+   {
+      stream_.close();
+      writer_timer_.cancel();
+      receive_channel_.cancel();
+      mpx_.cancel_on_conn_lost();
+   }
+
+   bool is_open() const noexcept { return stream_.is_open(); }
+
+   bool will_reconnect() const noexcept
+   {
+      return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();
+   }
+
+   template <class CompletionToken>
+   auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token)
+   {
+      auto notifier = std::make_shared<exec_notifier_type>(get_executor(), 1);
+      auto info = make_elem(req, std::move(adapter));
+
+      info->set_done_callback([notifier]() {
+         notifier->try_send(std::error_code{}, 0);
+      });
+
+      return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
+         exec_op{this, notifier, exec_fsm(mpx_, std::move(info))},
+         token,
+         writer_timer_);
+   }
+
+   void set_receive_adapter(any_adapter adapter) { mpx_.set_receive_adapter(std::move(adapter)); }
+};
 
 template <class Executor>
-using exec_notifier_type = asio::experimental::channel<
-   Executor,
-   void(system::error_code, std::size_t)>;
-
-template <class Conn>
-struct exec_op {
-   using executor_type = typename Conn::executor_type;
-
-   Conn* conn_ = nullptr;
-   std::shared_ptr<exec_notifier_type<executor_type>> notifier_ = nullptr;
-   detail::exec_fsm fsm_;
-
-   template <class Self>
-   void operator()(Self& self, system::error_code = {}, std::size_t = 0)
-   {
-      while (true) {
-         // Invoke the state machine
-         auto act = fsm_.resume(conn_->is_open(), self.get_cancellation_state().cancelled());
-
-         // Do what the FSM said
-         switch (act.type()) {
-            case detail::exec_action_type::setup_cancellation:
-               self.reset_cancellation_state(asio::enable_total_cancellation());
-               continue;  // this action does not require yielding
-            case detail::exec_action_type::immediate:
-               asio::async_immediate(self.get_io_executor(), std::move(self));
-               return;
-            case detail::exec_action_type::notify_writer:
-               conn_->writer_timer_.cancel();
-               continue;  // this action does not require yielding
-            case detail::exec_action_type::wait_for_response:
-               notifier_->async_receive(std::move(self));
-               return;
-            case detail::exec_action_type::cancel_run:
-               conn_->cancel(operation::run);
-               continue;  // this action does not require yielding
-            case detail::exec_action_type::done:
-               notifier_.reset();
-               self.complete(act.error(), act.bytes_read());
-               return;
-         }
-      }
-   }
-};
-
-template <class Conn>
 struct writer_op {
-   Conn* conn_;
+   connection_impl<Executor>* conn_;
    asio::coroutine coro{};
 
    template <class Self>
@@ -207,33 +257,20 @@ struct writer_op {
    }
 };
 
-template <class Conn>
+template <class Executor>
 struct reader_op {
-   using dyn_buffer_type = asio::dynamic_string_buffer<
-      char,
-      std::char_traits<char>,
-      std::allocator<char>>;
-
-   // TODO: Move this to config so the user can fine tune?
-   static constexpr std::size_t buffer_growth_hint = 4096;
-
-   Conn* conn_;
-   detail::reader_fsm fsm_;
+   connection_impl<Executor>* conn_;
+   reader_fsm fsm_;
 
 public:
-   reader_op(Conn& conn) noexcept
+   reader_op(connection_impl<Executor>& conn) noexcept
    : conn_{&conn}
-   , fsm_{conn.mpx_}
+   , fsm_{conn.read_buffer_, conn.mpx_}
    { }
 
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
-      using dyn_buffer_type = asio::dynamic_string_buffer<
-         char,
-         std::char_traits<char>,
-         std::allocator<char>>;
-
       for (;;) {
          auto act = fsm_.resume(n, ec, self.get_cancellation_state().cancelled());
 
@@ -245,11 +282,10 @@ public:
                continue;
             case reader_fsm::action::type::needs_more:
             case reader_fsm::action::type::append_some:
-               async_append_some(
-                  conn_->stream_,
-                  dyn_buffer_type{conn_->mpx_.get_read_buffer(), conn_->cfg_.max_read_size},
-                  conn_->mpx_.get_parser().get_suggested_buffer_growth(buffer_growth_hint),
-                  std::move(self));
+            {
+               auto const buf = conn_->read_buffer_.get_append_buffer();
+               conn_->stream_.async_read_some(asio::buffer(buf), std::move(self));
+            }
                return;
             case reader_fsm::action::type::notify_push_receiver:
                if (conn_->receive_channel_.try_send(ec, act.push_size_)) {
@@ -278,17 +314,35 @@ inline system::error_code check_config(const config& cfg)
    return system::error_code{};
 }
 
-template <class Conn>
+template <class Executor>
 class run_op {
 private:
-   Conn* conn_ = nullptr;
+   connection_impl<Executor>* conn_ = nullptr;
    asio::coroutine coro_{};
    system::error_code stored_ec_;
 
    using order_t = std::array<std::size_t, 5>;
 
+   template <class CompletionToken>
+   auto reader(CompletionToken&& token)
+   {
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         reader_op<Executor>{*conn_},
+         std::forward<CompletionToken>(token),
+         conn_->writer_timer_);
+   }
+
+   template <class CompletionToken>
+   auto writer(CompletionToken&& token)
+   {
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         writer_op<Executor>{conn_},
+         std::forward<CompletionToken>(token),
+         conn_->writer_timer_);
+   }
+
 public:
-   run_op(Conn* conn) noexcept
+   run_op(connection_impl<Executor>* conn) noexcept
    : conn_{conn}
    { }
 
@@ -342,6 +396,7 @@ public:
 
             // If we were successful, run all the connection tasks
             if (!ec) {
+               conn_->read_buffer_.clear();
                conn_->mpx_.reset();
 
                // Note: Order is important here because the writer might
@@ -359,10 +414,10 @@ public:
                      return conn_->health_checker_.async_check_timeout(*conn_, token);
                   },
                   [this](auto token) {
-                     return conn_->reader(token);
+                     return this->reader(token);
                   },
                   [this](auto token) {
-                     return conn_->writer(token);
+                     return this->writer(token);
                   })
                   .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
 
@@ -445,16 +500,11 @@ public:
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       logger lgr = {})
-   : stream_{ex, std::move(ctx)}
-   , writer_timer_{ex}
-   , reconnect_timer_{ex}
-   , receive_channel_{ex, 256}
-   , health_checker_{ex}
-   , logger_{std::move(lgr)}
-   {
-      set_receive_response(ignore);
-      writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
-   }
+   : impl_(std::make_unique<detail::connection_impl<Executor>>(
+        std::move(ex),
+        std::move(ctx),
+        std::move(lgr)))
+   { }
 
    /** @brief Constructor from an executor and a logger.
     *
@@ -504,7 +554,7 @@ public:
    { }
 
    /// Returns the associated executor.
-   executor_type get_executor() noexcept { return writer_timer_.get_executor(); }
+   executor_type get_executor() noexcept { return impl_->writer_timer_.get_executor(); }
 
    /** @brief Starts the underlying connection operations.
     *
@@ -550,14 +600,15 @@ public:
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(config const& cfg, CompletionToken&& token = {})
    {
-      cfg_ = cfg;
-      health_checker_.set_config(cfg);
-      handshaker_.set_config(cfg);
+      impl_->cfg_ = cfg;
+      impl_->health_checker_.set_config(cfg);
+      impl_->handshaker_.set_config(cfg);
+      impl_->read_buffer_.set_config({cfg.read_buffer_append_size, cfg.max_read_size});
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::run_op<this_type>{this},
+         detail::run_op<Executor>{impl_.get()},
          token,
-         writer_timer_);
+         impl_->writer_timer_);
    }
 
    /**
@@ -636,10 +687,10 @@ public:
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_receive(CompletionToken&& token = {})
    {
-      return receive_channel_.async_receive(std::forward<CompletionToken>(token));
+      return impl_->receive_channel_.async_receive(std::forward<CompletionToken>(token));
    }
 
-   /** @brief Receives server pushes synchronously without blocking.
+   /** @brief Receives server> pushes synchronously without blocking.
     *
     *  Receives a server push synchronously by calling `try_receive` on
     *  the underlying channel. If the operation fails because
@@ -658,7 +709,7 @@ public:
          size = n;
       };
 
-      auto const res = receive_channel_.try_receive(f);
+      auto const res = impl_->receive_channel_.try_receive(f);
       if (ec)
          return 0;
 
@@ -710,7 +761,10 @@ public:
       class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
-      return this->async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
+      return this->async_exec(
+         req,
+         any_adapter{resp},
+         std::forward<CompletionToken>(token));
    }
 
    /** @brief Executes commands on the Redis server asynchronously.
@@ -754,25 +808,7 @@ public:
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
    {
-      auto& adapter_impl = adapter.impl_;
-      BOOST_ASSERT_MSG(
-         req.get_expected_responses() <= adapter_impl.supported_response_size,
-         "Request and response have incompatible sizes.");
-
-      auto notifier = std::make_shared<detail::exec_notifier_type<executor_type>>(
-         get_executor(),
-         1);
-      auto info = detail::make_elem(req, std::move(adapter_impl.adapt_fn));
-
-      info->set_done_callback([notifier, prepare_done = std::move(adapter_impl.prepare_done_fn)]() {
-         prepare_done();
-         notifier->try_send(std::error_code{}, 0);
-      });
-
-      return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
-         detail::exec_op<this_type>{this, notifier, detail::exec_fsm(mpx_, std::move(info))},
-         token,
-         writer_timer_);
+      return impl_->async_exec(req, std::move(adapter), std::forward<CompletionToken>(token));
    }
 
    /** @brief Cancel operations.
@@ -786,36 +822,12 @@ public:
     *
     *  @param op The operation to be cancelled.
     */
-   void cancel(operation op = operation::all)
-   {
-      switch (op) {
-         case operation::resolve: stream_.cancel_resolve(); break;
-         case operation::exec:    mpx_.cancel_waiting(); break;
-         case operation::reconnection:
-            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
-            break;
-         case operation::run:          cancel_run(); break;
-         case operation::receive:      receive_channel_.cancel(); break;
-         case operation::health_check: health_checker_.cancel(); break;
-         case operation::all:
-            stream_.cancel_resolve();
-            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
-            health_checker_.cancel();
-            cancel_run();               // run
-            receive_channel_.cancel();  // receive
-            mpx_.cancel_waiting();      // exec
-            break;
-         default: /* ignore */;
-      }
-   }
+   void cancel(operation op = operation::all) { impl_->cancel(op); }
 
-   auto run_is_canceled() const noexcept { return mpx_.get_cancel_run_state(); }
+   auto run_is_canceled() const noexcept { return impl_->mpx_.get_cancel_run_state(); }
 
    /// Returns true if the connection will try to reconnect if an error is encountered.
-   bool will_reconnect() const noexcept
-   {
-      return cfg_.reconnect_wait_interval != std::chrono::seconds::zero();
-   }
+   bool will_reconnect() const noexcept { return impl_->will_reconnect(); }
 
    /**
     * @brief (Deprecated) Returns the ssl context.
@@ -829,7 +841,10 @@ public:
    BOOST_DEPRECATED(
       "ssl::context has no const methods, so this function should not be called. Set up any "
       "required TLS configuration before passing the ssl::context to the connection's constructor.")
-   asio::ssl::context const& get_ssl_context() const noexcept { return stream_.get_ssl_context(); }
+   asio::ssl::context const& get_ssl_context() const noexcept
+   {
+      return impl_->stream_.get_ssl_context();
+   }
 
    /**
     * @brief (Deprecated) Resets the underlying stream.
@@ -855,7 +870,7 @@ public:
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto& next_layer() noexcept { return stream_.next_layer(); }
+   auto& next_layer() noexcept { return impl_->stream_.next_layer(); }
 
    /**
     * @brief (Deprecated) Returns a reference to the next layer.
@@ -871,17 +886,17 @@ public:
    BOOST_DEPRECATED(
       "Accessing the underlying stream is deprecated and will be removed in the next release. Use "
       "the other member functions to interact with the connection.")
-   auto const& next_layer() const noexcept { return stream_.next_layer(); }
+   auto const& next_layer() const noexcept { return impl_->stream_.next_layer(); }
 
    /// Sets the response object of @ref async_receive operations.
    template <class Response>
-   void set_receive_response(Response& response)
+   void set_receive_response(Response& resp)
    {
-      mpx_.set_receive_response(response);
+      impl_->set_receive_adapter(any_adapter{resp});
    }
 
    /// Returns connection usage information.
-   usage get_usage() const noexcept { return mpx_.get_usage(); }
+   usage get_usage() const noexcept { return impl_->mpx_.get_usage(); }
 
 private:
    using clock_type = std::chrono::steady_clock;
@@ -894,65 +909,17 @@ private:
    using health_checker_type = detail::health_checker<Executor>;
    using resp3_handshaker_type = detail::resp3_handshaker<executor_type>;
 
-   auto use_ssl() const noexcept { return cfg_.use_ssl; }
-
-   void cancel_run()
-   {
-      stream_.close();
-      writer_timer_.cancel();
-      receive_channel_.cancel();
-      mpx_.cancel_on_conn_lost();
-   }
+   auto use_ssl() const noexcept { return impl_->cfg_.use_ssl; }
 
    // Used by both this class and connection
    void set_stderr_logger(logger::level lvl, const config& cfg)
    {
-      logger_.reset(detail::make_stderr_logger(lvl, cfg.log_prefix));
+      impl_->logger_.reset(detail::make_stderr_logger(lvl, cfg.log_prefix));
    }
 
-   template <class> friend struct detail::reader_op;
-   template <class> friend struct detail::writer_op;
-   template <class> friend struct detail::exec_op;
-   template <class, class> friend struct detail::hello_op;
-   template <class, class> friend class detail::ping_op;
-   template <class> friend class detail::run_op;
-   template <class, class> friend class detail::check_timeout_op;
    friend class connection;
 
-   template <class CompletionToken>
-   auto reader(CompletionToken&& token)
-   {
-      return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::reader_op<this_type>{*this},
-         std::forward<CompletionToken>(token),
-         writer_timer_);
-   }
-
-   template <class CompletionToken>
-   auto writer(CompletionToken&& token)
-   {
-      return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::writer_op<this_type>{this},
-         std::forward<CompletionToken>(token),
-         writer_timer_);
-   }
-
-   bool is_open() const noexcept { return stream_.is_open(); }
-
-   detail::redis_stream<Executor> stream_;
-
-   // Notice we use a timer to simulate a condition-variable. It is
-   // also more suitable than a channel and the notify operation does
-   // not suspend.
-   timer_type writer_timer_;
-   timer_type reconnect_timer_;  // to wait the reconnection period
-   receive_channel_type receive_channel_;
-   health_checker_type health_checker_;
-   resp3_handshaker_type handshaker_;
-
-   config cfg_;
-   detail::multiplexer mpx_;
-   detail::connection_logger logger_;
+   std::unique_ptr<detail::connection_impl<Executor>> impl_;
 };
 
 /**  @brief A basic_connection that type erases the executor.
@@ -1102,7 +1069,10 @@ public:
    template <class Response = ignore_t, class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
-      return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
+      return async_exec(
+         req,
+         any_adapter{resp},
+         std::forward<CompletionToken>(token));
    }
 
    /**
@@ -1137,7 +1107,7 @@ public:
       "the other member functions to interact with the connection.")
    asio::ssl::stream<asio::ip::tcp::socket>& next_layer() noexcept
    {
-      return impl_.stream_.next_layer();
+      return impl_.impl_->stream_.next_layer();
    }
 
    /// (Deprecated) Calls @ref boost::redis::basic_connection::next_layer.
@@ -1146,7 +1116,7 @@ public:
       "the other member functions to interact with the connection.")
    asio::ssl::stream<asio::ip::tcp::socket> const& next_layer() const noexcept
    {
-      return impl_.stream_.next_layer();
+      return impl_.impl_->stream_.next_layer();
    }
 
    /// @copydoc basic_connection::reset_stream
@@ -1171,7 +1141,7 @@ public:
       "required TLS configuration before passing the ssl::context to the connection's constructor.")
    asio::ssl::context const& get_ssl_context() const noexcept
    {
-      return impl_.stream_.get_ssl_context();
+      return impl_.impl_->stream_.get_ssl_context();
    }
 
 private:

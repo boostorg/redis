@@ -44,7 +44,6 @@ make_test(test_reader_fsm)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)
-make_test(test_conn_tls)
 make_test(test_conn_exec_retry)
 make_test(test_conn_exec_error)
 make_test(test_run)
@@ -55,9 +54,11 @@ make_test(test_conn_reconnect)
 make_test(test_conn_exec_cancel)
 make_test(test_conn_exec_cancel2)
 make_test(test_conn_echo_stress)
+make_test(test_conn_move)
 make_test(test_issue_50)
 make_test(test_issue_181)
 make_test(test_conversions)
+make_test(test_conn_tls)
 make_test(test_unix_sockets)
 
 # Coverage

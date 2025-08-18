@@ -24,11 +24,11 @@
 
 namespace boost::redis::detail {
 
-template <class HealthChecker, class Connection>
+template <class HealthChecker, class ConnectionImpl>
 class ping_op {
 public:
    HealthChecker* checker_ = nullptr;
-   Connection* conn_ = nullptr;
+   ConnectionImpl* conn_ = nullptr;
    asio::coroutine coro_{};
 
    template <class Self>
@@ -51,7 +51,10 @@ public:
          }
 
          BOOST_ASIO_CORO_YIELD
-         conn_->async_exec(checker_->req_, any_adapter(checker_->resp_), std::move(self));
+         conn_->async_exec(
+            checker_->req_,
+            any_adapter{checker_->resp_},
+            std::move(self));
          if (ec) {
             conn_->logger_.trace("ping_op (3)", ec);
             checker_->wait_timer_.cancel();
@@ -155,11 +158,11 @@ public:
       wait_timer_.cancel();
    }
 
-   template <class Connection, class CompletionToken>
-   auto async_ping(Connection& conn, CompletionToken token)
+   template <class ConnectionImpl, class CompletionToken>
+   auto async_ping(ConnectionImpl& conn, CompletionToken token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         ping_op<health_checker, Connection>{this, &conn},
+         ping_op<health_checker, ConnectionImpl>{this, &conn},
          token,
          conn,
          ping_timer_);
