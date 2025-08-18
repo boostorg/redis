@@ -21,7 +21,7 @@ using error_code = boost::system::error_code;
 using boost::redis::connection;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::generic_response;
+using boost::redis::generic_flat_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::error;
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(subscriber_wrong_syntax)
 
    conn->async_exec(req1, ignore, c1);
 
-   generic_response gresp;
+   generic_flat_response gresp;
    conn->set_receive_response(gresp);
 
    auto c3 = [&](error_code ec, std::size_t) {

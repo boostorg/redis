@@ -26,7 +26,7 @@ using error_code = boost::system::error_code;
 using boost::redis::operation;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::generic_response;
+using boost::redis::generic_flat_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::config;
@@ -40,7 +40,7 @@ auto async_ignore_explicit_cancel_of_req_written() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
 
-   generic_response gresp;
+   generic_flat_response gresp;
    auto conn = std::make_shared<connection>(ex);
 
    run(conn);
