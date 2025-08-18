@@ -75,7 +75,25 @@ private:
       }
    }
 
-   template <typename T>
+   template <class String>
+   void add_node(resp3::basic_node<String> const& nd)
+   {
+      resp3::offset_string offset_string;
+      offset_string.offset = data_.size();
+      offset_string.size = nd.value.size();
+
+      data_.append(nd.value.data(), nd.value.size());
+
+      resp3::offset_node new_node;
+      new_node.data_type = nd.data_type;
+      new_node.aggregate_size = nd.aggregate_size;
+      new_node.depth = nd.depth;
+      new_node.value = std::move(offset_string);
+
+      view_.push_back(std::move(new_node));
+   }
+
+   template <class T>
    friend class adapter::detail::general_aggregate;
 
    std::string data_;
