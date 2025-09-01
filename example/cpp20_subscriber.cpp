@@ -22,7 +22,7 @@
 namespace asio = boost::asio;
 using namespace std::chrono_literals;
 using boost::redis::request;
-using boost::redis::generic_response;
+using boost::redis::generic_flat_response;
 using boost::redis::consume_one;
 using boost::redis::logger;
 using boost::redis::config;
@@ -54,7 +54,7 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   generic_response resp;
+   generic_flat_response resp;
    conn->set_receive_response(resp);
 
    // Loop while reconnection is enabled

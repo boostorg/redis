@@ -12,6 +12,7 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
+#include <boost/redis/response.hpp>
 
 #include <boost/assert.hpp>
 
@@ -19,6 +20,7 @@
 #include <charconv>
 #include <deque>
 #include <forward_list>
+#include <iostream>
 #include <list>
 #include <map>
 #include <optional>
@@ -136,8 +138,6 @@ void boost_redis_from_bulk(T& t, resp3::basic_node<String> const& node, system::
    from_bulk_impl<T>::apply(t, node, ec);
 }
 
-//================================================
-
 template <class Result>
 class general_aggregate {
 private:
@@ -172,6 +172,41 @@ public:
                   std::string{std::cbegin(nd.value), std::cend(nd.value)}
                });
             }
+      }
+   }
+};
+
+template <>
+class general_aggregate<result<flat_response_value>> {
+private:
+   result<flat_response_value>* result_;
+
+public:
+   explicit general_aggregate(result<flat_response_value>* c = nullptr)
+   : result_(c)
+   { }
+
+   void on_init() { }
+   void on_done()
+   {
+      if (result_->has_value()) {
+         result_->value().set_view();
+      }
+   }
+
+   template <class String>
+   void on_node(resp3::basic_node<String> const& nd, system::error_code&)
+   {
+      BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
+      switch (nd.data_type) {
+         case resp3::type::blob_error:
+         case resp3::type::simple_error:
+            *result_ = error{
+               nd.data_type,
+               std::string{std::cbegin(nd.value), std::cend(nd.value)}
+            };
+            break;
+         default: result_->value().add_node(nd);
       }
    }
 };

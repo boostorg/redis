@@ -31,7 +31,7 @@ using boost::asio::redirect_error;
 using boost::asio::use_awaitable;
 using boost::redis::config;
 using boost::redis::connection;
-using boost::redis::generic_response;
+using boost::redis::generic_flat_response;
 using boost::redis::ignore;
 using boost::redis::request;
 using boost::system::error_code;
@@ -45,7 +45,7 @@ auto receiver(std::shared_ptr<connection> conn) -> awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   generic_response resp;
+   generic_flat_response resp;
    conn->set_receive_response(resp);
 
    while (conn->will_reconnect()) {
