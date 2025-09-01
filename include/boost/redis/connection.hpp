@@ -329,8 +329,8 @@ private:
 
    static system::error_code on_hello(connection_impl<Executor>& conn, system::error_code ec)
    {
-      conn.logger_.on_hello(ec, conn.hello_resp_);
       ec = check_hello_response(ec, conn.hello_resp_);
+      conn.logger_.on_hello(ec, conn.hello_resp_);
       if (ec) {
          conn.cancel(operation::run);
       }
