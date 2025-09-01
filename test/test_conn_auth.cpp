@@ -7,6 +7,7 @@
 //
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
@@ -15,6 +16,10 @@
 #include <boost/system/error_code.hpp>
 
 #include "common.hpp"
+
+#include <iostream>
+#include <sstream>
+#include <string>
 
 namespace asio = boost::asio;
 namespace redis = boost::redis;
@@ -78,7 +83,7 @@ void test_auth_success()
       conn.cancel();
    });
 
-   conn.async_run(cfg, {}, [&](error_code ec) {
+   conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
       BOOST_TEST_EQ(ec, asio::error::operation_aborted);
    });
@@ -90,12 +95,49 @@ void test_auth_success()
    BOOST_TEST_EQ(std::get<0>(resp).value(), "myuser");
 }
 
+void test_auth_failure()
+{
+   // Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
+   std::ostringstream oss;
+   redis::logger lgr(redis::logger::level::info, [&](redis::logger::level, std::string_view msg) {
+      oss << msg << '\n';
+   });
+
+   // Setup
+   asio::io_context ioc;
+   redis::connection conn{ioc, std::move(lgr)};
+
+   // Disable reconnection so the hello error causes the connection to exit
+   auto cfg = make_test_config();
+   cfg.username = "myuser";
+   cfg.password = "wrongpass";  // wrong
+   cfg.reconnect_wait_interval = 0s;
+
+   bool run_finished = false;
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, redis::error::resp3_hello);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(run_finished);
+
+   // Check the log
+   auto log = oss.str();
+   if (!BOOST_TEST_NE(log.find("WRONGPASS"), std::string::npos)) {
+      std::cerr << "Log was: " << log << std::endl;
+   }
+}
+
 }  // namespace
 
 int main()
 {
    setup_password();
    test_auth_success();
+   test_auth_failure();
 
    return boost::report_errors();
 }
