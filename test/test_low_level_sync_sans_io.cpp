@@ -8,7 +8,6 @@
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/read_buffer.hpp>
-#include <boost/redis/detail/resp3_handshaker.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
@@ -22,7 +21,6 @@
 
 using boost::redis::request;
 using boost::redis::config;
-using boost::redis::detail::setup_hello_request;
 using boost::redis::response;
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
@@ -50,61 +48,6 @@ BOOST_AUTO_TEST_CASE(low_level_sync_sans_io)
       std::cerr << e.what() << std::endl;
       exit(EXIT_FAILURE);
    }
-}
-
-BOOST_AUTO_TEST_CASE(config_to_hello)
-{
-   config cfg;
-   cfg.clientname = "";
-   request req;
-
-   setup_hello_request(cfg, req);
-
-   std::string_view const expected = "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n";
-   BOOST_CHECK_EQUAL(req.payload(), expected);
-}
-
-BOOST_AUTO_TEST_CASE(config_to_hello_with_select)
-{
-   config cfg;
-   cfg.clientname = "";
-   cfg.database_index = 10;
-   request req;
-
-   setup_hello_request(cfg, req);
-
-   std::string_view const expected =
-      "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
-      "*2\r\n$6\r\nSELECT\r\n$2\r\n10\r\n";
-
-   BOOST_CHECK_EQUAL(req.payload(), expected);
-}
-
-BOOST_AUTO_TEST_CASE(config_to_hello_cmd_clientname)
-{
-   config cfg;
-   request req;
-
-   setup_hello_request(cfg, req);
-
-   std::string_view const
-      expected = "*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$11\r\nBoost.Redis\r\n";
-   BOOST_CHECK_EQUAL(req.payload(), expected);
-}
-
-BOOST_AUTO_TEST_CASE(config_to_hello_cmd_auth)
-{
-   config cfg;
-   cfg.clientname = "";
-   cfg.username = "foo";
-   cfg.password = "bar";
-   request req;
-
-   setup_hello_request(cfg, req);
-
-   std::string_view const
-      expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
-   BOOST_CHECK_EQUAL(req.payload(), expected);
 }
 
 BOOST_AUTO_TEST_CASE(issue_210_empty_set)
