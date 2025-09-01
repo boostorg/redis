@@ -8,7 +8,7 @@
 
 namespace boost::redis::detail {
 
-void push_hello(config const& cfg, request& req)
+void setup_hello_request(config const& cfg, request& req)
 {
    req.clear();
    if (!cfg.username.empty() && !cfg.password.empty() && !cfg.clientname.empty())
@@ -22,6 +22,14 @@ void push_hello(config const& cfg, request& req)
 
    if (cfg.database_index && cfg.database_index.value() != 0)
       req.push("SELECT", cfg.database_index.value());
+}
+
+void clear_response(generic_response& res)
+{
+   if (res.has_value())
+      res->clear();
+   else
+      res.emplace();
 }
 
 system::error_code check_hello_response(system::error_code io_ec, const generic_response& resp)

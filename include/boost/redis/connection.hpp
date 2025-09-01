@@ -415,7 +415,7 @@ public:
          }
 
          // Set up the hello request, as it only depends on the config
-         push_hello(conn_->cfg_, conn_->hello_req_);
+         setup_hello_request(conn_->cfg_, conn_->hello_req_);
 
          for (;;) {
             // Try to connect

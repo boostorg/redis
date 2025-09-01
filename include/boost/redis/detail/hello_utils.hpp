@@ -13,16 +13,10 @@
 
 namespace boost::redis::detail {
 
-void push_hello(config const& cfg, request& req);  // TODO: rename
+void setup_hello_request(config const& cfg, request& req);
+void clear_response(generic_response& res);
 system::error_code check_hello_response(system::error_code io_ec, const generic_response&);
 // TODO: logging should be here, too
-inline void clear_response(generic_response& res)
-{
-   if (res.has_value())
-      res->clear();
-   else
-      res.emplace();
-}
 
 }  // namespace boost::redis::detail
 
