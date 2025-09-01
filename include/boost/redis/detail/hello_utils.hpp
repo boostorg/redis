@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_RESP3_HANDSHAKER_HPP
-#define BOOST_REDIS_RESP3_HANDSHAKER_HPP
+#ifndef BOOST_REDIS_HELLO_UTILS_HPP
+#define BOOST_REDIS_HELLO_UTILS_HPP
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/request.hpp>
