@@ -16,7 +16,6 @@ namespace boost::redis::detail {
 void setup_hello_request(config const& cfg, request& req);
 void clear_response(generic_response& res);
 system::error_code check_hello_response(system::error_code io_ec, const generic_response&);
-// TODO: logging should be here, too
 
 }  // namespace boost::redis::detail
 
