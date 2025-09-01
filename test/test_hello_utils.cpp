@@ -6,24 +6,27 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/adapter/result.hpp>
+#include <boost/redis/config.hpp>
 #include <boost/redis/detail/hello_utils.hpp>
+#include <boost/redis/request.hpp>
+#include <boost/redis/resp3/type.hpp>
+#include <boost/redis/response.hpp>
 
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/result.hpp>
 
-#include "boost/redis/config.hpp"
-#include "boost/redis/request.hpp"
-
-using boost::redis::request;
-using boost::redis::config;
-using boost::redis::detail::setup_hello_request;
+namespace redis = boost::redis;
+using redis::detail::setup_hello_request;
+using redis::detail::clear_response;
 
 namespace {
 
 void test_setup_hello_request()
 {
-   config cfg;
+   redis::config cfg;
    cfg.clientname = "";
-   request req;
+   redis::request req;
 
    setup_hello_request(cfg, req);
 
@@ -33,10 +36,10 @@ void test_setup_hello_request()
 
 void test_setup_hello_request_select()
 {
-   config cfg;
+   redis::config cfg;
    cfg.clientname = "";
    cfg.database_index = 10;
-   request req;
+   redis::request req;
 
    setup_hello_request(cfg, req);
 
@@ -48,8 +51,8 @@ void test_setup_hello_request_select()
 
 void test_setup_hello_request_clientname()
 {
-   config cfg;
-   request req;
+   redis::config cfg;
+   redis::request req;
 
    setup_hello_request(cfg, req);
 
@@ -60,11 +63,11 @@ void test_setup_hello_request_clientname()
 
 void test_setup_hello_request_auth()
 {
-   config cfg;
+   redis::config cfg;
    cfg.clientname = "";
    cfg.username = "foo";
    cfg.password = "bar";
-   request req;
+   redis::request req;
 
    setup_hello_request(cfg, req);
 
@@ -75,10 +78,10 @@ void test_setup_hello_request_auth()
 
 void test_setup_hello_request_auth_empty_password()
 {
-   config cfg;
+   redis::config cfg;
    cfg.clientname = "";
    cfg.username = "foo";
-   request req;
+   redis::request req;
 
    setup_hello_request(cfg, req);
 
@@ -89,11 +92,11 @@ void test_setup_hello_request_auth_empty_password()
 
 void test_setup_hello_request_auth_setname()
 {
-   config cfg;
+   redis::config cfg;
    cfg.clientname = "mytest";
    cfg.username = "foo";
    cfg.password = "bar";
-   request req;
+   redis::request req;
 
    setup_hello_request(cfg, req);
 
@@ -101,6 +104,35 @@ void test_setup_hello_request_auth_setname()
       "*7\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$7\r\nSETNAME\r\n$"
       "6\r\nmytest\r\n";
    BOOST_TEST_EQ(req.payload(), expected);
+}
+
+// clear response
+void test_clear_response_empty()
+{
+   redis::generic_response resp;
+   clear_response(resp);
+   BOOST_TEST(resp.has_value());
+   BOOST_TEST_EQ(resp.value().size(), 0u);
+}
+
+void test_clear_response_nonempty()
+{
+   redis::generic_response resp;
+   resp->push_back({});
+   clear_response(resp);
+   BOOST_TEST(resp.has_value());
+   BOOST_TEST_EQ(resp.value().size(), 0u);
+}
+
+void test_clear_response_error()
+{
+   redis::generic_response resp{
+      boost::system::in_place_error,
+      redis::adapter::error{redis::resp3::type::blob_error, "message"}
+   };
+   clear_response(resp);
+   BOOST_TEST(resp.has_value());
+   BOOST_TEST_EQ(resp.value().size(), 0u);
 }
 
 }  // namespace
@@ -113,6 +145,10 @@ int main()
    test_setup_hello_request_auth();
    test_setup_hello_request_auth_empty_password();
    test_setup_hello_request_auth_setname();
+
+   test_clear_response_empty();
+   test_clear_response_nonempty();
+   test_clear_response_error();
 
    return boost::report_errors();
 }
