@@ -139,7 +139,7 @@ struct connection_impl {
    , health_checker_{ex}
    , logger_{std::move(lgr)}
    {
-      mpx_.set_receive_response(ignore);
+      set_receive_adapter(any_adapter{ignore});
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
 
       // Reserve some memory to avoid excessive memory allocations in
@@ -188,13 +188,8 @@ struct connection_impl {
    template <class CompletionToken>
    auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token)
    {
-      auto& adapter_impl = adapter.impl_;
-      BOOST_ASSERT_MSG(
-         req.get_expected_responses() <= adapter_impl.supported_response_size,
-         "Request and response have incompatible sizes.");
-
-      auto notifier = std::make_shared<exec_notifier_type>(writer_timer_.get_executor(), 1);
-      auto info = make_elem(req, std::move(adapter_impl.adapt_fn));
+      auto notifier = std::make_shared<exec_notifier_type>(get_executor(), 1);
+      auto info = make_elem(req, std::move(adapter));
 
       info->set_done_callback([notifier]() {
          notifier->try_send(std::error_code{}, 0);
@@ -205,6 +200,8 @@ struct connection_impl {
          token,
          writer_timer_);
    }
+
+   void set_receive_adapter(any_adapter adapter) { mpx_.set_receive_adapter(std::move(adapter)); }
 };
 
 template <class Executor>
@@ -529,11 +526,10 @@ public:
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       logger lgr = {})
-   : impl_(
-        std::make_unique<detail::connection_impl<Executor>>(
-           std::move(ex),
-           std::move(ctx),
-           std::move(lgr)))
+   : impl_(std::make_unique<detail::connection_impl<Executor>>(
+        std::move(ex),
+        std::move(ctx),
+        std::move(lgr)))
    { }
 
    /** @brief Constructor from an executor and a logger.
@@ -790,7 +786,10 @@ public:
       class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
-      return this->async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
+      return this->async_exec(
+         req,
+         any_adapter{resp},
+         std::forward<CompletionToken>(token));
    }
 
    /** @brief Executes commands on the Redis server asynchronously.
@@ -916,9 +915,9 @@ public:
 
    /// Sets the response object of @ref async_receive operations.
    template <class Response>
-   void set_receive_response(Response& response)
+   void set_receive_response(Response& resp)
    {
-      impl_->mpx_.set_receive_response(response);
+      impl_->set_receive_adapter(any_adapter{resp});
    }
 
    /// Returns connection usage information.
@@ -1094,7 +1093,10 @@ public:
    template <class Response = ignore_t, class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
-      return async_exec(req, any_adapter(resp), std::forward<CompletionToken>(token));
+      return async_exec(
+         req,
+         any_adapter{resp},
+         std::forward<CompletionToken>(token));
    }
 
    /**

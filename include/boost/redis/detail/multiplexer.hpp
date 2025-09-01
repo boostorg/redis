@@ -8,6 +8,7 @@
 #define BOOST_REDIS_MULTIPLEXER_HPP
 
 #include <boost/redis/adapter/adapt.hpp>
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/parser.hpp>
@@ -34,13 +35,9 @@ using tribool = std::optional<bool>;
 
 class multiplexer {
 public:
-   using adapter_type = std::function<void(resp3::node_view const&, system::error_code&)>;
-   using pipeline_adapter_type = std::function<
-      void(std::size_t, resp3::node_view const&, system::error_code&)>;
-
    struct elem {
    public:
-      explicit elem(request const& req, pipeline_adapter_type adapter);
+      explicit elem(request const& req, any_adapter adapter);
 
       void set_done_callback(std::function<void()> f) noexcept { done_ = std::move(f); };
 
@@ -92,7 +89,7 @@ public:
 
       auto commit_response(std::size_t read_size) -> void;
 
-      auto get_adapter() -> adapter_type& { return adapter_; }
+      auto get_adapter() -> any_adapter& { return adapter_; }
 
    private:
       enum class status
@@ -104,8 +101,7 @@ public:
       };
 
       request const* req_;
-      adapter_type adapter_;
-
+      any_adapter adapter_;
       std::function<void()> done_;
 
       // Contains the number of commands that haven't been read yet.
@@ -158,15 +154,7 @@ public:
       return std::string_view{write_buffer_};
    }
 
-   // TODO: Change signature to receive an adapter instead of a
-   // response.
-   template <class Response>
-   void set_receive_response(Response& response)
-   {
-      using namespace boost::redis::adapter;
-      auto g = boost_redis_adapt(response);
-      receive_adapter_ = adapter::detail::make_adapter_wrapper(g);
-   }
+   void set_receive_adapter(any_adapter adapter);
 
    [[nodiscard]]
    auto get_usage() const noexcept -> usage
@@ -199,11 +187,10 @@ private:
    bool on_push_ = false;
    bool cancel_run_called_ = false;
    usage usage_;
-   adapter_type receive_adapter_;
+   any_adapter receive_adapter_;
 };
 
-auto make_elem(request const& req, multiplexer::pipeline_adapter_type adapter)
-   -> std::shared_ptr<multiplexer::elem>;
+auto make_elem(request const& req, any_adapter adapter) -> std::shared_ptr<multiplexer::elem>;
 
 }  // namespace detail
 }  // namespace boost::redis

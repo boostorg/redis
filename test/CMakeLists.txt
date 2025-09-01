@@ -45,7 +45,6 @@ make_test(test_hello_utils)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)
-make_test(test_conn_tls)
 make_test(test_conn_exec_retry)
 make_test(test_conn_exec_error)
 make_test(test_run)
@@ -61,6 +60,7 @@ make_test(test_conn_auth)
 make_test(test_issue_50)
 make_test(test_issue_181)
 make_test(test_conversions)
+make_test(test_conn_tls)
 make_test(test_unix_sockets)
 
 # Coverage
