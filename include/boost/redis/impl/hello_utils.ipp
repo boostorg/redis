@@ -10,15 +10,22 @@ namespace boost::redis::detail {
 
 void setup_hello_request(config const& cfg, request& req)
 {
+   // Which parts of the command should we send?
+   // Don't send AUTH if the user is the default and the password is empty.
+   // Other users may have empty passwords.
+   // Note that this is just an optimization.
+   bool send_auth = !(cfg.username.empty() || (cfg.username == "default" && cfg.password.empty()));
+   bool send_setname = !cfg.clientname.empty();
+
    req.clear();
-   if (!cfg.username.empty() && !cfg.password.empty() && !cfg.clientname.empty())
+   if (send_auth && send_setname)
       req.push("HELLO", "3", "AUTH", cfg.username, cfg.password, "SETNAME", cfg.clientname);
-   else if (cfg.password.empty() && cfg.clientname.empty())
-      req.push("HELLO", "3");
-   else if (cfg.clientname.empty())
+   else if (send_auth)
       req.push("HELLO", "3", "AUTH", cfg.username, cfg.password);
-   else
+   else if (send_setname)
       req.push("HELLO", "3", "SETNAME", cfg.clientname);
+   else
+      req.push("HELLO", "3");
 
    if (cfg.database_index && cfg.database_index.value() != 0)
       req.push("SELECT", cfg.database_index.value());

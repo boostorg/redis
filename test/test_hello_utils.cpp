@@ -73,6 +73,20 @@ void test_setup_hello_request_auth()
    BOOST_TEST_EQ(req.payload(), expected);
 }
 
+void test_setup_hello_request_auth_empty_password()
+{
+   config cfg;
+   cfg.clientname = "";
+   cfg.username = "foo";
+   request req;
+
+   setup_hello_request(cfg, req);
+
+   std::string_view const
+      expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$0\r\n\r\n";
+   BOOST_TEST_EQ(req.payload(), expected);
+}
+
 }  // namespace
 
 int main()
@@ -81,6 +95,7 @@ int main()
    test_setup_hello_request_select();
    test_setup_hello_request_clientname();
    test_setup_hello_request_auth();
+   test_setup_hello_request_auth_empty_password();
 
    return boost::report_errors();
 }
