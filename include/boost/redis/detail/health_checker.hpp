@@ -10,6 +10,7 @@
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_logger.hpp>
+#include <boost/redis/detail/helper.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
@@ -17,6 +18,7 @@
 #include <boost/asio/compose.hpp>
 #include <boost/asio/consign.hpp>
 #include <boost/asio/coroutine.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
 
@@ -67,6 +69,12 @@ public:
          if (ec) {
             conn_->logger_.trace("ping_op (4)", ec);
             self.complete(ec);
+            return;
+         }
+
+         if (is_cancelled(self)) {
+            conn_->logger_.trace("ping_op (5): cancelled");
+            self.complete(asio::error::operation_aborted);
             return;
          }
       }
