@@ -8,27 +8,24 @@
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/read_buffer.hpp>
+#include <boost/redis/request.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
-#define BOOST_TEST_MODULE conn_quit
-#include <boost/test/included/unit_test.hpp>
+#include <boost/redis/response.hpp>
 
-#include "common.hpp"
+#define BOOST_TEST_MODULE low_level_sync_sans_io
+#include <boost/test/included/unit_test.hpp>
 
 #include <iostream>
 #include <string>
 
 using boost::redis::request;
-using boost::redis::config;
-using boost::redis::response;
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
-using boost::redis::config;
 using boost::redis::detail::multiplexer;
 using boost::redis::generic_response;
 using boost::redis::ignore_t;
-using boost::redis::request;
 using boost::redis::resp3::detail::deserialize;
 using boost::redis::resp3::node;
 using boost::redis::resp3::to_string;
