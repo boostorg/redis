@@ -57,6 +57,7 @@ local tests =
     test_log_to_file
     test_conn_logging
     test_reader_fsm
+    test_hello_utils
 ;
 
 # Build and run the tests

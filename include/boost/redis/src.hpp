@@ -14,7 +14,7 @@
 #include <boost/redis/impl/read_buffer.ipp>
 #include <boost/redis/impl/reader_fsm.ipp>
 #include <boost/redis/impl/request.ipp>
-#include <boost/redis/impl/resp3_handshaker.ipp>
+#include <boost/redis/impl/hello_utils.ipp>
 #include <boost/redis/impl/response.ipp>
 #include <boost/redis/resp3/impl/parser.ipp>
 #include <boost/redis/resp3/impl/serialization.ipp>

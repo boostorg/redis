@@ -13,16 +13,17 @@
 #include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/health_checker.hpp>
+#include <boost/redis/detail/hello_utils.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
-#include <boost/redis/detail/resp3_handshaker.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/type.hpp>
+#include <boost/redis/response.hpp>
 #include <boost/redis/usage.hpp>
 
 #include <boost/asio/any_completion_handler.hpp>
@@ -67,7 +68,6 @@ struct connection_impl {
       Executor,
       void(system::error_code, std::size_t)>;
    using health_checker_type = detail::health_checker<Executor>;
-   using resp3_handshaker_type = detail::resp3_handshaker<Executor>;
    using exec_notifier_type = asio::experimental::channel<
       Executor,
       void(system::error_code, std::size_t)>;
@@ -81,12 +81,13 @@ struct connection_impl {
    timer_type reconnect_timer_;  // to wait the reconnection period
    receive_channel_type receive_channel_;
    health_checker_type health_checker_;
-   resp3_handshaker_type handshaker_;
 
    config cfg_;
    multiplexer mpx_;
    connection_logger logger_;
    read_buffer read_buffer_;
+   request hello_req_;
+   generic_response hello_resp_;
 
    using executor_type = Executor;
 
@@ -323,6 +324,27 @@ private:
 
    using order_t = std::array<std::size_t, 5>;
 
+   static system::error_code on_hello(connection_impl<Executor>& conn, system::error_code ec)
+   {
+      ec = check_hello_response(ec, conn.hello_resp_);
+      conn.logger_.on_hello(ec, conn.hello_resp_);
+      if (ec) {
+         conn.cancel(operation::run);
+      }
+      return ec;
+   }
+
+   template <class CompletionToken>
+   auto handshaker(CompletionToken&& token)
+   {
+      return conn_->async_exec(
+         conn_->hello_req_,
+         any_adapter(conn_->hello_resp_),
+         asio::deferred([&conn = *this->conn_](system::error_code hello_ec, std::size_t) {
+            return asio::deferred.values(on_hello(conn, hello_ec));
+         }))(std::forward<CompletionToken>(token));
+   }
+
    template <class CompletionToken>
    auto reader(CompletionToken&& token)
    {
@@ -389,6 +411,9 @@ public:
             return;
          }
 
+         // Set up the hello request, as it only depends on the config
+         setup_hello_request(conn_->cfg_, conn_->hello_req_);
+
          for (;;) {
             // Try to connect
             BOOST_ASIO_CORO_YIELD
@@ -398,6 +423,7 @@ public:
             if (!ec) {
                conn_->read_buffer_.clear();
                conn_->mpx_.reset();
+               clear_response(conn_->hello_resp_);
 
                // Note: Order is important here because the writer might
                // trigger an async_write before the async_hello thereby
@@ -405,7 +431,7 @@ public:
                BOOST_ASIO_CORO_YIELD
                asio::experimental::make_parallel_group(
                   [this](auto token) {
-                     return conn_->handshaker_.async_hello(*conn_, token);
+                     return this->handshaker(token);
                   },
                   [this](auto token) {
                      return conn_->health_checker_.async_ping(*conn_, token);
@@ -602,7 +628,6 @@ public:
    {
       impl_->cfg_ = cfg;
       impl_->health_checker_.set_config(cfg);
-      impl_->handshaker_.set_config(cfg);
       impl_->read_buffer_.set_config({cfg.read_buffer_append_size, cfg.max_read_size});
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
@@ -907,7 +932,6 @@ private:
       executor_type,
       void(system::error_code, std::size_t)>;
    using health_checker_type = detail::health_checker<Executor>;
-   using resp3_handshaker_type = detail::resp3_handshaker<executor_type>;
 
    auto use_ssl() const noexcept { return impl_->cfg_.use_ssl; }
 
