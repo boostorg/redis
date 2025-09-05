@@ -12,8 +12,7 @@
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/response.hpp>
 
-#define BOOST_TEST_MODULE multiplexer
-#include <boost/test/included/unit_test.hpp>
+#include <boost/core/lightweight_test.hpp>
 
 #include <iostream>
 #include <string>
@@ -41,7 +40,9 @@ std::ostream& operator<<(std::ostream& os, node const& nd)
 
 }  // namespace boost::redis::resp3
 
-BOOST_AUTO_TEST_CASE(multiplexer_push)
+namespace {
+
+void test_push()
 {
    multiplexer mpx;
    generic_response resp;
@@ -51,19 +52,19 @@ BOOST_AUTO_TEST_CASE(multiplexer_push)
    auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
 
    BOOST_TEST(ret.first.value());
-   BOOST_CHECK_EQUAL(ret.second, 16u);
+   BOOST_TEST_EQ(ret.second, 16u);
 
    // TODO: Provide operator << for generic_response so we can compare
    // the whole vector.
-   BOOST_CHECK_EQUAL(resp.value().size(), 3u);
-   BOOST_CHECK_EQUAL(resp.value().at(1).value, "one");
-   BOOST_CHECK_EQUAL(resp.value().at(2).value, "two");
+   BOOST_TEST_EQ(resp.value().size(), 3u);
+   BOOST_TEST_EQ(resp.value().at(1).value, "one");
+   BOOST_TEST_EQ(resp.value().at(2).value, "two");
 
    for (auto const& e : resp.value())
       std::cout << e << std::endl;
 }
 
-BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
+void test_push_needs_more()
 {
    multiplexer mpx;
    generic_response resp;
@@ -82,13 +83,13 @@ BOOST_AUTO_TEST_CASE(multiplexer_push_needs_more)
    ret = mpx.consume_next(msg, ec);
 
    BOOST_TEST(ret.first.value());
-   BOOST_CHECK_EQUAL(ret.second, 16u);
+   BOOST_TEST_EQ(ret.second, 16u);
 
    // TODO: Provide operator << for generic_response so we can compare
    // the whole vector.
-   BOOST_CHECK_EQUAL(resp.value().size(), 3u);
-   BOOST_CHECK_EQUAL(resp.value().at(1).value, "one");
-   BOOST_CHECK_EQUAL(resp.value().at(2).value, "two");
+   BOOST_TEST_EQ(resp.value().size(), 3u);
+   BOOST_TEST_EQ(resp.value().at(1).value, "one");
+   BOOST_TEST_EQ(resp.value().at(2).value, "two");
 }
 
 struct test_item {
@@ -111,7 +112,7 @@ struct test_item {
    }
 };
 
-BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
+void test_pipeline()
 {
    test_item item1{};
    test_item item2{false};
@@ -131,8 +132,8 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
 
    // There are three requests to coalesce, a second call should do
    // nothing.
-   BOOST_CHECK_EQUAL(mpx.prepare_write(), 3u);
-   BOOST_CHECK_EQUAL(mpx.prepare_write(), 0u);
+   BOOST_TEST_EQ(mpx.prepare_write(), 3u);
+   BOOST_TEST_EQ(mpx.prepare_write(), 0u);
 
    // After coalescing the requests for writing their statuses should
    // be changed to "staged".
@@ -142,7 +143,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
 
    // There are no waiting requests to cancel since they are all
    // staged.
-   BOOST_CHECK_EQUAL(mpx.cancel_waiting(), 0u);
+   BOOST_TEST_EQ(mpx.cancel_waiting(), 0u);
 
    // Since the requests haven't been sent (written) the done
    // callback should not have been called yet.
@@ -153,7 +154,7 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    // The commit_write call informs the multiplexer the payload was
    // sent (e.g.  written to the socket). This step releases requests
    // that has no response.
-   BOOST_CHECK_EQUAL(mpx.commit_write(), 1u);
+   BOOST_TEST_EQ(mpx.commit_write(), 1u);
 
    // The staged status should now have changed to written.
    BOOST_TEST(item1.elem_ptr->is_written());
@@ -180,4 +181,15 @@ BOOST_AUTO_TEST_CASE(multiplexer_pipeline)
    BOOST_TEST(!item3.done);
 
    // TODO: Check the first request was removed from the queue.
+}
+
+}  // namespace
+
+int main()
+{
+   test_push();
+   test_push_needs_more();
+   test_pipeline();
+
+   return boost::report_errors();
 }
