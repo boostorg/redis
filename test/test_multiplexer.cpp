@@ -27,6 +27,8 @@ using boost::redis::response;
 using boost::redis::any_adapter;
 using boost::system::error_code;
 
+namespace boost::redis::resp3 {
+
 std::ostream& operator<<(std::ostream& os, node const& nd)
 {
    os << to_string(nd.data_type) << "\n"
@@ -36,6 +38,8 @@ std::ostream& operator<<(std::ostream& os, node const& nd)
 
    return os;
 }
+
+}  // namespace boost::redis::resp3
 
 BOOST_AUTO_TEST_CASE(multiplexer_push)
 {
