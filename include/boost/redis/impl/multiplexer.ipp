@@ -277,7 +277,7 @@ bool multiplexer::is_next_push(std::string_view data) const noexcept
    // Added to deal with MONITOR and also to fix PR170 which
    // happens under load and on low-latency networks, where we
    // might start receiving responses before the write operation
-   // completed and the request is still maked as staged and not
+   // completed and the request is still marked as staged and not
    // written.
    return reqs_.front()->is_waiting();
 }
@@ -304,7 +304,7 @@ bool multiplexer::is_waiting_response() const noexcept
 
    // Under load and on low-latency networks we might start
    // receiving responses before the write operation completed and
-   // the request is still maked as staged and not written.  See
+   // the request is still marked as staged and not written.  See
    // https://github.com/boostorg/redis/issues/170
    return !reqs_.front()->is_waiting();
 }
