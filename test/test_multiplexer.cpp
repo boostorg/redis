@@ -15,10 +15,12 @@
 #include <boost/core/lightweight_test.hpp>
 
 #include <iostream>
+#include <ostream>
 #include <string>
 
 using boost::redis::request;
 using boost::redis::detail::multiplexer;
+using boost::redis::detail::consume_result;
 using boost::redis::generic_response;
 using boost::redis::resp3::node;
 using boost::redis::resp3::to_string;
@@ -40,6 +42,20 @@ std::ostream& operator<<(std::ostream& os, node const& nd)
 
 }  // namespace boost::redis::resp3
 
+namespace boost::redis::detail {
+
+std::ostream& operator<<(std::ostream& os, consume_result v)
+{
+   switch (v) {
+      case consume_result::needs_more:   return os << "consume_result::needs_more";
+      case consume_result::got_response: return os << "consume_result::got_response";
+      case consume_result::got_push:     return os << "consume_result::got_push";
+      default:                           return os << "<unknown consume_result>";
+   }
+}
+
+}  // namespace boost::redis::detail
+
 namespace {
 
 void test_push()
@@ -51,7 +67,7 @@ void test_push()
    boost::system::error_code ec;
    auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
 
-   BOOST_TEST(ret.first.value());
+   BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
 
    // TODO: Provide operator << for generic_response so we can compare
@@ -77,12 +93,12 @@ void test_push_needs_more()
    boost::system::error_code ec;
    auto ret = mpx.consume_next(msg, ec);
 
-   BOOST_TEST(!ret.first.has_value());
+   BOOST_TEST_EQ(ret.first, consume_result::needs_more);
 
    msg += "\n+two\r\n";
    ret = mpx.consume_next(msg, ec);
 
-   BOOST_TEST(ret.first.value());
+   BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
 
    // TODO: Provide operator << for generic_response so we can compare
@@ -172,7 +188,7 @@ void test_pipeline()
    auto const ret = mpx.consume_next("+one\r\n", ec);
 
    // The read operation should have been successfull.
-   BOOST_TEST(ret.first.has_value());
+   BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST(ret.second != 0u);
 
    // The last request still did not get a response.

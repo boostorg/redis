@@ -48,7 +48,7 @@ private:
    action action_after_resume_;
    action::type next_read_type_ = action::type::append_some;
    multiplexer* mpx_ = nullptr;
-   std::pair<tribool, std::size_t> res_{std::make_pair(std::nullopt, 0)};
+   std::pair<consume_result, std::size_t> res_{consume_result::needs_more, 0u};
 };
 
 }  // namespace boost::redis::detail

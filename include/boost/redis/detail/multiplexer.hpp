@@ -31,7 +31,13 @@ class request;
 
 namespace detail {
 
-using tribool = std::optional<bool>;
+// Return type of the multiplexer::consume_next function
+enum class consume_result
+{
+   needs_more,    // consume_next didn't have enough data
+   got_response,  // got a response to a regular command, vs. a push
+   got_push,      // got a response to a push
+};
 
 class multiplexer {
 public:
@@ -121,11 +127,9 @@ public:
    // they don't have a response e.g. SUBSCRIBE.
    auto commit_write() -> std::size_t;
 
-   // If the tribool contains no value more data is needed, otherwise
-   // if the value is true the message consumed is a push.
    [[nodiscard]]
    auto consume_next(std::string_view data, system::error_code& ec)
-      -> std::pair<tribool, std::size_t>;
+      -> std::pair<consume_result, std::size_t>;
 
    auto add(std::shared_ptr<elem> const& ptr) -> void;
    auto reset() -> void;
@@ -179,7 +183,7 @@ private:
    auto release_push_requests() -> std::size_t;
 
    [[nodiscard]]
-   tribool consume_next_impl(std::string_view data, system::error_code& ec);
+   consume_result consume_next_impl(std::string_view data, system::error_code& ec);
 
    std::string write_buffer_;
    std::deque<std::shared_ptr<elem>> reqs_;
