@@ -128,7 +128,7 @@ struct test_item {
    }
 };
 
-void test_pipeline()
+void test_several_requests()
 {
    test_item item1{};
    test_item item2{false};
@@ -184,10 +184,10 @@ void test_pipeline()
    BOOST_TEST(!item3.done);
 
    // Consumes the next message in the read buffer.
-   boost::system::error_code ec;
-   auto const ret = mpx.consume_next("+one\r\n", ec);
+   error_code ec;
+   auto ret = mpx.consume_next("+one\r\n", ec);
 
-   // The read operation should have been successfull.
+   // The read operation should have been successful.
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST(ret.second != 0u);
 
@@ -196,7 +196,18 @@ void test_pipeline()
    BOOST_TEST(item2.done);
    BOOST_TEST(!item3.done);
 
-   // TODO: Check the first request was removed from the queue.
+   // Consumes the second message in the read buffer
+   // Consumes the next message in the read buffer.
+   ret = mpx.consume_next("+two\r\n", ec);
+
+   // The read operation should have been successful.
+   BOOST_TEST_EQ(ret.first, consume_result::got_response);
+   BOOST_TEST(ret.second != 0u);
+
+   // Everything done
+   BOOST_TEST(item1.done);
+   BOOST_TEST(item2.done);
+   BOOST_TEST(item3.done);
 }
 
 }  // namespace
@@ -205,7 +216,7 @@ int main()
 {
    test_push();
    test_push_needs_more();
-   test_pipeline();
+   test_several_requests();
 
    return boost::report_errors();
 }
