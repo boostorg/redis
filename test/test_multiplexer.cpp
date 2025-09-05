@@ -128,6 +128,31 @@ struct test_item {
    }
 };
 
+void test_request_needs_more()
+{
+   // Setup
+   test_item item1{};
+   multiplexer mpx;
+
+   // Add the element to the multiplexer ans simulate a successful write
+   mpx.add(item1.elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(item1.elem_ptr->is_written());
+   BOOST_TEST(!item1.done);
+
+   // Parse part of the response
+   error_code ec;
+   auto ret = mpx.consume_next("$11\r\nhello", ec);
+   BOOST_TEST_EQ(ret.first, consume_result::needs_more);
+
+   // Parse the rest of it
+   ret = mpx.consume_next("$11\r\nhello world\r\n", ec);
+   BOOST_TEST_EQ(ret.first, consume_result::got_response);
+   BOOST_TEST(item1.resp.has_value());
+   BOOST_TEST_EQ(item1.resp->at(0).value, "hello world");
+}
+
 void test_several_requests()
 {
    test_item item1{};
@@ -216,6 +241,7 @@ int main()
 {
    test_push();
    test_push_needs_more();
+   test_request_needs_more();
    test_several_requests();
 
    return boost::report_errors();
