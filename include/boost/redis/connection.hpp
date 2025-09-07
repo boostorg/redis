@@ -337,12 +337,21 @@ private:
    template <class CompletionToken>
    auto handshaker(CompletionToken&& token)
    {
-      return conn_->async_exec(
-         conn_->hello_req_,
-         any_adapter(conn_->hello_resp_),
-         asio::deferred([&conn = *this->conn_](system::error_code hello_ec, std::size_t) {
-            return asio::deferred.values(on_hello(conn, hello_ec));
-         }))(std::forward<CompletionToken>(token));
+      // clang-format off
+      return asio::deferred_t::when(this->conn_->cfg_.send_hello)
+         .then(
+            conn_->async_exec(
+               conn_->hello_req_,
+               any_adapter(conn_->hello_resp_),
+               asio::deferred([&conn = *this->conn_](system::error_code hello_ec, std::size_t) {
+                  return asio::deferred.values(on_hello(conn, hello_ec));
+               })
+            )
+         )
+         .otherwise(asio::deferred.values(system::error_code()))
+         (std::forward<CompletionToken>(token))
+      ;
+      // clang-format on
    }
 
    template <class CompletionToken>
@@ -526,10 +535,11 @@ public:
       executor_type ex,
       asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
       logger lgr = {})
-   : impl_(std::make_unique<detail::connection_impl<Executor>>(
-        std::move(ex),
-        std::move(ctx),
-        std::move(lgr)))
+   : impl_(
+        std::make_unique<detail::connection_impl<Executor>>(
+           std::move(ex),
+           std::move(ctx),
+           std::move(lgr)))
    { }
 
    /** @brief Constructor from an executor and a logger.
@@ -786,10 +796,7 @@ public:
       class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
-      return this->async_exec(
-         req,
-         any_adapter{resp},
-         std::forward<CompletionToken>(token));
+      return this->async_exec(req, any_adapter{resp}, std::forward<CompletionToken>(token));
    }
 
    /** @brief Executes commands on the Redis server asynchronously.
@@ -1093,10 +1100,7 @@ public:
    template <class Response = ignore_t, class CompletionToken = asio::deferred_t>
    auto async_exec(request const& req, Response& resp = ignore, CompletionToken&& token = {})
    {
-      return async_exec(
-         req,
-         any_adapter{resp},
-         std::forward<CompletionToken>(token));
+      return async_exec(req, any_adapter{resp}, std::forward<CompletionToken>(token));
    }
 
    /**

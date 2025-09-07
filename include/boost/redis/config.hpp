@@ -103,6 +103,8 @@ struct config {
     * since the buffer is reused.
     */
    std::size_t read_buffer_append_size = 4096;
+
+   bool send_hello = true;
 };
 
 }  // namespace boost::redis
