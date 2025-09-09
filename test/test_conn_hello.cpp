@@ -142,7 +142,7 @@ void test_database_index()
    cfg.database_index = 2;
 
    redis::request req;
-   req.push("CLIENT", "LIST");
+   req.push("CLIENT", "INFO");
 
    redis::generic_response resp;
 
@@ -171,8 +171,6 @@ void test_database_index()
    auto const index_str = value.substr(pos + 3, 1);
    auto const index = std::stoi(index_str);
 
-   // This check might fail if more than one client is connected to
-   // redis when the CLIENT LIST command is run.
    BOOST_TEST_EQ(cfg.database_index.value(), index);
 }
 
