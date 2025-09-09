@@ -131,6 +131,51 @@ void test_auth_failure()
    }
 }
 
+void test_database_index()
+{
+   // Setup
+   asio::io_context ioc;
+   redis::connection conn(ioc);
+
+   // Use a non-default database index
+   auto cfg = make_test_config();
+   cfg.database_index = 2;
+
+   redis::request req;
+   req.push("CLIENT", "LIST");
+
+   redis::generic_response resp;
+
+   bool exec_finished = false, run_finished = false;
+
+   conn.async_exec(req, resp, [&](error_code ec, std::size_t n) {
+      BOOST_TEST_EQ(ec, error_code());
+      std::clog << "async_exec has completed: " << n << std::endl;
+      conn.cancel();
+      exec_finished = true;
+   });
+
+   conn.async_run(cfg, {}, [&run_finished](error_code) {
+      std::clog << "async_run has exited." << std::endl;
+      run_finished = true;
+   });
+
+   ioc.run_for(test_timeout);
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+
+   if (!BOOST_TEST_NOT(resp.value().empty()))
+      return;
+   auto const& value = resp.value().front().value;
+   auto const pos = value.find("db=");
+   auto const index_str = value.substr(pos + 3, 1);
+   auto const index = std::stoi(index_str);
+
+   // This check might fail if more than one client is connected to
+   // redis when the CLIENT LIST command is run.
+   BOOST_TEST_EQ(cfg.database_index.value(), index);
+}
+
 }  // namespace
 
 int main()
@@ -138,6 +183,7 @@ int main()
    setup_password();
    test_auth_success();
    test_auth_failure();
+   test_database_index();
 
    return boost::report_errors();
 }
