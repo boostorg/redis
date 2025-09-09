@@ -40,21 +40,46 @@ struct config {
     */
    std::string unix_socket;
 
-   /** @brief Username passed to the `HELLO` command.
-    * If left empty `HELLO` will be sent without authentication parameters.
+   /** @brief Username used for authentication during connection establishment.
+    * 
+    * During connection establishment, authentication is performed by sending
+    * either a `HELLO` (by default) or an `AUTH` command (if @ref use_hello is set to false).
+    * This field contains the username to employ.
+    *
+    * If the username equals the literal `"default"` (the default)
+    * and no password is specified, no authentication is performed.
     */
    std::string username = "default";
 
-   /** @brief Password passed to the
-    * `HELLO` command.  If left
-    * empty `HELLO` will be sent without authentication parameters.
+   /** @brief Password used for authentication during connection establishment.
+    * 
+    * During connection establishment, authentication is performed by sending
+    * either a `HELLO` (by default) or an `AUTH` command (if @ref use_hello is set to false).
+    * This field contains the password to employ.
+    *
+    * If the username equals the literal `"default"` (the default)
+    * and no password is specified, no authentication is performed.
     */
    std::string password;
 
-   /// Client name parameter of the `HELLO` command.
+   /** @brief Client name parameter to use during connection establishment.
+    *
+    * During connection establishment, the client's name is set by sending
+    * either a `HELLO` (by default) or a `CLIENT SETNAME` command
+    * (if @ref use_hello is set to false).
+    * This field contains the name to use.
+    *
+    * Set this field to the empty string to disable setting the client's name
+    * automatically during connection establishment.
+    */
    std::string clientname = "Boost.Redis";
 
-   /// Database that will be passed to the `SELECT` command.
+   /** @brief Database index to pass to the `SELECT` command during connection establishment.
+    * 
+    * If this field is set to a non-empty optional, and its value is different than zero,
+    * a `SELECT` command will be issued during connection establishment to set the logical
+    * database index. By default, no `SELECT` command is sent.
+    */
    std::optional<int> database_index = 0;
 
    /// Message used by the health-checker in @ref boost::redis::basic_connection::async_run.
@@ -95,7 +120,7 @@ struct config {
     */
    std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
 
-   /** @brief read_buffer_append_size
+   /** @brief Grow size of the read buffer.
     *
     * The size by which the read buffer grows when more space is
     * needed. This can help avoiding some memory allocations. Once the
@@ -104,7 +129,21 @@ struct config {
     */
    std::size_t read_buffer_append_size = 4096;
 
-   bool send_hello = true;
+   /** @brief Whether to use the `HELLO` command during connection establishment or not
+    * 
+    * By default, a `HELLO` command is used during connection establishment to:
+    *
+    *  @li Upgrade the protocol to RESP3, which is more feature-rich.
+    *  @li Perform authentication (see @ref username and @ref password).
+    *  @li Set the client's name (see @ref clientname).
+    *
+    * Some RESP-compatible databases do not support the `HELLO` command properly.
+    * To interact with these databases, set this field to false to avoid using the
+    * `HELLO` command. These system *must speak the RESP3 protocol by default*.
+    * Automatic authentication and client name setting will still be performed
+    * with the same semantics, but using different commands.
+    */
+   bool use_hello = true;
 };
 
 }  // namespace boost::redis

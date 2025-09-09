@@ -20,7 +20,7 @@ void setup_hello_request(config const& cfg, request& req)
 
    req.clear();
 
-   if (cfg.send_hello) {
+   if (cfg.use_hello) {
       // Gather everything we can in a HELLO command
       if (send_auth && send_setname)
          req.push("HELLO", "3", "AUTH", cfg.username, cfg.password, "SETNAME", cfg.clientname);
