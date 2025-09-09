@@ -20,6 +20,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 
 namespace asio = boost::asio;
 namespace redis = boost::redis;
@@ -27,6 +28,21 @@ using namespace std::chrono_literals;
 using boost::system::error_code;
 
 namespace {
+
+// Finds a value in the output of the CLIENT INFO command
+// format: key1=value1 key2=value2
+std::string_view find_client_info(std::string_view client_info, std::string_view key)
+{
+   std::string prefix{key};
+   prefix += '=';
+
+   auto const pos = client_info.find(prefix);
+   if (pos == std::string_view::npos)
+      return {};
+   auto const pos_begin = pos + prefix.size();
+   auto const pos_end = client_info.find(' ', pos_begin);
+   return client_info.substr(pos_begin, pos_end - pos_begin);
+}
 
 // Creates a user with a known password. Harmless if the user already exists
 void setup_password()
@@ -144,7 +160,7 @@ void test_database_index()
    redis::request req;
    req.push("CLIENT", "INFO");
 
-   redis::generic_response resp;
+   redis::response<std::string> resp;
 
    bool exec_finished = false, run_finished = false;
 
@@ -163,15 +179,42 @@ void test_database_index()
    ioc.run_for(test_timeout);
    BOOST_TEST(exec_finished);
    BOOST_TEST(run_finished);
+   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "2");
+}
 
-   if (!BOOST_TEST_NOT(resp.value().empty()))
-      return;
-   auto const& value = resp.value().front().value;
-   auto const pos = value.find("db=");
-   auto const index_str = value.substr(pos + 3, 1);
-   auto const index = std::stoi(index_str);
+// No hello, no auth, no setname. No HELLO pipeline should be sent
+void test_dont_hello()
+{
+   // Setup
+   asio::io_context ioc;
+   redis::connection conn(ioc);
 
-   BOOST_TEST_EQ(cfg.database_index.value(), index);
+   auto cfg = make_test_config();
+   cfg.use_hello = false;
+   cfg.clientname = "";
+
+   redis::request req;
+   req.push("CLIENT", "INFO");
+
+   redis::response<std::string> resp;
+
+   bool exec_finished = false, run_finished = false;
+
+   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.cancel();
+      exec_finished = true;
+   });
+
+   conn.async_run(cfg, {}, [&run_finished](error_code) {
+      std::clog << "async_run has exited." << std::endl;
+      run_finished = true;
+   });
+
+   ioc.run_for(test_timeout);
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
 }
 
 }  // namespace
@@ -182,6 +225,7 @@ int main()
    test_auth_success();
    test_auth_failure();
    test_database_index();
+   test_dont_hello();
 
    return boost::report_errors();
 }
