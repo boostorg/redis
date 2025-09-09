@@ -338,7 +338,9 @@ private:
    auto handshaker(CompletionToken&& token)
    {
       // clang-format off
-      return asio::deferred_t::when(this->conn_->cfg_.send_hello)
+      // The hello pipeline might contain commands even when config::use_hello is false
+      // (e.g. AUTH and SELECT).
+      return asio::deferred_t::when(this->conn_->hello_req_.get_commands() != 0u)
          .then(
             conn_->async_exec(
                conn_->hello_req_,

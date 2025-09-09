@@ -4,6 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/detail/hello_utils.hpp>
 
 namespace boost::redis::detail {
@@ -18,15 +19,27 @@ void setup_hello_request(config const& cfg, request& req)
    bool send_setname = !cfg.clientname.empty();
 
    req.clear();
-   if (send_auth && send_setname)
-      req.push("HELLO", "3", "AUTH", cfg.username, cfg.password, "SETNAME", cfg.clientname);
-   else if (send_auth)
-      req.push("HELLO", "3", "AUTH", cfg.username, cfg.password);
-   else if (send_setname)
-      req.push("HELLO", "3", "SETNAME", cfg.clientname);
-   else
-      req.push("HELLO", "3");
 
+   if (cfg.send_hello) {
+      // Gather everything we can in a HELLO command
+      if (send_auth && send_setname)
+         req.push("HELLO", "3", "AUTH", cfg.username, cfg.password, "SETNAME", cfg.clientname);
+      else if (send_auth)
+         req.push("HELLO", "3", "AUTH", cfg.username, cfg.password);
+      else if (send_setname)
+         req.push("HELLO", "3", "SETNAME", cfg.clientname);
+      else
+         req.push("HELLO", "3");
+   } else {
+      // The user doesn't want us to use the HELLO command.
+      // Send any required auth/client name commands separately.
+      if (send_auth)
+         req.push("AUTH", cfg.username, cfg.password);
+      if (send_setname)
+         req.push("CLIENT", "SETNAME", cfg.clientname);
+   }
+
+   // SELECT is independent of HELLO
    if (cfg.database_index && cfg.database_index.value() != 0)
       req.push("SELECT", cfg.database_index.value());
 }
