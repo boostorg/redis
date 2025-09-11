@@ -254,6 +254,42 @@ void test_setup_hello()
    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
 }
 
+// Running a pipeline without a HELLO is okay (regression check: we set the priority flag)
+void test_setup_no_hello()
+{
+   // Setup
+   asio::io_context ioc;
+   redis::connection conn(ioc);
+
+   auto cfg = make_test_config();
+   cfg.use_setup = true;
+   cfg.setup.clear();
+   cfg.setup.push("SELECT", 8);
+
+   redis::request req;
+   req.push("CLIENT", "INFO");
+
+   redis::response<std::string> resp;
+
+   bool exec_finished = false, run_finished = false;
+
+   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.cancel();
+      exec_finished = true;
+   });
+
+   conn.async_run(cfg, {}, [&run_finished](error_code) {
+      run_finished = true;
+   });
+
+   ioc.run_for(test_timeout);
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP3
+   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
+}
+
 }  // namespace
 
 int main()
@@ -264,6 +300,7 @@ int main()
    test_database_index();
    test_setup_empty();
    test_setup_hello();
+   test_setup_no_hello();
 
    return boost::report_errors();
 }
