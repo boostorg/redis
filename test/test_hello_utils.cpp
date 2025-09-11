@@ -111,6 +111,25 @@ void test_setup_hello_request_auth_setname()
    BOOST_TEST_EQ(req.payload(), expected);
 }
 
+void test_setup_hello_request_use_setup()
+{
+   redis::config cfg;
+   cfg.clientname = "mytest";
+   cfg.username = "foo";
+   cfg.password = "bar";
+   cfg.database_index = 4;
+   cfg.use_setup = true;
+   cfg.setup.push("SELECT", 8);
+   redis::request req;
+
+   setup_hello_request(cfg, req);
+
+   std::string_view const expected =
+      "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
+      "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
+   BOOST_TEST_EQ(req.payload(), expected);
+}
+
 // clear response
 void test_clear_response_empty()
 {
@@ -176,6 +195,7 @@ int main()
    test_setup_hello_request_auth();
    test_setup_hello_request_auth_empty_password();
    test_setup_hello_request_auth_setname();
+   test_setup_hello_request_use_setup();
 
    test_clear_response_empty();
    test_clear_response_nonempty();
