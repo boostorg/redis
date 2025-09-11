@@ -10,19 +10,25 @@
 
 namespace boost::redis::detail {
 
-void setup_hello_request(config const& cfg, request& req)
+void setup_hello_request(config& cfg, request& req)
 {
-   // Which parts of the command should we send?
-   // Don't send AUTH if the user is the default and the password is empty.
-   // Other users may have empty passwords.
-   // Note that this is just an optimization.
-   bool send_auth = !(cfg.username.empty() || (cfg.username == "default" && cfg.password.empty()));
-   bool send_setname = !cfg.clientname.empty();
+   if (cfg.use_setup) {
+      // Use the provided request, but setting the priority flag,
+      // even if the request contains no HELLO
+      // TODO: could we make this better?
+      req = std::move(cfg.setup);
+      request_access::set_hello_priority(req, true);
+   } else {
+      req.clear();
 
-   req.clear();
-   request_access::set_hello_priority(req, true);
+      // Which parts of the command should we send?
+      // Don't send AUTH if the user is the default and the password is empty.
+      // Other users may have empty passwords.
+      // Note that this is just an optimization.
+      bool send_auth = !(
+         cfg.username.empty() || (cfg.username == "default" && cfg.password.empty()));
+      bool send_setname = !cfg.clientname.empty();
 
-   if (cfg.use_hello) {
       // Gather everything we can in a HELLO command
       if (send_auth && send_setname)
          req.push("HELLO", "3", "AUTH", cfg.username, cfg.password, "SETNAME", cfg.clientname);
@@ -32,18 +38,11 @@ void setup_hello_request(config const& cfg, request& req)
          req.push("HELLO", "3", "SETNAME", cfg.clientname);
       else
          req.push("HELLO", "3");
-   } else {
-      // The user doesn't want us to use the HELLO command.
-      // Send any required auth/client name commands separately.
-      if (send_auth)
-         req.push("AUTH", cfg.username, cfg.password);
-      if (send_setname)
-         req.push("CLIENT", "SETNAME", cfg.clientname);
-   }
 
-   // SELECT is independent of HELLO
-   if (cfg.database_index && cfg.database_index.value() != 0)
-      req.push("SELECT", cfg.database_index.value());
+      // SELECT is independent of HELLO
+      if (cfg.database_index && cfg.database_index.value() != 0)
+         req.push("SELECT", cfg.database_index.value());
+   }
 }
 
 void clear_response(generic_response& res)

@@ -7,12 +7,24 @@
 #ifndef BOOST_REDIS_CONFIG_HPP
 #define BOOST_REDIS_CONFIG_HPP
 
+#include <boost/redis/request.hpp>
+
 #include <chrono>
 #include <limits>
 #include <optional>
 #include <string>
 
 namespace boost::redis {
+namespace detail {
+
+inline request make_hello_request()
+{
+   request req;
+   req.push("HELLO", "3");
+   return req;
+}
+
+}  // namespace detail
 
 /// Address of a Redis server.
 struct address {
@@ -143,7 +155,9 @@ struct config {
     * Automatic authentication and client name setting will still be performed
     * with the same semantics, but using different commands.
     */
-   bool use_hello = true;
+   bool use_setup = false;
+
+   request setup = detail::make_hello_request();
 };
 
 }  // namespace boost::redis

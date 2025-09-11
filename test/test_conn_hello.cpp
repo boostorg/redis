@@ -182,16 +182,16 @@ void test_database_index()
    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "2");
 }
 
-// No hello, no auth, no setname. No HELLO pipeline should be sent
-void test_dont_hello()
+// The user configured an empty setup request. No request should be sent
+void test_setup_empty()
 {
    // Setup
    asio::io_context ioc;
    redis::connection conn(ioc);
 
    auto cfg = make_test_config();
-   cfg.use_hello = false;
-   cfg.clientname = "";
+   cfg.use_setup = true;
+   cfg.setup.clear();
 
    redis::request req;
    req.push("CLIENT", "INFO");
@@ -207,7 +207,6 @@ void test_dont_hello()
    });
 
    conn.async_run(cfg, {}, [&run_finished](error_code) {
-      std::clog << "async_run has exited." << std::endl;
       run_finished = true;
    });
 
@@ -217,18 +216,18 @@ void test_dont_hello()
    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
 }
 
-// Authentication and name setting happens even if use_hello is set to false
-void test_dont_hello_auth_setname()
+// We can use the setup member to run commands at startup
+void test_setup_hello()
 {
    // Setup
    asio::io_context ioc;
    redis::connection conn(ioc);
 
    auto cfg = make_test_config();
-   cfg.use_hello = false;
-   cfg.username = "myuser";
-   cfg.password = "mypass";
-   cfg.clientname = "myname";
+   cfg.use_setup = true;
+   cfg.setup.clear();
+   cfg.setup.push("HELLO", "3", "AUTH", "myuser", "mypass");
+   cfg.setup.push("SELECT", 8);
 
    redis::request req;
    req.push("CLIENT", "INFO");
@@ -244,16 +243,15 @@ void test_dont_hello_auth_setname()
    });
 
    conn.async_run(cfg, {}, [&run_finished](error_code) {
-      std::clog << "async_run has exited." << std::endl;
       run_finished = true;
    });
 
    ioc.run_for(test_timeout);
    BOOST_TEST(exec_finished);
    BOOST_TEST(run_finished);
-   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
+   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "3");  // using RESP3
    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "user"), "myuser");
-   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "name"), "myname");
+   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
 }
 
 }  // namespace
@@ -264,8 +262,8 @@ int main()
    test_auth_success();
    test_auth_failure();
    test_database_index();
-   test_dont_hello();
-   test_dont_hello_auth_setname();
+   test_setup_empty();
+   test_setup_hello();
 
    return boost::report_errors();
 }
