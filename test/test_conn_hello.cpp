@@ -217,6 +217,45 @@ void test_dont_hello()
    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
 }
 
+// Authentication and name setting happens even if use_hello is set to false
+void test_dont_hello_auth_setname()
+{
+   // Setup
+   asio::io_context ioc;
+   redis::connection conn(ioc);
+
+   auto cfg = make_test_config();
+   cfg.use_hello = false;
+   cfg.username = "myuser";
+   cfg.password = "mypass";
+   cfg.clientname = "myname";
+
+   redis::request req;
+   req.push("CLIENT", "INFO");
+
+   redis::response<std::string> resp;
+
+   bool exec_finished = false, run_finished = false;
+
+   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.cancel();
+      exec_finished = true;
+   });
+
+   conn.async_run(cfg, {}, [&run_finished](error_code) {
+      std::clog << "async_run has exited." << std::endl;
+      run_finished = true;
+   });
+
+   ioc.run_for(test_timeout);
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
+   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "user"), "myuser");
+   BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "name"), "myname");
+}
+
 }  // namespace
 
 int main()
@@ -226,6 +265,7 @@ int main()
    test_auth_failure();
    test_database_index();
    test_dont_hello();
+   test_dont_hello_auth_setname();
 
    return boost::report_errors();
 }

@@ -6,6 +6,7 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/hello_utils.hpp>
+#include <boost/redis/request.hpp>
 
 namespace boost::redis::detail {
 
@@ -19,6 +20,7 @@ void setup_hello_request(config const& cfg, request& req)
    bool send_setname = !cfg.clientname.empty();
 
    req.clear();
+   request_access::set_hello_priority(req, true);
 
    if (cfg.use_hello) {
       // Gather everything we can in a HELLO command

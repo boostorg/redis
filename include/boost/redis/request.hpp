@@ -21,7 +21,8 @@ namespace boost::redis {
 
 namespace detail {
 auto has_response(std::string_view cmd) -> bool;
-}
+struct request_access;
+}  // namespace detail
 
 /** @brief Represents a Redis request.
  *  
@@ -331,8 +332,18 @@ private:
    std::string payload_;
    std::size_t commands_ = 0;
    std::size_t expected_responses_ = 0;
-   bool has_hello_priority_ = false;
+   bool has_hello_priority_ = cfg_.hello_with_priority;
+
+   friend struct detail::request_access;
 };
+
+namespace detail {
+
+struct request_access {
+   inline static void set_hello_priority(request& r, bool value) { r.has_hello_priority_ = value; }
+};
+
+}  // namespace detail
 
 }  // namespace boost::redis
 
