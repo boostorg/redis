@@ -37,6 +37,7 @@ void test_setup_hello_request()
 
    std::string_view const expected = "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n";
    BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST(req.has_hello_priority());
 }
 
 void test_setup_hello_request_select()
@@ -52,6 +53,7 @@ void test_setup_hello_request_select()
       "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
       "*2\r\n$6\r\nSELECT\r\n$2\r\n10\r\n";
    BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST(req.has_hello_priority());
 }
 
 void test_setup_hello_request_clientname()
@@ -64,6 +66,7 @@ void test_setup_hello_request_clientname()
    std::string_view const
       expected = "*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$11\r\nBoost.Redis\r\n";
    BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST(req.has_hello_priority());
 }
 
 void test_setup_hello_request_auth()
@@ -79,6 +82,7 @@ void test_setup_hello_request_auth()
    std::string_view const
       expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
    BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST(req.has_hello_priority());
 }
 
 void test_setup_hello_request_auth_empty_password()
@@ -93,6 +97,7 @@ void test_setup_hello_request_auth_empty_password()
    std::string_view const
       expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$0\r\n\r\n";
    BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST(req.has_hello_priority());
 }
 
 void test_setup_hello_request_auth_setname()
@@ -109,6 +114,7 @@ void test_setup_hello_request_auth_setname()
       "*7\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$7\r\nSETNAME\r\n$"
       "6\r\nmytest\r\n";
    BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST(req.has_hello_priority());
 }
 
 void test_setup_hello_request_use_setup()
@@ -128,6 +134,23 @@ void test_setup_hello_request_use_setup()
       "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
       "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
    BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST(req.has_hello_priority());
+}
+
+// Regression check: we set the priority flag
+void test_setup_hello_request_use_setup_no_hello()
+{
+   redis::config cfg;
+   cfg.use_setup = true;
+   cfg.setup.clear();
+   cfg.setup.push("SELECT", 8);
+   redis::request req;
+
+   setup_hello_request(cfg, req);
+
+   std::string_view const expected = "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
+   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST(req.has_hello_priority());
 }
 
 // clear response
@@ -196,6 +219,7 @@ int main()
    test_setup_hello_request_auth_empty_password();
    test_setup_hello_request_auth_setname();
    test_setup_hello_request_use_setup();
+   test_setup_hello_request_use_setup_no_hello();
 
    test_clear_response_empty();
    test_clear_response_nonempty();
