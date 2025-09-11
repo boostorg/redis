@@ -332,7 +332,7 @@ private:
    std::string payload_;
    std::size_t commands_ = 0;
    std::size_t expected_responses_ = 0;
-   bool has_hello_priority_ = cfg_.hello_with_priority;
+   bool has_hello_priority_ = false;
 
    friend struct detail::request_access;
 };
