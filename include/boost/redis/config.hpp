@@ -15,16 +15,6 @@
 #include <string>
 
 namespace boost::redis {
-namespace detail {
-
-inline request make_hello_request()
-{
-   request req;
-   req.push("HELLO", "3");
-   return req;
-}
-
-}  // namespace detail
 
 /// Address of a Redis server.
 struct address {

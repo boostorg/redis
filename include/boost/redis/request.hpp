@@ -343,6 +343,9 @@ struct request_access {
    inline static void set_priority(request& r, bool value) { r.has_hello_priority_ = value; }
 };
 
+// Creates a HELLO 3 request
+request make_hello_request();
+
 }  // namespace detail
 
 }  // namespace boost::redis
