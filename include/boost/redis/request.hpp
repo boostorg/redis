@@ -340,7 +340,7 @@ private:
 namespace detail {
 
 struct request_access {
-   inline static void set_hello_priority(request& r, bool value) { r.has_hello_priority_ = value; }
+   inline static void set_priority(request& r, bool value) { r.has_hello_priority_ = value; }
 };
 
 }  // namespace detail

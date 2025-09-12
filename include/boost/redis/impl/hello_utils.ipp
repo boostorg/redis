@@ -17,7 +17,7 @@ void setup_hello_request(config& cfg, request& req)
       // even if the request contains no HELLO
       // TODO: could we make this better?
       req = std::move(cfg.setup);
-      request_access::set_hello_priority(req, true);
+      request_access::set_priority(req, true);
    } else {
       req.clear();
 
