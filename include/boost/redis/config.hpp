@@ -134,7 +134,8 @@ struct config {
     * 
     * If set to true, the @ref setup member will be sent to the server immediately after
     * connection establishment. Every time a reconnection happens, the setup
-    * request will be executed. This request can be used to perform authentication,
+    * request will be executed before any other request.
+    * It can be used to perform authentication,
     * subscribe to channels or select a database index.
     *
     * When set to true, *the custom setup request replaces the built-in HELLO
