@@ -290,6 +290,43 @@ void test_setup_no_hello()
    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
 }
 
+void test_setup_failure()
+{
+   // Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
+   std::ostringstream oss;
+   redis::logger lgr(redis::logger::level::info, [&](redis::logger::level, std::string_view msg) {
+      oss << msg << '\n';
+   });
+
+   // Setup
+   asio::io_context ioc;
+   redis::connection conn{ioc, std::move(lgr)};
+
+   // Disable reconnection so the hello error causes the connection to exit
+   auto cfg = make_test_config();
+   cfg.use_setup = true;
+   cfg.setup.clear();
+   cfg.setup.push("GET", "two", "args");  // GET only accepts one arg, so this will fail
+   cfg.reconnect_wait_interval = 0s;
+
+   bool run_finished = false;
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, redis::error::resp3_hello);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(run_finished);
+
+   // Check the log
+   auto log = oss.str();
+   if (!BOOST_TEST_NE(log.find("wrong number of arguments"), std::string::npos)) {
+      std::cerr << "Log was: " << log << std::endl;
+   }
+}
+
 }  // namespace
 
 int main()
@@ -301,6 +338,7 @@ int main()
    test_setup_empty();
    test_setup_hello();
    test_setup_no_hello();
+   test_setup_failure();
 
    return boost::report_errors();
 }
