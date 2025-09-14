@@ -10,7 +10,7 @@
 
 namespace boost::redis::detail {
 
-void setup_hello_request(config& cfg)
+void compose_setup_request(config& cfg)
 {
    if (!cfg.use_setup) {
       // We're not using the setup request as-is, but should compose one based on
@@ -54,7 +54,7 @@ void clear_response(generic_response& res)
       res.emplace();
 }
 
-system::error_code check_hello_response(system::error_code io_ec, const generic_response& resp)
+system::error_code check_setup_response(system::error_code io_ec, const generic_response& resp)
 {
    if (io_ec)
       return io_ec;

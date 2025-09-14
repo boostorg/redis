@@ -86,7 +86,7 @@ struct connection_impl {
    multiplexer mpx_;
    connection_logger logger_;
    read_buffer read_buffer_;
-   generic_response hello_resp_;
+   generic_response setup_resp_;
 
    using executor_type = Executor;
 
@@ -323,10 +323,12 @@ private:
 
    using order_t = std::array<std::size_t, 5>;
 
-   static system::error_code on_hello(connection_impl<Executor>& conn, system::error_code ec)
+   static system::error_code on_setup_finished(
+      connection_impl<Executor>& conn,
+      system::error_code ec)
    {
-      ec = check_hello_response(ec, conn.hello_resp_);
-      conn.logger_.on_hello(ec, conn.hello_resp_);
+      ec = check_setup_response(ec, conn.setup_resp_);
+      conn.logger_.on_hello(ec, conn.setup_resp_);
       if (ec) {
          conn.cancel(operation::run);
       }
@@ -334,7 +336,7 @@ private:
    }
 
    template <class CompletionToken>
-   auto handshaker(CompletionToken&& token)
+   auto send_setup(CompletionToken&& token)
    {
       // clang-format off
       // Skip sending the setup request if it's empty
@@ -342,9 +344,9 @@ private:
          .then(
             conn_->async_exec(
                conn_->cfg_.setup,
-               any_adapter(conn_->hello_resp_),
-               asio::deferred([&conn = *this->conn_](system::error_code hello_ec, std::size_t) {
-                  return asio::deferred.values(on_hello(conn, hello_ec));
+               any_adapter(conn_->setup_resp_),
+               asio::deferred([&conn = *this->conn_](system::error_code ec, std::size_t) {
+                  return asio::deferred.values(on_setup_finished(conn, ec));
                })
             )
          )
@@ -391,7 +393,7 @@ public:
       system::error_code final_ec;
 
       if (order[0] == 0 && !!ec0) {
-         // The hello op finished first and with an error
+         // The setup op finished first and with an error
          final_ec = ec0;
       } else if (order[0] == 2 && ec2 == error::pong_timeout) {
          // The check ping timeout finished first. Use the ping error code
@@ -420,8 +422,8 @@ public:
             return;
          }
 
-         // Set up the hello request, as it only depends on the config
-         setup_hello_request(conn_->cfg_);
+         // Compose the setup request. This only depends on the config, so it can be done just once
+         compose_setup_request(conn_->cfg_);
 
          for (;;) {
             // Try to connect
@@ -432,15 +434,16 @@ public:
             if (!ec) {
                conn_->read_buffer_.clear();
                conn_->mpx_.reset();
-               clear_response(conn_->hello_resp_);
+               clear_response(conn_->setup_resp_);
 
                // Note: Order is important here because the writer might
-               // trigger an async_write before the async_hello thereby
-               // causing an authentication problem.
+               // trigger an async_write before the setup request is sent,
+               // causing other requests to be sent before the setup request,
+               // violating the setup request contract.
                BOOST_ASIO_CORO_YIELD
                asio::experimental::make_parallel_group(
                   [this](auto token) {
-                     return this->handshaker(token);
+                     return this->send_setup(token);
                   },
                   [this](auto token) {
                      return conn_->health_checker_.async_ping(*conn_, token);
@@ -603,8 +606,9 @@ public:
     *      connects to one of the endpoints obtained during name resolution.
     *      For UNIX domain socket connections, it connects to @ref boost::redis::config::unix_socket.
     *  @li If @ref boost::redis::config::use_ssl is `true`, performs the TLS handshake.
-    *  @li Sends a `HELLO` command where
-    *      each of its parameters are read from `cfg`.
+    *  @li Executes the setup request, as defined by the passed @ref config object.
+    *      By default, this is a `HELLO` command, but it can contain any other arbitrary
+    *      commands. See the @ref config docs for more info.
     *  @li Starts a health-check operation where ping commands are sent
     *      at intervals specified by
     *      @ref boost::redis::config::health_check_interval. 
