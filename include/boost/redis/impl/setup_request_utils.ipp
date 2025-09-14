@@ -5,7 +5,7 @@
  */
 
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/hello_utils.hpp>
+#include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/request.hpp>
 
 namespace boost::redis::detail {

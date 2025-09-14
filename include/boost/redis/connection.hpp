@@ -13,11 +13,11 @@
 #include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/health_checker.hpp>
-#include <boost/redis/detail/hello_utils.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
+#include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>

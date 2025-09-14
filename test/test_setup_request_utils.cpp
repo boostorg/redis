@@ -8,7 +8,7 @@
 
 #include <boost/redis/adapter/result.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/hello_utils.hpp>
+#include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/type.hpp>
