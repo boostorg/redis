@@ -13,7 +13,7 @@
 
 namespace boost::redis::detail {
 
-void setup_hello_request(config& cfg, request& req);  // might move cfg.setup, for efficiency
+void setup_hello_request(config& cfg);  // The setup request is composed in place, in config::setup
 void clear_response(generic_response& res);
 system::error_code check_hello_response(system::error_code io_ec, const generic_response&);
 

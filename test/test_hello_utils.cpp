@@ -31,13 +31,12 @@ void test_setup_hello_request()
 {
    redis::config cfg;
    cfg.clientname = "";
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   setup_hello_request(cfg);
 
    std::string_view const expected = "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST(req.has_hello_priority());
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
 void test_setup_hello_request_select()
@@ -45,28 +44,26 @@ void test_setup_hello_request_select()
    redis::config cfg;
    cfg.clientname = "";
    cfg.database_index = 10;
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   setup_hello_request(cfg);
 
    std::string_view const expected =
       "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
       "*2\r\n$6\r\nSELECT\r\n$2\r\n10\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST(req.has_hello_priority());
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
 void test_setup_hello_request_clientname()
 {
    redis::config cfg;
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   setup_hello_request(cfg);
 
    std::string_view const
       expected = "*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$11\r\nBoost.Redis\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST(req.has_hello_priority());
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
 void test_setup_hello_request_auth()
@@ -75,14 +72,13 @@ void test_setup_hello_request_auth()
    cfg.clientname = "";
    cfg.username = "foo";
    cfg.password = "bar";
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   setup_hello_request(cfg);
 
    std::string_view const
       expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST(req.has_hello_priority());
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
 void test_setup_hello_request_auth_empty_password()
@@ -90,14 +86,13 @@ void test_setup_hello_request_auth_empty_password()
    redis::config cfg;
    cfg.clientname = "";
    cfg.username = "foo";
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   setup_hello_request(cfg);
 
    std::string_view const
       expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$0\r\n\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST(req.has_hello_priority());
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
 void test_setup_hello_request_auth_setname()
@@ -106,15 +101,14 @@ void test_setup_hello_request_auth_setname()
    cfg.clientname = "mytest";
    cfg.username = "foo";
    cfg.password = "bar";
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   setup_hello_request(cfg);
 
    std::string_view const expected =
       "*7\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$7\r\nSETNAME\r\n$"
       "6\r\nmytest\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST(req.has_hello_priority());
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
 void test_setup_hello_request_use_setup()
@@ -126,15 +120,14 @@ void test_setup_hello_request_use_setup()
    cfg.database_index = 4;
    cfg.use_setup = true;
    cfg.setup.push("SELECT", 8);
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   setup_hello_request(cfg);
 
    std::string_view const expected =
       "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
       "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST(req.has_hello_priority());
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
 // Regression check: we set the priority flag
@@ -144,13 +137,12 @@ void test_setup_hello_request_use_setup_no_hello()
    cfg.use_setup = true;
    cfg.setup.clear();
    cfg.setup.push("SELECT", 8);
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   setup_hello_request(cfg);
 
    std::string_view const expected = "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST(req.has_hello_priority());
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
 // clear response

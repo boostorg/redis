@@ -86,7 +86,6 @@ struct connection_impl {
    multiplexer mpx_;
    connection_logger logger_;
    read_buffer read_buffer_;
-   request hello_req_;
    generic_response hello_resp_;
 
    using executor_type = Executor;
@@ -338,12 +337,11 @@ private:
    auto handshaker(CompletionToken&& token)
    {
       // clang-format off
-      // The hello pipeline might contain commands even when config::use_hello is false
-      // (e.g. AUTH and SELECT).
-      return asio::deferred_t::when(this->conn_->hello_req_.get_commands() != 0u)
+      // Skip sending the setup request if it's empty
+      return asio::deferred_t::when(conn_->cfg_.setup.get_commands() != 0u)
          .then(
             conn_->async_exec(
-               conn_->hello_req_,
+               conn_->cfg_.setup,
                any_adapter(conn_->hello_resp_),
                asio::deferred([&conn = *this->conn_](system::error_code hello_ec, std::size_t) {
                   return asio::deferred.values(on_hello(conn, hello_ec));
@@ -423,7 +421,7 @@ public:
          }
 
          // Set up the hello request, as it only depends on the config
-         setup_hello_request(conn_->cfg_, conn_->hello_req_);
+         setup_hello_request(conn_->cfg_);
 
          for (;;) {
             // Try to connect

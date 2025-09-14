@@ -10,15 +10,12 @@
 
 namespace boost::redis::detail {
 
-void setup_hello_request(config& cfg, request& req)
+void setup_hello_request(config& cfg)
 {
-   if (cfg.use_setup) {
-      // Use the provided request, but setting the priority flag,
-      // even if the request contains no HELLO
-      // TODO: could we make this better?
-      req = std::move(cfg.setup);
-      request_access::set_priority(req, true);
-   } else {
+   if (!cfg.use_setup) {
+      // We're not using the setup request as-is, but should compose one based on
+      // the values passed by the user
+      auto& req = cfg.setup;
       req.clear();
 
       // Which parts of the command should we send?
@@ -43,6 +40,10 @@ void setup_hello_request(config& cfg, request& req)
       if (cfg.database_index && cfg.database_index.value() != 0)
          req.push("SELECT", cfg.database_index.value());
    }
+
+   // In any case, the setup request should have the priority
+   // flag set so it's executed before any other request
+   request_access::set_priority(cfg.setup, true);
 }
 
 void clear_response(generic_response& res)
