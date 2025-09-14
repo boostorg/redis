@@ -43,8 +43,9 @@ std::ostream& operator<<(std::ostream& os, usage const& u)
       << "Bytes sent: " << u.bytes_sent << "\n"
       << "Responses received: " << u.responses_received << "\n"
       << "Pushes received: " << u.pushes_received << "\n"
-      << "Response bytes received: " << u.response_bytes_received << "\n"
-      << "Push bytes received: " << u.push_bytes_received;
+      << "Bytes received (response): " << u.response_bytes_received << "\n"
+      << "Bytes received (push): " << u.push_bytes_received << "\n"
+      << "Bytes rotated: " << u.bytes_rotated;
 
    return os;
 }

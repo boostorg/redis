@@ -197,22 +197,22 @@ BOOST_AUTO_TEST_CASE(read_buffer_prepare_error)
 
    // Usual case, max size is bigger then requested size.
    buf.set_config({10, 10});
-   auto ec = buf.prepare_append();
+   auto ec = buf.prepare();
    BOOST_TEST(!ec);
-   buf.commit_append(10);
+   buf.commit(10);
 
    // Corner case, max size is equal to the requested size.
    buf.set_config({10, 20});
-   ec = buf.prepare_append();
+   ec = buf.prepare();
    BOOST_TEST(!ec);
-   buf.commit_append(10);
-   buf.consume_committed(20);
+   buf.commit(10);
+   buf.consume(20);
 
    auto const tmp = buf;
 
    // Error case, max size is smaller to the requested size.
    buf.set_config({10, 9});
-   ec = buf.prepare_append();
+   ec = buf.prepare();
    BOOST_TEST(ec == error_code{boost::redis::error::exceeds_maximum_read_buffer_size});
 
    // Check that an error call has no side effects.
@@ -227,19 +227,34 @@ BOOST_AUTO_TEST_CASE(read_buffer_prepare_consume_only_committed_data)
    read_buffer buf;
 
    buf.set_config({10, 10});
-   auto ec = buf.prepare_append();
+   auto ec = buf.prepare();
    BOOST_TEST(!ec);
 
+   auto res = buf.consume(5);
+
    // No data has been committed yet so nothing can be consummed.
-   BOOST_CHECK_EQUAL(buf.consume_committed(5), 0u);
+   BOOST_CHECK_EQUAL(res.consumed, 0u);
 
-   buf.commit_append(10);
+   // If nothing was consumed, nothing got rotated.
+   BOOST_CHECK_EQUAL(res.rotated, 0u);
 
-   // All five bytes can be consumed.
-   BOOST_CHECK_EQUAL(buf.consume_committed(5), 5u);
+   buf.commit(10);
+   res = buf.consume(5);
+
+   // All five bytes should have been consumed.
+   BOOST_CHECK_EQUAL(res.consumed, 5u);
+
+   // We added a total of 10 bytes and consumed 5, that means, 5 were
+   // rotated.
+   BOOST_CHECK_EQUAL(res.rotated, 5u);
+
+   res = buf.consume(7);
 
    // Only the remaining five bytes can be consumed
-   BOOST_CHECK_EQUAL(buf.consume_committed(7), 5u);
+   BOOST_CHECK_EQUAL(res.consumed, 5u);
+
+   // No bytes to rotated.
+   BOOST_CHECK_EQUAL(res.rotated, 0u);
 }
 
 BOOST_AUTO_TEST_CASE(read_buffer_check_buffer_size)
@@ -249,10 +264,10 @@ BOOST_AUTO_TEST_CASE(read_buffer_check_buffer_size)
    read_buffer buf;
 
    buf.set_config({10, 10});
-   auto ec = buf.prepare_append();
+   auto ec = buf.prepare();
    BOOST_TEST(!ec);
 
-   BOOST_CHECK_EQUAL(buf.get_append_buffer().size(), 10u);
+   BOOST_CHECK_EQUAL(buf.get_prepared().size(), 10u);
 }
 
 BOOST_AUTO_TEST_CASE(check_counter_adapter)
