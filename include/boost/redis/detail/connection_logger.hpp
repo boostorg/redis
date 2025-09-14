@@ -39,7 +39,7 @@ public:
    void on_ssl_handshake(system::error_code const& ec);
    void on_write(system::error_code const& ec, std::size_t n);
    void on_fsm_resume(reader_fsm::action const& action);
-   void on_hello(system::error_code const& ec, generic_response const& resp);
+   void on_setup(system::error_code const& ec, generic_response const& resp);
    void log(logger::level lvl, std::string_view msg);
    void log(logger::level lvl, std::string_view op, system::error_code const& ec);
    void trace(std::string_view message) { log(logger::level::debug, message); }

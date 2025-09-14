@@ -328,7 +328,7 @@ private:
       system::error_code ec)
    {
       ec = check_setup_response(ec, conn.setup_resp_);
-      conn.logger_.on_hello(ec, conn.setup_resp_);
+      conn.logger_.on_setup(ec, conn.setup_resp_);
       if (ec) {
          conn.cancel(operation::run);
       }
