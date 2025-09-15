@@ -156,7 +156,15 @@ void test_request_needs_more()
    ret = mpx.consume_next("$11\r\nhello world\r\n", ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST(item1.resp.has_value());
-   BOOST_TEST_EQ(item1.resp->at(0).value, "hello world");
+
+   const node expected[] = {
+      {type::blob_string, 1u, 0u, "hello world"},
+   };
+   BOOST_TEST_ALL_EQ(
+      item1.resp->begin(),
+      item1.resp->end(),
+      std::begin(expected),
+      std::end(expected));
 }
 
 void test_several_requests()
