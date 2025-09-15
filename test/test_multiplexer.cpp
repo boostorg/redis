@@ -58,63 +58,6 @@ std::ostream& operator<<(std::ostream& os, consume_result v)
 
 namespace {
 
-void test_push()
-{
-   // Setup
-   multiplexer mpx;
-   generic_response resp;
-   mpx.set_receive_adapter(any_adapter{resp});
-
-   // Consume an entire push
-   error_code ec;
-   auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
-
-   // Check
-   BOOST_TEST_EQ(ret.first, consume_result::got_push);
-   BOOST_TEST_EQ(ret.second, 16u);
-   BOOST_TEST(resp.has_value());
-
-   const node expected[] = {
-      {type::push,          2u, 0u, ""   },
-      {type::simple_string, 1u, 1u, "one"},
-      {type::simple_string, 1u, 1u, "two"},
-   };
-   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
-}
-
-void test_push_needs_more()
-{
-   // Setup
-   multiplexer mpx;
-   generic_response resp;
-   mpx.set_receive_adapter(any_adapter{resp});
-   std::string msg;
-
-   // Only part of the message available.
-   msg += ">2\r\n+one\r";
-
-   // Consume it
-   error_code ec;
-   auto ret = mpx.consume_next(msg, ec);
-
-   BOOST_TEST_EQ(ret.first, consume_result::needs_more);
-
-   // The entire message becomes available
-   msg += "\n+two\r\n";
-   ret = mpx.consume_next(msg, ec);
-
-   BOOST_TEST_EQ(ret.first, consume_result::got_push);
-   BOOST_TEST_EQ(ret.second, 16u);
-   BOOST_TEST(resp.has_value());
-
-   const node expected[] = {
-      {type::push,          2u, 0u, ""   },
-      {type::simple_string, 1u, 1u, "one"},
-      {type::simple_string, 1u, 1u, "two"},
-   };
-   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
-}
-
 struct test_item {
    request req;
    generic_response resp;
@@ -250,6 +193,63 @@ void test_several_requests()
    BOOST_TEST(item3.done);
 }
 
+void test_push()
+{
+   // Setup
+   multiplexer mpx;
+   generic_response resp;
+   mpx.set_receive_adapter(any_adapter{resp});
+
+   // Consume an entire push
+   error_code ec;
+   auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
+
+   // Check
+   BOOST_TEST_EQ(ret.first, consume_result::got_push);
+   BOOST_TEST_EQ(ret.second, 16u);
+   BOOST_TEST(resp.has_value());
+
+   const node expected[] = {
+      {type::push,          2u, 0u, ""   },
+      {type::simple_string, 1u, 1u, "one"},
+      {type::simple_string, 1u, 1u, "two"},
+   };
+   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
+}
+
+void test_push_needs_more()
+{
+   // Setup
+   multiplexer mpx;
+   generic_response resp;
+   mpx.set_receive_adapter(any_adapter{resp});
+   std::string msg;
+
+   // Only part of the message available.
+   msg += ">2\r\n+one\r";
+
+   // Consume it
+   error_code ec;
+   auto ret = mpx.consume_next(msg, ec);
+
+   BOOST_TEST_EQ(ret.first, consume_result::needs_more);
+
+   // The entire message becomes available
+   msg += "\n+two\r\n";
+   ret = mpx.consume_next(msg, ec);
+
+   BOOST_TEST_EQ(ret.first, consume_result::got_push);
+   BOOST_TEST_EQ(ret.second, 16u);
+   BOOST_TEST(resp.has_value());
+
+   const node expected[] = {
+      {type::push,          2u, 0u, ""   },
+      {type::simple_string, 1u, 1u, "one"},
+      {type::simple_string, 1u, 1u, "two"},
+   };
+   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
+}
+
 // We correctly reset parsing state between requests and pushes
 void test_mix_responses_pushes()
 {
@@ -330,10 +330,10 @@ void test_mix_responses_pushes()
 
 int main()
 {
-   test_push();
-   test_push_needs_more();
    test_request_needs_more();
    test_several_requests();
+   test_push();
+   test_push_needs_more();
    test_mix_responses_pushes();
 
    return boost::report_errors();
