@@ -441,8 +441,6 @@ void test_cancel_on_connection_lost()
 {
    // Setup
    multiplexer mpx;
-   generic_response push_resp;
-   mpx.set_receive_adapter(any_adapter{push_resp});
    test_item item_written1, item_written2, item_staged1, item_staged2, item_waiting1, item_waiting2;
 
    // Different items have different configurations
@@ -493,6 +491,53 @@ void test_cancel_on_connection_lost()
    BOOST_TEST(item_written1.elem_ptr->is_waiting());
 }
 
+// The test below fails. Uncomment when this is fixed:
+// https://github.com/boostorg/redis/issues/307
+// void test_cancel_on_connection_lost_half_parsed_response()
+// {
+//    // Setup
+//    multiplexer mpx;
+//    test_item item;
+//    item.req.get_config().cancel_if_unresponded = false;
+//    error_code ec;
+
+//    // Add the request, write it and start parsing the response
+//    mpx.add(item.elem_ptr);
+//    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+//    BOOST_TEST_EQ(mpx.commit_write(), 0u);
+//    auto res = mpx.consume_next("*2\r\n+hello\r\n", ec);
+//    BOOST_TEST_EQ(res.first, consume_result::needs_more);
+//    BOOST_TEST_EQ(ec, error_code());
+
+//    // Trigger a connection lost event
+//    mpx.cancel_on_conn_lost();
+//    BOOST_TEST(!item.done);
+//    BOOST_TEST(item.elem_ptr->is_waiting());
+
+//    // Simulate a reconnection
+//    mpx.reset();
+
+//    // Successful write, and this time the response is complete
+//    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+//    BOOST_TEST_EQ(mpx.commit_write(), 0u);
+//    res = mpx.consume_next("*2\r\n+hello\r\n+world\r\n", ec);
+//    BOOST_TEST_EQ(res.first, consume_result::got_response);
+//    BOOST_TEST_EQ(ec, error_code());
+
+//    // Check the response
+//    BOOST_TEST(item.resp.has_value());
+//    const node expected[] = {
+//       {type::array,         2u, 0u, ""     },
+//       {type::simple_string, 1u, 1u, "hello"},
+//       {type::simple_string, 1u, 1u, "world"},
+//    };
+//    BOOST_TEST_ALL_EQ(
+//       item.resp->begin(),
+//       item.resp->end(),
+//       std::begin(expected),
+//       std::end(expected));
+// }
+
 }  // namespace
 
 int main()
@@ -507,6 +552,7 @@ int main()
    test_push_heuristics_request_waiting();
    test_mix_responses_pushes();
    test_cancel_on_connection_lost();
+   // test_cancel_on_connection_lost_half_parsed_response();
 
    return boost::report_errors();
 }
