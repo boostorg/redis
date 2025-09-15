@@ -306,6 +306,34 @@ void test_push_heuristics_no_request()
    BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
 }
 
+// Same, but there's another request that hasn't been written yet.
+// This is an edge case but might happen due to race conditions.
+void test_push_heuristics_request_waiting()
+{
+   // Setup
+   multiplexer mpx;
+   generic_response resp;
+   mpx.set_receive_adapter(any_adapter{resp});
+   test_item item;
+
+   // Add the item but don't write it (e.g. the writer task is busy)
+   mpx.add(item.elem_ptr);
+
+   // Response received, but no request has been sent
+   error_code ec;
+   auto const ret = mpx.consume_next("+Hello world\r\n", ec);
+
+   // Check
+   BOOST_TEST_EQ(ret.first, consume_result::got_push);
+   BOOST_TEST_EQ(ret.second, 14u);
+   BOOST_TEST(resp.has_value());
+
+   const node expected[] = {
+      {type::simple_string, 1u, 0u, "Hello world"},
+   };
+   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
+}
+
 // If a response is received and the first request doesn't expect a response,
 // it is interpreted as a push (e.g. SUBSCRIBE with incorrect syntax)
 void test_push_heuristics_request_without_response()
@@ -419,6 +447,7 @@ int main()
    test_push_needs_more();
    test_push_heuristics_no_request();
    test_push_heuristics_request_without_response();
+   test_push_heuristics_request_waiting();
    test_mix_responses_pushes();
 
    return boost::report_errors();
