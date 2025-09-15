@@ -80,7 +80,7 @@ enum class error
    /// Incompatible node depth.
    incompatible_node_depth,
 
-   /// Resp3 hello command error
+   /// The setup request sent during connection establishment failed (the name is historical).
    resp3_hello,
 
    /// The configuration specified a UNIX socket address, but UNIX sockets are not supported by the system.

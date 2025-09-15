@@ -21,4 +21,11 @@ auto has_response(std::string_view cmd) -> bool
    return false;
 }
 
+request make_hello_request()
+{
+   request req;
+   req.push("HELLO", "3");
+   return req;
+}
+
 }  // namespace boost::redis::detail

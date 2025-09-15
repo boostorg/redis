@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/detail/connection_logger.hpp>
+#include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/logger.hpp>
 
 #include <boost/asio/ip/tcp.hpp>
@@ -174,12 +175,12 @@ void connection_logger::on_fsm_resume(reader_fsm::action const& action)
    logger_.fn(logger::level::debug, msg);
 }
 
-void connection_logger::on_hello(system::error_code const& ec, generic_response const& resp)
+void connection_logger::on_setup(system::error_code const& ec, generic_response const& resp)
 {
    if (logger_.lvl < logger::level::info)
       return;
 
-   msg_ = "hello_op: ";
+   msg_ = "Setup request execution: ";
    if (ec) {
       format_error_code(ec, msg_);
       if (resp.has_error()) {
