@@ -92,10 +92,10 @@ consume_result multiplexer::consume_next_impl(std::string_view data, system::err
    //
 
    BOOST_ASSERT(!data.empty());
-   if (!on_push_)  // Prepare for new message.
-      on_push_ = is_next_push(data);
+   if (parse_status_ == parse_status::initial)  // Prepare for new message.
+      parse_status_ = is_next_push(data) ? parse_status::push : parse_status::response;
 
-   if (on_push_) {
+   if (parse_status_ == parse_status::push) {
       if (!resp3::parse(parser_, data, receive_adapter_, ec))
          return consume_result::needs_more;
 
@@ -141,6 +141,7 @@ std::pair<consume_result, std::size_t> multiplexer::consume_next(
    if (ret != consume_result::needs_more) {
       parser_.reset();
       commit_usage(ret == consume_result::got_push, consumed);
+      parse_status_ = parse_status::initial;
       return std::make_pair(ret, consumed);
    }
 
@@ -151,7 +152,7 @@ void multiplexer::reset()
 {
    write_buffer_.clear();
    parser_.reset();
-   on_push_ = false;
+   parse_status_ = parse_status::initial;
    cancel_run_called_ = false;
 }
 
@@ -239,7 +240,6 @@ void multiplexer::commit_usage(bool is_push, std::size_t size)
    if (is_push) {
       usage_.pushes_received += 1;
       usage_.push_bytes_received += size;
-      on_push_ = false;
    } else {
       usage_.responses_received += 1;
       usage_.response_bytes_received += size;
