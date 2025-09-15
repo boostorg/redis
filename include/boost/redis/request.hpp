@@ -67,11 +67,17 @@ public:
        */
       bool cancel_if_unresponded = true;
 
-      /** @brief If this request has a `HELLO` command and this flag
+      /** @brief (Deprecated) If this request has a `HELLO` command and this flag
        * is `true`, it will be moved to the
        * front of the queue of awaiting requests. This makes it
        * possible to send `HELLO` commands and authenticate before other
        * commands are sent.
+       *
+       * @par Deprecated
+       * This field has been superseded by @ref config::setup.
+       * This setup request will always be run first on connection establishment.
+       * Please use it to run any required setup commands.
+       * This field will be removed in subsequent releases.
        */
       bool hello_with_priority = true;
    };
@@ -95,7 +101,11 @@ public:
 
    [[nodiscard]] auto payload() const noexcept -> std::string_view { return payload_; }
 
-   [[nodiscard]] auto has_hello_priority() const noexcept -> auto const&
+   [[nodiscard]]
+   BOOST_DEPRECATED(
+      "The hello_with_priority attribute and related functions are deprecated. "
+      "Use config::setup to run setup commands, instead.") auto has_hello_priority() const noexcept
+      -> auto const&
    {
       return has_hello_priority_;
    }
@@ -341,6 +351,7 @@ namespace detail {
 
 struct request_access {
    inline static void set_priority(request& r, bool value) { r.has_hello_priority_ = value; }
+   inline static bool has_priority(const request& r) { return r.has_hello_priority_; }
 };
 
 // Creates a HELLO 3 request

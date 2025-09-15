@@ -67,7 +67,7 @@ void multiplexer::add(std::shared_ptr<elem> const& info)
 {
    reqs_.push_back(info);
 
-   if (info->get_request().has_hello_priority()) {
+   if (request_access::has_priority(info->get_request())) {
       auto rend = std::partition_point(std::rbegin(reqs_), std::rend(reqs_), [](auto const& e) {
          return e->is_waiting();
       });
