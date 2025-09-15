@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_HELLO_UTILS_HPP
-#define BOOST_REDIS_HELLO_UTILS_HPP
+#ifndef BOOST_REDIS_SETUP_REQUEST_UTILS_HPP
+#define BOOST_REDIS_SETUP_REQUEST_UTILS_HPP
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/request.hpp>
@@ -13,9 +13,15 @@
 
 namespace boost::redis::detail {
 
-void setup_hello_request(config const& cfg, request& req);
+// Modifies config::setup to make a request suitable to be sent
+// to the server using async_exec
+void compose_setup_request(config& cfg);
+
+// Completely clears a response
 void clear_response(generic_response& res);
-system::error_code check_hello_response(system::error_code io_ec, const generic_response&);
+
+// Checks that the response to the setup request was successful
+system::error_code check_setup_response(system::error_code io_ec, const generic_response&);
 
 }  // namespace boost::redis::detail
 

@@ -44,7 +44,8 @@ struct error_category_impl : system::error_category {
          case error::sync_receive_push_failed:
             return "Can't receive server push synchronously without blocking.";
          case error::incompatible_node_depth: return "Incompatible node depth.";
-         case error::resp3_hello:             return "RESP3 handshake error (hello command).";
+         case error::resp3_hello:
+            return "The setup request sent during connection establishment failed.";
          case error::unix_sockets_unsupported:
             return "The configuration specified a UNIX socket address, but UNIX sockets are not "
                    "supported by the system.";

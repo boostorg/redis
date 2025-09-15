@@ -8,7 +8,7 @@
 
 #include <boost/redis/adapter/result.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/hello_utils.hpp>
+#include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/type.hpp>
@@ -20,95 +20,129 @@
 
 namespace asio = boost::asio;
 namespace redis = boost::redis;
-using redis::detail::setup_hello_request;
+using redis::detail::compose_setup_request;
 using redis::detail::clear_response;
-using redis::detail::check_hello_response;
+using redis::detail::check_setup_response;
 using boost::system::error_code;
 
 namespace {
 
-void test_setup_hello_request()
+void test_compose_setup()
 {
    redis::config cfg;
    cfg.clientname = "";
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   compose_setup_request(cfg);
 
    std::string_view const expected = "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
-void test_setup_hello_request_select()
+void test_compose_setup_select()
 {
    redis::config cfg;
    cfg.clientname = "";
    cfg.database_index = 10;
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   compose_setup_request(cfg);
 
    std::string_view const expected =
       "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
       "*2\r\n$6\r\nSELECT\r\n$2\r\n10\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
-void test_setup_hello_request_clientname()
+void test_compose_setup_clientname()
 {
    redis::config cfg;
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   compose_setup_request(cfg);
 
    std::string_view const
       expected = "*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$11\r\nBoost.Redis\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
-void test_setup_hello_request_auth()
+void test_compose_setup_auth()
 {
    redis::config cfg;
    cfg.clientname = "";
    cfg.username = "foo";
    cfg.password = "bar";
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   compose_setup_request(cfg);
 
    std::string_view const
       expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
-void test_setup_hello_request_auth_empty_password()
+void test_compose_setup_auth_empty_password()
 {
    redis::config cfg;
    cfg.clientname = "";
    cfg.username = "foo";
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   compose_setup_request(cfg);
 
    std::string_view const
       expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$0\r\n\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
-void test_setup_hello_request_auth_setname()
+void test_compose_setup_auth_setname()
 {
    redis::config cfg;
    cfg.clientname = "mytest";
    cfg.username = "foo";
    cfg.password = "bar";
-   redis::request req;
 
-   setup_hello_request(cfg, req);
+   compose_setup_request(cfg);
 
    std::string_view const expected =
       "*7\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$7\r\nSETNAME\r\n$"
       "6\r\nmytest\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
+}
+
+void test_compose_setup_use_setup()
+{
+   redis::config cfg;
+   cfg.clientname = "mytest";
+   cfg.username = "foo";
+   cfg.password = "bar";
+   cfg.database_index = 4;
+   cfg.use_setup = true;
+   cfg.setup.push("SELECT", 8);
+
+   compose_setup_request(cfg);
+
+   std::string_view const expected =
+      "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
+      "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
+}
+
+// Regression check: we set the priority flag
+void test_compose_setup_use_setup_no_hello()
+{
+   redis::config cfg;
+   cfg.use_setup = true;
+   cfg.setup.clear();
+   cfg.setup.push("SELECT", 8);
+
+   compose_setup_request(cfg);
+
+   std::string_view const expected = "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
 }
 
 // clear response
@@ -141,28 +175,28 @@ void test_clear_response_error()
 }
 
 // check response
-void test_check_hello_response_success()
+void test_check_response_success()
 {
    redis::generic_response resp;
    resp->push_back({});
-   auto ec = check_hello_response(error_code(), resp);
+   auto ec = check_setup_response(error_code(), resp);
    BOOST_TEST_EQ(ec, error_code());
 }
 
-void test_check_hello_response_io_error()
+void test_check_response_io_error()
 {
    redis::generic_response resp;
-   auto ec = check_hello_response(asio::error::already_open, resp);
+   auto ec = check_setup_response(asio::error::already_open, resp);
    BOOST_TEST_EQ(ec, asio::error::already_open);
 }
 
-void test_check_hello_response_server_error()
+void test_check_response_server_error()
 {
    redis::generic_response resp{
       boost::system::in_place_error,
       redis::adapter::error{redis::resp3::type::simple_error, "wrong password"}
    };
-   auto ec = check_hello_response(error_code(), resp);
+   auto ec = check_setup_response(error_code(), resp);
    BOOST_TEST_EQ(ec, redis::error::resp3_hello);
 }
 
@@ -170,20 +204,22 @@ void test_check_hello_response_server_error()
 
 int main()
 {
-   test_setup_hello_request();
-   test_setup_hello_request_select();
-   test_setup_hello_request_clientname();
-   test_setup_hello_request_auth();
-   test_setup_hello_request_auth_empty_password();
-   test_setup_hello_request_auth_setname();
+   test_compose_setup();
+   test_compose_setup_select();
+   test_compose_setup_clientname();
+   test_compose_setup_auth();
+   test_compose_setup_auth_empty_password();
+   test_compose_setup_auth_setname();
+   test_compose_setup_use_setup();
+   test_compose_setup_use_setup_no_hello();
 
    test_clear_response_empty();
    test_clear_response_nonempty();
    test_clear_response_error();
 
-   test_check_hello_response_success();
-   test_check_hello_response_io_error();
-   test_check_hello_response_server_error();
+   test_check_response_success();
+   test_check_response_io_error();
+   test_check_response_server_error();
 
    return boost::report_errors();
 }
