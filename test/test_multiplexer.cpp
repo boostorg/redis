@@ -282,6 +282,30 @@ void test_push_needs_more()
    BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
 }
 
+// If a response is received and no request is waiting, it is interpreted
+// as a push (e.g. MONITOR)
+void test_push_heuristics_no_request()
+{
+   // Setup
+   multiplexer mpx;
+   generic_response resp;
+   mpx.set_receive_adapter(any_adapter{resp});
+
+   // Response received, but no request has been sent
+   error_code ec;
+   auto const ret = mpx.consume_next("+Hello world\r\n", ec);
+
+   // Check
+   BOOST_TEST_EQ(ret.first, consume_result::got_push);
+   BOOST_TEST_EQ(ret.second, 14u);
+   BOOST_TEST(resp.has_value());
+
+   const node expected[] = {
+      {type::simple_string, 1u, 0u, "Hello world"},
+   };
+   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
+}
+
 // We correctly reset parsing state between requests and pushes
 void test_mix_responses_pushes()
 {
@@ -367,6 +391,7 @@ int main()
    test_request_response_before_write();
    test_push();
    test_push_needs_more();
+   test_push_heuristics_no_request();
    test_mix_responses_pushes();
 
    return boost::report_errors();
