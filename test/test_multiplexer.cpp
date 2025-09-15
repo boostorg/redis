@@ -306,6 +306,32 @@ void test_push_heuristics_no_request()
    BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
 }
 
+// If a response is received and the first request doesn't expect a response,
+// it is interpreted as a push (e.g. SUBSCRIBE with incorrect syntax)
+void test_push_heuristics_request_without_response()
+{
+   // Setup
+   multiplexer mpx;
+   generic_response resp;
+   mpx.set_receive_adapter(any_adapter{resp});
+   test_item item{false};
+
+   // Add the request to the multiplexer
+   mpx.add(item.elem_ptr);
+
+   // Write it, but don't confirm the write, so the request doesn't get removed
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+
+   // Response received (e.g. syntax error)
+   error_code ec;
+   auto const ret = mpx.consume_next("-ERR wrong syntax\r\n", ec);
+
+   // Check
+   BOOST_TEST_EQ(ret.first, consume_result::got_push);
+   BOOST_TEST_EQ(ret.second, 19u);
+   BOOST_TEST_EQ(resp.error().diagnostic, "ERR wrong syntax");
+}
+
 // We correctly reset parsing state between requests and pushes
 void test_mix_responses_pushes()
 {
@@ -392,6 +418,7 @@ int main()
    test_push();
    test_push_needs_more();
    test_push_heuristics_no_request();
+   test_push_heuristics_request_without_response();
    test_mix_responses_pushes();
 
    return boost::report_errors();
