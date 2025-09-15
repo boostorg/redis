@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -193,6 +194,37 @@ void test_several_requests()
    BOOST_TEST(item3.done);
 }
 
+// The response to a request is received before its write
+// confirmation. This might happen on heavy load
+void test_request_response_before_write()
+{
+   // Setup
+   auto item = std::make_unique<test_item>();
+   multiplexer mpx;
+
+   // Add the request and trigger the write
+   mpx.add(item->elem_ptr);
+   BOOST_TEST(item->elem_ptr->is_waiting());
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+   BOOST_TEST(item->elem_ptr->is_staged());
+   BOOST_TEST(!item->done);
+
+   // The response is received. The request is marked as done,
+   // even if the write hasn't been confirmed yet
+   error_code ec;
+   auto ret = mpx.consume_next("+one\r\n", ec);
+
+   BOOST_TEST_EQ(ret.first, consume_result::got_response);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST(item->done);
+
+   // The request is removed
+   item.reset();
+
+   // The write gets confirmed and causes no problem
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+}
+
 void test_push()
 {
    // Setup
@@ -332,6 +364,7 @@ int main()
 {
    test_request_needs_more();
    test_several_requests();
+   test_request_response_before_write();
    test_push();
    test_push_needs_more();
    test_mix_responses_pushes();
