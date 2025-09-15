@@ -17,11 +17,9 @@
 
 #include <boost/system/error_code.hpp>
 
-#include <algorithm>
 #include <deque>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string_view>
 #include <utility>
 
