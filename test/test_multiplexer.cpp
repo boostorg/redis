@@ -15,6 +15,7 @@
 #include <boost/core/lightweight_test.hpp>
 
 #include <iostream>
+#include <iterator>
 #include <ostream>
 #include <string>
 
@@ -24,6 +25,7 @@ using boost::redis::detail::consume_result;
 using boost::redis::generic_response;
 using boost::redis::resp3::node;
 using boost::redis::resp3::to_string;
+using boost::redis::resp3::type;
 using boost::redis::response;
 using boost::redis::any_adapter;
 using boost::system::error_code;
@@ -32,12 +34,9 @@ namespace boost::redis::resp3 {
 
 std::ostream& operator<<(std::ostream& os, node const& nd)
 {
-   os << to_string(nd.data_type) << "\n"
-      << nd.aggregate_size << "\n"
-      << nd.depth << "\n"
-      << nd.value;
-
-   return os;
+   return os << "node{ .data_type=" << to_string(nd.data_type)
+             << ", .aggregate_size=" << nd.aggregate_size << ", .depth=" << nd.depth
+             << ", .value=" << nd.value << "}";
 }
 
 }  // namespace boost::redis::resp3
@@ -60,52 +59,59 @@ namespace {
 
 void test_push()
 {
+   // Setup
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
 
-   boost::system::error_code ec;
+   // Consume an entire push
+   error_code ec;
    auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
 
+   // Check
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
+   BOOST_TEST(resp.has_value());
 
-   // TODO: Provide operator << for generic_response so we can compare
-   // the whole vector.
-   BOOST_TEST_EQ(resp.value().size(), 3u);
-   BOOST_TEST_EQ(resp.value().at(1).value, "one");
-   BOOST_TEST_EQ(resp.value().at(2).value, "two");
-
-   for (auto const& e : resp.value())
-      std::cout << e << std::endl;
+   const node expected[] = {
+      {type::push,          2u, 0u, ""   },
+      {type::simple_string, 1u, 1u, "one"},
+      {type::simple_string, 1u, 1u, "two"},
+   };
+   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
 }
 
 void test_push_needs_more()
 {
+   // Setup
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
-
    std::string msg;
-   // Only part of the message.
+
+   // Only part of the message available.
    msg += ">2\r\n+one\r";
 
-   boost::system::error_code ec;
+   // Consume it
+   error_code ec;
    auto ret = mpx.consume_next(msg, ec);
 
    BOOST_TEST_EQ(ret.first, consume_result::needs_more);
 
+   // The entire message becomes available
    msg += "\n+two\r\n";
    ret = mpx.consume_next(msg, ec);
 
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
+   BOOST_TEST(resp.has_value());
 
-   // TODO: Provide operator << for generic_response so we can compare
-   // the whole vector.
-   BOOST_TEST_EQ(resp.value().size(), 3u);
-   BOOST_TEST_EQ(resp.value().at(1).value, "one");
-   BOOST_TEST_EQ(resp.value().at(2).value, "two");
+   const node expected[] = {
+      {type::push,          2u, 0u, ""   },
+      {type::simple_string, 1u, 1u, "one"},
+      {type::simple_string, 1u, 1u, "two"},
+   };
+   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
 }
 
 struct test_item {
