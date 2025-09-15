@@ -436,6 +436,63 @@ void test_mix_responses_pushes()
    BOOST_TEST(item2.done);
 }
 
+// Cancellation on connection lost
+void test_cancel_on_connection_lost()
+{
+   // Setup
+   multiplexer mpx;
+   generic_response push_resp;
+   mpx.set_receive_adapter(any_adapter{push_resp});
+   test_item item_written1, item_written2, item_staged1, item_staged2, item_waiting1, item_waiting2;
+
+   // Different items have different configurations
+   // (note that these are all true by default)
+   item_written1.req.get_config().cancel_if_unresponded = false;
+   item_staged1.req.get_config().cancel_if_unresponded = false;
+   item_waiting1.req.get_config().cancel_on_connection_lost = false;
+
+   // Make each item reach the state it should be in
+   mpx.add(item_written1.elem_ptr);
+   mpx.add(item_written2.elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+
+   mpx.add(item_staged1.elem_ptr);
+   mpx.add(item_staged2.elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+
+   mpx.add(item_waiting1.elem_ptr);
+   mpx.add(item_waiting2.elem_ptr);
+
+   // Check that we got it right
+   BOOST_TEST(item_written1.elem_ptr->is_written());
+   BOOST_TEST(item_written2.elem_ptr->is_written());
+   BOOST_TEST(item_staged1.elem_ptr->is_staged());
+   BOOST_TEST(item_staged2.elem_ptr->is_staged());
+   BOOST_TEST(item_waiting1.elem_ptr->is_waiting());
+   BOOST_TEST(item_waiting2.elem_ptr->is_waiting());
+
+   // Trigger a connection lost event
+   mpx.cancel_on_conn_lost();
+
+   // The ones with the cancellation settings set to false are back to waiting.
+   // Others are cancelled
+   BOOST_TEST(!item_written1.done);
+   BOOST_TEST(item_written1.elem_ptr->is_waiting());
+   BOOST_TEST(item_written2.done);
+   BOOST_TEST(!item_staged1.done);
+   BOOST_TEST(item_staged1.elem_ptr->is_waiting());
+   BOOST_TEST(item_staged2.done);
+   BOOST_TEST(!item_waiting1.done);
+   BOOST_TEST(item_waiting1.elem_ptr->is_waiting());
+   BOOST_TEST(item_waiting2.done);
+
+   // Triggering it again does nothing
+   mpx.cancel_on_conn_lost();
+   BOOST_TEST(!item_written1.done);
+   BOOST_TEST(item_written1.elem_ptr->is_waiting());
+}
+
 }  // namespace
 
 int main()
@@ -449,6 +506,7 @@ int main()
    test_push_heuristics_request_without_response();
    test_push_heuristics_request_waiting();
    test_mix_responses_pushes();
+   test_cancel_on_connection_lost();
 
    return boost::report_errors();
 }
