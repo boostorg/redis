@@ -180,17 +180,10 @@ private:
    [[nodiscard]]
    consume_result consume_next_impl(std::string_view data, system::error_code& ec);
 
-   enum class parse_status
-   {
-      initial,   // we didn't start parsing anything yet
-      response,  // we're parsing a response
-      push,      // we're parsing a push
-   };
-
    std::string write_buffer_;
    std::deque<std::shared_ptr<elem>> reqs_;
    resp3::parser parser_{};
-   parse_status parse_status_ = parse_status::initial;
+   bool on_push_ = false;
    bool cancel_run_called_ = false;
    usage usage_;
    any_adapter receive_adapter_;
