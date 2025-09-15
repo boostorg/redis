@@ -88,8 +88,9 @@ consume_result multiplexer::consume_next_impl(std::string_view data, system::err
    //       until the parsing of a complete message ends.
    //
    //    2. On a new message, in which case we have to determine
-   //       whether the next messag is a push or a response.
+   //       whether the next message is a push or a response.
    //
+   //    parse_status is used to discriminate between the two situations.
 
    BOOST_ASSERT(!data.empty());
    if (parse_status_ == parse_status::initial)  // Prepare for new message.
@@ -102,12 +103,10 @@ consume_result multiplexer::consume_next_impl(std::string_view data, system::err
       return consume_result::got_push;
    }
 
-   BOOST_ASSERT_MSG(
-      is_waiting_response(),
-      "Not waiting for a response (using MONITOR command perhaps?)");
    BOOST_ASSERT(!reqs_.empty());
    BOOST_ASSERT(reqs_.front() != nullptr);
    BOOST_ASSERT(reqs_.front()->get_remaining_responses() != 0);
+   BOOST_ASSERT(!reqs_.front()->is_waiting());
 
    if (!resp3::parse(parser_, data, reqs_.front()->get_adapter(), ec))
       return consume_result::needs_more;
@@ -295,18 +294,6 @@ std::size_t multiplexer::release_push_requests()
    auto const d = std::distance(point, std::end(reqs_));
    reqs_.erase(point, std::end(reqs_));
    return static_cast<std::size_t>(d);
-}
-
-bool multiplexer::is_waiting_response() const noexcept
-{
-   if (std::empty(reqs_))
-      return false;
-
-   // Under load and on low-latency networks we might start
-   // receiving responses before the write operation completed and
-   // the request is still marked as staged and not written.  See
-   // https://github.com/boostorg/redis/issues/170
-   return !reqs_.front()->is_waiting();
 }
 
 bool multiplexer::is_writing() const noexcept { return !write_buffer_.empty(); }

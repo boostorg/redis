@@ -170,9 +170,6 @@ public:
    auto is_writing() const noexcept -> bool;
 
 private:
-   [[nodiscard]]
-   auto is_waiting_response() const noexcept -> bool;
-
    void commit_usage(bool is_push, std::size_t size);
 
    [[nodiscard]]
