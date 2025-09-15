@@ -360,14 +360,14 @@ void test_push_heuristics_request_without_response()
    BOOST_TEST_EQ(resp.error().diagnostic, "ERR wrong syntax");
 }
 
-// We correctly reset parsing state between requests and pushes
+// We correctly reset parsing state between requests and pushes.
 void test_mix_responses_pushes()
 {
    // Setup
    multiplexer mpx;
    generic_response push_resp;
    mpx.set_receive_adapter(any_adapter{push_resp});
-   test_item item1, item2{};
+   test_item item1, item2;
 
    // Add the elements to the multiplexer and simulate a successful write
    mpx.add(item1.elem_ptr);
@@ -380,8 +380,9 @@ void test_mix_responses_pushes()
    BOOST_TEST(!item2.done);
 
    // Push
+   std::string_view push1_buffer = ">2\r\n+one\r\n+two\r\n";
    error_code ec;
-   auto ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
+   auto ret = mpx.consume_next(push1_buffer, ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
    BOOST_TEST(push_resp.has_value());
@@ -395,7 +396,8 @@ void test_mix_responses_pushes()
    BOOST_TEST_NOT(item2.done);
 
    // First response
-   ret = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   std::string_view response1_buffer = "$11\r\nHello world\r\n";
+   ret = mpx.consume_next(response1_buffer, ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST_EQ(ret.second, 18u);
    BOOST_TEST(item1.resp.has_value());
@@ -407,7 +409,8 @@ void test_mix_responses_pushes()
    BOOST_TEST_NOT(item2.done);
 
    // Push
-   ret = mpx.consume_next(">2\r\n+other\r\n+push\r\n", ec);
+   std::string_view push2_buffer = ">2\r\n+other\r\n+push\r\n";
+   ret = mpx.consume_next(push2_buffer, ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 19u);
    BOOST_TEST(push_resp.has_value());
@@ -424,7 +427,8 @@ void test_mix_responses_pushes()
    BOOST_TEST_NOT(item2.done);
 
    // Second response
-   ret = mpx.consume_next("$8\r\nResponse\r\n", ec);
+   std::string_view response2_buffer = "$8\r\nResponse\r\n";
+   ret = mpx.consume_next(response2_buffer, ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST_EQ(ret.second, 14u);
    BOOST_TEST(item2.resp.has_value());
@@ -434,6 +438,15 @@ void test_mix_responses_pushes()
    BOOST_TEST_ALL_EQ(item2.resp->begin(), item2.resp->end(), expected.begin(), expected.end());
    BOOST_TEST(item1.done);
    BOOST_TEST(item2.done);
+
+   // Check usage
+   const auto usg = mpx.get_usage();
+   BOOST_TEST_EQ(usg.commands_sent, 2u);
+   BOOST_TEST_EQ(usg.bytes_sent, item1.req.payload().size() + item2.req.payload().size());
+   BOOST_TEST_EQ(usg.responses_received, 2u);
+   BOOST_TEST_EQ(usg.pushes_received, 2u);
+   BOOST_TEST_EQ(usg.response_bytes_received, response1_buffer.size() + response2_buffer.size());
+   BOOST_TEST_EQ(usg.push_bytes_received, push1_buffer.size() + push2_buffer.size());
 }
 
 // Cancellation on connection lost
