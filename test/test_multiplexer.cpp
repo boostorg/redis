@@ -18,6 +18,7 @@
 #include <iterator>
 #include <ostream>
 #include <string>
+#include <string_view>
 
 using boost::redis::request;
 using boost::redis::detail::multiplexer;
@@ -140,7 +141,7 @@ void test_request_needs_more()
    test_item item1{};
    multiplexer mpx;
 
-   // Add the element to the multiplexer ans simulate a successful write
+   // Add the element to the multiplexer and simulate a successful write
    mpx.add(item1.elem_ptr);
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
    BOOST_TEST_EQ(mpx.commit_write(), 0u);
@@ -249,6 +250,82 @@ void test_several_requests()
    BOOST_TEST(item3.done);
 }
 
+// We correctly reset parsing state between requests and pushes
+void test_mix_responses_pushes()
+{
+   // Setup
+   multiplexer mpx;
+   generic_response push_resp;
+   mpx.set_receive_adapter(any_adapter{push_resp});
+   test_item item1, item2{};
+
+   // Add the elements to the multiplexer and simulate a successful write
+   mpx.add(item1.elem_ptr);
+   mpx.add(item2.elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(item1.elem_ptr->is_written());
+   BOOST_TEST(!item1.done);
+   BOOST_TEST(item2.elem_ptr->is_written());
+   BOOST_TEST(!item2.done);
+
+   // Push
+   error_code ec;
+   auto ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
+   BOOST_TEST_EQ(ret.first, consume_result::got_push);
+   BOOST_TEST_EQ(ret.second, 16u);
+   BOOST_TEST(push_resp.has_value());
+   std::vector<node> expected{
+      {type::push,          2u, 0u, ""   },
+      {type::simple_string, 1u, 1u, "one"},
+      {type::simple_string, 1u, 1u, "two"},
+   };
+   BOOST_TEST_ALL_EQ(push_resp->begin(), push_resp->end(), expected.begin(), expected.end());
+   BOOST_TEST_NOT(item1.done);
+   BOOST_TEST_NOT(item2.done);
+
+   // First response
+   ret = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   BOOST_TEST_EQ(ret.first, consume_result::got_response);
+   BOOST_TEST_EQ(ret.second, 18u);
+   BOOST_TEST(item1.resp.has_value());
+   expected = {
+      {type::blob_string, 1u, 0u, "Hello world"},
+   };
+   BOOST_TEST_ALL_EQ(item1.resp->begin(), item1.resp->end(), expected.begin(), expected.end());
+   BOOST_TEST(item1.done);
+   BOOST_TEST_NOT(item2.done);
+
+   // Push
+   ret = mpx.consume_next(">2\r\n+other\r\n+push\r\n", ec);
+   BOOST_TEST_EQ(ret.first, consume_result::got_push);
+   BOOST_TEST_EQ(ret.second, 19u);
+   BOOST_TEST(push_resp.has_value());
+   expected = {
+      {type::push,          2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "one"  },
+      {type::simple_string, 1u, 1u, "two"  },
+      {type::push,          2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "other"},
+      {type::simple_string, 1u, 1u, "push" },
+   };
+   BOOST_TEST_ALL_EQ(push_resp->begin(), push_resp->end(), expected.begin(), expected.end());
+   BOOST_TEST(item1.done);
+   BOOST_TEST_NOT(item2.done);
+
+   // Second response
+   ret = mpx.consume_next("$8\r\nResponse\r\n", ec);
+   BOOST_TEST_EQ(ret.first, consume_result::got_response);
+   BOOST_TEST_EQ(ret.second, 14u);
+   BOOST_TEST(item2.resp.has_value());
+   expected = {
+      {type::blob_string, 1u, 0u, "Response"},
+   };
+   BOOST_TEST_ALL_EQ(item2.resp->begin(), item2.resp->end(), expected.begin(), expected.end());
+   BOOST_TEST(item1.done);
+   BOOST_TEST(item2.done);
+}
+
 }  // namespace
 
 int main()
@@ -257,6 +334,7 @@ int main()
    test_push_needs_more();
    test_request_needs_more();
    test_several_requests();
+   test_mix_responses_pushes();
 
    return boost::report_errors();
 }
