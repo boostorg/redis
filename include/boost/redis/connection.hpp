@@ -118,9 +118,6 @@ struct connection_impl {
                case exec_action_type::wait_for_response:
                   notifier_->async_receive(std::move(self));
                   return;
-               case exec_action_type::cancel_run:
-                  obj_->cancel(operation::run);
-                  continue;  // this action does not require yielding
                case exec_action_type::done:
                   notifier_.reset();
                   self.complete(act.error(), act.bytes_read());

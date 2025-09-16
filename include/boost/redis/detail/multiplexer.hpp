@@ -95,6 +95,16 @@ public:
 
       auto get_adapter() -> any_adapter& { return adapter_; }
 
+      // Marks the element as an abandoned request. An abandoned request
+      // won't cause problems when its response arrives, but that response will be ignored.
+      void mark_as_abandoned();
+
+      [[nodiscard]]
+      bool is_abandoned() const
+      {
+         return !req_;
+      }
+
    private:
       enum class status
       {
@@ -116,7 +126,7 @@ public:
       std::size_t read_size_;
    };
 
-   auto remove(std::shared_ptr<elem> const& ptr) -> bool;
+   void cancel(std::shared_ptr<elem> const& ptr);
 
    [[nodiscard]]
    auto prepare_write() -> std::size_t;
