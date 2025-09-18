@@ -64,7 +64,7 @@ public:
    , elem_(std::move(elem))
    { }
 
-   exec_action resume(bool connection_is_open, asio::cancellation_type_t cancel_state);
+   exec_action resume(asio::cancellation_type_t cancel_state);
 };
 
 }  // namespace boost::redis::detail

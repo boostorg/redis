@@ -102,7 +102,7 @@ struct connection_impl {
       {
          while (true) {
             // Invoke the state machine
-            auto act = fsm_.resume(obj_->is_open(), self.get_cancellation_state().cancelled());
+            auto act = fsm_.resume(self.get_cancellation_state().cancelled());
 
             // Do what the FSM said
             switch (act.type()) {

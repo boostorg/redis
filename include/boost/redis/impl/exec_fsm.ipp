@@ -25,14 +25,16 @@ inline bool is_cancellation(asio::cancellation_type_t type)
               asio::cancellation_type_t::terminal));
 }
 
-exec_action exec_fsm::resume(bool connection_is_open, asio::cancellation_type_t cancel_state)
+exec_action exec_fsm::resume(asio::cancellation_type_t cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
       // Check whether the user wants to wait for the connection to
       // be established.
-      if (elem_->get_request().get_config().cancel_if_not_connected && !connection_is_open) {
+      if (
+         elem_->get_request().get_config().cancel_if_not_connected &&
+         !mpx_->is_connection_healthy()) {
          BOOST_REDIS_YIELD(resume_point_, 1, exec_action_type::immediate)
          elem_.reset();  // Deallocate memory before finalizing
          return system::error_code(error::not_connected);

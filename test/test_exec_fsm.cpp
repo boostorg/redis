@@ -105,19 +105,19 @@ struct elem_and_request {
 void test_success()
 {
    // Setup
-   multiplexer mpx;
+   multiplexer mpx{true};
    elem_and_request input;
    exec_fsm fsm(mpx, std::move(input.elm));
    error_code ec;
 
    // Initiate
-   auto act = fsm.resume(true, cancellation_type_t::none);
+   auto act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
-   act = fsm.resume(true, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful write
@@ -132,7 +132,7 @@ void test_success()
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
-   act = fsm.resume(true, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action(error_code(), 11u));
 
    // All memory should have been freed by now
@@ -143,19 +143,19 @@ void test_success()
 void test_parse_error()
 {
    // Setup
-   multiplexer mpx;
+   multiplexer mpx{true};
    elem_and_request input;
    exec_fsm fsm(mpx, std::move(input.elm));
    error_code ec;
 
    // Initiate
-   auto act = fsm.resume(true, cancellation_type_t::none);
+   auto act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
-   act = fsm.resume(true, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful write
@@ -172,7 +172,7 @@ void test_parse_error()
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
-   act = fsm.resume(true, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action(error::empty_field, 0u));
 
    // All memory should have been freed by now
@@ -190,10 +190,10 @@ void test_cancel_if_not_connected()
    exec_fsm fsm(mpx, std::move(input.elm));
 
    // Initiate. We're not connected, so the request gets cancelled
-   auto act = fsm.resume(false, cancellation_type_t::none);
+   auto act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::immediate);
 
-   act = fsm.resume(false, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action(error::not_connected));
 
    // We didn't leave memory behind
@@ -210,13 +210,17 @@ void test_not_connected()
    error_code ec;
 
    // Initiate
-   auto act = fsm.resume(false, cancellation_type_t::none);
+   auto act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, cancellation_type_t::none);
+
+   // Connection becomes healthy
+   mpx.on_connection_up();
+
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
-   act = fsm.resume(true, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful write
@@ -231,7 +235,7 @@ void test_not_connected()
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
-   act = fsm.resume(true, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action(error_code(), 11u));
 
    // All memory should have been freed by now
@@ -258,7 +262,7 @@ void test_cancel_waiting()
 
    for (const auto& tc : test_cases) {
       // Setup
-      multiplexer mpx;
+      multiplexer mpx{true};
       elem_and_request input, input2;
       exec_fsm fsm(mpx, std::move(input.elm));
 
@@ -267,15 +271,15 @@ void test_cancel_waiting()
       BOOST_TEST_EQ_MSG(mpx.prepare_write(), 1u, tc.name);
 
       // Initiate and wait
-      auto act = fsm.resume(true, cancellation_type_t::none);
+      auto act = fsm.resume(cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::setup_cancellation, tc.name);
-      act = fsm.resume(true, cancellation_type_t::none);
+      act = fsm.resume(cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::notify_writer, tc.name);
-      act = fsm.resume(true, cancellation_type_t::none);
+      act = fsm.resume(cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
 
       // We get notified because the request got cancelled
-      act = fsm.resume(true, tc.type);
+      act = fsm.resume(tc.type);
       BOOST_TEST_EQ_MSG(act, exec_action(asio::error::operation_aborted), tc.name);
       BOOST_TEST_EQ_MSG(input.weak_elm.expired(), true, tc.name);  // we didn't leave memory behind
    }
@@ -290,21 +294,22 @@ void test_cancel_notwaiting_terminal()
    exec_fsm fsm(mpx, std::move(input.elm));
 
    // Initiate
-   auto act = fsm.resume(false, cancellation_type_t::none);
+   auto act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, cancellation_type_t::none);
+   mpx.on_connection_up();
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
-   act = fsm.resume(true, cancellation_type_t::none);
+   act = fsm.resume(cancellation_type_t::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // The multiplexer starts writing the request
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request was placed in the packet to write
 
    // A cancellation arrives
-   act = fsm.resume(true, cancellation_type_t::terminal);
+   act = fsm.resume(cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, exec_action_type::cancel_run);
-   act = fsm.resume(true, cancellation_type_t::terminal);
+   act = fsm.resume(cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted));
 
    // The object needs to survive here, otherwise an inconsistent connection state is created
@@ -324,18 +329,18 @@ void test_cancel_notwaiting_notterminal()
 
    for (const auto& tc : test_cases) {
       // Setup
-      multiplexer mpx;
+      multiplexer mpx{true};
       elem_and_request input;
       exec_fsm fsm(mpx, std::move(input.elm));
       error_code ec;
 
       // Initiate
-      auto act = fsm.resume(true, cancellation_type_t::none);
+      auto act = fsm.resume(cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::setup_cancellation, tc.name);
-      act = fsm.resume(true, cancellation_type_t::none);
+      act = fsm.resume(cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::notify_writer, tc.name);
 
-      act = fsm.resume(true, cancellation_type_t::none);
+      act = fsm.resume(cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
 
       // Simulate a successful write
@@ -343,7 +348,7 @@ void test_cancel_notwaiting_notterminal()
       BOOST_TEST_EQ_MSG(mpx.commit_write(), 0u, tc.name);  // all requests expect a response
 
       // We got requested a cancellation here, but we can't honor it
-      act = fsm.resume(true, tc.type);
+      act = fsm.resume(tc.type);
       BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
 
       // Simulate a successful read
@@ -354,7 +359,7 @@ void test_cancel_notwaiting_notterminal()
       BOOST_TEST_EQ_MSG(input.done_calls, 1u, tc.name);
 
       // This will awaken the exec operation, and should complete the operation
-      act = fsm.resume(true, cancellation_type_t::none);
+      act = fsm.resume(cancellation_type_t::none);
       BOOST_TEST_EQ_MSG(act, exec_action(error_code(), 11u), tc.name);
 
       // All memory should have been freed by now
