@@ -116,8 +116,27 @@ public:
       std::size_t read_size_;
    };
 
+   // This constructor makes testing easier
+   explicit multiplexer(bool conn_healthy = false);
+
+   // Handle connection health
+   void on_connection_up();  // Might be called in any state
+
+   void on_connection_down();  // Must be called once, with is_connection_healthy() == true
+
+   bool is_connection_healthy() const { return conn_healthy_; }
+
+   // Adding and removing requests. Might be called at any time
+   auto add(std::shared_ptr<elem> const& ptr) -> void;
+
    auto remove(std::shared_ptr<elem> const& ptr) -> bool;
 
+   auto cancel_waiting() -> std::size_t;
+
+   void set_receive_adapter(any_adapter adapter);
+
+   // Functions to be called by the reader and writer.
+   // These all have the precondition of is_connection_healthy() == true
    [[nodiscard]]
    auto prepare_write() -> std::size_t;
 
@@ -129,25 +148,11 @@ public:
    auto consume_next(std::string_view data, system::error_code& ec)
       -> std::pair<consume_result, std::size_t>;
 
-   auto add(std::shared_ptr<elem> const& ptr) -> void;
-   auto reset() -> void;
-
+   // Accessors. These can be called at any time
    [[nodiscard]]
    auto const& get_parser() const noexcept
    {
       return parser_;
-   }
-
-   //[[nodiscard]]
-   auto cancel_waiting() -> std::size_t;
-
-   //[[nodiscard]]
-   auto cancel_on_conn_lost() -> std::size_t;
-
-   [[nodiscard]]
-   auto get_cancel_run_state() const noexcept -> bool
-   {
-      return cancel_run_called_;
    }
 
    [[nodiscard]]
@@ -155,8 +160,6 @@ public:
    {
       return std::string_view{write_buffer_};
    }
-
-   void set_receive_adapter(any_adapter adapter);
 
    [[nodiscard]]
    auto get_usage() const noexcept -> usage
@@ -184,9 +187,9 @@ private:
    std::deque<std::shared_ptr<elem>> reqs_;
    resp3::parser parser_{};
    bool on_push_ = false;
-   bool cancel_run_called_ = false;
    usage usage_;
    any_adapter receive_adapter_;
+   bool conn_healthy_ = false;
 };
 
 auto make_elem(request const& req, any_adapter adapter) -> std::shared_ptr<multiplexer::elem>;

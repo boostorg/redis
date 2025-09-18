@@ -174,7 +174,6 @@ struct connection_impl {
       stream_.close();
       writer_timer_.cancel();
       receive_channel_.cancel();
-      mpx_.cancel_on_conn_lost();
    }
 
    bool is_open() const noexcept { return stream_.is_open(); }
@@ -432,9 +431,9 @@ public:
 
             // If we were successful, run all the connection tasks
             if (!ec) {
-               conn_->read_buffer_.clear();
-               conn_->mpx_.reset();
                clear_response(conn_->setup_resp_);
+               conn_->read_buffer_.clear();
+               conn_->mpx_.on_connection_up();
 
                // Note: Order is important here because the writer might
                // trigger an async_write before the setup request is sent,
@@ -461,6 +460,8 @@ public:
 
                // The parallel group result will be translated into a single error
                // code by the specialized operator() overload
+
+               conn_->mpx_.on_connection_down();
 
                // The receive operation must be cancelled because channel
                // subscription does not survive a reconnection but requires
@@ -860,6 +861,7 @@ public:
     */
    void cancel(operation op = operation::all) { impl_->cancel(op); }
 
+   // TODO: handle this
    auto run_is_canceled() const noexcept { return impl_->mpx_.get_cancel_run_state(); }
 
    /// Returns true if the connection will try to reconnect if an error is encountered.

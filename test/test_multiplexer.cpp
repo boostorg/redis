@@ -484,7 +484,7 @@ void test_cancel_on_connection_lost()
    BOOST_TEST(item_waiting2.elem_ptr->is_waiting());
 
    // Trigger a connection lost event
-   mpx.cancel_on_conn_lost();
+   mpx.on_connection_down();
 
    // The ones with the cancellation settings set to false are back to waiting.
    // Others are cancelled
@@ -499,7 +499,7 @@ void test_cancel_on_connection_lost()
    BOOST_TEST(item_waiting2.done);
 
    // Triggering it again does nothing
-   mpx.cancel_on_conn_lost();
+   mpx.on_connection_down();
    BOOST_TEST(!item_written1.done);
    BOOST_TEST(item_written1.elem_ptr->is_waiting());
 }
