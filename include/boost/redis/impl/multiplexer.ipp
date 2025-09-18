@@ -90,7 +90,6 @@ consume_result multiplexer::consume_next_impl(std::string_view data, system::err
    //    2. On a new message, in which case we have to determine
    //       whether the next message is a push or a response.
    //
-   //    parse_status is used to discriminate between the two situations.
 
    BOOST_ASSERT(!data.empty());
    if (!on_push_)  // Prepare for new message.
