@@ -861,8 +861,8 @@ public:
     */
    void cancel(operation op = operation::all) { impl_->cancel(op); }
 
-   // TODO: handle this
-   auto run_is_canceled() const noexcept { return impl_->mpx_.get_cancel_run_state(); }
+   BOOST_DEPRECATED("This function is internal and will be removed in the next release.")
+   bool run_is_canceled() const noexcept { return !impl_->mpx_.is_connection_healthy(); }
 
    /// Returns true if the connection will try to reconnect if an error is encountered.
    bool will_reconnect() const noexcept { return impl_->will_reconnect(); }
