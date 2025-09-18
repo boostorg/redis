@@ -15,11 +15,8 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
-#include "common.hpp"
-
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <ostream>
 #include <utility>
 
@@ -28,6 +25,7 @@ namespace asio = boost::asio;
 using detail::exec_fsm;
 using detail::multiplexer;
 using detail::exec_action_type;
+using detail::consume_result;
 using detail::exec_action;
 using boost::system::error_code;
 using boost::asio::cancellation_type_t;
@@ -59,6 +57,16 @@ std::ostream& operator<<(std::ostream& os, exec_action act)
    if (act.type() == exec_action_type::done)
       os << ", .bytes_read=" << act.bytes_read() << ", .error=" << act.error();
    return os << " }";
+}
+
+std::ostream& operator<<(std::ostream& os, consume_result v)
+{
+   switch (v) {
+      case consume_result::needs_more:   return os << "consume_result::needs_more";
+      case consume_result::got_response: return os << "consume_result::got_response";
+      case consume_result::got_push:     return os << "consume_result::got_push";
+      default:                           return os << "<unknown consume_result>";
+   }
 }
 
 }  // namespace boost::redis::detail
@@ -119,8 +127,8 @@ void test_success()
    // Simulate a successful read
    auto req_status = mpx.consume_next("$5\r\nhello\r\n", ec);
    BOOST_TEST_EQ(ec, error_code());
-   BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
-   BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
+   BOOST_TEST_EQ(req_status.first, consume_result::got_response);
+   BOOST_TEST_EQ(req_status.second, 11u);  // the entire buffer was consumed
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
@@ -218,8 +226,8 @@ void test_not_connected()
    // Simulate a successful read
    auto req_status = mpx.consume_next("$5\r\nhello\r\n", ec);
    BOOST_TEST_EQ(ec, error_code());
-   BOOST_TEST_EQ(req_status.first.value(), false);  // it wasn't a push
-   BOOST_TEST_EQ(req_status.second, 11u);           // the entire buffer was consumed
+   BOOST_TEST_EQ(req_status.first, consume_result::got_response);
+   BOOST_TEST_EQ(req_status.second, 11u);  // the entire buffer was consumed
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
@@ -341,7 +349,7 @@ void test_cancel_notwaiting_notterminal()
       // Simulate a successful read
       auto req_status = mpx.consume_next("$5\r\nhello\r\n", ec);
       BOOST_TEST_EQ_MSG(ec, error_code(), tc.name);
-      BOOST_TEST_EQ_MSG(req_status.first.value(), false, tc.name);  // it wasn't a push
+      BOOST_TEST_EQ_MSG(req_status.first, consume_result::got_response, tc.name);
       BOOST_TEST_EQ_MSG(req_status.second, 11u, tc.name);  // the entire buffer was consumed
       BOOST_TEST_EQ_MSG(input.done_calls, 1u, tc.name);
 

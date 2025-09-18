@@ -55,14 +55,14 @@ reader_fsm::action reader_fsm::resume(
                return action_after_resume_;
             }
 
-            if (!res_.first.has_value()) {
+            if (res_.first == consume_result::needs_more) {
                next_read_type_ = action::type::needs_more;
                break;
             }
 
             read_buffer_->consume_committed(res_.second);
 
-            if (res_.first.value()) {
+            if (res_.first == consume_result::got_push) {
                BOOST_REDIS_YIELD(resume_point_, 6, action::type::notify_push_receiver, res_.second)
                if (ec) {
                   action_after_resume_ = {action::type::done, 0u, ec};

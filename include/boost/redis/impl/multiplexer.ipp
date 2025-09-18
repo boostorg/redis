@@ -7,6 +7,8 @@
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/request.hpp>
 
+#include <boost/asio/error.hpp>
+
 #include <memory>
 
 namespace boost::redis::detail {
@@ -76,7 +78,7 @@ void multiplexer::add(std::shared_ptr<elem> const& info)
    }
 }
 
-tribool multiplexer::consume_next_impl(std::string_view data, system::error_code& ec)
+consume_result multiplexer::consume_next_impl(std::string_view data, system::error_code& ec)
 {
    // We arrive here in two states:
    //
@@ -86,7 +88,7 @@ tribool multiplexer::consume_next_impl(std::string_view data, system::error_code
    //       until the parsing of a complete message ends.
    //
    //    2. On a new message, in which case we have to determine
-   //       whether the next messag is a push or a response.
+   //       whether the next message is a push or a response.
    //
 
    BOOST_ASSERT(!data.empty());
@@ -95,25 +97,23 @@ tribool multiplexer::consume_next_impl(std::string_view data, system::error_code
 
    if (on_push_) {
       if (!resp3::parse(parser_, data, receive_adapter_, ec))
-         return std::nullopt;
+         return consume_result::needs_more;
 
-      return std::make_optional(true);
+      return consume_result::got_push;
    }
 
-   BOOST_ASSERT_MSG(
-      is_waiting_response(),
-      "Not waiting for a response (using MONITOR command perhaps?)");
    BOOST_ASSERT(!reqs_.empty());
    BOOST_ASSERT(reqs_.front() != nullptr);
    BOOST_ASSERT(reqs_.front()->get_remaining_responses() != 0);
+   BOOST_ASSERT(!reqs_.front()->is_waiting());
 
    if (!resp3::parse(parser_, data, reqs_.front()->get_adapter(), ec))
-      return std::nullopt;
+      return consume_result::needs_more;
 
    if (ec) {
       reqs_.front()->notify_error(ec);
       reqs_.pop_front();
-      return std::make_optional(false);
+      return consume_result::got_response;
    }
 
    reqs_.front()->commit_response(parser_.get_consumed());
@@ -123,10 +123,10 @@ tribool multiplexer::consume_next_impl(std::string_view data, system::error_code
       reqs_.pop_front();
    }
 
-   return std::make_optional(false);
+   return consume_result::got_response;
 }
 
-std::pair<tribool, std::size_t> multiplexer::consume_next(
+std::pair<consume_result, std::size_t> multiplexer::consume_next(
    std::string_view data,
    system::error_code& ec)
 {
@@ -136,13 +136,13 @@ std::pair<tribool, std::size_t> multiplexer::consume_next(
       return std::make_pair(ret, consumed);
    }
 
-   if (ret.has_value()) {
+   if (ret != consume_result::needs_more) {
       parser_.reset();
-      commit_usage(ret.value(), consumed);
+      commit_usage(ret == consume_result::got_push, consumed);
       return std::make_pair(ret, consumed);
    }
 
-   return std::make_pair(std::nullopt, consumed);
+   return std::make_pair(consume_result::needs_more, consumed);
 }
 
 void multiplexer::reset()
@@ -275,7 +275,7 @@ bool multiplexer::is_next_push(std::string_view data) const noexcept
    // Added to deal with MONITOR and also to fix PR170 which
    // happens under load and on low-latency networks, where we
    // might start receiving responses before the write operation
-   // completed and the request is still maked as staged and not
+   // completed and the request is still marked as staged and not
    // written.
    return reqs_.front()->is_waiting();
 }
@@ -293,18 +293,6 @@ std::size_t multiplexer::release_push_requests()
    auto const d = std::distance(point, std::end(reqs_));
    reqs_.erase(point, std::end(reqs_));
    return static_cast<std::size_t>(d);
-}
-
-bool multiplexer::is_waiting_response() const noexcept
-{
-   if (std::empty(reqs_))
-      return false;
-
-   // Under load and on low-latency networks we might start
-   // receiving responses before the write operation completed and
-   // the request is still maked as staged and not written.  See
-   // https://github.com/boostorg/redis/issues/170
-   return !reqs_.front()->is_waiting();
 }
 
 bool multiplexer::is_writing() const noexcept { return !write_buffer_.empty(); }
