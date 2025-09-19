@@ -151,12 +151,6 @@ public:
    auto cancel_on_conn_lost() -> std::size_t;
 
    [[nodiscard]]
-   auto get_cancel_run_state() const noexcept -> bool
-   {
-      return cancel_run_called_;
-   }
-
-   [[nodiscard]]
    auto get_write_buffer() noexcept -> std::string_view
    {
       return std::string_view{write_buffer_};

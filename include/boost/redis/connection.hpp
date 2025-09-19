@@ -863,8 +863,6 @@ public:
     */
    void cancel(operation op = operation::all) { impl_->cancel(op); }
 
-   auto run_is_canceled() const noexcept { return impl_->mpx_.get_cancel_run_state(); }
-
    /// Returns true if the connection will try to reconnect if an error is encountered.
    bool will_reconnect() const noexcept { return impl_->will_reconnect(); }
 
