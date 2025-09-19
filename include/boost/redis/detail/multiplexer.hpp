@@ -147,8 +147,7 @@ public:
    //[[nodiscard]]
    auto cancel_waiting() -> std::size_t;
 
-   //[[nodiscard]]
-   auto cancel_on_conn_lost() -> std::size_t;
+   void cancel_on_conn_lost();
 
    [[nodiscard]]
    auto get_write_buffer() noexcept -> std::string_view

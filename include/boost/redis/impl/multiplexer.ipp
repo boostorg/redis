@@ -203,7 +203,7 @@ std::size_t multiplexer::cancel_waiting()
    return ret;
 }
 
-auto multiplexer::cancel_on_conn_lost() -> std::size_t
+void multiplexer::cancel_on_conn_lost()
 {
    // Should only be called once per reconnection.
    // See https://github.com/boostorg/redis/issues/181
@@ -223,8 +223,6 @@ auto multiplexer::cancel_on_conn_lost() -> std::size_t
 
    auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), cond);
 
-   auto const ret = std::distance(point, std::end(reqs_));
-
    std::for_each(point, std::end(reqs_), [](auto const& ptr) {
       ptr->notify_error({asio::error::operation_aborted});
    });
@@ -234,8 +232,6 @@ auto multiplexer::cancel_on_conn_lost() -> std::size_t
    std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
       return ptr->mark_waiting();
    });
-
-   return ret;
 }
 
 void multiplexer::commit_usage(bool is_push, std::size_t size)
