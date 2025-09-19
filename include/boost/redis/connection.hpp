@@ -174,7 +174,6 @@ struct connection_impl {
       stream_.close();
       writer_timer_.cancel();
       receive_channel_.cancel();
-      mpx_.cancel_on_conn_lost();
    }
 
    bool is_open() const noexcept { return stream_.is_open(); }
@@ -461,6 +460,10 @@ public:
 
                // The parallel group result will be translated into a single error
                // code by the specialized operator() overload
+
+               // We've lost connection or otherwise been cancelled.
+               // Remove from the multiplexer the required requests.
+               conn_->mpx_.cancel_on_conn_lost();
 
                // The receive operation must be cancelled because channel
                // subscription does not survive a reconnection but requires

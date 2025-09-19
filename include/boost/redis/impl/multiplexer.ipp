@@ -8,6 +8,7 @@
 #include <boost/redis/request.hpp>
 
 #include <boost/asio/error.hpp>
+#include <boost/assert.hpp>
 
 #include <memory>
 
@@ -49,6 +50,8 @@ bool multiplexer::remove(std::shared_ptr<elem> const& ptr)
 
 std::size_t multiplexer::commit_write()
 {
+   BOOST_ASSERT(!cancel_run_called_);
+
    // We have to clear the payload right after writing it to use it
    // as a flag that informs there is no ongoing write.
    write_buffer_.clear();
@@ -130,6 +133,8 @@ std::pair<consume_result, std::size_t> multiplexer::consume_next(
    std::string_view data,
    system::error_code& ec)
 {
+   BOOST_ASSERT(!cancel_run_called_);
+
    auto const ret = consume_next_impl(data, ec);
    auto const consumed = parser_.get_consumed();
    if (ec) {
@@ -155,6 +160,8 @@ void multiplexer::reset()
 
 std::size_t multiplexer::prepare_write()
 {
+   BOOST_ASSERT(!cancel_run_called_);
+
    // Coalesces the requests and marks them staged. After a
    // successful write staged requests will be marked as written.
    auto const point = std::partition_point(
@@ -198,11 +205,10 @@ std::size_t multiplexer::cancel_waiting()
 
 auto multiplexer::cancel_on_conn_lost() -> std::size_t
 {
-   // Protects the code below from being called more than
-   // once, see https://github.com/boostorg/redis/issues/181
-   if (std::exchange(cancel_run_called_, true)) {
-      return 0;
-   }
+   // Should only be called once per reconnection.
+   // See https://github.com/boostorg/redis/issues/181
+   BOOST_ASSERT(!cancel_run_called_);
+   cancel_run_called_ = true;
 
    // Must return false if the request should be removed.
    auto cond = [](auto const& ptr) {

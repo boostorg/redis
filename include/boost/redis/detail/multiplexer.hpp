@@ -116,8 +116,10 @@ public:
       std::size_t read_size_;
    };
 
-   auto remove(std::shared_ptr<elem> const& ptr) -> bool;
-
+   //
+   // To be called by the reader and the writer. Might only be called
+   // before the connection is torn down (before cancel_on_conn_lost() is called).
+   //
    [[nodiscard]]
    auto prepare_write() -> std::size_t;
 
@@ -129,7 +131,11 @@ public:
    auto consume_next(std::string_view data, system::error_code& ec)
       -> std::pair<consume_result, std::size_t>;
 
+   //
+   // Might be called at any time
+   //
    auto add(std::shared_ptr<elem> const& ptr) -> void;
+   auto remove(std::shared_ptr<elem> const& ptr) -> bool;
    auto reset() -> void;
 
    [[nodiscard]]
