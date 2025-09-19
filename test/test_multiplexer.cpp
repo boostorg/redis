@@ -546,6 +546,52 @@ void test_cancel_on_connection_lost()
 //       std::end(expected));
 // }
 
+// Resetting works
+void test_reset()
+{
+   // Setup
+   multiplexer mpx;
+   generic_response push_resp;
+   mpx.set_receive_adapter(any_adapter{push_resp});
+   test_item item1, item2;
+
+   // Add a request
+   mpx.add(item1.elem_ptr);
+
+   // Start parsing a push
+   error_code ec;
+   auto ret = mpx.consume_next(">2\r", ec);
+   BOOST_TEST_EQ(ret.first, consume_result::needs_more);
+
+   // Connection lost. The first request gets cancelled
+   mpx.cancel_on_conn_lost();
+   BOOST_TEST(item1.done);
+
+   // Reconnection happens
+   mpx.reset();
+   ec.clear();
+
+   // We're able to add write requests and read responses - all state was reset
+   mpx.add(item2.elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+
+   std::string_view response_buffer = "$11\r\nHello world\r\n";
+   ret = mpx.consume_next(response_buffer, ec);
+   BOOST_TEST_EQ(ret.first, consume_result::got_response);
+   BOOST_TEST_EQ(ret.second, response_buffer.size());
+   BOOST_TEST(item2.resp.has_value());
+   const node expected[] = {
+      {type::blob_string, 1u, 0u, "Hello world"},
+   };
+   BOOST_TEST_ALL_EQ(
+      item2.resp->begin(),
+      item2.resp->end(),
+      std::begin(expected),
+      std::end(expected));
+   BOOST_TEST(item2.done);
+}
+
 }  // namespace
 
 int main()
@@ -561,6 +607,7 @@ int main()
    test_mix_responses_pushes();
    test_cancel_on_connection_lost();
    // test_cancel_on_connection_lost_half_parsed_response();
+   test_reset();
 
    return boost::report_errors();
 }
