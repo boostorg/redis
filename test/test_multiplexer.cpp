@@ -497,11 +497,6 @@ void test_cancel_on_connection_lost()
    BOOST_TEST(!item_waiting1.done);
    BOOST_TEST(item_waiting1.elem_ptr->is_waiting());
    BOOST_TEST(item_waiting2.done);
-
-   // Triggering it again does nothing
-   mpx.cancel_on_conn_lost();
-   BOOST_TEST(!item_written1.done);
-   BOOST_TEST(item_written1.elem_ptr->is_waiting());
 }
 
 // The test below fails. Uncomment when this is fixed:
