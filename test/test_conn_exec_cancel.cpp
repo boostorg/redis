@@ -187,7 +187,7 @@ void test_cancel_if_not_connected()
 
 // Requests configured to do so are cancelled when the connection is lost.
 // Tests with a written request that hasn't been responded yet
-void test_cancel_on_connection_lost()
+void test_cancel_on_connection_lost_written()
 {
    // Setup
    net::io_context ioc;
@@ -242,7 +242,7 @@ int main()
    test_cancel_pending();
    test_cancel_written();
    test_cancel_if_not_connected();
-   test_cancel_on_connection_lost();
+   test_cancel_on_connection_lost_written();
 
    return boost::report_errors();
 }
