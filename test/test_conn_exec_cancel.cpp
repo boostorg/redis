@@ -8,7 +8,9 @@
 #include <boost/redis/ignore.hpp>
 #include <boost/redis/request.hpp>
 
+#include <boost/asio/any_io_executor.hpp>
 #include <boost/asio/bind_cancellation_slot.hpp>
+#include <boost/asio/cancel_after.hpp>
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
@@ -23,7 +25,6 @@
 #include "common.hpp"
 
 #ifdef BOOST_ASIO_HAS_CO_AWAIT
-#include <boost/asio/experimental/awaitable_operators.hpp>
 
 using namespace std::chrono_literals;
 
@@ -45,16 +46,22 @@ using boost::redis::logger;
 using boost::redis::connection;
 using namespace std::chrono_literals;
 
+// TODO: replace this by connection once it supports asio::cancel_after
+// See https://github.com/boostorg/redis/issues/226
+using connection_type = boost::redis::basic_connection<net::any_io_executor>;
+
 namespace {
 
 auto implicit_cancel_of_req_written() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
+   auto conn = std::make_shared<connection_type>(ex);
 
    auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds::zero();
-   run(conn, cfg);
+   conn->async_run(cfg, [](error_code ec) {
+      BOOST_TEST(ec == net::error::operation_aborted);
+   });
 
    // See NOTE1.
    request req0;
@@ -70,15 +77,16 @@ auto implicit_cancel_of_req_written() -> net::awaitable<void>
    st.expires_after(std::chrono::seconds{1});
 
    // Achieves implicit cancellation when the timer fires.
-   boost::system::error_code ec1, ec2;
-   co_await (conn->async_exec(req1, ignore, redir(ec1)) || st.async_wait(redir(ec2)));
+   boost::system::error_code ec1;
+   co_await (conn->async_exec(req1, ignore, net::cancel_after(1s, redir(ec1))));
 
    conn->cancel();
 
    // I have observed this produces terminal cancellation so it can't
    // be ignored, an error is expected.
    BOOST_TEST(ec1 == net::error::operation_aborted);
-   BOOST_TEST(ec2 == error_code());
+
+   // TODO: check that the connection can still be used
 }
 
 BOOST_AUTO_TEST_CASE(test_ignore_implicit_cancel_of_req_written)
