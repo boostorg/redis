@@ -87,8 +87,9 @@ void test_cancel_pending()
    }
 }
 
-// We can safely cancel requests that have been written but which
+// We can cancel requests that have been written but which
 // responses haven't been received yet.
+// Terminal and partial cancellation types are supported here.
 void test_cancel_written()
 {
    // Setup
@@ -96,16 +97,22 @@ void test_cancel_written()
    connection_type conn{ctx};
    auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds::zero();
-   bool run_finished = false, exec1_finished = false, exec2_finished = false;
+   bool run_finished = false, exec1_finished = false, exec2_finished = false,
+        exec3_finished = false;
 
    // Will be cancelled after it has been written but before the
    // response arrives.
    request req1;
    req1.push("BLPOP", "any", 1);
 
-   // Will finish successfully once the response to the BLPOP arrives
+   // Will be cancelled too because it's sent after BLPOP.
+   // Tests that partial cancellation is supported, too.
    request req2;
-   req2.push("PING", "after_blpop");
+   req2.push("PING", "partial_cancellation");
+
+   // Will finish successfully once the response to the BLPOP arrives
+   request req3;
+   req3.push("PING", "after_blpop");
 
    // Run the connection
    conn.async_run(cfg, [&](error_code ec) {
@@ -121,18 +128,29 @@ void test_cancel_written()
    };
    conn.async_exec(req1, ignore, net::cancel_after(500ms, blpop_cb));
 
-   // The PING will be sent after the BLPOP because it's been scheduled after it.
-   // The response will be received after the BLPOP, but it will be processed successfully.
-   conn.async_exec(req2, ignore, [&](error_code ec, std::size_t) {
+   // The first PING will be cancelled, too. Use partial cancellation here.
+   auto req2_cb = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      exec2_finished = true;
+   };
+   conn.async_exec(
+      req2,
+      ignore,
+      net::cancel_after(500ms, net::cancellation_type_t::partial, req2_cb));
+
+   // The second PING's response will be received after the BLPOP's response,
+   // but it will be processed successfully.
+   conn.async_exec(req3, ignore, [&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, error_code());
       conn.cancel();
-      exec2_finished = true;
+      exec3_finished = true;
    });
 
    ctx.run_for(test_timeout);
    BOOST_TEST(run_finished);
    BOOST_TEST(exec1_finished);
    BOOST_TEST(exec2_finished);
+   BOOST_TEST(exec3_finished);
 }
 
 void test_cancel_of_req_written_on_run_canceled()
