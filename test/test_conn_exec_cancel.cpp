@@ -164,6 +164,27 @@ void test_cancel_written()
    BOOST_TEST(exec3_finished);
 }
 
+// Requests configured to do so are cancelled if the connection
+// hasn't been established when they are executed
+void test_cancel_if_not_connected()
+{
+   net::io_context ioc;
+   connection conn{ioc};
+
+   request req;
+   req.get_config().cancel_if_not_connected = true;
+   req.push("PING");
+
+   bool exec_finished = false;
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error::not_connected);
+      exec_finished = true;
+   });
+
+   ioc.run_for(test_timeout);
+   BOOST_TEST(exec_finished);
+}
+
 void test_cancel_of_req_written_on_run_canceled()
 {
    net::io_context ioc;
@@ -215,6 +236,7 @@ int main()
 {
    test_cancel_pending();
    test_cancel_written();
+   test_cancel_if_not_connected();
    test_cancel_of_req_written_on_run_canceled();
 
    return boost::report_errors();
