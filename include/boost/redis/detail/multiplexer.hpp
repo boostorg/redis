@@ -116,20 +116,29 @@ public:
       std::size_t read_size_;
    };
 
-   auto remove(std::shared_ptr<elem> const& ptr) -> bool;
-
+   // To be called before a write operation. Coalesces all available requests
+   // into a single buffer. Returns the number of coalesced requests.
+   // Must be called before cancel_on_conn_lost() because it might change
+   // request status.
    [[nodiscard]]
    auto prepare_write() -> std::size_t;
 
+   // To be called after a successful write operation.
    // Returns the number of requests that have been released because
    // they don't have a response e.g. SUBSCRIBE.
+   // Must be called before cancel_on_conn_lost() because it might change
+   // request status.
    auto commit_write() -> std::size_t;
 
+   // To be called after a successful read operation.
+   // Must be called before cancel_on_conn_lost() because it might change
+   // request status.
    [[nodiscard]]
    auto consume_next(std::string_view data, system::error_code& ec)
       -> std::pair<consume_result, std::size_t>;
 
    auto add(std::shared_ptr<elem> const& ptr) -> void;
+   auto remove(std::shared_ptr<elem> const& ptr) -> bool;
    auto reset() -> void;
 
    [[nodiscard]]
@@ -138,17 +147,20 @@ public:
       return parser_;
    }
 
-   //[[nodiscard]]
    auto cancel_waiting() -> std::size_t;
 
-   //[[nodiscard]]
-   auto cancel_on_conn_lost() -> std::size_t;
-
-   [[nodiscard]]
-   auto get_cancel_run_state() const noexcept -> bool
-   {
-      return cancel_run_called_;
-   }
+   // To be called exactly once to clean up state after a connection becomes unhealthy.
+   // Requests are canceled or returned to the waiting state to be re-sent to the server,
+   // depending on their configuration. After this function is called, prepare_write,
+   // commit_write and consume_next must not be called until a reset() happens.
+   // Otherwise, race conditions like the following might happen
+   // (see https://github.com/boostorg/redis/pull/309 and https://github.com/boostorg/redis/issues/181):
+   //
+   //   - This function runs and cancels a request, then consume_next runs. It tries to access
+   //     a request and adapter that might have been destroyed.
+   //   - This function runs and returns a request to waiting, then prepare_write runs.
+   //     It incorrectly sets the request state to staged, causing de synchronization between requests and responses.
+   void cancel_on_conn_lost();
 
    [[nodiscard]]
    auto get_write_buffer() noexcept -> std::string_view
