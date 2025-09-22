@@ -7,6 +7,7 @@
 #include <boost/redis/connection.hpp>
 #include <boost/redis/ignore.hpp>
 #include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
 
 #include <boost/asio/any_io_executor.hpp>
 #include <boost/asio/bind_cancellation_slot.hpp>
@@ -22,6 +23,7 @@
 
 #include <cstddef>
 #include <iostream>
+#include <string>
 
 using namespace std::chrono_literals;
 
@@ -113,6 +115,7 @@ void test_cancel_written()
    // Will finish successfully once the response to the BLPOP arrives
    request req3;
    req3.push("PING", "after_blpop");
+   response<std::string> r3;
 
    // Run the connection
    conn.async_run(cfg, [&](error_code ec) {
@@ -140,8 +143,9 @@ void test_cancel_written()
 
    // The second PING's response will be received after the BLPOP's response,
    // but it will be processed successfully.
-   conn.async_exec(req3, ignore, [&](error_code ec, std::size_t) {
+   conn.async_exec(req3, r3, [&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(r3).value(), "after_blpop");
       conn.cancel();
       exec3_finished = true;
    });
