@@ -760,40 +760,47 @@ public:
 
    /** @brief Executes commands on the Redis server asynchronously.
     *
-    *  This function sends a request to the Redis server and waits for
-    *  the responses to each individual command in the request. If the
-    *  request contains only commands that don't expect a response,
-    *  the completion occurs after it has been written to the
-    *  underlying stream.  Multiple concurrent calls to this function
-    *  will be automatically queued by the implementation.
+    * This function sends a request to the Redis server and waits for
+    * the responses to each individual command in the request. If the
+    * request contains only commands that don't expect a response,
+    * the completion occurs after it has been written to the
+    * underlying stream.  Multiple concurrent calls to this function
+    * will be automatically queued by the implementation.
     *
-    *  For an example see cpp20_echo_server.cpp.
+    * For an example see cpp20_echo_server.cpp.
     *
     * The completion token must have the following signature:
     *
-    *  @code
-    *  void f(system::error_code, std::size_t);
-    *  @endcode
+    * @code
+    * void f(system::error_code, std::size_t);
+    * @endcode
     *
-    *  Where the second parameter is the size of the response received
-    *  in bytes.
+    * Where the second parameter is the size of the response received
+    * in bytes.
     *
     * @par Per-operation cancellation
-    * This operation supports per-operation cancellation. The following cancellation types
-    * are supported:
+    * This operation supports per-operation cancellation. Depending on the state of the request
+    * when cancellation is requested, we can encounter two scenarios:
     *
-    *   @li `asio::cancellation_type_t::terminal`. Always supported. May cause the current
-    *       `async_run` operation to be cancelled.
-    *   @li `asio::cancellation_type_t::partial` and `asio::cancellation_type_t::total`.
-    *       Supported only if the request hasn't been written to the network yet.
+    *   @li If the request hasn't been sent to the server yet, cancellation will prevent it
+    *       from being sent to the server. In this situation, all cancellation types are supported
+    *       (`asio::cancellation_type_t::terminal`, `asio::cancellation_type_t::partial` and
+    *       `asio::cancellation_type_t::total`).
+    *   @li If the request has been sent to the server but the response hasn't arrived yet,
+    *       cancellation will cause `async_exec` to complete immediately. When the response
+    *       arrives from the server, it will be ignored. In this situation, only
+    *       `asio::cancellation_type_t::terminal` and `asio::cancellation_type_t::partial`
+    *       are supported.
+    *
+    * In any case, connections can be safely used after cancelling `async_exec` operations.
     *
     * @par Object lifetimes
     * Both `req` and `res` should be kept alive until the operation completes.
     * No copies of the request object are made.
     *
-    *  @param req The request to be executed.
-    *  @param resp The response object to parse data into.
-    *  @param token Completion token.
+    * @param req The request to be executed.
+    * @param resp The response object to parse data into.
+    * @param token Completion token.
     */
    template <
       class Response = ignore_t,
@@ -805,41 +812,48 @@ public:
 
    /** @brief Executes commands on the Redis server asynchronously.
     *
-    *  This function sends a request to the Redis server and waits for
-    *  the responses to each individual command in the request. If the
-    *  request contains only commands that don't expect a response,
-    *  the completion occurs after it has been written to the
-    *  underlying stream.  Multiple concurrent calls to this function
-    *  will be automatically queued by the implementation.
+    * This function sends a request to the Redis server and waits for
+    * the responses to each individual command in the request. If the
+    * request contains only commands that don't expect a response,
+    * the completion occurs after it has been written to the
+    * underlying stream.  Multiple concurrent calls to this function
+    * will be automatically queued by the implementation.
     *
-    *  For an example see cpp20_echo_server.cpp.
+    * For an example see cpp20_echo_server.cpp.
     *
     * The completion token must have the following signature:
     *
-    *  @code
-    *  void f(system::error_code, std::size_t);
-    *  @endcode
+    * @code
+    * void f(system::error_code, std::size_t);
+    * @endcode
     *
-    *  Where the second parameter is the size of the response received
-    *  in bytes.
+    * Where the second parameter is the size of the response received
+    * in bytes.
     *
     * @par Per-operation cancellation
-    * This operation supports per-operation cancellation. The following cancellation types
-    * are supported:
+    * This operation supports per-operation cancellation. Depending on the state of the request
+    * when cancellation is requested, we can encounter two scenarios:
     *
-    *   @li `asio::cancellation_type_t::terminal`. Always supported. May cause the current
-    *       `async_run` operation to be cancelled.
-    *   @li `asio::cancellation_type_t::partial` and `asio::cancellation_type_t::total`.
-    *       Supported only if the request hasn't been written to the network yet.
+    *   @li If the request hasn't been sent to the server yet, cancellation will prevent it
+    *       from being sent to the server. In this situation, all cancellation types are supported
+    *       (`asio::cancellation_type_t::terminal`, `asio::cancellation_type_t::partial` and
+    *       `asio::cancellation_type_t::total`).
+    *   @li If the request has been sent to the server but the response hasn't arrived yet,
+    *       cancellation will cause `async_exec` to complete immediately. When the response
+    *       arrives from the server, it will be ignored. In this situation, only
+    *       `asio::cancellation_type_t::terminal` and `asio::cancellation_type_t::partial`
+    *       are supported.
+    *
+    * In any case, connections can be safely used after cancelling `async_exec` operations.
     *
     * @par Object lifetimes
     * Both `req` and any response object referenced by `adapter`
     * should be kept alive until the operation completes.
     * No copies of the request object are made.
     *
-    *  @param req The request to be executed.
-    *  @param adapter An adapter object referencing a response to place data into.
-    *  @param token Completion token.
+    * @param req The request to be executed.
+    * @param adapter An adapter object referencing a response to place data into.
+    * @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
