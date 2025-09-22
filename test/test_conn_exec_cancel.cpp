@@ -44,7 +44,52 @@ using connection_type = boost::redis::basic_connection<net::any_io_executor>;
 
 namespace {
 
-void test_ignore_implicit_cancel_of_req_written()
+// We can cancel requests that haven't been written yet.
+// All cancellation types are supported here.
+void test_cancel_pending()
+{
+   struct {
+      const char* name;
+      net::cancellation_type_t cancel_type;
+   } test_cases[] = {
+      {"terminal", net::cancellation_type_t::terminal},
+      {"partial",  net::cancellation_type_t::partial },
+      {"total",    net::cancellation_type_t::total   },
+   };
+
+   for (const auto& tc : test_cases) {
+      std::cerr << "Running test case: " << tc.name << std::endl;
+
+      // Setup
+      net::io_context ctx;
+      connection conn(ctx);
+      request req;
+      req.push("get", "mykey");
+
+      // Issue a request without calling async_run(), so the request stays waiting forever
+      net::cancellation_signal sig;
+      bool called = false;
+      conn.async_exec(
+         req,
+         ignore,
+         net::bind_cancellation_slot(sig.slot(), [&](error_code ec, std::size_t sz) {
+            BOOST_TEST_EQ(ec, net::error::operation_aborted);
+            BOOST_TEST_EQ(sz, 0u);
+            called = true;
+         }));
+
+      // Issue a cancellation
+      sig.emit(tc.cancel_type);
+
+      // Prevent the test for deadlocking in case of failure
+      ctx.run_for(test_timeout);
+      BOOST_TEST(called);
+   }
+}
+
+// We can safely cancel requests that have been written but which
+// responses haven't been received yet.
+void test_cancel_written()
 {
    // Setup
    net::io_context ctx;
@@ -125,54 +170,11 @@ void test_cancel_of_req_written_on_run_canceled()
    BOOST_TEST(finished);
 }
 
-// We can cancel requests that haven't been written yet.
-// All cancellation types are supported here.
-void test_cancel_pending()
-{
-   struct {
-      const char* name;
-      net::cancellation_type_t cancel_type;
-   } test_cases[] = {
-      {"terminal", net::cancellation_type_t::terminal},
-      {"partial",  net::cancellation_type_t::partial },
-      {"total",    net::cancellation_type_t::total   },
-   };
-
-   for (const auto& tc : test_cases) {
-      std::cerr << "Running test case: " << tc.name << std::endl;
-
-      // Setup
-      net::io_context ctx;
-      connection conn(ctx);
-      request req;
-      req.push("get", "mykey");
-
-      // Issue a request without calling async_run(), so the request stays waiting forever
-      net::cancellation_signal sig;
-      bool called = false;
-      conn.async_exec(
-         req,
-         ignore,
-         net::bind_cancellation_slot(sig.slot(), [&](error_code ec, std::size_t sz) {
-            BOOST_TEST_EQ(ec, net::error::operation_aborted);
-            BOOST_TEST_EQ(sz, 0u);
-            called = true;
-         }));
-
-      // Issue a cancellation
-      sig.emit(tc.cancel_type);
-
-      // Prevent the test for deadlocking in case of failure
-      ctx.run_for(test_timeout);
-      BOOST_TEST(called);
-   }
-}
-
 }  // namespace
 
 int main()
 {
-   test_ignore_implicit_cancel_of_req_written();
+   test_cancel_written();
    test_cancel_of_req_written_on_run_canceled();
    test_cancel_pending();
 
