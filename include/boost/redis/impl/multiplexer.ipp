@@ -42,7 +42,7 @@ auto multiplexer::elem::commit_response(std::size_t read_size) -> void
 void multiplexer::elem::mark_as_abandoned()
 {
    req_ = nullptr;
-   adapter_ = any_adapter(ignore);  // TODO: apparently ignore doesn't ignore errors
+   adapter_ = any_adapter();  // A default-constructed any_adapter ignores all nodes
    set_done_callback([] { });
 }
 

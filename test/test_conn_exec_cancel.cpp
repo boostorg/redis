@@ -96,12 +96,16 @@ void test_cancel_written()
    connection_type conn{ctx};
    auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds::zero();
-   bool run_finished = false, exec_finished = false;
+   bool run_finished = false, exec1_finished = false, exec2_finished = false;
 
    // Will be cancelled after it has been written but before the
    // response arrives.
    request req1;
-   req1.push("BLPOP", "any", 3);
+   req1.push("BLPOP", "any", 1);
+
+   // Will finish successfully once the response to the BLPOP arrives
+   request req2;
+   req2.push("PING", "after_blpop");
 
    // Run the connection
    conn.async_run(cfg, [&](error_code ec) {
@@ -110,19 +114,25 @@ void test_cancel_written()
    });
 
    // The request will be cancelled before it receives a response.
-   // Our BLPOP will wait for 3s, but we're using a 1s timeout.
+   // Our BLPOP will wait for longer than the timeout we're using.
    auto blpop_cb = [&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
-      conn.cancel();
-      exec_finished = true;
+      exec1_finished = true;
    };
-   conn.async_exec(req1, ignore, net::cancel_after(1s, blpop_cb));
+   conn.async_exec(req1, ignore, net::cancel_after(500ms, blpop_cb));
+
+   // The PING will be sent after the BLPOP because it's been scheduled after it.
+   // The response will be received after the BLPOP, but it will be processed successfully.
+   conn.async_exec(req2, ignore, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.cancel();
+      exec2_finished = true;
+   });
 
    ctx.run_for(test_timeout);
    BOOST_TEST(run_finished);
-   BOOST_TEST(exec_finished);
-
-   // TODO: check that the connection can still be used
+   BOOST_TEST(exec1_finished);
+   BOOST_TEST(exec2_finished);
 }
 
 void test_cancel_of_req_written_on_run_canceled()
@@ -174,9 +184,9 @@ void test_cancel_of_req_written_on_run_canceled()
 
 int main()
 {
+   test_cancel_pending();
    test_cancel_written();
    test_cancel_of_req_written_on_run_canceled();
-   test_cancel_pending();
 
    return boost::report_errors();
 }
