@@ -200,17 +200,18 @@ void test_cancel_on_connection_lost()
    req1.get_config().cancel_if_unresponded = true;
    req1.push("BLPOP", "any", 0);
 
-   bool finished = false;
+   bool run_finished = false, exec_finished = false;
 
    conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
-      finished = true;
+      exec_finished = true;
    });
 
    auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds{5};
-   conn.async_run(cfg, [](error_code ec) {
+   conn.async_run(cfg, [&](error_code ec) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      run_finished = true;
    });
 
    net::steady_timer st{ioc};
@@ -222,7 +223,8 @@ void test_cancel_on_connection_lost()
    });
 
    ioc.run_for(test_timeout);
-   BOOST_TEST(finished);
+   BOOST_TEST(run_finished);
+   BOOST_TEST(exec_finished);
 }
 
 }  // namespace
