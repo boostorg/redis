@@ -240,8 +240,18 @@ void test_cancel_operation_exec()
    // Setup
    net::io_context ctx;
    connection conn{ctx};
-   net::steady_timer st{ctx};
-   bool run_finished = false, exec1_finished = false, exec2_finished = false;
+   bool run_finished = false, exec0_finished = false, exec1_finished = false,
+        exec2_finished = false;
+
+   request req0;
+   req0.push("PING", "before_blpop");
+
+   request req1;
+   req1.push("BLPOP", "any", 1);
+   generic_response r1;
+
+   request req2;
+   req2.push("PING", "after_blpop");
 
    // Run the connection
    conn.async_run(make_test_config(), [&](error_code ec) {
@@ -249,14 +259,13 @@ void test_cancel_operation_exec()
       run_finished = true;
    });
 
-   st.expires_after(std::chrono::seconds{1});
-
-   request req1;
-   req1.push("BLPOP", "any", 3);
-   generic_response r1;
-
-   request req2;
-   req2.push("PING");
+   // Execute req0 and req1. They will be coalesced together.
+   // When req0 completes, we know that req1 will be waiting its response
+   conn.async_exec(req0, ignore, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      exec0_finished = true;
+      conn.cancel(operation::exec);
+   });
 
    // By default, ignore will issue an error when a NULL is received.
    // ATM, this causes the connection to be torn down. Using a generic_response avoids this.
@@ -275,15 +284,9 @@ void test_cancel_operation_exec()
       });
    });
 
-   // Will complete while BLPOP is pending.
-   st.expires_after(1s);
-   st.async_wait([&](error_code ec) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.cancel(operation::exec);
-   });
-
    ctx.run_for(test_timeout);
    BOOST_TEST(run_finished);
+   BOOST_TEST(exec0_finished);
    BOOST_TEST(exec1_finished);
    BOOST_TEST(exec2_finished);
 }
