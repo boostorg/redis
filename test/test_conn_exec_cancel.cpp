@@ -23,6 +23,7 @@
 
 #include <cstddef>
 #include <iostream>
+#include <memory>
 #include <string>
 
 using namespace std::chrono_literals;
@@ -103,9 +104,11 @@ void test_cancel_written()
         exec3_finished = false;
 
    // Will be cancelled after it has been written but before the
-   // response arrives.
-   request req1;
-   req1.push("BLPOP", "any", 1);
+   // response arrives. Create everything in dynamic memory to verify
+   // we don't try to access things after completion.
+   auto req1 = std::make_unique<request>();
+   req1->push("BLPOP", "any", 1);
+   auto r1 = std::make_unique<response<std::string>>();
 
    // Will be cancelled too because it's sent after BLPOP.
    // Tests that partial cancellation is supported, too.
@@ -125,11 +128,15 @@ void test_cancel_written()
 
    // The request will be cancelled before it receives a response.
    // Our BLPOP will wait for longer than the timeout we're using.
+   // Clear allocated memory to check we don't access the request or
+   // response when the server response arrives.
    auto blpop_cb = [&](error_code ec, std::size_t) {
+      req1.reset();
+      r1.reset();
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
       exec1_finished = true;
    };
-   conn.async_exec(req1, ignore, net::cancel_after(500ms, blpop_cb));
+   conn.async_exec(*req1, *r1, net::cancel_after(500ms, blpop_cb));
 
    // The first PING will be cancelled, too. Use partial cancellation here.
    auto req2_cb = [&](error_code ec, std::size_t) {
