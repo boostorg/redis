@@ -193,38 +193,46 @@ void test_cancel_on_connection_lost()
    net::io_context ioc;
    connection conn{ioc};
 
-   // Sends a request that will be blocked forever, so we can test
-   // canceling it while waiting for a response.
+   // req0 and req1 will be coalesced together. When req0
+   // completes, we know that req1 will be waiting for a response.
+   // req1 will block forever.
+   request req0;
+   req0.push("PING");
+
    request req1;
    req1.get_config().cancel_on_connection_lost = true;
    req1.get_config().cancel_if_unresponded = true;
    req1.push("BLPOP", "any", 0);
 
-   bool run_finished = false, exec_finished = false;
+   bool run_finished = false, exec0_finished = false, exec1_finished = false;
 
-   conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
-      exec_finished = true;
-   });
-
+   // Run the connection
    auto cfg = make_test_config();
-   cfg.health_check_interval = std::chrono::seconds{5};
    conn.async_run(cfg, [&](error_code ec) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
       run_finished = true;
    });
 
-   net::steady_timer st{ioc};
-   st.expires_after(std::chrono::seconds{1});
-   st.async_wait([&](error_code ec) {
+   // Execute both requests
+   conn.async_exec(req0, ignore, [&](error_code ec, std::size_t) {
+      // The request finished successfully
       BOOST_TEST_EQ(ec, error_code());
+      exec0_finished = true;
+
+      // We know that req1 has been written to the server, too. Trigger a cancellation
       conn.cancel(operation::run);
       conn.cancel(operation::reconnection);
    });
 
+   conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      exec1_finished = true;
+   });
+
    ioc.run_for(test_timeout);
    BOOST_TEST(run_finished);
-   BOOST_TEST(exec_finished);
+   BOOST_TEST(exec0_finished);
+   BOOST_TEST(exec1_finished);
 }
 
 }  // namespace
