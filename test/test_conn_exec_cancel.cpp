@@ -25,10 +25,6 @@
 
 using namespace std::chrono_literals;
 
-// NOTE1: I have observed that if hello and
-// blpop are sent together, Redis will send the response of hello
-// right away, not waiting for blpop.
-
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
 using boost::redis::operation;
@@ -57,9 +53,6 @@ void test_ignore_implicit_cancel_of_req_written()
    cfg.health_check_interval = std::chrono::seconds::zero();
    bool run_finished = false, exec_finished = false;
 
-   request req0;
-   req0.push("PING");
-
    // Will be cancelled after it has been written but before the
    // response arrives.
    request req1;
@@ -71,19 +64,14 @@ void test_ignore_implicit_cancel_of_req_written()
       run_finished = true;
    });
 
-   // BLPOP callback. The request is cancelled before it receives a response.
+   // The request will be cancelled before it receives a response.
    // Our BLPOP will wait for 3s, but we're using a 1s timeout.
    auto blpop_cb = [&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
       conn.cancel();
       exec_finished = true;
    };
-
-   // See NOTE1.
-   conn.async_exec(req0, ignore, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req1, ignore, net::cancel_after(1s, blpop_cb));
-   });
+   conn.async_exec(req1, ignore, net::cancel_after(1s, blpop_cb));
 
    ctx.run_for(test_timeout);
    BOOST_TEST(run_finished);
