@@ -19,12 +19,9 @@
 
 #include <cstddef>
 #define BOOST_TEST_MODULE conn_exec_cancel
-#include <boost/asio/detached.hpp>
 #include <boost/test/included/unit_test.hpp>
 
 #include "common.hpp"
-
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
 
 using namespace std::chrono_literals;
 
@@ -34,7 +31,6 @@ using namespace std::chrono_literals;
 
 namespace net = boost::asio;
 using error_code = boost::system::error_code;
-using namespace net::experimental::awaitable_operators;
 using boost::redis::operation;
 using boost::redis::error;
 using boost::redis::request;
@@ -52,46 +48,48 @@ using connection_type = boost::redis::basic_connection<net::any_io_executor>;
 
 namespace {
 
-auto implicit_cancel_of_req_written() -> net::awaitable<void>
+BOOST_AUTO_TEST_CASE(test_ignore_implicit_cancel_of_req_written)
 {
-   auto ex = co_await net::this_coro::executor;
-   auto conn = std::make_shared<connection_type>(ex);
-
+   // Setup
+   net::io_context ctx;
+   connection_type conn{ctx};
    auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds::zero();
-   conn->async_run(cfg, [](error_code ec) {
-      BOOST_TEST(ec == net::error::operation_aborted);
-   });
+   bool run_finished = false, exec_finished = false;
 
-   // See NOTE1.
    request req0;
    req0.push("PING");
-   co_await conn->async_exec(req0, ignore);
 
    // Will be cancelled after it has been written but before the
    // response arrives.
    request req1;
    req1.push("BLPOP", "any", 3);
 
-   net::steady_timer st{ex};
-   st.expires_after(std::chrono::seconds{1});
+   // Run the connection
+   conn.async_run(cfg, [&](error_code ec) {
+      BOOST_TEST(ec == net::error::operation_aborted);
+      run_finished = true;
+   });
 
-   // Achieves implicit cancellation when the timer fires.
-   boost::system::error_code ec1;
-   co_await (conn->async_exec(req1, ignore, net::cancel_after(1s, redir(ec1))));
+   // BLPOP callback. The request is cancelled before it receives a response.
+   // Our BLPOP will wait for 3s, but we're using a 1s timeout.
+   auto blpop_cb = [&](error_code ec, std::size_t) {
+      BOOST_TEST(ec == net::error::operation_aborted);
+      conn.cancel();
+      exec_finished = true;
+   };
 
-   conn->cancel();
+   // See NOTE1.
+   conn.async_exec(req0, ignore, [&](error_code ec, std::size_t) {
+      BOOST_TEST(ec == error_code());
+      conn.async_exec(req1, ignore, net::cancel_after(1s, blpop_cb));
+   });
 
-   // I have observed this produces terminal cancellation so it can't
-   // be ignored, an error is expected.
-   BOOST_TEST(ec1 == net::error::operation_aborted);
+   ctx.run_for(test_timeout);
+   BOOST_TEST(run_finished);
+   BOOST_TEST(exec_finished);
 
    // TODO: check that the connection can still be used
-}
-
-BOOST_AUTO_TEST_CASE(test_ignore_implicit_cancel_of_req_written)
-{
-   run_coroutine_test(implicit_cancel_of_req_written());
 }
 
 BOOST_AUTO_TEST_CASE(test_cancel_of_req_written_on_run_canceled)
@@ -184,7 +182,3 @@ BOOST_AUTO_TEST_CASE(test_cancel_pending)
 }
 
 }  // namespace
-
-#else
-BOOST_AUTO_TEST_CASE(dummy) { }
-#endif
