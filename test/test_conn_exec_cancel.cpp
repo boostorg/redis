@@ -23,8 +23,6 @@
 
 #include <cstddef>
 #include <iostream>
-#include <memory>
-#include <string>
 
 using namespace std::chrono_literals;
 
@@ -235,6 +233,61 @@ void test_cancel_on_connection_lost_written()
    BOOST_TEST(exec1_finished);
 }
 
+// connection::cancel(operation::exec) works. Pending requests are cancelled,
+// but written requests are not
+void test_cancel_operation_exec()
+{
+   // Setup
+   net::io_context ctx;
+   connection conn{ctx};
+   net::steady_timer st{ctx};
+   bool run_finished = false, exec1_finished = false, exec2_finished = false;
+
+   // Run the connection
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      run_finished = true;
+   });
+
+   st.expires_after(std::chrono::seconds{1});
+
+   request req1;
+   req1.push("BLPOP", "any", 3);
+   generic_response r1;
+
+   request req2;
+   req2.push("PING");
+
+   // By default, ignore will issue an error when a NULL is received.
+   // ATM, this causes the connection to be torn down. Using a generic_response avoids this.
+   // See https://github.com/boostorg/redis/issues/314
+   conn.async_exec(req1, r1, [&](error_code ec, std::size_t) {
+      // No error should occur since the cancellation should be ignored
+      std::cout << "async_exec (1): " << ec.message() << std::endl;
+      BOOST_TEST_EQ(ec, error_code());
+      exec1_finished = true;
+
+      // The connection remains usable
+      conn.async_exec(req2, ignore, [&](error_code ec2, std::size_t) {
+         BOOST_TEST_EQ(ec2, error_code());
+         exec2_finished = true;
+         conn.cancel();
+      });
+   });
+
+   // Will complete while BLPOP is pending.
+   st.expires_after(1s);
+   st.async_wait([&](error_code ec) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.cancel(operation::exec);
+   });
+
+   ctx.run_for(test_timeout);
+   BOOST_TEST(run_finished);
+   BOOST_TEST(exec1_finished);
+   BOOST_TEST(exec2_finished);
+}
+
 }  // namespace
 
 int main()
@@ -243,6 +296,7 @@ int main()
    test_cancel_written();
    test_cancel_if_not_connected();
    test_cancel_on_connection_lost_written();
+   test_cancel_operation_exec();
 
    return boost::report_errors();
 }
