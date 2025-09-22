@@ -185,13 +185,13 @@ void test_cancel_if_not_connected()
    BOOST_TEST(exec_finished);
 }
 
-void test_cancel_of_req_written_on_run_canceled()
+// Requests configured to do so are cancelled when the connection is lost.
+// Tests with a written request that hasn't been responded yet
+void test_cancel_on_connection_lost()
 {
+   // Setup
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
-
-   request req0;
-   req0.push("PING");
+   connection conn{ioc};
 
    // Sends a request that will be blocked forever, so we can test
    // canceling it while waiting for a response.
@@ -202,28 +202,23 @@ void test_cancel_of_req_written_on_run_canceled()
 
    bool finished = false;
 
-   auto c1 = [&](error_code ec, std::size_t) {
+   conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
       finished = true;
-   };
-
-   auto c0 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req1, ignore, c1);
-   };
-
-   conn->async_exec(req0, ignore, c0);
+   });
 
    auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds{5};
-   run(conn);
+   conn.async_run(cfg, [](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
 
    net::steady_timer st{ioc};
    st.expires_after(std::chrono::seconds{1});
    st.async_wait([&](error_code ec) {
       BOOST_TEST_EQ(ec, error_code());
-      conn->cancel(operation::run);
-      conn->cancel(operation::reconnection);
+      conn.cancel(operation::run);
+      conn.cancel(operation::reconnection);
    });
 
    ioc.run_for(test_timeout);
@@ -237,7 +232,7 @@ int main()
    test_cancel_pending();
    test_cancel_written();
    test_cancel_if_not_connected();
-   test_cancel_of_req_written_on_run_canceled();
+   test_cancel_on_connection_lost();
 
    return boost::report_errors();
 }
