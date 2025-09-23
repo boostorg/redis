@@ -811,6 +811,61 @@ void test_cancel_written_half_parsed_response()
       std::end(expected));
 }
 
+// If an abandoned request receives a NULL or an error, nothing happens
+// (regression check)
+void test_cancel_written_null_error()
+{
+   // Setup
+   request req;
+   req.push("PING", "value1");
+   req.push("PING", "value2");
+   req.push("PING", "value3");
+   multiplexer mpx;
+   auto item1 = std::make_unique<test_item>(std::move(req));
+   auto item2 = std::make_unique<test_item>();
+   mpx.add(item1->elem_ptr);
+   mpx.add(item2->elem_ptr);
+
+   // A write succeeds
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+
+   // Cancel the first request
+   mpx.cancel(item1->elem_ptr);
+   item1.reset();  // Verify we don't reference this item anyhow
+
+   // The cancelled request's response arrives. It contains NULLs and errors.
+   // We ignore them
+   error_code ec;
+   auto res = mpx.consume_next("-ERR wrong command\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST_NOT(item2->done);
+
+   res = mpx.consume_next("!3\r\nBad\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST_NOT(item2->done);
+
+   res = mpx.consume_next("_\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST_NOT(item2->done);
+
+   // The 2nd request's response arrives. It gets parsed successfully
+   res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST(item2->done);
+   const node expected[] = {
+      {type::blob_string, 1u, 0u, "Hello world"},
+   };
+   BOOST_TEST_ALL_EQ(
+      item2->resp->begin(),
+      item2->resp->end(),
+      std::begin(expected),
+      std::end(expected));
+}
+
 //   cancel_on_connection_lost cleans up cancelled requests
 //   error/NULL received
 
@@ -836,6 +891,7 @@ int main()
    test_cancel_staged_command_without_response();
    test_cancel_written();
    test_cancel_written_half_parsed_response();
+   test_cancel_written_null_error();
 
    return boost::report_errors();
 }
