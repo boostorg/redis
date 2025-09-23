@@ -288,8 +288,8 @@ void test_cancel_notwaiting_terminal_partial()
    // TODO: test partial
    // Setup
    multiplexer mpx;
-   elem_and_request input;  // TODO: make this dynamic
-   exec_fsm fsm(mpx, std::move(input.elm));
+   auto input = std::make_unique<elem_and_request>();
+   exec_fsm fsm(mpx, std::move(input->elm));
 
    // Initiate
    auto act = fsm.resume(false, cancellation_type_t::none);
@@ -307,14 +307,16 @@ void test_cancel_notwaiting_terminal_partial()
    // A cancellation arrives
    act = fsm.resume(true, cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted));
-
-   // The object needs to survive here, otherwise an inconsistent connection state is created
+   input.reset();  // Verify we don't access the request or response after completion
 
    // When the response to this request arrives, it gets ignored
    error_code ec;
    auto res = mpx.consume_next("-ERR wrong command\r\n", ec);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(res.first, consume_result::got_response);
+
+   // The multiplexer::elem object needs to survive here to mark the
+   // request as abandoned
 }
 
 // If the request is being processed and total cancellation is requested, we ignore the cancellation
