@@ -461,149 +461,6 @@ void test_mix_responses_pushes()
    BOOST_TEST_EQ(usg.push_bytes_received, push1_buffer.size() + push2_buffer.size());
 }
 
-// Cancellation on connection lost
-void test_cancel_on_connection_lost()
-{
-   // Setup
-   multiplexer mpx;
-   test_item item_written1, item_written2, item_staged1, item_staged2, item_waiting1, item_waiting2;
-
-   // Different items have different configurations
-   // (note that these are all true by default)
-   item_written1.req.get_config().cancel_if_unresponded = false;
-   item_staged1.req.get_config().cancel_if_unresponded = false;
-   item_waiting1.req.get_config().cancel_on_connection_lost = false;
-
-   // Make each item reach the state it should be in
-   mpx.add(item_written1.elem_ptr);
-   mpx.add(item_written2.elem_ptr);
-   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
-
-   mpx.add(item_staged1.elem_ptr);
-   mpx.add(item_staged2.elem_ptr);
-   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
-
-   mpx.add(item_waiting1.elem_ptr);
-   mpx.add(item_waiting2.elem_ptr);
-
-   // Check that we got it right
-   BOOST_TEST(item_written1.elem_ptr->is_written());
-   BOOST_TEST(item_written2.elem_ptr->is_written());
-   BOOST_TEST(item_staged1.elem_ptr->is_staged());
-   BOOST_TEST(item_staged2.elem_ptr->is_staged());
-   BOOST_TEST(item_waiting1.elem_ptr->is_waiting());
-   BOOST_TEST(item_waiting2.elem_ptr->is_waiting());
-
-   // Trigger a connection lost event
-   mpx.cancel_on_conn_lost();
-
-   // The ones with the cancellation settings set to false are back to waiting.
-   // Others are cancelled
-   BOOST_TEST(!item_written1.done);
-   BOOST_TEST(item_written1.elem_ptr->is_waiting());
-   BOOST_TEST(item_written2.done);
-   BOOST_TEST(!item_staged1.done);
-   BOOST_TEST(item_staged1.elem_ptr->is_waiting());
-   BOOST_TEST(item_staged2.done);
-   BOOST_TEST(!item_waiting1.done);
-   BOOST_TEST(item_waiting1.elem_ptr->is_waiting());
-   BOOST_TEST(item_waiting2.done);
-}
-
-// The test below fails. Uncomment when this is fixed:
-// https://github.com/boostorg/redis/issues/307
-// void test_cancel_on_connection_lost_half_parsed_response()
-// {
-//    // Setup
-//    multiplexer mpx;
-//    test_item item;
-//    item.req.get_config().cancel_if_unresponded = false;
-//    error_code ec;
-
-//    // Add the request, write it and start parsing the response
-//    mpx.add(item.elem_ptr);
-//    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
-//    BOOST_TEST_EQ(mpx.commit_write(), 0u);
-//    auto res = mpx.consume_next("*2\r\n+hello\r\n", ec);
-//    BOOST_TEST_EQ(res.first, consume_result::needs_more);
-//    BOOST_TEST_EQ(ec, error_code());
-
-//    // Trigger a connection lost event
-//    mpx.cancel_on_conn_lost();
-//    BOOST_TEST(!item.done);
-//    BOOST_TEST(item.elem_ptr->is_waiting());
-
-//    // Simulate a reconnection
-//    mpx.reset();
-
-//    // Successful write, and this time the response is complete
-//    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
-//    BOOST_TEST_EQ(mpx.commit_write(), 0u);
-//    res = mpx.consume_next("*2\r\n+hello\r\n+world\r\n", ec);
-//    BOOST_TEST_EQ(res.first, consume_result::got_response);
-//    BOOST_TEST_EQ(ec, error_code());
-
-//    // Check the response
-//    BOOST_TEST(item.resp.has_value());
-//    const node expected[] = {
-//       {type::array,         2u, 0u, ""     },
-//       {type::simple_string, 1u, 1u, "hello"},
-//       {type::simple_string, 1u, 1u, "world"},
-//    };
-//    BOOST_TEST_ALL_EQ(
-//       item.resp->begin(),
-//       item.resp->end(),
-//       std::begin(expected),
-//       std::end(expected));
-// }
-
-// Resetting works
-void test_reset()
-{
-   // Setup
-   multiplexer mpx;
-   generic_response push_resp;
-   mpx.set_receive_adapter(any_adapter{push_resp});
-   test_item item1, item2;
-
-   // Add a request
-   mpx.add(item1.elem_ptr);
-
-   // Start parsing a push
-   error_code ec;
-   auto ret = mpx.consume_next(">2\r", ec);
-   BOOST_TEST_EQ(ret.first, consume_result::needs_more);
-
-   // Connection lost. The first request gets cancelled
-   mpx.cancel_on_conn_lost();
-   BOOST_TEST(item1.done);
-
-   // Reconnection happens
-   mpx.reset();
-   ec.clear();
-
-   // We're able to add write requests and read responses - all state was reset
-   mpx.add(item2.elem_ptr);
-   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
-
-   std::string_view response_buffer = "$11\r\nHello world\r\n";
-   ret = mpx.consume_next(response_buffer, ec);
-   BOOST_TEST_EQ(ret.first, consume_result::got_response);
-   BOOST_TEST_EQ(ret.second, response_buffer.size());
-   BOOST_TEST(item2.resp.has_value());
-   const node expected[] = {
-      {type::blob_string, 1u, 0u, "Hello world"},
-   };
-   BOOST_TEST_ALL_EQ(
-      item2.resp->begin(),
-      item2.resp->end(),
-      std::begin(expected),
-      std::end(expected));
-   BOOST_TEST(item2.done);
-}
-
 // Cancellation cases
 // If the request is waiting, we just remove it
 void test_cancel_waiting()
@@ -866,8 +723,148 @@ void test_cancel_written_null_error()
       std::end(expected));
 }
 
-//   cancel_on_connection_lost cleans up cancelled requests
-//   error/NULL received
+// Cancellation on connection lost
+void test_cancel_on_connection_lost()
+{
+   // Setup
+   multiplexer mpx;
+   test_item item_written1, item_written2, item_staged1, item_staged2, item_waiting1, item_waiting2;
+
+   // Different items have different configurations
+   // (note that these are all true by default)
+   item_written1.req.get_config().cancel_if_unresponded = false;
+   item_staged1.req.get_config().cancel_if_unresponded = false;
+   item_waiting1.req.get_config().cancel_on_connection_lost = false;
+
+   // Make each item reach the state it should be in
+   mpx.add(item_written1.elem_ptr);
+   mpx.add(item_written2.elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+
+   mpx.add(item_staged1.elem_ptr);
+   mpx.add(item_staged2.elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+
+   mpx.add(item_waiting1.elem_ptr);
+   mpx.add(item_waiting2.elem_ptr);
+
+   // Check that we got it right
+   BOOST_TEST(item_written1.elem_ptr->is_written());
+   BOOST_TEST(item_written2.elem_ptr->is_written());
+   BOOST_TEST(item_staged1.elem_ptr->is_staged());
+   BOOST_TEST(item_staged2.elem_ptr->is_staged());
+   BOOST_TEST(item_waiting1.elem_ptr->is_waiting());
+   BOOST_TEST(item_waiting2.elem_ptr->is_waiting());
+
+   // Trigger a connection lost event
+   mpx.cancel_on_conn_lost();
+
+   // The ones with the cancellation settings set to false are back to waiting.
+   // Others are cancelled
+   BOOST_TEST(!item_written1.done);
+   BOOST_TEST(item_written1.elem_ptr->is_waiting());
+   BOOST_TEST(item_written2.done);
+   BOOST_TEST(!item_staged1.done);
+   BOOST_TEST(item_staged1.elem_ptr->is_waiting());
+   BOOST_TEST(item_staged2.done);
+   BOOST_TEST(!item_waiting1.done);
+   BOOST_TEST(item_waiting1.elem_ptr->is_waiting());
+   BOOST_TEST(item_waiting2.done);
+}
+
+// The test below fails. Uncomment when this is fixed:
+// https://github.com/boostorg/redis/issues/307
+// void test_cancel_on_connection_lost_half_parsed_response()
+// {
+//    // Setup
+//    multiplexer mpx;
+//    test_item item;
+//    item.req.get_config().cancel_if_unresponded = false;
+//    error_code ec;
+
+//    // Add the request, write it and start parsing the response
+//    mpx.add(item.elem_ptr);
+//    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+//    BOOST_TEST_EQ(mpx.commit_write(), 0u);
+//    auto res = mpx.consume_next("*2\r\n+hello\r\n", ec);
+//    BOOST_TEST_EQ(res.first, consume_result::needs_more);
+//    BOOST_TEST_EQ(ec, error_code());
+
+//    // Trigger a connection lost event
+//    mpx.cancel_on_conn_lost();
+//    BOOST_TEST(!item.done);
+//    BOOST_TEST(item.elem_ptr->is_waiting());
+
+//    // Simulate a reconnection
+//    mpx.reset();
+
+//    // Successful write, and this time the response is complete
+//    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+//    BOOST_TEST_EQ(mpx.commit_write(), 0u);
+//    res = mpx.consume_next("*2\r\n+hello\r\n+world\r\n", ec);
+//    BOOST_TEST_EQ(res.first, consume_result::got_response);
+//    BOOST_TEST_EQ(ec, error_code());
+
+//    // Check the response
+//    BOOST_TEST(item.resp.has_value());
+//    const node expected[] = {
+//       {type::array,         2u, 0u, ""     },
+//       {type::simple_string, 1u, 1u, "hello"},
+//       {type::simple_string, 1u, 1u, "world"},
+//    };
+//    BOOST_TEST_ALL_EQ(
+//       item.resp->begin(),
+//       item.resp->end(),
+//       std::begin(expected),
+//       std::end(expected));
+// }
+
+// Resetting works
+void test_reset()
+{
+   // Setup
+   multiplexer mpx;
+   generic_response push_resp;
+   mpx.set_receive_adapter(any_adapter{push_resp});
+   test_item item1, item2;
+
+   // Add a request
+   mpx.add(item1.elem_ptr);
+
+   // Start parsing a push
+   error_code ec;
+   auto ret = mpx.consume_next(">2\r", ec);
+   BOOST_TEST_EQ(ret.first, consume_result::needs_more);
+
+   // Connection lost. The first request gets cancelled
+   mpx.cancel_on_conn_lost();
+   BOOST_TEST(item1.done);
+
+   // Reconnection happens
+   mpx.reset();
+   ec.clear();
+
+   // We're able to add write requests and read responses - all state was reset
+   mpx.add(item2.elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+
+   std::string_view response_buffer = "$11\r\nHello world\r\n";
+   ret = mpx.consume_next(response_buffer, ec);
+   BOOST_TEST_EQ(ret.first, consume_result::got_response);
+   BOOST_TEST_EQ(ret.second, response_buffer.size());
+   BOOST_TEST(item2.resp.has_value());
+   const node expected[] = {
+      {type::blob_string, 1u, 0u, "Hello world"},
+   };
+   BOOST_TEST_ALL_EQ(
+      item2.resp->begin(),
+      item2.resp->end(),
+      std::begin(expected),
+      std::end(expected));
+   BOOST_TEST(item2.done);
+}
 
 }  // namespace
 
@@ -882,16 +879,15 @@ int main()
    test_push_heuristics_request_without_response();
    test_push_heuristics_request_waiting();
    test_mix_responses_pushes();
-   test_cancel_on_connection_lost();
-   // test_cancel_on_connection_lost_half_parsed_response();
-   test_reset();
-
    test_cancel_waiting();
    test_cancel_staged();
    test_cancel_staged_command_without_response();
    test_cancel_written();
    test_cancel_written_half_parsed_response();
    test_cancel_written_null_error();
+   test_cancel_on_connection_lost();
+   // test_cancel_on_connection_lost_half_parsed_response();
+   test_reset();
 
    return boost::report_errors();
 }
