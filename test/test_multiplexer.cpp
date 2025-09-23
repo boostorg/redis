@@ -773,6 +773,57 @@ void test_cancel_on_connection_lost()
    BOOST_TEST(item_waiting2.done);
 }
 
+// cancel_on_connection_lost cleans up any abandoned request,
+// regardless of their configuration
+void test_cancel_on_connection_lost_abandoned()
+{
+   // Setup
+   multiplexer mpx;
+   auto item_written1 = std::make_unique<test_item>();
+   auto item_written2 = std::make_unique<test_item>();
+   auto item_staged1 = std::make_unique<test_item>();
+   auto item_staged2 = std::make_unique<test_item>();
+
+   // Different items have different configurations
+   // (note that these are all true by default)
+   item_written1->req.get_config().cancel_if_unresponded = false;
+   item_staged1->req.get_config().cancel_if_unresponded = false;
+
+   // Make each item reach the state it should be in
+   mpx.add(item_written1->elem_ptr);
+   mpx.add(item_written2->elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+
+   mpx.add(item_staged1->elem_ptr);
+   mpx.add(item_staged2->elem_ptr);
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+
+   // Check that we got it right
+   BOOST_TEST(item_written1->elem_ptr->is_written());
+   BOOST_TEST(item_written2->elem_ptr->is_written());
+   BOOST_TEST(item_staged1->elem_ptr->is_staged());
+   BOOST_TEST(item_staged2->elem_ptr->is_staged());
+
+   // Cancel all of the requests
+   mpx.cancel(item_written1->elem_ptr);
+   mpx.cancel(item_written2->elem_ptr);
+   mpx.cancel(item_staged1->elem_ptr);
+   mpx.cancel(item_staged2->elem_ptr);
+   item_written1.reset();
+   item_written2.reset();
+   item_staged1.reset();
+   item_staged2.reset();
+
+   // Trigger a connection lost event
+   mpx.cancel_on_conn_lost();
+
+   // This should have removed all requests, regardless of their config.
+   // If we restore the connection and try a write, nothing gets written.
+   mpx.reset();
+   BOOST_TEST_EQ(mpx.prepare_write(), 0u);
+}
+
 // The test below fails. Uncomment when this is fixed:
 // https://github.com/boostorg/redis/issues/307
 // void test_cancel_on_connection_lost_half_parsed_response()
@@ -886,6 +937,7 @@ int main()
    test_cancel_written_half_parsed_response();
    test_cancel_written_null_error();
    test_cancel_on_connection_lost();
+   test_cancel_on_connection_lost_abandoned();
    // test_cancel_on_connection_lost_half_parsed_response();
    test_reset();
 
