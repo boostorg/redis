@@ -65,18 +65,30 @@ struct test_item {
    std::shared_ptr<multiplexer::elem> elem_ptr;
    bool done = false;
 
-   test_item(bool cmd_with_response = true)
+   static request make_request(bool cmd_with_response = true)
    {
+      request ret;
+
       // The exact command is irrelevant because it is not being sent
       // to Redis.
-      req.push(cmd_with_response ? "PING" : "SUBSCRIBE", "cmd-arg");
+      ret.push(cmd_with_response ? "PING" : "SUBSCRIBE", "cmd-arg");
 
+      return ret;
+   }
+
+   explicit test_item(request request_value)
+   : req{std::move(request_value)}
+   {
       elem_ptr = std::make_shared<multiplexer::elem>(req, any_adapter{resp});
 
       elem_ptr->set_done_callback([this]() {
          done = true;
       });
    }
+
+   test_item(bool cmd_with_response = true)
+   : test_item(make_request(cmd_with_response))
+   { }
 };
 
 void test_request_needs_more()
@@ -737,10 +749,70 @@ void test_cancel_written()
       std::end(expected));
 }
 
-//   cancel written
-//   cancel written, some commands responded, some not
-//   cancel written, a command is half-parsed
+// Having a written request for which part of its response
+// has been received doesn't cause trouble
+void test_cancel_written_half_parsed_response()
+{
+   // Setup
+   request req;
+   req.push("PING", "value1");
+   req.push("PING", "value2");
+   req.push("PING", "value3");
+   multiplexer mpx;
+   auto item1 = std::make_unique<test_item>(std::move(req));
+   auto item2 = std::make_unique<test_item>();
+   mpx.add(item1->elem_ptr);
+   mpx.add(item2->elem_ptr);
+
+   // A write succeeds
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+
+   // Get the response for the 1st command in req1
+   error_code ec;
+   auto res = mpx.consume_next("+Goodbye\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST_NOT(item1->done);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Get a partial response for the 2nd command in req1
+   res = mpx.consume_next("*2\r\n$4\r\nsome\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::needs_more);
+   BOOST_TEST_NOT(item1->done);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Cancel the first request
+   mpx.cancel(item1->elem_ptr);
+   item1.reset();  // Verify we don't reference this item anyhow
+
+   // Get the rest of the response for the 2nd command in req1
+   res = mpx.consume_next("*2\r\n$4\r\nsome\r\n$4\r\ndata\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST_NOT(item2->done);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Get the response for the 3rd command in req1
+   res = mpx.consume_next("+last\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST_NOT(item2->done);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Get the response for the 2nd request
+   res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST(item2->done);
+   const node expected[] = {
+      {type::blob_string, 1u, 0u, "Hello world"},
+   };
+   BOOST_TEST_ALL_EQ(
+      item2->resp->begin(),
+      item2->resp->end(),
+      std::begin(expected),
+      std::end(expected));
+}
+
 //   cancel_on_connection_lost cleans up cancelled requests
+//   error/NULL received
 
 }  // namespace
 
@@ -763,6 +835,7 @@ int main()
    test_cancel_staged();
    test_cancel_staged_command_without_response();
    test_cancel_written();
+   test_cancel_written_half_parsed_response();
 
    return boost::report_errors();
 }
