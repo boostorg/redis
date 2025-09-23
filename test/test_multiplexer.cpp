@@ -613,6 +613,7 @@ void test_cancel_waiting()
    error_code ec;
    auto res = mpx.consume_next("$11\r\nHello world\r\n", ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST(item2->done);
    const node expected[] = {
       {type::blob_string, 1u, 0u, "Hello world"},
    };
@@ -623,8 +624,46 @@ void test_cancel_waiting()
       std::end(expected));
 }
 
-//   cancel waiting
-//   cancel staged
+// If the request is staged, we mark it as abandoned
+void test_cancel_staged()
+{
+   // Setup
+   multiplexer mpx;
+   auto item1 = std::make_unique<test_item>();
+   auto item2 = std::make_unique<test_item>();
+   mpx.add(item1->elem_ptr);
+   mpx.add(item2->elem_ptr);
+
+   // A write starts
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+
+   // Cancel the first request
+   mpx.cancel(item1->elem_ptr);
+   item1.reset();  // Verify we don't reference this item anyhow
+
+   // The write gets confirmed
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+
+   // The cancelled request's response arrives. It gets discarded
+   error_code ec;
+   auto res = mpx.consume_next("+Goodbye\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST_NOT(item2->done);
+
+   // The 2nd request's response arrives. It gets parsed successfully
+   res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   BOOST_TEST(item2->done);
+   const node expected[] = {
+      {type::blob_string, 1u, 0u, "Hello world"},
+   };
+   BOOST_TEST_ALL_EQ(
+      item2->resp->begin(),
+      item2->resp->end(),
+      std::begin(expected),
+      std::end(expected));
+}
+
 //   cancel staged, no response expected
 //   cancel written
 //   cancel written, some commands responded, some not
@@ -649,6 +688,7 @@ int main()
    test_reset();
 
    test_cancel_waiting();
+   test_cancel_staged();
 
    return boost::report_errors();
 }
