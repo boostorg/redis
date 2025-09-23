@@ -12,10 +12,10 @@
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/response.hpp>
 
+#include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
 
 #include <iostream>
-#include <iterator>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -91,6 +91,22 @@ struct test_item {
    { }
 };
 
+void check_response(
+   const generic_response& actual,
+   boost::span<const node> expected,
+   boost::source_location loc = BOOST_CURRENT_LOCATION)
+{
+   if (!BOOST_TEST(actual.has_value())) {
+      std::cerr << "Response has error: " << actual.error().diagnostic << "\n"
+                << "Called from " << loc << std::endl;
+      return;
+   }
+
+   if (!BOOST_TEST_ALL_EQ(actual->begin(), actual->end(), expected.begin(), expected.end())) {
+      std::cerr << "Called from " << loc << std::endl;
+   }
+}
+
 void test_request_needs_more()
 {
    // Setup
@@ -112,16 +128,10 @@ void test_request_needs_more()
    // Parse the rest of it
    ret = mpx.consume_next("$11\r\nhello world\r\n", ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
-   BOOST_TEST(item1.resp.has_value());
-
    const node expected[] = {
       {type::blob_string, 1u, 0u, "hello world"},
    };
-   BOOST_TEST_ALL_EQ(
-      item1.resp->begin(),
-      item1.resp->end(),
-      std::begin(expected),
-      std::end(expected));
+   check_response(item1.resp, expected);
 }
 
 void test_several_requests()
@@ -251,14 +261,12 @@ void test_push()
    // Check
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
-   BOOST_TEST(resp.has_value());
-
    const node expected[] = {
       {type::push,          2u, 0u, ""   },
       {type::simple_string, 1u, 1u, "one"},
       {type::simple_string, 1u, 1u, "two"},
    };
-   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
+   check_response(resp, expected);
 }
 
 void test_push_needs_more()
@@ -284,14 +292,12 @@ void test_push_needs_more()
 
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
-   BOOST_TEST(resp.has_value());
-
    const node expected[] = {
       {type::push,          2u, 0u, ""   },
       {type::simple_string, 1u, 1u, "one"},
       {type::simple_string, 1u, 1u, "two"},
    };
-   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
+   check_response(resp, expected);
 }
 
 // If a response is received and no request is waiting, it is interpreted
@@ -310,12 +316,10 @@ void test_push_heuristics_no_request()
    // Check
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 14u);
-   BOOST_TEST(resp.has_value());
-
    const node expected[] = {
       {type::simple_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
+   check_response(resp, expected);
 }
 
 // Same, but there's another request that hasn't been written yet.
@@ -338,12 +342,10 @@ void test_push_heuristics_request_waiting()
    // Check
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 14u);
-   BOOST_TEST(resp.has_value());
-
    const node expected[] = {
       {type::simple_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), std::begin(expected), std::end(expected));
+   check_response(resp, expected);
 }
 
 // If a response is received and the first request doesn't expect a response,
@@ -397,13 +399,12 @@ void test_mix_responses_pushes()
    auto ret = mpx.consume_next(push1_buffer, ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
-   BOOST_TEST(push_resp.has_value());
    std::vector<node> expected{
       {type::push,          2u, 0u, ""   },
       {type::simple_string, 1u, 1u, "one"},
       {type::simple_string, 1u, 1u, "two"},
    };
-   BOOST_TEST_ALL_EQ(push_resp->begin(), push_resp->end(), expected.begin(), expected.end());
+   check_response(push_resp, expected);
    BOOST_TEST_NOT(item1.done);
    BOOST_TEST_NOT(item2.done);
 
@@ -412,11 +413,10 @@ void test_mix_responses_pushes()
    ret = mpx.consume_next(response1_buffer, ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST_EQ(ret.second, 18u);
-   BOOST_TEST(item1.resp.has_value());
    expected = {
       {type::blob_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(item1.resp->begin(), item1.resp->end(), expected.begin(), expected.end());
+   check_response(item1.resp, expected);
    BOOST_TEST(item1.done);
    BOOST_TEST_NOT(item2.done);
 
@@ -425,7 +425,6 @@ void test_mix_responses_pushes()
    ret = mpx.consume_next(push2_buffer, ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 19u);
-   BOOST_TEST(push_resp.has_value());
    expected = {
       {type::push,          2u, 0u, ""     },
       {type::simple_string, 1u, 1u, "one"  },
@@ -434,7 +433,7 @@ void test_mix_responses_pushes()
       {type::simple_string, 1u, 1u, "other"},
       {type::simple_string, 1u, 1u, "push" },
    };
-   BOOST_TEST_ALL_EQ(push_resp->begin(), push_resp->end(), expected.begin(), expected.end());
+   check_response(push_resp, expected);
    BOOST_TEST(item1.done);
    BOOST_TEST_NOT(item2.done);
 
@@ -443,11 +442,10 @@ void test_mix_responses_pushes()
    ret = mpx.consume_next(response2_buffer, ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST_EQ(ret.second, 14u);
-   BOOST_TEST(item2.resp.has_value());
    expected = {
       {type::blob_string, 1u, 0u, "Response"},
    };
-   BOOST_TEST_ALL_EQ(item2.resp->begin(), item2.resp->end(), expected.begin(), expected.end());
+   check_response(item2.resp, expected);
    BOOST_TEST(item1.done);
    BOOST_TEST(item2.done);
 
@@ -486,11 +484,7 @@ void test_cancel_waiting()
    const node expected[] = {
       {type::blob_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(
-      item2->resp->begin(),
-      item2->resp->end(),
-      std::begin(expected),
-      std::end(expected));
+   check_response(item2->resp, expected);
 }
 
 // If the request is staged, we mark it as abandoned
@@ -526,11 +520,7 @@ void test_cancel_staged()
    const node expected[] = {
       {type::blob_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(
-      item2->resp->begin(),
-      item2->resp->end(),
-      std::begin(expected),
-      std::end(expected));
+   check_response(item2->resp, expected);
 }
 
 // If the request is staged but didn't expect a response, we remove it
@@ -561,11 +551,7 @@ void test_cancel_staged_command_without_response()
    const node expected[] = {
       {type::blob_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(
-      item2->resp->begin(),
-      item2->resp->end(),
-      std::begin(expected),
-      std::end(expected));
+   check_response(item2->resp, expected);
 }
 
 // If the request is written, we mark it as abandoned
@@ -599,11 +585,7 @@ void test_cancel_written()
    const node expected[] = {
       {type::blob_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(
-      item2->resp->begin(),
-      item2->resp->end(),
-      std::begin(expected),
-      std::end(expected));
+   check_response(item2->resp, expected);
 }
 
 // Having a written request for which part of its response
@@ -661,11 +643,7 @@ void test_cancel_written_half_parsed_response()
    const node expected[] = {
       {type::blob_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(
-      item2->resp->begin(),
-      item2->resp->end(),
-      std::begin(expected),
-      std::end(expected));
+   check_response(item2->resp, expected);
 }
 
 // If an abandoned request receives a NULL or an error, nothing happens
@@ -716,11 +694,7 @@ void test_cancel_written_null_error()
    const node expected[] = {
       {type::blob_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(
-      item2->resp->begin(),
-      item2->resp->end(),
-      std::begin(expected),
-      std::end(expected));
+   check_response(item2->resp, expected);
 }
 
 // Cancellation on connection lost
@@ -858,17 +832,12 @@ void test_cancel_on_connection_lost_abandoned()
 //    BOOST_TEST_EQ(ec, error_code());
 
 //    // Check the response
-//    BOOST_TEST(item.resp.has_value());
 //    const node expected[] = {
 //       {type::array,         2u, 0u, ""     },
 //       {type::simple_string, 1u, 1u, "hello"},
 //       {type::simple_string, 1u, 1u, "world"},
 //    };
-//    BOOST_TEST_ALL_EQ(
-//       item.resp->begin(),
-//       item.resp->end(),
-//       std::begin(expected),
-//       std::end(expected));
+//    check_response(item.resp, expected);
 // }
 
 // Resetting works
@@ -905,15 +874,10 @@ void test_reset()
    ret = mpx.consume_next(response_buffer, ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST_EQ(ret.second, response_buffer.size());
-   BOOST_TEST(item2.resp.has_value());
    const node expected[] = {
       {type::blob_string, 1u, 0u, "Hello world"},
    };
-   BOOST_TEST_ALL_EQ(
-      item2.resp->begin(),
-      item2.resp->end(),
-      std::begin(expected),
-      std::end(expected));
+   check_response(item2.resp, expected);
    BOOST_TEST(item2.done);
 }
 
