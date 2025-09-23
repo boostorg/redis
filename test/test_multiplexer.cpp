@@ -592,6 +592,45 @@ void test_reset()
    BOOST_TEST(item2.done);
 }
 
+// Cancellation cases
+// If the request is waiting, we just remove it
+void test_cancel_waiting()
+{
+   // Setup
+   multiplexer mpx;
+   auto item1 = std::make_unique<test_item>();
+   auto item2 = std::make_unique<test_item>();
+   mpx.add(item1->elem_ptr);
+   mpx.add(item2->elem_ptr);
+
+   // Cancel the first request
+   mpx.cancel(item1->elem_ptr);
+   item1.reset();  // Verify we don't reference this item anyhow
+
+   // We can progress the other request normally
+   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
+   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   error_code ec;
+   auto res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   BOOST_TEST_EQ(res.first, consume_result::got_response);
+   const node expected[] = {
+      {type::blob_string, 1u, 0u, "Hello world"},
+   };
+   BOOST_TEST_ALL_EQ(
+      item2->resp->begin(),
+      item2->resp->end(),
+      std::begin(expected),
+      std::end(expected));
+}
+
+//   cancel waiting
+//   cancel staged
+//   cancel staged, no response expected
+//   cancel written
+//   cancel written, some commands responded, some not
+//   cancel written, a command is half-parsed
+//   cancel_on_connection_lost cleans up cancelled requests
+
 }  // namespace
 
 int main()
@@ -608,6 +647,8 @@ int main()
    test_cancel_on_connection_lost();
    // test_cancel_on_connection_lost_half_parsed_response();
    test_reset();
+
+   test_cancel_waiting();
 
    return boost::report_errors();
 }
