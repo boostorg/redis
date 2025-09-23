@@ -285,38 +285,47 @@ void test_cancel_waiting()
 // cancellation is requested, we mark the request as abandoned
 void test_cancel_notwaiting_terminal_partial()
 {
-   // TODO: test partial
-   // Setup
-   multiplexer mpx;
-   auto input = std::make_unique<elem_and_request>();
-   exec_fsm fsm(mpx, std::move(input->elm));
+   constexpr struct {
+      const char* name;
+      asio::cancellation_type_t type;
+   } test_cases[] = {
+      {"terminal", asio::cancellation_type_t::terminal},
+      {"partial",  asio::cancellation_type_t::partial },
+   };
 
-   // Initiate
-   auto act = fsm.resume(false, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::notify_writer);
+   for (const auto& tc : test_cases) {
+      // Setup
+      multiplexer mpx;
+      auto input = std::make_unique<elem_and_request>();
+      exec_fsm fsm(mpx, std::move(input->elm));
 
-   act = fsm.resume(true, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
+      // Initiate
+      auto act = fsm.resume(false, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::setup_cancellation, tc.name);
+      act = fsm.resume(true, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::notify_writer, tc.name);
 
-   // The multiplexer starts writing the request
-   BOOST_TEST_EQ(mpx.prepare_write(), 1u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+      act = fsm.resume(true, cancellation_type_t::none);
+      BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
 
-   // A cancellation arrives
-   act = fsm.resume(true, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted));
-   input.reset();  // Verify we don't access the request or response after completion
+      // The multiplexer starts writing the request
+      BOOST_TEST_EQ_MSG(mpx.prepare_write(), 1u, tc.name);
+      BOOST_TEST_EQ_MSG(mpx.commit_write(), 0u, tc.name);
 
-   // When the response to this request arrives, it gets ignored
-   error_code ec;
-   auto res = mpx.consume_next("-ERR wrong command\r\n", ec);
-   BOOST_TEST_EQ(ec, error_code());
-   BOOST_TEST_EQ(res.first, consume_result::got_response);
+      // A cancellation arrives
+      act = fsm.resume(true, tc.type);
+      BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted));
+      input.reset();  // Verify we don't access the request or response after completion
 
-   // The multiplexer::elem object needs to survive here to mark the
-   // request as abandoned
+      // When the response to this request arrives, it gets ignored
+      error_code ec;
+      auto res = mpx.consume_next("-ERR wrong command\r\n", ec);
+      BOOST_TEST_EQ_MSG(ec, error_code(), tc.name);
+      BOOST_TEST_EQ_MSG(res.first, consume_result::got_response, tc.name);
+
+      // The multiplexer::elem object needs to survive here to mark the
+      // request as abandoned
+   }
 }
 
 // If the request is being processed and total cancellation is requested, we ignore the cancellation
