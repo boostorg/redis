@@ -39,7 +39,7 @@ auto multiplexer::elem::commit_response(std::size_t read_size) -> void
    --remaining_responses_;
 }
 
-void multiplexer::elem::mark_as_abandoned()
+void multiplexer::elem::mark_abandoned()
 {
    req_ = nullptr;
    adapter_ = any_adapter();  // A default-constructed any_adapter ignores all nodes
@@ -54,7 +54,7 @@ void multiplexer::cancel(std::shared_ptr<elem> const& ptr)
    } else {
       // Removing the request would cause trouble when the response arrived.
       // Mark it as abandoned, so the response is discarded when it arrives
-      ptr->mark_as_abandoned();
+      ptr->mark_abandoned();
    }
 }
 

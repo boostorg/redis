@@ -97,7 +97,7 @@ public:
 
       // Marks the element as an abandoned request. An abandoned request
       // won't cause problems when its response arrives, but that response will be ignored.
-      void mark_as_abandoned();
+      void mark_abandoned();
 
       [[nodiscard]]
       bool is_abandoned() const

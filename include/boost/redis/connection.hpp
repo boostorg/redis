@@ -790,7 +790,8 @@ public:
     *       cancellation will cause `async_exec` to complete immediately. When the response
     *       arrives from the server, it will be ignored. In this situation, only
     *       `asio::cancellation_type_t::terminal` and `asio::cancellation_type_t::partial`
-    *       are supported.
+    *       are supported. Cancellation requests specifying `asio::cancellation_type_t::total`
+    *       only will be ignored.
     *
     * In any case, connections can be safely used after cancelling `async_exec` operations.
     *
@@ -842,7 +843,8 @@ public:
     *       cancellation will cause `async_exec` to complete immediately. When the response
     *       arrives from the server, it will be ignored. In this situation, only
     *       `asio::cancellation_type_t::terminal` and `asio::cancellation_type_t::partial`
-    *       are supported.
+    *       are supported. Cancellation requests specifying `asio::cancellation_type_t::total`
+    *       only will be ignored.
     *
     * In any case, connections can be safely used after cancelling `async_exec` operations.
     *
