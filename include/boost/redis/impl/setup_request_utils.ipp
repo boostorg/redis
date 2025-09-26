@@ -79,7 +79,7 @@ system::error_code check_ping_response(system::error_code io_ec, const generic_r
    // TODO: we should probably introduce a better error code/logging
    // for PONG errors. We defer this until
    // https://github.com/boostorg/redis/issues/104
-   if (resp.has_error() || resp->empty())
+   if (resp.has_error())
       return error::pong_timeout;
 
    return system::error_code();
