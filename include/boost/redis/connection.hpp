@@ -344,6 +344,8 @@ public:
             }
 
             // Check for errors in PING
+            // TODO: transforming operation_aborted into pong_timeout
+            // is unreliable until we migrate everything to use per-operation cancellation.
             ec = check_ping_response(ec, conn_->ping_resp_);
             if (ec) {
                conn_->logger_.log(
