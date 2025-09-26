@@ -28,12 +28,17 @@
 
 #include <boost/asio/any_completion_handler.hpp>
 #include <boost/asio/any_io_executor.hpp>
+#include <boost/asio/associated_cancellation_slot.hpp>
 #include <boost/asio/basic_stream_socket.hpp>
+#include <boost/asio/bind_cancellation_slot.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/cancel_after.hpp>
+#include <boost/asio/cancellation_signal.hpp>
+#include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/deferred.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/immediate.hpp>
@@ -87,6 +92,7 @@ struct connection_impl {
    connection_logger logger_;
    read_buffer read_buffer_;
    generic_response setup_resp_;
+   asio::cancellation_signal run_signal_;
 
    using executor_type = Executor;
 
@@ -386,6 +392,7 @@ public:
       system::error_code ec3,
       system::error_code)
    {
+      // TODO: check
       system::error_code final_ec;
 
       if (order[0] == 0 && !!ec0) {
@@ -402,7 +409,6 @@ public:
       (*this)(self, final_ec);
    }
 
-   // TODO: this op doesn't handle per-operation cancellation correctly
    template <class Self>
    void operator()(Self& self, system::error_code ec = {})
    {
@@ -425,6 +431,12 @@ public:
             // Try to connect
             BOOST_ASIO_CORO_YIELD
             conn_->stream_.async_connect(&conn_->cfg_, &conn_->logger_, std::move(self));
+
+            // Check for cancellations
+            if (is_cancelled(self)) {
+               self.complete(asio::error::operation_aborted);
+               return;
+            }
 
             // If we were successful, run all the connection tasks
             if (!ec) {
@@ -468,6 +480,12 @@ public:
                conn_->cancel(operation::receive);
             }
 
+            // Check for cancellations
+            if (is_cancelled(self)) {
+               self.complete(asio::error::operation_aborted);
+               return;
+            }
+
             // If we are not going to try again, we're done
             if (!conn_->will_reconnect()) {
                self.complete(ec);
@@ -479,9 +497,9 @@ public:
             BOOST_ASIO_CORO_YIELD
             conn_->reconnect_timer_.async_wait(std::move(self));
 
-            // If the timer was cancelled, exit
-            if (ec) {
-               self.complete(ec);
+            // Check for cancellations
+            if (is_cancelled(self)) {
+               self.complete(asio::error::operation_aborted);
                return;
             }
 
@@ -496,6 +514,17 @@ public:
 };
 
 logger make_stderr_logger(logger::level lvl, std::string prefix);
+
+class run_cancel_handler {
+   asio::cancellation_signal* sig_;
+
+public:
+   explicit run_cancel_handler(asio::cancellation_signal& sig) noexcept
+   : sig_(&sig)
+   { }
+
+   void operator()(asio::cancellation_type_t cancel_type) const { sig_->emit(cancel_type); }
+};
 
 }  // namespace detail
 
@@ -644,9 +673,21 @@ public:
       impl_->health_checker_.set_config(cfg);
       impl_->read_buffer_.set_config({cfg.read_buffer_append_size, cfg.max_read_size});
 
+      // If the token's slot has cancellation enabled, it should just emit
+      // the cancellation signal in our connection. This lets us unify the cancel()
+      // function and per-operation cancellation
+      auto slot = asio::get_associated_cancellation_slot(token);
+      if (slot.is_connected()) {
+         slot.template emplace<detail::run_cancel_handler>(impl_->run_signal_);
+      }
+
+      // Overwrite the token's cancellation slot: the composed operation
+      // should use the signal's slot so we can generate cancellations in cancel()
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          detail::run_op<Executor>{impl_.get()},
-         token,
+         asio::bind_cancellation_slot(
+            impl_->run_signal_.slot(),
+            std::forward<CompletionToken>(token)),
          impl_->writer_timer_);
    }
 
