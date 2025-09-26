@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/ignore.hpp>
 #include <boost/redis/request.hpp>
 
 #include <boost/asio/error.hpp>
@@ -38,14 +39,23 @@ auto multiplexer::elem::commit_response(std::size_t read_size) -> void
    --remaining_responses_;
 }
 
-bool multiplexer::remove(std::shared_ptr<elem> const& ptr)
+void multiplexer::elem::mark_abandoned()
+{
+   req_ = nullptr;
+   adapter_ = any_adapter();  // A default-constructed any_adapter ignores all nodes
+   set_done_callback([] { });
+}
+
+void multiplexer::cancel(std::shared_ptr<elem> const& ptr)
 {
    if (ptr->is_waiting()) {
+      // We can safely remove it from the queue, since it hasn't been sent yet
       reqs_.erase(std::remove(std::begin(reqs_), std::end(reqs_), ptr));
-      return true;
+   } else {
+      // Removing the request would cause trouble when the response arrived.
+      // Mark it as abandoned, so the response is discarded when it arrives
+      ptr->mark_abandoned();
    }
-
-   return false;
 }
 
 std::size_t multiplexer::commit_write()
@@ -70,6 +80,8 @@ std::size_t multiplexer::commit_write()
 
 void multiplexer::add(std::shared_ptr<elem> const& info)
 {
+   BOOST_ASSERT(!info->is_abandoned());
+
    reqs_.push_back(info);
 
    if (request_access::has_priority(info->get_request())) {
@@ -171,8 +183,9 @@ std::size_t multiplexer::prepare_write()
          return !ri->is_waiting();
       });
 
-   std::for_each(point, std::cend(reqs_), [this](auto const& ri) {
+   std::for_each(point, std::cend(reqs_), [this](const std::shared_ptr<elem>& ri) {
       // Stage the request.
+      BOOST_ASSERT(!ri->is_abandoned());
       write_buffer_ += ri->get_request().payload();
       ri->mark_staged();
       usage_.commands_sent += ri->get_request().get_commands();
@@ -211,8 +224,13 @@ void multiplexer::cancel_on_conn_lost()
    cancel_run_called_ = true;
 
    // Must return false if the request should be removed.
-   auto cond = [](auto const& ptr) {
+   auto cond = [](const std::shared_ptr<elem>& ptr) {
       BOOST_ASSERT(ptr != nullptr);
+
+      // Abandoned requests only make sense because a response for them might arrive.
+      // They should be discarded after the connection is lost
+      if (ptr->is_abandoned())
+         return false;
 
       if (ptr->is_waiting()) {
          return !ptr->get_request().get_config().cancel_on_connection_lost;
@@ -284,9 +302,12 @@ bool multiplexer::is_next_push(std::string_view data) const noexcept
 
 std::size_t multiplexer::release_push_requests()
 {
-   auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
-      return !(ptr->is_written() && ptr->get_request().get_expected_responses() == 0);
-   });
+   auto point = std::stable_partition(
+      std::begin(reqs_),
+      std::end(reqs_),
+      [](const std::shared_ptr<elem>& ptr) {
+         return !(ptr->is_written() && ptr->get_remaining_responses() == 0u);
+      });
 
    std::for_each(point, std::end(reqs_), [](auto const& ptr) {
       ptr->notify_done();
