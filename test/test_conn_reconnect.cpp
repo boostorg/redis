@@ -44,6 +44,7 @@ net::awaitable<void> test_reconnect_impl()
    request regular_req;
    regular_req.push("PING", "SomeValue");
    regular_req.get_config().cancel_on_connection_lost = false;
+   regular_req.get_config().cancel_if_unresponded = false;
 
    auto conn = std::make_shared<connection>(ex);
    auto cfg = make_test_config();

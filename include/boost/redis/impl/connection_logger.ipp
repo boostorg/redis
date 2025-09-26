@@ -42,7 +42,6 @@ auto to_string(exec_action_type t) noexcept -> char const*
       BOOST_REDIS_EXEC_SWITCH_CASE(done);
       BOOST_REDIS_EXEC_SWITCH_CASE(notify_writer);
       BOOST_REDIS_EXEC_SWITCH_CASE(wait_for_response);
-      BOOST_REDIS_EXEC_SWITCH_CASE(cancel_run);
       default: return "exec_action_type::<invalid type>";
    }
 }

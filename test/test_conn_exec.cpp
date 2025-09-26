@@ -122,25 +122,6 @@ BOOST_AUTO_TEST_CASE(wrong_response_data_type)
    BOOST_TEST(finished);
 }
 
-BOOST_AUTO_TEST_CASE(cancel_request_if_not_connected)
-{
-   request req;
-   req.get_config().cancel_if_not_connected = true;
-   req.push("PING");
-
-   net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
-   bool finished = false;
-   conn->async_exec(req, ignore, [conn, &finished](error_code ec, std::size_t) {
-      BOOST_TEST(ec, boost::redis::error::not_connected);
-      conn->cancel();
-      finished = true;
-   });
-
-   ioc.run_for(test_timeout);
-   BOOST_TEST(finished);
-}
-
 BOOST_AUTO_TEST_CASE(large_number_of_concurrent_requests_issue_170)
 {
    // See https://github.com/boostorg/redis/issues/170
