@@ -15,7 +15,6 @@
 #include <boost/redis/impl/reader_fsm.ipp>
 #include <boost/redis/impl/request.ipp>
 #include <boost/redis/impl/setup_request_utils.ipp>
-#include <boost/redis/impl/ping_request_utils.ipp>
 #include <boost/redis/impl/response.ipp>
 #include <boost/redis/resp3/impl/parser.ipp>
 #include <boost/redis/resp3/impl/serialization.ipp>

@@ -14,7 +14,6 @@
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/detail/ping_request_utils.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/resp3_type_to_error.hpp>
