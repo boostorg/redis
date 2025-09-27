@@ -228,31 +228,28 @@ struct writer_op {
 
             if (ec) {
                conn_->logger_.trace("writer_op (1)", ec);
-               conn_->cancel(operation::run);
                self.complete(ec);
                return;
             }
 
             conn_->mpx_.commit_write();
 
-            // A socket.close() may have been called while a
-            // successful write might had already been queued, so we
-            // have to check here before proceeding.
-            if (!conn_->is_open()) {
-               conn_->logger_.trace("writer_op (2): connection is closed.");
-               self.complete({});
+            // Check for cancellations
+            if (is_cancelled(self)) {
+               conn_->logger_.trace("writer_op (2): cancelled");
+               self.complete(asio::error::operation_aborted);
                return;
             }
          }
 
+         // Wait for data to be available
          BOOST_ASIO_CORO_YIELD
          conn_->writer_timer_.async_wait(std::move(self));
-         if (!conn_->is_open()) {
-            conn_->logger_.trace("writer_op (3): connection is closed.");
-            // Notice this is not an error of the op, stoping was
-            // requested from the outside, so we complete with
-            // success.
-            self.complete({});
+
+         // Check for cancellations
+         if (is_cancelled(self)) {
+            conn_->logger_.trace("writer_op (3): cancelled");
+            self.complete(asio::error::operation_aborted);
             return;
          }
       }
