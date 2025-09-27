@@ -400,6 +400,12 @@ public:
    }
 };
 
+inline void compose_ping_request(const config& cfg, request& to)
+{
+   to.clear();
+   to.push("PING", cfg.health_check_id);
+}
+
 inline system::error_code check_config(const config& cfg)
 {
    if (!cfg.unix_socket.empty()) {
