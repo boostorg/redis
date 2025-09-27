@@ -305,6 +305,41 @@ struct health_checker_op {
    connection_impl<Executor>* conn_;
    asio::coroutine coro_{};
 
+   system::error_code check_errors(system::error_code io_ec)
+   {
+      // Did we have a timeout?
+      if (io_ec == asio::error::operation_aborted) {
+         conn_->logger_.log(logger::level::info, "Health checker: ping timed out");
+         return asio::error::operation_aborted;
+      }
+
+      // Did we have other unknown error?
+      if (io_ec) {
+         conn_->logger_.log(logger::level::info, "Health checker: ping error", io_ec);
+         return io_ec;
+      }
+
+      // Did the server answer with an error?
+      if (conn_->ping_resp_.has_error()) {
+         auto error = conn_->ping_resp_.error();
+         conn_->logger_.log(
+            logger::level::info,
+            "Health checker: server answered ping with an error",
+            error.diagnostic);
+
+         // TODO: de-duplicate this
+         switch (error.data_type) {
+            case resp3::type::simple_error: return error::resp3_simple_error;
+            case resp3::type::blob_error:   return error::resp3_blob_error;
+            case resp3::type::null:         return error::resp3_null;
+            default:                        BOOST_ASSERT_MSG(false, "Unexpected data type."); return system::error_code();
+         }
+      }
+
+      // No error
+      return system::error_code();
+   }
+
 public:
    health_checker_op(connection_impl<Executor>& conn) noexcept
    : conn_{&conn}
@@ -345,15 +380,8 @@ public:
             }
 
             // Check for errors in PING
-            // TODO: transforming operation_aborted into pong_timeout
-            // is unreliable until we migrate everything to use per-operation cancellation.
-            ec = check_ping_response(ec, conn_->ping_resp_);
+            ec = check_errors(ec);
             if (ec) {
-               conn_->logger_.log(
-                  logger::level::info,
-                  "Health checker: ping timed out or errored",
-                  ec);
-               conn_->cancel(operation::run);
                self.complete(ec);
                return;
             }
