@@ -473,7 +473,7 @@ public:
       system::error_code setup_ec,
       system::error_code health_check_ec,
       system::error_code reader_ec,
-      system::error_code)
+      system::error_code /* writer_ec */)
    {
       system::error_code final_ec;
 
