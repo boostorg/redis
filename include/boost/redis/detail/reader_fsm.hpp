@@ -26,7 +26,6 @@ public:
          append_some,
          needs_more,
          notify_push_receiver,
-         cancel_run,
          done,
       };
 
@@ -45,7 +44,6 @@ public:
 private:
    int resume_point_{0};
    read_buffer* read_buffer_ = nullptr;
-   action action_after_resume_;
    action::type next_read_type_ = action::type::append_some;
    multiplexer* mpx_ = nullptr;
    std::pair<consume_result, std::size_t> res_{consume_result::needs_more, 0u};
