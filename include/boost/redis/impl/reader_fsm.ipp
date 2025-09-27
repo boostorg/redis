@@ -9,7 +9,16 @@
 #include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 
+#include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/error.hpp>
+
 namespace boost::redis::detail {
+
+// TODO: this is duplicated
+inline bool is_terminal_cancellation(asio::cancellation_type_t value)
+{
+   return (value & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none;
+}
 
 reader_fsm::reader_fsm(read_buffer& rbuf, multiplexer& mpx) noexcept
 : read_buffer_{&rbuf}
@@ -47,6 +56,11 @@ reader_fsm::action reader_fsm::resume(
             return {action::type::done, bytes_read, ec};
          }
 
+         // Check for cancellations
+         if (is_terminal_cancellation(cancel_state)) {
+            return {action::type::done, 0u, asio::error::operation_aborted};
+         }
+
          next_read_type_ = action::type::append_some;
 
          // Process the data that we've read
@@ -69,6 +83,9 @@ reader_fsm::action reader_fsm::resume(
                BOOST_REDIS_YIELD(resume_point_, 6, action::type::notify_push_receiver, res_.second)
                if (ec) {
                   return {action::type::done, 0u, ec};
+               }
+               if (is_terminal_cancellation(cancel_state)) {
+                  return {action::type::done, 0u, asio::error::operation_aborted};
                }
             } else {
                // TODO: Here we should notify the exec operation that
