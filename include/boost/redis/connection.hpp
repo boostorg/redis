@@ -17,6 +17,7 @@
 #include <boost/redis/detail/ping_request_utils.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
+#include <boost/redis/detail/resp3_type_to_error.hpp>
 #include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
@@ -326,14 +327,7 @@ struct health_checker_op {
             logger::level::info,
             "Health checker: server answered ping with an error",
             error.diagnostic);
-
-         // TODO: de-duplicate this
-         switch (error.data_type) {
-            case resp3::type::simple_error: return error::resp3_simple_error;
-            case resp3::type::blob_error:   return error::resp3_blob_error;
-            case resp3::type::null:         return error::resp3_null;
-            default:                        BOOST_ASSERT_MSG(false, "Unexpected data type."); return system::error_code();
-         }
+         return resp3_type_to_error(error.data_type);
       }
 
       // No error
