@@ -424,7 +424,7 @@ public:
          for (;;) {
             // Try to connect
             BOOST_ASIO_CORO_YIELD
-            conn_->stream_.async_connect(&conn_->cfg_, &conn_->logger_, std::move(self));
+            conn_->stream_.async_connect(conn_->cfg_, conn_->logger_, std::move(self));
 
             // If we were successful, run all the connection tasks
             if (!ec) {

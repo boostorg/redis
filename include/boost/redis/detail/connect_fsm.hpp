@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef BOOST_REDIS_EXEC_FSM_HPP
-#define BOOST_REDIS_EXEC_FSM_HPP
+#ifndef BOOST_REDIS_CONNECT_FSM_HPP
+#define BOOST_REDIS_CONNECT_FSM_HPP
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_logger.hpp>
@@ -41,8 +41,6 @@ enum class transport_type
 struct redis_stream_state {
    transport_type type{transport_type::tcp};
    bool ssl_stream_used{false};
-   const config* cfg{nullptr};
-   connection_logger* lgr{nullptr};
 };
 
 // What should we do next?
@@ -90,14 +88,21 @@ inline transport_type transport_from_config(const config& cfg)
 
 class connect_fsm {
    int resume_point_{0};
+   const config* cfg_{nullptr};
+   connection_logger* lgr_{nullptr};
 
 public:
-   connect_fsm() = default;
+   connect_fsm(const config& cfg, connection_logger& lgr) noexcept
+   : cfg_(&cfg)
+   , lgr_(&lgr)
+   { }
+
+   const config& get_config() const { return *cfg_; }
 
    connect_action resume(
-      redis_stream_state& st,
       system::error_code ec,
       const asio::ip::tcp::resolver::results_type& resolver_results,
+      redis_stream_state& st,
       asio::cancellation_type_t cancel_state)
    {
       // Translate error codes
@@ -112,16 +117,16 @@ public:
       }
 
       // Log it
-      st.lgr->on_resolve(ec, resolver_results);
+      lgr_->on_resolve(ec, resolver_results);
 
       // Delegate to the regular resume function
-      return resume(st, ec, cancel_state);
+      return resume(ec, st, cancel_state);
    }
 
    connect_action resume(
-      redis_stream_state& st,
       system::error_code ec,
       const asio::ip::tcp::endpoint& selected_endpoint,
+      redis_stream_state& st,
       asio::cancellation_type_t cancel_state)
    {
       // Translate error codes
@@ -136,22 +141,22 @@ public:
       }
 
       // Log it
-      st.lgr->on_connect(ec, selected_endpoint);
+      lgr_->on_connect(ec, selected_endpoint);
 
       // Delegate to the regular resume function
-      return resume(st, ec, cancel_state);
+      return resume(ec, st, cancel_state);
    }
 
    connect_action resume(
-      redis_stream_state& st,
       system::error_code ec,
+      redis_stream_state& st,
       asio::cancellation_type_t cancel_state)
    {
       switch (resume_point_) {
          BOOST_REDIS_CORO_INITIAL
 
          // Record the transport that we will be using
-         st.type = transport_from_config(*st.cfg);
+         st.type = transport_from_config(*cfg_);
 
          if (st.type == transport_type::unix_socket) {
             // Directly connect to the socket
@@ -172,7 +177,7 @@ public:
             }
 
             // Log it
-            st.lgr->on_connect(ec, st.cfg->unix_socket);
+            lgr_->on_connect(ec, cfg_->unix_socket);
 
             // If this failed, we can't continue
             if (ec) {
@@ -185,7 +190,7 @@ public:
             // ssl::stream doesn't support being re-used. If we're to use
             // TLS and the stream has been used, re-create it.
             // Must be done before anything else is done on the stream
-            if (st.cfg->use_ssl && st.ssl_stream_used) {
+            if (cfg_->use_ssl && st.ssl_stream_used) {
                BOOST_REDIS_YIELD(resume_point_, 2, connect_action_type::ssl_stream_reset)
             }
 
@@ -207,7 +212,7 @@ public:
                return ec;
             }
 
-            if (st.cfg->use_ssl) {
+            if (cfg_->use_ssl) {
                // Mark the SSL stream as used
                st.ssl_stream_used = true;
 
@@ -226,7 +231,7 @@ public:
                }
 
                // Log it
-               st.lgr->on_ssl_handshake(ec);
+               lgr_->on_ssl_handshake(ec);
 
                // If this failed, we can't continue
                if (ec) {
