@@ -12,6 +12,7 @@
 #include <boost/system/error_code.hpp>
 
 #include <string>
+#include <string_view>
 
 namespace boost::redis::detail {
 
@@ -199,6 +200,18 @@ void connection_logger::log(logger::level lvl, std::string_view message)
    if (logger_.lvl < lvl)
       return;
    logger_.fn(lvl, message);
+}
+
+void connection_logger::log(logger::level lvl, std::string_view message1, std::string_view message2)
+{
+   if (logger_.lvl < lvl)
+      return;
+
+   msg_ = message1;
+   msg_ += ": ";
+   msg_ += message2;
+
+   logger_.fn(lvl, msg_);
 }
 
 void connection_logger::log(logger::level lvl, std::string_view op, system::error_code const& ec)

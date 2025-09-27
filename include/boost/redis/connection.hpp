@@ -12,11 +12,11 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
-#include <boost/redis/detail/health_checker.hpp>
 #include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
+#include <boost/redis/detail/resp3_type_to_error.hpp>
 #include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
@@ -34,6 +34,7 @@
 #include <boost/asio/cancel_after.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/deferred.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/immediate.hpp>
@@ -67,7 +68,6 @@ struct connection_impl {
    using receive_channel_type = asio::experimental::channel<
       Executor,
       void(system::error_code, std::size_t)>;
-   using health_checker_type = detail::health_checker<Executor>;
    using exec_notifier_type = asio::experimental::channel<
       Executor,
       void(system::error_code, std::size_t)>;
@@ -79,14 +79,16 @@ struct connection_impl {
    // not suspend.
    timer_type writer_timer_;
    timer_type reconnect_timer_;  // to wait the reconnection period
+   timer_type ping_timer_;       // to wait between pings
    receive_channel_type receive_channel_;
-   health_checker_type health_checker_;
 
    config cfg_;
    multiplexer mpx_;
    connection_logger logger_;
    read_buffer read_buffer_;
    generic_response setup_resp_;
+   request ping_req_;
+   generic_response ping_resp_;
 
    using executor_type = Executor;
 
@@ -131,8 +133,8 @@ struct connection_impl {
    : stream_{ex, std::move(ctx)}
    , writer_timer_{ex}
    , reconnect_timer_{ex}
+   , ping_timer_{ex}
    , receive_channel_{ex, 256}
-   , health_checker_{ex}
    , logger_{std::move(lgr)}
    {
       set_receive_adapter(any_adapter{ignore});
@@ -153,11 +155,11 @@ struct connection_impl {
             break;
          case operation::run:          cancel_run(); break;
          case operation::receive:      receive_channel_.cancel(); break;
-         case operation::health_check: health_checker_.cancel(); break;
+         case operation::health_check: ping_timer_.cancel(); break;
          case operation::all:
             stream_.cancel_resolve();
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
-            health_checker_.cancel();
+            ping_timer_.cancel();
             cancel_run();               // run
             receive_channel_.cancel();  // receive
             mpx_.cancel_waiting();      // exec
@@ -298,6 +300,112 @@ public:
    }
 };
 
+template <class Executor>
+struct health_checker_op {
+   connection_impl<Executor>* conn_;
+   asio::coroutine coro_{};
+
+   system::error_code check_errors(system::error_code io_ec)
+   {
+      // Did we have a timeout?
+      if (io_ec == asio::error::operation_aborted) {
+         conn_->logger_.log(logger::level::info, "Health checker: ping timed out");
+         return asio::error::operation_aborted;
+      }
+
+      // Did we have other unknown error?
+      if (io_ec) {
+         conn_->logger_.log(logger::level::info, "Health checker: ping error", io_ec);
+         return io_ec;
+      }
+
+      // Did the server answer with an error?
+      if (conn_->ping_resp_.has_error()) {
+         auto error = conn_->ping_resp_.error();
+         conn_->logger_.log(
+            logger::level::info,
+            "Health checker: server answered ping with an error",
+            error.diagnostic);
+         return resp3_type_to_error(error.data_type);
+      }
+
+      // No error
+      return system::error_code();
+   }
+
+public:
+   health_checker_op(connection_impl<Executor>& conn) noexcept
+   : conn_{&conn}
+   { }
+
+   template <class Self>
+   void operator()(Self& self, system::error_code ec = {}, std::size_t = {})
+   {
+      BOOST_ASIO_CORO_REENTER(coro_)
+      {
+         if (conn_->cfg_.health_check_interval == std::chrono::seconds::zero()) {
+            conn_->logger_.trace("ping_op (1): timeout disabled.");
+            BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
+            self.complete(system::error_code{});
+            return;
+         }
+
+         for (;;) {
+            // Clean up any previous leftover
+            clear_response(conn_->ping_resp_);
+
+            // Execute the request
+            BOOST_ASIO_CORO_YIELD
+            {
+               auto* conn = conn_;  // avoid use-after-move problems
+               auto timeout = conn->cfg_.health_check_interval;
+               conn->async_exec(
+                  conn->ping_req_,
+                  any_adapter{conn->ping_resp_},
+                  asio::cancel_after(conn->ping_timer_, timeout, std::move(self)));
+            }
+
+            // Check for cancellations
+            if (is_cancelled(self)) {
+               conn_->logger_.trace("ping_op (2): cancelled");
+               self.complete(asio::error::operation_aborted);
+               return;
+            }
+
+            // Check for errors in PING
+            ec = check_errors(ec);
+            if (ec) {
+               self.complete(ec);
+               return;
+            }
+
+            // Wait before pinging again.
+            conn_->ping_timer_.expires_after(conn_->cfg_.health_check_interval);
+
+            BOOST_ASIO_CORO_YIELD
+            conn_->ping_timer_.async_wait(std::move(self));
+            if (ec) {
+               conn_->logger_.trace("ping_op (3)", ec);
+               self.complete(ec);
+               return;
+            }
+
+            if (is_cancelled(self)) {
+               conn_->logger_.trace("ping_op (4): cancelled");
+               self.complete(asio::error::operation_aborted);
+               return;
+            }
+         }
+      }
+   }
+};
+
+inline void compose_ping_request(const config& cfg, request& to)
+{
+   to.clear();
+   to.push("PING", cfg.health_check_id);
+}
+
 inline system::error_code check_config(const config& cfg)
 {
    if (!cfg.unix_socket.empty()) {
@@ -317,7 +425,7 @@ private:
    asio::coroutine coro_{};
    system::error_code stored_ec_;
 
-   using order_t = std::array<std::size_t, 5>;
+   using order_t = std::array<std::size_t, 4>;
 
    static system::error_code on_setup_finished(
       connection_impl<Executor>& conn,
@@ -370,6 +478,15 @@ private:
          conn_->writer_timer_);
    }
 
+   template <class CompletionToken>
+   auto health_checker(CompletionToken&& token)
+   {
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         health_checker_op<Executor>{*conn_},
+         std::forward<CompletionToken>(token),
+         conn_->writer_timer_);
+   }
+
 public:
    run_op(connection_impl<Executor>* conn) noexcept
    : conn_{conn}
@@ -380,23 +497,22 @@ public:
    void operator()(
       Self& self,
       order_t order,
-      system::error_code ec0,
-      system::error_code ec1,
-      system::error_code ec2,
-      system::error_code ec3,
-      system::error_code)
+      system::error_code setup_ec,
+      system::error_code health_check_ec,
+      system::error_code reader_ec,
+      system::error_code /* writer_ec */)
    {
       system::error_code final_ec;
 
-      if (order[0] == 0 && !!ec0) {
+      if (order[0] == 0 && !!setup_ec) {
          // The setup op finished first and with an error
-         final_ec = ec0;
-      } else if (order[0] == 2 && ec2 == error::pong_timeout) {
+         final_ec = setup_ec;
+      } else if (order[0] == 1 && health_check_ec == error::pong_timeout) {
          // The check ping timeout finished first. Use the ping error code
-         final_ec = ec1;
+         final_ec = health_check_ec;
       } else {
          // Use the reader error code
-         final_ec = ec3;
+         final_ec = reader_ec;
       }
 
       (*this)(self, final_ec);
@@ -421,6 +537,9 @@ public:
          // Compose the setup request. This only depends on the config, so it can be done just once
          compose_setup_request(conn_->cfg_);
 
+         // Compose the PING request. Same as above
+         compose_ping_request(conn_->cfg_, conn_->ping_req_);
+
          for (;;) {
             // Try to connect
             BOOST_ASIO_CORO_YIELD
@@ -442,10 +561,7 @@ public:
                      return this->send_setup(token);
                   },
                   [this](auto token) {
-                     return conn_->health_checker_.async_ping(*conn_, token);
-                  },
-                  [this](auto token) {
-                     return conn_->health_checker_.async_check_timeout(*conn_, token);
+                     return this->health_checker(token);
                   },
                   [this](auto token) {
                      return this->reader(token);
@@ -641,7 +757,6 @@ public:
    auto async_run(config const& cfg, CompletionToken&& token = {})
    {
       impl_->cfg_ = cfg;
-      impl_->health_checker_.set_config(cfg);
       impl_->read_buffer_.set_config({cfg.read_buffer_append_size, cfg.max_read_size});
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
@@ -956,7 +1071,6 @@ private:
    using receive_channel_type = asio::experimental::channel<
       executor_type,
       void(system::error_code, std::size_t)>;
-   using health_checker_type = detail::health_checker<Executor>;
 
    auto use_ssl() const noexcept { return impl_->cfg_.use_ssl; }
 
