@@ -330,7 +330,7 @@ public:
             BOOST_ASIO_CORO_YIELD
             {
                auto* conn = conn_;  // avoid use-after-move problems
-               auto timeout = 2 * conn->cfg_.health_check_interval;
+               auto timeout = conn->cfg_.health_check_interval;
                conn->async_exec(
                   conn->ping_req_,
                   any_adapter{conn->ping_resp_},
