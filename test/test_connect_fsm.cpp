@@ -151,6 +151,20 @@ struct fixture {
    redis_stream_state st{};
 };
 
+config make_ssl_config()
+{
+   config cfg;
+   cfg.use_ssl = true;
+   return cfg;
+}
+
+config make_unix_config()
+{
+   config cfg;
+   cfg.unix_socket = "/run/redis.sock";
+   return cfg;
+}
+
 void test_tcp_success()
 {
    // Setup
@@ -179,9 +193,7 @@ void test_tcp_success()
 void test_tcp_tls_success()
 {
    // Setup
-   config cfg;
-   cfg.use_ssl = true;
-   fixture fix{std::move(cfg)};
+   fixture fix{make_ssl_config()};
 
    // Run the algorithm. No SSL stream reset is performed here
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
@@ -209,9 +221,7 @@ void test_tcp_tls_success()
 void test_tcp_tls_success_reconnect()
 {
    // Setup
-   config cfg;
-   cfg.use_ssl = true;
-   fixture fix{std::move(cfg)};
+   fixture fix{make_ssl_config()};
    fix.st.ssl_stream_used = true;
 
    // Run the algorithm. The stream is used, so it needs to be reset
@@ -235,6 +245,28 @@ void test_tcp_tls_success_reconnect()
       {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
       {logger::level::info, "Connected to 192.168.10.1:1234"                       },
       {logger::level::info, "Successfully performed SSL handshake"                 },
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+}
+
+void test_unix_success()
+{
+   // Setup
+   fixture fix{make_unix_config()};
+
+   // Run the algorithm
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::done);
+
+   // The transport type was appropriately set
+   BOOST_TEST_EQ(fix.st.type, transport_type::unix_socket);
+   BOOST_TEST_NOT(fix.st.ssl_stream_used);
+
+   // Check logging
+   const log_message expected[] = {
+      {logger::level::info, "Connected to /run/redis.sock"},
    };
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
 }
@@ -411,9 +443,7 @@ void test_tcp_connect_cancel_edge()
 void test_ssl_handshake_error()
 {
    // Setup
-   config cfg;
-   cfg.use_ssl = true;
-   fixture fix{std::move(cfg)};
+   fixture fix{make_ssl_config()};
 
    // Run the algorithm. No SSL stream reset is performed here
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
@@ -442,9 +472,7 @@ void test_ssl_handshake_error()
 void test_ssl_handshake_timeout()
 {
    // Setup
-   config cfg;
-   cfg.use_ssl = true;
-   fixture fix{std::move(cfg)};
+   fixture fix{make_ssl_config()};
 
    // Run the algorithm. Timeout = operation_aborted without the cancel type set
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
@@ -473,9 +501,7 @@ void test_ssl_handshake_timeout()
 void test_ssl_handshake_cancel()
 {
    // Setup
-   config cfg;
-   cfg.use_ssl = true;
-   fixture fix{std::move(cfg)};
+   fixture fix{make_ssl_config()};
 
    // Run the algorithm. Cancel = operation_aborted with the cancel type set
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
@@ -497,9 +523,7 @@ void test_ssl_handshake_cancel()
 void test_ssl_handshake_cancel_edge()
 {
    // Setup
-   config cfg;
-   cfg.use_ssl = true;
-   fixture fix{std::move(cfg)};
+   fixture fix{make_ssl_config()};
 
    // Run the algorithm. No error, but the cancel state is set
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
@@ -525,6 +549,7 @@ int main()
    test_tcp_success();
    test_tcp_tls_success();
    test_tcp_tls_success_reconnect();
+   test_unix_success();
 
    test_tcp_resolve_error();
    test_tcp_resolve_timeout();
