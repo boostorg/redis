@@ -141,8 +141,8 @@ struct log_message {
 // Reduce duplication
 struct fixture {
    config cfg;
-   std::ostringstream oss;
-   std::vector<log_message> msgs;
+   std::ostringstream oss{};
+   std::vector<log_message> msgs{};
    detail::connection_logger lgr{
       logger(logger::level::debug, [&](logger::level lvl, std::string_view msg) {
          msgs.push_back({lvl, std::string(msg)});
@@ -172,6 +172,36 @@ void test_tcp_success()
    const log_message expected[] = {
       {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
       {logger::level::info, "Connected to 192.168.10.1:1234"                       },
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+}
+
+void test_tcp_tls_success()
+{
+   // Setup
+   config cfg;
+   cfg.use_ssl = true;
+   fixture fix{std::move(cfg)};
+
+   // Run the algorithm. No SSL stream reset is performed here
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
+   act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
+   act = fix.fsm.resume(error_code(), endpoint, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::ssl_handshake);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::done);
+
+   // The transport type was appropriately set
+   BOOST_TEST_EQ(fix.st.type, transport_type::tcp_tls);
+   BOOST_TEST(fix.st.ssl_stream_used);
+
+   // Check logging
+   const log_message expected[] = {
+      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::info, "Connected to 192.168.10.1:1234"                       },
+      {logger::level::info, "Successfully performed SSL handshake"                 },
    };
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
 }
@@ -349,6 +379,7 @@ void test_tcp_connect_cancel_edge()
 int main()
 {
    test_tcp_success();
+   test_tcp_tls_success();
 
    test_tcp_resolve_error();
    test_tcp_resolve_timeout();
