@@ -6,17 +6,15 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/detail/connect_fsm.hpp>
+#include <boost/redis/detail/connection_logger.hpp>
+#include <boost/redis/error.hpp>
+#include <boost/redis/logger.hpp>
 
+#include <boost/asio/error.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/core/lightweight_test.hpp>
-
-#include "boost/asio/error.hpp"
-#include "boost/asio/ip/tcp.hpp"
-#include "boost/redis/config.hpp"
-#include "boost/redis/detail/connection_logger.hpp"
-#include "boost/redis/error.hpp"
-#include "boost/redis/logger.hpp"
-#include "boost/system/detail/error_code.hpp"
 
 #include <iterator>
 #include <ostream>
