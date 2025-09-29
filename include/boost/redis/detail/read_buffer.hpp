@@ -21,30 +21,34 @@ class read_buffer {
 public:
    using span_type = span<char>;
 
+   struct consume_result {
+      std::size_t consumed;
+      std::size_t rotated;
+   };
+
    // See config.hpp for the meaning of these parameters.
    struct config {
       std::size_t read_buffer_append_size = 4096u;
       std::size_t max_read_size = static_cast<std::size_t>(-1);
    };
 
+   // Prepare the buffer to receive more data.
    [[nodiscard]]
-   auto prepare_append() -> system::error_code;
+   auto prepare() -> system::error_code;
 
    [[nodiscard]]
-   auto get_append_buffer() noexcept -> span_type;
+   auto get_prepared() noexcept -> span_type;
 
-   void commit_append(std::size_t read_size);
-
-   [[nodiscard]]
-   auto get_committed_buffer() const noexcept -> std::string_view;
+   void commit(std::size_t read_size);
 
    [[nodiscard]]
-   auto get_committed_size() const noexcept -> std::size_t;
+   auto get_commited() const noexcept -> std::string_view;
 
    void clear();
 
-   // Consume committed data.
-   auto consume_committed(std::size_t size) -> std::size_t;
+   // Consumes committed data by rotating the remaining data to the
+   // front of the buffer.
+   auto consume(std::size_t size) -> consume_result;
 
    void reserve(std::size_t n);
 

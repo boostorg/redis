@@ -26,7 +26,7 @@ auto to_string(reader_fsm::action::type t) noexcept -> char const*
 {
    switch (t) {
       BOOST_REDIS_READER_SWITCH_CASE(setup_cancellation);
-      BOOST_REDIS_READER_SWITCH_CASE(append_some);
+      BOOST_REDIS_READER_SWITCH_CASE(read_some);
       BOOST_REDIS_READER_SWITCH_CASE(needs_more);
       BOOST_REDIS_READER_SWITCH_CASE(notify_push_receiver);
       BOOST_REDIS_READER_SWITCH_CASE(cancel_run);

@@ -9,6 +9,7 @@
 
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
+#include <boost/redis/config.hpp>
 #include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/parser.hpp>
@@ -126,6 +127,8 @@ public:
       std::size_t read_size_;
    };
 
+   multiplexer();
+
    // To be called before a write operation. Coalesces all available requests
    // into a single buffer. Returns the number of coalesced requests.
    // Must be called before cancel_on_conn_lost() because it might change
@@ -144,8 +147,7 @@ public:
    // Must be called before cancel_on_conn_lost() because it might change
    // request status.
    [[nodiscard]]
-   auto consume_next(std::string_view data, system::error_code& ec)
-      -> std::pair<consume_result, std::size_t>;
+   auto consume(system::error_code& ec) -> std::pair<consume_result, std::size_t>;
 
    auto add(std::shared_ptr<elem> const& ptr) -> void;
    void cancel(std::shared_ptr<elem> const& ptr);
@@ -178,6 +180,17 @@ public:
       return std::string_view{write_buffer_};
    }
 
+   [[nodiscard]]
+   auto get_prepared_read_buffer() noexcept -> read_buffer::span_type;
+
+   [[nodiscard]]
+   auto prepare_read() noexcept -> system::error_code;
+
+   void commit_read(std::size_t read_size);
+
+   [[nodiscard]]
+   auto get_read_buffer_size() const noexcept -> std::size_t;
+
    void set_receive_adapter(any_adapter adapter);
 
    [[nodiscard]]
@@ -189,8 +202,10 @@ public:
    [[nodiscard]]
    auto is_writing() const noexcept -> bool;
 
+   void set_config(config const& cfg);
+
 private:
-   void commit_usage(bool is_push, std::size_t size);
+   void commit_usage(bool is_push, read_buffer::consume_result res);
 
    [[nodiscard]]
    auto is_next_push(std::string_view data) const noexcept -> bool;
@@ -200,8 +215,9 @@ private:
    auto release_push_requests() -> std::size_t;
 
    [[nodiscard]]
-   consume_result consume_next_impl(std::string_view data, system::error_code& ec);
+   consume_result consume_impl(system::error_code& ec);
 
+   read_buffer read_buffer_;
    std::string write_buffer_;
    std::deque<std::shared_ptr<elem>> reqs_;
    resp3::parser parser_{};
