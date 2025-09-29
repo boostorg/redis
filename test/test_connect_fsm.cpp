@@ -238,6 +238,21 @@ void test_tcp_resolve_cancel()
    BOOST_TEST_EQ(fix.msgs.size(), 1u);
 }
 
+void test_tcp_resolve_cancel_edge()
+{
+   // Setup
+   fixture fix;
+
+   // Cancel state set but no error
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
+   act = fix.fsm.resume(error_code(), resolver_results{}, fix.st, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Logging here is system-dependent, so we don't check the message
+   BOOST_TEST_EQ(fix.msgs.size(), 1u);
+}
+
 }  // namespace
 
 int main()
@@ -246,6 +261,7 @@ int main()
    test_tcp_resolve_error();
    test_tcp_resolve_timeout();
    test_tcp_resolve_cancel();
+   test_tcp_resolve_cancel_edge();
 
    return boost::report_errors();
 }
