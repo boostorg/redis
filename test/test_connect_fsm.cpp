@@ -470,6 +470,30 @@ void test_ssl_handshake_timeout()
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
 }
 
+void test_ssl_handshake_cancel()
+{
+   // Setup
+   config cfg;
+   cfg.use_ssl = true;
+   fixture fix{std::move(cfg)};
+
+   // Run the algorithm. Cancel = operation_aborted with the cancel type set
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
+   act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
+   act = fix.fsm.resume(error_code(), endpoint, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::ssl_handshake);
+   act = fix.fsm.resume(asio::error::operation_aborted, fix.st, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // The stream is marked as used
+   BOOST_TEST(fix.st.ssl_stream_used);
+
+   // Logging is system-dependent, so we don't check messages
+   BOOST_TEST_EQ(fix.msgs.size(), 3u);
+}
+
 }  // namespace
 
 int main()
@@ -490,6 +514,7 @@ int main()
 
    test_ssl_handshake_error();
    test_ssl_handshake_timeout();
+   test_ssl_handshake_cancel();
 
    return boost::report_errors();
 }
