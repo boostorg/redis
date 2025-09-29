@@ -279,6 +279,33 @@ void test_tcp_connect_error()
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
 }
 
+void test_tcp_connect_timeout()
+{
+   // Setup
+   fixture fix;
+
+   // Run the algorithm
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
+   act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
+   act = fix.fsm.resume(
+      asio::error::operation_aborted,
+      tcp::endpoint{},
+      fix.st,
+      cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::connect_timeout));
+
+   // Check logging
+   const log_message expected[] = {
+      // clang-format off
+      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::info, "Failed to connect to the server: Connect timeout. [boost.redis:18]"},
+      // clang-format on
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+}
+
 }  // namespace
 
 int main()
@@ -289,6 +316,7 @@ int main()
    test_tcp_resolve_cancel();
    test_tcp_resolve_cancel_edge();
    test_tcp_connect_error();
+   test_tcp_connect_timeout();
 
    return boost::report_errors();
 }
