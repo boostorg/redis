@@ -584,6 +584,21 @@ void test_unix_connect_timeout()
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
 }
 
+void test_unix_connect_cancel()
+{
+   // Setup
+   fixture fix{make_unix_config()};
+
+   // Run the algorithm. Cancel = operation_aborted with a cancel state
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
+   act = fix.fsm.resume(asio::error::operation_aborted, fix.st, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Logging is system-dependent
+   BOOST_TEST_EQ(fix.msgs.size(), 1u);
+}
+
 }  // namespace
 
 int main()
@@ -610,6 +625,7 @@ int main()
 
    test_unix_connect_error();
    test_unix_connect_timeout();
+   test_unix_connect_cancel();
 
    return boost::report_errors();
 }
