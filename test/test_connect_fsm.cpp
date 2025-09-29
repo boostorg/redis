@@ -206,6 +206,39 @@ void test_tcp_tls_success()
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
 }
 
+void test_tcp_tls_success_reconnect()
+{
+   // Setup
+   config cfg;
+   cfg.use_ssl = true;
+   fixture fix{std::move(cfg)};
+   fix.st.ssl_stream_used = true;
+
+   // Run the algorithm. The stream is used, so it needs to be reset
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::ssl_stream_reset);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
+   act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
+   act = fix.fsm.resume(error_code(), endpoint, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::ssl_handshake);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::done);
+
+   // The transport type was appropriately set
+   BOOST_TEST_EQ(fix.st.type, transport_type::tcp_tls);
+   BOOST_TEST(fix.st.ssl_stream_used);
+
+   // Check logging
+   const log_message expected[] = {
+      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::info, "Connected to 192.168.10.1:1234"                       },
+      {logger::level::info, "Successfully performed SSL handshake"                 },
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+}
+
 // Resolve errors
 void test_tcp_resolve_error()
 {
@@ -380,6 +413,7 @@ int main()
 {
    test_tcp_success();
    test_tcp_tls_success();
+   test_tcp_tls_success_reconnect();
 
    test_tcp_resolve_error();
    test_tcp_resolve_timeout();
