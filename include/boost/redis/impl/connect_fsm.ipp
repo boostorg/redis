@@ -32,10 +32,23 @@ inline transport_type transport_from_config(const config& cfg)
    }
 }
 
-// TODO: this is duplicated
-inline bool is_terminal_cancellation(asio::cancellation_type_t value)
+inline system::error_code translate_timeout_error(
+   system::error_code io_ec,
+   asio::cancellation_type_t cancel_state,
+   error code_if_cancelled)
 {
-   return (value & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none;
+   // Translates cancellations and timeout errors into a single error_code.
+   //   - Cancellation state set, and an I/O error: the entire operation was cancelled.
+   //     The I/O code (probably operation_aborted) is appropriate.
+   //   - Cancellation state set, and no I/O error: same as above, but the cancellation
+   //     arrived after the operation completed and before the handler was called. Set the code here.
+   //   - No cancellation state set, I/O error set to operation_aborted: since we use cancel_after,
+   //     this means a timeout.
+   //   - Otherwise, respect the I/O error.
+   if ((cancel_state & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none) {
+      return io_ec ? io_ec : asio::error::operation_aborted;
+   }
+   return io_ec == asio::error::operation_aborted ? code_if_cancelled : io_ec;
 }
 
 connect_action connect_fsm::resume(
@@ -45,15 +58,7 @@ connect_action connect_fsm::resume(
    asio::cancellation_type_t cancel_state)
 {
    // Translate error codes
-   if (is_terminal_cancellation(cancel_state)) {
-      if (ec) {
-         if (ec == asio::error::operation_aborted) {
-            ec = error::resolve_timeout;
-         }
-      } else {
-         ec = asio::error::operation_aborted;
-      }
-   }
+   ec = translate_timeout_error(ec, cancel_state, error::resolve_timeout);
 
    // Log it
    lgr_->on_resolve(ec, resolver_results);
@@ -69,15 +74,7 @@ connect_action connect_fsm::resume(
    asio::cancellation_type_t cancel_state)
 {
    // Translate error codes
-   if (is_terminal_cancellation(cancel_state)) {
-      if (ec) {
-         if (ec == asio::error::operation_aborted) {
-            ec = error::connect_timeout;
-         }
-      } else {
-         ec = asio::error::operation_aborted;
-      }
-   }
+   ec = translate_timeout_error(ec, cancel_state, error::connect_timeout);
 
    // Log it
    lgr_->on_connect(ec, selected_endpoint);
@@ -105,15 +102,7 @@ connect_action connect_fsm::resume(
          // it is because per-operation cancellation was activated. If we were not cancelled
          // but the operation failed with operation_aborted, it's a timeout.
          // Also check for cancellations that didn't cause a failure
-         if (is_terminal_cancellation(cancel_state)) {
-            if (ec) {
-               if (ec == asio::error::operation_aborted) {
-                  ec = error::connect_timeout;
-               }
-            } else {
-               ec = asio::error::operation_aborted;
-            }
-         }
+         ec = translate_timeout_error(ec, cancel_state, error::connect_timeout);
 
          // Log it
          lgr_->on_connect(ec, cfg_->unix_socket);
@@ -159,15 +148,7 @@ connect_action connect_fsm::resume(
             BOOST_REDIS_YIELD(resume_point_, 5, connect_action_type::ssl_handshake)
 
             // Translate error codes
-            if (is_terminal_cancellation(cancel_state)) {
-               if (ec) {
-                  if (ec == asio::error::operation_aborted) {
-                     ec = error::ssl_handshake_timeout;
-                  }
-               } else {
-                  ec = asio::error::operation_aborted;
-               }
-            }
+            ec = translate_timeout_error(ec, cancel_state, error::ssl_handshake_timeout);
 
             // Log it
             lgr_->on_ssl_handshake(ec);

@@ -10,6 +10,7 @@
 
 #include <boost/core/lightweight_test.hpp>
 
+#include "boost/asio/error.hpp"
 #include "boost/asio/ip/tcp.hpp"
 #include "boost/redis/config.hpp"
 #include "boost/redis/detail/connection_logger.hpp"
@@ -194,12 +195,37 @@ void test_tcp_resolve_error()
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
 }
 
+void test_tcp_resolve_timeout()
+{
+   // Setup
+   fixture fix;
+
+   // Since we use cancel_after, a timeout is an operation_aborted without a cancellation state set
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
+   act = fix.fsm.resume(
+      asio::error::operation_aborted,
+      resolver_results{},
+      fix.st,
+      cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::resolve_timeout));
+
+   // Check logging
+   const log_message expected[] = {
+      // clang-format off
+      {logger::level::info, "Error resolving the server hostname: Resolve timeout. [boost.redis:17]"},
+      // clang-format on
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+}
+
 }  // namespace
 
 int main()
 {
    test_tcp_success();
    test_tcp_resolve_error();
+   test_tcp_resolve_timeout();
 
    return boost::report_errors();
 }
