@@ -407,6 +407,38 @@ void test_tcp_connect_cancel_edge()
    BOOST_TEST_EQ(fix.msgs.size(), 2u);
 }
 
+// SSL handshake error
+void test_ssl_handshake_error()
+{
+   // Setup
+   config cfg;
+   cfg.use_ssl = true;
+   fixture fix{std::move(cfg)};
+
+   // Run the algorithm. No SSL stream reset is performed here
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
+   act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
+   act = fix.fsm.resume(error_code(), endpoint, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::ssl_handshake);
+   act = fix.fsm.resume(error::empty_field, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::empty_field));
+
+   // The stream is marked as used
+   BOOST_TEST(fix.st.ssl_stream_used);
+
+   // Check logging
+   const log_message expected[] = {
+      // clang-format off
+      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::info, "Connected to 192.168.10.1:1234"                       },
+      {logger::level::info, "Failed to perform SSL handshake: Expected field value is empty. [boost.redis:5]"},
+      // clang-format on
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+}
+
 }  // namespace
 
 int main()
@@ -424,6 +456,8 @@ int main()
    test_tcp_connect_timeout();
    test_tcp_connect_cancel();
    test_tcp_connect_cancel_edge();
+
+   test_ssl_handshake_error();
 
    return boost::report_errors();
 }
