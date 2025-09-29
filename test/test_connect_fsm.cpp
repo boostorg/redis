@@ -219,6 +219,25 @@ void test_tcp_resolve_timeout()
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
 }
 
+void test_tcp_resolve_cancel()
+{
+   // Setup
+   fixture fix;
+
+   // Run the algorithm
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
+   act = fix.fsm.resume(
+      asio::error::operation_aborted,
+      resolver_results{},
+      fix.st,
+      cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Logging here is system-dependent, so we don't check the message
+   BOOST_TEST_EQ(fix.msgs.size(), 1u);
+}
+
 }  // namespace
 
 int main()
@@ -226,6 +245,7 @@ int main()
    test_tcp_success();
    test_tcp_resolve_error();
    test_tcp_resolve_timeout();
+   test_tcp_resolve_cancel();
 
    return boost::report_errors();
 }
