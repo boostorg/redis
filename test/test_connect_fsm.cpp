@@ -20,7 +20,6 @@
 #include <ostream>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 using namespace boost::redis;
@@ -34,6 +33,7 @@ using detail::transport_type;
 using asio::ip::tcp;
 using boost::system::error_code;
 using boost::asio::cancellation_type_t;
+using resolver_results = tcp::resolver::results_type;
 
 // Operators
 static const char* to_string(connect_action_type type)
@@ -112,7 +112,7 @@ namespace {
 const tcp::endpoint endpoint(asio::ip::make_address("192.168.10.1"), 1234);
 const tcp::endpoint endpoint2(asio::ip::make_address("192.168.10.2"), 1235);
 
-auto resolver_results = [] {
+auto resolver_data = [] {
    const tcp::endpoint data[] = {endpoint, endpoint2};
    return asio::ip::tcp::resolver::results_type::create(
       std::begin(data),
@@ -137,7 +137,7 @@ struct log_message {
    }
 };
 
-void test_success_tcp()
+void test_tcp_success()
 {
    // Setup
    config cfg;
@@ -153,7 +153,7 @@ void test_success_tcp()
    // Initiate
    auto act = fsm.resume(error_code(), st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-   act = fsm.resume(error_code(), resolver_results, st, cancellation_type_t::none);
+   act = fsm.resume(error_code(), resolver_data, st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
    act = fsm.resume(error_code(), endpoint, st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, connect_action_type::done);
@@ -169,11 +169,40 @@ void test_success_tcp()
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), msgs.begin(), msgs.end());
 }
 
+void test_tcp_resolve_error()
+{
+   // Setup
+   config cfg;
+   std::ostringstream oss;
+   std::vector<log_message> msgs;
+   detail::connection_logger lgr(
+      logger(logger::level::debug, [&](logger::level lvl, std::string_view msg) {
+         msgs.push_back({lvl, std::string(msg)});
+      }));
+   connect_fsm fsm(cfg, lgr);
+   redis_stream_state st{};
+
+   // Initiate
+   auto act = fsm.resume(error_code(), st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
+   act = fsm.resume(error::empty_field, resolver_results{}, st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::empty_field));
+
+   // Check logging
+   const log_message expected[] = {
+      // clang-format off
+      {logger::level::info, "Error resolving the server hostname: Expected field value is empty. [boost.redis:5]"},
+      // clang-format on
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), msgs.begin(), msgs.end());
+}
+
 }  // namespace
 
 int main()
 {
-   test_success_tcp();
+   test_tcp_success();
+   test_tcp_resolve_error();
 
    return boost::report_errors();
 }
