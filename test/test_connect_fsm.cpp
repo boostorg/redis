@@ -17,6 +17,7 @@
 #include "boost/system/detail/error_code.hpp"
 
 #include <iterator>
+#include <ostream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -59,6 +60,28 @@ static const char* to_string(transport_type type)
    }
 }
 
+static const char* to_string(logger::level lvl)
+{
+   switch (lvl) {
+      case logger::level::disabled: return "logger::level::disabled";
+      case logger::level::emerg:    return "logger::level::emerg";
+      case logger::level::alert:    return "logger::level::alert";
+      case logger::level::crit:     return "logger::level::crit";
+      case logger::level::err:      return "logger::level::err";
+      case logger::level::warning:  return "logger::level::warning";
+      case logger::level::notice:   return "logger::level::notice";
+      case logger::level::info:     return "logger::level::info";
+      case logger::level::debug:    return "logger::level::debug";
+      default:                      return "<unknown logger::level>";
+   }
+}
+
+namespace boost::redis {
+
+std::ostream& operator<<(std::ostream& os, logger::level lvl) { return os << to_string(lvl); }
+
+}  // namespace boost::redis
+
 namespace boost::redis::detail {
 
 std::ostream& operator<<(std::ostream& os, connect_action_type type)
@@ -85,10 +108,12 @@ std::ostream& operator<<(std::ostream& os, const connect_action& act)
 
 namespace {
 
+// TCP endpoints
 const tcp::endpoint endpoint(asio::ip::make_address("192.168.10.1"), 1234);
+const tcp::endpoint endpoint2(asio::ip::make_address("192.168.10.2"), 1235);
 
 auto resolver_results = [] {
-   const tcp::endpoint data[] = {endpoint};
+   const tcp::endpoint data[] = {endpoint, endpoint2};
    return asio::ip::tcp::resolver::results_type::create(
       std::begin(data),
       std::end(data),
@@ -96,15 +121,31 @@ auto resolver_results = [] {
       "1234");
 }();
 
+// For checking logs
+struct log_message {
+   logger::level lvl;
+   std::string msg;
+
+   friend bool operator==(const log_message& lhs, const log_message& rhs) noexcept
+   {
+      return lhs.lvl == rhs.lvl && lhs.msg == rhs.msg;
+   }
+
+   friend std::ostream& operator<<(std::ostream& os, const log_message& v)
+   {
+      return os << "log_message { .lvl=" << v.lvl << ", .msg=" << v.msg << " }";
+   }
+};
+
 void test_success_tcp()
 {
    // Setup
    config cfg;
    std::ostringstream oss;
-   std::vector<std::pair<logger::level, std::string>> msgs;
+   std::vector<log_message> msgs;
    detail::connection_logger lgr(
       logger(logger::level::debug, [&](logger::level lvl, std::string_view msg) {
-         msgs.emplace_back(lvl, msg);
+         msgs.push_back({lvl, std::string(msg)});
       }));
    connect_fsm fsm(cfg, lgr);
    redis_stream_state st{};
@@ -120,7 +161,12 @@ void test_success_tcp()
    // The transport type was appropriately set
    BOOST_TEST_EQ(st.type, transport_type::tcp);
 
-   // TODO: check logging
+   // Check logging
+   const log_message expected[] = {
+      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::info, "Connected to 192.168.10.1:1234"                       },
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), msgs.begin(), msgs.end());
 }
 
 }  // namespace
