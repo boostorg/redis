@@ -14,6 +14,7 @@
 #include "boost/asio/ip/tcp.hpp"
 #include "boost/redis/config.hpp"
 #include "boost/redis/detail/connection_logger.hpp"
+#include "boost/redis/error.hpp"
 #include "boost/redis/logger.hpp"
 #include "boost/system/detail/error_code.hpp"
 
@@ -542,6 +543,27 @@ void test_ssl_handshake_cancel_edge()
    BOOST_TEST_EQ(fix.msgs.size(), 3u);
 }
 
+// UNIX connect errors
+void test_unix_connect_error()
+{
+   // Setup
+   fixture fix{make_unix_config()};
+
+   // Run the algorithm
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
+   act = fix.fsm.resume(error::empty_field, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::empty_field));
+
+   // Check logging
+   const log_message expected[] = {
+      // clang-format off
+      {logger::level::info, "Failed to connect to the server: Expected field value is empty. [boost.redis:5]"},
+      // clang-format on
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+}
+
 }  // namespace
 
 int main()
@@ -565,6 +587,8 @@ int main()
    test_ssl_handshake_timeout();
    test_ssl_handshake_cancel();
    test_ssl_handshake_cancel_edge();
+
+   test_unix_connect_error();
 
    return boost::report_errors();
 }
