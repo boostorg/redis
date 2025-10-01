@@ -6,7 +6,6 @@
 
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
@@ -20,9 +19,8 @@ inline bool is_terminal_cancellation(asio::cancellation_type_t value)
    return (value & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none;
 }
 
-reader_fsm::reader_fsm(read_buffer& rbuf, multiplexer& mpx) noexcept
-: read_buffer_{&rbuf}
-, mpx_{&mpx}
+reader_fsm::reader_fsm(multiplexer& mpx) noexcept
+: mpx_{&mpx}
 { }
 
 // TODO: write cancellation tests
@@ -37,7 +35,7 @@ reader_fsm::action reader_fsm::resume(
 
       for (;;) {
          // Prepare the buffer for the read operation
-         ec = read_buffer_->prepare_append();
+         ec = mpx_->prepare_read();
          if (ec) {
             return {action::type::done, 0, ec};
          }
@@ -46,7 +44,7 @@ reader_fsm::action reader_fsm::resume(
          BOOST_REDIS_YIELD(resume_point_, 3, next_read_type_)
 
          // Process the bytes read, even if there was an error
-         read_buffer_->commit_append(bytes_read);
+         mpx_->commit_read(bytes_read);
 
          // Check for read errors
          if (ec) {
@@ -61,11 +59,11 @@ reader_fsm::action reader_fsm::resume(
             return {action::type::done, 0u, asio::error::operation_aborted};
          }
 
-         next_read_type_ = action::type::append_some;
-
          // Process the data that we've read
-         while (read_buffer_->get_committed_size() != 0) {
-            res_ = mpx_->consume_next(read_buffer_->get_committed_buffer(), ec);
+         next_read_type_ = action::type::read_some;
+         while (mpx_->get_read_buffer_size() != 0) {
+            res_ = mpx_->consume(ec);
+
             if (ec) {
                // TODO: Perhaps log what has not been consumed to aid
                // debugging.
@@ -76,8 +74,6 @@ reader_fsm::action reader_fsm::resume(
                next_read_type_ = action::type::needs_more;
                break;
             }
-
-            read_buffer_->consume_committed(res_.second);
 
             if (res_.first == consume_result::got_push) {
                BOOST_REDIS_YIELD(resume_point_, 6, action::type::notify_push_receiver, res_.second)

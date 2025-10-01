@@ -12,6 +12,7 @@
 #include <boost/system/error_code.hpp>
 
 #include <string>
+#include <string_view>
 
 namespace boost::redis::detail {
 
@@ -25,7 +26,7 @@ auto to_string(reader_fsm::action::type t) noexcept -> char const*
 {
    switch (t) {
       BOOST_REDIS_READER_SWITCH_CASE(setup_cancellation);
-      BOOST_REDIS_READER_SWITCH_CASE(append_some);
+      BOOST_REDIS_READER_SWITCH_CASE(read_some);
       BOOST_REDIS_READER_SWITCH_CASE(needs_more);
       BOOST_REDIS_READER_SWITCH_CASE(notify_push_receiver);
       BOOST_REDIS_READER_SWITCH_CASE(cancel_run);
@@ -199,6 +200,18 @@ void connection_logger::log(logger::level lvl, std::string_view message)
    if (logger_.lvl < lvl)
       return;
    logger_.fn(lvl, message);
+}
+
+void connection_logger::log(logger::level lvl, std::string_view message1, std::string_view message2)
+{
+   if (logger_.lvl < lvl)
+      return;
+
+   msg_ = message1;
+   msg_ += ": ";
+   msg_ += message2;
+
+   logger_.fn(lvl, msg_);
 }
 
 void connection_logger::log(logger::level lvl, std::string_view op, system::error_code const& ec)

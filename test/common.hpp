@@ -35,5 +35,3 @@ void run(
    boost::redis::config cfg = make_test_config(),
    boost::system::error_code ec = boost::asio::error::operation_aborted,
    boost::redis::operation op = boost::redis::operation::receive);
-
-void append_read_data(boost::redis::detail::read_buffer& rbuf, std::string_view data);

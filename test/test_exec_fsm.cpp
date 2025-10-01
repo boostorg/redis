@@ -14,11 +14,14 @@
 #include <boost/asio/error.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
+#include <boost/assert.hpp>
 
 #include <cstddef>
 #include <memory>
 #include <ostream>
 #include <utility>
+
+#include "sansio_utils.hpp"
 
 using namespace boost::redis;
 namespace asio = boost::asio;
@@ -125,7 +128,8 @@ void test_success()
    BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
 
    // Simulate a successful read
-   auto req_status = mpx.consume_next("$5\r\nhello\r\n", ec);
+   read(mpx, "$5\r\nhello\r\n");
+   auto req_status = mpx.consume(ec);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first, consume_result::got_response);
    BOOST_TEST_EQ(req_status.second, 11u);  // the entire buffer was consumed
@@ -166,7 +170,8 @@ void test_parse_error()
    // The second field should be a number (rather than the empty string).
    // Note that although part of the buffer was consumed, the multiplexer
    // currently throws this information away.
-   auto req_status = mpx.consume_next("*2\r\n$5\r\nhello\r\n:\r\n", ec);
+   read(mpx, "*2\r\n$5\r\nhello\r\n:\r\n");
+   auto req_status = mpx.consume(ec);
    BOOST_TEST_EQ(ec, error::empty_field);
    BOOST_TEST_EQ(req_status.second, 15u);
    BOOST_TEST_EQ(input.done_calls, 1u);
@@ -224,7 +229,8 @@ void test_not_connected()
    BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
 
    // Simulate a successful read
-   auto req_status = mpx.consume_next("$5\r\nhello\r\n", ec);
+   read(mpx, "$5\r\nhello\r\n");
+   auto req_status = mpx.consume(ec);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first, consume_result::got_response);
    BOOST_TEST_EQ(req_status.second, 11u);  // the entire buffer was consumed
@@ -317,9 +323,10 @@ void test_cancel_notwaiting_terminal_partial()
       BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted));
       input.reset();  // Verify we don't access the request or response after completion
 
-      // When the response to this request arrives, it gets ignored
       error_code ec;
-      auto res = mpx.consume_next("-ERR wrong command\r\n", ec);
+      // When the response to this request arrives, it gets ignored
+      read(mpx, "-ERR wrong command\r\n");
+      auto res = mpx.consume(ec);
       BOOST_TEST_EQ_MSG(ec, error_code(), tc.name);
       BOOST_TEST_EQ_MSG(res.first, consume_result::got_response, tc.name);
 
@@ -355,7 +362,8 @@ void test_cancel_notwaiting_total()
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful read
-   auto req_status = mpx.consume_next("$5\r\nhello\r\n", ec);
+   read(mpx, "$5\r\nhello\r\n");
+   auto req_status = mpx.consume(ec);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(req_status.first, consume_result::got_response);
    BOOST_TEST_EQ(req_status.second, 11u);  // the entire buffer was consumed

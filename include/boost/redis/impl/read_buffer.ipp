@@ -13,7 +13,7 @@
 
 namespace boost::redis::detail {
 
-system::error_code read_buffer::prepare_append()
+system::error_code read_buffer::prepare()
 {
    BOOST_ASSERT(append_buf_begin_ == buffer_.size());
 
@@ -27,26 +27,23 @@ system::error_code read_buffer::prepare_append()
    return {};
 }
 
-void read_buffer::commit_append(std::size_t read_size)
+void read_buffer::commit(std::size_t read_size)
 {
    BOOST_ASSERT(buffer_.size() >= (append_buf_begin_ + read_size));
    buffer_.resize(append_buf_begin_ + read_size);
    append_buf_begin_ = buffer_.size();
 }
 
-auto read_buffer::get_append_buffer() noexcept -> span_type
+auto read_buffer::get_prepared() noexcept -> span_type
 {
    auto const size = buffer_.size();
    return make_span(buffer_.data() + append_buf_begin_, size - append_buf_begin_);
 }
 
-auto read_buffer::get_committed_buffer() const noexcept -> std::string_view
+auto read_buffer::get_commited() const noexcept -> std::string_view
 {
-   BOOST_ASSERT(!buffer_.empty());
    return {buffer_.data(), append_buf_begin_};
 }
-
-auto read_buffer::get_committed_size() const noexcept -> std::size_t { return append_buf_begin_; }
 
 void read_buffer::clear()
 {
@@ -54,7 +51,8 @@ void read_buffer::clear()
    append_buf_begin_ = 0;
 }
 
-std::size_t read_buffer::consume_committed(std::size_t size)
+read_buffer::consume_result
+read_buffer::consume(std::size_t size)
 {
    // For convenience, if the requested size is larger than the
    // committed buffer we cap it to the maximum.
@@ -62,9 +60,12 @@ std::size_t read_buffer::consume_committed(std::size_t size)
       size = append_buf_begin_;
 
    buffer_.erase(buffer_.begin(), buffer_.begin() + size);
+   auto const rotated = size == 0u ? 0u : buffer_.size();
+
    BOOST_ASSERT(append_buf_begin_ >= size);
    append_buf_begin_ -= size;
-   return size;
+
+   return {size, rotated};
 }
 
 void read_buffer::reserve(std::size_t n) { buffer_.reserve(n); }
