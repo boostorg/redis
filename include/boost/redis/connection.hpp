@@ -809,14 +809,12 @@ public:
 
       // Overwrite the token's cancellation slot: the composed operation
       // should use the signal's slot so we can generate cancellations in cancel()
-      using token_t = decltype(asio::bind_cancellation_slot(
+      auto token_with_slot = asio::bind_cancellation_slot(
          impl_->run_signal_.slot(),
-         std::forward<CompletionToken>(token)));
-      return asio::async_compose<token_t, void(system::error_code)>(
+         std::forward<CompletionToken>(token));
+      return asio::async_compose<decltype(token_with_slot), void(system::error_code)>(
          detail::run_op<Executor>{impl_.get()},
-         asio::bind_cancellation_slot(
-            impl_->run_signal_.slot(),
-            std::forward<CompletionToken>(token)),
+         token_with_slot,
          impl_->writer_timer_);
    }
 
