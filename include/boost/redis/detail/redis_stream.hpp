@@ -99,6 +99,9 @@ class redis_stream {
 
             if (obj.transport_ == transport_type::unix_socket) {
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+               // Discard any existing state
+               obj.unix_socket_.close(ec);
+
                // Directly connect to the socket
                BOOST_ASIO_CORO_YIELD
                obj.unix_socket_.async_connect(
@@ -122,6 +125,7 @@ class redis_stream {
                // Must be done before anything else is done on the stream
                if (cfg->use_ssl && obj.ssl_stream_used_)
                   obj.reset_stream();
+               // TODO: do we need to do this for TCP too? do we need a test?
 
                BOOST_ASIO_CORO_YIELD
                obj.resolv_.async_resolve(
