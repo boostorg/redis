@@ -340,8 +340,11 @@ public:
       {
          if (conn_->cfg_.health_check_interval == std::chrono::seconds::zero()) {
             conn_->logger_.trace("ping_op (1): timeout disabled.");
-            BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
-            self.complete(system::error_code{});
+
+            // Wait until we're cancelled. This simplifies parallel group handling a lot
+            conn_->ping_timer_.expires_after((std::chrono::steady_clock::duration::max)());
+            BOOST_ASIO_CORO_YIELD conn_->ping_timer_.async_wait(std::move(self));
+            self.complete(asio::error::operation_aborted);
             return;
          }
 
@@ -413,14 +416,46 @@ inline system::error_code check_config(const config& cfg)
    return system::error_code{};
 }
 
+inline system::error_code translate_parallel_group_errors(
+   std::array<std::size_t, 4u> order,
+   system::error_code setup_ec,
+   system::error_code health_check_ec,
+   system::error_code reader_ec,
+   system::error_code writer_ec)
+{
+   // The setup request is special: it might complete successfully,
+   // without causing the other tasks to exit.
+   // The other tasks will always complete with an error.
+   if (order[0] == 0u) {
+      // The setup request finished first. If it failed with an error,
+      // this is the cause of the problem
+      if (setup_ec)
+         return setup_ec;
+
+      // Otherwise, we need to look at which task finished next
+      if (order[1] == 1u)
+         return health_check_ec;
+      else if (order[2] == 1u)
+         return reader_ec;
+      else
+         return writer_ec;
+   } else {
+      // Look at the other tasks and see which one finished first
+      if (order[1] == 0u)
+         return health_check_ec;
+      else if (order[2] == 0u)
+         return reader_ec;
+      else
+         return writer_ec;
+   }
+}
+
 template <class Executor>
 class run_op {
 private:
    connection_impl<Executor>* conn_ = nullptr;
    asio::coroutine coro_{};
    system::error_code stored_ec_;
-
-   using order_t = std::array<std::size_t, 4>;
 
    static system::error_code on_setup_finished(
       connection_impl<Executor>& conn,
@@ -491,27 +526,15 @@ public:
    template <class Self>
    void operator()(
       Self& self,
-      order_t order,
+      std::array<std::size_t, 4> order,
       system::error_code setup_ec,
       system::error_code health_check_ec,
       system::error_code reader_ec,
-      system::error_code /* writer_ec */)
+      system::error_code writer_ec)
    {
-      // TODO: check
-      system::error_code final_ec;
-
-      if (order[0] == 0 && !!setup_ec) {
-         // The setup op finished first and with an error
-         final_ec = setup_ec;
-      } else if (order[0] == 1 && health_check_ec == error::pong_timeout) {
-         // The check ping timeout finished first. Use the ping error code
-         final_ec = health_check_ec;
-      } else {
-         // Use the reader error code
-         final_ec = reader_ec;
-      }
-
-      (*this)(self, final_ec);
+      (*this)(
+         self,
+         translate_parallel_group_errors(order, setup_ec, health_check_ec, reader_ec, writer_ec));
    }
 
    template <class Self>
@@ -786,7 +809,10 @@ public:
 
       // Overwrite the token's cancellation slot: the composed operation
       // should use the signal's slot so we can generate cancellations in cancel()
-      return asio::async_compose<CompletionToken, void(system::error_code)>(
+      using token_t = decltype(asio::bind_cancellation_slot(
+         impl_->run_signal_.slot(),
+         std::forward<CompletionToken>(token)));
+      return asio::async_compose<token_t, void(system::error_code)>(
          detail::run_op<Executor>{impl_.get()},
          asio::bind_cancellation_slot(
             impl_->run_signal_.slot(),
