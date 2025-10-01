@@ -320,7 +320,7 @@ public:
             conn_->logger_.trace("ping_op (1): timeout disabled.");
 
             // Wait until we're cancelled. This simplifies parallel group handling a lot
-            conn_->ping_timer_.expires_after((std::chrono::steady_clock::duration::max)());
+            conn_->ping_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
             BOOST_ASIO_CORO_YIELD conn_->ping_timer_.async_wait(std::move(self));
             self.complete(asio::error::operation_aborted);
             return;
