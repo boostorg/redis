@@ -29,7 +29,6 @@ auto to_string(reader_fsm::action::type t) noexcept -> char const*
       BOOST_REDIS_READER_SWITCH_CASE(read_some);
       BOOST_REDIS_READER_SWITCH_CASE(needs_more);
       BOOST_REDIS_READER_SWITCH_CASE(notify_push_receiver);
-      BOOST_REDIS_READER_SWITCH_CASE(cancel_run);
       BOOST_REDIS_READER_SWITCH_CASE(done);
       default: return "action::type::<invalid type>";
    }
