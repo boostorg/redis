@@ -166,11 +166,6 @@ void test_read_error()
 
    // Deliver the data
    act = fsm.resume(payload.size(), {net::error::operation_aborted}, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::cancel_run);
-   BOOST_TEST_EQ(act.ec_, error_code());
-
-   // Finish
-   act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::done);
    BOOST_TEST_EQ(act.ec_, error_code{net::error::operation_aborted});
 }
@@ -196,11 +191,6 @@ void test_parse_error()
 
    // Deliver the data
    act = fsm.resume(payload.size(), {}, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::cancel_run);
-   BOOST_TEST_EQ(act.ec_, error_code());
-
-   // Finish
-   act = fsm.resume(0, {}, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::done);
    BOOST_TEST_EQ(act.ec_, error_code{redis::error::not_a_number});
 }
@@ -231,10 +221,6 @@ void test_push_deliver_error()
 
    // Resumes from notifying a push with an error.
    act = fsm.resume(0, net::error::operation_aborted, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::cancel_run);
-
-   // Finish
-   act = fsm.resume(0, {}, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::done);
    BOOST_TEST_EQ(act.ec_, error_code{net::error::operation_aborted});
 }
@@ -263,10 +249,6 @@ void test_max_read_buffer_size()
    std::string const part1 = ">3\r\n";
    copy_to(mpx, part1);
    act = fsm.resume(part1.size(), {}, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::cancel_run);
-   BOOST_TEST_EQ(act.ec_, error_code());
-
-   act = fsm.resume({}, {}, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::done);
    BOOST_TEST_EQ(act.ec_, redis::error::exceeds_maximum_read_buffer_size);
 }
