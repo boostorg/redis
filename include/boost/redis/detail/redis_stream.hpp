@@ -268,20 +268,6 @@ public:
          default: BOOST_ASSERT(false);
       }
    }
-
-   // Cleanup
-   void cancel_resolve() { resolv_.cancel(); }
-
-   void close()
-   {
-      system::error_code ec;
-      if (stream_.next_layer().is_open())
-         stream_.next_layer().close(ec);
-#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
-      if (unix_socket_.is_open())
-         unix_socket_.close(ec);
-#endif
-   }
 };
 
 }  // namespace detail

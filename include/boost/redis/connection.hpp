@@ -144,29 +144,6 @@ struct connection_impl {
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
    }
 
-   void cancel(operation op)
-   {
-      switch (op) {
-         case operation::resolve: stream_.cancel_resolve(); break;
-         case operation::exec:    mpx_.cancel_waiting(); break;
-         case operation::reconnection:
-            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
-            break;
-         case operation::run:          cancel_run(); break;
-         case operation::receive:      receive_channel_.cancel(); break;
-         case operation::health_check: ping_timer_.cancel(); break;
-         case operation::all:
-            stream_.cancel_resolve();
-            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
-            ping_timer_.cancel();
-            cancel_run();               // run
-            receive_channel_.cancel();  // receive
-            mpx_.cancel_waiting();      // exec
-            break;
-         default: /* ignore */;
-      }
-   }
-
    void cancel_run()
    {
       stream_.close();
@@ -300,6 +277,7 @@ struct health_checker_op {
    connection_impl<Executor>* conn_;
    asio::coroutine coro_{};
 
+   // TODO: properly check for timeouts vs. cancellations here
    system::error_code check_errors(system::error_code io_ec)
    {
       // Did we have a timeout?
@@ -463,9 +441,6 @@ private:
    {
       ec = check_setup_response(ec, conn.setup_resp_);
       conn.logger_.on_setup(ec, conn.setup_resp_);
-      if (ec) {
-         conn.cancel(operation::run);
-      }
       return ec;
    }
 
@@ -604,7 +579,7 @@ public:
                // The receive operation must be cancelled because channel
                // subscription does not survive a reconnection but requires
                // re-subscription.
-               conn_->cancel(operation::receive);
+               conn_->receive_channel_.cancel();
             }
 
             // Check for cancellations
@@ -1042,7 +1017,28 @@ public:
     *
     *  @param op The operation to be cancelled.
     */
-   void cancel(operation op = operation::all) { impl_->cancel(op); }
+   void cancel(operation op = operation::all)
+   {
+      switch (op) {
+         case operation::exec:    impl_->mpx_.cancel_waiting(); break;
+         case operation::receive: impl_->receive_channel_.cancel(); break;
+         case operation::reconnection:
+            impl_->cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
+            break;
+         case operation::resolve:
+         case operation::run:
+         case operation::health_check:
+            impl_->run_signal_.emit(asio::cancellation_type_t::terminal);
+            break;
+         case operation::all:
+            impl_->mpx_.cancel_waiting();                                        // exec
+            impl_->receive_channel_.cancel();                                    // receive
+            impl_->cfg_.reconnect_wait_interval = std::chrono::seconds::zero();  // reconnect
+            impl_->run_signal_.emit(asio::cancellation_type_t::terminal);        // rest
+            break;
+         default: /* ignore */;
+      }
+   }
 
    /// Returns true if the connection will try to reconnect if an error is encountered.
    bool will_reconnect() const noexcept { return impl_->will_reconnect(); }
