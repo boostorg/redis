@@ -160,6 +160,27 @@ struct connection_impl {
       receive_channel_.cancel();
    }
 
+   void cancel(operation op)
+   {
+      switch (op) {
+         case operation::exec:    mpx_.cancel_waiting(); break;
+         case operation::receive: receive_channel_.cancel(); break;
+         case operation::resolve: stream_.cancel_resolve(); break;
+         case operation::reconnection:
+            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
+            break;
+         case operation::run:
+         case operation::health_check: cancel_run(); break;
+         case operation::all:
+            mpx_.cancel_waiting();                                        // exec
+            receive_channel_.cancel();                                    // receive
+            cfg_.reconnect_wait_interval = std::chrono::seconds::zero();  // reconnect
+            cancel_run();                                                 // run
+            break;
+         default: /* ignore */;
+      }
+   }
+
    bool is_open() const noexcept { return stream_.is_open(); }
 
    bool will_reconnect() const noexcept
@@ -628,7 +649,7 @@ public:
                             asio::cancellation_type_t::partial;
 
       if ((cancel_type & mask) != asio::cancellation_type_t::none) {
-         conn_->cancel_run();
+         conn_->cancel(operation::all);
       }
    }
 };
@@ -767,11 +788,20 @@ public:
     *  void f(system::error_code);
     *  @endcode
     *
-    *  For example on how to call this function refer to
-    *  cpp20_intro.cpp or any other example.
+    * @par Per-operation cancellation
+    * This operation supports the following cancellation types:
     *
-    *  @param cfg Configuration parameters.
-    *  @param token Completion token.
+    *   @li `asio::cancellation_type_t::terminal`.
+    *   @li `asio::cancellation_type_t::partial`.
+    *
+    * In both cases, cancellation is equivalent to calling @ref basic_connection::cancel,
+    * without arguments.
+    *
+    * For example on how to call this function refer to
+    * cpp20_intro.cpp or any other example.
+    *
+    * @param cfg Configuration parameters.
+    * @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(config const& cfg, CompletionToken&& token = {})
@@ -1022,26 +1052,7 @@ public:
     *
     *  @param op The operation to be cancelled.
     */
-   void cancel(operation op = operation::all)
-   {
-      switch (op) {
-         case operation::exec:    impl_->mpx_.cancel_waiting(); break;
-         case operation::receive: impl_->receive_channel_.cancel(); break;
-         case operation::resolve: impl_->stream_.cancel_resolve(); break;
-         case operation::reconnection:
-            impl_->cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
-            break;
-         case operation::run:
-         case operation::health_check: impl_->cancel_run(); break;
-         case operation::all:
-            impl_->mpx_.cancel_waiting();                                        // exec
-            impl_->receive_channel_.cancel();                                    // receive
-            impl_->cfg_.reconnect_wait_interval = std::chrono::seconds::zero();  // reconnect
-            impl_->cancel_run();                                                 // run
-            break;
-         default: /* ignore */;
-      }
-   }
+   void cancel(operation op = operation::all) { impl_->cancel(op); }
 
    /// Returns true if the connection will try to reconnect if an error is encountered.
    bool will_reconnect() const noexcept { return impl_->will_reconnect(); }
