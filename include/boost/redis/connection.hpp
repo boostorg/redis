@@ -278,13 +278,18 @@ struct health_checker_op {
    connection_impl<Executor>* conn_;
    asio::coroutine coro_{};
 
-   // TODO: properly check for timeouts vs. cancellations here
-   system::error_code check_errors(system::error_code io_ec)
+   system::error_code check_errors(system::error_code io_ec, asio::cancellation_type_t cancel_state)
    {
-      // Did we have a timeout?
+      // Did we have a cancellation? We might not have an error code here
+      if ((cancel_state & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none) {
+         conn_->logger_.log(logger::level::info, "Health checker: cancelled");
+         return asio::error::operation_aborted;
+      }
+
+      // operation_aborted and no cancel state means that asio::cancel_after timed out
       if (io_ec == asio::error::operation_aborted) {
          conn_->logger_.log(logger::level::info, "Health checker: ping timed out");
-         return asio::error::operation_aborted;
+         return error::pong_timeout;
       }
 
       // Did we have other unknown error?
@@ -342,15 +347,8 @@ public:
                   asio::cancel_after(conn->ping_timer_, timeout, std::move(self)));
             }
 
-            // Check for cancellations
-            if (is_cancelled(self)) {
-               conn_->logger_.trace("ping_op (2): cancelled");
-               self.complete(asio::error::operation_aborted);
-               return;
-            }
-
-            // Check for errors in PING
-            ec = check_errors(ec);
+            // Check for cancellations and errors in PING
+            ec = check_errors(ec, self.get_cancellation_state().cancelled());
             if (ec) {
                self.complete(ec);
                return;
@@ -361,14 +359,9 @@ public:
 
             BOOST_ASIO_CORO_YIELD
             conn_->ping_timer_.async_wait(std::move(self));
-            if (ec) {
-               conn_->logger_.trace("ping_op (3)", ec);
-               self.complete(ec);
-               return;
-            }
 
             if (is_cancelled(self)) {
-               conn_->logger_.trace("ping_op (4): cancelled");
+               conn_->logger_.trace("ping_op (2): cancelled");
                self.complete(asio::error::operation_aborted);
                return;
             }
