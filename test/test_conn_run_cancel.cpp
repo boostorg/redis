@@ -17,6 +17,8 @@
 #include "common.hpp"
 
 #include <cstddef>
+#include <iostream>
+#include <string_view>
 
 using boost::system::error_code;
 namespace net = boost::asio;
@@ -24,9 +26,11 @@ using namespace boost::redis;
 
 namespace {
 
-// Per-operation cancellation works for async_run
-void test_terminal_cancellation()
+// Terminal and partial cancellation work for async_run
+void test_per_operation_cancellation(std::string_view name, net::cancellation_type_t cancel_type)
 {
+   std::cerr << "Running test case: " << name << std::endl;
+
    // Setup
    net::io_context ioc;
    connection conn{ioc};
@@ -48,7 +52,7 @@ void test_terminal_cancellation()
    conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
       exec_finished = true;
       BOOST_TEST_EQ(ec, error_code());
-      sig.emit(net::cancellation_type_t::terminal);
+      sig.emit(cancel_type);
    });
 
    ioc.run_for(test_timeout);
@@ -62,7 +66,8 @@ void test_terminal_cancellation()
 
 int main()
 {
-   test_terminal_cancellation();
+   test_per_operation_cancellation("terminal", net::cancellation_type_t::terminal);
+   test_per_operation_cancellation("partial", net::cancellation_type_t::partial);
 
    return boost::report_errors();
 }
