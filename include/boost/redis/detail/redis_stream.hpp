@@ -122,10 +122,11 @@ class redis_stream {
             } else {
                // ssl::stream doesn't support being re-used. If we're to use
                // TLS and the stream has been used, re-create it.
-               // Must be done before anything else is done on the stream
+               // Must be done before anything else is done on the stream.
+               // Note that we don't need to close the socket here because
+               // range connect does it for us.
                if (cfg->use_ssl && obj.ssl_stream_used_)
                   obj.reset_stream();
-               // TODO: do we need to do this for TCP too? do we need a test?
 
                BOOST_ASIO_CORO_YIELD
                obj.resolv_.async_resolve(
