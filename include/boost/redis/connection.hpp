@@ -778,9 +778,8 @@ public:
     *      before `async_run` is called will be written to the server immediately.
     *
     *  When a connection is lost for any reason, a new one is
-    *  established automatically. To disable reconnection call
-    *  `boost::redis::connection::cancel(operation::reconnection)`
-    *  or set @ref boost::redis::config::reconnect_wait_interval to zero.
+    *  established automatically. To disable reconnection
+    *  set @ref boost::redis::config::reconnect_wait_interval to zero.
     *
     *  The completion token must have the following signature
     *
@@ -881,25 +880,32 @@ public:
 
    /** @brief Receives server side pushes asynchronously.
     *
-    *  When pushes arrive and there is no `async_receive` operation in
-    *  progress, pushed data, requests, and responses will be paused
-    *  until `async_receive` is called again. Apps will usually want
-    *  to call `async_receive` in a loop. 
+    * When pushes arrive and there is no `async_receive` operation in
+    * progress, pushed data, requests, and responses will be paused
+    * until `async_receive` is called again. Apps will usually want
+    * to call `async_receive` in a loop. 
     *
-    *  To cancel an ongoing receive operation apps should call
-    *  `basic_connection::cancel(operation::receive)`.
+    * For an example see cpp20_subscriber.cpp. The completion token must
+    * have the following signature
     *
-    *  For an example see cpp20_subscriber.cpp. The completion token must
-    *  have the following signature
+    * @code
+    * void f(system::error_code, std::size_t);
+    * @endcode
     *
-    *  @code
-    *  void f(system::error_code, std::size_t);
-    *  @endcode
+    * Where the second parameter is the size of the push received in
+    * bytes.
+    *  
+    * @par Per-operation cancellation
+    * This operation supports the following cancellation types:
     *
-    *  Where the second parameter is the size of the push received in
-    *  bytes.
+    *   @li `asio::cancellation_type_t::terminal`.
+    *   @li `asio::cancellation_type_t::partial`.
+    *   @li `asio::cancellation_type_t::total`.
+    *
+    * Calling @ref basic_connection::cancel (without arguments) will
+    * also cancel any ongoing receive operations.
     * 
-    *  @param token Completion token.
+    * @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_receive(CompletionToken&& token = {})
