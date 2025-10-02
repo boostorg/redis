@@ -25,7 +25,8 @@ using namespace std::chrono_literals;
 
 namespace {
 
-void test_check_health()
+// The health checker detects dead connections and triggers reconnection
+void test_check_health_reconnection()
 {
    // Setup
    net::io_context ioc;
@@ -79,7 +80,7 @@ void test_check_health()
 
 int main()
 {
-   test_check_health();
+   test_check_health_reconnection();
 
    return boost::report_errors();
 }
