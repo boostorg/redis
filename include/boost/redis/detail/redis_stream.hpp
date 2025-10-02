@@ -273,6 +273,12 @@ public:
          default: BOOST_ASSERT(false);
       }
    }
+
+   // Cancels resolve operations. Resolve operations don't support per-operation
+   // cancellation, but resolvers have a cancel() function. Resolve operations are
+   // in general blocking and run in a separate thread. cancel() has effect only
+   // if the operation hasn't started yet. Still, trying is better than nothing
+   void cancel_resolve() { resolv_.cancel(); }
 };
 
 }  // namespace detail

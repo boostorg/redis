@@ -147,8 +147,16 @@ struct connection_impl {
 
    void cancel_run()
    {
-      stream_.close();
-      writer_timer_.cancel();
+      // Individual operations should see a terminal cancellation, regardless
+      // of what we got requested. We take enough actions to ensure that this
+      // doesn't prevent the object from being re-used (e.g. we reset the TLS stream).
+      run_signal_.emit(asio::cancellation_type_t::terminal);
+
+      // Name resolution doesn't support per-operation cancellation
+      stream_.cancel_resolve();
+
+      // Receive is technically not part of run, but we also cancel it for
+      // simplicity and backwards compatibility.
       receive_channel_.cancel();
    }
 
@@ -604,15 +612,25 @@ public:
 
 logger make_stderr_logger(logger::level lvl, std::string prefix);
 
+template <class Executor>
 class run_cancel_handler {
-   asio::cancellation_signal* sig_;
+   connection_impl<Executor>* conn_;
 
 public:
-   explicit run_cancel_handler(asio::cancellation_signal& sig) noexcept
-   : sig_(&sig)
+   explicit run_cancel_handler(connection_impl<Executor>& conn) noexcept
+   : conn_(&conn)
    { }
 
-   void operator()(asio::cancellation_type_t cancel_type) const { sig_->emit(cancel_type); }
+   void operator()(asio::cancellation_type_t cancel_type) const
+   {
+      // We support terminal and partial cancellation
+      constexpr auto mask = asio::cancellation_type_t::terminal |
+                            asio::cancellation_type_t::partial;
+
+      if ((cancel_type & mask) != asio::cancellation_type_t::none) {
+         conn_->cancel_run();
+      }
+   }
 };
 
 }  // namespace detail
@@ -766,7 +784,7 @@ public:
       // function and per-operation cancellation
       auto slot = asio::get_associated_cancellation_slot(token);
       if (slot.is_connected()) {
-         slot.template emplace<detail::run_cancel_handler>(impl_->run_signal_);
+         slot.template emplace<detail::run_cancel_handler<Executor>>(*impl_);
       }
 
       // Overwrite the token's cancellation slot: the composed operation
@@ -1009,19 +1027,17 @@ public:
       switch (op) {
          case operation::exec:    impl_->mpx_.cancel_waiting(); break;
          case operation::receive: impl_->receive_channel_.cancel(); break;
+         case operation::resolve: impl_->stream_.cancel_resolve(); break;
          case operation::reconnection:
             impl_->cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
             break;
-         case operation::resolve:
          case operation::run:
-         case operation::health_check:
-            impl_->run_signal_.emit(asio::cancellation_type_t::terminal);
-            break;
+         case operation::health_check: impl_->cancel_run(); break;
          case operation::all:
             impl_->mpx_.cancel_waiting();                                        // exec
             impl_->receive_channel_.cancel();                                    // receive
             impl_->cfg_.reconnect_wait_interval = std::chrono::seconds::zero();  // reconnect
-            impl_->run_signal_.emit(asio::cancellation_type_t::terminal);        // rest
+            impl_->cancel_run();                                                 // run
             break;
          default: /* ignore */;
       }
