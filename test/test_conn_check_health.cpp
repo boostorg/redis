@@ -113,12 +113,54 @@ void test_error_code()
    BOOST_TEST(exec_finished);
 }
 
+// A ping interval of zero disables timeouts (and doesn't cause trouble)
+void test_disabled()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+
+   // Run a couple of requests to verify that the connection works fine
+   request req1;
+   req1.push("PING", "health_check_disabled_1");
+
+   request req2;
+   req1.push("PING", "health_check_disabled_2");
+
+   auto cfg = make_test_config();
+   cfg.health_check_interval = 0s;
+
+   bool run_finished = false, exec1_finished = false, exec2_finished = false;
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
+      exec1_finished = true;
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req2, ignore, [&](error_code ec2, std::size_t) {
+         exec2_finished = true;
+         BOOST_TEST_EQ(ec2, error_code());
+         conn.cancel();
+      });
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(run_finished);
+   BOOST_TEST(exec1_finished);
+   BOOST_TEST(exec2_finished);
+}
+
 }  // namespace
 
 int main()
 {
    test_reconnection();
    test_error_code();
+   test_disabled();
 
    return boost::report_errors();
 }
