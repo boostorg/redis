@@ -26,7 +26,7 @@ using namespace std::chrono_literals;
 namespace {
 
 // The health checker detects dead connections and triggers reconnection
-void test_check_health_reconnection()
+void test_reconnection()
 {
    // Setup
    net::io_context ioc;
@@ -76,11 +76,49 @@ void test_check_health_reconnection()
    BOOST_TEST(exec2_finished);
 }
 
+// We use the correct error code when a ping times out
+void test_error_code()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+
+   // This request will block forever, causing the connection to become unresponsive
+   request req;
+   req.push("BLPOP", "any", 0);
+
+   // Make the test run faster
+   auto cfg = make_test_config();
+   cfg.health_check_interval = 200ms;
+   cfg.reconnect_wait_interval = 0s;
+
+   bool run_finished = false, exec_finished = false;
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, boost::redis::error::pong_timeout);
+   });
+
+   // This request will complete after the health checker deems the connection
+   // as unresponsive and triggers a reconnection (it's configured to be cancelled
+   // on connection lost).
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(run_finished);
+   BOOST_TEST(exec_finished);
+}
+
 }  // namespace
 
 int main()
 {
-   test_check_health_reconnection();
+   test_reconnection();
+   test_error_code();
 
    return boost::report_errors();
 }
