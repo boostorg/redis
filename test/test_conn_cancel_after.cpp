@@ -13,6 +13,7 @@
 
 #include <boost/asio/cancel_after.hpp>
 #include <boost/asio/error.hpp>
+#include <boost/asio/experimental/channel_error.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/core/lightweight_test.hpp>
 
@@ -83,7 +84,7 @@ void test_receive()
 
    // Call the function with a very short timeout.
    conn.async_receive(asio::cancel_after(1ms, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, asio::error::operation_aborted);
+      BOOST_TEST_EQ(ec, asio::experimental::channel_errc::channel_cancelled);
       receive_finished = true;
    }));
 
