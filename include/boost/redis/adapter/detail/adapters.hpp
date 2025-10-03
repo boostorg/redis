@@ -12,7 +12,7 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
-#include <boost/redis/response.hpp>
+#include <boost/redis/generic_flat_response_value.hpp>
 
 #include <boost/assert.hpp>
 
@@ -20,7 +20,6 @@
 #include <charconv>
 #include <deque>
 #include <forward_list>
-#include <iostream>
 #include <list>
 #include <map>
 #include <optional>
@@ -138,6 +137,8 @@ void boost_redis_from_bulk(T& t, resp3::basic_node<String> const& node, system::
    from_bulk_impl<T>::apply(t, node, ec);
 }
 
+//================================================
+
 template <class Result>
 class general_aggregate {
 private:
@@ -177,12 +178,12 @@ public:
 };
 
 template <>
-class general_aggregate<result<flat_response_value>> {
+class general_aggregate<result<generic_flat_response_value>> {
 private:
-   result<flat_response_value>* result_;
+   result<generic_flat_response_value>* result_ = nullptr;
 
 public:
-   explicit general_aggregate(result<flat_response_value>* c = nullptr)
+   explicit general_aggregate(result<generic_flat_response_value>* c = nullptr)
    : result_(c)
    { }
 
@@ -190,12 +191,12 @@ public:
    void on_done()
    {
       if (result_->has_value()) {
-         result_->value().set_view();
+         result_->value().notify_done();
       }
    }
 
    template <class String>
-   void operator()(resp3::basic_node<String> const& nd, system::error_code&)
+   void on_node(resp3::basic_node<String> const& nd, system::error_code&)
    {
       BOOST_ASSERT_MSG(!!result_, "Unexpected null pointer");
       switch (nd.data_type) {
@@ -206,7 +207,7 @@ public:
                std::string{std::cbegin(nd.value), std::cend(nd.value)}
             };
             break;
-         default: result_->value().add_node(nd);
+         default: result_->value().push(nd);
       }
    }
 };

@@ -23,11 +23,15 @@ using boost::redis::request;
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
 using boost::redis::generic_response;
+using boost::redis::generic_flat_response;
 using boost::redis::ignore_t;
 using boost::redis::resp3::detail::deserialize;
 using boost::redis::resp3::node;
+using boost::redis::resp3::node_view;
+using boost::redis::resp3::offset_node;
 using boost::redis::resp3::to_string;
 using boost::redis::response;
+using boost::redis::resp3::offset_response;
 using boost::redis::any_adapter;
 using boost::system::error_code;
 
@@ -312,4 +316,99 @@ BOOST_AUTO_TEST_CASE(check_counter_adapter)
    BOOST_CHECK_EQUAL(init, 1);
    BOOST_CHECK_EQUAL(node, 7);
    BOOST_CHECK_EQUAL(done, 1);
+}
+
+node from_node_view(offset_node const& v)
+{
+   node ret;
+   ret.data_type = v.data_type;
+   ret.aggregate_size = v.aggregate_size;
+   ret.depth = v.depth;
+   ret.value = v.value.data;
+   return ret;
+}
+
+generic_response from_flat(generic_flat_response const& resp)
+{
+   generic_response ret;
+   for (auto const& e: resp.value().get_view())
+      ret.value().push_back(from_node_view(e));
+
+   return ret;
+}
+
+namespace boost::redis::resp3 {
+
+
+std::ostream& operator<<(std::ostream& os, node const& nd)
+{
+   os << "type: " << to_string(nd.data_type) << "\n"
+      << "aggregate_size: " << nd.aggregate_size << "\n"
+      << "depth: " << nd.depth << "\n"
+      << "value: " << nd.value << "\n";
+   return os;
+}
+
+std::ostream& operator<<(std::ostream& os, response const& resp)
+{
+   for (auto const& e: resp)
+      os << e << ",";
+   return os;
+}
+
+}
+
+// Parses the same data into a generic_response and a
+// generic_flat_response, they should be equal to each other.
+BOOST_AUTO_TEST_CASE(generic_flat_resps_views_are_set)
+{
+   using boost::redis::resp3::node_view;
+   using boost::redis::resp3::type;
+   using boost::redis::resp3::view_response;
+
+   generic_response resp1;
+   generic_flat_response fresp;
+
+   deserialize(resp3_set, adapt2(resp1));
+   deserialize(resp3_set, adapt2(fresp));
+
+   BOOST_TEST(fresp.has_value());
+   BOOST_CHECK_EQUAL(fresp.value().get_reallocs(), 1u);
+   BOOST_CHECK_EQUAL(fresp.value().get_total_msgs(), 1u);
+
+   auto const resp2 = from_flat(fresp);
+
+   BOOST_TEST(resp1.has_value());
+   BOOST_TEST(resp2.has_value());
+   BOOST_CHECK_EQUAL(resp1.value(), resp2.value());
+}
+
+// The response should be reusable.
+BOOST_AUTO_TEST_CASE(generic_flat_resp_reuse)
+{
+   using boost::redis::resp3::node_view;
+   using boost::redis::resp3::type;
+   using boost::redis::resp3::view_response;
+
+   generic_flat_response tmp;
+
+   // First use
+   deserialize(resp3_set, adapt2(tmp));
+   BOOST_TEST(tmp.has_value());
+   BOOST_CHECK_EQUAL(tmp.value().get_reallocs(), 1u);
+   BOOST_CHECK_EQUAL(tmp.value().get_total_msgs(), 1u);
+
+   // Copy to compare after the reuse.
+   auto const resp1 = from_flat(tmp);
+   tmp.value().clear();
+
+   // Second use
+   deserialize(resp3_set, adapt2(tmp));
+
+   // No reallocation this time
+   BOOST_CHECK_EQUAL(tmp.value().get_reallocs(), 0u);
+   BOOST_CHECK_EQUAL(tmp.value().get_total_msgs(), 1u);
+
+   auto const resp2 = from_flat(tmp);
+   BOOST_CHECK_EQUAL(resp1.value(), resp2.value());
 }

@@ -74,7 +74,7 @@ enum class error
    /// SSL handshake timeout
    ssl_handshake_timeout,
 
-   /// Can't receive push synchronously without blocking
+   /// (Deprecated) Can't receive push synchronously without blocking
    sync_receive_push_failed,
 
    /// Incompatible node depth.

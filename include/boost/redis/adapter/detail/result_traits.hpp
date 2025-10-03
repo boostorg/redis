@@ -66,7 +66,7 @@ struct result_traits<result<std::vector<resp3::basic_node<String>, Allocator>>> 
 template <>
 struct result_traits<generic_flat_response> {
    using response_type = generic_flat_response;
-   using adapter_type = adapter::detail::general_aggregate<response_type>;
+   using adapter_type = general_aggregate<response_type>;
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 

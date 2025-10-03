@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2024 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -53,26 +53,51 @@ auto operator==(basic_node<String> const& a, basic_node<String> const& b)
    // clang-format on
 };
 
+/** @brief A string_view that is set lazily
+ *
+ *  This helper struct is needed by the `boost::redis:.generic_flat_response`.
+ */
+struct offset_string {
+   /// The data the offset refers to.
+   std::string_view data;
+
+   // (not documented) The offset into an unspecified buffer.
+   std::size_t offset;
+
+   // (not documented) The string size.
+   std::size_t size;
+};
+
+// Compares two `offset_strings` for equality
+inline
+auto operator==(offset_string const& a, offset_string const& b)
+{
+   return a.data == b.data && a.offset == b.offset && a.size == b.size;
+};
+
+inline
+auto operator!=(offset_string const& a, offset_string const& b)
+{
+   return !(a == b);
+};
+
 /// A node in the response tree that owns its data.
 using node = basic_node<std::string>;
 
 /// A node in the response tree that does not own its data.
 using node_view = basic_node<std::string_view>;
 
-struct offset_string {
-   std::string_view data;
-   std::size_t offset{};
-   std::size_t size{};
-
-   operator std::string() const { return std::string{data}; }
-
-   friend std::ostream& operator<<(std::ostream& os, offset_string const& s)
-   {
-      return os << s.data;
-   }
-};
-
+/// A node in the response tree whose data is set lazily.
 using offset_node = basic_node<offset_string>;
+
+/// A RESP3 response that owns its data.
+using response = std::vector<node>;
+
+/// A RESP3 response whose data are `std::string_views`.
+using view_response = std::vector<node_view>;
+
+/// A RESP3 response whose data is set lazily
+using offset_response = std::vector<offset_node>;
 
 }  // namespace boost::redis::resp3
 
