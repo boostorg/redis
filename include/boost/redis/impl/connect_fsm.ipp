@@ -95,8 +95,11 @@ connect_action connect_fsm::resume(
       st.type = transport_from_config(*cfg_);
 
       if (st.type == transport_type::unix_socket) {
-         // Directly connect to the socket
-         BOOST_REDIS_YIELD(resume_point_, 1, connect_action_type::unix_socket_connect)
+         // Reset the socket, to discard any previous state. Ignore any errors
+         BOOST_REDIS_YIELD(resume_point_, 1, connect_action_type::unix_socket_close)
+
+         // Connect to the socket
+         BOOST_REDIS_YIELD(resume_point_, 2, connect_action_type::unix_socket_connect)
 
          // Fix error codes. If we were cancelled and the code is operation_aborted,
          // it is because per-operation cancellation was activated. If we were not cancelled
@@ -117,14 +120,16 @@ connect_action connect_fsm::resume(
       } else {
          // ssl::stream doesn't support being re-used. If we're to use
          // TLS and the stream has been used, re-create it.
-         // Must be done before anything else is done on the stream
+         // Must be done before anything else is done on the stream.
+         // We don't need to close the TCP socket if using plaintext TCP
+         // because range-connect closes open sockets, while individual connect doesn't
          if (cfg_->use_ssl && st.ssl_stream_used) {
-            BOOST_REDIS_YIELD(resume_point_, 2, connect_action_type::ssl_stream_reset)
+            BOOST_REDIS_YIELD(resume_point_, 3, connect_action_type::ssl_stream_reset)
          }
 
          // Resolve names. The continuation needs access to the returned
          // endpoints, and is a specialized resume() that will call this function
-         BOOST_REDIS_YIELD(resume_point_, 3, connect_action_type::tcp_resolve)
+         BOOST_REDIS_YIELD(resume_point_, 4, connect_action_type::tcp_resolve)
 
          // If this failed, we can't continue (error code translation already performed here)
          if (ec) {
@@ -133,7 +138,7 @@ connect_action connect_fsm::resume(
 
          // Now connect to the endpoints returned by the resolver.
          // This has a specialized resume(), too
-         BOOST_REDIS_YIELD(resume_point_, 4, connect_action_type::tcp_connect)
+         BOOST_REDIS_YIELD(resume_point_, 5, connect_action_type::tcp_connect)
 
          // If this failed, we can't continue (error code translation already performed here)
          if (ec) {
@@ -145,7 +150,7 @@ connect_action connect_fsm::resume(
             st.ssl_stream_used = true;
 
             // Perform the TLS handshake
-            BOOST_REDIS_YIELD(resume_point_, 5, connect_action_type::ssl_handshake)
+            BOOST_REDIS_YIELD(resume_point_, 6, connect_action_type::ssl_handshake)
 
             // Translate error codes
             ec = translate_timeout_error(ec, cancel_state, error::ssl_handshake_timeout);

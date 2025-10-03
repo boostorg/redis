@@ -55,6 +55,17 @@ class redis_stream {
          const auto& cfg = fsm_.get_config();
 
          switch (act.type()) {
+            case connect_action_type::unix_socket_close:
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+            {
+               system::error_code ec;
+               obj.unix_socket_.close(ec);
+               (*this)(self, ec);  // This is a sync action
+            }
+#else
+               BOOST_ASSERT(false);
+#endif
+               return;
             case connect_action_type::unix_socket_connect:
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
                obj.unix_socket_.async_connect(

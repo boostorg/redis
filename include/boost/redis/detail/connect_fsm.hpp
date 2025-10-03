@@ -41,12 +41,13 @@ struct redis_stream_state {
 // What should we do next?
 enum class connect_action_type
 {
-   unix_socket_connect,
-   tcp_resolve,
-   tcp_connect,
-   ssl_stream_reset,
-   ssl_handshake,
-   done,
+   unix_socket_close,    // Close the UNIX socket, to discard state
+   unix_socket_connect,  // Connect to the UNIX socket
+   tcp_resolve,          // Name resolution
+   tcp_connect,          // TCP connect
+   ssl_stream_reset,     // Re-create the SSL stream, to discard state
+   ssl_handshake,        // SSL handshake
+   done,                 // Complete the async op
 };
 
 class connect_action {
