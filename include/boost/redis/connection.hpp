@@ -912,7 +912,7 @@ public:
       return impl_->receive_channel_.async_receive(std::forward<CompletionToken>(token));
    }
 
-   /** @brief Receives server> pushes synchronously without blocking.
+   /** @brief Receives server pushes synchronously without blocking.
     *
     *  Receives a server push synchronously by calling `try_receive` on
     *  the underlying channel. If the operation fails because
