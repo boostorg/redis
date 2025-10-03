@@ -210,7 +210,6 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
 
    conn->async_receive([&, conn](error_code ec, std::size_t) {
       BOOST_CHECK_EQUAL(ec, boost::asio::experimental::error::channel_cancelled);
-      conn->cancel(operation::reconnection);
       push_received = true;
    });
 
@@ -220,7 +219,8 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    });
 
    auto cfg = make_test_config();
-   conn->async_run(cfg, {}, [&run_finished](error_code ec) {
+   cfg.reconnect_wait_interval = 0s;
+   conn->async_run(cfg, [&run_finished](error_code ec) {
       BOOST_CHECK_EQUAL(ec, redis::error::incompatible_size);
       run_finished = true;
    });

@@ -22,15 +22,13 @@ public:
    struct action {
       enum class type
       {
-         setup_cancellation,
          read_some,
          needs_more,
          notify_push_receiver,
-         cancel_run,
          done,
       };
 
-      type type_ = type::setup_cancellation;
+      type type_ = type::done;
       std::size_t push_size_ = 0u;
       system::error_code ec_ = {};
    };
@@ -40,11 +38,10 @@ public:
    action resume(
       std::size_t bytes_read,
       system::error_code ec,
-      asio::cancellation_type_t /*cancel_state*/);
+      asio::cancellation_type_t cancel_state);
 
 private:
    int resume_point_{0};
-   action action_after_resume_;
    action::type next_read_type_ = action::type::read_some;
    multiplexer* mpx_ = nullptr;
    std::pair<consume_result, std::size_t> res_{consume_result::needs_more, 0u};
