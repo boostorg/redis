@@ -1,0 +1,55 @@
+//
+// Copyright (c) 2025 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+= Cancellation
+
+Requests may take a very long time. If the server is down, they may suspend forever,
+waiting for the server to be up. Fortunately, requests can be cancelled after
+a certain time using asio::cancel_after:
+
+```
+request req;
+// ...
+
+co_await conn.async_exec(req, resp, asio::cancel_after(10s));
+```
+
+If the request hasn't been responded after 10 seconds, it will
+fail with `asio::error::operation_aborted`. With the coroutine
+usage above, this means a `boost::system::system_error` exception
+with the error code mentioned above.
+
+== Retrying idempotent requests
+
+By default, the library waits until the server is up,
+and then sends the request. But what happens if there is a communication
+error after sending the request, but before receiving a response?
+
+In this situation, we don't know if the request was processed by the server or not.
+And we have no way to know it. By default, the library mark these requests as
+failed with `asio::error::operation_aborted`. (TODO: do we want another error code here?).
+
+Some requests can be executed several times and result in the same outcome
+as executing them only once. We say that these requests are idempotent.
+The `SET` command is idempotent, while `INCR` is not.
+
+If you know that a request contains only idempotent commands,
+you can instruct Redis to retry the request on failure, even
+if the library is unsure about whether the server received the request or not.
+You can do so by setting request::config::cancel_if_unresponded to false:
+
+```
+request req;
+req.push("SET", "my_key", 42); // idempotent
+req.get_config().cancel_on_connection_lost = false; // TODO: we shouldn't need this
+req.get_config().cancel_if_unresponded = false; // retry
+
+// Makes sure that the key is set, even in the presence of network errors.
+// This may suspend for an unspecified period of time if the server is down.
+co_await conn.async_exec(req, ignore);
+```

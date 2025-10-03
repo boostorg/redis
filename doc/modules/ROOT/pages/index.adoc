@@ -139,6 +139,7 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
 
 Here is a list of topics that you might be interested in:
 
+* xref:cancellation.adoc[Setting timeouts to requests and managing cancellation].
 * xref:requests_responses.adoc[More on requests and responses].
 * xref:serialization.adoc[Serializing and parsing into custom types].
 * xref:logging.adoc[Configuring logging].
