@@ -18,6 +18,7 @@
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/resp3_type_to_error.hpp>
 #include <boost/redis/detail/setup_request_utils.hpp>
+#include <boost/redis/detail/writer_fsm.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
@@ -212,50 +213,27 @@ struct connection_impl {
 template <class Executor>
 struct writer_op {
    connection_impl<Executor>* conn_;
-   asio::coroutine coro{};
+   writer_fsm fsm_;
+
+   explicit writer_op(connection_impl<Executor>& conn) noexcept
+   : conn_(&conn)
+   , fsm_(conn.mpx_, conn.logger_)
+   { }
 
    template <class Self>
-   void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
+   void operator()(Self& self, system::error_code ec = {}, std::size_t bytes_written = 0u)
    {
-      ignore_unused(n);
+      auto act = fsm_.resume(ec, bytes_written, self.get_cancellation_state().cancelled());
 
-      BOOST_ASIO_CORO_REENTER(coro) for (;;)
-      {
-         while (conn_->mpx_.prepare_write() != 0) {
-            BOOST_ASIO_CORO_YIELD
+      switch (act.type()) {
+         case writer_action_type::done: self.complete(act.error()); return;
+         case writer_action_type::write:
             asio::async_write(
                conn_->stream_,
                asio::buffer(conn_->mpx_.get_write_buffer()),
                std::move(self));
-
-            conn_->logger_.on_write(ec, conn_->mpx_.get_write_buffer().size());
-
-            if (ec) {
-               conn_->logger_.trace("writer_op (1)", ec);
-               self.complete(ec);
-               return;
-            }
-
-            conn_->mpx_.commit_write();
-
-            // Check for cancellations
-            if (is_cancelled(self)) {
-               conn_->logger_.trace("writer_op (2): cancelled");
-               self.complete(asio::error::operation_aborted);
-               return;
-            }
-         }
-
-         // Wait for data to be available
-         BOOST_ASIO_CORO_YIELD
-         conn_->writer_timer_.async_wait(std::move(self));
-
-         // Check for cancellations
-         if (is_cancelled(self)) {
-            conn_->logger_.trace("writer_op (3): cancelled");
-            self.complete(asio::error::operation_aborted);
             return;
-         }
+         case writer_action_type::wait: conn_->writer_timer_.async_wait(std::move(self)); return;
       }
    }
 };
