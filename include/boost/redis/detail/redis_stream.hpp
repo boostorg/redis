@@ -230,19 +230,11 @@ public:
       }
    }
 
-   // Cleanup
+   // Cancels resolve operations. Resolve operations don't support per-operation
+   // cancellation, but resolvers have a cancel() function. Resolve operations are
+   // in general blocking and run in a separate thread. cancel() has effect only
+   // if the operation hasn't started yet. Still, trying is better than nothing
    void cancel_resolve() { resolv_.cancel(); }
-
-   void close()
-   {
-      system::error_code ec;
-      if (stream_.next_layer().is_open())
-         stream_.next_layer().close(ec);
-#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
-      if (unix_socket_.is_open())
-         unix_socket_.close(ec);
-#endif
-   }
 };
 
 }  // namespace detail
