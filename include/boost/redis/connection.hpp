@@ -416,32 +416,12 @@ inline system::error_code check_config(const config& cfg)
    return system::error_code{};
 }
 
-inline system::error_code translate_parallel_group_errors(
+system::error_code translate_parallel_group_errors(
    std::array<std::size_t, 4u> order,
    system::error_code setup_ec,
    system::error_code health_check_ec,
    system::error_code reader_ec,
-   system::error_code writer_ec)
-{
-   // The setup request is special: it might complete successfully,
-   // without causing the other tasks to exit.
-   // The other tasks will always complete with an error.
-
-   // If the setup task errored and was the first to exit, use its code
-   if (order[0] == 0u && setup_ec) {
-      return setup_ec;
-   }
-
-   // Use the code corresponding to the task that finished first,
-   // excluding the setup task
-   std::size_t task_number = order[0] == 0u ? order[1] : order[0];
-   switch (task_number) {
-      case 1u: return health_check_ec;
-      case 2u: return reader_ec;
-      case 3u: return writer_ec;
-      default: BOOST_ASSERT(false); return system::error_code();
-   }
-}
+   system::error_code writer_ec);
 
 template <class Executor>
 class run_op {
