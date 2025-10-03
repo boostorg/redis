@@ -47,7 +47,7 @@ static void do_log(redis::logger::level level, std::string_view msg)
    spdlog::log(to_spdlog_level(level), "(Boost.Redis) {}", msg);
 }
 
-auto main() -> int
+auto main(int argc, char** argv) -> int
 {
    try {
       // Create an execution context, required to create any I/O objects
@@ -62,9 +62,12 @@ auto main() -> int
          redis::logger{redis::logger::level::info, do_log}
       };
 
-      // Configuration to connect to the server. By default, it will connect to
-      // localhost. Adjust cfg.addr as required.
+      // Configuration to connect to the server. Adjust as required
       redis::config cfg;
+      if (argc == 3) {
+         cfg.addr.host = argv[1];
+         cfg.addr.port = argv[2];
+      }
 
       // Run the connection with the specified configuration.
       // This will establish the connection and keep it healthy

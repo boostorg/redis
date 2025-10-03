@@ -17,7 +17,7 @@ endmacro()
 
 macro(make_testable_example EXAMPLE_NAME STANDARD)
   make_example(${EXAMPLE_NAME} ${STANDARD})
-  add_test(${EXAMPLE_NAME} ${EXAMPLE_NAME})
+  add_test(${EXAMPLE_NAME} ${EXAMPLE_NAME} $ENV{BOOST_REDIS_TEST_SERVER} 6379)
 endmacro()
 
 make_testable_example(cpp17_intro 17)
