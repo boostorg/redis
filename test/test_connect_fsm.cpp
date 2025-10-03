@@ -273,6 +273,31 @@ void test_unix_success()
    BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
 }
 
+// Close errors are ignored
+void test_unix_success_close_error()
+{
+   // Setup
+   fixture fix{make_unix_config()};
+
+   // Run the algorithm
+   auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
+   act = fix.fsm.resume(asio::error::bad_descriptor, fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::done);
+
+   // The transport type was appropriately set
+   BOOST_TEST_EQ(fix.st.type, transport_type::unix_socket);
+   BOOST_TEST_NOT(fix.st.ssl_stream_used);
+
+   // Check logging
+   const log_message expected[] = {
+      {logger::level::info, "Connected to /run/redis.sock"},
+   };
+   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+}
+
 // Resolve errors
 void test_tcp_resolve_error()
 {
@@ -631,6 +656,7 @@ int main()
    test_tcp_tls_success();
    test_tcp_tls_success_reconnect();
    test_unix_success();
+   test_unix_success_close_error();
 
    test_tcp_resolve_error();
    test_tcp_resolve_timeout();
