@@ -156,7 +156,7 @@ struct connection_impl {
       stream_.cancel_resolve();
 
       // Receive is technically not part of run, but we also cancel it for
-      // simplicity and backwards compatibility.
+      // backwards compatibility.
       receive_channel_.cancel();
    }
 
@@ -165,12 +165,14 @@ struct connection_impl {
       switch (op) {
          case operation::exec:    mpx_.cancel_waiting(); break;
          case operation::receive: receive_channel_.cancel(); break;
-         case operation::resolve: stream_.cancel_resolve(); break;
          case operation::reconnection:
             cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
             break;
          case operation::run:
-         case operation::health_check: cancel_run(); break;
+         case operation::resolve:
+         case operation::connect:
+         case operation::ssl_handshake:
+         case operation::health_check:  cancel_run(); break;
          case operation::all:
             mpx_.cancel_waiting();                                        // exec
             receive_channel_.cancel();                                    // receive
@@ -649,7 +651,7 @@ public:
                             asio::cancellation_type_t::partial;
 
       if ((cancel_type & mask) != asio::cancellation_type_t::none) {
-         conn_->cancel(operation::all);
+         conn_->cancel(operation::run);
       }
    }
 };
