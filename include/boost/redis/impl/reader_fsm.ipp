@@ -13,8 +13,7 @@
 
 namespace boost::redis::detail {
 
-// TODO: this is duplicated
-inline bool is_terminal_cancellation(asio::cancellation_type_t value)
+inline bool is_terminal_cancel(asio::cancellation_type_t value)
 {
    return (value & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none;
 }
@@ -23,7 +22,6 @@ reader_fsm::reader_fsm(multiplexer& mpx) noexcept
 : mpx_{&mpx}
 { }
 
-// TODO: write cancellation tests
 reader_fsm::action reader_fsm::resume(
    std::size_t bytes_read,
    system::error_code ec,
@@ -55,7 +53,7 @@ reader_fsm::action reader_fsm::resume(
          }
 
          // Check for cancellations
-         if (is_terminal_cancellation(cancel_state)) {
+         if (is_terminal_cancel(cancel_state)) {
             return {action::type::done, 0u, asio::error::operation_aborted};
          }
 
@@ -80,7 +78,7 @@ reader_fsm::action reader_fsm::resume(
                if (ec) {
                   return {action::type::done, 0u, ec};
                }
-               if (is_terminal_cancellation(cancel_state)) {
+               if (is_terminal_cancel(cancel_state)) {
                   return {action::type::done, 0u, asio::error::operation_aborted};
                }
             } else {
