@@ -23,7 +23,7 @@ public:
       enum class type
       {
          setup_cancellation,
-         append_some,
+         read_some,
          needs_more,
          notify_push_receiver,
          cancel_run,
@@ -35,7 +35,7 @@ public:
       system::error_code ec_ = {};
    };
 
-   explicit reader_fsm(read_buffer& rbuf, multiplexer& mpx) noexcept;
+   explicit reader_fsm(multiplexer& mpx) noexcept;
 
    action resume(
       std::size_t bytes_read,
@@ -44,9 +44,8 @@ public:
 
 private:
    int resume_point_{0};
-   read_buffer* read_buffer_ = nullptr;
    action action_after_resume_;
-   action::type next_read_type_ = action::type::append_some;
+   action::type next_read_type_ = action::type::read_some;
    multiplexer* mpx_ = nullptr;
    std::pair<consume_result, std::size_t> res_{consume_result::needs_more, 0u};
 };

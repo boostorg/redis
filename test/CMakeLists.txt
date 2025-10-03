@@ -15,7 +15,7 @@ target_compile_features(boost_redis_src PRIVATE cxx_std_17)
 target_link_libraries(boost_redis_src PRIVATE boost_redis_project_options)
 
 # Test utils
-add_library(boost_redis_tests_common STATIC common.cpp)
+add_library(boost_redis_tests_common STATIC common.cpp sansio_utils.cpp)
 target_compile_features(boost_redis_tests_common PRIVATE cxx_std_17)
 target_link_libraries(boost_redis_tests_common PRIVATE boost_redis_project_options)
 

@@ -42,6 +42,7 @@ lib redis_test_common
     :
         boost_redis.cpp
         common.cpp
+        sansio_utils.cpp
     : requirements $(requirements)
     : usage-requirements $(requirements)
 ;

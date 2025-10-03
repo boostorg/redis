@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
@@ -21,9 +20,9 @@ using boost::system::error_code;
 using net::cancellation_type_t;
 using redis::detail::reader_fsm;
 using redis::detail::multiplexer;
-using redis::detail::read_buffer;
 using redis::generic_response;
 using redis::any_adapter;
+using redis::config;
 using action = redis::detail::reader_fsm::action;
 
 namespace boost::redis::detail {
@@ -35,6 +34,20 @@ std::ostream& operator<<(std::ostream& os, reader_fsm::action::type t)
    os << to_string(t);
    return os;
 }
+
+// Copy data into the multiplexer with the following steps
+//
+//   1. get_read_buffer
+//   2. Copy data in the buffer from 2.
+//
+// This is used in the reader_fsm tests.
+void copy_to(multiplexer& mpx, std::string_view data)
+{
+   auto const buffer = mpx.get_prepared_read_buffer();
+   BOOST_ASSERT(buffer.size() >= data.size());
+   std::copy(data.cbegin(), data.cend(), buffer.begin());
+}
+
 }  // namespace boost::redis::detail
 
 // Operators
@@ -42,11 +55,10 @@ namespace {
 
 void test_push()
 {
-   read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
-   reader_fsm fsm{rbuf, mpx};
+   reader_fsm fsm{mpx};
    error_code ec;
    action act;
 
@@ -54,7 +66,7 @@ void test_push()
    act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::append_some);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
    std::string const payload =
@@ -62,7 +74,7 @@ void test_push()
       ">1\r\n+msg2 \r\n"
       ">1\r\n+msg3  \r\n";
 
-   append_read_data(rbuf, payload);
+   copy_to(mpx, payload);
 
    // Deliver the 1st push
    act = fsm.resume(payload.size(), ec, cancellation_type_t::none);
@@ -84,17 +96,16 @@ void test_push()
 
    // All pushes were delivered so the fsm should demand more data
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::append_some);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
    BOOST_TEST_EQ(act.ec_, error_code());
 }
 
 void test_read_needs_more()
 {
-   read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
-   reader_fsm fsm{rbuf, mpx};
+   reader_fsm fsm{mpx};
    error_code ec;
    action act;
 
@@ -102,27 +113,27 @@ void test_read_needs_more()
    act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::append_some);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // Split the incoming message in three random parts and deliver
    // them to the reader individually.
    std::string const msg[] = {">3\r", "\n+msg1\r\n+ms", "g2\r\n+msg3\r\n"};
 
    // Passes the first part to the fsm.
-   append_read_data(rbuf, msg[0]);
+   copy_to(mpx, msg[0]);
    act = fsm.resume(msg[0].size(), ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::needs_more);
    BOOST_TEST_EQ(act.ec_, error_code());
 
    // Passes the second part to the fsm.
-   append_read_data(rbuf, msg[1]);
+   copy_to(mpx, msg[1]);
    act = fsm.resume(msg[1].size(), ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::needs_more);
    BOOST_TEST_EQ(act.ec_, error_code());
 
    // Passes the third and last part to the fsm, next it should ask us
    // to deliver the message.
-   append_read_data(rbuf, msg[2]);
+   copy_to(mpx, msg[2]);
    act = fsm.resume(msg[2].size(), ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::notify_push_receiver);
    BOOST_TEST_EQ(act.push_size_, msg[0].size() + msg[1].size() + msg[2].size());
@@ -130,17 +141,16 @@ void test_read_needs_more()
 
    // All pushes were delivered so the fsm should demand more data
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::append_some);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
    BOOST_TEST_EQ(act.ec_, error_code());
 }
 
 void test_read_error()
 {
-   read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
-   reader_fsm fsm{rbuf, mpx};
+   reader_fsm fsm{mpx};
    error_code ec;
    action act;
 
@@ -148,11 +158,11 @@ void test_read_error()
    act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::append_some);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
    std::string const payload = ">1\r\n+msg1\r\n";
-   append_read_data(rbuf, payload);
+   copy_to(mpx, payload);
 
    // Deliver the data
    act = fsm.resume(payload.size(), {net::error::operation_aborted}, cancellation_type_t::none);
@@ -167,11 +177,10 @@ void test_read_error()
 
 void test_parse_error()
 {
-   read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
-   reader_fsm fsm{rbuf, mpx};
+   reader_fsm fsm{mpx};
    error_code ec;
    action act;
 
@@ -179,11 +188,11 @@ void test_parse_error()
    act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::append_some);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
    std::string const payload = ">a\r\n";
-   append_read_data(rbuf, payload);
+   copy_to(mpx, payload);
 
    // Deliver the data
    act = fsm.resume(payload.size(), {}, cancellation_type_t::none);
@@ -198,11 +207,10 @@ void test_parse_error()
 
 void test_push_deliver_error()
 {
-   read_buffer rbuf;
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
-   reader_fsm fsm{rbuf, mpx};
+   reader_fsm fsm{mpx};
    error_code ec;
    action act;
 
@@ -210,11 +218,11 @@ void test_push_deliver_error()
    act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::append_some);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
    std::string const payload = ">1\r\n+msg1\r\n";
-   append_read_data(rbuf, payload);
+   copy_to(mpx, payload);
 
    // Deliver the data
    act = fsm.resume(payload.size(), {}, cancellation_type_t::none);
@@ -233,12 +241,15 @@ void test_push_deliver_error()
 
 void test_max_read_buffer_size()
 {
-   read_buffer rbuf;
-   rbuf.set_config({5, 7});
+   config cfg;
+   cfg.read_buffer_append_size = 5;
+   cfg.max_read_size = 7;
+
    multiplexer mpx;
+   mpx.set_config(cfg);
    generic_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
-   reader_fsm fsm{rbuf, mpx};
+   reader_fsm fsm{mpx};
    error_code ec;
    action act;
 
@@ -246,11 +257,11 @@ void test_max_read_buffer_size()
    act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::append_some);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // Passes the first part to the fsm.
    std::string const part1 = ">3\r\n";
-   append_read_data(rbuf, part1);
+   copy_to(mpx, part1);
    act = fsm.resume(part1.size(), {}, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::cancel_run);
    BOOST_TEST_EQ(act.ec_, error_code());

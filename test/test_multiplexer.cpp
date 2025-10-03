@@ -21,6 +21,8 @@
 #include <string>
 #include <string_view>
 
+#include "sansio_utils.hpp"
+
 using boost::redis::request;
 using boost::redis::detail::multiplexer;
 using boost::redis::detail::consume_result;
@@ -122,11 +124,13 @@ void test_request_needs_more()
 
    // Parse part of the response
    error_code ec;
-   auto ret = mpx.consume_next("$11\r\nhello", ec);
+   read(mpx, "$11\r\nhello");
+   auto ret = mpx.consume(ec);
    BOOST_TEST_EQ(ret.first, consume_result::needs_more);
 
    // Parse the rest of it
-   ret = mpx.consume_next("$11\r\nhello world\r\n", ec);
+   read(mpx, " world\r\n");
+   ret = mpx.consume(ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    const node expected[] = {
       {type::blob_string, 1u, 0u, "hello world"},
@@ -191,7 +195,8 @@ void test_several_requests()
 
    // Consumes the next message in the read buffer.
    error_code ec;
-   auto ret = mpx.consume_next("+one\r\n", ec);
+   read(mpx, "+one\r\n");
+   auto ret = mpx.consume(ec);
 
    // The read operation should have been successful.
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
@@ -204,7 +209,8 @@ void test_several_requests()
 
    // Consumes the second message in the read buffer
    // Consumes the next message in the read buffer.
-   ret = mpx.consume_next("+two\r\n", ec);
+   read(mpx, "+two\r\n");
+   ret = mpx.consume(ec);
 
    // The read operation should have been successful.
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
@@ -234,7 +240,8 @@ void test_request_response_before_write()
    // The response is received. The request is marked as done,
    // even if the write hasn't been confirmed yet
    error_code ec;
-   auto ret = mpx.consume_next("+one\r\n", ec);
+   read(mpx, "+one\r\n");
+   auto ret = mpx.consume(ec);
 
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST_EQ(ec, error_code());
@@ -256,7 +263,8 @@ void test_push()
 
    // Consume an entire push
    error_code ec;
-   auto const ret = mpx.consume_next(">2\r\n+one\r\n+two\r\n", ec);
+   read(mpx, ">2\r\n+one\r\n+two\r\n");
+   auto const ret = mpx.consume(ec);
 
    // Check
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
@@ -275,20 +283,17 @@ void test_push_needs_more()
    multiplexer mpx;
    generic_response resp;
    mpx.set_receive_adapter(any_adapter{resp});
-   std::string msg;
 
-   // Only part of the message available.
-   msg += ">2\r\n+one\r";
-
-   // Consume it
+   // Consume it only part of the message available.
    error_code ec;
-   auto ret = mpx.consume_next(msg, ec);
+   read(mpx, ">2\r\n+one\r");
+   auto ret = mpx.consume(ec);
 
    BOOST_TEST_EQ(ret.first, consume_result::needs_more);
 
    // The entire message becomes available
-   msg += "\n+two\r\n";
-   ret = mpx.consume_next(msg, ec);
+   read(mpx, "\n+two\r\n");
+   ret = mpx.consume(ec);
 
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
@@ -311,7 +316,8 @@ void test_push_heuristics_no_request()
 
    // Response received, but no request has been sent
    error_code ec;
-   auto const ret = mpx.consume_next("+Hello world\r\n", ec);
+   read(mpx, "+Hello world\r\n");
+   auto const ret = mpx.consume(ec);
 
    // Check
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
@@ -337,7 +343,8 @@ void test_push_heuristics_request_waiting()
 
    // Response received, but no request has been sent
    error_code ec;
-   auto const ret = mpx.consume_next("+Hello world\r\n", ec);
+   read(mpx, "+Hello world\r\n");
+   auto const ret = mpx.consume(ec);
 
    // Check
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
@@ -366,7 +373,8 @@ void test_push_heuristics_request_without_response()
 
    // Response received (e.g. syntax error)
    error_code ec;
-   auto const ret = mpx.consume_next("-ERR wrong syntax\r\n", ec);
+   read(mpx, "-ERR wrong syntax\r\n");
+   auto const ret = mpx.consume(ec);
 
    // Check
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
@@ -396,7 +404,8 @@ void test_mix_responses_pushes()
    // Push
    std::string_view push1_buffer = ">2\r\n+one\r\n+two\r\n";
    error_code ec;
-   auto ret = mpx.consume_next(push1_buffer, ec);
+   read(mpx, push1_buffer);
+   auto ret = mpx.consume(ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 16u);
    std::vector<node> expected{
@@ -410,7 +419,8 @@ void test_mix_responses_pushes()
 
    // First response
    std::string_view response1_buffer = "$11\r\nHello world\r\n";
-   ret = mpx.consume_next(response1_buffer, ec);
+   read(mpx, response1_buffer);
+   ret = mpx.consume(ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST_EQ(ret.second, 18u);
    expected = {
@@ -422,7 +432,8 @@ void test_mix_responses_pushes()
 
    // Push
    std::string_view push2_buffer = ">2\r\n+other\r\n+push\r\n";
-   ret = mpx.consume_next(push2_buffer, ec);
+   read(mpx, push2_buffer);
+   ret = mpx.consume(ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_push);
    BOOST_TEST_EQ(ret.second, 19u);
    expected = {
@@ -439,7 +450,8 @@ void test_mix_responses_pushes()
 
    // Second response
    std::string_view response2_buffer = "$8\r\nResponse\r\n";
-   ret = mpx.consume_next(response2_buffer, ec);
+   read(mpx, response2_buffer);
+   ret = mpx.consume(ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST_EQ(ret.second, 14u);
    expected = {
@@ -478,7 +490,8 @@ void test_cancel_waiting()
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
    BOOST_TEST_EQ(mpx.commit_write(), 0u);
    error_code ec;
-   auto res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   read(mpx, "$11\r\nHello world\r\n");
+   auto res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST(item2->done);
    const node expected[] = {
@@ -509,12 +522,14 @@ void test_cancel_staged()
 
    // The cancelled request's response arrives. It gets discarded
    error_code ec;
-   auto res = mpx.consume_next("+Goodbye\r\n", ec);
+   read(mpx, "+Goodbye\r\n");
+   auto res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST_NOT(item2->done);
 
    // The 2nd request's response arrives. It gets parsed successfully
-   res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   read(mpx, "$11\r\nHello world\r\n");
+   res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST(item2->done);
    const node expected[] = {
@@ -545,7 +560,8 @@ void test_cancel_staged_command_without_response()
 
    // The 2nd request's response arrives. It gets parsed successfully
    error_code ec;
-   auto res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   read(mpx, "$11\r\nHello world\r\n");
+   auto res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST(item2->done);
    const node expected[] = {
@@ -574,12 +590,14 @@ void test_cancel_written()
 
    // The cancelled request's response arrives. It gets discarded
    error_code ec;
-   auto res = mpx.consume_next("+Goodbye\r\n", ec);
+   read(mpx, "+Goodbye\r\n");
+   auto res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST_NOT(item2->done);
 
    // The 2nd request's response arrives. It gets parsed successfully
-   res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   read(mpx, "$11\r\nHello world\r\n");
+   res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST(item2->done);
    const node expected[] = {
@@ -609,13 +627,15 @@ void test_cancel_written_half_parsed_response()
 
    // Get the response for the 1st command in req1
    error_code ec;
-   auto res = mpx.consume_next("+Goodbye\r\n", ec);
+   read(mpx, "+Goodbye\r\n");
+   auto res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST_NOT(item1->done);
    BOOST_TEST_EQ(ec, error_code());
 
    // Get a partial response for the 2nd command in req1
-   res = mpx.consume_next("*2\r\n$4\r\nsome\r\n", ec);
+   read(mpx, "*2\r\n$4\r\nsome\r\n");
+   res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::needs_more);
    BOOST_TEST_NOT(item1->done);
    BOOST_TEST_EQ(ec, error_code());
@@ -625,19 +645,22 @@ void test_cancel_written_half_parsed_response()
    item1.reset();  // Verify we don't reference this item anyhow
 
    // Get the rest of the response for the 2nd command in req1
-   res = mpx.consume_next("*2\r\n$4\r\nsome\r\n$4\r\ndata\r\n", ec);
+   read(mpx, "*2\r\n$4\r\nsome\r\n$4\r\ndata\r\n");
+   res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST_NOT(item2->done);
    BOOST_TEST_EQ(ec, error_code());
 
    // Get the response for the 3rd command in req1
-   res = mpx.consume_next("+last\r\n", ec);
+   read(mpx, "+last\r\n");
+   res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST_NOT(item2->done);
    BOOST_TEST_EQ(ec, error_code());
 
    // Get the response for the 2nd request
-   res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   read(mpx, "$11\r\nHello world\r\n");
+   res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST(item2->done);
    const node expected[] = {
@@ -672,23 +695,27 @@ void test_cancel_written_null_error()
    // The cancelled request's response arrives. It contains NULLs and errors.
    // We ignore them
    error_code ec;
-   auto res = mpx.consume_next("-ERR wrong command\r\n", ec);
+   read(mpx, "-ERR wrong command\r\n");
+   auto res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_NOT(item2->done);
 
-   res = mpx.consume_next("!3\r\nBad\r\n", ec);
+   read(mpx, "!3\r\nBad\r\n");
+   res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_NOT(item2->done);
 
-   res = mpx.consume_next("_\r\n", ec);
+   read(mpx, "_\r\n");
+   res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_NOT(item2->done);
 
    // The 2nd request's response arrives. It gets parsed successfully
-   res = mpx.consume_next("$11\r\nHello world\r\n", ec);
+   read(mpx, "$11\r\nHello world\r\n");
+   res = mpx.consume(ec);
    BOOST_TEST_EQ(res.first, consume_result::got_response);
    BOOST_TEST(item2->done);
    const node expected[] = {
@@ -812,7 +839,8 @@ void test_cancel_on_connection_lost_abandoned()
 //    mpx.add(item.elem_ptr);
 //    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
 //    BOOST_TEST_EQ(mpx.commit_write(), 0u);
-//    auto res = mpx.consume_next("*2\r\n+hello\r\n", ec);
+//    read(mpx, "*2\r\n+hello\r\n");
+//    auto res = mpx.consume(ec);
 //    BOOST_TEST_EQ(res.first, consume_result::needs_more);
 //    BOOST_TEST_EQ(ec, error_code());
 
@@ -827,7 +855,8 @@ void test_cancel_on_connection_lost_abandoned()
 //    // Successful write, and this time the response is complete
 //    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
 //    BOOST_TEST_EQ(mpx.commit_write(), 0u);
-//    res = mpx.consume_next("*2\r\n+hello\r\n+world\r\n", ec);
+//    read(mpx, "*2\r\n+hello\r\n+world\r\n");
+//    res = mpx.consume(ec);
 //    BOOST_TEST_EQ(res.first, consume_result::got_response);
 //    BOOST_TEST_EQ(ec, error_code());
 
@@ -854,7 +883,8 @@ void test_reset()
 
    // Start parsing a push
    error_code ec;
-   auto ret = mpx.consume_next(">2\r", ec);
+   read(mpx, ">2\r");
+   auto ret = mpx.consume(ec);
    BOOST_TEST_EQ(ret.first, consume_result::needs_more);
 
    // Connection lost. The first request gets cancelled
@@ -871,7 +901,8 @@ void test_reset()
    BOOST_TEST_EQ(mpx.commit_write(), 0u);
 
    std::string_view response_buffer = "$11\r\nHello world\r\n";
-   ret = mpx.consume_next(response_buffer, ec);
+   read(mpx, response_buffer);
+   ret = mpx.consume(ec);
    BOOST_TEST_EQ(ret.first, consume_result::got_response);
    BOOST_TEST_EQ(ret.second, response_buffer.size());
    const node expected[] = {

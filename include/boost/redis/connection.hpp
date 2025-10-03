@@ -45,7 +45,6 @@
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/write.hpp>
-#include <boost/assert.hpp>
 #include <boost/config.hpp>
 #include <boost/core/ignore_unused.hpp>
 
@@ -85,7 +84,6 @@ struct connection_impl {
    config cfg_;
    multiplexer mpx_;
    connection_logger logger_;
-   read_buffer read_buffer_;
    generic_response setup_resp_;
    request ping_req_;
    generic_response ping_resp_;
@@ -139,10 +137,6 @@ struct connection_impl {
    {
       set_receive_adapter(any_adapter{ignore});
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
-
-      // Reserve some memory to avoid excessive memory allocations in
-      // the first reads.
-      read_buffer_.reserve(4096u);
    }
 
    void cancel(operation op)
@@ -263,7 +257,7 @@ struct reader_op {
 public:
    reader_op(connection_impl<Executor>& conn) noexcept
    : conn_{&conn}
-   , fsm_{conn.read_buffer_, conn.mpx_}
+   , fsm_{conn.mpx_}
    { }
 
    template <class Self>
@@ -279,9 +273,9 @@ public:
                self.reset_cancellation_state(asio::enable_terminal_cancellation());
                continue;
             case reader_fsm::action::type::needs_more:
-            case reader_fsm::action::type::append_some:
+            case reader_fsm::action::type::read_some:
             {
-               auto const buf = conn_->read_buffer_.get_append_buffer();
+               auto const buf = conn_->mpx_.get_prepared_read_buffer();
                conn_->stream_.async_read_some(asio::buffer(buf), std::move(self));
             }
                return;
@@ -547,7 +541,6 @@ public:
 
             // If we were successful, run all the connection tasks
             if (!ec) {
-               conn_->read_buffer_.clear();
                conn_->mpx_.reset();
                clear_response(conn_->setup_resp_);
 
@@ -757,7 +750,7 @@ public:
    auto async_run(config const& cfg, CompletionToken&& token = {})
    {
       impl_->cfg_ = cfg;
-      impl_->read_buffer_.set_config({cfg.read_buffer_append_size, cfg.max_read_size});
+      impl_->mpx_.set_config(cfg);
 
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          detail::run_op<Executor>{impl_.get()},
