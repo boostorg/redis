@@ -12,6 +12,8 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <string_view>
+
 namespace net = boost::asio;
 namespace redis = boost::redis;
 using boost::system::error_code;
@@ -240,6 +242,28 @@ void test_max_read_buffer_size()
 }
 
 // TODO: cancellations
+void test_cancel_after_read()
+{
+   multiplexer mpx;
+   generic_response resp;
+   mpx.set_receive_adapter(any_adapter{resp});
+   reader_fsm fsm{mpx};
+   error_code ec;
+   action act;
+
+   // Initiate
+   act = fsm.resume(0, ec, cancellation_type_t::none);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
+
+   // Deliver a push, and notify a cancellation.
+   // This can happen if the cancellation signal arrives before the read handler runs
+   constexpr std::string_view payload = ">1\r\n+msg1\r\n";
+   copy_to(mpx, payload);
+   act = fsm.resume(payload.size(), ec, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act.type_, action::type::done);
+   BOOST_TEST_EQ(act.push_size_, 0u);
+   BOOST_TEST_EQ(act.ec_, net::error::operation_aborted);
+}
 
 }  // namespace
 
@@ -252,6 +276,8 @@ int main()
    test_parse_error();
    test_push_deliver_error();
    test_max_read_buffer_size();
+
+   test_cancel_after_read();
 
    return boost::report_errors();
 }
