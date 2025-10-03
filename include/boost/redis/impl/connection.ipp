@@ -21,7 +21,7 @@ logger detail::make_stderr_logger(logger::level lvl, std::string prefix)
    });
 }
 
-inline system::error_code detail::translate_parallel_group_errors(
+system::error_code detail::translate_parallel_group_errors(
    std::array<std::size_t, 4u> order,
    system::error_code setup_ec,
    system::error_code health_check_ec,
