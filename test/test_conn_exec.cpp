@@ -26,7 +26,7 @@
 namespace net = boost::asio;
 using boost::redis::config;
 using boost::redis::connection;
-using boost::redis::generic_flat_response;
+using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::operation;
 using boost::redis::request;

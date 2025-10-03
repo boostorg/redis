@@ -29,7 +29,6 @@ using boost::system::error_code;
 using boost::redis::request;
 using boost::redis::response;
 using boost::redis::generic_response;
-using boost::redis::generic_flat_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::adapter::result;
@@ -635,7 +634,7 @@ BOOST_AUTO_TEST_CASE(cancel_one_1)
 
 BOOST_AUTO_TEST_CASE(cancel_one_empty)
 {
-   generic_flat_response resp;
+   generic_response resp;
    BOOST_TEST(resp.has_value());
 
    consume_one(resp);
@@ -644,7 +643,7 @@ BOOST_AUTO_TEST_CASE(cancel_one_empty)
 
 BOOST_AUTO_TEST_CASE(cancel_one_has_error)
 {
-   generic_flat_response resp = boost::redis::adapter::error{resp3::type::simple_string, {}};
+   generic_response resp = boost::redis::adapter::error{resp3::type::simple_string, {}};
    BOOST_TEST(resp.has_error());
 
    consume_one(resp);

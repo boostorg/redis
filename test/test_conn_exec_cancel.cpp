@@ -32,7 +32,7 @@ using boost::redis::operation;
 using boost::redis::error;
 using boost::redis::request;
 using boost::redis::response;
-using boost::redis::generic_flat_response;
+using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::redis::logger;

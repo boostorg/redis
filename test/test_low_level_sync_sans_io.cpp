@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2024 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -22,14 +22,18 @@
 using boost::redis::request;
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
-using boost::redis::generic_response;
+using boost::redis::resp3::tree;
+using boost::redis::resp3::flat_tree;
 using boost::redis::ignore_t;
 using boost::redis::resp3::detail::deserialize;
 using boost::redis::resp3::node;
+using boost::redis::resp3::node_view;
 using boost::redis::resp3::to_string;
 using boost::redis::response;
 using boost::redis::any_adapter;
 using boost::system::error_code;
+
+namespace resp3 = boost::redis::resp3;
 
 #define RESP3_SET_PART1 "~6\r\n+orange\r"
 #define RESP3_SET_PART2 "\n+apple\r\n+one"
@@ -42,7 +46,9 @@ BOOST_AUTO_TEST_CASE(low_level_sync_sans_io)
    try {
       result<std::set<std::string>> resp;
 
-      deserialize(resp3_set, adapt2(resp));
+      error_code ec;
+      deserialize(resp3_set, adapt2(resp), ec);
+      BOOST_CHECK_EQUAL(ec, error_code{});
 
       for (auto const& e : resp.value())
          std::cout << e << std::endl;
@@ -65,7 +71,9 @@ BOOST_AUTO_TEST_CASE(issue_210_empty_set)
 
       char const* wire = "*4\r\n:1\r\n~0\r\n$25\r\nthis_should_not_be_in_set\r\n:2\r\n";
 
-      deserialize(wire, adapt2(resp));
+      error_code ec;
+      deserialize(wire, adapt2(resp), ec);
+      BOOST_CHECK_EQUAL(ec, error_code{});
 
       BOOST_CHECK_EQUAL(std::get<0>(resp.value()).value(), 1);
       BOOST_CHECK(std::get<1>(resp.value()).value().empty());
@@ -91,7 +99,9 @@ BOOST_AUTO_TEST_CASE(issue_210_non_empty_set_size_one)
       char const*
          wire = "*4\r\n:1\r\n~1\r\n$3\r\nfoo\r\n$25\r\nthis_should_not_be_in_set\r\n:2\r\n";
 
-      deserialize(wire, adapt2(resp));
+      error_code ec;
+      deserialize(wire, adapt2(resp), ec);
+      BOOST_CHECK_EQUAL(ec, error_code{});
 
       BOOST_CHECK_EQUAL(std::get<0>(resp.value()).value(), 1);
       BOOST_CHECK_EQUAL(std::get<1>(resp.value()).value().size(), 1u);
@@ -118,7 +128,9 @@ BOOST_AUTO_TEST_CASE(issue_210_non_empty_set_size_two)
       char const* wire =
          "*4\r\n:1\r\n~2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$25\r\nthis_should_not_be_in_set\r\n:2\r\n";
 
-      deserialize(wire, adapt2(resp));
+      error_code ec;
+      deserialize(wire, adapt2(resp), ec);
+      BOOST_CHECK_EQUAL(ec, error_code{});
 
       BOOST_CHECK_EQUAL(std::get<0>(resp.value()).value(), 1);
       BOOST_CHECK_EQUAL(std::get<1>(resp.value()).value().at(0), std::string{"foo"});
@@ -140,7 +152,9 @@ BOOST_AUTO_TEST_CASE(issue_210_no_nested)
       char const*
          wire = "*4\r\n:1\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$25\r\nthis_should_not_be_in_set\r\n";
 
-      deserialize(wire, adapt2(resp));
+      error_code ec;
+      deserialize(wire, adapt2(resp), ec);
+      BOOST_CHECK_EQUAL(ec, error_code{});
 
       BOOST_CHECK_EQUAL(std::get<0>(resp.value()).value(), 1);
       BOOST_CHECK_EQUAL(std::get<1>(resp.value()).value(), std::string{"foo"});
@@ -159,7 +173,10 @@ BOOST_AUTO_TEST_CASE(issue_233_array_with_null)
       result<std::vector<std::optional<std::string>>> resp;
 
       char const* wire = "*3\r\n+one\r\n_\r\n+two\r\n";
-      deserialize(wire, adapt2(resp));
+
+      error_code ec;
+      deserialize(wire, adapt2(resp), ec);
+      BOOST_CHECK_EQUAL(ec, error_code{});
 
       BOOST_CHECK_EQUAL(resp.value().at(0).value(), "one");
       BOOST_TEST(!resp.value().at(1).has_value());
@@ -177,7 +194,10 @@ BOOST_AUTO_TEST_CASE(issue_233_optional_array_with_null)
       result<std::optional<std::vector<std::optional<std::string>>>> resp;
 
       char const* wire = "*3\r\n+one\r\n_\r\n+two\r\n";
-      deserialize(wire, adapt2(resp));
+
+      error_code ec;
+      deserialize(wire, adapt2(resp), ec);
+      BOOST_CHECK_EQUAL(ec, error_code{});
 
       BOOST_CHECK_EQUAL(resp.value().value().at(0).value(), "one");
       BOOST_TEST(!resp.value().value().at(1).has_value());
@@ -312,4 +332,117 @@ BOOST_AUTO_TEST_CASE(check_counter_adapter)
    BOOST_CHECK_EQUAL(init, 1);
    BOOST_CHECK_EQUAL(node, 7);
    BOOST_CHECK_EQUAL(done, 1);
+}
+
+namespace boost::redis::resp3 {
+
+template <class String>
+std::ostream& operator<<(std::ostream& os, basic_node<String> const& nd)
+{
+   os << "type: " << to_string(nd.data_type) << "\n"
+      << "aggregate_size: " << nd.aggregate_size << "\n"
+      << "depth: " << nd.depth << "\n"
+      << "value: " << nd.value << "\n";
+   return os;
+}
+
+template <class String>
+std::ostream& operator<<(std::ostream& os, basic_tree<String> const& resp)
+{
+   for (auto const& e: resp)
+      os << e << ",";
+   return os;
+}
+
+}
+
+node from_node_view(node_view const& v)
+{
+   node ret;
+   ret.data_type = v.data_type;
+   ret.aggregate_size = v.aggregate_size;
+   ret.depth = v.depth;
+   ret.value = v.value;
+   return ret;
+}
+
+tree from_flat(flat_tree const& resp)
+{
+   tree ret;
+   for (auto const& e: resp.get_view())
+      ret.push_back(from_node_view(e));
+
+   return ret;
+}
+
+// Parses the same data into a tree and a
+// flat_tree, they should be equal to each other.
+BOOST_AUTO_TEST_CASE(flat_tree_views_are_set)
+{
+   tree resp1;
+   flat_tree fresp;
+
+   error_code ec;
+   deserialize(resp3_set, adapt2(resp1), ec);
+   BOOST_CHECK_EQUAL(ec, error_code{});
+
+   deserialize(resp3_set, adapt2(fresp), ec);
+   BOOST_CHECK_EQUAL(ec, error_code{});
+
+   BOOST_CHECK_EQUAL(fresp.get_reallocs(), 1u);
+   BOOST_CHECK_EQUAL(fresp.get_total_msgs(), 1u);
+
+   auto const resp2 = from_flat(fresp);
+   BOOST_CHECK_EQUAL(resp1, resp2);
+}
+
+// The response should be reusable.
+BOOST_AUTO_TEST_CASE(flat_tree_reuse)
+{
+   flat_tree tmp;
+
+   // First use
+   error_code ec;
+   deserialize(resp3_set, adapt2(tmp), ec);
+   BOOST_CHECK_EQUAL(ec, error_code{});
+
+   BOOST_CHECK_EQUAL(tmp.get_reallocs(), 1u);
+   BOOST_CHECK_EQUAL(tmp.get_total_msgs(), 1u);
+
+   // Copy to compare after the reuse.
+   auto const resp1 = tmp.get_view();
+   tmp.clear();
+
+   // Second use
+   deserialize(resp3_set, adapt2(tmp), ec);
+   BOOST_CHECK_EQUAL(ec, error_code{});
+
+   // No reallocation this time
+   BOOST_CHECK_EQUAL(tmp.get_reallocs(), 0u);
+   BOOST_CHECK_EQUAL(tmp.get_total_msgs(), 1u);
+
+   BOOST_CHECK_EQUAL(resp1, tmp.get_view());
+}
+
+BOOST_AUTO_TEST_CASE(flat_tree_copy_assign)
+{
+   flat_tree resp;
+
+   error_code ec;
+   deserialize(resp3_set, adapt2(resp), ec);
+   BOOST_CHECK_EQUAL(ec, error_code{});
+
+   // Copy
+   resp3::flat_tree copy1{resp};
+
+   // Copy assignment
+   resp3::flat_tree copy2 = resp;
+
+   // Assignment
+   resp3::flat_tree copy3;
+   copy3 = resp;
+
+   BOOST_TEST((copy1 == resp));
+   BOOST_TEST((copy2 == resp));
+   BOOST_TEST((copy3 == resp));
 }

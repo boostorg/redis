@@ -92,8 +92,24 @@ struct response_traits<result<ignore_t>> {
 };
 
 template <class String, class Allocator>
-struct response_traits<result<std::vector<resp3::basic_node<String>, Allocator>>> {
-   using response_type = result<std::vector<resp3::basic_node<String>, Allocator>>;
+struct response_traits<result<resp3::basic_tree<String, Allocator>>> {
+   using response_type = result<resp3::basic_tree<String, Allocator>>;
+   using adapter_type = general_aggregate<response_type>;
+
+   static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
+};
+
+template <class String>
+struct response_traits<resp3::basic_tree<String>> {
+   using response_type = resp3::basic_tree<String>;
+   using adapter_type = general_aggregate<response_type>;
+
+   static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
+};
+
+template <>
+struct response_traits<resp3::flat_tree> {
+   using response_type = resp3::flat_tree;
    using adapter_type = general_aggregate<response_type>;
 
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
@@ -107,13 +123,6 @@ struct response_traits<response<Ts...>> {
    static auto adapt(response_type& r) noexcept { return adapter_type{r}; }
 };
 
-template <>
-struct response_traits<generic_flat_response> {
-   using response_type = generic_flat_response;
-   using adapter_type = vector_adapter<response_type>;
-
-   static auto adapt(response_type& v) noexcept { return adapter_type{v}; }
-};
 }  // namespace boost::redis::adapter::detail
 
 #endif  // BOOST_REDIS_ADAPTER_DETAIL_RESPONSE_TRAITS_HPP

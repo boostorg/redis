@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2024 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -53,26 +53,18 @@ auto operator==(basic_node<String> const& a, basic_node<String> const& b)
    // clang-format on
 };
 
+/// Inequality operator for RESP3 nodes
+template <class String>
+auto operator!=(basic_node<String> const& a, basic_node<String> const& b)
+{
+   return !(a == b);
+};
+
 /// A node in the response tree that owns its data.
 using node = basic_node<std::string>;
 
 /// A node in the response tree that does not own its data.
 using node_view = basic_node<std::string_view>;
-
-struct offset_string {
-   std::string_view data;
-   std::size_t offset{};
-   std::size_t size{};
-
-   operator std::string() const { return std::string{data}; }
-
-   friend std::ostream& operator<<(std::ostream& os, offset_string const& s)
-   {
-      return os << s.data;
-   }
-};
-
-using offset_node = basic_node<offset_string>;
 
 }  // namespace boost::redis::resp3
 
