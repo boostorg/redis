@@ -1224,7 +1224,7 @@ public:
    auto async_run(config const& cfg, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
-         run_initiation{this},
+         initiation{this},
          token,
          &cfg);
    }
@@ -1253,7 +1253,7 @@ public:
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
-         run_initiation{this},
+         initiation{this},
          token,
          &cfg,
          std::move(l));
@@ -1293,11 +1293,8 @@ public:
    auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code, std::size_t)>(
-         [](auto handler, connection* self, request const* req, any_adapter&& adapter) {
-            self->async_exec_impl(*req, std::move(adapter), std::move(handler));
-         },
+         initiation{this},
          token,
-         this,
          &req,
          std::move(adapter));
    }
@@ -1352,7 +1349,10 @@ public:
    }
 
 private:
-   struct run_initiation {
+   // Function object to initiate the async ops that use asio::any_completion_handler.
+   // Required for asio::cancel_after to work.
+   // Since all ops have different arguments, a single struct with different overloads is enough.
+   struct initiation {
       connection* self;
 
       using executor_type = asio::any_io_executor;
@@ -1368,6 +1368,12 @@ private:
       void operator()(Handler&& handler, config const* cfg)
       {
          self->async_run_impl(*cfg, std::forward<Handler>(handler));
+      }
+
+      template <class Handler>
+      void operator()(Handler&& handler, request const* req, any_adapter&& adapter)
+      {
+         self->async_exec_impl(*req, std::move(adapter), std::forward<Handler>(handler));
       }
    };
 
