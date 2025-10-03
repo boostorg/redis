@@ -99,6 +99,9 @@ class redis_stream {
 
             if (obj.transport_ == transport_type::unix_socket) {
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+               // Discard any existing state
+               obj.unix_socket_.close(ec);
+
                // Directly connect to the socket
                BOOST_ASIO_CORO_YIELD
                obj.unix_socket_.async_connect(
@@ -119,7 +122,9 @@ class redis_stream {
             } else {
                // ssl::stream doesn't support being re-used. If we're to use
                // TLS and the stream has been used, re-create it.
-               // Must be done before anything else is done on the stream
+               // Must be done before anything else is done on the stream.
+               // Note that we don't need to close the socket here because
+               // range connect does it for us.
                if (cfg->use_ssl && obj.ssl_stream_used_)
                   obj.reset_stream();
 
@@ -269,19 +274,11 @@ public:
       }
    }
 
-   // Cleanup
+   // Cancels resolve operations. Resolve operations don't support per-operation
+   // cancellation, but resolvers have a cancel() function. Resolve operations are
+   // in general blocking and run in a separate thread. cancel() has effect only
+   // if the operation hasn't started yet. Still, trying is better than nothing
    void cancel_resolve() { resolv_.cancel(); }
-
-   void close()
-   {
-      system::error_code ec;
-      if (stream_.next_layer().is_open())
-         stream_.next_layer().close(ec);
-#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
-      if (unix_socket_.is_open())
-         unix_socket_.close(ec);
-#endif
-   }
 };
 
 }  // namespace detail
