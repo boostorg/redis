@@ -15,6 +15,7 @@
 #include "boost/asio/cancel_after.hpp"
 #include "boost/asio/error.hpp"
 #include "boost/asio/io_context.hpp"
+#include "boost/redis/ignore.hpp"
 #include "common.hpp"
 
 using namespace std::chrono_literals;
@@ -23,6 +24,7 @@ using boost::system::error_code;
 using boost::redis::request;
 using boost::redis::basic_connection;
 using boost::redis::connection;
+using boost::redis::ignore;
 
 namespace {
 
@@ -45,12 +47,38 @@ void test_run()
    BOOST_TEST(run_finished);
 }
 
+template <class Connection>
+void test_exec()
+{
+   // Setup
+   asio::io_context ioc;
+   Connection conn{ioc};
+   bool run_finished = false;
+
+   request req;
+   req.push("PING", "cancel_after");
+
+   // Call the function with a very short timeout.
+   // The connection is not being run, so these can't succeed
+   conn.async_exec(req, ignore, asio::cancel_after(1ms, [&](error_code ec, std::size_t) {
+                      BOOST_TEST_EQ(ec, asio::error::operation_aborted);
+                      run_finished = true;
+                   }));
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(run_finished);
+}
+
 }  // namespace
 
 int main()
 {
    test_run<basic_connection<asio::io_context::executor_type>>();
    test_run<connection>();
+
+   test_exec<basic_connection<asio::io_context::executor_type>>();
+   test_exec<connection>();
 
    return boost::report_errors();
 }
