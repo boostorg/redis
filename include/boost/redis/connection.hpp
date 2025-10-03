@@ -775,6 +775,11 @@ public:
     * In both cases, cancellation is equivalent to calling @ref basic_connection::cancel
     * passing @ref operation::run as argument.
     *
+    * After the operation completes, the token's associated cancellation slot
+    * may still have a cancellation handler associated to this connection.
+    * You should make sure to not invoke it after the connection has been destroyed.
+    * This is consistent with what other Asio I/O objects do.
+    *
     * For example on how to call this function refer to
     * cpp20_intro.cpp or any other example.
     *
