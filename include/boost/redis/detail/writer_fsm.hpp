@@ -12,6 +12,8 @@
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <cstddef>
+
 // Sans-io algorithm for the writer task, as a finite state machine
 
 namespace boost::redis::detail {
@@ -23,35 +25,29 @@ class multiplexer;
 // What should we do next?
 enum class writer_action_type
 {
-   done,        // Call the final handler
-   write,       // Issue a write on the stream
-   wait,        // Wait until there is data to be written
-   cancel_run,  // Cancel the connection's run operation
+   done,   // Call the final handler
+   write,  // Issue a write on the stream
+   wait,   // Wait until there is data to be written
 };
 
-class writer_action {
-   writer_action_type type_;
-   system::error_code ec_;
+struct writer_action {
+   writer_action_type type;
+   system::error_code ec;
 
-public:
    writer_action(writer_action_type type) noexcept
-   : type_{type}
+   : type{type}
    { }
 
    writer_action(system::error_code ec) noexcept
-   : type_{writer_action_type::done}
-   , ec_{ec}
+   : type{writer_action_type::done}
+   , ec{ec}
    { }
-
-   writer_action_type type() const { return type_; }
-   system::error_code error() const { return ec_; }
 };
 
 class writer_fsm {
    int resume_point_{0};
    multiplexer* mpx_;
    connection_logger* logger_;
-   system::error_code stored_ec_;
 
 public:
    writer_fsm(multiplexer& mpx, connection_logger& logger) noexcept
@@ -59,7 +55,10 @@ public:
    , logger_(&logger)
    { }
 
-   writer_action resume(system::error_code ec, asio::cancellation_type_t cancel_state);
+   writer_action resume(
+      system::error_code ec,
+      std::size_t bytes_written,
+      asio::cancellation_type_t cancel_state);
 };
 
 }  // namespace boost::redis::detail

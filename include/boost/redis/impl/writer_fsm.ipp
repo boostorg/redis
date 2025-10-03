@@ -13,25 +13,26 @@
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
-#include <boost/redis/impl/is_cancellation.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <cstddef>
+
 namespace boost::redis::detail {
 
-inline void log_write_success(connection_logger& logger, std::size_t bytes_written)
+// TODO: this is duplicated
+inline bool is_terminal_cancellation(asio::cancellation_type_t cancel_state)
 {
-   logger.log_fn(logger::level::info, [bytes_written](std::string& buff) {
-      buff = "Writer task: ";
-      buff += std::to_string(bytes_written);
-      buff += " bytes written.";
-   });
+   return (cancel_state & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none;
 }
 
-writer_action writer_fsm::resume(system::error_code ec, asio::cancellation_type_t cancel_state)
+writer_action writer_fsm::resume(
+   system::error_code ec,
+   std::size_t bytes_written,
+   asio::cancellation_type_t cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
@@ -42,32 +43,25 @@ writer_action writer_fsm::resume(system::error_code ec, asio::cancellation_type_
             // Write
             BOOST_REDIS_YIELD(resume_point_, 1, writer_action_type::write)
 
-            // A failed write means that we should tear down the connection
-            if (ec) {
-               logger_->log(logger::level::err, "Writer task error: ", ec);
-               stored_ec_ = ec;
-               BOOST_REDIS_YIELD(resume_point_, 2, writer_action_type::cancel_run)
-               return stored_ec_;
-            }
+            // Check for cancellations
+            if (is_terminal_cancellation(cancel_state) && !ec)
+               ec = asio::error::operation_aborted;
 
-            // Log what we wrote
-            log_write_success(*logger_, mpx_->get_write_buffer().size());
+            // Check for errors
+            if (ec) {
+               logger_->on_write(ec, bytes_written);
+               return ec;
+            }
 
             // Mark requests as written
             mpx_->commit_write();
-
-            // Check for cancellations
-            if (is_cancellation(cancel_state)) {
-               logger_->trace("Writer task cancelled (1).");
-               return system::error_code(asio::error::operation_aborted);
-            }
          }
 
          // No more requests ready to be written. Wait for more
-         BOOST_REDIS_YIELD(resume_point_, 3, writer_action_type::wait)
+         BOOST_REDIS_YIELD(resume_point_, 2, writer_action_type::wait)
 
          // Check for cancellations
-         if (is_cancellation(cancel_state)) {
+         if (is_terminal_cancellation(cancel_state)) {
             logger_->trace("Writer task cancelled (2).");
             return system::error_code(asio::error::operation_aborted);
          }
