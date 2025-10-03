@@ -145,21 +145,6 @@ struct connection_impl {
       writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
    }
 
-   void cancel_run()
-   {
-      // Individual operations should see a terminal cancellation, regardless
-      // of what we got requested. We take enough actions to ensure that this
-      // doesn't prevent the object from being re-used (e.g. we reset the TLS stream).
-      run_signal_.emit(asio::cancellation_type_t::terminal);
-
-      // Name resolution doesn't support per-operation cancellation
-      stream_.cancel_resolve();
-
-      // Receive is technically not part of run, but we also cancel it for
-      // backwards compatibility.
-      receive_channel_.cancel();
-   }
-
    void cancel(operation op)
    {
       switch (op) {
@@ -181,6 +166,21 @@ struct connection_impl {
             break;
          default: /* ignore */;
       }
+   }
+
+   void cancel_run()
+   {
+      // Individual operations should see a terminal cancellation, regardless
+      // of what we got requested. We take enough actions to ensure that this
+      // doesn't prevent the object from being re-used (e.g. we reset the TLS stream).
+      run_signal_.emit(asio::cancellation_type_t::terminal);
+
+      // Name resolution doesn't support per-operation cancellation
+      stream_.cancel_resolve();
+
+      // Receive is technically not part of run, but we also cancel it for
+      // backwards compatibility.
+      receive_channel_.cancel();
    }
 
    bool is_open() const noexcept { return stream_.is_open(); }
@@ -896,7 +896,7 @@ public:
     *
     * Where the second parameter is the size of the push received in
     * bytes.
-    *  
+    * 
     * @par Per-operation cancellation
     * This operation supports the following cancellation types:
     *
@@ -904,7 +904,7 @@ public:
     *   @li `asio::cancellation_type_t::partial`.
     *   @li `asio::cancellation_type_t::total`.
     *
-    * Calling @ref basic_connection::cancel (without arguments) will
+    * Calling `basic_connection::cancel(operation::receive)` will
     * also cancel any ongoing receive operations.
     * 
     * @param token Completion token.
