@@ -26,32 +26,15 @@ using boost::redis::connection;
 
 namespace {
 
-void test_basic_connection_run()
+template <class Connection>
+void test_run()
 {
    // Setup
    asio::io_context ioc;
-   basic_connection<asio::io_context::executor_type> conn{ioc};
+   Connection conn{ioc};
    bool run_finished = false;
 
-   // async_run
-   conn.async_run(make_test_config(), asio::cancel_after(1ms, [&](error_code ec) {
-                     BOOST_TEST_EQ(ec, asio::error::operation_aborted);
-                     run_finished = true;
-                  }));
-
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(run_finished);
-}
-
-void test_connection_run()
-{
-   // Setup
-   asio::io_context ioc;
-   connection conn{ioc};
-   bool run_finished = false;
-
-   // async_run
+   // Call the function with a very short timeout
    conn.async_run(make_test_config(), asio::cancel_after(1ms, [&](error_code ec) {
                      BOOST_TEST_EQ(ec, asio::error::operation_aborted);
                      run_finished = true;
@@ -66,8 +49,8 @@ void test_connection_run()
 
 int main()
 {
-   test_basic_connection_run();
-   test_connection_run();
+   test_run<basic_connection<asio::io_context::executor_type>>();
+   test_run<connection>();
 
    return boost::report_errors();
 }
