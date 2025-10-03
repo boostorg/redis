@@ -792,8 +792,8 @@ public:
     *   @li `asio::cancellation_type_t::terminal`.
     *   @li `asio::cancellation_type_t::partial`.
     *
-    * In both cases, cancellation is equivalent to calling @ref basic_connection::cancel,
-    * without arguments.
+    * In both cases, cancellation is equivalent to calling @ref basic_connection::cancel
+    * passing @ref operation::run as argument.
     *
     * For example on how to call this function refer to
     * cpp20_intro.cpp or any other example.
