@@ -241,7 +241,7 @@ void test_max_read_buffer_size()
    BOOST_TEST_EQ(act.ec_, redis::error::exceeds_maximum_read_buffer_size);
 }
 
-// TODO: cancellations
+// Cancellations
 void test_cancel_after_read()
 {
    multiplexer mpx;
@@ -265,6 +265,40 @@ void test_cancel_after_read()
    BOOST_TEST_EQ(act.ec_, net::error::operation_aborted);
 }
 
+void test_cancel_after_push_delivery()
+{
+   multiplexer mpx;
+   generic_response resp;
+   mpx.set_receive_adapter(any_adapter{resp});
+   reader_fsm fsm{mpx};
+   error_code ec;
+   action act;
+
+   // Initiate
+   act = fsm.resume(0, ec, cancellation_type_t::none);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
+
+   // The fsm is asking for data.
+   constexpr std::string_view payload =
+      ">1\r\n+msg1\r\n"
+      ">1\r\n+msg2 \r\n";
+
+   copy_to(mpx, payload);
+
+   // Deliver the 1st push
+   act = fsm.resume(payload.size(), ec, cancellation_type_t::none);
+   BOOST_TEST_EQ(act.type_, action::type::notify_push_receiver);
+   BOOST_TEST_EQ(act.push_size_, 11u);
+   BOOST_TEST_EQ(act.ec_, error_code());
+
+   // We got a cancellation after delivering it.
+   // This can happen if the cancellation signal arrives before the channel send handler runs
+   act = fsm.resume(0, ec, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act.type_, action::type::done);
+   BOOST_TEST_EQ(act.push_size_, 0u);
+   BOOST_TEST_EQ(act.ec_, net::error::operation_aborted);
+}
+
 }  // namespace
 
 int main()
@@ -278,6 +312,7 @@ int main()
    test_max_read_buffer_size();
 
    test_cancel_after_read();
+   test_cancel_after_push_delivery();
 
    return boost::report_errors();
 }
