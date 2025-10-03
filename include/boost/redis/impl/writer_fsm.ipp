@@ -44,8 +44,10 @@ writer_action writer_fsm::resume(
             BOOST_REDIS_YIELD(resume_point_, 1, writer_action_type::write)
 
             // Check for cancellations
-            if (is_terminal_cancellation(cancel_state) && !ec)
-               ec = asio::error::operation_aborted;
+            if (is_terminal_cancellation(cancel_state)) {
+               logger_->trace("Writer task cancelled (1).");
+               return system::error_code(asio::error::operation_aborted);
+            }
 
             // Check for errors
             if (ec) {
