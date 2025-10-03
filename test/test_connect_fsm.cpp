@@ -39,6 +39,7 @@ using resolver_results = tcp::resolver::results_type;
 static const char* to_string(connect_action_type type)
 {
    switch (type) {
+      case connect_action_type::unix_socket_close: return "connect_action_type::unix_socket_close";
       case connect_action_type::unix_socket_connect:
          return "connect_action_type::unix_socket_connect";
       case connect_action_type::tcp_resolve:      return "connect_action_type::tcp_resolve";
@@ -255,6 +256,8 @@ void test_unix_success()
 
    // Run the algorithm
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, connect_action_type::done);
@@ -549,6 +552,8 @@ void test_unix_connect_error()
 
    // Run the algorithm
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
    act = fix.fsm.resume(error::empty_field, fix.st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code(error::empty_field));
@@ -569,6 +574,8 @@ void test_unix_connect_timeout()
 
    // Run the algorithm. Timeout = operation_aborted without a cancel state
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
    act = fix.fsm.resume(asio::error::operation_aborted, fix.st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code(error::connect_timeout));
@@ -589,6 +596,8 @@ void test_unix_connect_cancel()
 
    // Run the algorithm. Cancel = operation_aborted with a cancel state
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
    act = fix.fsm.resume(asio::error::operation_aborted, fix.st, cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
@@ -604,6 +613,8 @@ void test_unix_connect_cancel_edge()
 
    // Run the algorithm. No error, but cancel state is set
    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
+   act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
