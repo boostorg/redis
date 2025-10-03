@@ -280,9 +280,6 @@ public:
          conn_->logger_.on_fsm_resume(act);
 
          switch (act.type_) {
-            case reader_fsm::action::type::setup_cancellation:
-               self.reset_cancellation_state(asio::enable_terminal_cancellation());
-               continue;
             case reader_fsm::action::type::needs_more:
             case reader_fsm::action::type::read_some:
             {

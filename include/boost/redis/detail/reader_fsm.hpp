@@ -22,14 +22,13 @@ public:
    struct action {
       enum class type
       {
-         setup_cancellation,
          read_some,
          needs_more,
          notify_push_receiver,
          done,
       };
 
-      type type_ = type::setup_cancellation;
+      type type_ = type::done;
       std::size_t push_size_ = 0u;
       system::error_code ec_ = {};
    };

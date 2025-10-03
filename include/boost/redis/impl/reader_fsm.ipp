@@ -29,7 +29,6 @@ reader_fsm::action reader_fsm::resume(
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
-      BOOST_REDIS_YIELD(resume_point_, 1, action::type::setup_cancellation)
 
       for (;;) {
          // Prepare the buffer for the read operation

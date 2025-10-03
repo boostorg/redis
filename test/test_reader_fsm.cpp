@@ -62,8 +62,6 @@ void test_push()
 
    // Initiate
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
-   act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
@@ -109,8 +107,6 @@ void test_read_needs_more()
 
    // Initiate
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
-   act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // Split the incoming message in three random parts and deliver
@@ -154,8 +150,6 @@ void test_read_error()
 
    // Initiate
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
-   act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
@@ -179,8 +173,6 @@ void test_parse_error()
 
    // Initiate
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
-   act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
@@ -203,8 +195,6 @@ void test_push_deliver_error()
    action act;
 
    // Initiate
-   act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
    act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
@@ -239,8 +229,6 @@ void test_max_read_buffer_size()
 
    // Initiate
    act = fsm.resume(0, ec, cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::setup_cancellation);
-   act = fsm.resume(0, ec, cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // Passes the first part to the fsm.
@@ -250,6 +238,8 @@ void test_max_read_buffer_size()
    BOOST_TEST_EQ(act.type_, action::type::done);
    BOOST_TEST_EQ(act.ec_, redis::error::exceeds_maximum_read_buffer_size);
 }
+
+// TODO: cancellations
 
 }  // namespace
 
