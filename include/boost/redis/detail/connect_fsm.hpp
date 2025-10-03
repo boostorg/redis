@@ -9,17 +9,13 @@
 #ifndef BOOST_REDIS_CONNECT_FSM_HPP
 #define BOOST_REDIS_CONNECT_FSM_HPP
 
+#include <boost/redis/config.hpp>
+
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/system/error_code.hpp>
 
 // Sans-io algorithm for redis_stream::async_connect, as a finite state machine
-
-namespace boost::redis {
-
-struct config;
-
-}
 
 namespace boost::redis::detail {
 
@@ -50,22 +46,18 @@ enum class connect_action_type
    done,                 // Complete the async op
 };
 
-class connect_action {
-   connect_action_type type_;
-   system::error_code ec_;
+struct connect_action {
+   connect_action_type type;
+   system::error_code ec;
 
-public:
    connect_action(connect_action_type type) noexcept
-   : type_{type}
+   : type{type}
    { }
 
    connect_action(system::error_code ec) noexcept
-   : type_{connect_action_type::done}
-   , ec_{ec}
+   : type{connect_action_type::done}
+   , ec{ec}
    { }
-
-   connect_action_type type() const { return type_; }
-   system::error_code error() const { return ec_; }
 };
 
 class connect_fsm {

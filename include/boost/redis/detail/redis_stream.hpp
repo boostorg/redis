@@ -54,7 +54,7 @@ class redis_stream {
       {
          const auto& cfg = fsm_.get_config();
 
-         switch (act.type()) {
+         switch (act.type) {
             case connect_action_type::unix_socket_close:
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
             {
@@ -92,7 +92,7 @@ class redis_stream {
                   asio::ssl::stream_base::client,
                   asio::cancel_after(obj.timer_, cfg.ssl_handshake_timeout, std::move(self)));
                return;
-            case connect_action_type::done:        self.complete(act.error()); break;
+            case connect_action_type::done:        self.complete(act.ec); break;
             // Connect should use the specialized handler, where resolver results are available
             case connect_action_type::tcp_connect:
             default:                               BOOST_ASSERT(false);
@@ -122,7 +122,7 @@ class redis_stream {
          asio::ip::tcp::resolver::results_type endpoints)
       {
          auto act = fsm_.resume(ec, endpoints, obj.st_, self.get_cancellation_state().cancelled());
-         if (act.type() == connect_action_type::tcp_connect) {
+         if (act.type == connect_action_type::tcp_connect) {
             asio::async_connect(
                obj.stream_.next_layer(),
                std::move(endpoints),

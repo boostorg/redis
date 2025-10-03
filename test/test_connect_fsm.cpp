@@ -94,14 +94,14 @@ std::ostream& operator<<(std::ostream& os, transport_type type) { return os << t
 
 bool operator==(const connect_action& lhs, const connect_action& rhs) noexcept
 {
-   return lhs.type() == rhs.type() && lhs.error() == rhs.error();
+   return lhs.type == rhs.type && lhs.ec == rhs.ec;
 }
 
 std::ostream& operator<<(std::ostream& os, const connect_action& act)
 {
-   os << "connect_action{ .type=" << act.type();
-   if (act.type() == connect_action_type::done)
-      os << ", .error=" << act.error();
+   os << "connect_action{ .type=" << act.type;
+   if (act.type == connect_action_type::done)
+      os << ", .error=" << act.ec;
    return os << " }";
 }
 
