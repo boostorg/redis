@@ -1224,11 +1224,8 @@ public:
    auto async_run(config const& cfg, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
-         [](auto handler, connection* self, config const* cfg) {
-            self->async_run_impl(*cfg, std::move(handler));
-         },
+         run_initiation{this},
          token,
-         this,
          &cfg);
    }
 
@@ -1256,11 +1253,8 @@ public:
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
-         [](auto handler, connection* self, config const* cfg, logger l) {
-            self->async_run_impl(*cfg, std::move(l), std::move(handler));
-         },
+         run_initiation{this},
          token,
-         this,
          &cfg,
          std::move(l));
    }
@@ -1358,6 +1352,25 @@ public:
    }
 
 private:
+   struct run_initiation {
+      connection* self;
+
+      using executor_type = asio::any_io_executor;
+      executor_type get_executor() const noexcept { return self->get_executor(); }
+
+      template <class Handler>
+      void operator()(Handler&& handler, config const* cfg, logger l)
+      {
+         self->async_run_impl(*cfg, std::move(l), std::forward<Handler>(handler));
+      }
+
+      template <class Handler>
+      void operator()(Handler&& handler, config const* cfg)
+      {
+         self->async_run_impl(*cfg, std::forward<Handler>(handler));
+      }
+   };
+
    void async_run_impl(
       config const& cfg,
       logger&& l,
