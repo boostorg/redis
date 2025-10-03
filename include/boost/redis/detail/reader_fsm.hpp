@@ -38,7 +38,7 @@ public:
    action resume(
       std::size_t bytes_read,
       system::error_code ec,
-      asio::cancellation_type_t /*cancel_state*/);
+      asio::cancellation_type_t cancel_state);
 
 private:
    int resume_point_{0};
