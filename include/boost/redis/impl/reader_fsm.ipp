@@ -38,7 +38,7 @@ reader_fsm::action reader_fsm::resume(
          }
 
          // Read
-         BOOST_REDIS_YIELD(resume_point_, 3, next_read_type_)
+         BOOST_REDIS_YIELD(resume_point_, 1, next_read_type_)
 
          // Process the bytes read, even if there was an error
          mpx_->commit_read(bytes_read);
@@ -73,7 +73,7 @@ reader_fsm::action reader_fsm::resume(
             }
 
             if (res_.first == consume_result::got_push) {
-               BOOST_REDIS_YIELD(resume_point_, 6, action::type::notify_push_receiver, res_.second)
+               BOOST_REDIS_YIELD(resume_point_, 2, action::type::notify_push_receiver, res_.second)
                if (ec) {
                   return {action::type::done, 0u, ec};
                }
