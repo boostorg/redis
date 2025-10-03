@@ -245,12 +245,13 @@ void test_max_read_buffer_size()
 
 int main()
 {
-   test_max_read_buffer_size();
-   test_push_deliver_error();
-   test_read_needs_more();
    test_push();
+   test_read_needs_more();
+
    test_read_error();
    test_parse_error();
+   test_push_deliver_error();
+   test_max_read_buffer_size();
 
    return boost::report_errors();
 }
