@@ -12,8 +12,6 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
-#include "common.hpp"
-
 namespace net = boost::asio;
 namespace redis = boost::redis;
 using boost::system::error_code;
@@ -25,6 +23,7 @@ using redis::any_adapter;
 using redis::config;
 using action = redis::detail::reader_fsm::action;
 
+// Operators
 namespace boost::redis::detail {
 
 extern auto to_string(reader_fsm::action::type t) noexcept -> char const*;
@@ -34,6 +33,10 @@ std::ostream& operator<<(std::ostream& os, reader_fsm::action::type t)
    os << to_string(t);
    return os;
 }
+
+}  // namespace boost::redis::detail
+
+namespace {
 
 // Copy data into the multiplexer with the following steps
 //
@@ -47,11 +50,6 @@ void copy_to(multiplexer& mpx, std::string_view data)
    BOOST_ASSERT(buffer.size() >= data.size());
    std::copy(data.cbegin(), data.cend(), buffer.begin());
 }
-
-}  // namespace boost::redis::detail
-
-// Operators
-namespace {
 
 void test_push()
 {
