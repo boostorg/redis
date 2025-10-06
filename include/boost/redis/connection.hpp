@@ -789,26 +789,10 @@ public:
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(config const& cfg, CompletionToken&& token = {})
    {
-      impl_->cfg_ = cfg;
-      impl_->mpx_.set_config(cfg);
-
-      // If the token's slot has cancellation enabled, it should just emit
-      // the cancellation signal in our connection. This lets us unify the cancel()
-      // function and per-operation cancellation
-      auto slot = asio::get_associated_cancellation_slot(token);
-      if (slot.is_connected()) {
-         slot.template emplace<detail::run_cancel_handler<Executor>>(*impl_);
-      }
-
-      // Overwrite the token's cancellation slot: the composed operation
-      // should use the signal's slot so we can generate cancellations in cancel()
-      auto token_with_slot = asio::bind_cancellation_slot(
-         impl_->run_signal_.slot(),
-         std::forward<CompletionToken>(token));
-      return asio::async_compose<decltype(token_with_slot), void(system::error_code)>(
-         detail::run_op<Executor>{impl_.get()},
-         token_with_slot,
-         impl_->writer_timer_);
+      return asio::async_initiate<CompletionToken, void(system::error_code)>(
+         run_initiation{impl_.get()},
+         token,
+         &cfg);
    }
 
    /**
@@ -1133,6 +1117,42 @@ private:
       impl_->logger_.reset(detail::make_stderr_logger(lvl, cfg.log_prefix));
    }
 
+   // Initiation for async_run. This is required because we need access
+   // to the final handler (rather than the completion token) within the initiation,
+   // to modify the handler's cancellation slot.
+   struct run_initiation {
+      detail::connection_impl<Executor>* self;
+
+      using executor_type = Executor;
+      executor_type get_executor() const noexcept { return self->get_executor(); }
+
+      template <class Handler>
+      void operator()(Handler&& handler, config const* cfg)
+      {
+         self->cfg_ = *cfg;
+         self->mpx_.set_config(*cfg);
+
+         // If the token's slot has cancellation enabled, it should just emit
+         // the cancellation signal in our connection. This lets us unify the cancel()
+         // function and per-operation cancellation
+         auto slot = asio::get_associated_cancellation_slot(handler);
+         if (slot.is_connected()) {
+            slot.template emplace<detail::run_cancel_handler<Executor>>(*self);
+         }
+
+         // Overwrite the token's cancellation slot: the composed operation
+         // should use the signal's slot so we can generate cancellations in cancel()
+         auto token_with_slot = asio::bind_cancellation_slot(
+            self->run_signal_.slot(),
+            std::forward<Handler>(handler));
+
+         asio::async_compose<decltype(token_with_slot), void(system::error_code)>(
+            detail::run_op<Executor>{self},
+            token_with_slot,
+            self->writer_timer_);
+      }
+   };
+
    friend class connection;
 
    std::unique_ptr<detail::connection_impl<Executor>> impl_;
@@ -1224,11 +1244,8 @@ public:
    auto async_run(config const& cfg, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
-         [](auto handler, connection* self, config const* cfg) {
-            self->async_run_impl(*cfg, std::move(handler));
-         },
+         initiation{this},
          token,
-         this,
          &cfg);
    }
 
@@ -1256,11 +1273,8 @@ public:
    auto async_run(config const& cfg, logger l, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
-         [](auto handler, connection* self, config const* cfg, logger l) {
-            self->async_run_impl(*cfg, std::move(l), std::move(handler));
-         },
+         initiation{this},
          token,
-         this,
          &cfg,
          std::move(l));
    }
@@ -1299,11 +1313,8 @@ public:
    auto async_exec(request const& req, any_adapter adapter, CompletionToken&& token = {})
    {
       return asio::async_initiate<CompletionToken, void(boost::system::error_code, std::size_t)>(
-         [](auto handler, connection* self, request const* req, any_adapter&& adapter) {
-            self->async_exec_impl(*req, std::move(adapter), std::move(handler));
-         },
+         initiation{this},
          token,
-         this,
          &req,
          std::move(adapter));
    }
@@ -1358,6 +1369,34 @@ public:
    }
 
 private:
+   // Function object to initiate the async ops that use asio::any_completion_handler.
+   // Required for asio::cancel_after to work.
+   // Since all ops have different arguments, a single struct with different overloads is enough.
+   struct initiation {
+      connection* self;
+
+      using executor_type = asio::any_io_executor;
+      executor_type get_executor() const noexcept { return self->get_executor(); }
+
+      template <class Handler>
+      void operator()(Handler&& handler, config const* cfg, logger l)
+      {
+         self->async_run_impl(*cfg, std::move(l), std::forward<Handler>(handler));
+      }
+
+      template <class Handler>
+      void operator()(Handler&& handler, config const* cfg)
+      {
+         self->async_run_impl(*cfg, std::forward<Handler>(handler));
+      }
+
+      template <class Handler>
+      void operator()(Handler&& handler, request const* req, any_adapter&& adapter)
+      {
+         self->async_exec_impl(*req, std::move(adapter), std::forward<Handler>(handler));
+      }
+   };
+
    void async_run_impl(
       config const& cfg,
       logger&& l,
