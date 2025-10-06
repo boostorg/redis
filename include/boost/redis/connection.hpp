@@ -789,26 +789,10 @@ public:
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_run(config const& cfg, CompletionToken&& token = {})
    {
-      impl_->cfg_ = cfg;
-      impl_->mpx_.set_config(cfg);
-
-      // If the token's slot has cancellation enabled, it should just emit
-      // the cancellation signal in our connection. This lets us unify the cancel()
-      // function and per-operation cancellation
-      auto slot = asio::get_associated_cancellation_slot(token);
-      if (slot.is_connected()) {
-         slot.template emplace<detail::run_cancel_handler<Executor>>(*impl_);
-      }
-
-      // Overwrite the token's cancellation slot: the composed operation
-      // should use the signal's slot so we can generate cancellations in cancel()
-      auto token_with_slot = asio::bind_cancellation_slot(
-         impl_->run_signal_.slot(),
-         std::forward<CompletionToken>(token));
-      return asio::async_compose<decltype(token_with_slot), void(system::error_code)>(
-         detail::run_op<Executor>{impl_.get()},
-         token_with_slot,
-         impl_->writer_timer_);
+      return asio::async_initiate<CompletionToken, void(system::error_code)>(
+         run_initiation{impl_.get()},
+         token,
+         &cfg);
    }
 
    /**
@@ -1132,6 +1116,42 @@ private:
    {
       impl_->logger_.reset(detail::make_stderr_logger(lvl, cfg.log_prefix));
    }
+
+   // Initiation for async_run. This is required because we need access
+   // to the final handler (rather than the completion token) within the initiation,
+   // to modify the handler's cancellation slot.
+   struct run_initiation {
+      detail::connection_impl<Executor>* self;
+
+      using executor_type = Executor;
+      executor_type get_executor() const noexcept { return self->get_executor(); }
+
+      template <class Handler>
+      void operator()(Handler&& handler, config const* cfg)
+      {
+         self->cfg_ = *cfg;
+         self->mpx_.set_config(*cfg);
+
+         // If the token's slot has cancellation enabled, it should just emit
+         // the cancellation signal in our connection. This lets us unify the cancel()
+         // function and per-operation cancellation
+         auto slot = asio::get_associated_cancellation_slot(handler);
+         if (slot.is_connected()) {
+            slot.template emplace<detail::run_cancel_handler<Executor>>(*self);
+         }
+
+         // Overwrite the token's cancellation slot: the composed operation
+         // should use the signal's slot so we can generate cancellations in cancel()
+         auto token_with_slot = asio::bind_cancellation_slot(
+            self->run_signal_.slot(),
+            std::forward<Handler>(handler));
+
+         asio::async_compose<decltype(token_with_slot), void(system::error_code)>(
+            detail::run_op<Executor>{self},
+            token_with_slot,
+            self->writer_timer_);
+      }
+   };
 
    friend class connection;
 
