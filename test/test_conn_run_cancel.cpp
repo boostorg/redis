@@ -12,6 +12,7 @@
 #include <boost/asio/bind_cancellation_slot.hpp>
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
@@ -27,13 +28,14 @@ using namespace boost::redis;
 namespace {
 
 // Terminal and partial cancellation work for async_run
+template <class Connection>
 void test_per_operation_cancellation(std::string_view name, net::cancellation_type_t cancel_type)
 {
    std::cerr << "Running test case: " << name << std::endl;
 
    // Setup
    net::io_context ioc;
-   connection conn{ioc};
+   Connection conn{ioc};
    net::cancellation_signal sig;
 
    request req;
@@ -66,8 +68,21 @@ void test_per_operation_cancellation(std::string_view name, net::cancellation_ty
 
 int main()
 {
-   test_per_operation_cancellation("terminal", net::cancellation_type_t::terminal);
-   test_per_operation_cancellation("partial", net::cancellation_type_t::partial);
+   using basic_connection_t = basic_connection<net::io_context::executor_type>;
+
+   test_per_operation_cancellation<basic_connection_t>(
+      "basic_connection, terminal",
+      net::cancellation_type_t::terminal);
+   test_per_operation_cancellation<basic_connection_t>(
+      "basic_connection, partial",
+      net::cancellation_type_t::partial);
+
+   test_per_operation_cancellation<connection>(
+      "connection, terminal",
+      net::cancellation_type_t::terminal);
+   test_per_operation_cancellation<connection>(
+      "connection, partial",
+      net::cancellation_type_t::partial);
 
    return boost::report_errors();
 }
