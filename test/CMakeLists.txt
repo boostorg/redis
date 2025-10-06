@@ -41,6 +41,7 @@ make_test(test_exec_fsm)
 make_test(test_log_to_file)
 make_test(test_conn_logging)
 make_test(test_reader_fsm)
+make_test(test_connect_fsm)
 make_test(test_setup_request_utils)
 make_test(test_multiplexer)
 

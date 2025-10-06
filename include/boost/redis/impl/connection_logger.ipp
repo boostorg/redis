@@ -103,7 +103,7 @@ void connection_logger::on_connect(system::error_code const& ec, asio::ip::tcp::
       return;
 
    if (ec) {
-      msg_ = "Failed connecting to the server: ";
+      msg_ = "Failed to connect to the server: ";
       format_error_code(ec, msg_);
    } else {
       msg_ = "Connected to ";
@@ -119,7 +119,7 @@ void connection_logger::on_connect(system::error_code const& ec, std::string_vie
       return;
 
    if (ec) {
-      msg_ = "Failed connecting to the server: ";
+      msg_ = "Failed to connect to the server: ";
       format_error_code(ec, msg_);
    } else {
       msg_ = "Connected to ";
@@ -134,8 +134,12 @@ void connection_logger::on_ssl_handshake(system::error_code const& ec)
    if (logger_.lvl < logger::level::info)
       return;
 
-   msg_ = "SSL handshake: ";
-   format_error_code(ec, msg_);
+   if (ec) {
+      msg_ = "Failed to perform SSL handshake: ";
+      format_error_code(ec, msg_);
+   } else {
+      msg_ = "Successfully performed SSL handshake";
+   }
 
    logger_.fn(logger::level::info, msg_);
 }
