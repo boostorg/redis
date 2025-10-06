@@ -50,6 +50,8 @@ req.get_config().cancel_on_connection_lost = false; // TODO: we shouldn't need t
 req.get_config().cancel_if_unresponded = false; // retry
 
 // Makes sure that the key is set, even in the presence of network errors.
-// This may suspend for an unspecified period of time if the server is down.
+// Note that if the server is down, the current coroutine will remain suspended
+// until the server is capable of serving requests again (e.g. until a process manager restarts the server).
+// Use cancel_after as seen above if you need to limit this time.
 co_await conn.async_exec(req, ignore);
 ```
