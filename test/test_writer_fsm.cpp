@@ -157,12 +157,38 @@ void test_request_arrives_while_writing()
    BOOST_TEST(item2.elm->is_written());
 }
 
+// A write error makes the writer exit
+void test_write_error()
+{
+   // Setup
+   multiplexer mpx;
+   test_elem item;
+   connection_logger lgr{{}};  // TODO: check logs
+   writer_fsm fsm{mpx, lgr};
+
+   // A request arrives before the writer starts
+   mpx.add(item.elm);
+
+   // Start. A write is triggered, and the request is marked as staged
+   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST(item.elm->is_staged());
+
+   // The write completes with an error (possibly with partial success).
+   // The request is still staged, and the writer exits
+   act = fsm.resume(asio::error::connection_reset, 2u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(asio::error::connection_reset));
+   BOOST_TEST(item.elm->is_staged());
+}
+
 }  // namespace
 
 int main()
 {
    test_single_request();
    test_request_arrives_while_writing();
+
+   test_write_error();
 
    return boost::report_errors();
 }
