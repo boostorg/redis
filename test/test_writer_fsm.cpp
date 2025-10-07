@@ -157,6 +157,33 @@ void test_request_arrives_while_writing()
    BOOST_TEST(item2.elm->is_written());
 }
 
+// If there is no request when the writer starts, we wait for it
+void test_no_request_at_startup()
+{
+   // Setup
+   multiplexer mpx;
+   test_elem item;
+   connection_logger lgr{{}};  // TODO: check logs
+   writer_fsm fsm{mpx, lgr};
+
+   // Start. There is no request, so we wait
+   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::wait);
+
+   // A request arrives
+   mpx.add(item.elm);
+
+   // The wait is cancelled to signal we've got a new request
+   act = fsm.resume(asio::error::operation_aborted, 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST(item.elm->is_staged());
+
+   // Write successful
+   act = fsm.resume(error_code(), item.req.payload().size(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::wait);
+   BOOST_TEST(item.elm->is_written());
+}
+
 // A write error makes the writer exit
 void test_write_error()
 {
@@ -187,6 +214,7 @@ int main()
 {
    test_single_request();
    test_request_arrives_while_writing();
+   test_no_request_at_startup();
 
    test_write_error();
 
