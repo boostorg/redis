@@ -88,38 +88,41 @@ struct test_elem {
    }
 };
 
+struct fixture : detail::log_fixture {
+   multiplexer mpx;
+   writer_fsm fsm{mpx, lgr};
+};
+
 // A single request is written, then we wait and repeat
 void test_single_request()
 {
    // Setup
-   multiplexer mpx;
+   fixture fix;
    test_elem item1, item2;
-   connection_logger lgr{{}};  // TODO: check logs
-   writer_fsm fsm{mpx, lgr};
 
    // A request arrives before the writer starts
-   mpx.add(item1.elm);
+   fix.mpx.add(item1.elm);
 
    // Start. A write is triggered, and the request is marked as staged
-   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::write);
    BOOST_TEST(item1.elm->is_staged());
 
    // The write completes successfully. The request is written, and we go back to sleep.
-   act = fsm.resume(error_code(), item1.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(error_code(), item1.req.payload().size(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::wait);
    BOOST_TEST(item1.elm->is_written());
 
    // Another request arrives
-   mpx.add(item2.elm);
+   fix.mpx.add(item2.elm);
 
    // The wait is cancelled to signal we've got a new request
-   act = fsm.resume(asio::error::operation_aborted, 0u, cancellation_type_t::none);
+   act = fix.fsm.resume(asio::error::operation_aborted, 0u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::write);
    BOOST_TEST(item2.elm->is_staged());
 
    // Write successful
-   act = fsm.resume(error_code(), item2.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(error_code(), item2.req.payload().size(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::wait);
    BOOST_TEST(item2.elm->is_written());
 }
@@ -128,31 +131,29 @@ void test_single_request()
 void test_request_arrives_while_writing()
 {
    // Setup
-   multiplexer mpx;
+   fixture fix;
    test_elem item1, item2;
-   connection_logger lgr{{}};  // TODO: check logs
-   writer_fsm fsm{mpx, lgr};
 
    // A request arrives before the writer starts
-   mpx.add(item1.elm);
+   fix.mpx.add(item1.elm);
 
    // Start. A write is triggered, and the request is marked as staged
-   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::write);
    BOOST_TEST(item1.elm->is_staged());
 
    // While the write is outstanding, a new request arrives
-   mpx.add(item2.elm);
+   fix.mpx.add(item2.elm);
 
    // The write completes successfully. The request is written,
    // and we start writing the new one
-   act = fsm.resume(error_code(), item1.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(error_code(), item1.req.payload().size(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::write);
    BOOST_TEST(item1.elm->is_written());
    BOOST_TEST(item2.elm->is_staged());
 
    // Write successful
-   act = fsm.resume(error_code(), item2.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(error_code(), item2.req.payload().size(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::wait);
    BOOST_TEST(item2.elm->is_written());
 }
@@ -161,25 +162,23 @@ void test_request_arrives_while_writing()
 void test_no_request_at_startup()
 {
    // Setup
-   multiplexer mpx;
+   fixture fix;
    test_elem item;
-   connection_logger lgr{{}};  // TODO: check logs
-   writer_fsm fsm{mpx, lgr};
 
    // Start. There is no request, so we wait
-   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::wait);
 
    // A request arrives
-   mpx.add(item.elm);
+   fix.mpx.add(item.elm);
 
    // The wait is cancelled to signal we've got a new request
-   act = fsm.resume(asio::error::operation_aborted, 0u, cancellation_type_t::none);
+   act = fix.fsm.resume(asio::error::operation_aborted, 0u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::write);
    BOOST_TEST(item.elm->is_staged());
 
    // Write successful
-   act = fsm.resume(error_code(), item.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(error_code(), item.req.payload().size(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::wait);
    BOOST_TEST(item.elm->is_written());
 }
@@ -188,22 +187,20 @@ void test_no_request_at_startup()
 void test_write_error()
 {
    // Setup
-   multiplexer mpx;
+   fixture fix;
    test_elem item;
-   connection_logger lgr{{}};  // TODO: check logs
-   writer_fsm fsm{mpx, lgr};
 
    // A request arrives before the writer starts
-   mpx.add(item.elm);
+   fix.mpx.add(item.elm);
 
    // Start. A write is triggered, and the request is marked as staged
-   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::write);
    BOOST_TEST(item.elm->is_staged());
 
    // The write completes with an error (possibly with partial success).
    // The request is still staged, and the writer exits
-   act = fsm.resume(asio::error::connection_reset, 2u, cancellation_type_t::none);
+   act = fix.fsm.resume(asio::error::connection_reset, 2u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code(asio::error::connection_reset));
    BOOST_TEST(item.elm->is_staged());
 }
@@ -212,21 +209,19 @@ void test_write_error()
 void test_cancel_write()
 {
    // Setup
-   multiplexer mpx;
+   fixture fix;
    test_elem item;
-   connection_logger lgr{{}};  // TODO: check logs
-   writer_fsm fsm{mpx, lgr};
 
    // A request arrives before the writer starts
-   mpx.add(item.elm);
+   fix.mpx.add(item.elm);
 
    // Start. A write is triggered
-   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::write);
    BOOST_TEST(item.elm->is_staged());
 
    // Write cancelled and failed with operation_aborted
-   act = fsm.resume(asio::error::operation_aborted, 2u, cancellation_type_t::terminal);
+   act = fix.fsm.resume(asio::error::operation_aborted, 2u, cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
    BOOST_TEST(item.elm->is_staged());
 }
@@ -235,21 +230,19 @@ void test_cancel_write()
 void test_cancel_write_edge()
 {
    // Setup
-   multiplexer mpx;
+   fixture fix;
    test_elem item;
-   connection_logger lgr{{}};  // TODO: check logs
-   writer_fsm fsm{mpx, lgr};
 
    // A request arrives before the writer starts
-   mpx.add(item.elm);
+   fix.mpx.add(item.elm);
 
    // Start. A write is triggered
-   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::write);
    BOOST_TEST(item.elm->is_staged());
 
    // Write cancelled but without error
-   act = fsm.resume(error_code(), item.req.payload().size(), cancellation_type_t::terminal);
+   act = fix.fsm.resume(error_code(), item.req.payload().size(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
    BOOST_TEST(item.elm->is_written());
 }
@@ -258,20 +251,18 @@ void test_cancel_write_edge()
 void test_cancel_wait()
 {
    // Setup
-   multiplexer mpx;
+   fixture fix;
    test_elem item;
-   connection_logger lgr{{}};  // TODO: check logs
-   writer_fsm fsm{mpx, lgr};
 
    // Start. There is no request, so we wait
-   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::wait);
 
    // Sanity check: the writer doesn't touch the multiplexer after a cancellation
-   mpx.add(item.elm);
+   fix.mpx.add(item.elm);
 
    // Cancel the wait, setting the cancellation state
-   act = fsm.resume(asio::error::operation_aborted, 0u, asio::cancellation_type_t::terminal);
+   act = fix.fsm.resume(asio::error::operation_aborted, 0u, asio::cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
    BOOST_TEST(item.elm->is_waiting());
 }
