@@ -254,6 +254,28 @@ void test_cancel_write_edge()
    BOOST_TEST(item.elm->is_written());
 }
 
+// The wait was cancelled because of per-operation cancellation (rather than a notification)
+void test_cancel_wait()
+{
+   // Setup
+   multiplexer mpx;
+   test_elem item;
+   connection_logger lgr{{}};  // TODO: check logs
+   writer_fsm fsm{mpx, lgr};
+
+   // Start. There is no request, so we wait
+   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::wait);
+
+   // Sanity check: the writer doesn't touch the multiplexer after a cancellation
+   mpx.add(item.elm);
+
+   // Cancel the wait, setting the cancellation state
+   act = fsm.resume(asio::error::operation_aborted, 0u, asio::cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   BOOST_TEST(item.elm->is_waiting());
+}
+
 }  // namespace
 
 int main()
@@ -266,6 +288,7 @@ int main()
 
    test_cancel_write();
    test_cancel_write_edge();
+   test_cancel_wait();
 
    return boost::report_errors();
 }
