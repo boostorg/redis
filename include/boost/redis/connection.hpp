@@ -225,8 +225,8 @@ struct writer_op {
    {
       auto act = fsm_.resume(ec, bytes_written, self.get_cancellation_state().cancelled());
 
-      switch (act.type()) {
-         case writer_action_type::done: self.complete(act.error()); return;
+      switch (act.type) {
+         case writer_action_type::done: self.complete(act.ec); return;
          case writer_action_type::write:
             asio::async_write(
                conn_->stream_,
@@ -451,7 +451,7 @@ private:
    auto writer(CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         writer_op<Executor>{conn_},
+         writer_op<Executor>{*conn_},
          std::forward<CompletionToken>(token),
          conn_->writer_timer_);
    }
