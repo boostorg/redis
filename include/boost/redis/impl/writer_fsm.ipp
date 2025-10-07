@@ -38,6 +38,10 @@ writer_action writer_fsm::resume(
             // Write
             BOOST_REDIS_YIELD(resume_point_, 1, writer_action_type::write)
 
+            // Mark requests as written
+            if (!ec)
+               mpx_->commit_write();
+
             // Check for cancellations
             if (is_terminal_cancel(cancel_state)) {
                logger_->trace("Writer task cancelled (1).");
@@ -49,9 +53,6 @@ writer_action writer_fsm::resume(
                logger_->on_write(ec, bytes_written);
                return ec;
             }
-
-            // Mark requests as written
-            mpx_->commit_write();
          }
 
          // No more requests ready to be written. Wait for more
