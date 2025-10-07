@@ -13,6 +13,7 @@
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
+#include <boost/redis/impl/is_terminal_cancel.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
@@ -22,12 +23,6 @@
 #include <cstddef>
 
 namespace boost::redis::detail {
-
-// TODO: this is duplicated
-inline bool is_terminal_cancellation(asio::cancellation_type_t cancel_state)
-{
-   return (cancel_state & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none;
-}
 
 writer_action writer_fsm::resume(
    system::error_code ec,
@@ -44,7 +39,7 @@ writer_action writer_fsm::resume(
             BOOST_REDIS_YIELD(resume_point_, 1, writer_action_type::write)
 
             // Check for cancellations
-            if (is_terminal_cancellation(cancel_state)) {
+            if (is_terminal_cancel(cancel_state)) {
                logger_->trace("Writer task cancelled (1).");
                return system::error_code(asio::error::operation_aborted);
             }
@@ -63,7 +58,7 @@ writer_action writer_fsm::resume(
          BOOST_REDIS_YIELD(resume_point_, 2, writer_action_type::wait)
 
          // Check for cancellations
-         if (is_terminal_cancellation(cancel_state)) {
+         if (is_terminal_cancel(cancel_state)) {
             logger_->trace("Writer task cancelled (2).");
             return system::error_code(asio::error::operation_aborted);
          }
