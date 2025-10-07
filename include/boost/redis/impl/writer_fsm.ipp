@@ -44,13 +44,15 @@ writer_action writer_fsm::resume(
 
             // Check for cancellations
             if (is_terminal_cancel(cancel_state)) {
-               logger_->trace("Writer task cancelled (1).");
+               logger_->trace("Writer task: cancelled (1).");
                return system::error_code(asio::error::operation_aborted);
             }
 
+            // Log what we wrote
+            logger_->on_write(ec, bytes_written);
+
             // Check for errors
             if (ec) {
-               logger_->on_write(ec, bytes_written);
                return ec;
             }
          }
@@ -60,7 +62,7 @@ writer_action writer_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            logger_->trace("Writer task cancelled (2).");
+            logger_->trace("Writer task: cancelled (2).");
             return system::error_code(asio::error::operation_aborted);
          }
       }

@@ -125,6 +125,12 @@ void test_single_request()
    act = fix.fsm.resume(error_code(), item2.req.payload().size(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::wait);
    BOOST_TEST(item2.elm->is_written());
+
+   // Logs
+   fix.check_log({
+      {logger::level::info, "Writer task: 24 bytes written."},
+      {logger::level::info, "Writer task: 24 bytes written."},
+   });
 }
 
 // If a request arrives while we're performing a write, we don't get back to sleep
@@ -156,6 +162,12 @@ void test_request_arrives_while_writing()
    act = fix.fsm.resume(error_code(), item2.req.payload().size(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::wait);
    BOOST_TEST(item2.elm->is_written());
+
+   // Logs
+   fix.check_log({
+      {logger::level::info, "Writer task: 24 bytes written."},
+      {logger::level::info, "Writer task: 24 bytes written."},
+   });
 }
 
 // If there is no request when the writer starts, we wait for it
@@ -181,6 +193,11 @@ void test_no_request_at_startup()
    act = fix.fsm.resume(error_code(), item.req.payload().size(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, writer_action_type::wait);
    BOOST_TEST(item.elm->is_written());
+
+   // Logs
+   fix.check_log({
+      {logger::level::info, "Writer task: 24 bytes written."},
+   });
 }
 
 // A write error makes the writer exit
@@ -199,10 +216,16 @@ void test_write_error()
    BOOST_TEST(item.elm->is_staged());
 
    // The write completes with an error (possibly with partial success).
-   // The request is still staged, and the writer exits
-   act = fix.fsm.resume(asio::error::connection_reset, 2u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, error_code(asio::error::connection_reset));
+   // The request is still staged, and the writer exits.
+   // Use an error we control so we can check logs
+   act = fix.fsm.resume(error::empty_field, 2u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::empty_field));
    BOOST_TEST(item.elm->is_staged());
+
+   // Logs
+   fix.check_log({
+      {logger::level::info, "Writer task error: Expected field value is empty. [boost.redis:5]"},
+   });
 }
 
 // A write is cancelled
@@ -224,6 +247,11 @@ void test_cancel_write()
    act = fix.fsm.resume(asio::error::operation_aborted, 2u, cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
    BOOST_TEST(item.elm->is_staged());
+
+   // Logs
+   fix.check_log({
+      {logger::level::debug, "Writer task: cancelled (1)."},
+   });
 }
 
 // A write is cancelled after completing but before the handler is dispatched
@@ -245,6 +273,11 @@ void test_cancel_write_edge()
    act = fix.fsm.resume(error_code(), item.req.payload().size(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
    BOOST_TEST(item.elm->is_written());
+
+   // Logs
+   fix.check_log({
+      {logger::level::debug, "Writer task: cancelled (1)."},
+   });
 }
 
 // The wait was cancelled because of per-operation cancellation (rather than a notification)
@@ -265,6 +298,11 @@ void test_cancel_wait()
    act = fix.fsm.resume(asio::error::operation_aborted, 0u, asio::cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
    BOOST_TEST(item.elm->is_waiting());
+
+   // Logs
+   fix.check_log({
+      {logger::level::debug, "Writer task: cancelled (2)."},
+   });
 }
 
 }  // namespace
