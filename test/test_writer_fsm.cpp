@@ -6,8 +6,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
@@ -18,10 +20,8 @@
 
 #include "sansio_utils.hpp"
 
-#include <cstddef>
 #include <memory>
 #include <ostream>
-#include <utility>
 
 using namespace boost::redis;
 namespace asio = boost::asio;
@@ -32,6 +32,7 @@ using detail::consume_result;
 using detail::writer_action;
 using boost::system::error_code;
 using boost::asio::cancellation_type_t;
+using detail::connection_logger;
 
 // Operators
 static const char* to_string(writer_action_type value)
@@ -92,8 +93,35 @@ void test_single_request()
 {
    // Setup
    multiplexer mpx;
-   test_elem elem;
-   // TODO
+   test_elem item1, item2;
+   connection_logger lgr{{}};  // TODO: check logs
+   writer_fsm fsm{mpx, lgr};
+
+   // A request arrives before the writer starts
+   mpx.add(item1.elm);
+
+   // Start. A write is triggered, and the request is marked as staged
+   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST(item1.elm->is_staged());
+
+   // The write completes successfully. The request is written, and we go back to sleep.
+   act = fsm.resume(error_code(), item1.req.payload().size(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::wait);
+   BOOST_TEST(item1.elm->is_written());
+
+   // Another request arrives
+   mpx.add(item2.elm);
+
+   // The wait is cancelled to signal we've got a new request
+   act = fsm.resume(asio::error::operation_aborted, 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST(item2.elm->is_staged());
+
+   // Write successful
+   act = fsm.resume(error_code(), item2.req.payload().size(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::wait);
+   BOOST_TEST(item2.elm->is_written());
 }
 
 }  // namespace
