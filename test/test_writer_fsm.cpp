@@ -124,11 +124,45 @@ void test_single_request()
    BOOST_TEST(item2.elm->is_written());
 }
 
+// If a request arrives while we're performing a write, we don't get back to sleep
+void test_request_arrives_while_writing()
+{
+   // Setup
+   multiplexer mpx;
+   test_elem item1, item2;
+   connection_logger lgr{{}};  // TODO: check logs
+   writer_fsm fsm{mpx, lgr};
+
+   // A request arrives before the writer starts
+   mpx.add(item1.elm);
+
+   // Start. A write is triggered, and the request is marked as staged
+   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST(item1.elm->is_staged());
+
+   // While the write is outstanding, a new request arrives
+   mpx.add(item2.elm);
+
+   // The write completes successfully. The request is written,
+   // and we start writing the new one
+   act = fsm.resume(error_code(), item1.req.payload().size(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST(item1.elm->is_written());
+   BOOST_TEST(item2.elm->is_staged());
+
+   // Write successful
+   act = fsm.resume(error_code(), item2.req.payload().size(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::wait);
+   BOOST_TEST(item2.elm->is_written());
+}
+
 }  // namespace
 
 int main()
 {
    test_single_request();
+   test_request_arrives_while_writing();
 
    return boost::report_errors();
 }
