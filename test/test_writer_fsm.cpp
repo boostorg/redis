@@ -208,6 +208,52 @@ void test_write_error()
    BOOST_TEST(item.elm->is_staged());
 }
 
+// A write is cancelled
+void test_cancel_write()
+{
+   // Setup
+   multiplexer mpx;
+   test_elem item;
+   connection_logger lgr{{}};  // TODO: check logs
+   writer_fsm fsm{mpx, lgr};
+
+   // A request arrives before the writer starts
+   mpx.add(item.elm);
+
+   // Start. A write is triggered
+   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST(item.elm->is_staged());
+
+   // Write cancelled and failed with operation_aborted
+   act = fsm.resume(asio::error::operation_aborted, 2u, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   BOOST_TEST(item.elm->is_staged());
+}
+
+// A write is cancelled after completing but before the handler is dispatched
+void test_cancel_write_edge()
+{
+   // Setup
+   multiplexer mpx;
+   test_elem item;
+   connection_logger lgr{{}};  // TODO: check logs
+   writer_fsm fsm{mpx, lgr};
+
+   // A request arrives before the writer starts
+   mpx.add(item.elm);
+
+   // Start. A write is triggered
+   auto act = fsm.resume(error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST(item.elm->is_staged());
+
+   // Write cancelled but without error
+   act = fsm.resume(error_code(), item.req.payload().size(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   BOOST_TEST(item.elm->is_written());
+}
+
 }  // namespace
 
 int main()
@@ -217,6 +263,9 @@ int main()
    test_no_request_at_startup();
 
    test_write_error();
+
+   test_cancel_write();
+   test_cancel_write_edge();
 
    return boost::report_errors();
 }
