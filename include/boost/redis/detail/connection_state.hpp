@@ -20,12 +20,12 @@ namespace boost::redis::detail {
 // Contains all the members in connection that don't depend on the Executor.
 // Makes implementing sans-io algorithms easier
 struct connection_state {
-   connection_logger logger_;
-   config cfg_{};
-   multiplexer mpx_{};
-   generic_response setup_resp_{};
-   request ping_req_{};
-   generic_response ping_resp_{};
+   connection_logger logger;
+   config cfg{};
+   multiplexer mpx{};
+   generic_response setup_resp{};
+   request ping_req{};
+   generic_response ping_resp{};
 };
 
 }  // namespace boost::redis::detail

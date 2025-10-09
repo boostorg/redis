@@ -144,10 +144,10 @@ struct connection_impl {
    void cancel(operation op)
    {
       switch (op) {
-         case operation::exec:    st_.mpx_.cancel_waiting(); break;
+         case operation::exec:    st_.mpx.cancel_waiting(); break;
          case operation::receive: receive_channel_.cancel(); break;
          case operation::reconnection:
-            st_.cfg_.reconnect_wait_interval = std::chrono::seconds::zero();
+            st_.cfg.reconnect_wait_interval = std::chrono::seconds::zero();
             break;
          case operation::run:
          case operation::resolve:
@@ -155,10 +155,10 @@ struct connection_impl {
          case operation::ssl_handshake:
          case operation::health_check:  cancel_run(); break;
          case operation::all:
-            st_.mpx_.cancel_waiting();                                        // exec
-            receive_channel_.cancel();                                        // receive
-            st_.cfg_.reconnect_wait_interval = std::chrono::seconds::zero();  // reconnect
-            cancel_run();                                                     // run
+            st_.mpx.cancel_waiting();                                        // exec
+            receive_channel_.cancel();                                       // receive
+            st_.cfg.reconnect_wait_interval = std::chrono::seconds::zero();  // reconnect
+            cancel_run();                                                    // run
             break;
          default: /* ignore */;
       }
@@ -183,7 +183,7 @@ struct connection_impl {
 
    bool will_reconnect() const noexcept
    {
-      return st_.cfg_.reconnect_wait_interval != std::chrono::seconds::zero();
+      return st_.cfg.reconnect_wait_interval != std::chrono::seconds::zero();
    }
 
    template <class CompletionToken>
@@ -197,14 +197,14 @@ struct connection_impl {
       });
 
       return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
-         exec_op{this, notifier, exec_fsm(st_.mpx_, std::move(info))},
+         exec_op{this, notifier, exec_fsm(st_.mpx, std::move(info))},
          token,
          writer_timer_);
    }
 
    void set_receive_adapter(any_adapter adapter)
    {
-      st_.mpx_.set_receive_adapter(std::move(adapter));
+      st_.mpx.set_receive_adapter(std::move(adapter));
    }
 };
 
@@ -215,7 +215,7 @@ struct writer_op {
 
    explicit writer_op(connection_impl<Executor>& conn) noexcept
    : conn_(&conn)
-   , fsm_(conn.st_.mpx_, conn.st_.logger_)
+   , fsm_(conn.st_.mpx, conn.st_.logger)
    { }
 
    template <class Self>
@@ -228,7 +228,7 @@ struct writer_op {
          case writer_action_type::write:
             asio::async_write(
                conn_->stream_,
-               asio::buffer(conn_->st_.mpx_.get_write_buffer()),
+               asio::buffer(conn_->st_.mpx.get_write_buffer()),
                std::move(self));
             return;
          case writer_action_type::wait: conn_->writer_timer_.async_wait(std::move(self)); return;
@@ -244,7 +244,7 @@ struct reader_op {
 public:
    reader_op(connection_impl<Executor>& conn) noexcept
    : conn_{&conn}
-   , fsm_{conn.st_.mpx_}
+   , fsm_{conn.st_.mpx}
    { }
 
    template <class Self>
@@ -253,13 +253,13 @@ public:
       for (;;) {
          auto act = fsm_.resume(n, ec, self.get_cancellation_state().cancelled());
 
-         conn_->st_.logger_.on_fsm_resume(act);
+         conn_->st_.logger.on_fsm_resume(act);
 
          switch (act.type_) {
             case reader_fsm::action::type::needs_more:
             case reader_fsm::action::type::read_some:
             {
-               auto const buf = conn_->st_.mpx_.get_prepared_read_buffer();
+               auto const buf = conn_->st_.mpx.get_prepared_read_buffer();
                conn_->stream_.async_read_some(asio::buffer(buf), std::move(self));
             }
                return;
@@ -286,26 +286,26 @@ struct health_checker_op {
    {
       // Did we have a cancellation? We might not have an error code here
       if ((cancel_state & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none) {
-         conn_->st_.logger_.log(logger::level::info, "Health checker: cancelled");
+         conn_->st_.logger.log(logger::level::info, "Health checker: cancelled");
          return asio::error::operation_aborted;
       }
 
       // operation_aborted and no cancel state means that asio::cancel_after timed out
       if (io_ec == asio::error::operation_aborted) {
-         conn_->st_.logger_.log(logger::level::info, "Health checker: ping timed out");
+         conn_->st_.logger.log(logger::level::info, "Health checker: ping timed out");
          return error::pong_timeout;
       }
 
       // Did we have other unknown error?
       if (io_ec) {
-         conn_->st_.logger_.log(logger::level::info, "Health checker: ping error", io_ec);
+         conn_->st_.logger.log(logger::level::info, "Health checker: ping error", io_ec);
          return io_ec;
       }
 
       // Did the server answer with an error?
-      if (conn_->st_.ping_resp_.has_error()) {
-         auto error = conn_->st_.ping_resp_.error();
-         conn_->st_.logger_.log(
+      if (conn_->st_.ping_resp.has_error()) {
+         auto error = conn_->st_.ping_resp.error();
+         conn_->st_.logger.log(
             logger::level::info,
             "Health checker: server answered ping with an error",
             error.diagnostic);
@@ -326,8 +326,8 @@ public:
    {
       BOOST_ASIO_CORO_REENTER(coro_)
       {
-         if (conn_->st_.cfg_.health_check_interval == std::chrono::seconds::zero()) {
-            conn_->st_.logger_.trace("ping_op (1): timeout disabled.");
+         if (conn_->st_.cfg.health_check_interval == std::chrono::seconds::zero()) {
+            conn_->st_.logger.trace("ping_op (1): timeout disabled.");
 
             // Wait until we're cancelled. This simplifies parallel group handling a lot
             conn_->ping_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
@@ -338,16 +338,16 @@ public:
 
          for (;;) {
             // Clean up any previous leftover
-            clear_response(conn_->st_.ping_resp_);
+            clear_response(conn_->st_.ping_resp);
 
             // Execute the request
             BOOST_ASIO_CORO_YIELD
             {
                auto* conn = conn_;  // avoid use-after-move problems
-               auto timeout = conn->st_.cfg_.health_check_interval;
+               auto timeout = conn->st_.cfg.health_check_interval;
                conn->async_exec(
-                  conn->st_.ping_req_,
-                  any_adapter{conn->st_.ping_resp_},
+                  conn->st_.ping_req,
+                  any_adapter{conn->st_.ping_resp},
                   asio::cancel_after(conn->ping_timer_, timeout, std::move(self)));
             }
 
@@ -359,13 +359,13 @@ public:
             }
 
             // Wait before pinging again.
-            conn_->ping_timer_.expires_after(conn_->st_.cfg_.health_check_interval);
+            conn_->ping_timer_.expires_after(conn_->st_.cfg.health_check_interval);
 
             BOOST_ASIO_CORO_YIELD
             conn_->ping_timer_.async_wait(std::move(self));
 
             if (is_cancelled(self)) {
-               conn_->st_.logger_.trace("ping_op (2): cancelled");
+               conn_->st_.logger.trace("ping_op (2): cancelled");
                self.complete(asio::error::operation_aborted);
                return;
             }
@@ -410,8 +410,8 @@ private:
       connection_impl<Executor>& conn,
       system::error_code ec)
    {
-      ec = check_setup_response(ec, conn.st_.setup_resp_);
-      conn.st_.logger_.on_setup(ec, conn.st_.setup_resp_);
+      ec = check_setup_response(ec, conn.st_.setup_resp);
+      conn.st_.logger.on_setup(ec, conn.st_.setup_resp);
       return ec;
    }
 
@@ -420,11 +420,11 @@ private:
    {
       // clang-format off
       // Skip sending the setup request if it's empty
-      return asio::deferred_t::when(conn_->st_.cfg_.setup.get_commands() != 0u)
+      return asio::deferred_t::when(conn_->st_.cfg.setup.get_commands() != 0u)
          .then(
             conn_->async_exec(
-               conn_->st_.cfg_.setup,
-               any_adapter(conn_->st_.setup_resp_),
+               conn_->st_.cfg.setup,
+               any_adapter(conn_->st_.setup_resp),
                asio::deferred([&conn = *this->conn_](system::error_code ec, std::size_t) {
                   return asio::deferred.values(on_setup_finished(conn, ec));
                })
@@ -489,9 +489,9 @@ public:
       BOOST_ASIO_CORO_REENTER(coro_)
       {
          // Check config
-         ec = check_config(conn_->st_.cfg_);
+         ec = check_config(conn_->st_.cfg);
          if (ec) {
-            conn_->st_.logger_.log(logger::level::err, "Invalid configuration", ec);
+            conn_->st_.logger.log(logger::level::err, "Invalid configuration", ec);
             stored_ec_ = ec;
             BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
             self.complete(stored_ec_);
@@ -499,15 +499,15 @@ public:
          }
 
          // Compose the setup request. This only depends on the config, so it can be done just once
-         compose_setup_request(conn_->st_.cfg_);
+         compose_setup_request(conn_->st_.cfg);
 
          // Compose the PING request. Same as above
-         compose_ping_request(conn_->st_.cfg_, conn_->st_.ping_req_);
+         compose_ping_request(conn_->st_.cfg, conn_->st_.ping_req);
 
          for (;;) {
             // Try to connect
             BOOST_ASIO_CORO_YIELD
-            conn_->stream_.async_connect(conn_->st_.cfg_, conn_->st_.logger_, std::move(self));
+            conn_->stream_.async_connect(conn_->st_.cfg, conn_->st_.logger, std::move(self));
 
             // Check for cancellations
             if (is_cancelled(self)) {
@@ -517,8 +517,8 @@ public:
 
             // If we were successful, run all the connection tasks
             if (!ec) {
-               conn_->st_.mpx_.reset();
-               clear_response(conn_->st_.setup_resp_);
+               conn_->st_.mpx.reset();
+               clear_response(conn_->st_.setup_resp);
 
                // Note: Order is important here because the writer might
                // trigger an async_write before the setup request is sent,
@@ -545,7 +545,7 @@ public:
 
                // We've lost connection or otherwise been cancelled.
                // Remove from the multiplexer the required requests.
-               conn_->st_.mpx_.cancel_on_conn_lost();
+               conn_->st_.mpx.cancel_on_conn_lost();
 
                // The receive operation must be cancelled because channel
                // subscription does not survive a reconnection but requires
@@ -566,7 +566,7 @@ public:
             }
 
             // Wait for the reconnection interval
-            conn_->reconnect_timer_.expires_after(conn_->st_.cfg_.reconnect_wait_interval);
+            conn_->reconnect_timer_.expires_after(conn_->st_.cfg.reconnect_wait_interval);
             BOOST_ASIO_CORO_YIELD
             conn_->reconnect_timer_.async_wait(std::move(self));
 
@@ -1074,7 +1074,7 @@ public:
    }
 
    /// Returns connection usage information.
-   usage get_usage() const noexcept { return impl_->st_.mpx_.get_usage(); }
+   usage get_usage() const noexcept { return impl_->st_.mpx.get_usage(); }
 
 private:
    using clock_type = std::chrono::steady_clock;
@@ -1090,7 +1090,7 @@ private:
    // Used by both this class and connection
    void set_stderr_logger(logger::level lvl, const config& cfg)
    {
-      impl_->st_.logger_.reset(detail::make_stderr_logger(lvl, cfg.log_prefix));
+      impl_->st_.logger.reset(detail::make_stderr_logger(lvl, cfg.log_prefix));
    }
 
    // Initiation for async_run. This is required because we need access
@@ -1105,8 +1105,8 @@ private:
       template <class Handler>
       void operator()(Handler&& handler, config const* cfg)
       {
-         self->st_.cfg_ = *cfg;
-         self->st_.mpx_.set_config(*cfg);
+         self->st_.cfg = *cfg;
+         self->st_.mpx.set_config(*cfg);
 
          // If the token's slot has cancellation enabled, it should just emit
          // the cancellation signal in our connection. This lets us unify the cancel()
