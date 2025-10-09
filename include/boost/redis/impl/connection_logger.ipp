@@ -149,10 +149,11 @@ void connection_logger::on_write(system::error_code const& ec, std::size_t n)
    if (logger_.lvl < logger::level::info)
       return;
 
-   msg_ = "writer_op: ";
    if (ec) {
+      msg_ = "Writer task error: ";
       format_error_code(ec, msg_);
    } else {
+      msg_ = "Writer task: ";
       msg_ += std::to_string(n);
       msg_ += " bytes written.";
    }

@@ -7,16 +7,12 @@
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
+#include <boost/redis/impl/is_terminal_cancel.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 
 namespace boost::redis::detail {
-
-inline bool is_terminal_cancel(asio::cancellation_type_t value)
-{
-   return (value & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none;
-}
 
 reader_fsm::reader_fsm(multiplexer& mpx) noexcept
 : mpx_{&mpx}

@@ -7,6 +7,13 @@
 #ifndef BOOST_REDIS_TEST_SANSIO_UTILS_HPP
 #define BOOST_REDIS_TEST_SANSIO_UTILS_HPP
 
+#include <boost/redis/detail/connection_logger.hpp>
+#include <boost/redis/logger.hpp>
+
+#include <boost/assert/source_location.hpp>
+
+#include <initializer_list>
+#include <string>
 #include <string_view>
 
 namespace boost::redis::detail {
@@ -23,6 +30,22 @@ class multiplexer;
 // This is used in the multiplexer tests.
 void read(multiplexer& mpx, std::string_view data);
 
+// Utilities for checking logs
+struct log_message {
+   logger::level lvl;
+   std::string msg;
+};
+
+struct log_fixture {
+   std::vector<log_message> msgs;
+   detail::connection_logger lgr;
+
+   log_fixture();
+   void check_log(
+      std::initializer_list<const log_message> expected,
+      source_location loc = BOOST_CURRENT_LOCATION) const;
+};
+
 }  // namespace boost::redis::detail
 
-#endif // BOOST_REDIS_TEST_SANSIO_UTILS_HPP
+#endif  // BOOST_REDIS_TEST_SANSIO_UTILS_HPP

@@ -16,6 +16,8 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/core/lightweight_test.hpp>
 
+#include "sansio_utils.hpp"
+
 #include <iterator>
 #include <ostream>
 #include <string>
@@ -61,28 +63,6 @@ static const char* to_string(transport_type type)
    }
 }
 
-static const char* to_string(logger::level lvl)
-{
-   switch (lvl) {
-      case logger::level::disabled: return "logger::level::disabled";
-      case logger::level::emerg:    return "logger::level::emerg";
-      case logger::level::alert:    return "logger::level::alert";
-      case logger::level::crit:     return "logger::level::crit";
-      case logger::level::err:      return "logger::level::err";
-      case logger::level::warning:  return "logger::level::warning";
-      case logger::level::notice:   return "logger::level::notice";
-      case logger::level::info:     return "logger::level::info";
-      case logger::level::debug:    return "logger::level::debug";
-      default:                      return "<unknown logger::level>";
-   }
-}
-
-namespace boost::redis {
-
-std::ostream& operator<<(std::ostream& os, logger::level lvl) { return os << to_string(lvl); }
-
-}  // namespace boost::redis
-
 namespace boost::redis::detail {
 
 std::ostream& operator<<(std::ostream& os, connect_action_type type)
@@ -122,33 +102,15 @@ auto resolver_data = [] {
       "1234");
 }();
 
-// For checking logs
-struct log_message {
-   logger::level lvl;
-   std::string msg;
-
-   friend bool operator==(const log_message& lhs, const log_message& rhs) noexcept
-   {
-      return lhs.lvl == rhs.lvl && lhs.msg == rhs.msg;
-   }
-
-   friend std::ostream& operator<<(std::ostream& os, const log_message& v)
-   {
-      return os << "log_message { .lvl=" << v.lvl << ", .msg=" << v.msg << " }";
-   }
-};
-
 // Reduce duplication
-struct fixture {
+struct fixture : detail::log_fixture {
    config cfg;
-   std::ostringstream oss{};
-   std::vector<log_message> msgs{};
-   detail::connection_logger lgr{
-      logger(logger::level::debug, [&](logger::level lvl, std::string_view msg) {
-         msgs.push_back({lvl, std::string(msg)});
-      })};
    connect_fsm fsm{cfg, lgr};
    redis_stream_state st{};
+
+   fixture(config&& cfg = {})
+   : cfg{std::move(cfg)}
+   { }
 };
 
 config make_ssl_config()
@@ -183,11 +145,10 @@ void test_tcp_success()
    BOOST_TEST_NOT(fix.st.ssl_stream_used);
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
       {logger::level::info, "Connected to 192.168.10.1:1234"                       },
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_tcp_tls_success()
@@ -210,12 +171,11 @@ void test_tcp_tls_success()
    BOOST_TEST(fix.st.ssl_stream_used);
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
       {logger::level::info, "Connected to 192.168.10.1:1234"                       },
       {logger::level::info, "Successfully performed SSL handshake"                 },
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_tcp_tls_success_reconnect()
@@ -241,12 +201,11 @@ void test_tcp_tls_success_reconnect()
    BOOST_TEST(fix.st.ssl_stream_used);
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
       {logger::level::info, "Connected to 192.168.10.1:1234"                       },
       {logger::level::info, "Successfully performed SSL handshake"                 },
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_unix_success()
@@ -267,10 +226,9 @@ void test_unix_success()
    BOOST_TEST_NOT(fix.st.ssl_stream_used);
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       {logger::level::info, "Connected to /run/redis.sock"},
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 // Close errors are ignored
@@ -292,10 +250,9 @@ void test_unix_success_close_error()
    BOOST_TEST_NOT(fix.st.ssl_stream_used);
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       {logger::level::info, "Connected to /run/redis.sock"},
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 // Resolve errors
@@ -311,12 +268,11 @@ void test_tcp_resolve_error()
    BOOST_TEST_EQ(act, error_code(error::empty_field));
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       // clang-format off
       {logger::level::info, "Error resolving the server hostname: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_tcp_resolve_timeout()
@@ -335,12 +291,11 @@ void test_tcp_resolve_timeout()
    BOOST_TEST_EQ(act, error_code(error::resolve_timeout));
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       // clang-format off
       {logger::level::info, "Error resolving the server hostname: Resolve timeout. [boost.redis:17]"},
       // clang-format on
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_tcp_resolve_cancel()
@@ -392,13 +347,12 @@ void test_tcp_connect_error()
    BOOST_TEST_EQ(act, error_code(error::empty_field));
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       // clang-format off
       {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
       {logger::level::info, "Failed to connect to the server: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_tcp_connect_timeout()
@@ -419,13 +373,12 @@ void test_tcp_connect_timeout()
    BOOST_TEST_EQ(act, error_code(error::connect_timeout));
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       // clang-format off
       {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
       {logger::level::info, "Failed to connect to the server: Connect timeout. [boost.redis:18]"},
       // clang-format on
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_tcp_connect_cancel()
@@ -486,14 +439,13 @@ void test_ssl_handshake_error()
    BOOST_TEST(fix.st.ssl_stream_used);
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       // clang-format off
       {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
       {logger::level::info, "Connected to 192.168.10.1:1234"                       },
       {logger::level::info, "Failed to perform SSL handshake: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_ssl_handshake_timeout()
@@ -515,14 +467,13 @@ void test_ssl_handshake_timeout()
    BOOST_TEST(fix.st.ssl_stream_used);
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       // clang-format off
       {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
       {logger::level::info, "Connected to 192.168.10.1:1234"                       },
       {logger::level::info, "Failed to perform SSL handshake: SSL handshake timeout. [boost.redis:20]"},
       // clang-format on
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_ssl_handshake_cancel()
@@ -584,12 +535,11 @@ void test_unix_connect_error()
    BOOST_TEST_EQ(act, error_code(error::empty_field));
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       // clang-format off
       {logger::level::info, "Failed to connect to the server: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_unix_connect_timeout()
@@ -606,12 +556,11 @@ void test_unix_connect_timeout()
    BOOST_TEST_EQ(act, error_code(error::connect_timeout));
 
    // Check logging
-   const log_message expected[] = {
+   fix.check_log({
       // clang-format off
       {logger::level::info, "Failed to connect to the server: Connect timeout. [boost.redis:18]"},
       // clang-format on
-   };
-   BOOST_TEST_ALL_EQ(std::begin(expected), std::end(expected), fix.msgs.begin(), fix.msgs.end());
+   });
 }
 
 void test_unix_connect_cancel()
