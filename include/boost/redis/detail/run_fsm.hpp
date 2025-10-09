@@ -9,6 +9,8 @@
 #ifndef BOOST_REDIS_RUN_FSM_HPP
 #define BOOST_REDIS_RUN_FSM_HPP
 
+#include <boost/redis/detail/connection_state.hpp>
+
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
@@ -73,19 +75,16 @@ public:
    }
 };
 
-// TODO: merge these into a single struct
 class run_fsm {
    int resume_point_{0};
-   multiplexer* mpx_;
-   connection_logger* logger_;
 
 public:
-   run_fsm(multiplexer& mpx, connection_logger& logger) noexcept
-   : mpx_(&mpx)
-   , logger_(&logger)
-   { }
+   run_fsm() = default;
 
-   run_action resume(system::error_code ec, asio::cancellation_type_t cancel_state);
+   run_action resume(
+      connection_state& st,
+      system::error_code ec,
+      asio::cancellation_type_t cancel_state);
 };
 
 }  // namespace boost::redis::detail
