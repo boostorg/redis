@@ -37,9 +37,6 @@ inline void compose_ping_request(const config& cfg, request& to)
    to.push("PING", cfg.health_check_id);
 }
 
-// TODO: partial cancels
-// TODO: setup cancellation
-
 run_action run_fsm::resume(
    connection_state& st,
    system::error_code ec,
