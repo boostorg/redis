@@ -12,10 +12,7 @@
 #include <boost/redis/detail/connection_state.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
-
-#include <chrono>
 
 // Sans-io algorithm for async_run, as a finite state machine
 
@@ -28,51 +25,26 @@ class multiplexer;
 // What should we do next?
 enum class run_action_type
 {
-   done,            // Call the final handler
-   immediate,       // Call asio::async_immediate
-   connect,         // Transport connection establishment
-   parallel_group,  // Run the reader, writer and friends
-   cancel_receive,  // Cancel the receiver channel
-   sleep,           // Wait for some time
+   done,                   // Call the final handler
+   immediate,              // Call asio::async_immediate
+   connect,                // Transport connection establishment
+   parallel_group,         // Run the reader, writer and friends
+   cancel_receive,         // Cancel the receiver channel
+   wait_for_reconnection,  // Sleep for the reconnection period
 };
 
-class run_action {
-   run_action_type type_;
-   union {
-      system::error_code ec_;
-      std::chrono::steady_clock::duration sleep_period_;
-   };
+struct run_action {
+   run_action_type type;
+   system::error_code ec;
 
-public:
    run_action(run_action_type type) noexcept
-   : type_{type}
+   : type{type}
    { }
 
    run_action(system::error_code ec) noexcept
-   : type_{run_action_type::done}
-   , ec_{ec}
+   : type{run_action_type::done}
+   , ec{ec}
    { }
-
-   static run_action wait(std::chrono::steady_clock::duration period)
-   {
-      auto res = run_action(run_action_type::sleep);
-      res.sleep_period_ = period;
-      return res;
-   }
-
-   run_action_type type() const { return type_; }
-
-   system::error_code error() const
-   {
-      BOOST_ASSERT(type_ == run_action_type::done);
-      return ec_;
-   }
-
-   std::chrono::steady_clock::duration sleep_period() const
-   {
-      BOOST_ASSERT(type_ == run_action_type::sleep);
-      return sleep_period_;
-   }
 };
 
 class run_fsm {

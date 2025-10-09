@@ -108,7 +108,7 @@ run_action run_fsm::resume(
          }
 
          // Wait for the reconnection interval
-         BOOST_REDIS_YIELD(resume_point_, 5, run_action_type::sleep)
+         BOOST_REDIS_YIELD(resume_point_, 5, run_action_type::wait_for_reconnection)
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
