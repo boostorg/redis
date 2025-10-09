@@ -77,6 +77,7 @@ public:
 
 class run_fsm {
    int resume_point_{0};
+   system::error_code stored_ec_;
 
 public:
    run_fsm() = default;
