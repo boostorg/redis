@@ -61,9 +61,9 @@ public:
 
       /** @brief If `false`, @ref basic_connection::async_exec will not
        * automatically cancel this request if the connection is lost.
-       * Affects only requests that have been written to the socket
+       * Affects only requests that have been written to the server
        * but have not been responded when
-       * @ref boost::redis::connection::async_run completes.
+       * the connection is lost.
        */
       bool cancel_if_unresponded = true;
 

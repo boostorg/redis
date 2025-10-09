@@ -6,52 +6,75 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-= Cancellation
+= Cancellation and timeouts
 
-Requests may take a very long time. If the server is down, they may suspend forever,
-waiting for the server to be up. Fortunately, requests can be cancelled after
-a certain time using asio::cancel_after:
+By default, running a request with xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`async_exec`]
+will wait until a connection to the Redis server is established by `async_run`.
+This may take a very long time if the server is down.
 
-```
+For this reason, it is usually a good idea to set a timeout to `async_exec`
+operations using the
+https://www.boost.org/doc/libs/latest/doc/html/boost_asio/reference/cancel_after.html[`asio::cancel_after`]
+completion token:
+
+
+[source,cpp]
+----
+using namespace std::chrono_literals;
+
+// Compose a request with a SET command
 request req;
-// ...
+req.push("SET", "my_key", 42);
 
-co_await conn.async_exec(req, resp, asio::cancel_after(10s));
-```
+// If the request hasn't completed after 10 seconds, it will be cancelled
+// and an exception will be thrown.
+co_await conn.async_exec(req, ignore, asio::cancel_after(10s));
+----
 
-If the request hasn't been responded after 10 seconds, it will
-fail with `asio::error::operation_aborted`. With the coroutine
-usage above, this means a `boost::system::system_error` exception
-with the error code mentioned above.
+See our {site-url}/example/cpp20_timeouts.cpp[example on timeouts]
+for a full code listing.
+
+You can also use `cancel_after` with other completion styles, like
+callbacks and futures.
+
+`cancel_after` works because `async_exec` supports the per-operation
+cancellation mechanism. This is used by Boost.Asio to implement features
+like `cancel_after` and parallel groups. All asynchronous operations
+in the library support this mechanism. Please consult the documentation
+for individual operations for more info.
+
 
 == Retrying idempotent requests
 
-By default, the library waits until the server is up,
-and then sends the request. But what happens if there is a communication
+We mentioned that `async_exec` waits until the server is up
+before sending the request. But what happens if there is a communication
 error after sending the request, but before receiving a response?
 
-In this situation, we don't know if the request was processed by the server or not.
-And we have no way to know it. By default, the library mark these requests as
-failed with `asio::error::operation_aborted`. (TODO: do we want another error code here?).
+In this situation there is no way to know if the request was processed by the server or not.
+By default, the library will consider the request as failed,
+and `async_exec` will complete with an `asio::error::operation_aborted`
+error code.
 
 Some requests can be executed several times and result in the same outcome
-as executing them only once. We say that these requests are idempotent.
+as executing them only once. We say that these requests are _idempotent_.
 The `SET` command is idempotent, while `INCR` is not.
 
-If you know that a request contains only idempotent commands,
-you can instruct Redis to retry the request on failure, even
-if the library is unsure about whether the server received the request or not.
-You can do so by setting request::config::cancel_if_unresponded to false:
+If you know that a `request` object contains only idempotent commands,
+you can instruct Boost.Redis to retry the request on failure, even
+if the library is unsure about the server having processed the request or not.
+You can do so by setting `cancel_if_unresponded` and
+`cancel_on_connection_lost` in xref:reference:boost/redis/request/config.adoc[`request::config`]
+to false:
 
-```
+[source,cpp]
+----
+// Compose a request
 request req;
 req.push("SET", "my_key", 42); // idempotent
-req.get_config().cancel_on_connection_lost = false; // TODO: we shouldn't need this
-req.get_config().cancel_if_unresponded = false; // retry
+req.get_config().cancel_on_connection_lost = false; // Don't cancel the request if the connection is lost
+req.get_config().cancel_if_unresponded = false; // Retry the request even if it was written but not responded
 
 // Makes sure that the key is set, even in the presence of network errors.
-// Note that if the server is down, the current coroutine will remain suspended
-// until the server is capable of serving requests again (e.g. until a process manager restarts the server).
-// Use cancel_after as seen above if you need to limit this time.
+// This may suspend for an unspecified period of time if the server is down.
 co_await conn.async_exec(req, ignore);
-```
+----
