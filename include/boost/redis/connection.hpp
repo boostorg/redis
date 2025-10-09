@@ -18,6 +18,7 @@
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/resp3_type_to_error.hpp>
+#include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
 #include <boost/redis/error.hpp>
@@ -374,24 +375,6 @@ public:
    }
 };
 
-inline void compose_ping_request(const config& cfg, request& to)
-{
-   to.clear();
-   to.push("PING", cfg.health_check_id);
-}
-
-inline system::error_code check_config(const config& cfg)
-{
-   if (!cfg.unix_socket.empty()) {
-#ifndef BOOST_ASIO_HAS_LOCAL_SOCKETS
-      return error::unix_sockets_unsupported;
-#endif
-      if (cfg.use_ssl)
-         return error::unix_sockets_ssl_unsupported;
-   }
-   return system::error_code{};
-}
-
 system::error_code translate_parallel_group_errors(
    std::array<std::size_t, 4u> order,
    system::error_code setup_ec,
@@ -402,9 +385,8 @@ system::error_code translate_parallel_group_errors(
 template <class Executor>
 class run_op {
 private:
-   connection_impl<Executor>* conn_ = nullptr;
-   asio::coroutine coro_{};
-   system::error_code stored_ec_;
+   connection_impl<Executor>* conn_;
+   run_fsm fsm_{};
 
    static system::error_code on_setup_finished(
       connection_impl<Executor>& conn,
@@ -486,102 +468,45 @@ public:
    template <class Self>
    void operator()(Self& self, system::error_code ec = {})
    {
-      BOOST_ASIO_CORO_REENTER(coro_)
-      {
-         // Check config
-         ec = check_config(conn_->st_.cfg);
-         if (ec) {
-            conn_->st_.logger.log(logger::level::err, "Invalid configuration", ec);
-            stored_ec_ = ec;
-            BOOST_ASIO_CORO_YIELD asio::async_immediate(self.get_io_executor(), std::move(self));
-            self.complete(stored_ec_);
+      auto act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
+
+      switch (act.type) {
+         case run_action_type::done: self.complete(act.ec); return;
+         case run_action_type::immediate:
+            asio::async_immediate(self.get_io_executor(), std::move(self));
             return;
-         }
-
-         // Compose the setup request. This only depends on the config, so it can be done just once
-         compose_setup_request(conn_->st_.cfg);
-
-         // Compose the PING request. Same as above
-         compose_ping_request(conn_->st_.cfg, conn_->st_.ping_req);
-
-         for (;;) {
-            // Try to connect
-            BOOST_ASIO_CORO_YIELD
+         case run_action_type::connect:
             conn_->stream_.async_connect(conn_->st_.cfg, conn_->st_.logger, std::move(self));
-
-            // Check for cancellations
-            if (is_cancelled(self)) {
-               self.complete(asio::error::operation_aborted);
-               return;
-            }
-
-            // If we were successful, run all the connection tasks
-            if (!ec) {
-               conn_->st_.mpx.reset();
-               clear_response(conn_->st_.setup_resp);
-
-               // Note: Order is important here because the writer might
-               // trigger an async_write before the setup request is sent,
-               // causing other requests to be sent before the setup request,
-               // violating the setup request contract.
-               BOOST_ASIO_CORO_YIELD
-               asio::experimental::make_parallel_group(
-                  [this](auto token) {
-                     return this->send_setup(token);
-                  },
-                  [this](auto token) {
-                     return this->health_checker(token);
-                  },
-                  [this](auto token) {
-                     return this->reader(token);
-                  },
-                  [this](auto token) {
-                     return this->writer(token);
-                  })
-                  .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
-
-               // The parallel group result will be translated into a single error
-               // code by the specialized operator() overload
-
-               // We've lost connection or otherwise been cancelled.
-               // Remove from the multiplexer the required requests.
-               conn_->st_.mpx.cancel_on_conn_lost();
-
-               // The receive operation must be cancelled because channel
-               // subscription does not survive a reconnection but requires
-               // re-subscription.
-               conn_->receive_channel_.cancel();
-            }
-
-            // If we are not going to try again, we're done
-            if (!conn_->will_reconnect()) {
-               self.complete(ec);
-               return;
-            }
-
-            // Check for cancellations
-            if (is_cancelled(self)) {
-               self.complete(asio::error::operation_aborted);
-               return;
-            }
-
-            // Wait for the reconnection interval
+            return;
+         case run_action_type::parallel_group:
+            // Note: Order is important here because the writer might
+            // trigger an async_write before the setup request is sent,
+            // causing other requests to be sent before the setup request,
+            // violating the setup request contract.
+            asio::experimental::make_parallel_group(
+               [this](auto token) {
+                  return this->send_setup(token);
+               },
+               [this](auto token) {
+                  return this->health_checker(token);
+               },
+               [this](auto token) {
+                  return this->reader(token);
+               },
+               [this](auto token) {
+                  return this->writer(token);
+               })
+               .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
+            return;
+         case run_action_type::cancel_receive:
+            conn_->receive_channel_.cancel();
+            (*this)(self);  // this action does not require suspending
+            return;
+         case run_action_type::wait_for_reconnection:
             conn_->reconnect_timer_.expires_after(conn_->st_.cfg.reconnect_wait_interval);
-            BOOST_ASIO_CORO_YIELD
             conn_->reconnect_timer_.async_wait(std::move(self));
-
-            // Check for cancellations
-            if (is_cancelled(self)) {
-               self.complete(asio::error::operation_aborted);
-               return;
-            }
-
-            // If we won't reconnect, exit
-            if (!conn_->will_reconnect()) {
-               self.complete(asio::error::operation_aborted);
-               return;
-            }
-         }
+            return;
+         default: BOOST_ASSERT(false);
       }
    }
 };
