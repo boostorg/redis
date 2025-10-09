@@ -101,7 +101,7 @@ void test_error_code()
 
    // This request will complete after the health checker deems the connection
    // as unresponsive and triggers a reconnection (it's configured to be cancelled
-   // on connection lost).
+   // if unresponded).
    conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
       exec_finished = true;
       BOOST_TEST_EQ(ec, net::error::operation_aborted);

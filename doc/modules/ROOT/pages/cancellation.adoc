@@ -62,8 +62,8 @@ The `SET` command is idempotent, while `INCR` is not.
 If you know that a `request` object contains only idempotent commands,
 you can instruct Boost.Redis to retry the request on failure, even
 if the library is unsure about the server having processed the request or not.
-You can do so by setting `cancel_if_unresponded` and
-`cancel_on_connection_lost` in xref:reference:boost/redis/request/config.adoc[`request::config`]
+You can do so by setting `cancel_if_unresponded`
+in xref:reference:boost/redis/request/config.adoc[`request::config`]
 to false:
 
 [source,cpp]
@@ -71,7 +71,6 @@ to false:
 // Compose a request
 request req;
 req.push("SET", "my_key", 42); // idempotent
-req.get_config().cancel_on_connection_lost = false; // Don't cancel the request if the connection is lost
 req.get_config().cancel_if_unresponded = false; // Retry the request even if it was written but not responded
 
 // Makes sure that the key is set, even in the presence of network errors.

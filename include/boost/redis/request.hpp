@@ -51,7 +51,7 @@ public:
        * complete with error if the connection is lost while the
        * request hasn't been sent yet.
        */
-      bool cancel_on_connection_lost = true;
+      bool cancel_on_connection_lost = false;
 
       /** @brief If `true`, @ref basic_connection::async_exec will complete with
        * @ref boost::redis::error::not_connected if the call happens
