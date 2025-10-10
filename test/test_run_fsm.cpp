@@ -9,6 +9,7 @@
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 
+#include <boost/asio/error.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -76,7 +77,17 @@ void test_success()
    // Setup
    fixture fix;
 
-   // TODO
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // This exits because the operation gets cancelled. Any receive operation gets cancelled
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 }
 
 }  // namespace
