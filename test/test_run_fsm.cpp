@@ -1,0 +1,89 @@
+//
+// Copyright (c) 2025 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+#include <boost/redis/detail/connection_state.hpp>
+#include <boost/redis/detail/run_fsm.hpp>
+
+#include <boost/core/lightweight_test.hpp>
+#include <boost/system/error_code.hpp>
+
+#include "sansio_utils.hpp"
+
+#include <ostream>
+
+using namespace boost::redis;
+namespace asio = boost::asio;
+using detail::run_fsm;
+using detail::multiplexer;
+using detail::run_action_type;
+using detail::run_action;
+using boost::system::error_code;
+using boost::asio::cancellation_type_t;
+using detail::connection_logger;
+
+// Operators
+static const char* to_string(run_action_type value)
+{
+   switch (value) {
+      case run_action_type::done:                  return "run_action_type::done";
+      case run_action_type::immediate:             return "run_action_type::immediate";
+      case run_action_type::connect:               return "run_action_type::connect";
+      case run_action_type::parallel_group:        return "run_action_type::parallel_group";
+      case run_action_type::cancel_receive:        return "run_action_type::cancel_receive";
+      case run_action_type::wait_for_reconnection: return "run_action_type::wait_for_reconnection";
+      default:                                     return "<unknown run_action_type>";
+   }
+}
+
+namespace boost::redis::detail {
+
+std::ostream& operator<<(std::ostream& os, run_action_type type)
+{
+   os << to_string(type);
+   return os;
+}
+
+bool operator==(const run_action& lhs, const run_action& rhs) noexcept
+{
+   return lhs.type == rhs.type && lhs.ec == rhs.ec;
+}
+
+std::ostream& operator<<(std::ostream& os, const run_action& act)
+{
+   os << "run_action{ .type=" << act.type;
+   if (act.type == run_action_type::done)
+      os << ", .error=" << act.ec;
+   return os << " }";
+}
+
+}  // namespace boost::redis::detail
+
+namespace {
+
+struct fixture : detail::log_fixture {
+   detail::connection_state st{make_logger()};
+   run_fsm fsm;
+};
+
+// The connection is run successfully, then cancelled
+void test_success()
+{
+   // Setup
+   fixture fix;
+
+   // TODO
+}
+
+}  // namespace
+
+int main()
+{
+   test_success();
+
+   return boost::report_errors();
+}
