@@ -47,15 +47,27 @@ class request {
 public:
    /// Request configuration options.
    struct config {
-      /** @brief If `true`, calls to @ref basic_connection::async_exec will
+      /** @brief (Deprecated) If `true`, calls to @ref basic_connection::async_exec will
        * complete with error if the connection is lost while the
        * request hasn't been sent yet.
+       *
+       * @par Deprecated
+       * This setting is deprecated and should be always left out as the default
+       * (waiting for a connection to be established again).
+       * If you need to limit how much time a @ref basic_connection::async_exec
+       * operation is allowed to take, use `asio::cancel_after`, instead.
        */
-      bool cancel_on_connection_lost = true;
+      bool cancel_on_connection_lost = false;
 
-      /** @brief If `true`, @ref basic_connection::async_exec will complete with
+      /** @brief (Deprecated) If `true`, @ref basic_connection::async_exec will complete with
        * @ref boost::redis::error::not_connected if the call happens
        * before the connection with Redis was established.
+       *
+       * @par Deprecated
+       * This setting is deprecated and should be always left out as the default
+       * (waiting for a connection to be established).
+       * If you need to limit how much time a @ref basic_connection::async_exec
+       * operation is allowed to take, use `asio::cancel_after`, instead.
        */
       bool cancel_if_not_connected = false;
 

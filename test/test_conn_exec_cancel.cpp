@@ -39,10 +39,6 @@ using boost::redis::logger;
 using boost::redis::connection;
 using namespace std::chrono_literals;
 
-// TODO: replace this by connection once it supports asio::cancel_after
-// See https://github.com/boostorg/redis/issues/226
-using connection_type = boost::redis::basic_connection<net::any_io_executor>;
-
 namespace {
 
 // We can cancel requests that haven't been written yet.
@@ -95,7 +91,7 @@ void test_cancel_written()
 {
    // Setup
    net::io_context ctx;
-   connection_type conn{ctx};
+   connection conn{ctx};
    auto cfg = make_test_config();
    cfg.health_check_interval = std::chrono::seconds::zero();
    bool run_finished = false, exec1_finished = false, exec2_finished = false,
