@@ -95,15 +95,15 @@ run_action run_fsm::resume(
             ec = stored_ec_;
          }
 
-         // If we are not going to try again, we're done
-         if (st.cfg.reconnect_wait_interval.count() == 0) {
-            return ec;
-         }
-
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             st.logger.trace("Run: cancelled (2)");
             return system::error_code(asio::error::operation_aborted);
+         }
+
+         // If we are not going to try again, we're done
+         if (st.cfg.reconnect_wait_interval.count() == 0) {
+            return ec;
          }
 
          // Wait for the reconnection interval

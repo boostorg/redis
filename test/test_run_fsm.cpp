@@ -308,8 +308,9 @@ void test_parallel_group_cancel_no_reconnect()
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 
    // We log on cancellation only
-   // TODO: we should log here
-   fix.check_log({});
+   fix.check_log({
+      {logger::level::debug, "Run: cancelled (2)"}
+   });
 }
 
 // If the reconnection wait gets cancelled, we exit
