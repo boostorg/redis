@@ -190,8 +190,10 @@ void test_connect_cancel()
    act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 
-   // Run doesn't log, it's the subordinate tasks that do
-   fix.check_log({});
+   // We log on cancellation only
+   fix.check_log({
+      {logger::level::debug, "Run: cancelled (1)"}
+   });
 }
 
 // Same, but only the cancellation is set
@@ -208,8 +210,10 @@ void test_connect_cancel_edge()
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 
-   // TODO: we should log here
-   fix.check_log({});
+   // We log on cancellation only
+   fix.check_log({
+      {logger::level::debug, "Run: cancelled (1)"}
+   });
 }
 
 // An error in the parallel group triggers a reconnection
@@ -280,8 +284,10 @@ void test_parallel_group_cancel()
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 
-   // Run doesn't log, it's the subordinate tasks that do
-   fix.check_log({});
+   // We log on cancellation only
+   fix.check_log({
+      {logger::level::debug, "Run: cancelled (2)"}
+   });
 }
 
 void test_parallel_group_cancel_no_reconnect()
@@ -301,7 +307,8 @@ void test_parallel_group_cancel_no_reconnect()
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 
-   // Run doesn't log, it's the subordinate tasks that do
+   // We log on cancellation only
+   // TODO: we should log here
    fix.check_log({});
 }
 
@@ -327,8 +334,10 @@ void test_wait_cancel()
    act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 
-   // TODO: we should log here
-   fix.check_log({});
+   // We log on cancellation only
+   fix.check_log({
+      {logger::level::debug, "Run: cancelled (3)"}
+   });
 }
 
 void test_wait_cancel_edge()
@@ -352,8 +361,10 @@ void test_wait_cancel_edge()
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 
-   // TODO: we should log here
-   fix.check_log({});
+   // We log on cancellation only
+   fix.check_log({
+      {logger::level::debug, "Run: cancelled (3)"}
+   });
 }
 
 void test_several_reconnections()
@@ -388,6 +399,11 @@ void test_several_reconnections()
    BOOST_TEST_EQ(act, run_action_type::cancel_receive);
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // The cancellation was logged
+   fix.check_log({
+      {logger::level::debug, "Run: cancelled (2)"}
+   });
 }
 
 // Setup and ping requests are only composed once at startup

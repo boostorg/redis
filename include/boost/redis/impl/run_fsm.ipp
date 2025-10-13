@@ -66,6 +66,7 @@ run_action run_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
+            st.logger.trace("Run: cancelled (1)");
             return system::error_code(asio::error::operation_aborted);
          }
 
@@ -101,6 +102,7 @@ run_action run_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
+            st.logger.trace("Run: cancelled (2)");
             return system::error_code(asio::error::operation_aborted);
          }
 
@@ -109,6 +111,7 @@ run_action run_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
+            st.logger.trace("Run: cancelled (3)");
             return system::error_code(asio::error::operation_aborted);
          }
       }
