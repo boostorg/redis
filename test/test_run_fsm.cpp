@@ -18,6 +18,7 @@
 #include "sansio_utils.hpp"
 
 #include <ostream>
+#include <string_view>
 
 using namespace boost::redis;
 namespace asio = boost::asio;
@@ -311,6 +312,45 @@ void test_several_reconnections()
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 }
 
+// Setup and ping requests are only composed once at startup
+void test_setup_ping_requests()
+{
+   // Setup
+   config cfg;
+   cfg.health_check_id = "some_value";
+   cfg.username = "foo";
+   cfg.password = "bar";
+   cfg.clientname = "";
+   fixture fix{std::move(cfg)};
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // At this point, the requests are set up
+   const std::string_view expected_ping = "*2\r\n$4\r\nPING\r\n$10\r\nsome_value\r\n";
+   const std::string_view
+      expected_setup = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
+   BOOST_TEST_EQ(fix.st.ping_req.payload(), expected_ping);
+   BOOST_TEST_EQ(fix.st.cfg.setup.payload(), expected_setup);
+
+   // Reconnect
+   act = fix.fsm.resume(fix.st, error::empty_field, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // The requests haven't been modified
+   BOOST_TEST_EQ(fix.st.ping_req.payload(), expected_ping);
+   BOOST_TEST_EQ(fix.st.cfg.setup.payload(), expected_setup);
+}
+
 }  // namespace
 
 int main()
@@ -329,6 +369,7 @@ int main()
    test_wait_cancel_edge();
 
    test_several_reconnections();
+   test_setup_ping_requests();
 
    return boost::report_errors();
 }
