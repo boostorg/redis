@@ -22,11 +22,11 @@ namespace boost::redis::detail {
 inline system::error_code check_config(const config& cfg)
 {
    if (!cfg.unix_socket.empty()) {
+      if (cfg.use_ssl)
+         return error::unix_sockets_ssl_unsupported;
 #ifndef BOOST_ASIO_HAS_LOCAL_SOCKETS
       return error::unix_sockets_unsupported;
 #endif
-      if (cfg.use_ssl)
-         return error::unix_sockets_ssl_unsupported;
    }
    return system::error_code{};
 }

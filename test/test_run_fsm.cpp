@@ -10,8 +10,10 @@
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/error.hpp>
+#include <boost/redis/logger.hpp>
 
 #include <boost/asio/error.hpp>
+#include <boost/asio/local/basic_endpoint.hpp>  // for BOOST_ASIO_HAS_LOCAL_SOCKETS
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -100,6 +102,13 @@ void test_config_error_unix()
    BOOST_TEST_EQ(act, run_action_type::immediate);
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code(error::unix_sockets_unsupported));
+
+   // Log
+   fix.check_log({
+      {logger::level::err,
+       "Invalid configuration: The configuration specified a UNIX socket address, but UNIX sockets "
+       "are not supported by the system. [boost.redis:24]"},
+   });
 }
 #endif
 
@@ -116,6 +125,13 @@ void test_config_error_unix_ssl()
    BOOST_TEST_EQ(act, run_action_type::immediate);
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code(error::unix_sockets_ssl_unsupported));
+
+   // Log
+   fix.check_log({
+      {logger::level::err,
+       "Invalid configuration: The configuration specified UNIX sockets with SSL, which is not "
+       "supported. [boost.redis:25]"},
+   });
 }
 
 // An error in connect with reconnection enabled triggers a reconnection
@@ -137,6 +153,9 @@ void test_connect_error()
    // This time we succeed and we launch the parallel group
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // Run doesn't log, it's the subordinate tasks that do
+   fix.check_log({});
 }
 
 // An error in connect without reconnection enabled makes the operation finish
@@ -152,6 +171,9 @@ void test_connect_error_no_reconnect()
    // Connect errors. The operation finishes
    act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code(error::connect_timeout));
+
+   // Run doesn't log, it's the subordinate tasks that do
+   fix.check_log({});
 }
 
 // A cancellation in connect makes the operation finish even with reconnection enabled
@@ -167,6 +189,9 @@ void test_connect_cancel()
    // Connect cancelled. The operation finishes
    act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Run doesn't log, it's the subordinate tasks that do
+   fix.check_log({});
 }
 
 // Same, but only the cancellation is set
@@ -182,6 +207,9 @@ void test_connect_cancel_edge()
    // Connect cancelled. The operation finishes
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // TODO: we should log here
+   fix.check_log({});
 }
 
 // An error in the parallel group triggers a reconnection
@@ -206,6 +234,9 @@ void test_parallel_group_error()
    BOOST_TEST_EQ(act, run_action_type::connect);
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // Run doesn't log, it's the subordinate tasks that do
+   fix.check_log({});
 }
 
 // An error in the parallel group makes the operation exit if reconnection is disabled
@@ -225,6 +256,9 @@ void test_parallel_group_error_no_reconnect()
    BOOST_TEST_EQ(act, run_action_type::cancel_receive);
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code(error::empty_field));
+
+   // Run doesn't log, it's the subordinate tasks that do
+   fix.check_log({});
 }
 
 // A cancellation in the parallel group makes it exit, even if reconnection is enabled.
@@ -245,6 +279,9 @@ void test_parallel_group_cancel()
    BOOST_TEST_EQ(act, run_action_type::cancel_receive);
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Run doesn't log, it's the subordinate tasks that do
+   fix.check_log({});
 }
 
 void test_parallel_group_cancel_no_reconnect()
@@ -263,6 +300,9 @@ void test_parallel_group_cancel_no_reconnect()
    BOOST_TEST_EQ(act, run_action_type::cancel_receive);
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Run doesn't log, it's the subordinate tasks that do
+   fix.check_log({});
 }
 
 // If the reconnection wait gets cancelled, we exit
@@ -286,6 +326,9 @@ void test_wait_cancel()
    // We get cancelled during the sleep
    act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // TODO: we should log here
+   fix.check_log({});
 }
 
 void test_wait_cancel_edge()
@@ -308,6 +351,9 @@ void test_wait_cancel_edge()
    // We get cancelled during the sleep
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // TODO: we should log here
+   fix.check_log({});
 }
 
 void test_several_reconnections()
