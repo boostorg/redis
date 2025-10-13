@@ -118,12 +118,35 @@ void test_success_wont_reconnect()
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 }
 
+// An error in connect with reconnection enabled triggers a reconnection
+void test_connect_error()
+{
+   // Setup
+   fixture fix;
+
+   // Launch the operation
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // Connect errors. We sleep and try to connect again
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // This time we succeed and we launch the parallel group
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+}
+
 }  // namespace
 
 int main()
 {
    test_success();
    test_success_wont_reconnect();
+
+   test_connect_error();
 
    return boost::report_errors();
 }
