@@ -9,6 +9,7 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
+#include <boost/redis/error.hpp>
 
 #include <boost/asio/error.hpp>
 #include <boost/core/lightweight_test.hpp>
@@ -77,6 +78,13 @@ struct fixture : detail::log_fixture {
    { }
 };
 
+config config_no_reconnect()
+{
+   config res;
+   res.reconnect_wait_interval = 0s;
+   return res;
+}
+
 // The connection is run successfully, then cancelled
 void test_success()
 {
@@ -98,12 +106,10 @@ void test_success()
 
 // The connection is run successfully but with reconnection disabled
 // TODO: does this test add anything?
-void test_success_wont_reconnect()
+void test_success_no_reconnect()
 {
    // Setup
-   config cfg;
-   cfg.reconnect_wait_interval = 0s;
-   fixture fix{std::move(cfg)};
+   fixture fix{config_no_reconnect()};
 
    // Run the operation. We connect and launch the tasks
    auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
@@ -139,14 +145,30 @@ void test_connect_error()
    BOOST_TEST_EQ(act, run_action_type::parallel_group);
 }
 
+// An error in connect without reconnection enabled makes the operation finish
+void test_connect_error_no_reconnect()
+{
+   // Setup
+   fixture fix{config_no_reconnect()};
+
+   // Launch the operation
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // Connect errors. The operation finishes
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::connect_timeout));
+}
+
 }  // namespace
 
 int main()
 {
    test_success();
-   test_success_wont_reconnect();
+   test_success_no_reconnect();
 
    test_connect_error();
+   test_connect_error_no_reconnect();
 
    return boost::report_errors();
 }
