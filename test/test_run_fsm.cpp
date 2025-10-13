@@ -160,6 +160,36 @@ void test_connect_error_no_reconnect()
    BOOST_TEST_EQ(act, error_code(error::connect_timeout));
 }
 
+// A cancellation in connect makes the operation finish even with reconnection enabled
+void test_connect_cancel()
+{
+   // Setup
+   fixture fix;
+
+   // Launch the operation
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // Connect cancelled. The operation finishes
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+}
+
+// Same, but only the cancellation is set
+void test_connect_cancel_edge()
+{
+   // Setup
+   fixture fix;
+
+   // Launch the operation
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // Connect cancelled. The operation finishes
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+}
+
 }  // namespace
 
 int main()
@@ -169,6 +199,8 @@ int main()
 
    test_connect_error();
    test_connect_error_no_reconnect();
+   test_connect_cancel();
+   test_connect_cancel_edge();
 
    return boost::report_errors();
 }
