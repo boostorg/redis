@@ -277,6 +277,40 @@ void test_wait_cancel_edge()
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 }
 
+void test_several_reconnections()
+{
+   // Setup
+   fixture fix;
+
+   // Run the operation. Connect errors and we sleep
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+
+   // Connect again, this time successfully. We launch the tasks
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // This exits with an error. We sleep and connect again
+   act = fix.fsm.resume(fix.st, error::empty_field, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // Exit with cancellation
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+}
+
 }  // namespace
 
 int main()
@@ -293,6 +327,8 @@ int main()
 
    test_wait_cancel();
    test_wait_cancel_edge();
+
+   test_several_reconnections();
 
    return boost::report_errors();
 }
