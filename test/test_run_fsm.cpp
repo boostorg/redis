@@ -86,6 +86,38 @@ config config_no_reconnect()
    return res;
 }
 
+// Config errors
+#ifndef BOOST_ASIO_HAS_LOCAL_SOCKETS
+void test_config_error_unix()
+{
+   // Setup
+   config cfg;
+   cfg.unix_socket = "/var/sock";
+   fixture fix{std::move(cfg)};
+
+   // Launching the operation fails immediately
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::immediate);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::unix_sockets_unsupported));
+}
+#endif
+
+void test_config_error_unix_ssl()
+{
+   // Setup
+   config cfg;
+   cfg.use_ssl = true;
+   cfg.unix_socket = "/var/sock";
+   fixture fix{std::move(cfg)};
+
+   // Launching the operation fails immediately
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::immediate);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::unix_sockets_ssl_unsupported));
+}
+
 // An error in connect with reconnection enabled triggers a reconnection
 void test_connect_error()
 {
@@ -355,6 +387,11 @@ void test_setup_ping_requests()
 
 int main()
 {
+#ifndef BOOST_ASIO_HAS_LOCAL_SOCKETS
+   test_config_error_unix();
+#endif
+   test_config_error_unix_ssl();
+
    test_connect_error();
    test_connect_error_no_reconnect();
    test_connect_cancel();
