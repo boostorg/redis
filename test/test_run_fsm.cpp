@@ -6,6 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 
@@ -26,6 +27,7 @@ using detail::run_action;
 using boost::system::error_code;
 using boost::asio::cancellation_type_t;
 using detail::connection_logger;
+using namespace std::chrono_literals;
 
 // Operators
 static const char* to_string(run_action_type value)
@@ -67,8 +69,12 @@ std::ostream& operator<<(std::ostream& os, const run_action& act)
 namespace {
 
 struct fixture : detail::log_fixture {
-   detail::connection_state st{make_logger()};
+   detail::connection_state st;
    run_fsm fsm;
+
+   fixture(config&& cfg = {})
+   : st{make_logger(), std::move(cfg)}
+   { }
 };
 
 // The connection is run successfully, then cancelled
@@ -90,11 +96,34 @@ void test_success()
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 }
 
+// The connection is run successfully but with reconnection disabled
+// TODO: does this test add anything?
+void test_success_wont_reconnect()
+{
+   // Setup
+   config cfg;
+   cfg.reconnect_wait_interval = 0s;
+   fixture fix{std::move(cfg)};
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // This exits because the operation gets cancelled. Any receive operation gets cancelled
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+}
+
 }  // namespace
 
 int main()
 {
    test_success();
+   test_success_wont_reconnect();
 
    return boost::report_errors();
 }
