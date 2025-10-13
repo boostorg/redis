@@ -7,7 +7,6 @@
 #ifndef BOOST_REDIS_TEST_SANSIO_UTILS_HPP
 #define BOOST_REDIS_TEST_SANSIO_UTILS_HPP
 
-#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/logger.hpp>
 
 #include <boost/assert/source_location.hpp>
@@ -38,12 +37,11 @@ struct log_message {
 
 struct log_fixture {
    std::vector<log_message> msgs;
-   detail::connection_logger lgr;
 
-   log_fixture();
    void check_log(
       std::initializer_list<const log_message> expected,
       source_location loc = BOOST_CURRENT_LOCATION) const;
+   logger make_logger();
 };
 
 }  // namespace boost::redis::detail

@@ -90,6 +90,7 @@ struct test_elem {
 
 struct fixture : detail::log_fixture {
    multiplexer mpx;
+   connection_logger lgr{make_logger()};
    writer_fsm fsm{mpx, lgr};
 };
 

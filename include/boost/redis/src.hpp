@@ -15,6 +15,7 @@
 #include <boost/redis/impl/read_buffer.ipp>
 #include <boost/redis/impl/writer_fsm.ipp>
 #include <boost/redis/impl/reader_fsm.ipp>
+#include <boost/redis/impl/run_fsm.ipp>
 #include <boost/redis/impl/request.ipp>
 #include <boost/redis/impl/setup_request_utils.ipp>
 #include <boost/redis/impl/response.ipp>

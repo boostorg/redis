@@ -105,6 +105,7 @@ auto resolver_data = [] {
 // Reduce duplication
 struct fixture : detail::log_fixture {
    config cfg;
+   connection_logger lgr{make_logger()};
    connect_fsm fsm{cfg, lgr};
    redis_stream_state st{};
 

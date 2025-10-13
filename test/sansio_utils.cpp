@@ -57,18 +57,19 @@ std::ostream& operator<<(std::ostream& os, const log_message& v)
    return os << "log_message { .lvl=" << to_string(v.lvl) << ", .msg=" << v.msg << " }";
 }
 
-log_fixture::log_fixture()
-: lgr{logger(logger::level::debug, [&](logger::level lvl, std::string_view msg) {
-   msgs.push_back({lvl, std::string(msg)});
-})}
-{ }
-
 void log_fixture::check_log(std::initializer_list<const log_message> expected, source_location loc)
    const
 {
    if (!BOOST_TEST_ALL_EQ(expected.begin(), expected.end(), msgs.begin(), msgs.end())) {
       std::cerr << "Called from " << loc << std::endl;
    }
+}
+
+logger log_fixture::make_logger()
+{
+   return logger(logger::level::debug, [&](logger::level lvl, std::string_view msg) {
+      msgs.push_back({lvl, std::string(msg)});
+   });
 }
 
 }  // namespace boost::redis::detail
