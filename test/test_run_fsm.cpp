@@ -232,6 +232,51 @@ void test_parallel_group_cancel_no_reconnect()
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 }
 
+// If the reconnection wait gets cancelled, we exit
+void test_wait_cancel()
+{
+   // Setup
+   fixture fix;
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // This exits with an error. We sleep
+   act = fix.fsm.resume(fix.st, error::empty_field, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+
+   // We get cancelled during the sleep
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+}
+
+void test_wait_cancel_edge()
+{
+   // Setup
+   fixture fix;
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // This exits with an error. We sleep
+   act = fix.fsm.resume(fix.st, error::empty_field, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+
+   // We get cancelled during the sleep
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+}
+
 }  // namespace
 
 int main()
@@ -245,6 +290,9 @@ int main()
    test_parallel_group_error_no_reconnect();
    test_parallel_group_cancel();
    test_parallel_group_cancel_no_reconnect();
+
+   test_wait_cancel();
+   test_wait_cancel_edge();
 
    return boost::report_errors();
 }
