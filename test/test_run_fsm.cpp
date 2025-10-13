@@ -190,6 +190,30 @@ void test_connect_cancel_edge()
    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
 }
 
+// An error in the parallel group triggers a reconnection
+// (the parallel group always exits with an error)
+void test_parallel_group_error()
+{
+   // Setup
+   fixture fix;
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // This exits with an error. We sleep and connect again
+   act = fix.fsm.resume(fix.st, error::empty_field, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+}
+
 }  // namespace
 
 int main()
@@ -201,6 +225,8 @@ int main()
    test_connect_error_no_reconnect();
    test_connect_cancel();
    test_connect_cancel_edge();
+
+   test_parallel_group_error();
 
    return boost::report_errors();
 }
