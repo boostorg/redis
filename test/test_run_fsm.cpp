@@ -85,45 +85,6 @@ config config_no_reconnect()
    return res;
 }
 
-// The connection is run successfully, then cancelled
-void test_success()
-{
-   // Setup
-   fixture fix;
-
-   // Run the operation. We connect and launch the tasks
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act, run_action_type::connect);
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act, run_action_type::parallel_group);
-
-   // This exits because the operation gets cancelled. Any receive operation gets cancelled
-   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-}
-
-// The connection is run successfully but with reconnection disabled
-// TODO: does this test add anything?
-void test_success_no_reconnect()
-{
-   // Setup
-   fixture fix{config_no_reconnect()};
-
-   // Run the operation. We connect and launch the tasks
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act, run_action_type::connect);
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act, run_action_type::parallel_group);
-
-   // This exits because the operation gets cancelled. Any receive operation gets cancelled
-   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-}
-
 // An error in connect with reconnection enabled triggers a reconnection
 void test_connect_error()
 {
@@ -214,19 +175,76 @@ void test_parallel_group_error()
    BOOST_TEST_EQ(act, run_action_type::parallel_group);
 }
 
+// An error in the parallel group makes the operation exit if reconnection is disabled
+void test_parallel_group_error_no_reconnect()
+{
+   // Setup
+   fixture fix{config_no_reconnect()};
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // This exits with an error. We cancel the receive operation and exit
+   act = fix.fsm.resume(fix.st, error::empty_field, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::empty_field));
+}
+
+// A cancellation in the parallel group makes it exit, even if reconnection is enabled.
+// Parallel group tasks always exit with an error, so there is no edge case here
+void test_parallel_group_cancel()
+{
+   // Setup
+   fixture fix;
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // This exits because the operation gets cancelled. Any receive operation gets cancelled
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+}
+
+void test_parallel_group_cancel_no_reconnect()
+{
+   // Setup
+   fixture fix{config_no_reconnect()};
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // This exits because the operation gets cancelled. Any receive operation gets cancelled
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+}
+
 }  // namespace
 
 int main()
 {
-   test_success();
-   test_success_no_reconnect();
-
    test_connect_error();
    test_connect_error_no_reconnect();
    test_connect_cancel();
    test_connect_cancel_edge();
 
    test_parallel_group_error();
+   test_parallel_group_error_no_reconnect();
+   test_parallel_group_cancel();
+   test_parallel_group_cancel_no_reconnect();
 
    return boost::report_errors();
 }
