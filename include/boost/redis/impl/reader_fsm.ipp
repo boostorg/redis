@@ -33,7 +33,7 @@ reader_fsm::action reader_fsm::resume(
          }
 
          // Read
-         st.logger.trace("Reader task: issuing a read operation");
+         st.logger.trace("Reader task: issuing read");
          BOOST_REDIS_YIELD(resume_point_, 1, action::type::read_some)
          st.logger.on_read(ec, bytes_read);
 
@@ -61,7 +61,7 @@ reader_fsm::action reader_fsm::resume(
             if (ec) {
                // TODO: Perhaps log what has not been consumed to aid
                // debugging.
-               st.logger.trace("Reader task: error while processing message", ec);
+               st.logger.trace("Reader task: error processing message", ec);
                return {ec};
             }
 
@@ -73,6 +73,7 @@ reader_fsm::action reader_fsm::resume(
             if (res_.first == consume_result::got_push) {
                BOOST_REDIS_YIELD(resume_point_, 2, action::notify_push_receiver(res_.second))
                if (ec) {
+                  st.logger.trace("Reader task: error notifying push receiver", ec);
                   return {ec};
                }
                if (is_terminal_cancel(cancel_state)) {

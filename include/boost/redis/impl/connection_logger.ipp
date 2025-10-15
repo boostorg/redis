@@ -154,9 +154,9 @@ void connection_logger::on_read(system::error_code const& ec, std::size_t bytes_
 
    msg_ = "Reader task: ";
    msg_ += std::to_string(bytes_read);
-   msg_ += " bytes read.";
+   msg_ += " bytes read";
    if (ec) {
-      msg_ += " Error: ";
+      msg_ += ", error: ";
       format_error_code(ec, msg_);
    }
 
