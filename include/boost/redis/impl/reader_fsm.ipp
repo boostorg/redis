@@ -28,11 +28,14 @@ reader_fsm::action reader_fsm::resume(
          // Prepare the buffer for the read operation
          ec = st.mpx.prepare_read();
          if (ec) {
+            st.logger.trace("Reader task: error in prepare_read", ec);
             return {ec};
          }
 
          // Read
-         BOOST_REDIS_YIELD(resume_point_, 1, next_read_type_)
+         st.logger.trace("Reader task: issuing a read operation");
+         BOOST_REDIS_YIELD(resume_point_, 1, action::type::read_some)
+         st.logger.on_read(ec, bytes_read);
 
          // Process the bytes read, even if there was an error
          st.mpx.commit_read(bytes_read);
@@ -47,22 +50,23 @@ reader_fsm::action reader_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
+            st.logger.trace("Reader task: cancelled (1)");
             return {asio::error::operation_aborted};
          }
 
          // Process the data that we've read
-         next_read_type_ = action::type::read_some;
          while (st.mpx.get_read_buffer_size() != 0) {
             res_ = st.mpx.consume(ec);
 
             if (ec) {
                // TODO: Perhaps log what has not been consumed to aid
                // debugging.
+               st.logger.trace("Reader task: error while processing message", ec);
                return {ec};
             }
 
             if (res_.first == consume_result::needs_more) {
-               next_read_type_ = action::type::needs_more;
+               st.logger.trace("Reader task: incomplete message received");
                break;
             }
 
@@ -72,6 +76,7 @@ reader_fsm::action reader_fsm::resume(
                   return {ec};
                }
                if (is_terminal_cancel(cancel_state)) {
+                  st.logger.trace("Reader task: cancelled (2)");
                   return {asio::error::operation_aborted};
                }
             } else {

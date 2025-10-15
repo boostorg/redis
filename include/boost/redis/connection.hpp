@@ -245,19 +245,15 @@ struct reader_op {
 public:
    reader_op(connection_impl<Executor>& conn) noexcept
    : conn_{&conn}
-   , fsm_{conn.st_.mpx}
    { }
 
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
       for (;;) {
-         auto act = fsm_.resume(n, ec, self.get_cancellation_state().cancelled());
-
-         conn_->st_.logger.on_fsm_resume(act);
+         auto act = fsm_.resume(conn_->st_, n, ec, self.get_cancellation_state().cancelled());
 
          switch (act.type_) {
-            case reader_fsm::action::type::needs_more:
             case reader_fsm::action::type::read_some:
             {
                auto const buf = conn_->st_.mpx.get_prepared_read_buffer();

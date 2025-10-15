@@ -16,22 +16,8 @@
 
 namespace boost::redis::detail {
 
-#define BOOST_REDIS_READER_SWITCH_CASE(elem) \
-   case reader_fsm::action::type::elem: return "reader_fsm::action::type::" #elem
-
 #define BOOST_REDIS_EXEC_SWITCH_CASE(elem) \
    case exec_action_type::elem: return "exec_action_type::" #elem
-
-auto to_string(reader_fsm::action::type t) noexcept -> char const*
-{
-   switch (t) {
-      BOOST_REDIS_READER_SWITCH_CASE(read_some);
-      BOOST_REDIS_READER_SWITCH_CASE(needs_more);
-      BOOST_REDIS_READER_SWITCH_CASE(notify_push_receiver);
-      BOOST_REDIS_READER_SWITCH_CASE(done);
-      default: return "action::type::<invalid type>";
-   }
-}
 
 auto to_string(exec_action_type t) noexcept -> char const*
 {
@@ -161,21 +147,20 @@ void connection_logger::on_write(system::error_code const& ec, std::size_t n)
    logger_.fn(logger::level::info, msg_);
 }
 
-void connection_logger::on_fsm_resume(reader_fsm::action const& action)
+void connection_logger::on_read(system::error_code const& ec, std::size_t bytes_read)
 {
    if (logger_.lvl < logger::level::debug)
       return;
 
-   std::string msg;
-   msg += "(";
-   msg += to_string(action.type_);
-   msg += ", ";
-   msg += std::to_string(action.push_size_);
-   msg += ", ";
-   msg += action.ec_.message();
-   msg += ")";
+   msg_ = "Reader task: ";
+   msg_ += std::to_string(bytes_read);
+   msg_ += " bytes read.";
+   if (ec) {
+      msg_ += " Error: ";
+      format_error_code(ec, msg_);
+   }
 
-   logger_.fn(logger::level::debug, msg);
+   logger_.fn(logger::level::debug, msg_);
 }
 
 void connection_logger::on_setup(system::error_code const& ec, generic_response const& resp)
