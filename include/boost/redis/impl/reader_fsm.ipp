@@ -32,14 +32,23 @@ reader_fsm::action reader_fsm::resume(
             return {ec};
          }
 
-         // Read
+         // Read. The connection might spend health_check_interval without writing data.
+         // Give it another health_check_interval for the response to arrive.
+         // If we don't get anything in this time, consider the connection as dead
          st.logger.trace("Reader task: issuing read");
-         BOOST_REDIS_YIELD(resume_point_, 1, action::type::read_some)
+         BOOST_REDIS_YIELD(resume_point_, 1, action::read_some(2 * st.cfg.health_check_interval))
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             st.logger.trace("Reader task: cancelled (1)");
-            return {asio::error::operation_aborted};
+            return system::error_code(asio::error::operation_aborted);
+         }
+
+         // Translate timeout errors caused by operation_aborted to more legible ones.
+         // A timeout here means that we didn't receive data in time.
+         // Note that cancellation is already handled by the above statement.
+         if (ec == asio::error::operation_aborted) {
+            ec = error::pong_timeout;
          }
 
          // Log what we read
@@ -48,23 +57,12 @@ reader_fsm::action reader_fsm::resume(
          // Process the bytes read, even if there was an error
          st.mpx.commit_read(bytes_read);
 
-         // Check for cancellations
-         if (is_terminal_cancel(cancel_state)) {
-            return {asio::error::operation_aborted};
-         }
-
          // Check for read errors
          if (ec) {
             // TODO: If an error occurred but data was read (i.e.
             // bytes_read != 0) we should try to process that data and
             // deliver it to the user before calling cancel_run.
-            if (ec == asio::error::operation_aborted) {
-               // The read timed out (because of cancel_after, not because of external cancellation).
-               // This means that we didn't receive any data when we were expecting it
-               ec = error::pong_timeout;
-            }
-
-            return {ec};
+            return ec;
          }
 
          // Process the data that we've read
@@ -75,7 +73,7 @@ reader_fsm::action reader_fsm::resume(
                // TODO: Perhaps log what has not been consumed to aid
                // debugging.
                st.logger.trace("Reader task: error processing message", ec);
-               return {ec};
+               return ec;
             }
 
             if (res_.first == consume_result::needs_more) {
@@ -88,13 +86,13 @@ reader_fsm::action reader_fsm::resume(
                // Check for cancellations
                if (is_terminal_cancel(cancel_state)) {
                   st.logger.trace("Reader task: cancelled (2)");
-                  return {asio::error::operation_aborted};
+                  return system::error_code(asio::error::operation_aborted);
                }
 
                // Check for other errors
                if (ec) {
                   st.logger.trace("Reader task: error notifying push receiver", ec);
-                  return {ec};
+                  return ec;
                }
             } else {
                // TODO: Here we should notify the exec operation that
@@ -109,7 +107,7 @@ reader_fsm::action reader_fsm::resume(
    }
 
    BOOST_ASSERT(false);
-   return {system::error_code()};
+   return system::error_code();
 }
 
 }  // namespace boost::redis::detail

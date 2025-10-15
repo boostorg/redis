@@ -265,35 +265,27 @@ public:
    void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
       for (;;) {
-         auto act = fsm_.resume(conn_->st_, n, ec, self.get_cancellation_state().cancelled());
+         auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
+         auto act = fsm_.resume(conn->st_, n, ec, self.get_cancellation_state().cancelled());
 
          switch (act.get_type()) {
             case reader_fsm::action::type::read_some:
             {
-               auto const buf = conn_->st_.mpx.get_prepared_read_buffer();
-               if (conn_->st_.cfg.health_check_interval.count() != 0) {
-                  // TODO: timeouts should be encoded in the actions
-                  // The writer might be at most health_check_interval writing
-                  // nothing until it sends a PING. Wait for at most another health_check_interval
-                  // before considering the connection dead
-                  auto* conn = conn_;
+               auto const buf = asio::buffer(conn->st_.mpx.get_prepared_read_buffer());
+               if (act.timeout().count() != 0) {
                   conn->stream_.async_read_some(
-                     asio::buffer(buf),
-                     asio::cancel_after(
-                        conn->reader_timer_,
-                        2 * conn->st_.cfg.health_check_interval,
-                        std::move(self)));
+                     buf,
+                     asio::cancel_after(conn->reader_timer_, act.timeout(), std::move(self)));
                } else {
-                  conn_->stream_.async_read_some(asio::buffer(buf), std::move(self));
+                  conn->stream_.async_read_some(buf, std::move(self));
                }
                return;
             }
             case reader_fsm::action::type::notify_push_receiver:
-               if (conn_->receive_channel_.try_send(ec, act.push_size())) {
+               if (conn->receive_channel_.try_send(ec, act.push_size())) {
                   continue;
                } else {
-                  conn_->receive_channel_.async_send(ec, act.push_size(), std::move(self));
-                  return;
+                  conn->receive_channel_.async_send(ec, act.push_size(), std::move(self));
                }
                return;
             case reader_fsm::action::type::done: self.complete(act.error()); return;
