@@ -30,9 +30,24 @@ public:
          done,
       };
 
-      type type_ = type::done;
-      std::size_t push_size_ = 0u;
-      system::error_code ec_ = {};
+      action(type t, std::size_t push_size = 0u) noexcept
+      : type_(t)
+      , push_size_(push_size)
+      { }
+
+      action(system::error_code ec) noexcept
+      : type_(type::done)
+      , ec_(ec)
+      { }
+
+      static action notify_push_receiver(std::size_t bytes)
+      {
+         return {type::notify_push_receiver, bytes};
+      }
+
+      type type_;
+      std::size_t push_size_{};
+      system::error_code ec_;
    };
 
    action resume(

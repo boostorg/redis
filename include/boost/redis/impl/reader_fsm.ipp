@@ -28,7 +28,7 @@ reader_fsm::action reader_fsm::resume(
          // Prepare the buffer for the read operation
          ec = st.mpx.prepare_read();
          if (ec) {
-            return {action::type::done, 0, ec};
+            return {ec};
          }
 
          // Read
@@ -42,12 +42,12 @@ reader_fsm::action reader_fsm::resume(
             // TODO: If an error occurred but data was read (i.e.
             // bytes_read != 0) we should try to process that data and
             // deliver it to the user before calling cancel_run.
-            return {action::type::done, bytes_read, ec};
+            return {ec};
          }
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            return {action::type::done, 0u, asio::error::operation_aborted};
+            return {asio::error::operation_aborted};
          }
 
          // Process the data that we've read
@@ -58,7 +58,7 @@ reader_fsm::action reader_fsm::resume(
             if (ec) {
                // TODO: Perhaps log what has not been consumed to aid
                // debugging.
-               return {action::type::done, res_.second, ec};
+               return {ec};
             }
 
             if (res_.first == consume_result::needs_more) {
@@ -67,12 +67,12 @@ reader_fsm::action reader_fsm::resume(
             }
 
             if (res_.first == consume_result::got_push) {
-               BOOST_REDIS_YIELD(resume_point_, 2, action::type::notify_push_receiver, res_.second)
+               BOOST_REDIS_YIELD(resume_point_, 2, action::notify_push_receiver(res_.second))
                if (ec) {
-                  return {action::type::done, 0u, ec};
+                  return {ec};
                }
                if (is_terminal_cancel(cancel_state)) {
-                  return {action::type::done, 0u, asio::error::operation_aborted};
+                  return {asio::error::operation_aborted};
                }
             } else {
                // TODO: Here we should notify the exec operation that
@@ -87,7 +87,7 @@ reader_fsm::action reader_fsm::resume(
    }
 
    BOOST_ASSERT(false);
-   return {action::type::done, 0, system::error_code()};
+   return {system::error_code()};
 }
 
 }  // namespace boost::redis::detail
