@@ -91,10 +91,9 @@ void test_push()
 {
    fixture fix;
    reader_fsm fsm;
-   error_code ec;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
@@ -106,19 +105,19 @@ void test_push()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the 1st push
-   act = fsm.resume(fix.st, payload.size(), ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(11u));
 
    // Deliver the 2st push
-   act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(12u));
 
    // Deliver the 3rd push
-   act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(13u));
 
    // All pushes were delivered so the fsm should demand more data
-   act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::type::read_some);
 
    // Check logging
@@ -133,10 +132,9 @@ void test_read_needs_more()
 {
    fixture fix;
    reader_fsm fsm;
-   error_code ec;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // Split the incoming message in three random parts and deliver
@@ -145,22 +143,22 @@ void test_read_needs_more()
 
    // Passes the first part to the fsm.
    copy_to(fix.st.mpx, msg[0]);
-   act = fsm.resume(fix.st, msg[0].size(), ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, msg[0].size(), error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::type::read_some);
 
    // Passes the second part to the fsm.
    copy_to(fix.st.mpx, msg[1]);
-   act = fsm.resume(fix.st, msg[1].size(), ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, msg[1].size(), error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::type::read_some);
 
    // Passes the third and last part to the fsm, next it should ask us
    // to deliver the message.
    copy_to(fix.st.mpx, msg[2]);
-   act = fsm.resume(fix.st, msg[2].size(), ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, msg[2].size(), error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(msg[0].size() + msg[1].size() + msg[2].size()));
 
    // All pushes were delivered so the fsm should demand more data
-   act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::type::read_some);
 
    // Check logging
@@ -181,10 +179,9 @@ void test_read_error()
 {
    fixture fix;
    reader_fsm fsm;
-   error_code ec;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
@@ -208,10 +205,9 @@ void test_parse_error()
 {
    fixture fix;
    reader_fsm fsm;
-   error_code ec;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::type::read_some);
 
    // The fsm is asking for data.
@@ -236,10 +232,9 @@ void test_push_deliver_error()
 {
    fixture fix;
    reader_fsm fsm;
-   error_code ec;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::type::read_some);
 
    // The fsm is asking for data.
@@ -273,16 +268,15 @@ void test_max_read_buffer_size()
 
    fix.st.mpx.set_config(cfg);
    reader_fsm fsm;
-   error_code ec;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::type::read_some);
 
    // Passes the first part to the fsm.
    std::string const part1 = ">3\r\n";
    copy_to(fix.st.mpx, part1);
-   act = fsm.resume(fix.st, part1.size(), {}, cancellation_type_t::none);
+   act = fsm.resume(fix.st, part1.size(), error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code(redis::error::exceeds_maximum_read_buffer_size));
 
    // Check logging
@@ -327,17 +321,16 @@ void test_cancel_read_edge()
 {
    fixture fix;
    reader_fsm fsm;
-   error_code ec;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::type::read_some);
 
    // Deliver a push, and notify a cancellation.
    // This can happen if the cancellation signal arrives before the read handler runs
    constexpr std::string_view payload = ">1\r\n+msg1\r\n";
    copy_to(fix.st.mpx, payload);
-   act = fsm.resume(fix.st, payload.size(), ec, cancellation_type_t::terminal);
+   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
 
    // Check logging
@@ -351,10 +344,9 @@ void test_cancel_push_delivery()
 {
    fixture fix;
    reader_fsm fsm;
-   error_code ec;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
@@ -365,7 +357,7 @@ void test_cancel_push_delivery()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the 1st push
-   act = fsm.resume(fix.st, payload.size(), ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(11u));
 
    // We got a cancellation while delivering it
@@ -384,10 +376,9 @@ void test_cancel_push_delivery_edge()
 {
    fixture fix;
    reader_fsm fsm;
-   error_code ec;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act.type_, action::type::read_some);
 
    // The fsm is asking for data.
@@ -398,12 +389,12 @@ void test_cancel_push_delivery_edge()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the 1st push
-   act = fsm.resume(fix.st, payload.size(), ec, cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(11u));
 
    // We got a cancellation after delivering it.
    // This can happen if the cancellation signal arrives before the channel send handler runs
-   act = fsm.resume(fix.st, 0, ec, cancellation_type_t::terminal);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
 
    // Check logging
