@@ -262,11 +262,9 @@ void test_push_deliver_error()
 void test_max_read_buffer_size()
 {
    fixture fix;
-   config cfg;
-   cfg.read_buffer_append_size = 5;
-   cfg.max_read_size = 7;
-
-   fix.st.mpx.set_config(cfg);
+   fix.st.cfg.read_buffer_append_size = 5;
+   fix.st.cfg.max_read_size = 7;
+   fix.st.mpx.set_config(fix.st.cfg);
    reader_fsm fsm;
 
    // Initiate
