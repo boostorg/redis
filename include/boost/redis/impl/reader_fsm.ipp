@@ -48,11 +48,22 @@ reader_fsm::action reader_fsm::resume(
          // Process the bytes read, even if there was an error
          st.mpx.commit_read(bytes_read);
 
+         // Check for cancellations
+         if (is_terminal_cancel(cancel_state)) {
+            return {asio::error::operation_aborted};
+         }
+
          // Check for read errors
          if (ec) {
             // TODO: If an error occurred but data was read (i.e.
             // bytes_read != 0) we should try to process that data and
             // deliver it to the user before calling cancel_run.
+            if (ec == asio::error::operation_aborted) {
+               // The read timed out (because of cancel_after, not because of external cancellation).
+               // This means that we didn't receive any data when we were expecting it
+               ec = error::pong_timeout;
+            }
+
             return {ec};
          }
 

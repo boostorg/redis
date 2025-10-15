@@ -9,6 +9,7 @@
 #ifndef BOOST_REDIS_WRITER_FSM_IPP
 #define BOOST_REDIS_WRITER_FSM_IPP
 
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
@@ -24,6 +25,32 @@
 
 namespace boost::redis::detail {
 
+// TODO: we should probably make any_adapter directly constructible from adapters
+void process_ping_node(
+   connection_logger& lgr,
+   resp3::basic_node<std::string_view> const& nd,
+   system::error_code& ec)
+{
+   switch (nd.data_type) {
+      case resp3::type::simple_error: ec = redis::error::resp3_simple_error; break;
+      case resp3::type::blob_error:   ec = redis::error::resp3_blob_error; break;
+      default:                        ;
+   }
+
+   if (ec) {
+      lgr.log(logger::level::info, "Health checker: server answered ping with an error", nd.value);
+   }
+}
+
+inline any_adapter make_ping_adapter(connection_logger& lgr)
+{
+   return any_adapter{any_adapter::impl_t{
+      [&lgr](any_adapter::parse_event evt, resp3::node_view const& nd, system::error_code& ec) {
+         if (evt == any_adapter::parse_event::node)
+            process_ping_node(lgr, nd, ec);
+      }}};
+}
+
 writer_action writer_fsm::resume(
    system::error_code ec,
    std::size_t bytes_written,
@@ -35,26 +62,37 @@ writer_action writer_fsm::resume(
       for (;;) {
          // Attempt to write while we have requests ready to send
          while (mpx_->prepare_write() != 0u) {
-            // Write
-            BOOST_REDIS_YIELD(resume_point_, 1, writer_action_type::write)
+            // Write. We need to account for short writes
+            write_offset_ = 0u;
+            while (write_offset_ < mpx_->get_write_buffer().size()) {
+               // Write what we can
+               BOOST_REDIS_YIELD(
+                  resume_point_,
+                  1,
+                  writer_action::write(mpx_->get_write_buffer().substr(write_offset_)))
 
-            // Mark requests as written
-            if (!ec)
-               mpx_->commit_write();
+               // Update the offset
+               write_offset_ += bytes_written;
 
-            // Check for cancellations
-            if (is_terminal_cancel(cancel_state)) {
-               logger_->trace("Writer task: cancelled (1).");
-               return system::error_code(asio::error::operation_aborted);
+               // Check for cancellations
+               if (is_terminal_cancel(cancel_state)) {
+                  logger_->trace("Writer task: cancelled (1).");
+                  return system::error_code(asio::error::operation_aborted);
+               }
+
+               // Log what we wrote
+               logger_->on_write(ec, bytes_written);
+
+               // Check for errors
+               // TODO: translate operation_aborted to another error code for clarity.
+               // pong_timeout is probably not the best option here - maybe write_timeout?
+               if (ec) {
+                  return ec;
+               }
             }
 
-            // Log what we wrote
-            logger_->on_write(ec, bytes_written);
-
-            // Check for errors
-            if (ec) {
-               return ec;
-            }
+            // We finished writing a message successfully. Mark requests as written
+            mpx_->commit_write();
          }
 
          // No more requests ready to be written. Wait for more
@@ -64,6 +102,13 @@ writer_action writer_fsm::resume(
          if (is_terminal_cancel(cancel_state)) {
             logger_->trace("Writer task: cancelled (2).");
             return system::error_code(asio::error::operation_aborted);
+         }
+
+         // If we weren't notified, it's because there is no data and we should send a health check
+         if (!ec) {
+            auto elem = make_elem(*ping_req_, make_ping_adapter(*logger_));
+            elem->set_done_callback([] { });
+            mpx_->add(elem);
          }
       }
    }

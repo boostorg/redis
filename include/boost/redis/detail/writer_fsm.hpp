@@ -9,10 +9,14 @@
 #ifndef BOOST_REDIS_WRITER_FSM_HPP
 #define BOOST_REDIS_WRITER_FSM_HPP
 
+#include <boost/redis/config.hpp>
+#include <boost/redis/request.hpp>
+
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
+#include <string_view>
 
 // Sans-io algorithm for the writer task, as a finite state machine
 
@@ -30,29 +34,57 @@ enum class writer_action_type
    wait,   // Wait until there is data to be written
 };
 
-struct writer_action {
-   writer_action_type type;
-   system::error_code ec;
+class writer_action {
+   writer_action_type type_;
+   union {
+      system::error_code ec_;
+      std::string_view write_buffer_;
+   };
 
+public:
    writer_action(writer_action_type type) noexcept
-   : type{type}
+   : type_{type}
    { }
+
+   writer_action_type type() const { return type_; }
 
    writer_action(system::error_code ec) noexcept
-   : type{writer_action_type::done}
-   , ec{ec}
+   : type_{writer_action_type::done}
+   , ec_{ec}
    { }
+
+   static writer_action write(std::string_view buffer)
+   {
+      auto res = writer_action{writer_action_type::write};
+      res.write_buffer_ = buffer;
+      return res;
+   }
+
+   system::error_code error() const
+   {
+      BOOST_ASSERT(type_ == writer_action_type::done);
+      return ec_;
+   }
+
+   std::string_view write_buffer() const
+   {
+      BOOST_ASSERT(type_ == writer_action_type::write);
+      return write_buffer_;
+   }
 };
 
 class writer_fsm {
    int resume_point_{0};
    multiplexer* mpx_;
    connection_logger* logger_;
+   const request* ping_req_;
+   std::size_t write_offset_{};
 
 public:
-   writer_fsm(multiplexer& mpx, connection_logger& logger) noexcept
+   writer_fsm(multiplexer& mpx, connection_logger& logger, const request& ping_req) noexcept
    : mpx_(&mpx)
    , logger_(&logger)
+   , ping_req_(&ping_req)
    { }
 
    writer_action resume(
