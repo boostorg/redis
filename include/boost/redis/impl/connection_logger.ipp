@@ -5,7 +5,6 @@
  */
 
 #include <boost/redis/detail/connection_logger.hpp>
-#include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/logger.hpp>
 
 #include <boost/asio/ip/tcp.hpp>
@@ -15,21 +14,6 @@
 #include <string_view>
 
 namespace boost::redis::detail {
-
-#define BOOST_REDIS_EXEC_SWITCH_CASE(elem) \
-   case exec_action_type::elem: return "exec_action_type::" #elem
-
-auto to_string(exec_action_type t) noexcept -> char const*
-{
-   switch (t) {
-      BOOST_REDIS_EXEC_SWITCH_CASE(setup_cancellation);
-      BOOST_REDIS_EXEC_SWITCH_CASE(immediate);
-      BOOST_REDIS_EXEC_SWITCH_CASE(done);
-      BOOST_REDIS_EXEC_SWITCH_CASE(notify_writer);
-      BOOST_REDIS_EXEC_SWITCH_CASE(wait_for_response);
-      default: return "exec_action_type::<invalid type>";
-   }
-}
 
 inline void format_tcp_endpoint(const asio::ip::tcp::endpoint& ep, std::string& to)
 {

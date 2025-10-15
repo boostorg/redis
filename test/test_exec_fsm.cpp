@@ -12,16 +12,16 @@
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
+#include <boost/assert.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
-#include <boost/assert.hpp>
+
+#include "sansio_utils.hpp"
 
 #include <cstddef>
 #include <memory>
 #include <ostream>
 #include <utility>
-
-#include "sansio_utils.hpp"
 
 using namespace boost::redis;
 namespace asio = boost::asio;
@@ -33,10 +33,23 @@ using detail::exec_action;
 using boost::system::error_code;
 using boost::asio::cancellation_type_t;
 
+#define BOOST_REDIS_EXEC_SWITCH_CASE(elem) \
+   case exec_action_type::elem: return "exec_action_type::" #elem
+
+static auto to_string(exec_action_type t) noexcept -> char const*
+{
+   switch (t) {
+      BOOST_REDIS_EXEC_SWITCH_CASE(setup_cancellation);
+      BOOST_REDIS_EXEC_SWITCH_CASE(immediate);
+      BOOST_REDIS_EXEC_SWITCH_CASE(done);
+      BOOST_REDIS_EXEC_SWITCH_CASE(notify_writer);
+      BOOST_REDIS_EXEC_SWITCH_CASE(wait_for_response);
+      default: return "exec_action_type::<invalid type>";
+   }
+}
+
 // Operators
 namespace boost::redis::detail {
-
-extern auto to_string(exec_action_type t) noexcept -> char const*;
 
 std::ostream& operator<<(std::ostream& os, exec_action_type type)
 {
