@@ -14,6 +14,7 @@
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <chrono>
 #include <cstddef>
 #include <string_view>
 
@@ -28,16 +29,19 @@ class multiplexer;
 // What should we do next?
 enum class writer_action_type
 {
-   done,   // Call the final handler
-   write,  // Issue a write on the stream
-   wait,   // Wait until there is data to be written
+   done,        // Call the final handler
+   write_some,  // Issue a write on the stream
+   wait,        // Wait until there is data to be written
 };
 
 class writer_action {
    writer_action_type type_;
    union {
       system::error_code ec_;
-      std::string_view write_buffer_;
+      struct {
+         std::string_view buffer;
+         std::chrono::steady_clock::duration timeout;
+      } buff_timeout;
    };
 
 public:
@@ -52,10 +56,19 @@ public:
    , ec_{ec}
    { }
 
-   static writer_action write(std::string_view buffer)
+   static writer_action write_some(
+      std::string_view buffer,
+      std::chrono::steady_clock::duration timeout)
    {
-      auto res = writer_action{writer_action_type::write};
-      res.write_buffer_ = buffer;
+      auto res = writer_action{writer_action_type::write_some};
+      res.buff_timeout = {buffer, timeout};
+      return res;
+   }
+
+   static writer_action wait(std::chrono::steady_clock::duration timeout)
+   {
+      auto res = writer_action{writer_action_type::wait};
+      res.buff_timeout = {{}, timeout};
       return res;
    }
 
@@ -67,8 +80,14 @@ public:
 
    std::string_view write_buffer() const
    {
-      BOOST_ASSERT(type_ == writer_action_type::write);
-      return write_buffer_;
+      BOOST_ASSERT(type_ == writer_action_type::write_some);
+      return buff_timeout.buffer;
+   }
+
+   std::chrono::steady_clock::duration timeout() const
+   {
+      BOOST_ASSERT(type_ == writer_action_type::write_some || type_ == writer_action_type::wait);
+      return buff_timeout.timeout;
    }
 };
 

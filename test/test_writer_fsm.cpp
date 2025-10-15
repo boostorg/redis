@@ -38,10 +38,10 @@ using detail::connection_logger;
 static const char* to_string(writer_action_type value)
 {
    switch (value) {
-      case writer_action_type::done:  return "writer_action_type::done";
-      case writer_action_type::write: return "writer_action_type::write";
-      case writer_action_type::wait:  return "writer_action_type::wait";
-      default:                        return "<unknown writer_action_type>";
+      case writer_action_type::done:       return "writer_action_type::done";
+      case writer_action_type::write_some: return "writer_action_type::write";
+      case writer_action_type::wait:       return "writer_action_type::wait";
+      default:                             return "<unknown writer_action_type>";
    }
 }
 
@@ -106,7 +106,7 @@ void test_single_request()
 
    // Start. A write is triggered, and the request is marked as staged
    auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST_EQ(act, writer_action_type::write_some);
    BOOST_TEST(item1.elm->is_staged());
 
    // The write completes successfully. The request is written, and we go back to sleep.
@@ -119,7 +119,7 @@ void test_single_request()
 
    // The wait is cancelled to signal we've got a new request
    act = fix.fsm.resume(asio::error::operation_aborted, 0u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST_EQ(act, writer_action_type::write_some);
    BOOST_TEST(item2.elm->is_staged());
 
    // Write successful
@@ -146,7 +146,7 @@ void test_request_arrives_while_writing()
 
    // Start. A write is triggered, and the request is marked as staged
    auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST_EQ(act, writer_action_type::write_some);
    BOOST_TEST(item1.elm->is_staged());
 
    // While the write is outstanding, a new request arrives
@@ -155,7 +155,7 @@ void test_request_arrives_while_writing()
    // The write completes successfully. The request is written,
    // and we start writing the new one
    act = fix.fsm.resume(error_code(), item1.req.payload().size(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST_EQ(act, writer_action_type::write_some);
    BOOST_TEST(item1.elm->is_written());
    BOOST_TEST(item2.elm->is_staged());
 
@@ -187,7 +187,7 @@ void test_no_request_at_startup()
 
    // The wait is cancelled to signal we've got a new request
    act = fix.fsm.resume(asio::error::operation_aborted, 0u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST_EQ(act, writer_action_type::write_some);
    BOOST_TEST(item.elm->is_staged());
 
    // Write successful
@@ -213,7 +213,7 @@ void test_write_error()
 
    // Start. A write is triggered, and the request is marked as staged
    auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST_EQ(act, writer_action_type::write_some);
    BOOST_TEST(item.elm->is_staged());
 
    // The write completes with an error (possibly with partial success).
@@ -241,7 +241,7 @@ void test_cancel_write()
 
    // Start. A write is triggered
    auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST_EQ(act, writer_action_type::write_some);
    BOOST_TEST(item.elm->is_staged());
 
    // Write cancelled and failed with operation_aborted
@@ -267,7 +267,7 @@ void test_cancel_write_edge()
 
    // Start. A write is triggered
    auto act = fix.fsm.resume(error_code(), 0u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, writer_action_type::write);
+   BOOST_TEST_EQ(act, writer_action_type::write_some);
    BOOST_TEST(item.elm->is_staged());
 
    // Write cancelled but without error

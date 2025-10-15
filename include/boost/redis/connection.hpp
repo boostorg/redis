@@ -221,34 +221,29 @@ struct writer_op {
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t bytes_written = 0u)
    {
+      auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
       auto act = fsm_.resume(
-         conn_->st_,
+         conn->st_,
          ec,
          bytes_written,
          self.get_cancellation_state().cancelled());
-      // TODO: I think the timeout should be embedded in the action
 
       switch (act.type()) {
          case writer_action_type::done: self.complete(act.error()); return;
-         case writer_action_type::write:
-            if (conn_->st_.cfg.health_check_interval.count() != 0) {
-               // If nothing has been written in the health check interval, consider the connection as dead
-               auto* conn = conn_;
+         case writer_action_type::write_some:
+            if (auto timeout = act.timeout(); timeout.count() != 0) {
                conn->stream_.async_write_some(
                   asio::buffer(act.write_buffer()),
-                  asio::cancel_after(
-                     conn->writer_timer_,
-                     conn->st_.cfg.health_check_interval,
-                     std::move(self)));
+                  asio::cancel_after(conn->writer_timer_, timeout, std::move(self)));
             } else {
-               conn_->stream_.async_write_some(asio::buffer(act.write_buffer()), std::move(self));
+               conn->stream_.async_write_some(asio::buffer(act.write_buffer()), std::move(self));
             }
             return;
          case writer_action_type::wait:
-            if (conn_->st_.cfg.health_check_interval.count() != 0) {
-               conn_->writer_cv_.expires_after(conn_->st_.cfg.health_check_interval);
+            if (auto timeout = act.timeout(); timeout.count() != 0) {
+               conn->writer_cv_.expires_after(timeout);
             }
-            conn_->writer_cv_.async_wait(std::move(self));
+            conn->writer_cv_.async_wait(std::move(self));
             return;
       }
    }

@@ -64,14 +64,18 @@ writer_action writer_fsm::resume(
       for (;;) {
          // Attempt to write while we have requests ready to send
          while (st.mpx.prepare_write() != 0u) {
-            // Write. We need to account for short writes
+            // Write an entire message. We can't use asio::async_write because we want
+            // to apply timeouts to individual write operations
             write_offset_ = 0u;
             while (write_offset_ < st.mpx.get_write_buffer().size()) {
-               // Write what we can
+               // Write what we can. If nothing has been written for the health check
+               // interval, we consider the connection as failed
                BOOST_REDIS_YIELD(
                   resume_point_,
                   1,
-                  writer_action::write(st.mpx.get_write_buffer().substr(write_offset_)))
+                  writer_action::write_some(
+                     st.mpx.get_write_buffer().substr(write_offset_),
+                     st.cfg.health_check_interval))
 
                // Update the offset
                write_offset_ += bytes_written;
@@ -97,8 +101,8 @@ writer_action writer_fsm::resume(
             st.mpx.commit_write();
          }
 
-         // No more requests ready to be written. Wait for more
-         BOOST_REDIS_YIELD(resume_point_, 2, writer_action_type::wait)
+         // No more requests ready to be written. Wait for more, or until we need to send a PING
+         BOOST_REDIS_YIELD(resume_point_, 2, writer_action::wait(st.cfg.health_check_interval))
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
