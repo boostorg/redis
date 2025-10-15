@@ -9,8 +9,7 @@
 #ifndef BOOST_REDIS_WRITER_FSM_HPP
 #define BOOST_REDIS_WRITER_FSM_HPP
 
-#include <boost/redis/config.hpp>
-#include <boost/redis/request.hpp>
+#include <boost/redis/detail/connection_state.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
@@ -75,19 +74,13 @@ public:
 
 class writer_fsm {
    int resume_point_{0};
-   multiplexer* mpx_;
-   connection_logger* logger_;
-   const request* ping_req_;
    std::size_t write_offset_{};
 
 public:
-   writer_fsm(multiplexer& mpx, connection_logger& logger, const request& ping_req) noexcept
-   : mpx_(&mpx)
-   , logger_(&logger)
-   , ping_req_(&ping_req)
-   { }
+   writer_fsm() noexcept = default;
 
    writer_action resume(
+      connection_state& st,
       system::error_code ec,
       std::size_t bytes_written,
       asio::cancellation_type_t cancel_state);

@@ -216,13 +216,16 @@ struct writer_op {
 
    explicit writer_op(connection_impl<Executor>& conn) noexcept
    : conn_(&conn)
-   , fsm_(conn.st_.mpx, conn.st_.logger, conn.st_.ping_req)
    { }
 
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t bytes_written = 0u)
    {
-      auto act = fsm_.resume(ec, bytes_written, self.get_cancellation_state().cancelled());
+      auto act = fsm_.resume(
+         conn_->st_,
+         ec,
+         bytes_written,
+         self.get_cancellation_state().cancelled());
       // TODO: I think the timeout should be embedded in the action
 
       switch (act.type()) {
@@ -270,7 +273,7 @@ public:
          switch (act.type_) {
             case reader_fsm::action::type::read_some:
             {
-               auto const buf = conn_->mpx_.get_prepared_read_buffer();
+               auto const buf = conn_->st_.mpx.get_prepared_read_buffer();
                if (conn_->st_.cfg.health_check_interval.count() != 0) {
                   // TODO: timeouts should be encoded in the actions
                   // The writer might be at most health_check_interval writing

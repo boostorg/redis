@@ -11,6 +11,7 @@
 
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/connection_logger.hpp>
+#include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
@@ -52,6 +53,7 @@ inline any_adapter make_ping_adapter(connection_logger& lgr)
 }
 
 writer_action writer_fsm::resume(
+   connection_state& st,
    system::error_code ec,
    std::size_t bytes_written,
    asio::cancellation_type_t cancel_state)
@@ -61,27 +63,27 @@ writer_action writer_fsm::resume(
 
       for (;;) {
          // Attempt to write while we have requests ready to send
-         while (mpx_->prepare_write() != 0u) {
+         while (st.mpx.prepare_write() != 0u) {
             // Write. We need to account for short writes
             write_offset_ = 0u;
-            while (write_offset_ < mpx_->get_write_buffer().size()) {
+            while (write_offset_ < st.mpx.get_write_buffer().size()) {
                // Write what we can
                BOOST_REDIS_YIELD(
                   resume_point_,
                   1,
-                  writer_action::write(mpx_->get_write_buffer().substr(write_offset_)))
+                  writer_action::write(st.mpx.get_write_buffer().substr(write_offset_)))
 
                // Update the offset
                write_offset_ += bytes_written;
 
                // Check for cancellations
                if (is_terminal_cancel(cancel_state)) {
-                  logger_->trace("Writer task: cancelled (1).");
+                  st.logger.trace("Writer task: cancelled (1).");
                   return system::error_code(asio::error::operation_aborted);
                }
 
                // Log what we wrote
-               logger_->on_write(ec, bytes_written);
+               st.logger.on_write(ec, bytes_written);
 
                // Check for errors
                // TODO: translate operation_aborted to another error code for clarity.
@@ -92,7 +94,7 @@ writer_action writer_fsm::resume(
             }
 
             // We finished writing a message successfully. Mark requests as written
-            mpx_->commit_write();
+            st.mpx.commit_write();
          }
 
          // No more requests ready to be written. Wait for more
@@ -100,15 +102,15 @@ writer_action writer_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            logger_->trace("Writer task: cancelled (2).");
+            st.logger.trace("Writer task: cancelled (2).");
             return system::error_code(asio::error::operation_aborted);
          }
 
          // If we weren't notified, it's because there is no data and we should send a health check
          if (!ec) {
-            auto elem = make_elem(*ping_req_, make_ping_adapter(*logger_));
+            auto elem = make_elem(st.ping_req, make_ping_adapter(st.logger));
             elem->set_done_callback([] { });
-            mpx_->add(elem);
+            st.mpx.add(elem);
          }
       }
    }
