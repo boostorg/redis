@@ -6,6 +6,8 @@
 
 #ifndef BOOST_REDIS_READER_FSM_HPP
 #define BOOST_REDIS_READER_FSM_HPP
+
+#include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
@@ -33,17 +35,17 @@ public:
       system::error_code ec_ = {};
    };
 
-   explicit reader_fsm(multiplexer& mpx) noexcept;
-
    action resume(
+      connection_state& st,
       std::size_t bytes_read,
       system::error_code ec,
       asio::cancellation_type_t cancel_state);
 
+   reader_fsm() = default;
+
 private:
    int resume_point_{0};
    action::type next_read_type_ = action::type::read_some;
-   multiplexer* mpx_ = nullptr;
    std::pair<consume_result, std::size_t> res_{consume_result::needs_more, 0u};
 };
 

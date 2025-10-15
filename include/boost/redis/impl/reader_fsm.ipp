@@ -4,6 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
@@ -14,11 +15,8 @@
 
 namespace boost::redis::detail {
 
-reader_fsm::reader_fsm(multiplexer& mpx) noexcept
-: mpx_{&mpx}
-{ }
-
 reader_fsm::action reader_fsm::resume(
+   connection_state& st,
    std::size_t bytes_read,
    system::error_code ec,
    asio::cancellation_type_t cancel_state)
@@ -28,7 +26,7 @@ reader_fsm::action reader_fsm::resume(
 
       for (;;) {
          // Prepare the buffer for the read operation
-         ec = mpx_->prepare_read();
+         ec = st.mpx.prepare_read();
          if (ec) {
             return {action::type::done, 0, ec};
          }
@@ -37,7 +35,7 @@ reader_fsm::action reader_fsm::resume(
          BOOST_REDIS_YIELD(resume_point_, 1, next_read_type_)
 
          // Process the bytes read, even if there was an error
-         mpx_->commit_read(bytes_read);
+         st.mpx.commit_read(bytes_read);
 
          // Check for read errors
          if (ec) {
@@ -54,8 +52,8 @@ reader_fsm::action reader_fsm::resume(
 
          // Process the data that we've read
          next_read_type_ = action::type::read_some;
-         while (mpx_->get_read_buffer_size() != 0) {
-            res_ = mpx_->consume(ec);
+         while (st.mpx.get_read_buffer_size() != 0) {
+            res_ = st.mpx.consume(ec);
 
             if (ec) {
                // TODO: Perhaps log what has not been consumed to aid
