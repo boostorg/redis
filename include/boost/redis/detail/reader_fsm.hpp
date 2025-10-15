@@ -6,6 +6,8 @@
 
 #ifndef BOOST_REDIS_READER_FSM_HPP
 #define BOOST_REDIS_READER_FSM_HPP
+
+#include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
@@ -23,27 +25,40 @@ public:
       enum class type
       {
          read_some,
-         needs_more,
          notify_push_receiver,
          done,
       };
 
-      type type_ = type::done;
-      std::size_t push_size_ = 0u;
-      system::error_code ec_ = {};
+      action(type t, std::size_t push_size = 0u) noexcept
+      : type_(t)
+      , push_size_(push_size)
+      { }
+
+      action(system::error_code ec) noexcept
+      : type_(type::done)
+      , ec_(ec)
+      { }
+
+      static action notify_push_receiver(std::size_t bytes)
+      {
+         return {type::notify_push_receiver, bytes};
+      }
+
+      type type_;
+      std::size_t push_size_{};
+      system::error_code ec_;
    };
 
-   explicit reader_fsm(multiplexer& mpx) noexcept;
-
    action resume(
+      connection_state& st,
       std::size_t bytes_read,
       system::error_code ec,
       asio::cancellation_type_t cancel_state);
 
+   reader_fsm() = default;
+
 private:
    int resume_point_{0};
-   action::type next_read_type_ = action::type::read_some;
-   multiplexer* mpx_ = nullptr;
    std::pair<consume_result, std::size_t> res_{consume_result::needs_more, 0u};
 };
 

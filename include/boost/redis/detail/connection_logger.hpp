@@ -7,7 +7,6 @@
 #ifndef BOOST_REDIS_CONNECTION_LOGGER_HPP
 #define BOOST_REDIS_CONNECTION_LOGGER_HPP
 
-#include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/response.hpp>
 
@@ -38,7 +37,7 @@ public:
    void on_connect(system::error_code const& ec, std::string_view unix_socket_ep);
    void on_ssl_handshake(system::error_code const& ec);
    void on_write(system::error_code const& ec, std::size_t n);
-   void on_fsm_resume(reader_fsm::action const& action);
+   void on_read(system::error_code const& ec, std::size_t n);
    void on_setup(system::error_code const& ec, generic_response const& resp);
    void log(logger::level lvl, std::string_view msg);
    void log(logger::level lvl, std::string_view msg1, std::string_view msg2);

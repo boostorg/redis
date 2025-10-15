@@ -4,6 +4,7 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
@@ -14,11 +15,8 @@
 
 namespace boost::redis::detail {
 
-reader_fsm::reader_fsm(multiplexer& mpx) noexcept
-: mpx_{&mpx}
-{ }
-
 reader_fsm::action reader_fsm::resume(
+   connection_state& st,
    std::size_t bytes_read,
    system::error_code ec,
    asio::cancellation_type_t cancel_state)
@@ -28,53 +26,64 @@ reader_fsm::action reader_fsm::resume(
 
       for (;;) {
          // Prepare the buffer for the read operation
-         ec = mpx_->prepare_read();
+         ec = st.mpx.prepare_read();
          if (ec) {
-            return {action::type::done, 0, ec};
+            st.logger.trace("Reader task: error in prepare_read", ec);
+            return {ec};
          }
 
          // Read
-         BOOST_REDIS_YIELD(resume_point_, 1, next_read_type_)
+         st.logger.trace("Reader task: issuing read");
+         BOOST_REDIS_YIELD(resume_point_, 1, action::type::read_some)
+
+         // Check for cancellations
+         if (is_terminal_cancel(cancel_state)) {
+            st.logger.trace("Reader task: cancelled (1)");
+            return {asio::error::operation_aborted};
+         }
+
+         // Log what we read
+         st.logger.on_read(ec, bytes_read);
 
          // Process the bytes read, even if there was an error
-         mpx_->commit_read(bytes_read);
+         st.mpx.commit_read(bytes_read);
 
          // Check for read errors
          if (ec) {
             // TODO: If an error occurred but data was read (i.e.
             // bytes_read != 0) we should try to process that data and
             // deliver it to the user before calling cancel_run.
-            return {action::type::done, bytes_read, ec};
-         }
-
-         // Check for cancellations
-         if (is_terminal_cancel(cancel_state)) {
-            return {action::type::done, 0u, asio::error::operation_aborted};
+            return {ec};
          }
 
          // Process the data that we've read
-         next_read_type_ = action::type::read_some;
-         while (mpx_->get_read_buffer_size() != 0) {
-            res_ = mpx_->consume(ec);
+         while (st.mpx.get_read_buffer_size() != 0) {
+            res_ = st.mpx.consume(ec);
 
             if (ec) {
                // TODO: Perhaps log what has not been consumed to aid
                // debugging.
-               return {action::type::done, res_.second, ec};
+               st.logger.trace("Reader task: error processing message", ec);
+               return {ec};
             }
 
             if (res_.first == consume_result::needs_more) {
-               next_read_type_ = action::type::needs_more;
+               st.logger.trace("Reader task: incomplete message received");
                break;
             }
 
             if (res_.first == consume_result::got_push) {
-               BOOST_REDIS_YIELD(resume_point_, 2, action::type::notify_push_receiver, res_.second)
-               if (ec) {
-                  return {action::type::done, 0u, ec};
-               }
+               BOOST_REDIS_YIELD(resume_point_, 2, action::notify_push_receiver(res_.second))
+               // Check for cancellations
                if (is_terminal_cancel(cancel_state)) {
-                  return {action::type::done, 0u, asio::error::operation_aborted};
+                  st.logger.trace("Reader task: cancelled (2)");
+                  return {asio::error::operation_aborted};
+               }
+
+               // Check for other errors
+               if (ec) {
+                  st.logger.trace("Reader task: error notifying push receiver", ec);
+                  return {ec};
                }
             } else {
                // TODO: Here we should notify the exec operation that
@@ -89,7 +98,7 @@ reader_fsm::action reader_fsm::resume(
    }
 
    BOOST_ASSERT(false);
-   return {action::type::done, 0, system::error_code()};
+   return {system::error_code()};
 }
 
 }  // namespace boost::redis::detail
