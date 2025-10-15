@@ -242,6 +242,8 @@ struct writer_op {
          case writer_action_type::wait:
             if (auto timeout = act.timeout(); timeout.count() != 0) {
                conn->writer_cv_.expires_after(timeout);
+            } else {
+               conn->writer_cv_.expires_at((std::chrono::steady_clock::time_point::max)());
             }
             conn->writer_cv_.async_wait(std::move(self));
             return;
