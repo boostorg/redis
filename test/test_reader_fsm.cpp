@@ -50,16 +50,23 @@ std::ostream& operator<<(std::ostream& os, action::type type) { return os << to_
 
 bool operator==(const action& lhs, const action& rhs) noexcept
 {
-   return lhs.type_ == rhs.type_ && lhs.push_size_ == rhs.push_size_ && lhs.ec_ == rhs.ec_;
+   if (lhs.get_type() != rhs.get_type())
+      return false;
+   if (lhs.get_type() == action::type::done)
+      return lhs.error() == rhs.error();
+   if (lhs.get_type() == action::type::notify_push_receiver)
+      return lhs.push_size() == rhs.push_size();
+   return true;
 }
 
 std::ostream& operator<<(std::ostream& os, const action& act)
 {
-   os << "action{ .type=" << act.type_;
-   if (act.type_ == action::type::done)
-      os << ", .error=" << act.ec_;
-   else if (act.type_ == action::type::notify_push_receiver)
-      os << ", .push_size=" << act.push_size_;
+   auto t = act.get_type();
+   os << "action{ .type=" << t;
+   if (t == action::type::done)
+      os << ", .error=" << act.error();
+   else if (t == action::type::notify_push_receiver)
+      os << ", .push_size=" << act.push_size();
    return os << " }";
 }
 
@@ -94,7 +101,7 @@ void test_push()
 
    // Initiate
    auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::read_some);
+   BOOST_TEST_EQ(act, action::type::read_some);
 
    // The fsm is asking for data.
    std::string const payload =
@@ -135,7 +142,7 @@ void test_read_needs_more()
 
    // Initiate
    auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::read_some);
+   BOOST_TEST_EQ(act, action::type::read_some);
 
    // Split the incoming message in three random parts and deliver
    // them to the reader individually.
@@ -182,7 +189,7 @@ void test_read_error()
 
    // Initiate
    auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::read_some);
+   BOOST_TEST_EQ(act, action::type::read_some);
 
    // The fsm is asking for data.
    std::string const payload = ">1\r\n+msg1\r\n";
@@ -345,7 +352,7 @@ void test_cancel_push_delivery()
 
    // Initiate
    auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::read_some);
+   BOOST_TEST_EQ(act, action::type::read_some);
 
    // The fsm is asking for data.
    constexpr std::string_view payload =
@@ -377,7 +384,7 @@ void test_cancel_push_delivery_edge()
 
    // Initiate
    auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
-   BOOST_TEST_EQ(act.type_, action::type::read_some);
+   BOOST_TEST_EQ(act, action::type::read_some);
 
    // The fsm is asking for data.
    constexpr std::string_view payload =

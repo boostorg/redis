@@ -267,7 +267,7 @@ public:
       for (;;) {
          auto act = fsm_.resume(conn_->st_, n, ec, self.get_cancellation_state().cancelled());
 
-         switch (act.type_) {
+         switch (act.get_type()) {
             case reader_fsm::action::type::read_some:
             {
                auto const buf = conn_->st_.mpx.get_prepared_read_buffer();
@@ -289,14 +289,14 @@ public:
                return;
             }
             case reader_fsm::action::type::notify_push_receiver:
-               if (conn_->receive_channel_.try_send(ec, act.push_size_)) {
+               if (conn_->receive_channel_.try_send(ec, act.push_size())) {
                   continue;
                } else {
-                  conn_->receive_channel_.async_send(ec, act.push_size_, std::move(self));
+                  conn_->receive_channel_.async_send(ec, act.push_size(), std::move(self));
                   return;
                }
                return;
-            case reader_fsm::action::type::done: self.complete(act.ec_); return;
+            case reader_fsm::action::type::done: self.complete(act.error()); return;
          }
       }
    }

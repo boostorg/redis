@@ -21,7 +21,8 @@ class read_buffer;
 
 class reader_fsm {
 public:
-   struct action {
+   class action {
+   public:
       enum class type
       {
          read_some,
@@ -44,9 +45,26 @@ public:
          return {type::notify_push_receiver, bytes};
       }
 
+      type get_type() const { return type_; }
+
+      system::error_code error() const
+      {
+         BOOST_ASSERT(type_ == type::done);
+         return ec_;
+      }
+
+      std::size_t push_size() const
+      {
+         BOOST_ASSERT(type_ == type::notify_push_receiver);
+         return push_size_;
+      }
+
+   private:
       type type_;
-      std::size_t push_size_{};
-      system::error_code ec_;
+      union {
+         system::error_code ec_;
+         std::size_t push_size_{};
+      };
    };
 
    action resume(
