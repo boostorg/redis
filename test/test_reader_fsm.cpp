@@ -297,8 +297,29 @@ void test_max_read_buffer_size()
 }
 
 // Cancellations
-// TODO: cancel with error
-void test_cancel_after_read()
+void test_cancel_read()
+{
+   fixture fix;
+   reader_fsm fsm;
+
+   // Initiate
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action::type::read_some);
+
+   // The read was cancelled (maybe after delivering some bytes)
+   constexpr std::string_view payload = ">1\r\n";
+   copy_to(fix.st.mpx, payload);
+   act = fsm.resume(
+      fix.st,
+      payload.size(),
+      net::error::operation_aborted,
+      cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
+
+   // Log contains a system-dependent error, so we don't check it here
+}
+
+void test_cancel_read_edge()
 {
    fixture fix;
    reader_fsm fsm;
@@ -323,7 +344,7 @@ void test_cancel_after_read()
    });
 }
 
-void test_cancel_after_push_delivery()
+void test_cancel_push_delivery()
 {
    fixture fix;
    reader_fsm fsm;
@@ -371,8 +392,9 @@ int main()
    test_push_deliver_error();
    test_max_read_buffer_size();
 
-   test_cancel_after_read();
-   test_cancel_after_push_delivery();
+   test_cancel_read();
+   test_cancel_read_edge();
+   test_cancel_push_delivery();
 
    return boost::report_errors();
 }
