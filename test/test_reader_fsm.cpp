@@ -316,7 +316,11 @@ void test_cancel_read()
       cancellation_type_t::terminal);
    BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
 
-   // Log contains a system-dependent error, so we don't check it here
+   // Check logging
+   fix.check_log({
+      {logger::level::debug, "Reader task: issuing read" },
+      {logger::level::debug, "Reader task: cancelled (1)"},
+   });
 }
 
 void test_cancel_read_edge()
@@ -339,12 +343,44 @@ void test_cancel_read_edge()
    // Check logging
    fix.check_log({
       {logger::level::debug, "Reader task: issuing read" },
-      {logger::level::debug, "Reader task: 11 bytes read"},
       {logger::level::debug, "Reader task: cancelled (1)"},
    });
 }
 
 void test_cancel_push_delivery()
+{
+   fixture fix;
+   reader_fsm fsm;
+   error_code ec;
+
+   // Initiate
+   auto act = fsm.resume(fix.st, 0, ec, cancellation_type_t::none);
+   BOOST_TEST_EQ(act.type_, action::type::read_some);
+
+   // The fsm is asking for data.
+   constexpr std::string_view payload =
+      ">1\r\n+msg1\r\n"
+      ">1\r\n+msg2 \r\n";
+
+   copy_to(fix.st.mpx, payload);
+
+   // Deliver the 1st push
+   act = fsm.resume(fix.st, payload.size(), ec, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action::notify_push_receiver(11u));
+
+   // We got a cancellation while delivering it
+   act = fsm.resume(fix.st, 0, net::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
+
+   // Check logging
+   fix.check_log({
+      {logger::level::debug, "Reader task: issuing read" },
+      {logger::level::debug, "Reader task: 23 bytes read"},
+      {logger::level::debug, "Reader task: cancelled (2)"},
+   });
+}
+
+void test_cancel_push_delivery_edge()
 {
    fixture fix;
    reader_fsm fsm;
@@ -378,8 +414,6 @@ void test_cancel_push_delivery()
    });
 }
 
-// TODO: cancel edge
-
 }  // namespace
 
 int main()
@@ -395,6 +429,7 @@ int main()
    test_cancel_read();
    test_cancel_read_edge();
    test_cancel_push_delivery();
+   test_cancel_push_delivery_edge();
 
    return boost::report_errors();
 }

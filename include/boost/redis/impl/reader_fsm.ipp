@@ -35,6 +35,14 @@ reader_fsm::action reader_fsm::resume(
          // Read
          st.logger.trace("Reader task: issuing read");
          BOOST_REDIS_YIELD(resume_point_, 1, action::type::read_some)
+
+         // Check for cancellations
+         if (is_terminal_cancel(cancel_state)) {
+            st.logger.trace("Reader task: cancelled (1)");
+            return {asio::error::operation_aborted};
+         }
+
+         // Log what we read
          st.logger.on_read(ec, bytes_read);
 
          // Process the bytes read, even if there was an error
@@ -46,12 +54,6 @@ reader_fsm::action reader_fsm::resume(
             // bytes_read != 0) we should try to process that data and
             // deliver it to the user before calling cancel_run.
             return {ec};
-         }
-
-         // Check for cancellations
-         if (is_terminal_cancel(cancel_state)) {
-            st.logger.trace("Reader task: cancelled (1)");
-            return {asio::error::operation_aborted};
          }
 
          // Process the data that we've read
@@ -72,13 +74,16 @@ reader_fsm::action reader_fsm::resume(
 
             if (res_.first == consume_result::got_push) {
                BOOST_REDIS_YIELD(resume_point_, 2, action::notify_push_receiver(res_.second))
-               if (ec) {
-                  st.logger.trace("Reader task: error notifying push receiver", ec);
-                  return {ec};
-               }
+               // Check for cancellations
                if (is_terminal_cancel(cancel_state)) {
                   st.logger.trace("Reader task: cancelled (2)");
                   return {asio::error::operation_aborted};
+               }
+
+               // Check for other errors
+               if (ec) {
+                  st.logger.trace("Reader task: error notifying push receiver", ec);
+                  return {ec};
                }
             } else {
                // TODO: Here we should notify the exec operation that
