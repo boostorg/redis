@@ -195,6 +195,44 @@ void test_read_needs_more()
    });
 }
 
+void test_health_checks_disabled()
+{
+   fixture fix;
+   reader_fsm fsm;
+   fix.st.cfg.health_check_interval = 0s;
+
+   // Initiate
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action::read_some(0s));
+
+   // Split the message into two so we cover both the regular read and the needs more branch
+   constexpr std::string_view msg[] = {">3\r\n+msg1\r\n+ms", "g2\r\n+msg3\r\n"};
+
+   // Passes the first part to the fsm.
+   copy_to(fix.st.mpx, msg[0]);
+   act = fsm.resume(fix.st, msg[0].size(), error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action::read_some(0s));
+
+   // Push delivery complete
+   copy_to(fix.st.mpx, msg[1]);
+   act = fsm.resume(fix.st, msg[1].size(), error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action::notify_push_receiver(25u));
+
+   // All pushes were delivered so the fsm should demand more data
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action::read_some(0s));
+
+   // Check logging
+   fix.check_log({
+      {logger::level::debug, "Reader task: issuing read"               },
+      {logger::level::debug, "Reader task: 14 bytes read"              },
+      {logger::level::debug, "Reader task: incomplete message received"},
+      {logger::level::debug, "Reader task: issuing read"               },
+      {logger::level::debug, "Reader task: 11 bytes read"              },
+      {logger::level::debug, "Reader task: issuing read"               },
+   });
+}
+
 void test_read_error()
 {
    fixture fix;
@@ -429,6 +467,7 @@ int main()
 {
    test_push();
    test_read_needs_more();
+   test_health_checks_disabled();
 
    test_read_error();
    test_parse_error();
