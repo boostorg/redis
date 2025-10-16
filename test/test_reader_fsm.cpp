@@ -69,8 +69,7 @@ std::ostream& operator<<(std::ostream& os, const action& act)
    switch (t) {
       case action::type::done: os << ", .error=" << act.error(); break;
       case action::type::read_some:
-         os << ", .timeout="
-            << std::chrono::duration_cast<std::chrono::milliseconds>(act.timeout()).count() << "ms";
+         os << ", .timeout=" << to_milliseconds(act.timeout()) << "ms";
          break;
       case action::type::notify_push_receiver: os << ", .push_size=" << act.push_size(); break;
       default:                                 BOOST_ASSERT(false);
