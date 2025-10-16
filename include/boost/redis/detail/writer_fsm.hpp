@@ -41,14 +41,18 @@ class writer_action {
       struct {
          std::string_view buffer;
          std::chrono::steady_clock::duration timeout;
-      } buff_timeout;
+      } buff_timeout_;
    };
 
-public:
-   writer_action(writer_action_type type) noexcept
+   writer_action(
+      writer_action_type type,
+      std::string_view buff,
+      std::chrono::steady_clock::duration t) noexcept
    : type_{type}
+   , buff_timeout_{buff, t}
    { }
 
+public:
    writer_action_type type() const { return type_; }
 
    writer_action(system::error_code ec) noexcept
@@ -60,16 +64,12 @@ public:
       std::string_view buffer,
       std::chrono::steady_clock::duration timeout)
    {
-      auto res = writer_action{writer_action_type::write_some};
-      res.buff_timeout = {buffer, timeout};
-      return res;
+      return {writer_action_type::write_some, buffer, timeout};
    }
 
    static writer_action wait(std::chrono::steady_clock::duration timeout)
    {
-      auto res = writer_action{writer_action_type::wait};
-      res.buff_timeout = {{}, timeout};
-      return res;
+      return {writer_action_type::wait, {}, timeout};
    }
 
    system::error_code error() const
@@ -81,13 +81,13 @@ public:
    std::string_view write_buffer() const
    {
       BOOST_ASSERT(type_ == writer_action_type::write_some);
-      return buff_timeout.buffer;
+      return buff_timeout_.buffer;
    }
 
    std::chrono::steady_clock::duration timeout() const
    {
       BOOST_ASSERT(type_ == writer_action_type::write_some || type_ == writer_action_type::wait);
-      return buff_timeout.timeout;
+      return buff_timeout_.timeout;
    }
 };
 
