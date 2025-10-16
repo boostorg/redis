@@ -114,21 +114,16 @@ void connection_logger::on_ssl_handshake(system::error_code const& ec)
    logger_.fn(logger::level::info, msg_);
 }
 
-void connection_logger::on_write(system::error_code const& ec, std::size_t n)
+void connection_logger::on_write(std::size_t n)
 {
-   if (logger_.lvl < logger::level::info)
+   if (logger_.lvl < logger::level::debug)
       return;
 
-   if (ec) {
-      msg_ = "Writer task error: ";
-      format_error_code(ec, msg_);
-   } else {
-      msg_ = "Writer task: ";
-      msg_ += std::to_string(n);
-      msg_ += " bytes written.";
-   }
+   msg_ = "Writer task: ";
+   msg_ += std::to_string(n);
+   msg_ += " bytes written.";
 
-   logger_.fn(logger::level::info, msg_);
+   logger_.fn(logger::level::debug, msg_);
 }
 
 void connection_logger::on_read(system::error_code const& ec, std::size_t bytes_read)

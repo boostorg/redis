@@ -160,8 +160,8 @@ void test_single_request()
 
    // Logs
    fix.check_log({
-      {logger::level::info, "Writer task: 24 bytes written."},
-      {logger::level::info, "Writer task: 24 bytes written."},
+      {logger::level::debug, "Writer task: 24 bytes written."},
+      {logger::level::debug, "Writer task: 24 bytes written."},
    });
 }
 
@@ -199,8 +199,8 @@ void test_request_arrives_while_writing()
 
    // Logs
    fix.check_log({
-      {logger::level::info, "Writer task: 24 bytes written."},
-      {logger::level::info, "Writer task: 24 bytes written."},
+      {logger::level::debug, "Writer task: 24 bytes written."},
+      {logger::level::debug, "Writer task: 24 bytes written."},
    });
 }
 
@@ -230,7 +230,7 @@ void test_no_request_at_startup()
 
    // Logs
    fix.check_log({
-      {logger::level::info, "Writer task: 24 bytes written."},
+      {logger::level::debug, "Writer task: 24 bytes written."},
    });
 }
 
@@ -271,10 +271,10 @@ void test_short_writes()
 
    // Logs
    fix.check_log({
-      {logger::level::info, "Writer task: 2 bytes written." },
-      {logger::level::info, "Writer task: 5 bytes written." },
-      {logger::level::info, "Writer task: 0 bytes written." },
-      {logger::level::info, "Writer task: 17 bytes written."},
+      {logger::level::debug, "Writer task: 2 bytes written." },
+      {logger::level::debug, "Writer task: 5 bytes written." },
+      {logger::level::debug, "Writer task: 0 bytes written." },
+      {logger::level::debug, "Writer task: 17 bytes written."},
    });
 }
 
@@ -302,7 +302,8 @@ void test_write_error()
 
    // Logs
    fix.check_log({
-      {logger::level::info, "Writer task error: Expected field value is empty. [boost.redis:5]"},
+      {logger::level::debug, "Writer task: 2 bytes written."                                    },
+      {logger::level::debug, "Writer task error: Expected field value is empty. [boost.redis:5]"},
    });
 }
 
@@ -328,7 +329,8 @@ void test_cancel_write()
 
    // Logs
    fix.check_log({
-      {logger::level::debug, "Writer task: cancelled (1)."},
+      {logger::level::debug, "Writer task: 2 bytes written."},
+      {logger::level::debug, "Writer task: cancelled (1)."  },
    });
 }
 
@@ -355,7 +357,8 @@ void test_cancel_write_edge()
 
    // Logs
    fix.check_log({
-      {logger::level::debug, "Writer task: cancelled (1)."},
+      {logger::level::debug, "Writer task: 24 bytes written."},
+      {logger::level::debug, "Writer task: cancelled (1)."   },
    });
 }
 

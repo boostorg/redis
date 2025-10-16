@@ -79,28 +79,33 @@ writer_action writer_fsm::resume(
                   1,
                   writer_action::write_some(write_offset_, st.cfg.health_check_interval))
 
-               // Commit the received bytes
+               // Commit the received bytes. This accounts for partial success
                write_offset_ += bytes_written;
+               st.logger.on_write(bytes_written);
 
-               // Check for cancellations
-               // TODO: translate operation_aborted to another error code for clarity.
-               // pong_timeout is probably not the best option here - maybe write_timeout?
+               // Check for cancellations and translate error codes
                if (is_terminal_cancel(cancel_state))
                   ec = asio::error::operation_aborted;
-
-               // Log what we wrote
-               st.logger.on_write(ec, bytes_written);
+               else if (ec == asio::error::operation_aborted)
+                  ec = error::write_timeout;
 
                // Check for errors
                if (ec)
                   break;
             }
 
-            // Write complete. Process its results
+            // Write complete. Process its results. Note that we may have partial success
             if (write_done(st, write_offset_))
                st.mpx.commit_write();
-            if (ec)
+
+            if (ec) {
+               if (ec == asio::error::operation_aborted) {
+                  st.logger.trace("Writer task: cancelled (1).");
+               } else {
+                  st.logger.trace("Writer task error", ec);
+               }
                return ec;
+            }
          }
 
          // No more requests ready to be written. Wait for more, or until we need to send a PING
