@@ -259,6 +259,29 @@ void test_read_error()
    });
 }
 
+// A timeout in a read means that the connection is unhealthy (i.e. a PING timed out)
+void test_read_timeout()
+{
+   fixture fix;
+   reader_fsm fsm;
+
+   // Initiate
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action::read_some(6s));
+
+   // Timeout
+   act = fsm.resume(fix.st, 0, {net::error::operation_aborted}, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code{redis::error::pong_timeout});
+
+   // Check logging
+   fix.check_log({
+      // clang-format off
+      {logger::level::debug, "Reader task: issuing read"        },
+      {logger::level::debug, "Reader task: 0 bytes read, error: Pong timeout. [boost.redis:19]"},
+      // clang-format on
+   });
+}
+
 void test_parse_error()
 {
    fixture fix;
@@ -470,6 +493,7 @@ int main()
    test_health_checks_disabled();
 
    test_read_error();
+   test_read_timeout();
    test_parse_error();
    test_push_deliver_error();
    test_max_read_buffer_size();
