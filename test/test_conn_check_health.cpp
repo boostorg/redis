@@ -6,14 +6,18 @@
 
 #include <boost/redis/connection.hpp>
 #include <boost/redis/ignore.hpp>
+#include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
 #include <boost/asio/error.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
 
 #include <cstddef>
+#include <string>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
@@ -154,6 +158,77 @@ void test_disabled()
    BOOST_TEST(exec2_finished);
 }
 
+class test_flexible {
+   net::io_context ioc;
+   net::steady_timer timer{ioc};
+   connection conn1{ioc}, conn2{ioc};
+   request req_publish;
+   bool exec_finished{false}, publisher_finished{false};
+
+   void start_generating_traffic()
+   {
+      conn2.async_exec(req_publish, ignore, [this](error_code ec, std::size_t) {
+         BOOST_TEST_EQ(ec, error_code());
+
+         if (exec_finished) {
+            conn2.cancel();
+            publisher_finished = true;
+         } else {
+            timer.expires_after(100ms);
+            timer.async_wait([this](error_code ec) {
+               BOOST_TEST_EQ(ec, error_code());
+               start_generating_traffic();
+            });
+         }
+      });
+   }
+
+public:
+   test_flexible() = default;
+
+   void run()
+   {
+      auto cfg = make_test_config();
+      cfg.health_check_interval = 500ms;
+      boost::redis::generic_response resp;
+
+      bool run1_finished = false, run2_finished = false;
+
+      std::string channel_name = "abc";  // TODO: make this unique
+      req_publish.push("PUBLISH", channel_name, "test_health_check_flexible");
+
+      request req1;
+      req1.push("SUBSCRIBE", channel_name);
+      req1.push("BLPOP", "any", 2);
+      req1.get_config().cancel_if_unresponded = true;
+      req1.get_config().cancel_on_connection_lost = true;
+
+      conn1.async_run(cfg, [&](error_code ec) {
+         run1_finished = true;
+         BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      });
+
+      conn2.async_run(cfg, [&](error_code ec) {
+         run2_finished = true;
+         BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      });
+
+      conn1.async_exec(req1, resp, [&](error_code ec, std::size_t) {
+         exec_finished = true;
+         BOOST_TEST_EQ(ec, error_code());
+         conn1.cancel();
+      });
+
+      start_generating_traffic();
+
+      ioc.run_for(test_timeout);
+
+      BOOST_TEST(run1_finished);
+      BOOST_TEST(run2_finished);
+      BOOST_TEST(exec_finished);
+   }
+};
+
 }  // namespace
 
 int main()
@@ -161,6 +236,7 @@ int main()
    test_reconnection();
    test_error_code();
    test_disabled();
+   test_flexible().run();
 
    return boost::report_errors();
 }
