@@ -26,7 +26,6 @@
 
 namespace boost::redis::detail {
 
-// TODO: we should probably make any_adapter directly constructible from adapters
 void process_ping_node(
    connection_logger& lgr,
    resp3::basic_node<std::string_view> const& nd,
@@ -45,11 +44,11 @@ void process_ping_node(
 
 inline any_adapter make_ping_adapter(connection_logger& lgr)
 {
-   return any_adapter{any_adapter::impl_t{
+   return any_adapter{
       [&lgr](any_adapter::parse_event evt, resp3::node_view const& nd, system::error_code& ec) {
          if (evt == any_adapter::parse_event::node)
             process_ping_node(lgr, nd, ec);
-      }}};
+      }};
 }
 
 writer_action writer_fsm::resume(
