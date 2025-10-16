@@ -64,7 +64,7 @@ bool operator==(const writer_action& lhs, const writer_action& rhs) noexcept
    switch (lhs.type()) {
       case writer_action_type::done: return lhs.error() == rhs.error();
       case writer_action_type::write_some:
-         return lhs.write_buffer() == rhs.write_buffer() && lhs.timeout() == rhs.timeout();
+         return lhs.write_offset() == rhs.write_offset() && lhs.timeout() == rhs.timeout();
       case writer_action_type::wait: return lhs.timeout() == rhs.timeout();
       default:                       BOOST_ASSERT(false);
    }
@@ -78,7 +78,7 @@ std::ostream& operator<<(std::ostream& os, const writer_action& act)
    switch (t) {
       case writer_action_type::done: os << ", .error=" << act.error(); break;
       case writer_action_type::write_some:
-         os << ", .write_buffer=" << act.write_buffer()
+         os << ", .write_buffer=" << act.write_offset()
             << ", timeout=" << to_milliseconds(act.timeout()) << "ms";
          break;
       case writer_action_type::wait:

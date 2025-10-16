@@ -72,9 +72,7 @@ writer_action writer_fsm::resume(
                BOOST_REDIS_YIELD(
                   resume_point_,
                   1,
-                  writer_action::write_some(
-                     st.mpx.get_write_buffer().substr(write_offset_),
-                     st.cfg.health_check_interval))
+                  writer_action::write_some(write_offset_, st.cfg.health_check_interval))
 
                // Update the offset
                write_offset_ += bytes_written;

@@ -39,17 +39,17 @@ class writer_action {
    union {
       system::error_code ec_;
       struct {
-         std::string_view buffer;
+         std::size_t offset;
          std::chrono::steady_clock::duration timeout;
-      } buff_timeout_;
+      } offset_timeout_;
    };
 
    writer_action(
       writer_action_type type,
-      std::string_view buff,
+      std::size_t offset,
       std::chrono::steady_clock::duration t) noexcept
    : type_{type}
-   , buff_timeout_{buff, t}
+   , offset_timeout_{offset, t}
    { }
 
 public:
@@ -60,16 +60,14 @@ public:
    , ec_{ec}
    { }
 
-   static writer_action write_some(
-      std::string_view buffer,
-      std::chrono::steady_clock::duration timeout)
+   static writer_action write_some(std::size_t offset, std::chrono::steady_clock::duration timeout)
    {
-      return {writer_action_type::write_some, buffer, timeout};
+      return {writer_action_type::write_some, offset, timeout};
    }
 
    static writer_action wait(std::chrono::steady_clock::duration timeout)
    {
-      return {writer_action_type::wait, {}, timeout};
+      return {writer_action_type::wait, 0u, timeout};
    }
 
    system::error_code error() const
@@ -78,16 +76,16 @@ public:
       return ec_;
    }
 
-   std::string_view write_buffer() const
+   std::size_t write_offset() const
    {
       BOOST_ASSERT(type_ == writer_action_type::write_some);
-      return buff_timeout_.buffer;
+      return offset_timeout_.offset;
    }
 
    std::chrono::steady_clock::duration timeout() const
    {
       BOOST_ASSERT(type_ == writer_action_type::write_some || type_ == writer_action_type::wait);
-      return buff_timeout_.timeout;
+      return offset_timeout_.timeout;
    }
 };
 

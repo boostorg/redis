@@ -231,14 +231,17 @@ struct writer_op {
       switch (act.type()) {
          case writer_action_type::done: self.complete(act.error()); return;
          case writer_action_type::write_some:
+         {
+            auto buf = asio::buffer(conn->st_.mpx.get_write_buffer().substr(act.write_offset()));
             if (auto timeout = act.timeout(); timeout.count() != 0) {
                conn->stream_.async_write_some(
-                  asio::buffer(act.write_buffer()),
+                  buf,
                   asio::cancel_after(conn->writer_timer_, timeout, std::move(self)));
             } else {
-               conn->stream_.async_write_some(asio::buffer(act.write_buffer()), std::move(self));
+               conn->stream_.async_write_some(buf, std::move(self));
             }
             return;
+         }
          case writer_action_type::wait:
             if (auto timeout = act.timeout(); timeout.count() != 0) {
                conn->writer_cv_.expires_after(timeout);
