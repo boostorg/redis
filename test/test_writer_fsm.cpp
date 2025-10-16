@@ -307,6 +307,33 @@ void test_write_error()
    });
 }
 
+void test_write_timeout()
+{
+   // Setup
+   fixture fix;
+   test_elem item;
+
+   // A request arrives before the writer starts
+   fix.st.mpx.add(item.elm);
+
+   // Start. A write is triggered, and the request is marked as staged
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::write_some(0u, 4s));
+   BOOST_TEST(item.elm->is_staged());
+
+   // The write times out, so it completes with operation_aborted
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::write_timeout));
+   BOOST_TEST(item.elm->is_staged());
+
+   // Logs
+   fix.check_log({
+      {logger::level::debug, "Writer task: 0 bytes written."                          },
+      {logger::level::debug,
+       "Writer task error: Timeout while writing data to the server. [boost.redis:27]"},
+   });
+}
+
 // A write is cancelled
 void test_cancel_write()
 {
@@ -401,6 +428,7 @@ int main()
    test_short_writes();
 
    test_write_error();
+   test_write_timeout();
 
    test_cancel_write();
    test_cancel_write_edge();
