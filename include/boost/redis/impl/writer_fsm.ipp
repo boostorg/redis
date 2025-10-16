@@ -74,8 +74,11 @@ writer_action writer_fsm::resume(
                   1,
                   writer_action::write_some(write_offset_, st.cfg.health_check_interval))
 
-               // Update the offset
+               // Commit the received bytes. Do it before error checking to account for partial success
+               // TODO: I don't like how this is structured
                write_offset_ += bytes_written;
+               if (write_offset_ >= st.mpx.get_write_buffer().size())
+                  st.mpx.commit_write();
 
                // Check for cancellations
                if (is_terminal_cancel(cancel_state)) {
@@ -93,9 +96,6 @@ writer_action writer_fsm::resume(
                   return ec;
                }
             }
-
-            // We finished writing a message successfully. Mark requests as written
-            st.mpx.commit_write();
          }
 
          // No more requests ready to be written. Wait for more, or until we need to send a PING
