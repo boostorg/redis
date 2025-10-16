@@ -24,6 +24,7 @@
 #include <chrono>
 #include <memory>
 #include <ostream>
+#include <string_view>
 
 using namespace boost::redis;
 namespace asio = boost::asio;
@@ -118,7 +119,7 @@ struct fixture : detail::log_fixture {
 
    fixture()
    {
-      st.cfg.health_check_id = "my_health_check";
+      st.ping_req.push("PING", "ping_msg");  // would be set up by the runner
       st.cfg.health_check_interval = 4s;
    }
 };
@@ -278,6 +279,41 @@ void test_short_writes()
    });
 }
 
+// If no data arrives during the health check interval, a ping is written
+void test_ping()
+{
+   // Setup
+   fixture fix;
+   error_code ec;
+   constexpr std::string_view ping_payload = "*2\r\n$4\r\nPING\r\n$8\r\nping_msg\r\n";
+
+   // Start. There is no request, so we wait
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::wait(4s));
+
+   // No request arrives during the wait interval so a ping is added
+   act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::write_some(0u, 4s));
+   BOOST_TEST_EQ(fix.st.mpx.get_write_buffer(), ping_payload);
+
+   // Write successful
+   act = fix.fsm.resume(fix.st, error_code(), ping_payload.size(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::wait(4s));
+
+   // Simulate a successful response to the PING
+   constexpr std::string_view ping_response = "$8\r\nping_msg\r\n";
+   read(fix.st.mpx, ping_response);
+   auto res = fix.st.mpx.consume(ec);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST(res.first == consume_result::got_response);
+   BOOST_TEST_EQ(res.second, ping_response.size());
+
+   // Logs
+   fix.check_log({
+      {logger::level::debug, "Writer task: 28 bytes written."},
+   });
+}
+
 // A write error makes the writer exit
 void test_write_error()
 {
@@ -426,6 +462,7 @@ int main()
    test_request_arrives_while_writing();
    test_no_request_at_startup();
    test_short_writes();
+   test_ping();
 
    test_write_error();
    test_write_timeout();

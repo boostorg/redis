@@ -16,7 +16,6 @@
 
 #include <chrono>
 #include <cstddef>
-#include <string_view>
 
 // Sans-io algorithm for the writer task, as a finite state machine
 
