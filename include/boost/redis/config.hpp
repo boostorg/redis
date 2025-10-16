@@ -105,7 +105,7 @@ struct config {
    std::chrono::steady_clock::duration ssl_handshake_timeout = std::chrono::seconds{10};
 
    /** @brief Time span between successive health checks.
-    *  Set to zero to disable health-checks pass zero as duration.
+    *  Set to zero to disable health-checks.
     */
    std::chrono::steady_clock::duration health_check_interval = std::chrono::seconds{2};
 
