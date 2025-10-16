@@ -175,7 +175,7 @@ public:
    void cancel_on_conn_lost();
 
    [[nodiscard]]
-   auto get_write_buffer() noexcept -> std::string_view
+   auto get_write_buffer() const noexcept -> std::string_view
    {
       return std::string_view{write_buffer_};
    }
