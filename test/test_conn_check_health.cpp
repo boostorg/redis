@@ -16,6 +16,7 @@
 
 #include "common.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <string>
 
@@ -25,6 +26,7 @@ using error_code = boost::system::error_code;
 using connection = boost::redis::connection;
 using boost::redis::request;
 using boost::redis::ignore;
+using boost::redis::generic_response;
 using namespace std::chrono_literals;
 
 namespace {
@@ -158,29 +160,46 @@ void test_disabled()
    BOOST_TEST(exec2_finished);
 }
 
+// Receiving data is sufficient to consider our connection healthy.
+// Sends a blocking request that causes PINGs to not be answered,
+// and subscribes to a channel to receive pushes periodically.
+// This simulates situations of heavy load, where PINGs may not be answered on time.
 class test_flexible {
    net::io_context ioc;
+   connection conn1{ioc};  // The one that simulates a heavy load condition
+   connection conn2{ioc};  // Publishes messages
    net::steady_timer timer{ioc};
-   connection conn1{ioc}, conn2{ioc};
-   request req_publish;
-   bool exec_finished{false}, publisher_finished{false};
+   request publish_req;
+   bool run1_finished = false, run2_finished = false, exec_finished{false},
+        publisher_finished{false};
 
-   void start_generating_traffic()
+   // Starts publishing messages to the channel
+   void start_publish()
    {
-      conn2.async_exec(req_publish, ignore, [this](error_code ec, std::size_t) {
+      conn2.async_exec(publish_req, ignore, [this](error_code ec, std::size_t) {
          BOOST_TEST_EQ(ec, error_code());
 
          if (exec_finished) {
+            // The blocking request finished, we're done
             conn2.cancel();
             publisher_finished = true;
          } else {
+            // Wait for some time and publish again
             timer.expires_after(100ms);
             timer.async_wait([this](error_code ec) {
                BOOST_TEST_EQ(ec, error_code());
-               start_generating_traffic();
+               start_publish();
             });
          }
       });
+   }
+
+   // Generates a sufficiently unique name for channels so
+   // tests may be run in parallel for different configurations
+   static std::string make_unique_id()
+   {
+      auto t = std::chrono::high_resolution_clock::now();
+      return "test-flexible-health-checks-" + std::to_string(t.time_since_epoch().count());
    }
 
 public:
@@ -188,20 +207,22 @@ public:
 
    void run()
    {
+      // Setup
       auto cfg = make_test_config();
       cfg.health_check_interval = 500ms;
-      boost::redis::generic_response resp;
+      generic_response resp;
 
-      bool run1_finished = false, run2_finished = false;
+      std::string channel_name = make_unique_id();
+      publish_req.push("PUBLISH", channel_name, "test_health_check_flexible");
 
-      std::string channel_name = "abc";  // TODO: make this unique
-      req_publish.push("PUBLISH", channel_name, "test_health_check_flexible");
-
-      request req1;
-      req1.push("SUBSCRIBE", channel_name);
-      req1.push("BLPOP", "any", 2);
-      req1.get_config().cancel_if_unresponded = true;
-      req1.get_config().cancel_on_connection_lost = true;
+      // This request will block for much longer than the health check
+      // interval. If we weren't receiving pushes, the connection would be considered dead.
+      // If this request finishes successfully, the health checker is doing good
+      request blocking_req;
+      blocking_req.push("SUBSCRIBE", channel_name);
+      blocking_req.push("BLPOP", "any", 2);
+      blocking_req.get_config().cancel_if_unresponded = true;
+      blocking_req.get_config().cancel_on_connection_lost = true;
 
       conn1.async_run(cfg, [&](error_code ec) {
          run1_finished = true;
@@ -213,19 +234,21 @@ public:
          BOOST_TEST_EQ(ec, net::error::operation_aborted);
       });
 
-      conn1.async_exec(req1, resp, [&](error_code ec, std::size_t) {
+      // BLPOP will return NIL, so we can't use ignore
+      conn1.async_exec(blocking_req, resp, [&](error_code ec, std::size_t) {
          exec_finished = true;
          BOOST_TEST_EQ(ec, error_code());
          conn1.cancel();
       });
 
-      start_generating_traffic();
+      start_publish();
 
       ioc.run_for(test_timeout);
 
       BOOST_TEST(run1_finished);
       BOOST_TEST(run2_finished);
       BOOST_TEST(exec_finished);
+      BOOST_TEST(publisher_finished);
    }
 };
 
