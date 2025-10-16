@@ -234,6 +234,50 @@ void test_no_request_at_startup()
    });
 }
 
+// We correctly handle short writes
+void test_short_writes()
+{
+   // Setup
+   fixture fix;
+   test_elem item1;
+
+   // A request arrives before the writer starts
+   fix.st.mpx.add(item1.elm);
+
+   // Start. A write is triggered, and the request is marked as staged
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::write_some(0u, 4s));
+   BOOST_TEST(item1.elm->is_staged());
+
+   // We write a few bytes. It's not the entire message, so we write again
+   act = fix.fsm.resume(fix.st, error_code(), 2u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::write_some(2u, 4s));
+   BOOST_TEST(item1.elm->is_staged());
+
+   // We write some more bytes, but still not the entire message.
+   act = fix.fsm.resume(fix.st, error_code(), 5u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::write_some(7u, 4s));
+   BOOST_TEST(item1.elm->is_staged());
+
+   // A zero size write doesn't cause trouble
+   act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::write_some(7u, 4s));
+   BOOST_TEST(item1.elm->is_staged());
+
+   // Complete writing the message (the entire payload is 24 bytes long)
+   act = fix.fsm.resume(fix.st, error_code(), 17u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::wait(4s));
+   BOOST_TEST(item1.elm->is_written());
+
+   // Logs
+   fix.check_log({
+      {logger::level::info, "Writer task: 2 bytes written." },
+      {logger::level::info, "Writer task: 5 bytes written." },
+      {logger::level::info, "Writer task: 0 bytes written." },
+      {logger::level::info, "Writer task: 17 bytes written."},
+   });
+}
+
 // A write error makes the writer exit
 void test_write_error()
 {
@@ -351,6 +395,7 @@ int main()
    test_single_request();
    test_request_arrives_while_writing();
    test_no_request_at_startup();
+   test_short_writes();
 
    test_write_error();
 
