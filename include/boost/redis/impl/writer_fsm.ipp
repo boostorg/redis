@@ -51,6 +51,11 @@ inline any_adapter make_ping_adapter(connection_logger& lgr)
       }};
 }
 
+inline bool write_done(const connection_state& st, std::size_t bytes_written)
+{
+   return bytes_written >= st.mpx.get_write_buffer().size();
+}
+
 writer_action writer_fsm::resume(
    connection_state& st,
    system::error_code ec,
@@ -66,7 +71,7 @@ writer_action writer_fsm::resume(
             // Write an entire message. We can't use asio::async_write because we want
             // to apply timeouts to individual write operations
             write_offset_ = 0u;
-            while (write_offset_ < st.mpx.get_write_buffer().size()) {
+            while (!write_done(st, write_offset_)) {
                // Write what we can. If nothing has been written for the health check
                // interval, we consider the connection as failed
                BOOST_REDIS_YIELD(
@@ -74,28 +79,28 @@ writer_action writer_fsm::resume(
                   1,
                   writer_action::write_some(write_offset_, st.cfg.health_check_interval))
 
-               // Commit the received bytes. Do it before error checking to account for partial success
-               // TODO: I don't like how this is structured
+               // Commit the received bytes
                write_offset_ += bytes_written;
-               if (write_offset_ >= st.mpx.get_write_buffer().size())
-                  st.mpx.commit_write();
 
                // Check for cancellations
-               if (is_terminal_cancel(cancel_state)) {
-                  st.logger.trace("Writer task: cancelled (1).");
-                  return system::error_code(asio::error::operation_aborted);
-               }
+               // TODO: translate operation_aborted to another error code for clarity.
+               // pong_timeout is probably not the best option here - maybe write_timeout?
+               if (is_terminal_cancel(cancel_state))
+                  ec = asio::error::operation_aborted;
 
                // Log what we wrote
                st.logger.on_write(ec, bytes_written);
 
                // Check for errors
-               // TODO: translate operation_aborted to another error code for clarity.
-               // pong_timeout is probably not the best option here - maybe write_timeout?
-               if (ec) {
-                  return ec;
-               }
+               if (ec)
+                  break;
             }
+
+            // Write complete. Process its results
+            if (write_done(st, write_offset_))
+               st.mpx.commit_write();
+            if (ec)
+               return ec;
          }
 
          // No more requests ready to be written. Wait for more, or until we need to send a PING
