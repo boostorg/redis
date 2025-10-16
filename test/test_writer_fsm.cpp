@@ -314,6 +314,33 @@ void test_ping()
    });
 }
 
+// Disabled health checks don't cause trouble
+void test_health_checks_disabled()
+{
+   // Setup
+   fixture fix;
+   test_elem item;
+   fix.st.cfg.health_check_interval = 0s;
+
+   // A request arrives before the writer starts
+   fix.st.mpx.add(item.elm);
+
+   // Start. A write is triggered, and the request is marked as staged
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::write_some(0u, 0s));
+   BOOST_TEST(item.elm->is_staged());
+
+   // The write completes successfully. The request is written, and we go back to sleep.
+   act = fix.fsm.resume(fix.st, error_code(), item.req.payload().size(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, writer_action::wait(0s));
+   BOOST_TEST(item.elm->is_written());
+
+   // Logs
+   fix.check_log({
+      {logger::level::debug, "Writer task: 24 bytes written."},
+   });
+}
+
 // If the server answers with an error in PING, we log it and produce an error
 void test_ping_error()
 {
@@ -497,6 +524,7 @@ int main()
    test_request_arrives_while_writing();
    test_no_request_at_startup();
    test_short_writes();
+   test_health_checks_disabled();
 
    test_ping();
    test_ping_error();
