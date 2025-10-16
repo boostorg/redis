@@ -547,19 +547,15 @@ public:
     *      @ref boost::redis::config::addr.
     *  @li Establishes a physical connection to the server. For TCP connections,
     *      connects to one of the endpoints obtained during name resolution.
-    *      For UNIX domain socket connections, it connects to @ref boost::redis::config::unix_socket.
+    *      For UNIX domain socket connections, it connects to @ref boost::redis::config::unix_sockets.
     *  @li If @ref boost::redis::config::use_ssl is `true`, performs the TLS handshake.
     *  @li Executes the setup request, as defined by the passed @ref config object.
     *      By default, this is a `HELLO` command, but it can contain any other arbitrary
-    *      commands. See the @ref config docs for more info.
-    *  @li Starts a health-check operation where ping commands are sent
+    *      commands. See the @ref config::setup docs for more info.
+    *  @li Starts a health-check operation where `PING` commands are sent
     *      at intervals specified by
-    *      @ref boost::redis::config::health_check_interval. 
-    *      The message passed to `PING` will be @ref boost::redis::config::health_check_id. 
-    *      Passing an interval with a zero value will disable health-checks. If the Redis
-    *      server does not respond to a health-check within two times the value
-    *      specified here, it will be considered unresponsive and the connection
-    *      will be closed.
+    *      @ref config::health_check_interval when the connection is idle.
+    *      See the documentation of @ref config::health_check_interval for more info.
     *  @li Starts read and write operations. Requests issued using @ref async_exec
     *      before `async_run` is called will be written to the server immediately.
     *
