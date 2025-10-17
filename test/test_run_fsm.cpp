@@ -486,11 +486,32 @@ void test_setup_request_success()
    });
 }
 
-// An server error would cause the reader to exit
+// We don't send empty setup requests
+void test_setup_request_empty()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.setup.clear();
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // Nothing was added to the multiplexer
+   BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 0u);
+
+   // Check log
+   fix.check_log({});
+}
+
+// A server error would cause the reader to exit
 void test_setup_request_server_error()
 {
    // Setup
    fixture fix;
+   fix.st.setup_diagnostic = "leftover";  // simulate a leftover from previous runs
    fix.st.cfg.setup.clear();
    fix.st.cfg.setup.push("HELLO", 3);
 
@@ -545,6 +566,7 @@ int main()
    test_setup_ping_requests();
 
    test_setup_request_success();
+   test_setup_request_empty();
    test_setup_request_server_error();
 
    return boost::report_errors();
