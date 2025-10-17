@@ -13,11 +13,9 @@
 #include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
-#include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
-#include <boost/redis/detail/resp3_type_to_error.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
@@ -39,7 +37,6 @@
 #include <boost/asio/cancel_at.hpp>
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/coroutine.hpp>
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel.hpp>
@@ -47,14 +44,10 @@
 #include <boost/asio/immediate.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/prepend.hpp>
-#include <boost/asio/read_until.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/steady_timer.hpp>
-#include <boost/asio/write.hpp>
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
-#include <boost/core/ignore_unused.hpp>
 
 #include <array>
 #include <chrono>
