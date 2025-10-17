@@ -15,13 +15,12 @@
 #include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
 
+#include "sansio_utils.hpp"
+
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <string>
 #include <string_view>
-
-#include "sansio_utils.hpp"
 
 using boost::redis::request;
 using boost::redis::detail::multiplexer;
@@ -118,7 +117,7 @@ void test_request_needs_more()
    // Add the element to the multiplexer and simulate a successful write
    mpx.add(item1.elem_ptr);
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(item1.req.payload().size()));
    BOOST_TEST(item1.elem_ptr->is_written());
    BOOST_TEST(!item1.done);
 
@@ -161,6 +160,13 @@ void test_several_requests()
    BOOST_TEST_EQ(mpx.prepare_write(), 3u);
    BOOST_TEST_EQ(mpx.prepare_write(), 0u);
 
+   // The write buffer holds the 3 requests, coalesced
+   constexpr std::string_view expected_buffer =
+      "*2\r\n$4\r\nPING\r\n$8\r\ncmd-arg\r\n"
+      "*2\r\n$4\r\nPING\r\n$8\r\ncmd-arg\r\n"
+      "*2\r\n$4\r\nPING\r\n$8\r\ncmd-arg\r\n";
+   BOOST_TEST_EQ(mpx.get_write_buffer(), expected_buffer);
+
    // After coalescing the requests for writing their statuses should
    // be changed to "staged".
    BOOST_TEST(item1.elem_ptr->is_staged());
@@ -180,7 +186,7 @@ void test_several_requests()
    // The commit_write call informs the multiplexer the payload was
    // sent (e.g.  written to the socket). This step releases requests
    // that has no response.
-   BOOST_TEST_EQ(mpx.commit_write(), 1u);
+   BOOST_TEST(mpx.commit_write(expected_buffer.size()));
 
    // The staged status should now have changed to written.
    BOOST_TEST(item1.elem_ptr->is_written());
@@ -251,7 +257,7 @@ void test_request_response_before_write()
    item.reset();
 
    // The write gets confirmed and causes no problem
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 }
 
 void test_push()
@@ -395,7 +401,7 @@ void test_mix_responses_pushes()
    mpx.add(item1.elem_ptr);
    mpx.add(item2.elem_ptr);
    BOOST_TEST_EQ(mpx.prepare_write(), 2u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
    BOOST_TEST(item1.elem_ptr->is_written());
    BOOST_TEST(!item1.done);
    BOOST_TEST(item2.elem_ptr->is_written());
@@ -488,7 +494,7 @@ void test_cancel_waiting()
 
    // We can progress the other request normally
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
    error_code ec;
    read(mpx, "$11\r\nHello world\r\n");
    auto res = mpx.consume(ec);
@@ -518,7 +524,7 @@ void test_cancel_staged()
    item1.reset();  // Verify we don't reference this item anyhow
 
    // The write gets confirmed
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    // The cancelled request's response arrives. It gets discarded
    error_code ec;
@@ -556,7 +562,7 @@ void test_cancel_staged_command_without_response()
    item1.reset();  // Verify we don't reference this item anyhow
 
    // The write gets confirmed
-   BOOST_TEST_EQ(mpx.commit_write(), 1u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    // The 2nd request's response arrives. It gets parsed successfully
    error_code ec;
@@ -582,7 +588,7 @@ void test_cancel_written()
 
    // A write succeeds
    BOOST_TEST_EQ(mpx.prepare_write(), 2u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    // Cancel the first request
    mpx.cancel(item1->elem_ptr);
@@ -623,7 +629,7 @@ void test_cancel_written_half_parsed_response()
 
    // A write succeeds
    BOOST_TEST_EQ(mpx.prepare_write(), 2u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    // Get the response for the 1st command in req1
    error_code ec;
@@ -686,7 +692,7 @@ void test_cancel_written_null_error()
 
    // A write succeeds
    BOOST_TEST_EQ(mpx.prepare_write(), 2u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    // Cancel the first request
    mpx.cancel(item1->elem_ptr);
@@ -741,7 +747,7 @@ void test_cancel_on_connection_lost()
    mpx.add(item_written1.elem_ptr);
    mpx.add(item_written2.elem_ptr);
    BOOST_TEST_EQ(mpx.prepare_write(), 2u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    mpx.add(item_staged1.elem_ptr);
    mpx.add(item_staged2.elem_ptr);
@@ -794,7 +800,7 @@ void test_cancel_on_connection_lost_abandoned()
    mpx.add(item_written1->elem_ptr);
    mpx.add(item_written2->elem_ptr);
    BOOST_TEST_EQ(mpx.prepare_write(), 2u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    mpx.add(item_staged1->elem_ptr);
    mpx.add(item_staged2->elem_ptr);
@@ -898,7 +904,7 @@ void test_reset()
    // We're able to add write requests and read responses - all state was reset
    mpx.add(item2.elem_ptr);
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    std::string_view response_buffer = "$11\r\nHello world\r\n";
    read(mpx, response_buffer);
