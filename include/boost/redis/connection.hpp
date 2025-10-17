@@ -36,7 +36,7 @@
 #include <boost/asio/bind_cancellation_slot.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/buffer.hpp>
-#include <boost/asio/cancel_after.hpp>
+#include <boost/asio/cancel_at.hpp>
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/coroutine.hpp>
@@ -65,6 +65,14 @@
 
 namespace boost::redis {
 namespace detail {
+
+// Given a timeout value, compute the expiry time. A zero timeout is considered to mean "no timeout"
+inline std::chrono::steady_clock::time_point compute_expiry(
+   std::chrono::steady_clock::duration timeout)
+{
+   return timeout.count() == 0 ? (std::chrono::steady_clock::time_point::max)()
+                               : std::chrono::steady_clock::now() + timeout;
+}
 
 template <class Executor>
 struct connection_impl {
@@ -231,23 +239,15 @@ struct writer_op {
       switch (act.type()) {
          case writer_action_type::done: self.complete(act.error()); return;
          case writer_action_type::write_some:
-         {
-            auto buf = asio::buffer(conn->st_.mpx.get_write_buffer().substr(act.write_offset()));
-            if (auto timeout = act.timeout(); timeout.count() != 0) {
-               conn->stream_.async_write_some(
-                  buf,
-                  asio::cancel_after(conn->writer_timer_, timeout, std::move(self)));
-            } else {
-               conn->stream_.async_write_some(buf, std::move(self));
-            }
+            conn->stream_.async_write_some(
+               asio::buffer(conn->st_.mpx.get_write_buffer().substr(act.write_offset())),
+               asio::cancel_at(
+                  conn->writer_timer_,
+                  compute_expiry(act.timeout()),
+                  std::move(self)));
             return;
-         }
          case writer_action_type::wait:
-            if (auto timeout = act.timeout(); timeout.count() != 0) {
-               conn->writer_cv_.expires_after(timeout);
-            } else {
-               conn->writer_cv_.expires_at((std::chrono::steady_clock::time_point::max)());
-            }
+            conn->writer_cv_.expires_at(compute_expiry(act.timeout()));
             conn->writer_cv_.async_wait(std::move(self));
             return;
       }
@@ -273,17 +273,13 @@ public:
 
          switch (act.get_type()) {
             case reader_fsm::action::type::read_some:
-            {
-               auto const buf = asio::buffer(conn->st_.mpx.get_prepared_read_buffer());
-               if (act.timeout().count() != 0) {
-                  conn->stream_.async_read_some(
-                     buf,
-                     asio::cancel_after(conn->reader_timer_, act.timeout(), std::move(self)));
-               } else {
-                  conn->stream_.async_read_some(buf, std::move(self));
-               }
+               conn->stream_.async_read_some(
+                  asio::buffer(conn->st_.mpx.get_prepared_read_buffer()),
+                  asio::cancel_at(
+                     conn->reader_timer_,
+                     compute_expiry(act.timeout()),
+                     std::move(self)));
                return;
-            }
             case reader_fsm::action::type::notify_push_receiver:
                if (conn->receive_channel_.try_send(ec, act.push_size())) {
                   continue;
