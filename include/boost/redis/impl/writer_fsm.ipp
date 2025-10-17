@@ -26,7 +26,7 @@
 
 namespace boost::redis::detail {
 
-void process_ping_node(
+inline void process_ping_node(
    connection_logger& lgr,
    resp3::basic_node<std::string_view> const& nd,
    system::error_code& ec)
@@ -49,11 +49,6 @@ inline any_adapter make_ping_adapter(connection_logger& lgr)
          if (evt == any_adapter::parse_event::node)
             process_ping_node(lgr, nd, ec);
       }};
-}
-
-inline bool write_done(const connection_state& st, std::size_t bytes_written)
-{
-   return bytes_written >= st.mpx.get_write_buffer().size();
 }
 
 writer_action writer_fsm::resume(
