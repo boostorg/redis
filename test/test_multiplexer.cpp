@@ -228,6 +228,61 @@ void test_several_requests()
    BOOST_TEST(item3.done);
 }
 
+void test_short_writes()
+{
+   // Setup
+   multiplexer mpx;
+   test_item item1{};
+   test_item item2{false};
+
+   // Add some requests to the multiplexer.
+   mpx.add(item1.elem_ptr);
+   mpx.add(item2.elem_ptr);
+   BOOST_TEST(item1.elem_ptr->is_waiting());
+   BOOST_TEST(item2.elem_ptr->is_waiting());
+
+   // Start writing them
+   BOOST_TEST_EQ(mpx.prepare_write(), 2u);
+   BOOST_TEST_EQ(
+      mpx.get_write_buffer(),
+      "*2\r\n$4\r\nPING\r\n$8\r\ncmd-arg\r\n"
+      "*2\r\n$9\r\nSUBSCRIBE\r\n$8\r\ncmd-arg\r\n");
+   BOOST_TEST(item1.elem_ptr->is_staged());
+   BOOST_TEST(item2.elem_ptr->is_staged());
+
+   // Write a small part. The write buffer gets updated, but request status is not changed
+   BOOST_TEST_NOT(mpx.commit_write(8u));
+   BOOST_TEST_EQ(
+      mpx.get_write_buffer(),
+      "PING\r\n$8\r\ncmd-arg\r\n"
+      "*2\r\n$9\r\nSUBSCRIBE\r\n$8\r\ncmd-arg\r\n");
+   BOOST_TEST(item1.elem_ptr->is_staged());
+   BOOST_TEST(item2.elem_ptr->is_staged());
+
+   // Write another part
+   BOOST_TEST_NOT(mpx.commit_write(20u));
+   BOOST_TEST_EQ(mpx.get_write_buffer(), "*2\r\n$9\r\nSUBSCRIBE\r\n$8\r\ncmd-arg\r\n");
+   BOOST_TEST(item1.elem_ptr->is_staged());
+   BOOST_TEST(item2.elem_ptr->is_staged());
+
+   // A zero-size write doesn't cause trouble
+   BOOST_TEST_NOT(mpx.commit_write(0u));
+   BOOST_TEST_EQ(mpx.get_write_buffer(), "*2\r\n$9\r\nSUBSCRIBE\r\n$8\r\ncmd-arg\r\n");
+   BOOST_TEST(item1.elem_ptr->is_staged());
+   BOOST_TEST(item2.elem_ptr->is_staged());
+
+   // Write everything except the last byte
+   BOOST_TEST_NOT(mpx.commit_write(32u));
+   BOOST_TEST_EQ(mpx.get_write_buffer(), "\n");
+   BOOST_TEST(item1.elem_ptr->is_staged());
+   BOOST_TEST(item2.elem_ptr->is_staged());
+
+   // Write the last byte
+   BOOST_TEST(mpx.commit_write(1u));
+   BOOST_TEST(item1.elem_ptr->is_written());
+   BOOST_TEST(item2.elem_ptr->is_done());
+}
+
 // The response to a request is received before its write
 // confirmation. This might happen on heavy load
 void test_request_response_before_write()
@@ -925,6 +980,7 @@ int main()
    test_request_needs_more();
    test_several_requests();
    test_request_response_before_write();
+   test_short_writes();
    test_push();
    test_push_needs_more();
    test_push_heuristics_no_request();
