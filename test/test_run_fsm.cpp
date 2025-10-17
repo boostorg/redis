@@ -486,6 +486,39 @@ void test_setup_request_success()
    });
 }
 
+// An server error would cause the reader to exit
+void test_setup_request_server_error()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.setup.clear();
+   fix.st.cfg.setup.push("HELLO", 3);
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // At this point, the setup request should be already queued. Simulate the writer
+   BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 1u);
+   BOOST_TEST_EQ(fix.st.mpx.commit_write(), 0u);
+
+   // Simulate a successful read
+   read(fix.st.mpx, "-ERR: wrong command\r\n");
+   error_code ec;
+   auto res = fix.st.mpx.consume(ec);
+   BOOST_TEST_EQ(ec, error::resp3_hello);
+   BOOST_TEST(res.first == detail::consume_result::got_response);
+
+   // Check log
+   fix.check_log({
+      {logger::level::info,
+       "Setup request execution: The server response to the setup request sent during connection "
+       "establishment contains an error. [boost.redis:23] (ERR: wrong command)"}
+   });
+}
+
 }  // namespace
 
 int main()
@@ -512,6 +545,7 @@ int main()
    test_setup_ping_requests();
 
    test_setup_request_success();
+   test_setup_request_server_error();
 
    return boost::report_errors();
 }
