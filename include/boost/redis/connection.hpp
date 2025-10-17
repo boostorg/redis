@@ -233,7 +233,7 @@ struct writer_op {
          case writer_action_type::done: self.complete(act.error()); return;
          case writer_action_type::write_some:
             conn->stream_.async_write_some(
-               asio::buffer(conn->st_.mpx.get_write_buffer().substr(act.write_offset())),
+               asio::buffer(conn->st_.mpx.get_write_buffer()),
                asio::cancel_at(
                   conn->writer_timer_,
                   compute_expiry(act.timeout()),

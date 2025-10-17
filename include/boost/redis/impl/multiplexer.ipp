@@ -11,6 +11,7 @@
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
 
+#include <cstddef>
 #include <memory>
 
 namespace boost::redis::detail {
@@ -65,11 +66,19 @@ void multiplexer::cancel(std::shared_ptr<elem> const& ptr)
    }
 }
 
-std::size_t multiplexer::commit_write()
+bool multiplexer::commit_write(std::size_t bytes_written)
 {
    BOOST_ASSERT(!cancel_run_called_);
-   usage_.bytes_sent += std::size(write_buffer_);
+   BOOST_ASSERT(bytes_written + write_offset_ <= write_buffer_.size());
 
+   usage_.bytes_sent += bytes_written;
+   write_offset_ += bytes_written;
+
+   // Are there still more bytes to write?
+   if (write_offset_ < write_buffer_.size())
+      return false;
+
+   // We've written all the bytes in the write buffer.
    // We have to clear the payload right after writing it to use it
    // as a flag that informs there is no ongoing write.
    write_buffer_.clear();
@@ -83,7 +92,9 @@ std::size_t multiplexer::commit_write()
       }
    });
 
-   return release_push_requests();
+   release_push_requests();
+
+   return true;
 }
 
 void multiplexer::add(std::shared_ptr<elem> const& info)
@@ -151,8 +162,7 @@ consume_result multiplexer::consume_impl(system::error_code& ec)
    return consume_result::got_response;
 }
 
-std::pair<consume_result, std::size_t>
-multiplexer::consume(system::error_code& ec)
+std::pair<consume_result, std::size_t> multiplexer::consume(system::error_code& ec)
 {
    BOOST_ASSERT(!cancel_run_called_);
 
@@ -172,20 +182,14 @@ multiplexer::consume(system::error_code& ec)
    return std::make_pair(consume_result::needs_more, consumed);
 }
 
-auto multiplexer::prepare_read() noexcept -> system::error_code
-{
-   return read_buffer_.prepare();
-}
+auto multiplexer::prepare_read() noexcept -> system::error_code { return read_buffer_.prepare(); }
 
 auto multiplexer::get_prepared_read_buffer() noexcept -> read_buffer::span_type
 {
    return read_buffer_.get_prepared();
 }
 
-void multiplexer::commit_read(std::size_t bytes_read)
-{
-   read_buffer_.commit(bytes_read);
-}
+void multiplexer::commit_read(std::size_t bytes_read) { read_buffer_.commit(bytes_read); }
 
 auto multiplexer::get_read_buffer_size() const noexcept -> std::size_t
 {
@@ -196,6 +200,7 @@ void multiplexer::reset()
 {
    read_buffer_.clear();
    write_buffer_.clear();
+   write_offset_ = 0u;
    parser_.reset();
    on_push_ = false;
    cancel_run_called_ = false;
@@ -221,6 +226,8 @@ std::size_t multiplexer::prepare_write()
       ri->mark_staged();
       usage_.commands_sent += ri->get_request().get_commands();
    });
+
+   write_offset_ = 0u;
 
    auto const d = std::distance(point, std::cend(reqs_));
    return static_cast<std::size_t>(d);
@@ -331,7 +338,7 @@ bool multiplexer::is_next_push(std::string_view data) const noexcept
    return reqs_.front()->is_waiting();
 }
 
-std::size_t multiplexer::release_push_requests()
+void multiplexer::release_push_requests()
 {
    auto point = std::stable_partition(
       std::begin(reqs_),
@@ -344,9 +351,7 @@ std::size_t multiplexer::release_push_requests()
       ptr->notify_done();
    });
 
-   auto const d = std::distance(point, std::end(reqs_));
    reqs_.erase(point, std::end(reqs_));
-   return static_cast<std::size_t>(d);
 }
 
 bool multiplexer::is_writing() const noexcept { return !write_buffer_.empty(); }

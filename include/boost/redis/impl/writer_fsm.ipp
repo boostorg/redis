@@ -70,17 +70,16 @@ writer_action writer_fsm::resume(
          while (st.mpx.prepare_write() != 0u) {
             // Write an entire message. We can't use asio::async_write because we want
             // to apply timeouts to individual write operations
-            write_offset_ = 0u;
-            while (!write_done(st, write_offset_)) {
+            for (;;) {
                // Write what we can. If nothing has been written for the health check
                // interval, we consider the connection as failed
                BOOST_REDIS_YIELD(
                   resume_point_,
                   1,
-                  writer_action::write_some(write_offset_, st.cfg.health_check_interval))
+                  writer_action::write_some(st.cfg.health_check_interval))
 
                // Commit the received bytes. This accounts for partial success
-               write_offset_ += bytes_written;
+               bool finished = st.mpx.commit_write(bytes_written);
                st.logger.on_write(bytes_written);
 
                // Check for cancellations and translate error codes
@@ -90,21 +89,18 @@ writer_action writer_fsm::resume(
                   ec = error::write_timeout;
 
                // Check for errors
-               if (ec)
-                  break;
-            }
-
-            // Write complete. Process its results. Note that we may have partial success
-            if (write_done(st, write_offset_))
-               st.mpx.commit_write();
-
-            if (ec) {
-               if (ec == asio::error::operation_aborted) {
-                  st.logger.trace("Writer task: cancelled (1).");
-               } else {
-                  st.logger.trace("Writer task error", ec);
+               if (ec) {
+                  if (ec == asio::error::operation_aborted) {
+                     st.logger.trace("Writer task: cancelled (1).");
+                  } else {
+                     st.logger.trace("Writer task error", ec);
+                  }
+                  return ec;
                }
-               return ec;
+
+               // Are we done yet?
+               if (finished)
+                  break;
             }
          }
 
