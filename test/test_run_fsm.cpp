@@ -8,6 +8,7 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
+#include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
@@ -454,6 +455,37 @@ void test_setup_ping_requests()
    BOOST_TEST_EQ(fix.st.cfg.setup.payload(), expected_setup);
 }
 
+// We correctly send and log the setup request
+void test_setup_request_success()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.setup.clear();
+   fix.st.cfg.setup.push("HELLO", 3);
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // At this point, the setup request should be already queued. Simulate the writer
+   BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 1u);
+   BOOST_TEST_EQ(fix.st.mpx.commit_write(), 0u);
+
+   // Simulate a successful read
+   read(fix.st.mpx, "+OK\r\n");
+   error_code ec;
+   auto res = fix.st.mpx.consume(ec);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST(res.first == detail::consume_result::got_response);
+
+   // Check log
+   fix.check_log({
+      {logger::level::info, "Setup request execution: success"}
+   });
+}
+
 }  // namespace
 
 int main()
@@ -478,6 +510,8 @@ int main()
 
    test_several_reconnections();
    test_setup_ping_requests();
+
+   test_setup_request_success();
 
    return boost::report_errors();
 }
