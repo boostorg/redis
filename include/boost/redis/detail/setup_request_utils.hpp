@@ -20,9 +20,6 @@ void compose_setup_request(config& cfg);
 // Completely clears a response
 void clear_response(generic_response& res);
 
-// Checks that the response to the setup request was successful
-system::error_code check_setup_response(system::error_code io_ec, const generic_response&);
-
 }  // namespace boost::redis::detail
 
 #endif  // BOOST_REDIS_RUNNER_HPP
