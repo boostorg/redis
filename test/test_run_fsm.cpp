@@ -76,14 +76,22 @@ struct fixture : detail::log_fixture {
    detail::connection_state st;
    run_fsm fsm;
 
-   fixture(config&& cfg = {})
+   static config default_config()
+   {
+      config res;
+      res.use_setup = true;
+      res.setup.clear();
+      return res;
+   }
+
+   fixture(config&& cfg = default_config())
    : st{make_logger(), std::move(cfg)}
    { }
 };
 
 config config_no_reconnect()
 {
-   config res;
+   auto res = fixture::default_config();
    res.reconnect_wait_interval = 0s;
    return res;
 }
