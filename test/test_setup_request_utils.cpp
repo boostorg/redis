@@ -37,6 +37,8 @@ void test_compose_setup()
    std::string_view const expected = "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n";
    BOOST_TEST_EQ(cfg.setup.payload(), expected);
    BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
 void test_compose_setup_select()
@@ -52,6 +54,8 @@ void test_compose_setup_select()
       "*2\r\n$6\r\nSELECT\r\n$2\r\n10\r\n";
    BOOST_TEST_EQ(cfg.setup.payload(), expected);
    BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
 void test_compose_setup_clientname()
@@ -64,6 +68,8 @@ void test_compose_setup_clientname()
       expected = "*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$11\r\nBoost.Redis\r\n";
    BOOST_TEST_EQ(cfg.setup.payload(), expected);
    BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
 void test_compose_setup_auth()
@@ -79,6 +85,8 @@ void test_compose_setup_auth()
       expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
    BOOST_TEST_EQ(cfg.setup.payload(), expected);
    BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
 void test_compose_setup_auth_empty_password()
@@ -93,6 +101,8 @@ void test_compose_setup_auth_empty_password()
       expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$0\r\n\r\n";
    BOOST_TEST_EQ(cfg.setup.payload(), expected);
    BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
 void test_compose_setup_auth_setname()
@@ -109,6 +119,8 @@ void test_compose_setup_auth_setname()
       "6\r\nmytest\r\n";
    BOOST_TEST_EQ(cfg.setup.payload(), expected);
    BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
 void test_compose_setup_use_setup()
@@ -128,6 +140,8 @@ void test_compose_setup_use_setup()
       "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
    BOOST_TEST_EQ(cfg.setup.payload(), expected);
    BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
 // Regression check: we set the priority flag
@@ -143,6 +157,27 @@ void test_compose_setup_use_setup_no_hello()
    std::string_view const expected = "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
    BOOST_TEST_EQ(cfg.setup.payload(), expected);
    BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
+}
+
+// Regression check: we set the relevant cancellation flags in the request
+void test_compose_setup_use_setup_flags()
+{
+   redis::config cfg;
+   cfg.use_setup = true;
+   cfg.setup.clear();
+   cfg.setup.push("SELECT", 8);
+   cfg.setup.get_config().cancel_if_unresponded = false;
+   cfg.setup.get_config().cancel_on_connection_lost = false;
+
+   compose_setup_request(cfg);
+
+   std::string_view const expected = "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
 // clear response
@@ -212,6 +247,7 @@ int main()
    test_compose_setup_auth_setname();
    test_compose_setup_use_setup();
    test_compose_setup_use_setup_no_hello();
+   test_compose_setup_use_setup_flags();
 
    test_clear_response_empty();
    test_clear_response_nonempty();

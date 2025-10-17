@@ -15,13 +15,13 @@
 #include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
 
+#include "sansio_utils.hpp"
+
 #include <iostream>
 #include <memory>
 #include <ostream>
 #include <string>
 #include <string_view>
-
-#include "sansio_utils.hpp"
 
 using boost::redis::request;
 using boost::redis::detail::multiplexer;
@@ -732,10 +732,18 @@ void test_cancel_on_connection_lost()
    test_item item_written1, item_written2, item_staged1, item_staged2, item_waiting1, item_waiting2;
 
    // Different items have different configurations
-   // (note that these are all true by default)
    item_written1.req.get_config().cancel_if_unresponded = false;
+   item_written1.req.get_config().cancel_on_connection_lost = true;
+   item_written2.req.get_config().cancel_if_unresponded = true;
+   item_written2.req.get_config().cancel_on_connection_lost = true;
    item_staged1.req.get_config().cancel_if_unresponded = false;
+   item_staged1.req.get_config().cancel_on_connection_lost = true;
+   item_staged2.req.get_config().cancel_if_unresponded = true;
+   item_staged2.req.get_config().cancel_on_connection_lost = true;
+   item_waiting1.req.get_config().cancel_if_unresponded = true;
    item_waiting1.req.get_config().cancel_on_connection_lost = false;
+   item_waiting2.req.get_config().cancel_if_unresponded = true;
+   item_waiting2.req.get_config().cancel_on_connection_lost = true;
 
    // Make each item reach the state it should be in
    mpx.add(item_written1.elem_ptr);
@@ -786,9 +794,10 @@ void test_cancel_on_connection_lost_abandoned()
    auto item_staged2 = std::make_unique<test_item>();
 
    // Different items have different configurations
-   // (note that these are all true by default)
    item_written1->req.get_config().cancel_if_unresponded = false;
+   item_written2->req.get_config().cancel_if_unresponded = true;
    item_staged1->req.get_config().cancel_if_unresponded = false;
+   item_staged2->req.get_config().cancel_if_unresponded = true;
 
    // Make each item reach the state it should be in
    mpx.add(item_written1->elem_ptr);
@@ -877,6 +886,7 @@ void test_reset()
    generic_response push_resp;
    mpx.set_receive_adapter(any_adapter{push_resp});
    test_item item1, item2;
+   item1.req.get_config().cancel_on_connection_lost = true;
 
    // Add a request
    mpx.add(item1.elem_ptr);

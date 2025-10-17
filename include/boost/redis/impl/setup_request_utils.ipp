@@ -42,8 +42,11 @@ void compose_setup_request(config& cfg)
    }
 
    // In any case, the setup request should have the priority
-   // flag set so it's executed before any other request
+   // flag set so it's executed before any other request.
+   // The setup request should never be retried.
    request_access::set_priority(cfg.setup, true);
+   cfg.setup.get_config().cancel_if_unresponded = true;
+   cfg.setup.get_config().cancel_on_connection_lost = true;
 }
 
 void clear_response(generic_response& res)
