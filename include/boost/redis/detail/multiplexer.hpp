@@ -200,9 +200,6 @@ public:
       return usage_;
    }
 
-   [[nodiscard]]
-   auto is_writing() const noexcept -> bool;
-
    void set_config(config const& cfg);
 
 private:

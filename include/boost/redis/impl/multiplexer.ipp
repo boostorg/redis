@@ -79,8 +79,6 @@ bool multiplexer::commit_write(std::size_t bytes_written)
       return false;
 
    // We've written all the bytes in the write buffer.
-   // We have to clear the payload right after writing it to use it
-   // as a flag that informs there is no ongoing write.
    write_buffer_.clear();
 
    // There is small optimization possible here: traverse only the
@@ -353,8 +351,6 @@ void multiplexer::release_push_requests()
 
    reqs_.erase(point, std::end(reqs_));
 }
-
-bool multiplexer::is_writing() const noexcept { return !write_buffer_.empty(); }
 
 void multiplexer::set_receive_adapter(any_adapter adapter)
 {
