@@ -22,9 +22,8 @@ logger detail::make_stderr_logger(logger::level lvl, std::string prefix)
 }
 
 system::error_code detail::translate_parallel_group_errors(
-   std::array<std::size_t, 4u> order,
+   std::array<std::size_t, 3u> order,
    system::error_code setup_ec,
-   system::error_code health_check_ec,
    system::error_code reader_ec,
    system::error_code writer_ec)
 {
@@ -41,9 +40,8 @@ system::error_code detail::translate_parallel_group_errors(
    // excluding the setup task
    std::size_t task_number = order[0] == 0u ? order[1] : order[0];
    switch (task_number) {
-      case 1u: return health_check_ec;
-      case 2u: return reader_ec;
-      case 3u: return writer_ec;
+      case 1u: return reader_ec;
+      case 2u: return writer_ec;
       default: BOOST_ASSERT(false); return system::error_code();
    }
 }

@@ -11,6 +11,7 @@
 
 #include <boost/assert/source_location.hpp>
 
+#include <chrono>
 #include <initializer_list>
 #include <string>
 #include <string_view>
@@ -43,6 +44,11 @@ struct log_fixture {
       source_location loc = BOOST_CURRENT_LOCATION) const;
    logger make_logger();
 };
+
+constexpr auto to_milliseconds(std::chrono::steady_clock::duration d)
+{
+   return std::chrono::duration_cast<std::chrono::milliseconds>(d).count();
+}
 
 }  // namespace boost::redis::detail
 

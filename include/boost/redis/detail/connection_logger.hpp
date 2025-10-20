@@ -36,7 +36,7 @@ public:
    void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
    void on_connect(system::error_code const& ec, std::string_view unix_socket_ep);
    void on_ssl_handshake(system::error_code const& ec);
-   void on_write(system::error_code const& ec, std::size_t n);
+   void on_write(std::size_t n);
    void on_read(system::error_code const& ec, std::size_t n);
    void on_setup(system::error_code const& ec, generic_response const& resp);
    void log(logger::level lvl, std::string_view msg);

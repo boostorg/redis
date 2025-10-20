@@ -13,11 +13,9 @@
 #include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
-#include <boost/redis/detail/helper.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
-#include <boost/redis/detail/resp3_type_to_error.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
@@ -36,10 +34,9 @@
 #include <boost/asio/bind_cancellation_slot.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/buffer.hpp>
-#include <boost/asio/cancel_after.hpp>
+#include <boost/asio/cancel_at.hpp>
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/coroutine.hpp>
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel.hpp>
@@ -47,14 +44,10 @@
 #include <boost/asio/immediate.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/prepend.hpp>
-#include <boost/asio/read_until.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/steady_timer.hpp>
-#include <boost/asio/write.hpp>
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
-#include <boost/core/ignore_unused.hpp>
 
 #include <array>
 #include <chrono>
@@ -65,6 +58,14 @@
 
 namespace boost::redis {
 namespace detail {
+
+// Given a timeout value, compute the expiry time. A zero timeout is considered to mean "no timeout"
+inline std::chrono::steady_clock::time_point compute_expiry(
+   std::chrono::steady_clock::duration timeout)
+{
+   return timeout.count() == 0 ? (std::chrono::steady_clock::time_point::max)()
+                               : std::chrono::steady_clock::now() + timeout;
+}
 
 template <class Executor>
 struct connection_impl {
@@ -80,11 +81,9 @@ struct connection_impl {
       void(system::error_code, std::size_t)>;
 
    redis_stream<Executor> stream_;
-
-   // Notice we use a timer to simulate a condition-variable. It is
-   // also more suitable than a channel and the notify operation does
-   // not suspend.
-   timer_type writer_timer_;
+   timer_type writer_timer_;     // timer used for write timeouts
+   timer_type writer_cv_;        // condition variable, cancelled when there is new data to write
+   timer_type reader_timer_;     // timer used for read timeouts
    timer_type reconnect_timer_;  // to wait the reconnection period
    timer_type ping_timer_;       // to wait between pings
    receive_channel_type receive_channel_;
@@ -93,7 +92,7 @@ struct connection_impl {
 
    using executor_type = Executor;
 
-   executor_type get_executor() noexcept { return writer_timer_.get_executor(); }
+   executor_type get_executor() noexcept { return writer_cv_.get_executor(); }
 
    struct exec_op {
       connection_impl* obj_ = nullptr;
@@ -116,7 +115,7 @@ struct connection_impl {
                   asio::async_immediate(self.get_io_executor(), std::move(self));
                   return;
                case exec_action_type::notify_writer:
-                  obj_->writer_timer_.cancel();
+                  obj_->writer_cv_.cancel();
                   continue;  // this action does not require yielding
                case exec_action_type::wait_for_response:
                   notifier_->async_receive(std::move(self));
@@ -133,13 +132,15 @@ struct connection_impl {
    connection_impl(Executor&& ex, asio::ssl::context&& ctx, logger&& lgr)
    : stream_{ex, std::move(ctx)}
    , writer_timer_{ex}
+   , writer_cv_{ex}
+   , reader_timer_{ex}
    , reconnect_timer_{ex}
    , ping_timer_{ex}
    , receive_channel_{ex, 256}
    , st_{std::move(lgr)}
    {
       set_receive_adapter(any_adapter{ignore});
-      writer_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
+      writer_cv_.expires_at((std::chrono::steady_clock::time_point::max)());
    }
 
    void cancel(operation op)
@@ -200,7 +201,7 @@ struct connection_impl {
       return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
          exec_op{this, notifier, exec_fsm(st_.mpx, std::move(info))},
          token,
-         writer_timer_);
+         writer_cv_);
    }
 
    void set_receive_adapter(any_adapter adapter)
@@ -216,23 +217,32 @@ struct writer_op {
 
    explicit writer_op(connection_impl<Executor>& conn) noexcept
    : conn_(&conn)
-   , fsm_(conn.st_.mpx, conn.st_.logger)
    { }
 
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t bytes_written = 0u)
    {
-      auto act = fsm_.resume(ec, bytes_written, self.get_cancellation_state().cancelled());
+      auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
+      auto act = fsm_.resume(
+         conn->st_,
+         ec,
+         bytes_written,
+         self.get_cancellation_state().cancelled());
 
-      switch (act.type) {
-         case writer_action_type::done: self.complete(act.ec); return;
-         case writer_action_type::write:
-            asio::async_write(
-               conn_->stream_,
-               asio::buffer(conn_->st_.mpx.get_write_buffer()),
-               std::move(self));
+      switch (act.type()) {
+         case writer_action_type::done: self.complete(act.error()); return;
+         case writer_action_type::write_some:
+            conn->stream_.async_write_some(
+               asio::buffer(conn->st_.mpx.get_write_buffer()),
+               asio::cancel_at(
+                  conn->writer_timer_,
+                  compute_expiry(act.timeout()),
+                  std::move(self)));
             return;
-         case writer_action_type::wait: conn_->writer_timer_.async_wait(std::move(self)); return;
+         case writer_action_type::wait:
+            conn->writer_cv_.expires_at(compute_expiry(act.timeout()));
+            conn->writer_cv_.async_wait(std::move(self));
+            return;
       }
    }
 };
@@ -251,130 +261,34 @@ public:
    void operator()(Self& self, system::error_code ec = {}, std::size_t n = 0)
    {
       for (;;) {
-         auto act = fsm_.resume(conn_->st_, n, ec, self.get_cancellation_state().cancelled());
+         auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
+         auto act = fsm_.resume(conn->st_, n, ec, self.get_cancellation_state().cancelled());
 
-         switch (act.type_) {
+         switch (act.get_type()) {
             case reader_fsm::action::type::read_some:
-            {
-               auto const buf = conn_->st_.mpx.get_prepared_read_buffer();
-               conn_->stream_.async_read_some(asio::buffer(buf), std::move(self));
-            }
+               conn->stream_.async_read_some(
+                  asio::buffer(conn->st_.mpx.get_prepared_read_buffer()),
+                  asio::cancel_at(
+                     conn->reader_timer_,
+                     compute_expiry(act.timeout()),
+                     std::move(self)));
                return;
             case reader_fsm::action::type::notify_push_receiver:
-               if (conn_->receive_channel_.try_send(ec, act.push_size_)) {
+               if (conn->receive_channel_.try_send(ec, act.push_size())) {
                   continue;
                } else {
-                  conn_->receive_channel_.async_send(ec, act.push_size_, std::move(self));
-                  return;
+                  conn->receive_channel_.async_send(ec, act.push_size(), std::move(self));
                }
                return;
-            case reader_fsm::action::type::done: self.complete(act.ec_); return;
-         }
-      }
-   }
-};
-
-template <class Executor>
-struct health_checker_op {
-   connection_impl<Executor>* conn_;
-   asio::coroutine coro_{};
-
-   system::error_code check_errors(system::error_code io_ec, asio::cancellation_type_t cancel_state)
-   {
-      // Did we have a cancellation? We might not have an error code here
-      if ((cancel_state & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none) {
-         conn_->st_.logger.log(logger::level::info, "Health checker: cancelled");
-         return asio::error::operation_aborted;
-      }
-
-      // operation_aborted and no cancel state means that asio::cancel_after timed out
-      if (io_ec == asio::error::operation_aborted) {
-         conn_->st_.logger.log(logger::level::info, "Health checker: ping timed out");
-         return error::pong_timeout;
-      }
-
-      // Did we have other unknown error?
-      if (io_ec) {
-         conn_->st_.logger.log(logger::level::info, "Health checker: ping error", io_ec);
-         return io_ec;
-      }
-
-      // Did the server answer with an error?
-      if (conn_->st_.ping_resp.has_error()) {
-         auto error = conn_->st_.ping_resp.error();
-         conn_->st_.logger.log(
-            logger::level::info,
-            "Health checker: server answered ping with an error",
-            error.diagnostic);
-         return resp3_type_to_error(error.data_type);
-      }
-
-      // No error
-      return system::error_code();
-   }
-
-public:
-   health_checker_op(connection_impl<Executor>& conn) noexcept
-   : conn_{&conn}
-   { }
-
-   template <class Self>
-   void operator()(Self& self, system::error_code ec = {}, std::size_t = {})
-   {
-      BOOST_ASIO_CORO_REENTER(coro_)
-      {
-         if (conn_->st_.cfg.health_check_interval == std::chrono::seconds::zero()) {
-            conn_->st_.logger.trace("ping_op (1): timeout disabled.");
-
-            // Wait until we're cancelled. This simplifies parallel group handling a lot
-            conn_->ping_timer_.expires_at((std::chrono::steady_clock::time_point::max)());
-            BOOST_ASIO_CORO_YIELD conn_->ping_timer_.async_wait(std::move(self));
-            self.complete(asio::error::operation_aborted);
-            return;
-         }
-
-         for (;;) {
-            // Clean up any previous leftover
-            clear_response(conn_->st_.ping_resp);
-
-            // Execute the request
-            BOOST_ASIO_CORO_YIELD
-            {
-               auto* conn = conn_;  // avoid use-after-move problems
-               auto timeout = conn->st_.cfg.health_check_interval;
-               conn->async_exec(
-                  conn->st_.ping_req,
-                  any_adapter{conn->st_.ping_resp},
-                  asio::cancel_after(conn->ping_timer_, timeout, std::move(self)));
-            }
-
-            // Check for cancellations and errors in PING
-            ec = check_errors(ec, self.get_cancellation_state().cancelled());
-            if (ec) {
-               self.complete(ec);
-               return;
-            }
-
-            // Wait before pinging again.
-            conn_->ping_timer_.expires_after(conn_->st_.cfg.health_check_interval);
-
-            BOOST_ASIO_CORO_YIELD
-            conn_->ping_timer_.async_wait(std::move(self));
-
-            if (is_cancelled(self)) {
-               conn_->st_.logger.trace("ping_op (2): cancelled");
-               self.complete(asio::error::operation_aborted);
-               return;
-            }
+            case reader_fsm::action::type::done: self.complete(act.error()); return;
          }
       }
    }
 };
 
 system::error_code translate_parallel_group_errors(
-   std::array<std::size_t, 4u> order,
+   std::array<std::size_t, 3u> order,
    system::error_code setup_ec,
-   system::error_code health_check_ec,
    system::error_code reader_ec,
    system::error_code writer_ec);
 
@@ -420,7 +334,7 @@ private:
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          reader_op<Executor>{*conn_},
          std::forward<CompletionToken>(token),
-         conn_->writer_timer_);
+         conn_->writer_cv_);
    }
 
    template <class CompletionToken>
@@ -429,16 +343,7 @@ private:
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          writer_op<Executor>{*conn_},
          std::forward<CompletionToken>(token),
-         conn_->writer_timer_);
-   }
-
-   template <class CompletionToken>
-   auto health_checker(CompletionToken&& token)
-   {
-      return asio::async_compose<CompletionToken, void(system::error_code)>(
-         health_checker_op<Executor>{*conn_},
-         std::forward<CompletionToken>(token),
-         conn_->writer_timer_);
+         conn_->writer_cv_);
    }
 
 public:
@@ -450,15 +355,12 @@ public:
    template <class Self>
    void operator()(
       Self& self,
-      std::array<std::size_t, 4> order,
+      std::array<std::size_t, 3> order,
       system::error_code setup_ec,
-      system::error_code health_check_ec,
       system::error_code reader_ec,
       system::error_code writer_ec)
    {
-      (*this)(
-         self,
-         translate_parallel_group_errors(order, setup_ec, health_check_ec, reader_ec, writer_ec));
+      (*this)(self, translate_parallel_group_errors(order, setup_ec, reader_ec, writer_ec));
    }
 
    template <class Self>
@@ -482,9 +384,6 @@ public:
             asio::experimental::make_parallel_group(
                [this](auto token) {
                   return this->send_setup(token);
-               },
-               [this](auto token) {
-                  return this->health_checker(token);
                },
                [this](auto token) {
                   return this->reader(token);
@@ -626,7 +525,7 @@ public:
    { }
 
    /// Returns the associated executor.
-   executor_type get_executor() noexcept { return impl_->writer_timer_.get_executor(); }
+   executor_type get_executor() noexcept { return impl_->writer_cv_.get_executor(); }
 
    /** @brief Starts the underlying connection operations.
     *
@@ -637,19 +536,15 @@ public:
     *      @ref boost::redis::config::addr.
     *  @li Establishes a physical connection to the server. For TCP connections,
     *      connects to one of the endpoints obtained during name resolution.
-    *      For UNIX domain socket connections, it connects to @ref boost::redis::config::unix_socket.
+    *      For UNIX domain socket connections, it connects to @ref boost::redis::config::unix_sockets.
     *  @li If @ref boost::redis::config::use_ssl is `true`, performs the TLS handshake.
     *  @li Executes the setup request, as defined by the passed @ref config object.
     *      By default, this is a `HELLO` command, but it can contain any other arbitrary
-    *      commands. See the @ref config docs for more info.
-    *  @li Starts a health-check operation where ping commands are sent
+    *      commands. See the @ref config::setup docs for more info.
+    *  @li Starts a health-check operation where `PING` commands are sent
     *      at intervals specified by
-    *      @ref boost::redis::config::health_check_interval. 
-    *      The message passed to `PING` will be @ref boost::redis::config::health_check_id. 
-    *      Passing an interval with a zero value will disable health-checks. If the Redis
-    *      server does not respond to a health-check within two times the value
-    *      specified here, it will be considered unresponsive and the connection
-    *      will be closed.
+    *      @ref config::health_check_interval when the connection is idle.
+    *      See the documentation of @ref config::health_check_interval for more info.
     *  @li Starts read and write operations. Requests issued using @ref async_exec
     *      before `async_run` is called will be written to the server immediately.
     *
@@ -1046,7 +941,7 @@ private:
          asio::async_compose<decltype(token_with_slot), void(system::error_code)>(
             detail::run_op<Executor>{self},
             token_with_slot,
-            self->writer_timer_);
+            self->writer_cv_);
       }
    };
 

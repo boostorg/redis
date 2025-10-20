@@ -95,7 +95,6 @@ BOOST_AUTO_TEST_CASE(echo_stress)
    net::io_context ctx;
    connection conn{ctx};
    auto cfg = make_test_config();
-   cfg.health_check_interval = std::chrono::seconds::zero();
 
    // Number of coroutines that will send pings sharing the same
    // connection to redis.
