@@ -39,6 +39,7 @@
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/error.hpp>
+#include <boost/asio/experimental/cancellation_condition.hpp>
 #include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/immediate.hpp>
@@ -286,47 +287,11 @@ public:
    }
 };
 
-system::error_code translate_parallel_group_errors(
-   std::array<std::size_t, 3u> order,
-   system::error_code setup_ec,
-   system::error_code reader_ec,
-   system::error_code writer_ec);
-
 template <class Executor>
 class run_op {
 private:
    connection_impl<Executor>* conn_;
    run_fsm fsm_{};
-
-   static system::error_code on_setup_finished(
-      connection_impl<Executor>& conn,
-      system::error_code ec)
-   {
-      ec = check_setup_response(ec, conn.st_.setup_resp);
-      conn.st_.logger.on_setup(ec, conn.st_.setup_resp);
-      return ec;
-   }
-
-   template <class CompletionToken>
-   auto send_setup(CompletionToken&& token)
-   {
-      // clang-format off
-      // Skip sending the setup request if it's empty
-      return asio::deferred_t::when(conn_->st_.cfg.setup.get_commands() != 0u)
-         .then(
-            conn_->async_exec(
-               conn_->st_.cfg.setup,
-               any_adapter(conn_->st_.setup_resp),
-               asio::deferred([&conn = *this->conn_](system::error_code ec, std::size_t) {
-                  return asio::deferred.values(on_setup_finished(conn, ec));
-               })
-            )
-         )
-         .otherwise(asio::deferred.values(system::error_code()))
-         (std::forward<CompletionToken>(token))
-      ;
-      // clang-format on
-   }
 
    template <class CompletionToken>
    auto reader(CompletionToken&& token)
@@ -355,12 +320,11 @@ public:
    template <class Self>
    void operator()(
       Self& self,
-      std::array<std::size_t, 3> order,
-      system::error_code setup_ec,
+      std::array<std::size_t, 2u> order,
       system::error_code reader_ec,
       system::error_code writer_ec)
    {
-      (*this)(self, translate_parallel_group_errors(order, setup_ec, reader_ec, writer_ec));
+      (*this)(self, order[0u] == 0u ? reader_ec : writer_ec);
    }
 
    template <class Self>
@@ -377,21 +341,14 @@ public:
             conn_->stream_.async_connect(conn_->st_.cfg, conn_->st_.logger, std::move(self));
             return;
          case run_action_type::parallel_group:
-            // Note: Order is important here because the writer might
-            // trigger an async_write before the setup request is sent,
-            // causing other requests to be sent before the setup request,
-            // violating the setup request contract.
             asio::experimental::make_parallel_group(
-               [this](auto token) {
-                  return this->send_setup(token);
-               },
                [this](auto token) {
                   return this->reader(token);
                },
                [this](auto token) {
                   return this->writer(token);
                })
-               .async_wait(asio::experimental::wait_for_one_error(), std::move(self));
+               .async_wait(asio::experimental::wait_for_one(), std::move(self));
             return;
          case run_action_type::cancel_receive:
             conn_->receive_channel_.cancel();

@@ -6,8 +6,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
+#include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
@@ -35,6 +38,36 @@ inline void compose_ping_request(const config& cfg, request& to)
 {
    to.clear();
    to.push("PING", cfg.health_check_id);
+}
+
+inline void process_setup_node(
+   connection_state& st,
+   resp3::basic_node<std::string_view> const& nd,
+   system::error_code& ec)
+{
+   switch (nd.data_type) {
+      case resp3::type::simple_error:
+      case resp3::type::blob_error:
+      case resp3::type::null:
+         ec = redis::error::resp3_hello;
+         st.setup_diagnostic = nd.value;
+         break;
+      default:;
+   }
+}
+
+inline any_adapter make_setup_adapter(connection_state& st)
+{
+   return any_adapter{
+      [&st](any_adapter::parse_event evt, resp3::node_view const& nd, system::error_code& ec) {
+         if (evt == any_adapter::parse_event::node)
+            process_setup_node(st, nd, ec);
+      }};
+}
+
+inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
+{
+   st.logger.on_setup(elm.get_error(), st.setup_diagnostic);
 }
 
 run_action run_fsm::resume(
@@ -74,7 +107,16 @@ run_action run_fsm::resume(
          if (!ec) {
             // Initialization
             st.mpx.reset();
-            clear_response(st.setup_resp);
+            st.setup_diagnostic.clear();
+
+            // Add the setup request to the multiplexer
+            if (st.cfg.setup.get_commands() != 0u) {
+               auto elm = make_elem(st.cfg.setup, make_setup_adapter(st));
+               elm->set_done_callback([&elem_ref = *elm, &st] {
+                  on_setup_done(elem_ref, st);
+               });
+               st.mpx.add(elm);
+            }
 
             // Run the tasks
             BOOST_REDIS_YIELD(resume_point_, 3, run_action_type::parallel_group)

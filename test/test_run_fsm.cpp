@@ -8,6 +8,7 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
+#include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
@@ -76,14 +77,22 @@ struct fixture : detail::log_fixture {
    detail::connection_state st;
    run_fsm fsm;
 
-   fixture(config&& cfg = {})
+   static config default_config()
+   {
+      config res;
+      res.use_setup = true;
+      res.setup.clear();
+      return res;
+   }
+
+   fixture(config&& cfg = default_config())
    : st{make_logger(), std::move(cfg)}
    { }
 };
 
 config config_no_reconnect()
 {
-   config res;
+   auto res = fixture::default_config();
    res.reconnect_wait_interval = 0s;
    return res;
 }
@@ -446,6 +455,91 @@ void test_setup_ping_requests()
    BOOST_TEST_EQ(fix.st.cfg.setup.payload(), expected_setup);
 }
 
+// We correctly send and log the setup request
+void test_setup_request_success()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.setup.clear();
+   fix.st.cfg.setup.push("HELLO", 3);
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // At this point, the setup request should be already queued. Simulate the writer
+   BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 1u);
+   BOOST_TEST(fix.st.mpx.commit_write(fix.st.mpx.get_write_buffer().size()));
+
+   // Simulate a successful read
+   read(fix.st.mpx, "+OK\r\n");
+   error_code ec;
+   auto res = fix.st.mpx.consume(ec);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST(res.first == detail::consume_result::got_response);
+
+   // Check log
+   fix.check_log({
+      {logger::level::info, "Setup request execution: success"}
+   });
+}
+
+// We don't send empty setup requests
+void test_setup_request_empty()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.setup.clear();
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // Nothing was added to the multiplexer
+   BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 0u);
+
+   // Check log
+   fix.check_log({});
+}
+
+// A server error would cause the reader to exit
+void test_setup_request_server_error()
+{
+   // Setup
+   fixture fix;
+   fix.st.setup_diagnostic = "leftover";  // simulate a leftover from previous runs
+   fix.st.cfg.setup.clear();
+   fix.st.cfg.setup.push("HELLO", 3);
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // At this point, the setup request should be already queued. Simulate the writer
+   BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 1u);
+   BOOST_TEST(fix.st.mpx.commit_write(fix.st.mpx.get_write_buffer().size()));
+
+   // Simulate a successful read
+   read(fix.st.mpx, "-ERR: wrong command\r\n");
+   error_code ec;
+   auto res = fix.st.mpx.consume(ec);
+   BOOST_TEST_EQ(ec, error::resp3_hello);
+   BOOST_TEST(res.first == detail::consume_result::got_response);
+
+   // Check log
+   fix.check_log({
+      {logger::level::info,
+       "Setup request execution: The server response to the setup request sent during connection "
+       "establishment contains an error. [boost.redis:23] (ERR: wrong command)"}
+   });
+}
+
 }  // namespace
 
 int main()
@@ -470,6 +564,10 @@ int main()
 
    test_several_reconnections();
    test_setup_ping_requests();
+
+   test_setup_request_success();
+   test_setup_request_empty();
+   test_setup_request_server_error();
 
    return boost::report_errors();
 }

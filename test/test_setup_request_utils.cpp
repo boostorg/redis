@@ -22,7 +22,6 @@ namespace asio = boost::asio;
 namespace redis = boost::redis;
 using redis::detail::compose_setup_request;
 using redis::detail::clear_response;
-using redis::detail::check_setup_response;
 using boost::system::error_code;
 
 namespace {
@@ -174,32 +173,6 @@ void test_clear_response_error()
    BOOST_TEST_EQ(resp.value().size(), 0u);
 }
 
-// check response
-void test_check_response_success()
-{
-   redis::generic_response resp;
-   resp->push_back({});
-   auto ec = check_setup_response(error_code(), resp);
-   BOOST_TEST_EQ(ec, error_code());
-}
-
-void test_check_response_io_error()
-{
-   redis::generic_response resp;
-   auto ec = check_setup_response(asio::error::already_open, resp);
-   BOOST_TEST_EQ(ec, asio::error::already_open);
-}
-
-void test_check_response_server_error()
-{
-   redis::generic_response resp{
-      boost::system::in_place_error,
-      redis::adapter::error{redis::resp3::type::simple_error, "wrong password"}
-   };
-   auto ec = check_setup_response(error_code(), resp);
-   BOOST_TEST_EQ(ec, redis::error::resp3_hello);
-}
-
 }  // namespace
 
 int main()
@@ -216,10 +189,6 @@ int main()
    test_clear_response_empty();
    test_clear_response_nonempty();
    test_clear_response_error();
-
-   test_check_response_success();
-   test_check_response_io_error();
-   test_check_response_server_error();
 
    return boost::report_errors();
 }

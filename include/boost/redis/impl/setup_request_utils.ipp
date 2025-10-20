@@ -54,15 +54,4 @@ void clear_response(generic_response& res)
       res.emplace();
 }
 
-system::error_code check_setup_response(system::error_code io_ec, const generic_response& resp)
-{
-   if (io_ec)
-      return io_ec;
-
-   if (resp.has_error())
-      return error::resp3_hello;
-
-   return system::error_code();
-}
-
 }  // namespace boost::redis::detail
