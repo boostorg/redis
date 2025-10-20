@@ -27,9 +27,7 @@ system::error_code detail::translate_parallel_group_errors(
    system::error_code reader_ec,
    system::error_code writer_ec)
 {
-   // Use the code corresponding to the task that finished first
    switch (order[0]) {
-      case 0u: return health_check_ec;
       case 1u: return reader_ec;
       case 2u: return writer_ec;
       default: BOOST_ASSERT(false); return system::error_code();

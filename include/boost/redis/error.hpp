@@ -68,7 +68,7 @@ enum class error
    /// Connect timeout
    connect_timeout,
 
-   /// Connect timeout
+   /// The server didn't answer the health checks on time and didn't send any data during the health check period.
    pong_timeout,
 
    /// SSL handshake timeout
@@ -91,6 +91,9 @@ enum class error
 
    /// Reading data from the socket would exceed the maximum size allowed of the read buffer.
    exceeds_maximum_read_buffer_size,
+
+   /// Timeout while writing data to the server.
+   write_timeout,
 };
 
 /**

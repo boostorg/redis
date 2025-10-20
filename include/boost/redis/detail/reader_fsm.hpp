@@ -13,6 +13,7 @@
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <chrono>
 #include <cstddef>
 
 namespace boost::redis::detail {
@@ -21,7 +22,8 @@ class read_buffer;
 
 class reader_fsm {
 public:
-   struct action {
+   class action {
+   public:
       enum class type
       {
          read_some,
@@ -29,24 +31,52 @@ public:
          done,
       };
 
-      action(type t, std::size_t push_size = 0u) noexcept
-      : type_(t)
-      , push_size_(push_size)
-      { }
-
       action(system::error_code ec) noexcept
       : type_(type::done)
       , ec_(ec)
       { }
 
-      static action notify_push_receiver(std::size_t bytes)
+      static action read_some(std::chrono::steady_clock::duration timeout) { return {timeout}; }
+
+      static action notify_push_receiver(std::size_t bytes) { return {bytes}; }
+
+      type get_type() const { return type_; }
+
+      system::error_code error() const
       {
-         return {type::notify_push_receiver, bytes};
+         BOOST_ASSERT(type_ == type::done);
+         return ec_;
       }
 
+      std::chrono::steady_clock::duration timeout() const
+      {
+         BOOST_ASSERT(type_ == type::read_some);
+         return timeout_;
+      }
+
+      std::size_t push_size() const
+      {
+         BOOST_ASSERT(type_ == type::notify_push_receiver);
+         return push_size_;
+      }
+
+   private:
+      action(std::size_t push_size) noexcept
+      : type_(type::notify_push_receiver)
+      , push_size_(push_size)
+      { }
+
+      action(std::chrono::steady_clock::duration t) noexcept
+      : type_(type::read_some)
+      , timeout_(t)
+      { }
+
       type type_;
-      std::size_t push_size_{};
-      system::error_code ec_;
+      union {
+         system::error_code ec_;
+         std::chrono::steady_clock::duration timeout_;
+         std::size_t push_size_{};
+      };
    };
 
    action resume(

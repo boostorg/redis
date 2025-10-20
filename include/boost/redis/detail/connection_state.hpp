@@ -27,7 +27,6 @@ struct connection_state {
    multiplexer mpx{};
    std::string setup_diagnostic{};
    request ping_req{};
-   generic_response ping_resp{};
 };
 
 }  // namespace boost::redis::detail

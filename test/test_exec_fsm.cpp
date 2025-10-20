@@ -138,7 +138,7 @@ void test_success()
 
    // Simulate a successful write
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request was placed in the packet to write
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    // Simulate a successful read
    read(mpx, "$5\r\nhello\r\n");
@@ -177,7 +177,7 @@ void test_parse_error()
 
    // Simulate a successful write
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request was placed in the packet to write
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    // Simulate a read that will trigger an error.
    // The second field should be a number (rather than the empty string).
@@ -239,7 +239,7 @@ void test_not_connected()
 
    // Simulate a successful write
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);  // one request was placed in the packet to write
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);   // all requests expect a response
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    // Simulate a successful read
    read(mpx, "$5\r\nhello\r\n");
@@ -329,7 +329,7 @@ void test_cancel_notwaiting_terminal_partial()
 
       // The multiplexer starts writing the request
       BOOST_TEST_EQ_MSG(mpx.prepare_write(), 1u, tc.name);
-      BOOST_TEST_EQ_MSG(mpx.commit_write(), 0u, tc.name);
+      BOOST_TEST_EQ_MSG(mpx.commit_write(mpx.get_write_buffer().size()), true, tc.name);
 
       // A cancellation arrives
       act = fsm.resume(true, tc.type);
@@ -368,7 +368,7 @@ void test_cancel_notwaiting_total()
 
    // Simulate a successful write
    BOOST_TEST_EQ(mpx.prepare_write(), 1u);
-   BOOST_TEST_EQ(mpx.commit_write(), 0u);  // all requests expect a response
+   BOOST_TEST(mpx.commit_write(mpx.get_write_buffer().size()));
 
    // We got requested a cancellation here, but we can't honor it
    act = fsm.resume(true, asio::cancellation_type_t::total);

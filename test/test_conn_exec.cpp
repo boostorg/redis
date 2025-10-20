@@ -134,8 +134,7 @@ BOOST_AUTO_TEST_CASE(large_number_of_concurrent_requests_issue_170)
    auto conn = std::make_shared<connection>(ioc);
 
    auto cfg = make_test_config();
-   cfg.health_check_interval = std::chrono::seconds(0);
-   conn->async_run(cfg, {}, net::detached);
+   conn->async_run(cfg, net::detached);
 
    constexpr int repeat = 8000;
    int remaining = repeat;

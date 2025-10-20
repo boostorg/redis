@@ -83,7 +83,7 @@ struct config {
     */
    std::optional<int> database_index = 0;
 
-   /// Message used by the health-checker in @ref boost::redis::basic_connection::async_run.
+   /// Message used by `PING` commands sent by the health checker.
    std::string health_check_id = "Boost.Redis";
 
    /**
@@ -105,7 +105,24 @@ struct config {
    std::chrono::steady_clock::duration ssl_handshake_timeout = std::chrono::seconds{10};
 
    /** @brief Time span between successive health checks.
-    *  Set to zero to disable health-checks pass zero as duration.
+    *  Set to zero to disable health-checks.
+    *
+    * When this value is set to a non-zero duration, @ref basic_connection::async_run
+    * will issue `PING` commands whenever no command is sent to the server for more
+    * than `health_check_interval`. You can configure the message passed to the `PING`
+    * command using @ref health_check_id.
+    *
+    * Enabling health checks also sets timeouts to individual network
+    * operations. The connection is considered dead if:
+    *
+    * @li No byte can be written to the server after `health_check_interval`.
+    * @li No byte is read from the server after `2 * health_check_interval`.
+    *
+    * If the health checker finds that the connection is unresponsive, it will be closed,
+    * and a reconnection will be triggered, as if a network error had occurred.
+    *
+    * The exact timeout values are *not* part of the interface, and might change
+    * in future versions.
     */
    std::chrono::steady_clock::duration health_check_interval = std::chrono::seconds{2};
 

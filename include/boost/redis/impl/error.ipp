@@ -55,6 +55,8 @@ struct error_category_impl : system::error_category {
          case error::exceeds_maximum_read_buffer_size:
             return "Reading data from the socket would exceed the maximum size allowed of the read "
                    "buffer.";
+         case error::write_timeout:
+            return "Timeout while writing data to the server.";
          default: BOOST_ASSERT(false); return "Boost.Redis error.";
       }
    }
