@@ -8,7 +8,6 @@
 #define BOOST_REDIS_CONNECTION_LOGGER_HPP
 
 #include <boost/redis/logger.hpp>
-#include <boost/redis/response.hpp>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/system/error_code.hpp>
@@ -36,9 +35,9 @@ public:
    void on_connect(system::error_code const& ec, asio::ip::tcp::endpoint const& ep);
    void on_connect(system::error_code const& ec, std::string_view unix_socket_ep);
    void on_ssl_handshake(system::error_code const& ec);
-   void on_write(system::error_code const& ec, std::size_t n);
+   void on_write(std::size_t n);
    void on_read(system::error_code const& ec, std::size_t n);
-   void on_setup(system::error_code const& ec, generic_response const& resp);
+   void on_setup(system::error_code const& ec, std::string_view diagnostic);
    void log(logger::level lvl, std::string_view msg);
    void log(logger::level lvl, std::string_view msg1, std::string_view msg2);
    void log(logger::level lvl, std::string_view op, system::error_code const& ec);

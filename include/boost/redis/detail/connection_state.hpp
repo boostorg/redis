@@ -15,6 +15,8 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
+#include <string>
+
 namespace boost::redis::detail {
 
 // Contains all the members in connection that don't depend on the Executor.
@@ -23,9 +25,8 @@ struct connection_state {
    connection_logger logger;
    config cfg{};
    multiplexer mpx{};
-   generic_response setup_resp{};
+   std::string setup_diagnostic{};
    request ping_req{};
-   generic_response ping_resp{};
 };
 
 }  // namespace boost::redis::detail

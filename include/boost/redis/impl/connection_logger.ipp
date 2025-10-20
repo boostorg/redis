@@ -114,21 +114,16 @@ void connection_logger::on_ssl_handshake(system::error_code const& ec)
    logger_.fn(logger::level::info, msg_);
 }
 
-void connection_logger::on_write(system::error_code const& ec, std::size_t n)
+void connection_logger::on_write(std::size_t n)
 {
-   if (logger_.lvl < logger::level::info)
+   if (logger_.lvl < logger::level::debug)
       return;
 
-   if (ec) {
-      msg_ = "Writer task error: ";
-      format_error_code(ec, msg_);
-   } else {
-      msg_ = "Writer task: ";
-      msg_ += std::to_string(n);
-      msg_ += " bytes written.";
-   }
+   msg_ = "Writer task: ";
+   msg_ += std::to_string(n);
+   msg_ += " bytes written.";
 
-   logger_.fn(logger::level::info, msg_);
+   logger_.fn(logger::level::debug, msg_);
 }
 
 void connection_logger::on_read(system::error_code const& ec, std::size_t bytes_read)
@@ -147,7 +142,7 @@ void connection_logger::on_read(system::error_code const& ec, std::size_t bytes_
    logger_.fn(logger::level::debug, msg_);
 }
 
-void connection_logger::on_setup(system::error_code const& ec, generic_response const& resp)
+void connection_logger::on_setup(system::error_code const& ec, std::string_view diagnostic)
 {
    if (logger_.lvl < logger::level::info)
       return;
@@ -155,9 +150,9 @@ void connection_logger::on_setup(system::error_code const& ec, generic_response 
    msg_ = "Setup request execution: ";
    if (ec) {
       format_error_code(ec, msg_);
-      if (resp.has_error()) {
+      if (!diagnostic.empty()) {
          msg_ += " (";
-         msg_ += resp.error().diagnostic;
+         msg_ += diagnostic;
          msg_ += ')';
       }
    } else {

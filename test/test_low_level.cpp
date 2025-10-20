@@ -529,6 +529,7 @@ BOOST_AUTO_TEST_CASE(cover_error)
    check_error("boost.redis", boost::redis::error::incompatible_node_depth);
    check_error("boost.redis", boost::redis::error::resp3_hello);
    check_error("boost.redis", boost::redis::error::exceeds_maximum_read_buffer_size);
+   check_error("boost.redis", boost::redis::error::write_timeout);
 }
 
 std::string get_type_as_str(boost::redis::resp3::type t)
