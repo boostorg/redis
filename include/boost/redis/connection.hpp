@@ -287,11 +287,6 @@ public:
    }
 };
 
-system::error_code translate_parallel_group_errors(
-   std::array<std::size_t, 3u> order,
-   system::error_code reader_ec,
-   system::error_code writer_ec);
-
 template <class Executor>
 class run_op {
 private:
@@ -325,12 +320,11 @@ public:
    template <class Self>
    void operator()(
       Self& self,
-      std::array<std::size_t, 3u> order,
-      system::error_code health_check_ec,
+      std::array<std::size_t, 2u> order,
       system::error_code reader_ec,
       system::error_code writer_ec)
    {
-      (*this)(self, translate_parallel_group_errors(order, health_check_ec, reader_ec, writer_ec));
+      (*this)(self, order[0u] == 0u ? reader_ec : writer_ec);
    }
 
    template <class Self>

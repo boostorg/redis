@@ -21,19 +21,6 @@ logger detail::make_stderr_logger(logger::level lvl, std::string prefix)
    });
 }
 
-system::error_code detail::translate_parallel_group_errors(
-   std::array<std::size_t, 3u> order,
-   system::error_code health_check_ec,
-   system::error_code reader_ec,
-   system::error_code writer_ec)
-{
-   switch (order[0]) {
-      case 1u: return reader_ec;
-      case 2u: return writer_ec;
-      default: BOOST_ASSERT(false); return system::error_code();
-   }
-}
-
 connection::connection(executor_type ex, asio::ssl::context ctx, logger lgr)
 : impl_{std::move(ex), std::move(ctx), std::move(lgr)}
 { }
