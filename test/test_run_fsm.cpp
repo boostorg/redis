@@ -471,7 +471,7 @@ void test_setup_request_success()
 
    // At this point, the setup request should be already queued. Simulate the writer
    BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 1u);
-   BOOST_TEST_EQ(fix.st.mpx.commit_write(), 0u);
+   BOOST_TEST(fix.st.mpx.commit_write(fix.st.mpx.get_write_buffer().size()));
 
    // Simulate a successful read
    read(fix.st.mpx, "+OK\r\n");
@@ -523,7 +523,7 @@ void test_setup_request_server_error()
 
    // At this point, the setup request should be already queued. Simulate the writer
    BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 1u);
-   BOOST_TEST_EQ(fix.st.mpx.commit_write(), 0u);
+   BOOST_TEST(fix.st.mpx.commit_write(fix.st.mpx.get_write_buffer().size()));
 
    // Simulate a successful read
    read(fix.st.mpx, "-ERR: wrong command\r\n");
