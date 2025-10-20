@@ -98,7 +98,7 @@ public:
     *  
     *  @param cfg Configuration options.
     */
-   explicit request(config cfg = config{true, false, true, true})
+   explicit request(config cfg = config{false, false, true, true})
    : cfg_{cfg}
    { }
 
