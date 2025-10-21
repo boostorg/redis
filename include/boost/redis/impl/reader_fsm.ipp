@@ -9,6 +9,7 @@
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
+#include <boost/redis/impl/log_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
@@ -28,19 +29,19 @@ reader_fsm::action reader_fsm::resume(
          // Prepare the buffer for the read operation
          ec = st.mpx.prepare_read();
          if (ec) {
-            st.logger.trace("Reader task: error in prepare_read", ec);
+            log_debug(st.logger, "Reader task: error in prepare_read", ec);
             return {ec};
          }
 
          // Read. The connection might spend health_check_interval without writing data.
          // Give it another health_check_interval for the response to arrive.
          // If we don't get anything in this time, consider the connection as dead
-         st.logger.trace("Reader task: issuing read");
+         log_debug(st.logger, "Reader task: issuing read");
          BOOST_REDIS_YIELD(resume_point_, 1, action::read_some(2 * st.cfg.health_check_interval))
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            st.logger.trace("Reader task: cancelled (1)");
+            log_debug(st.logger, "Reader task: cancelled (1)");
             return system::error_code(asio::error::operation_aborted);
          }
 
@@ -52,7 +53,11 @@ reader_fsm::action reader_fsm::resume(
          }
 
          // Log what we read
-         st.logger.on_read(ec, bytes_read);
+         if (ec) {
+            log_debug(st.logger, "Reader task: ", bytes_read, " bytes read, error: ", ec);
+         } else {
+            log_debug(st.logger, "Reader task: ", bytes_read, " bytes read");
+         }
 
          // Process the bytes read, even if there was an error
          st.mpx.commit_read(bytes_read);
@@ -72,12 +77,12 @@ reader_fsm::action reader_fsm::resume(
             if (ec) {
                // TODO: Perhaps log what has not been consumed to aid
                // debugging.
-               st.logger.trace("Reader task: error processing message", ec);
+               log_debug(st.logger, "Reader task: error processing message", ec);
                return ec;
             }
 
             if (res_.first == consume_result::needs_more) {
-               st.logger.trace("Reader task: incomplete message received");
+               log_debug(st.logger, "Reader task: incomplete message received");
                break;
             }
 
@@ -85,13 +90,13 @@ reader_fsm::action reader_fsm::resume(
                BOOST_REDIS_YIELD(resume_point_, 2, action::notify_push_receiver(res_.second))
                // Check for cancellations
                if (is_terminal_cancel(cancel_state)) {
-                  st.logger.trace("Reader task: cancelled (2)");
+                  log_debug(st.logger, "Reader task: cancelled (2)");
                   return system::error_code(asio::error::operation_aborted);
                }
 
                // Check for other errors
                if (ec) {
-                  st.logger.trace("Reader task: error notifying push receiver", ec);
+                  log_debug(st.logger, "Reader task: error notifying push receiver", ec);
                   return ec;
                }
             } else {

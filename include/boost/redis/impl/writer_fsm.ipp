@@ -10,12 +10,13 @@
 #define BOOST_REDIS_WRITER_FSM_IPP
 
 #include <boost/redis/adapter/any_adapter.hpp>
-#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
+#include <boost/redis/impl/log_utils.hpp>
+#include <boost/redis/logger.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
@@ -27,7 +28,7 @@
 namespace boost::redis::detail {
 
 inline void process_ping_node(
-   connection_logger& lgr,
+   buffered_logger& lgr,
    resp3::basic_node<std::string_view> const& nd,
    system::error_code& ec)
 {
@@ -38,11 +39,11 @@ inline void process_ping_node(
    }
 
    if (ec) {
-      lgr.log(logger::level::info, "Health checker: server answered ping with an error", nd.value);
+      log_info(lgr, "Health checker: server answered ping with an error", nd.value);
    }
 }
 
-inline any_adapter make_ping_adapter(connection_logger& lgr)
+inline any_adapter make_ping_adapter(buffered_logger& lgr)
 {
    return any_adapter{
       [&lgr](any_adapter::parse_event evt, resp3::node_view const& nd, system::error_code& ec) {
@@ -75,7 +76,7 @@ writer_action writer_fsm::resume(
 
                // Commit the received bytes. This accounts for partial success
                bool finished = st.mpx.commit_write(bytes_written);
-               st.logger.on_write(bytes_written);
+               log_debug(st.logger, "Writer task: ", bytes_written, " bytes written");
 
                // Check for cancellations and translate error codes
                if (is_terminal_cancel(cancel_state))
@@ -86,9 +87,9 @@ writer_action writer_fsm::resume(
                // Check for errors
                if (ec) {
                   if (ec == asio::error::operation_aborted) {
-                     st.logger.trace("Writer task: cancelled (1).");
+                     log_debug(st.logger, "Writer task: cancelled (1).");
                   } else {
-                     st.logger.trace("Writer task error", ec);
+                     log_debug(st.logger, "Writer task error", ec);
                   }
                   return ec;
                }
@@ -104,7 +105,7 @@ writer_action writer_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            st.logger.trace("Writer task: cancelled (2).");
+            log_debug(st.logger, "Writer task: cancelled (2).");
             return system::error_code(asio::error::operation_aborted);
          }
 

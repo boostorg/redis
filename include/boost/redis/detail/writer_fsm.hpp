@@ -9,9 +9,8 @@
 #ifndef BOOST_REDIS_WRITER_FSM_HPP
 #define BOOST_REDIS_WRITER_FSM_HPP
 
-#include <boost/redis/detail/connection_state.hpp>
-
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <chrono>
@@ -22,8 +21,7 @@
 namespace boost::redis::detail {
 
 // Forward decls
-class connection_logger;
-class multiplexer;
+struct connection_state;
 
 // What should we do next?
 enum class writer_action_type

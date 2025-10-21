@@ -10,7 +10,6 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
@@ -138,7 +137,7 @@ struct connection_impl {
    , reconnect_timer_{ex}
    , ping_timer_{ex}
    , receive_channel_{ex, 256}
-   , st_{std::move(lgr)}
+   , st_{{std::move(lgr)}}
    {
       set_receive_adapter(any_adapter{ignore});
       writer_cv_.expires_at((std::chrono::steady_clock::time_point::max)());
@@ -863,7 +862,7 @@ private:
    // Used by both this class and connection
    void set_stderr_logger(logger::level lvl, const config& cfg)
    {
-      impl_->st_.logger.reset(detail::make_stderr_logger(lvl, cfg.log_prefix));
+      impl_->st_.logger.lgr = detail::make_stderr_logger(lvl, cfg.log_prefix);
    }
 
    // Initiation for async_run. This is required because we need access

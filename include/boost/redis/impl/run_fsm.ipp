@@ -14,6 +14,7 @@
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
+#include <boost/redis/impl/log_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
@@ -67,7 +68,16 @@ inline any_adapter make_setup_adapter(connection_state& st)
 
 inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
 {
-   st.logger.on_setup(elm.get_error(), st.setup_diagnostic);
+   const auto ec = elm.get_error();
+   if (ec) {
+      if (st.setup_diagnostic.empty()) {
+         log_info(st.logger, "Setup request execution: ", ec);
+      } else {
+         log_info(st.logger, "Setup request execution: ", ec, " (", st.setup_diagnostic, ")");
+      }
+   } else {
+      log_info(st.logger, "Setup request execution: success");
+   }
 }
 
 run_action run_fsm::resume(
@@ -81,7 +91,7 @@ run_action run_fsm::resume(
       // Check config
       ec = check_config(st.cfg);
       if (ec) {
-         st.logger.log(logger::level::err, "Invalid configuration", ec);
+         log(st.logger, logger::level::err, "Invalid configuration", ec);
          stored_ec_ = ec;
          BOOST_REDIS_YIELD(resume_point_, 1, run_action_type::immediate)
          return stored_ec_;
@@ -99,7 +109,7 @@ run_action run_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            st.logger.trace("Run: cancelled (1)");
+            log_debug(st.logger, "Run: cancelled (1)");
             return system::error_code(asio::error::operation_aborted);
          }
 
@@ -139,7 +149,7 @@ run_action run_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            st.logger.trace("Run: cancelled (2)");
+            log_debug(st.logger, "Run: cancelled (2)");
             return system::error_code(asio::error::operation_aborted);
          }
 
@@ -153,7 +163,7 @@ run_action run_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            st.logger.trace("Run: cancelled (3)");
+            log_debug(st.logger, "Run: cancelled (3)");
             return system::error_code(asio::error::operation_aborted);
          }
       }

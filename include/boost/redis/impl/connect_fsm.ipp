@@ -8,15 +8,58 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connect_fsm.hpp>
-#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/error.hpp>
+#include <boost/redis/impl/log_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/assert.hpp>
 
+#include <string>
+
 namespace boost::redis::detail {
+
+// Logging
+inline void format_tcp_endpoint(const asio::ip::tcp::endpoint& ep, std::string& to)
+{
+   // This formatting is inspired by Asio's endpoint operator<<
+   const auto& addr = ep.address();
+   if (addr.is_v6())
+      to += '[';
+   to += addr.to_string();
+   if (addr.is_v6())
+      to += ']';
+   to += ':';
+   to += std::to_string(ep.port());
+}
+
+template <>
+struct log_traits<asio::ip::tcp::endpoint> {
+   static inline void log(std::string& to, const asio::ip::tcp::endpoint& value)
+   {
+      format_tcp_endpoint(value, to);
+   }
+};
+
+template <>
+struct log_traits<asio::ip::tcp::resolver::results_type> {
+   static inline void log(std::string& to, const asio::ip::tcp::resolver::results_type& value)
+   {
+      auto iter = value.cbegin();
+      auto end = value.cend();
+
+      if (iter != end) {
+         format_tcp_endpoint(iter->endpoint(), to);
+         ++iter;
+         for (; iter != end; ++iter) {
+            to += ", ";
+            format_tcp_endpoint(iter->endpoint(), to);
+         }
+      }
+   }
+};
 
 inline transport_type transport_from_config(const config& cfg)
 {
@@ -61,7 +104,11 @@ connect_action connect_fsm::resume(
    ec = translate_timeout_error(ec, cancel_state, error::resolve_timeout);
 
    // Log it
-   lgr_->on_resolve(ec, resolver_results);
+   if (ec) {
+      log_info(*lgr_, "Error resolving the server hostname: ", ec);
+   } else {
+      log_info(*lgr_, "Resolve results: ", resolver_results);
+   }
 
    // Delegate to the regular resume function
    return resume(ec, st, cancel_state);
@@ -77,7 +124,11 @@ connect_action connect_fsm::resume(
    ec = translate_timeout_error(ec, cancel_state, error::connect_timeout);
 
    // Log it
-   lgr_->on_connect(ec, selected_endpoint);
+   if (ec) {
+      log_info(*lgr_, "Failed to connect to the server: ", ec);
+   } else {
+      log_info(*lgr_, "Connected to ", selected_endpoint);
+   }
 
    // Delegate to the regular resume function
    return resume(ec, st, cancel_state);
@@ -108,7 +159,11 @@ connect_action connect_fsm::resume(
          ec = translate_timeout_error(ec, cancel_state, error::connect_timeout);
 
          // Log it
-         lgr_->on_connect(ec, cfg_->unix_socket);
+         if (ec) {
+            log_info(*lgr_, "Failed to connect to the server: ", ec);
+         } else {
+            log_info(*lgr_, "Connected to ", cfg_->unix_socket);
+         }
 
          // If this failed, we can't continue
          if (ec) {
@@ -156,7 +211,11 @@ connect_action connect_fsm::resume(
             ec = translate_timeout_error(ec, cancel_state, error::ssl_handshake_timeout);
 
             // Log it
-            lgr_->on_ssl_handshake(ec);
+            if (ec) {
+               log_info(*lgr_, "Failed to perform SSL handshake: ", ec);
+            } else {
+               log_info(*lgr_, "Successfully performed SSL handshake");
+            }
 
             // If this failed, we can't continue
             if (ec) {
