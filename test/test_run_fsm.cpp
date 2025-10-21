@@ -31,7 +31,6 @@ using detail::run_action_type;
 using detail::run_action;
 using boost::system::error_code;
 using boost::asio::cancellation_type_t;
-using detail::connection_logger;
 using namespace std::chrono_literals;
 
 // Operators
@@ -86,7 +85,7 @@ struct fixture : detail::log_fixture {
    }
 
    fixture(config&& cfg = default_config())
-   : st{make_logger(), std::move(cfg)}
+   : st{{make_logger()}, std::move(cfg)}
    { }
 };
 

@@ -39,7 +39,7 @@ inline void process_ping_node(
    }
 
    if (ec) {
-      log_info(lgr, "Health checker: server answered ping with an error", nd.value);
+      log_info(lgr, "Health checker: server answered ping with an error: ", nd.value);
    }
 }
 
@@ -76,7 +76,7 @@ writer_action writer_fsm::resume(
 
                // Commit the received bytes. This accounts for partial success
                bool finished = st.mpx.commit_write(bytes_written);
-               log_debug(st.logger, "Writer task: ", bytes_written, " bytes written");
+               log_debug(st.logger, "Writer task: ", bytes_written, " bytes written.");
 
                // Check for cancellations and translate error codes
                if (is_terminal_cancel(cancel_state))
@@ -89,7 +89,7 @@ writer_action writer_fsm::resume(
                   if (ec == asio::error::operation_aborted) {
                      log_debug(st.logger, "Writer task: cancelled (1).");
                   } else {
-                     log_debug(st.logger, "Writer task error", ec);
+                     log_debug(st.logger, "Writer task error: ", ec);
                   }
                   return ec;
                }

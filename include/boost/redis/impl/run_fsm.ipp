@@ -91,7 +91,7 @@ run_action run_fsm::resume(
       // Check config
       ec = check_config(st.cfg);
       if (ec) {
-         log(st.logger, logger::level::err, "Invalid configuration", ec);
+         log(st.logger, logger::level::err, "Invalid configuration: ", ec);
          stored_ec_ = ec;
          BOOST_REDIS_YIELD(resume_point_, 1, run_action_type::immediate)
          return stored_ec_;

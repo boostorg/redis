@@ -8,7 +8,6 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connect_fsm.hpp>
-#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 
@@ -29,7 +28,7 @@ namespace asio = boost::asio;
 using detail::connect_fsm;
 using detail::connect_action_type;
 using detail::connect_action;
-using detail::connection_logger;
+using detail::buffered_logger;
 using detail::redis_stream_state;
 using detail::transport_type;
 using asio::ip::tcp;
@@ -105,7 +104,7 @@ auto resolver_data = [] {
 // Reduce duplication
 struct fixture : detail::log_fixture {
    config cfg;
-   connection_logger lgr{make_logger()};
+   buffered_logger lgr{make_logger()};
    connect_fsm fsm{cfg, lgr};
    redis_stream_state st{};
 

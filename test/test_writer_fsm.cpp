@@ -6,7 +6,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
@@ -36,7 +35,6 @@ using detail::writer_action;
 using detail::connection_state;
 using boost::system::error_code;
 using boost::asio::cancellation_type_t;
-using detail::connection_logger;
 using namespace std::chrono_literals;
 
 // Operators
@@ -110,7 +108,7 @@ struct test_elem {
 };
 
 struct fixture : detail::log_fixture {
-   connection_state st{make_logger()};
+   connection_state st{{make_logger()}};
    writer_fsm fsm;
 
    fixture()

@@ -96,7 +96,7 @@ void copy_to(multiplexer& mpx, std::string_view data)
 }
 
 struct fixture : redis::detail::log_fixture {
-   connection_state st{make_logger()};
+   connection_state st{{make_logger()}};
    generic_response resp;
 
    fixture()

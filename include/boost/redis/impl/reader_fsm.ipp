@@ -29,7 +29,7 @@ reader_fsm::action reader_fsm::resume(
          // Prepare the buffer for the read operation
          ec = st.mpx.prepare_read();
          if (ec) {
-            log_debug(st.logger, "Reader task: error in prepare_read", ec);
+            log_debug(st.logger, "Reader task: error in prepare_read: ", ec);
             return {ec};
          }
 
@@ -77,7 +77,7 @@ reader_fsm::action reader_fsm::resume(
             if (ec) {
                // TODO: Perhaps log what has not been consumed to aid
                // debugging.
-               log_debug(st.logger, "Reader task: error processing message", ec);
+               log_debug(st.logger, "Reader task: error processing message: ", ec);
                return ec;
             }
 
@@ -96,7 +96,7 @@ reader_fsm::action reader_fsm::resume(
 
                // Check for other errors
                if (ec) {
-                  log_debug(st.logger, "Reader task: error notifying push receiver", ec);
+                  log_debug(st.logger, "Reader task: error notifying push receiver: ", ec);
                   return ec;
                }
             } else {
