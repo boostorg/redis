@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 namespace boost::redis::detail {
 
@@ -47,25 +48,31 @@ struct log_traits<system::error_code> {
    }
 };
 
+template <class... Args>
+void format_log_args(std::string& to, const Args&... args)
+{
+   auto dummy = {(log_traits<Args>::log(to, args), 0)...};
+   ignore_unused(dummy);
+}
+
 // Logs a message with the specified severity to the logger.
 // Formatting won't be performed if the logger's level is inferior to lvl.
 // args are stringized using log_traits, and concatenated.
-template <class... Args>
-void log(buffered_logger& to, logger::level lvl, const Args&... args)
+template <class Arg0, class... Rest>
+void log(buffered_logger& to, logger::level lvl, const Arg0& arg0, const Rest&... arg_rest)
 {
    // Severity check
    if (to.lgr.lvl < lvl)
       return;
 
-   // Clear the buffer
-   to.buffer.clear();
-
-   // Format all arguments
-   auto dummy = {(log_traits<Args>::log(to.buffer, args), 0)...};
-   ignore_unused(dummy);
-
-   // Invoke the function
-   to.lgr.fn(lvl, to.buffer);
+   // Optimization: if we get passed a single string, don't copy it to the buffer
+   if constexpr (sizeof...(Rest) == 0u && std::is_convertible_v<Arg0, std::string_view>) {
+      to.lgr.fn(lvl, arg0);
+   } else {
+      to.buffer.clear();
+      format_log_args(to.buffer, arg0, arg_rest...);
+      to.lgr.fn(lvl, to.buffer);
+   }
 }
 
 // Shorthand for each log level we use
