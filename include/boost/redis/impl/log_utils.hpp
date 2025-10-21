@@ -67,6 +67,12 @@ void log_info(buffered_logger& to, const Args&... args)
    log(to, logger::level::info, args...);
 }
 
+template <class... Args>
+void log_err(buffered_logger& to, const Args&... args)
+{
+   log(to, logger::level::err, args...);
+}
+
 }  // namespace boost::redis::detail
 
 #endif  // BOOST_REDIS_LOGGER_HPP
