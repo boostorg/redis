@@ -379,7 +379,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Setup Boost
-      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+      run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
     
     - name: Build docs
       run: |
