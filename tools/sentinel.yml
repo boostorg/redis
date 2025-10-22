@@ -1,6 +1,6 @@
 services:
   redis-master:
-    image: redis:7.4.2-alpine
+    image: ${SERVER_IMAGE}
     container_name: redis-master
     network_mode: host
     command:
@@ -16,7 +16,7 @@ services:
 
 
   redis-slave-1:
-    image: redis:7.4.2-alpine
+    image: ${SERVER_IMAGE}
     container_name: redis-slave-1
     depends_on:
       - redis-master
@@ -35,7 +35,7 @@ services:
 
 
   redis-slave-2:
-    image: redis:7.4.2-alpine
+    image: ${SERVER_IMAGE}
     container_name: redis-slave-2
     depends_on:
       - redis-master
@@ -54,7 +54,7 @@ services:
 
 
   sentinel-1:
-    image: redis:7.4.2-alpine
+    image: ${SERVER_IMAGE}
     container_name: sentinel-1
     network_mode: host
     command: >
@@ -68,7 +68,7 @@ services:
 
 
   sentinel-2:
-    image: redis:7.4.2-alpine
+    image: ${SERVER_IMAGE}
     container_name: sentinel-2
     network_mode: host
     command: >
@@ -81,7 +81,7 @@ services:
             redis-sentinel /etc/sentinel.conf'
 
   sentinel-3:
-    image: redis:7.4.2-alpine
+    image: ${SERVER_IMAGE}
     container_name: sentinel-3
     network_mode: host
     command: >
