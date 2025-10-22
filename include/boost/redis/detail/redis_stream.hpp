@@ -9,8 +9,8 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connect_fsm.hpp>
-#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/error.hpp>
+#include <boost/redis/logger.hpp>
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/cancel_after.hpp>
@@ -170,7 +170,7 @@ public:
 
    // I/O
    template <class CompletionToken>
-   auto async_connect(const config& cfg, connection_logger& l, CompletionToken&& token)
+   auto async_connect(const config& cfg, buffered_logger& l, CompletionToken&& token)
    {
       return asio::async_compose<CompletionToken, void(system::error_code)>(
          connect_op{*this, connect_fsm(cfg, l)},

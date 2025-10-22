@@ -19,7 +19,7 @@
 
 namespace boost::redis::detail {
 
-class connection_logger;
+struct buffered_logger;
 
 // What transport is redis_stream using?
 enum class transport_type
@@ -63,10 +63,10 @@ struct connect_action {
 class connect_fsm {
    int resume_point_{0};
    const config* cfg_{nullptr};
-   connection_logger* lgr_{nullptr};
+   buffered_logger* lgr_{nullptr};
 
 public:
-   connect_fsm(const config& cfg, connection_logger& lgr) noexcept
+   connect_fsm(const config& cfg, buffered_logger& lgr) noexcept
    : cfg_(&cfg)
    , lgr_(&lgr)
    { }

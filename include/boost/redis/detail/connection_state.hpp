@@ -10,8 +10,8 @@
 #define BOOST_REDIS_CONNECTION_STATE_HPP
 
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/connection_logger.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
@@ -22,7 +22,7 @@ namespace boost::redis::detail {
 // Contains all the members in connection that don't depend on the Executor.
 // Makes implementing sans-io algorithms easier
 struct connection_state {
-   connection_logger logger;
+   buffered_logger logger;
    config cfg{};
    multiplexer mpx{};
    std::string setup_diagnostic{};

@@ -9,8 +9,6 @@
 #ifndef BOOST_REDIS_RUN_FSM_HPP
 #define BOOST_REDIS_RUN_FSM_HPP
 
-#include <boost/redis/detail/connection_state.hpp>
-
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -19,8 +17,7 @@
 namespace boost::redis::detail {
 
 // Forward decls
-class connection_logger;
-class multiplexer;
+struct connection_state;
 
 // What should we do next?
 enum class run_action_type
