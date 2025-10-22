@@ -1,13 +1,8 @@
-version: "3.8"
-
-
 services:
   redis-master:
     image: redis:7.4.2-alpine
     container_name: redis-master
-    hostname: redis-master
-    ports:
-      - "6379:6379"
+    network_mode: host
     command:
       [
         "redis-server",
@@ -23,23 +18,17 @@ services:
   redis-slave-1:
     image: redis:7.4.2-alpine
     container_name: redis-slave-1
-    hostname: redis-slave-1
     depends_on:
       - redis-master
-    ports:
-      - "6380:6379"
-    volumes:
-      - ./data/slave1:/data
+    network_mode: host
     command:
       [
         "redis-server",
-        "--replicaof",
-        "redis-master",
-        "6379",
-        "--replica-announce-ip",
-        "127.0.0.1",
-        "--replica-announce-port",
+        "--port",
         "6380",
+        "--replicaof",
+        "127.0.0.1",
+        "6379",
         "--protected-mode",
         "no"
       ]
@@ -48,23 +37,17 @@ services:
   redis-slave-2:
     image: redis:7.4.2-alpine
     container_name: redis-slave-2
-    hostname: redis-slave-2
     depends_on:
       - redis-master
-    ports:
-      - "6381:6379"
-    volumes:
-      - ./data/slave2:/data
+    network_mode: host
     command:
       [
         "redis-server",
-        "--replicaof",
-        "redis-master",
-        "6379",
-        "--replica-announce-ip",
-        "127.0.0.1",
-        "--replica-announce-port",
+        "--port",
         "6381",
+        "--replicaof",
+        "127.0.0.1",
+        "6379",
         "--protected-mode",
         "no"
       ]
@@ -73,16 +56,10 @@ services:
   sentinel-1:
     image: redis:7.4.2-alpine
     container_name: sentinel-1
-    hostname: sentinel-1
-    depends_on:
-      - redis-master
-    ports:
-      - "26379:26379"
+    network_mode: host
     command: >
-      sh -c 'echo "bind 0.0.0.0" > /etc/sentinel.conf &&
+      sh -c 'echo "port 26379" >> /etc/sentinel.conf &&
             echo "sentinel monitor mymaster 127.0.0.1 6379 2" >> /etc/sentinel.conf &&
-            echo "sentinel announce-ip 127.0.0.1" >> /etc/sentinel.conf &&
-            echo "sentinel announce-port 26379" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel down-after-milliseconds mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
@@ -93,13 +70,9 @@ services:
   sentinel-2:
     image: redis:7.4.2-alpine
     container_name: sentinel-2
-    hostname: sentinel-2
-    depends_on:
-      - redis-master
-    ports:
-      - "26380:26379"
+    network_mode: host
     command: >
-      sh -c 'echo "bind 0.0.0.0" > /etc/sentinel.conf &&
+      sh -c 'echo "port 26380" >> /etc/sentinel.conf &&
             echo "sentinel monitor mymaster 127.0.0.1 6379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel down-after-milliseconds mymaster 10000" >> /etc/sentinel.conf &&
@@ -110,33 +83,12 @@ services:
   sentinel-3:
     image: redis:7.4.2-alpine
     container_name: sentinel-3
-    hostname: sentinel-3
-    depends_on:
-      - redis-master
-    ports:
-      - "26381:26379"
+    network_mode: host
     command: >
-      sh -c 'echo "bind 0.0.0.0" > /etc/sentinel.conf &&
+      sh -c 'echo "port 26381" >> /etc/sentinel.conf &&
             echo "sentinel monitor mymaster 127.0.0.1 6379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel down-after-milliseconds mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
             redis-sentinel /etc/sentinel.conf'
-
-
-#   redisinsight:
-#     image: redis/redisinsight:latest
-#     container_name: redisinsight
-#     ports:
-#       - "5540:5540"
-#     networks:
-#       redis-net:
-#         ipv4_address: 172.21.0.9
-
-# networks:
-#   redis-net:
-#     driver: bridge
-#     ipam:
-#       config:
-#         - subnet: 172.21.0.0/16
