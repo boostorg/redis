@@ -6,11 +6,18 @@ services:
     command:
       [
         "redis-server",
-        "--replica-announce-ip",
-        "localhost",
-        "--protected-mode",
-        "no"
+        "--replica-announce-ip", "localhost",
+        "--protected-mode", "no",
+        "--port", "0",
+        "--tls-port", "6379",
+        "--tls-cert-file", "/docker/tls/server.crt",
+        "--tls-key-file", "/docker/tls/server.key",
+        "--tls-ca-cert-file", "/docker/tls/ca.crt",
+        "--tls-auth-clients", "no",
+        "--tls-replication", "yes"
       ]
+    volumes:
+      - ./docker:/docker
 
 
   redis-slave-1:
@@ -22,16 +29,19 @@ services:
     command:
       [
         "redis-server",
-        "--replica-announce-ip",
-        "localhost",
-        "--port",
-        "6380",
-        "--replicaof",
-        "localhost",
-        "6379",
-        "--protected-mode",
-        "no"
+        "--replica-announce-ip", "localhost",
+        "--replicaof", "localhost", "6379",
+        "--protected-mode", "no",
+        "--port", "0",
+        "--tls-port", "6380",
+        "--tls-cert-file", "/docker/tls/server.crt",
+        "--tls-key-file", "/docker/tls/server.key",
+        "--tls-ca-cert-file", "/docker/tls/ca.crt",
+        "--tls-auth-clients", "no",
+        "--tls-replication", "yes"
       ]
+    volumes:
+      - ./docker:/docker
 
 
   redis-slave-2:
@@ -43,16 +53,19 @@ services:
     command:
       [
         "redis-server",
-        "--replica-announce-ip",
-        "localhost",
-        "--port",
-        "6381",
-        "--replicaof",
-        "localhost",
-        "6379",
-        "--protected-mode",
-        "no"
+        "--replica-announce-ip", "localhost",
+        "--replicaof", "localhost", "6379",
+        "--protected-mode", "no",
+        "--port", "0",
+        "--tls-port", "6381",
+        "--tls-cert-file", "/docker/tls/server.crt",
+        "--tls-key-file", "/docker/tls/server.key",
+        "--tls-ca-cert-file", "/docker/tls/ca.crt",
+        "--tls-auth-clients", "no",
+        "--tls-replication", "yes"
       ]
+    volumes:
+      - ./docker:/docker
 
 
   sentinel-1:
@@ -60,7 +73,13 @@ services:
     container_name: sentinel-1
     network_mode: host
     command: >
-      sh -c 'echo "port 26379" >> /etc/sentinel.conf &&
+      sh -c 'echo "port 0" >> /etc/sentinel.conf &&
+            echo "tls-port 26379" >> /etc/sentinel.conf &&
+            echo "tls-cert-file /docker/tls/server.crt" >> /etc/sentinel.conf &&
+            echo "tls-key-file /docker/tls/server.key" >> /etc/sentinel.conf &&
+            echo "tls-ca-cert-file /docker/tls/ca.crt" >> /etc/sentinel.conf &&
+            echo "tls-auth-clients no" >> /etc/sentinel.conf &&
+            echo "tls-replication yes" >> /etc/sentinel.conf &&
             echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
@@ -69,6 +88,8 @@ services:
             echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
             redis-sentinel /etc/sentinel.conf'
+    volumes:
+      - ./docker:/docker
 
 
   sentinel-2:
@@ -76,7 +97,13 @@ services:
     container_name: sentinel-2
     network_mode: host
     command: >
-      sh -c 'echo "port 26380" >> /etc/sentinel.conf &&
+      sh -c 'echo "port 0" >> /etc/sentinel.conf &&
+            echo "tls-port 26380" >> /etc/sentinel.conf &&
+            echo "tls-cert-file /docker/tls/server.crt" >> /etc/sentinel.conf &&
+            echo "tls-key-file /docker/tls/server.key" >> /etc/sentinel.conf &&
+            echo "tls-ca-cert-file /docker/tls/ca.crt" >> /etc/sentinel.conf &&
+            echo "tls-auth-clients no" >> /etc/sentinel.conf &&
+            echo "tls-replication yes" >> /etc/sentinel.conf &&
             echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
@@ -85,13 +112,21 @@ services:
             echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
             redis-sentinel /etc/sentinel.conf'
+    volumes:
+      - ./docker:/docker
 
   sentinel-3:
     image: ${SERVER_IMAGE}
     container_name: sentinel-3
     network_mode: host
     command: >
-      sh -c 'echo "port 26381" >> /etc/sentinel.conf &&
+      sh -c 'echo "port 0" >> /etc/sentinel.conf &&
+            echo "tls-port 26381" >> /etc/sentinel.conf &&
+            echo "tls-cert-file /docker/tls/server.crt" >> /etc/sentinel.conf &&
+            echo "tls-key-file /docker/tls/server.key" >> /etc/sentinel.conf &&
+            echo "tls-ca-cert-file /docker/tls/ca.crt" >> /etc/sentinel.conf &&
+            echo "tls-auth-clients no" >> /etc/sentinel.conf &&
+            echo "tls-replication yes" >> /etc/sentinel.conf &&
             echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
@@ -100,3 +135,5 @@ services:
             echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
             redis-sentinel /etc/sentinel.conf'
+    volumes:
+      - ./docker:/docker
