@@ -16,7 +16,6 @@
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
-#include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>

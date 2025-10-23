@@ -4,13 +4,18 @@
  * accompanying file LICENSE.txt)
  */
 
+#ifndef BOOST_REDIS_SETUP_REQUEST_UTILS_HPP
+#define BOOST_REDIS_SETUP_REQUEST_UTILS_HPP
+
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
 
 namespace boost::redis::detail {
 
-void compose_setup_request(config& cfg)
+// Modifies config::setup to make a request suitable to be sent
+// to the server using async_exec
+inline void compose_setup_request(config& cfg)
 {
    if (!cfg.use_setup) {
       // We're not using the setup request as-is, but should compose one based on
@@ -49,12 +54,6 @@ void compose_setup_request(config& cfg)
    cfg.setup.get_config().cancel_on_connection_lost = true;
 }
 
-void clear_response(generic_response& res)
-{
-   if (res.has_value())
-      res->clear();
-   else
-      res.emplace();
-}
-
 }  // namespace boost::redis::detail
+
+#endif  // BOOST_REDIS_RUNNER_HPP
