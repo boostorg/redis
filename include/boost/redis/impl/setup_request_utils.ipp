@@ -49,12 +49,4 @@ void compose_setup_request(config& cfg)
    cfg.setup.get_config().cancel_on_connection_lost = true;
 }
 
-void clear_response(generic_response& res)
-{
-   if (res.has_value())
-      res->clear();
-   else
-      res.emplace();
-}
-
 }  // namespace boost::redis::detail

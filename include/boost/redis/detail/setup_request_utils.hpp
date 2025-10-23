@@ -17,9 +17,6 @@ namespace boost::redis::detail {
 // to the server using async_exec
 void compose_setup_request(config& cfg);
 
-// Completely clears a response
-void clear_response(generic_response& res);
-
 }  // namespace boost::redis::detail
 
 #endif  // BOOST_REDIS_RUNNER_HPP
