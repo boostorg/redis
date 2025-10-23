@@ -94,6 +94,10 @@ enum class error
 
    /// Timeout while writing data to the server.
    write_timeout,
+
+   /// The configuration specified UNIX sockets with Sentinel, which is not supported.
+   // TODO: implement
+   unix_sockets_sentinel_unsupported,
 };
 
 /**

@@ -19,7 +19,11 @@
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/local/basic_endpoint.hpp>  // for BOOST_ASIO_HAS_LOCAL_SOCKETS
+#include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
+
+#include <cstddef>
+#include <vector>
 
 namespace boost::redis::detail {
 
@@ -28,6 +32,8 @@ inline system::error_code check_config(const config& cfg)
    if (!cfg.unix_socket.empty()) {
       if (cfg.use_ssl)
          return error::unix_sockets_ssl_unsupported;
+      if (!cfg.sentinel.addresses.empty())
+         return error::unix_sockets_sentinel_unsupported;
 #ifndef BOOST_ASIO_HAS_LOCAL_SOCKETS
       return error::unix_sockets_unsupported;
 #endif
@@ -80,6 +86,12 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
    }
 }
 
+// TODO
+inline void update_sentinel_list(
+   std::vector<address>& sentinels,
+   std::size_t current_index,  // the one to maintain and place first
+   boost::span<const address> other_sentinels);
+
 run_action run_fsm::resume(
    connection_state& st,
    system::error_code ec,
@@ -104,8 +116,80 @@ run_action run_fsm::resume(
       compose_ping_request(st.cfg, st.ping_req);
 
       for (;;) {
+         // Sentinel connect
+         if (!st.cfg.sentinel.addresses.empty()) {
+            // Ask Sentinel where our server lives
+            for (sentinel_idx_ = 0u; sentinel_idx_ < st.cfg.sentinel.addresses.size();
+                 ++sentinel_idx_) {
+               // Try to connect. TODO: we need a way to specify where and how to connect
+               BOOST_REDIS_YIELD(resume_point_, 2, run_action_type::connect)
+
+               // Check for cancellations
+               if (is_terminal_cancel(cancel_state)) {
+                  log_debug(st.logger, "Run: cancelled (10)");
+                  return system::error_code(asio::error::operation_aborted);
+               }
+
+               // Check for errors
+               if (ec) {
+                  log_info(st.logger, "Failed to connect to Sentinel at <TODO>");
+                  continue;
+               }
+
+               // Execute the Sentinel request
+               BOOST_REDIS_YIELD(resume_point_, 35, run_action_type::sentinel_request)
+
+               // Check for cancellations
+               if (is_terminal_cancel(cancel_state)) {
+                  log_debug(st.logger, "Run: cancelled (11)");
+                  return system::error_code(asio::error::operation_aborted);
+               }
+
+               // Check for errors
+               // TODO: these diagnostics are not good
+               if (ec) {
+                  log_info(st.logger, "Failed to execute Sentinel request for <TODO>");
+                  continue;
+               }
+
+               // Sentinel knows about this master. Update our config
+               update_sentinel_list(
+                  st.cfg.sentinel.addresses,
+                  sentinel_idx_,
+                  st.sentinel_resp.sentinels);
+
+               break;
+            }
+
+            // TODO: is this check reliable?
+            // TODO: this diagnostic is not good
+            if (ec) {
+               log_err(st.logger, "No Sentinel can be reached");
+
+               // If we are not going to try again, we're done
+               if (st.cfg.reconnect_wait_interval.count() == 0) {
+                  return ec;
+               }
+
+               // Wait for the reconnection interval.
+               // This is not technically what Redis docs recommends,
+               // but I think it's consistent with what non-sentinel run does
+               BOOST_REDIS_YIELD(resume_point_, 55, run_action_type::wait_for_reconnection)
+
+               // Check for cancellations
+               if (is_terminal_cancel(cancel_state)) {
+                  log_debug(st.logger, "Run: cancelled (35)");
+                  return system::error_code(asio::error::operation_aborted);
+               }
+
+               // Try again
+               continue;
+            }
+         }
+
          // Try to connect
-         BOOST_REDIS_YIELD(resume_point_, 2, run_action_type::connect)
+         // TODO: this should be done differently for Sentinel
+         BOOST_REDIS_YIELD(resume_point_, 20, run_action_type::connect)
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
@@ -153,18 +237,21 @@ run_action run_fsm::resume(
             return system::error_code(asio::error::operation_aborted);
          }
 
-         // If we are not going to try again, we're done
-         if (st.cfg.reconnect_wait_interval.count() == 0) {
-            return ec;
-         }
+         // When using Sentinel, we shouldn't wait here
+         if (!st.cfg.sentinel.addresses.empty()) {
+            // If we are not going to try again, we're done
+            if (st.cfg.reconnect_wait_interval.count() == 0) {
+               return ec;
+            }
 
-         // Wait for the reconnection interval
-         BOOST_REDIS_YIELD(resume_point_, 5, run_action_type::wait_for_reconnection)
+            // Wait for the reconnection interval
+            BOOST_REDIS_YIELD(resume_point_, 5, run_action_type::wait_for_reconnection)
 
-         // Check for cancellations
-         if (is_terminal_cancel(cancel_state)) {
-            log_debug(st.logger, "Run: cancelled (3)");
-            return system::error_code(asio::error::operation_aborted);
+            // Check for cancellations
+            if (is_terminal_cancel(cancel_state)) {
+               log_debug(st.logger, "Run: cancelled (3)");
+               return system::error_code(asio::error::operation_aborted);
+            }
          }
       }
    }

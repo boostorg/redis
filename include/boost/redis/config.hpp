@@ -13,6 +13,7 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace boost::redis {
 
@@ -22,6 +23,16 @@ struct address {
    std::string host = "127.0.0.1";
    /// Redis port.
    std::string port = "6379";
+};
+
+struct sentinel_config {
+   std::vector<address> addresses{};
+   std::string master_name{};
+   bool use_ssl = false;
+   request setup{};
+   std::chrono::steady_clock::duration resolve_timeout = std::chrono::milliseconds{500};
+   std::chrono::steady_clock::duration connect_timeout = std::chrono::milliseconds{500};
+   std::chrono::steady_clock::duration ssl_handshake_timeout = std::chrono::milliseconds{500};
 };
 
 /// Configure parameters used by the connection classes.
@@ -179,6 +190,8 @@ struct config {
     * By default, `setup` contains a `"HELLO 3"` command.
     */
    request setup = detail::make_hello_request();
+
+   sentinel_config sentinel{};
 };
 
 }  // namespace boost::redis
