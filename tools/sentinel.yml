@@ -7,9 +7,7 @@ services:
       [
         "redis-server",
         "--replica-announce-ip",
-        "127.0.0.1",
-        "--replica-announce-port",
-        "6379",
+        "localhost",
         "--protected-mode",
         "no"
       ]
@@ -24,10 +22,12 @@ services:
     command:
       [
         "redis-server",
+        "--replica-announce-ip",
+        "localhost",
         "--port",
         "6380",
         "--replicaof",
-        "127.0.0.1",
+        "localhost",
         "6379",
         "--protected-mode",
         "no"
@@ -43,10 +43,12 @@ services:
     command:
       [
         "redis-server",
+        "--replica-announce-ip",
+        "localhost",
         "--port",
         "6381",
         "--replicaof",
-        "127.0.0.1",
+        "localhost",
         "6379",
         "--protected-mode",
         "no"
@@ -59,8 +61,10 @@ services:
     network_mode: host
     command: >
       sh -c 'echo "port 26379" >> /etc/sentinel.conf &&
-            echo "sentinel monitor mymaster 127.0.0.1 6379 2" >> /etc/sentinel.conf &&
+            echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
+            echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
+            echo "sentinel announce-ip localhost" >> /etc/sentinel.conf &&
             echo "sentinel down-after-milliseconds mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
@@ -73,8 +77,10 @@ services:
     network_mode: host
     command: >
       sh -c 'echo "port 26380" >> /etc/sentinel.conf &&
-            echo "sentinel monitor mymaster 127.0.0.1 6379 2" >> /etc/sentinel.conf &&
+            echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
+            echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
+            echo "sentinel announce-ip localhost" >> /etc/sentinel.conf &&
             echo "sentinel down-after-milliseconds mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
@@ -86,8 +92,10 @@ services:
     network_mode: host
     command: >
       sh -c 'echo "port 26381" >> /etc/sentinel.conf &&
-            echo "sentinel monitor mymaster 127.0.0.1 6379 2" >> /etc/sentinel.conf &&
+            echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
+            echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
+            echo "sentinel announce-ip localhost" >> /etc/sentinel.conf &&
             echo "sentinel down-after-milliseconds mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
             echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
