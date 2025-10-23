@@ -12,9 +12,9 @@
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
-#include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
+#include <boost/redis/impl/setup_request_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>

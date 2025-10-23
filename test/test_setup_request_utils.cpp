@@ -8,8 +8,8 @@
 
 #include <boost/redis/adapter/result.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/setup_request_utils.hpp>
 #include <boost/redis/error.hpp>
+#include <boost/redis/impl/setup_request_utils.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/response.hpp>
@@ -21,7 +21,6 @@
 namespace asio = boost::asio;
 namespace redis = boost::redis;
 using redis::detail::compose_setup_request;
-using redis::detail::clear_response;
 using boost::system::error_code;
 
 namespace {
@@ -179,35 +178,6 @@ void test_compose_setup_use_setup_flags()
    BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
-// clear response
-void test_clear_response_empty()
-{
-   redis::generic_response resp;
-   clear_response(resp);
-   BOOST_TEST(resp.has_value());
-   BOOST_TEST_EQ(resp.value().size(), 0u);
-}
-
-void test_clear_response_nonempty()
-{
-   redis::generic_response resp;
-   resp->push_back({});
-   clear_response(resp);
-   BOOST_TEST(resp.has_value());
-   BOOST_TEST_EQ(resp.value().size(), 0u);
-}
-
-void test_clear_response_error()
-{
-   redis::generic_response resp{
-      boost::system::in_place_error,
-      redis::adapter::error{redis::resp3::type::blob_error, "message"}
-   };
-   clear_response(resp);
-   BOOST_TEST(resp.has_value());
-   BOOST_TEST_EQ(resp.value().size(), 0u);
-}
-
 }  // namespace
 
 int main()
@@ -221,10 +191,6 @@ int main()
    test_compose_setup_use_setup();
    test_compose_setup_use_setup_no_hello();
    test_compose_setup_use_setup_flags();
-
-   test_clear_response_empty();
-   test_clear_response_nonempty();
-   test_clear_response_error();
 
    return boost::report_errors();
 }
