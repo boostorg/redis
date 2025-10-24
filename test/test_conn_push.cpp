@@ -331,22 +331,6 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
    BOOST_TEST(finished);
 }
 
-// Finds a value in the output of the CLIENT INFO command
-// format: key1=value1 key2=value2
-// TODO: duplicated
-std::string_view find_client_info(std::string_view client_info, std::string_view key)
-{
-   std::string prefix{key};
-   prefix += '=';
-
-   auto const pos = client_info.find(prefix);
-   if (pos == std::string_view::npos)
-      return {};
-   auto const pos_begin = pos + prefix.size();
-   auto const pos_end = client_info.find(' ', pos_begin);
-   return client_info.substr(pos_begin, pos_end - pos_begin);
-}
-
 BOOST_AUTO_TEST_CASE(test_unsubscribe)
 {
    net::io_context ioc;
