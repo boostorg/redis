@@ -352,17 +352,19 @@ BOOST_AUTO_TEST_CASE(test_unsubscribe)
    net::io_context ioc;
    connection conn{ioc};
 
-   // Subscribe to 3 channels and 2 patterns
+   // Subscribe to 3 channels and 2 patterns. Use CLIENT INFO to verify this took effect
    request req_subscribe;
    req_subscribe.push("SUBSCRIBE", "ch1", "ch2", "ch3");
    req_subscribe.push("PSUBSCRIBE", "ch1*", "ch2*");
    req_subscribe.push("CLIENT", "INFO");
 
+   // Then, unsubscribe from some of them, and verify again
    request req_unsubscribe;
    req_unsubscribe.push("UNSUBSCRIBE", "ch1");
    req_unsubscribe.push("PUNSUBSCRIBE", "ch2*");
    req_unsubscribe.push("CLIENT", "INFO");
 
+   // Finally, ping to verify that the connection is still usable
    request req_ping;
    req_ping.push("PING", "test_unsubscribe");
 
@@ -405,6 +407,7 @@ BOOST_AUTO_TEST_CASE(test_unsubscribe)
    });
 
    ioc.run_for(test_timeout);
+
    BOOST_TEST(subscribe_finished);
    BOOST_TEST(unsubscribe_finished);
    BOOST_TEST(ping_finished);
