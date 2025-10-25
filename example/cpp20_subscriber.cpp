@@ -1,11 +1,10 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
 #include <boost/redis/connection.hpp>
-#include <boost/redis/logger.hpp>
 
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
@@ -23,11 +22,7 @@ namespace asio = boost::asio;
 using namespace std::chrono_literals;
 using boost::redis::request;
 using boost::redis::generic_response;
-using boost::redis::consume_one;
-using boost::redis::logger;
 using boost::redis::config;
-using boost::redis::ignore;
-using boost::redis::error;
 using boost::system::error_code;
 using boost::redis::connection;
 using asio::signal_set;
@@ -60,24 +55,23 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    // Loop while reconnection is enabled
    while (conn->will_reconnect()) {
       // Reconnect to the channels.
-      co_await conn->async_exec(req, ignore);
+      co_await conn->async_exec(req);
 
-      // Loop reading Redis pushs messages.
+      // Loop to read Redis push messages.
       for (error_code ec;;) {
-         // First tries to read any buffered pushes.
-         conn->receive(ec);
-         if (ec == error::sync_receive_push_failed) {
-            ec = {};
-            co_await conn->async_receive(asio::redirect_error(asio::use_awaitable, ec));
-         }
-
+         // Wait for pushes
+         co_await conn->async_receive2(asio::redirect_error(ec));
          if (ec)
             break;  // Connection lost, break so we can reconnect to channels.
 
-         std::cout << resp.value().at(1).value << " " << resp.value().at(2).value << " "
-                   << resp.value().at(3).value << std::endl;
+         // The response must be consumed without suspending the
+         // coroutine i.e. without the use of async operations.
+         for (auto const& elem: resp.value().get_view())
+            std::cout << elem.value.data << "\n";
 
-         consume_one(resp);
+         std::cout << std::endl;
+
+         resp.value().clear();
       }
    }
 }

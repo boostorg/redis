@@ -70,13 +70,11 @@ using generic_response = adapter::result<std::vector<resp3::node>>;
  * @param r The response to modify.
  * @param ec Will be populated in case of error.
  */
+BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
 void consume_one(generic_response& r, system::error_code& ec);
 
-/**
- * @brief Throwing overload of `consume_one`.
- *
- * @param r The response to modify.
- */
+/// @copydoc consume_one
+BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
 void consume_one(generic_response& r);
 
 }  // namespace boost::redis

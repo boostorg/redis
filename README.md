@@ -106,19 +106,18 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    while (conn->will_reconnect()) {
 
       // Reconnect to channels.
-      co_await conn->async_exec(req, ignore);
+      co_await conn->async_exec(req);
 
       // Loop reading Redis pushes.
-      for (;;) {
-         error_code ec;
-         co_await conn->async_receive(resp, net::redirect_error(net::use_awaitable, ec));
+      for (error_code ec;;) {
+         co_await conn->async_receive2(resp, redirect_error(ec));
          if (ec)
             break; // Connection lost, break so we can reconnect to channels.
 
          // Use the response resp in some way and then clear it.
          ...
 
-         consume_one(resp);
+         resp.value().clear();
       }
    }
 }

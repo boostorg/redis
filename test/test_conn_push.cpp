@@ -30,6 +30,7 @@ using boost::redis::connection;
 using boost::system::error_code;
 using boost::redis::request;
 using boost::redis::response;
+using boost::redis::generic_response;
 using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::system::error_code;
@@ -78,8 +79,8 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
 
    run(conn, make_test_config(), {});
 
-   conn->async_receive([&, conn](error_code ec, std::size_t) {
-      std::cout << "async_receive" << std::endl;
+   conn->async_receive2([&, conn](error_code ec) {
+      std::cout << "async_receive2" << std::endl;
       BOOST_TEST(ec == error_code());
       push_received = true;
       conn->cancel();
@@ -98,10 +99,12 @@ BOOST_AUTO_TEST_CASE(push_received1)
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
 
+   generic_response resp;
+   conn->set_receive_response(resp);
+
    // Trick: Uses SUBSCRIBE because this command has no response or
    // better said, its response is a server push, which is what we
-   // want to test. We send two because we want to test both
-   // async_receive and receive.
+   // want to test.
    request req;
    req.push("SUBSCRIBE", "channel1");
    req.push("SUBSCRIBE", "channel2");
@@ -114,25 +117,13 @@ BOOST_AUTO_TEST_CASE(push_received1)
       BOOST_TEST(ec == error_code());
    });
 
-   conn->async_receive([&, conn](error_code ec, std::size_t) {
+   conn->async_receive2([&, conn](error_code ec) {
       push_received = true;
-      std::cout << "(1) async_receive" << std::endl;
+      std::cout << "async_receive2" << std::endl;
 
       BOOST_TEST(ec == error_code());
 
-      // Receives the second push synchronously.
-      error_code ec2;
-      std::size_t res = 0;
-      res = conn->receive(ec2);
-      BOOST_TEST(!ec2);
-      BOOST_TEST(res != std::size_t(0));
-
-      // Tries to receive a third push synchronously.
-      ec2 = {};
-      res = conn->receive(ec2);
-      BOOST_CHECK_EQUAL(
-         ec2,
-         boost::redis::make_error_code(boost::redis::error::sync_receive_push_failed));
+      BOOST_CHECK_EQUAL(resp.value().get_total_msgs(), 2u);
 
       conn->cancel();
    });
@@ -164,7 +155,7 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
       BOOST_TEST(ec == error_code());
    });
 
-   conn->async_receive([&, conn](error_code ec, std::size_t) {
+   conn->async_receive2([&, conn](error_code ec) {
       push_received = true;
       BOOST_TEST(ec == error_code());
       conn->cancel(operation::reconnection);
@@ -212,7 +203,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
 
    bool push_received = false, exec_finished = false, run_finished = false;
 
-   conn->async_receive([&, conn](error_code ec, std::size_t) {
+   conn->async_receive2([&, conn](error_code ec) {
       BOOST_CHECK_EQUAL(ec, boost::asio::experimental::error::channel_cancelled);
       push_received = true;
    });
@@ -240,7 +231,7 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
 
 void launch_push_consumer(std::shared_ptr<connection> conn)
 {
-   conn->async_receive([conn](error_code ec, std::size_t) {
+   conn->async_receive2([conn](error_code ec) {
       if (ec) {
          BOOST_TEST(ec == net::experimental::error::channel_cancelled);
          return;

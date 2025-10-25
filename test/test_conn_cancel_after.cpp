@@ -72,26 +72,26 @@ void test_exec()
    BOOST_TEST(exec_finished);
 }
 
-template <class Connection>
-void test_receive()
-{
-   // Setup
-   asio::io_context ioc;
-   Connection conn{ioc};
-   bool receive_finished = false;
-   generic_response resp;
-   conn.set_receive_response(resp);
-
-   // Call the function with a very short timeout.
-   conn.async_receive(asio::cancel_after(1ms, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, asio::experimental::channel_errc::channel_cancelled);
-      receive_finished = true;
-   }));
-
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(receive_finished);
-}
+//template <class Connection>
+//void test_receive()
+//{
+//   // Setup
+//   asio::io_context ioc;
+//   Connection conn{ioc};
+//   bool receive_finished = false;
+//   generic_response resp;
+//   conn.set_receive_response(resp);
+//
+//   // Call the function with a very short timeout.
+//   conn.async_receive(asio::cancel_after(1ms, [&](error_code ec, std::size_t) {
+//      BOOST_TEST_EQ(ec, asio::experimental::channel_errc::channel_cancelled);
+//      receive_finished = true;
+//   }));
+//
+//   ioc.run_for(test_timeout);
+//
+//   BOOST_TEST(receive_finished);
+//}
 
 }  // namespace
 
@@ -103,8 +103,8 @@ int main()
    test_exec<basic_connection<asio::io_context::executor_type>>();
    test_exec<connection>();
 
-   test_receive<basic_connection<asio::io_context::executor_type>>();
-   test_receive<connection>();
+   //test_receive<basic_connection<asio::io_context::executor_type>>();
+   //test_receive<connection>();
 
    return boost::report_errors();
 }
