@@ -13,6 +13,7 @@
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
+#include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/response.hpp>
 
 #include <string>
@@ -35,8 +36,9 @@ struct connection_state {
    request ping_req{};
 
    // Sentinel stuff
-   request sentinel_req{};
+   request sentinel_req{};  // TODO: maybe we can re-use cfg
    sentinel_response sentinel_resp{};
+   resp3::parser sentinel_parser{};
 };
 
 }  // namespace boost::redis::detail
