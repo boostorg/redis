@@ -18,21 +18,21 @@ using boost::redis::request;
 
 namespace {
 
-void test_single_arg_allocator()
+void test_push_no_args()
 {
    request req1;
    req1.push("PING");
    BOOST_TEST_EQ(req1.payload(), "*1\r\n$4\r\nPING\r\n");
 }
 
-void test_arg_int()
+void test_push_int()
 {
    request req;
    req.push("PING", 42);
    BOOST_TEST_EQ(req.payload(), "*2\r\n$4\r\nPING\r\n$2\r\n42\r\n");
 }
 
-void test_multiple_args()
+void test_push_multiple_args()
 {
    char const* res = "*5\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n$2\r\nEX\r\n$1\r\n2\r\n";
    request req;
@@ -40,7 +40,7 @@ void test_multiple_args()
    BOOST_TEST_EQ(req.payload(), res);
 }
 
-void test_container_and_range()
+void test_push_range()
 {
    std::map<std::string, std::string> in{
       {"key1", "value1"},
@@ -64,10 +64,10 @@ void test_container_and_range()
 
 int main()
 {
-   test_single_arg_allocator();
-   test_arg_int();
-   test_multiple_args();
-   test_container_and_range();
+   test_push_no_args();
+   test_push_int();
+   test_push_multiple_args();
+   test_push_range();
 
    return boost::report_errors();
 }
