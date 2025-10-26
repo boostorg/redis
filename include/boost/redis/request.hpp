@@ -338,6 +338,14 @@ public:
       push_range(cmd, cbegin(range), cend(range));
    }
 
+   // TODO: document
+   void append(const request& other)
+   {
+      payload_ += other.payload_;
+      commands_ += other.commands_;
+      expected_responses_ += other.expected_responses_;
+   }
+
 private:
    void check_cmd(std::string_view cmd)
    {
