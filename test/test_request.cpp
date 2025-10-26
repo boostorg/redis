@@ -60,6 +60,117 @@ void test_push_range()
    BOOST_TEST_EQ(req2.payload(), expected);
 }
 
+// Append
+void test_append()
+{
+   request req1;
+   req1.push("PING", "req1");
+
+   request req2;
+   req2.push("GET", "mykey");
+   req2.push("GET", "other");
+
+   req1.append(req2);
+
+   constexpr std::string_view expected =
+      "*2\r\n$4\r\nPING\r\n$4\r\nreq1\r\n"
+      "*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n"
+      "*2\r\n$3\r\nGET\r\n$5\r\nother\r\n";
+   BOOST_TEST_EQ(req1.payload(), expected);
+   BOOST_TEST_EQ(req1.get_commands(), 3u);
+   BOOST_TEST_EQ(req1.get_expected_responses(), 3u);
+}
+
+// Commands without responses are handled correctly
+void test_append_no_response()
+{
+   request req1;
+   req1.push("PING", "req1");
+
+   request req2;
+   req2.push("SUBSCRIBE", "mychannel");
+   req2.push("GET", "other");
+
+   req1.append(req2);
+
+   constexpr std::string_view expected =
+      "*2\r\n$4\r\nPING\r\n$4\r\nreq1\r\n"
+      "*2\r\n$9\r\nSUBSCRIBE\r\n$9\r\nmychannel\r\n"
+      "*2\r\n$3\r\nGET\r\n$5\r\nother\r\n";
+   BOOST_TEST_EQ(req1.payload(), expected);
+   BOOST_TEST_EQ(req1.get_commands(), 3u);
+   BOOST_TEST_EQ(req1.get_expected_responses(), 2u);
+}
+
+// Flags are not modified by append
+void test_append_flags()
+{
+   request req1;
+   req1.get_config().cancel_if_not_connected = false;
+   req1.get_config().cancel_if_unresponded = false;
+   req1.get_config().cancel_on_connection_lost = false;
+   req1.push("PING", "req1");
+
+   request req2;
+   req2.get_config().cancel_if_not_connected = true;
+   req2.get_config().cancel_if_unresponded = true;
+   req2.get_config().cancel_on_connection_lost = true;
+   req2.push("GET", "other");
+
+   req1.append(req2);
+
+   constexpr std::string_view expected =
+      "*2\r\n$4\r\nPING\r\n$4\r\nreq1\r\n"
+      "*2\r\n$3\r\nGET\r\n$5\r\nother\r\n";
+   BOOST_TEST_EQ(req1.payload(), expected);
+   BOOST_TEST_NOT(req1.get_config().cancel_if_not_connected);
+   BOOST_TEST_NOT(req1.get_config().cancel_if_unresponded);
+   BOOST_TEST_NOT(req1.get_config().cancel_on_connection_lost);
+}
+
+// Empty requests don't cause problems with append
+void test_append_target_empty()
+{
+   request req1;
+
+   request req2;
+   req2.push("GET", "other");
+
+   req1.append(req2);
+
+   constexpr std::string_view expected = "*2\r\n$3\r\nGET\r\n$5\r\nother\r\n";
+   BOOST_TEST_EQ(req1.payload(), expected);
+   BOOST_TEST_EQ(req1.get_commands(), 1u);
+   BOOST_TEST_EQ(req1.get_expected_responses(), 1u);
+}
+
+void test_append_source_empty()
+{
+   request req1;
+   req1.push("GET", "other");
+
+   request req2;
+
+   req1.append(req2);
+
+   constexpr std::string_view expected = "*2\r\n$3\r\nGET\r\n$5\r\nother\r\n";
+   BOOST_TEST_EQ(req1.payload(), expected);
+   BOOST_TEST_EQ(req1.get_commands(), 1u);
+   BOOST_TEST_EQ(req1.get_expected_responses(), 1u);
+}
+
+void test_append_both_empty()
+{
+   request req1;
+   request req2;
+
+   req1.append(req2);
+
+   BOOST_TEST_EQ(req1.payload(), "");
+   BOOST_TEST_EQ(req1.get_commands(), 0u);
+   BOOST_TEST_EQ(req1.get_expected_responses(), 0u);
+}
+
 }  // namespace
 
 int main()
@@ -68,6 +179,13 @@ int main()
    test_push_int();
    test_push_multiple_args();
    test_push_range();
+
+   test_append();
+   test_append_no_response();
+   test_append_flags();
+   test_append_target_empty();
+   test_append_source_empty();
+   test_append_both_empty();
 
    return boost::report_errors();
 }
