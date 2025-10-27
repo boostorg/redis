@@ -98,6 +98,9 @@ enum class error
    /// The configuration specified UNIX sockets with Sentinel, which is not supported.
    // TODO: implement
    unix_sockets_sentinel_unsupported,
+
+   // TODO: implement
+   sentinel_unknown_master,
 };
 
 /**
