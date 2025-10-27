@@ -31,3 +31,10 @@ request make_hello_request()
 }
 
 }  // namespace boost::redis::detail
+
+void boost::redis::request::append(const request& other)
+{
+   payload_ += other.payload_;
+   commands_ += other.commands_;
+   expected_responses_ += other.expected_responses_;
+}

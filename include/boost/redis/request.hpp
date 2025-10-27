@@ -338,6 +338,17 @@ public:
       push_range(cmd, cbegin(range), cend(range));
    }
 
+   /** @brief Appends the commands in another request to the end of the request.
+    *
+    *  Appends all the commands contained in `other` to the end of
+    *  this request. Configuration flags in `*this`,
+    *  like @ref config::cancel_if_unresponded, are *not* modified,
+    *  even if `other` has a different config than `*this`.
+    *  
+    *  @param other The request containing the commands to append.
+    */
+   void append(const request& other);
+
 private:
    void check_cmd(std::string_view cmd)
    {
