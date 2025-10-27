@@ -347,12 +347,7 @@ public:
     *  
     *  @param other The request containing the commands to append.
     */
-   void append(const request& other)
-   {
-      payload_ += other.payload_;
-      commands_ += other.commands_;
-      expected_responses_ += other.expected_responses_;
-   }
+   void append(const request& other);
 
 private:
    void check_cmd(std::string_view cmd)
