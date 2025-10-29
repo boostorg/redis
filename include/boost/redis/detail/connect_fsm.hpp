@@ -60,18 +60,16 @@ struct connect_action {
    { }
 };
 
+transport_type transport_from_config(const config& cfg);
+
 class connect_fsm {
    int resume_point_{0};
-   const config* cfg_{nullptr};
    buffered_logger* lgr_{nullptr};
 
 public:
-   connect_fsm(const config& cfg, buffered_logger& lgr) noexcept
-   : cfg_(&cfg)
-   , lgr_(&lgr)
+   connect_fsm(buffered_logger& lgr) noexcept
+   : lgr_(&lgr)
    { }
-
-   const config& get_config() const { return *cfg_; }
 
    connect_action resume(
       system::error_code ec,
