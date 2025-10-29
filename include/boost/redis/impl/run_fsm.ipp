@@ -150,7 +150,7 @@ run_action run_fsm::resume(
 
          if (ec) {
             // There was an error. Skip to the reconnection loop
-            log_err(
+            log_info(
                st.logger,
                "Failed to connect to Redis server at ",
                log_address{st.cfg},
