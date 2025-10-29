@@ -29,7 +29,7 @@ namespace boost::redis::detail {
 
 class sentinel_adapter {
    sentinel_response* resp_;
-   std::size_t remaining_nodes_;
+   std::size_t remaining_responses_;
    std::size_t sentinel_idx_;
    bool ip_seen_{false}, port_seen_{false};
    int resume_point_{0};
@@ -60,12 +60,10 @@ class sentinel_adapter {
          resp_->diagnostic.clear();
          resp_->sentinels.clear();
 
-         // Skip the first N root nodes. Keep the N+1 zero-depth node
-         while (true) {
-            if (node.depth == 0u && --remaining_nodes_ == 0u)
-               break;
+         // Skip the first N responses, because they belong to the user-supplied setup request.
+         // on_finish() takes care of updating this counter
+         while (remaining_responses_ > 2u)
             BOOST_REDIS_YIELD(resume_point_, 1, {})
-         }
 
          // SENTINEL GET-MASTER-ADDR-BY-NAME
 
@@ -112,15 +110,17 @@ class sentinel_adapter {
          for (; sentinel_idx_ < resp_->sentinels.size(); ++sentinel_idx_) {
             // A Sentinel is an array (resp2) or map (resp3)
             if (node.data_type == resp3::type::array) {
-               remaining_nodes_ = node.aggregate_size;
+               remaining_responses_ = node.aggregate_size;
             } else if (node.data_type == resp3::type::map) {
-               remaining_nodes_ = node.aggregate_size * 2u;
+               remaining_responses_ = node.aggregate_size * 2u;
             } else {
                return {error::invalid_data_type};
             }
             BOOST_REDIS_YIELD(resume_point_, 6, {})
 
             // Iterate over all key-value pairs
+            ip_seen_ = false;
+            port_seen_ = false;
             while (node.depth >= 2u) {
                // Key
                if (node.data_type != resp3::type::blob_string)
@@ -161,18 +161,14 @@ class sentinel_adapter {
    }
 
 public:
-   sentinel_adapter(sentinel_response& response, std::size_t setup_size)
+   sentinel_adapter(std::size_t expected_responses, sentinel_response& response)
    : resp_(&response)
-   , remaining_nodes_(setup_size + 1u)
+   , remaining_responses_(expected_responses)
    { }
 
    void on_init() { }
    void on_node(const resp3::node_view& node, system::error_code& ec) { ec = on_node_impl(node); }
-   void on_finish()
-   {
-      if (remaining_nodes_)
-         --remaining_nodes_;
-   }
+   void on_finish() { --remaining_responses_; }
 };
 
 }  // namespace boost::redis::detail
