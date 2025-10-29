@@ -147,9 +147,12 @@ run_action run_fsm::resume(
                }
 
                // Check for errors
-               // TODO: these diagnostics are not good
                if (ec) {
-                  log_info(st.logger, "Failed to execute Sentinel request for <TODO>");
+                  log_info(
+                     st.logger,
+                     "Failed to execute Sentinel request for <TODO>",
+                     st.sentinel_resp.diagnostic.empty() ? "" : ": ",
+                     st.sentinel_resp.diagnostic);
                   continue;
                }
 
