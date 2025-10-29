@@ -9,13 +9,10 @@
 #ifndef BOOST_REDIS_SENTINEL_ADAPTER_HPP
 #define BOOST_REDIS_SENTINEL_ADAPTER_HPP
 
-#include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
-#include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/node.hpp>
-#include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/resp3/type.hpp>
 
 #include <boost/system/error_code.hpp>
