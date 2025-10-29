@@ -24,13 +24,57 @@
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/ssl/stream_base.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <chrono>
+#include <string_view>
 #include <utility>
 
 namespace boost {
 namespace redis {
 namespace detail {
+
+// TODO: probably move this
+class any_address_view {
+   transport_type type_;
+   union {
+      const address* tcp_;
+      std::string_view unix_;
+   };
+
+public:
+   any_address_view(const address& addr, bool use_ssl) noexcept
+   : type_(use_ssl ? transport_type::tcp_tls : transport_type::tcp)
+   , tcp_(&addr)
+   { }
+
+   explicit any_address_view(std::string_view unix_socket) noexcept
+   : type_(transport_type::unix_socket)
+   , unix_(unix_socket)
+   { }
+
+   transport_type type() const { return type_; }
+
+   const address& tcp_address() const
+   {
+      BOOST_ASSERT(type_ == transport_type::tcp || type_ == transport_type::tcp_tls);
+      return *tcp_;
+   }
+
+   std::string_view unix_socket() const
+   {
+      BOOST_ASSERT(type_ == transport_type::unix_socket);
+      return unix_;
+   }
+};
+
+struct connect_params {
+   any_address_view addr;
+   std::chrono::steady_clock::duration resolve_timeout;
+   std::chrono::steady_clock::duration connect_timeout;
+   std::chrono::steady_clock::duration ssl_handshake_timeout;
+};
 
 template <class Executor>
 class redis_stream {
@@ -47,12 +91,15 @@ class redis_stream {
 
    struct connect_op {
       redis_stream& obj;
-      connect_fsm fsm_;
+      connect_fsm fsm;
+      connect_params params;
 
       template <class Self>
       void execute_action(Self& self, connect_action act)
       {
-         const auto& cfg = fsm_.get_config();
+         // Prevent use-after-move
+         auto& obj = this->obj;
+         auto params = this->params;
 
          switch (act.type) {
             case connect_action_type::unix_socket_close:
@@ -69,8 +116,8 @@ class redis_stream {
             case connect_action_type::unix_socket_connect:
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
                obj.unix_socket_.async_connect(
-                  cfg.unix_socket,
-                  asio::cancel_after(obj.timer_, cfg.connect_timeout, std::move(self)));
+                  params.addr.unix_socket(),
+                  asio::cancel_after(obj.timer_, params.connect_timeout, std::move(self)));
 #else
                BOOST_ASSERT(false);
 #endif
@@ -78,9 +125,9 @@ class redis_stream {
 
             case connect_action_type::tcp_resolve:
                obj.resolv_.async_resolve(
-                  cfg.addr.host,
-                  cfg.addr.port,
-                  asio::cancel_after(obj.timer_, cfg.resolve_timeout, std::move(self)));
+                  params.addr.tcp_address().host,
+                  params.addr.tcp_address().port,
+                  asio::cancel_after(obj.timer_, params.resolve_timeout, std::move(self)));
                return;
             case connect_action_type::ssl_stream_reset:
                obj.reset_stream();
@@ -90,7 +137,7 @@ class redis_stream {
             case connect_action_type::ssl_handshake:
                obj.stream_.async_handshake(
                   asio::ssl::stream_base::client,
-                  asio::cancel_after(obj.timer_, cfg.ssl_handshake_timeout, std::move(self)));
+                  asio::cancel_after(obj.timer_, params.ssl_handshake_timeout, std::move(self)));
                return;
             case connect_action_type::done:        self.complete(act.ec); break;
             // Connect should use the specialized handler, where resolver results are available
@@ -106,7 +153,7 @@ class redis_stream {
          system::error_code ec,
          const asio::ip::tcp::endpoint& selected_endpoint)
       {
-         auto act = fsm_.resume(
+         auto act = fsm.resume(
             ec,
             selected_endpoint,
             obj.st_,
@@ -121,12 +168,13 @@ class redis_stream {
          system::error_code ec,
          asio::ip::tcp::resolver::results_type endpoints)
       {
-         auto act = fsm_.resume(ec, endpoints, obj.st_, self.get_cancellation_state().cancelled());
+         auto act = fsm.resume(ec, endpoints, obj.st_, self.get_cancellation_state().cancelled());
          if (act.type == connect_action_type::tcp_connect) {
+            auto& obj = this->obj;  // prevent use-after-move
             asio::async_connect(
                obj.stream_.next_layer(),
                std::move(endpoints),
-               asio::cancel_after(obj.timer_, fsm_.get_config().connect_timeout, std::move(self)));
+               asio::cancel_after(obj.timer_, params.connect_timeout, std::move(self)));
          } else {
             execute_action(self, act);
          }
@@ -135,7 +183,7 @@ class redis_stream {
       template <class Self>
       void operator()(Self& self, system::error_code ec = {})
       {
-         auto act = fsm_.resume(ec, obj.st_, self.get_cancellation_state().cancelled());
+         auto act = fsm.resume(ec, obj.st_, self.get_cancellation_state().cancelled());
          execute_action(self, act);
       }
    };
@@ -170,10 +218,11 @@ public:
 
    // I/O
    template <class CompletionToken>
-   auto async_connect(const config& cfg, buffered_logger& l, CompletionToken&& token)
+   auto async_connect(const connect_params& params, buffered_logger& l, CompletionToken&& token)
    {
+      this->st_.type = params.addr.type();
       return asio::async_compose<CompletionToken, void(system::error_code)>(
-         connect_op{*this, connect_fsm(cfg, l)},
+         connect_op{*this, connect_fsm{l}, params},
          token);
    }
 
