@@ -13,7 +13,6 @@
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
-#include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/response.hpp>
 
 #include <string>
@@ -22,6 +21,7 @@
 namespace boost::redis::detail {
 
 struct sentinel_response {
+   std::string diagnostic;  // In case the server returned an error
    address server_addr;
    std::vector<address> sentinels;
 };
@@ -38,7 +38,6 @@ struct connection_state {
    // Sentinel stuff
    request sentinel_req{};  // TODO: maybe we can re-use cfg
    sentinel_response sentinel_resp{};
-   resp3::parser sentinel_parser{};
 };
 
 }  // namespace boost::redis::detail
