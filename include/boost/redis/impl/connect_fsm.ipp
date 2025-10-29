@@ -120,21 +120,6 @@ connect_action connect_fsm::resume(
    return resume(ec, st, cancel_state);
 }
 
-// API
-transport_type transport_from_config(const config& cfg)
-{
-   if (cfg.unix_socket.empty()) {
-      if (cfg.use_ssl) {
-         return transport_type::tcp_tls;
-      } else {
-         return transport_type::tcp;
-      }
-   } else {
-      BOOST_ASSERT(!cfg.use_ssl);
-      return transport_type::unix_socket;
-   }
-}
-
 connect_action connect_fsm::resume(
    system::error_code ec,
    redis_stream_state& st,

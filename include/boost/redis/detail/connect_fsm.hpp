@@ -9,8 +9,6 @@
 #ifndef BOOST_REDIS_CONNECT_FSM_HPP
 #define BOOST_REDIS_CONNECT_FSM_HPP
 
-#include <boost/redis/config.hpp>
-
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/system/error_code.hpp>
@@ -59,8 +57,6 @@ struct connect_action {
    , ec{ec}
    { }
 };
-
-transport_type transport_from_config(const config& cfg);
 
 class connect_fsm {
    int resume_point_{0};

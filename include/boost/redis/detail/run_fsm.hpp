@@ -9,6 +9,9 @@
 #ifndef BOOST_REDIS_RUN_FSM_HPP
 #define BOOST_REDIS_RUN_FSM_HPP
 
+#include <boost/redis/config.hpp>
+#include <boost/redis/detail/connect_params.hpp>
+
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -56,6 +59,8 @@ public:
       system::error_code ec,
       asio::cancellation_type_t cancel_state);
 };
+
+connect_params connect_params_from_config(const config& cfg);
 
 }  // namespace boost::redis::detail
 

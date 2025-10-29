@@ -102,6 +102,18 @@ struct log_traits<log_address> {
    }
 };
 
+// API
+connect_params connect_params_from_config(const config& cfg)
+{
+   return {
+      cfg.unix_socket.empty() ? any_address_view{cfg.addr, cfg.use_ssl}
+                              : any_address_view{cfg.unix_socket},
+      cfg.resolve_timeout,
+      cfg.connect_timeout,
+      cfg.ssl_handshake_timeout,
+   };
+}
+
 run_action run_fsm::resume(
    connection_state& st,
    system::error_code ec,

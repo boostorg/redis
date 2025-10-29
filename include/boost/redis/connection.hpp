@@ -336,7 +336,10 @@ public:
             asio::async_immediate(self.get_io_executor(), std::move(self));
             return;
          case run_action_type::connect:
-            conn_->stream_.async_connect(conn_->st_.cfg, conn_->st_.logger, std::move(self));
+            conn_->stream_.async_connect(
+               connect_params_from_config(conn_->st_.cfg),
+               conn_->st_.logger,
+               std::move(self));
             return;
          case run_action_type::parallel_group:
             asio::experimental::make_parallel_group(
