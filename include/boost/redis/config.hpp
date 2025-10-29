@@ -32,7 +32,9 @@ struct sentinel_config {
    request setup{};
    std::chrono::steady_clock::duration resolve_timeout = std::chrono::milliseconds{500};
    std::chrono::steady_clock::duration connect_timeout = std::chrono::milliseconds{500};
-   std::chrono::steady_clock::duration ssl_handshake_timeout = std::chrono::milliseconds{500};
+   std::chrono::steady_clock::duration ssl_handshake_timeout = std::chrono::seconds{2};
+   std::chrono::steady_clock::duration write_timeout = std::chrono::seconds{2};
+   std::chrono::steady_clock::duration read_timeout = std::chrono::seconds{2};
 };
 
 /// Configure parameters used by the connection classes.

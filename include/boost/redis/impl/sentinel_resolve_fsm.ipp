@@ -69,8 +69,8 @@ sentinel_action sentinel_resolve_fsm::resume(
          while (true) {
             ec = st.mpx.get_read_buffer().prepare();
             if (ec) {
-               log_info(st.logger, "TODO: ", ec);
-               return ec;
+               log_info(st.logger, "Error preparing buffer for Sentinel read operation: ", ec);
+               continue;
             }
 
             BOOST_REDIS_YIELD(resume_point_, 3, sentinel_action::read())
@@ -86,6 +86,8 @@ sentinel_action sentinel_resolve_fsm::resume(
                log_info(st.logger, "Failed to read Sentinel response at <TODO>: ", ec);
                continue;
             }
+
+            // Feed it to the parser
          }
 
          // Execute the Sentinel request

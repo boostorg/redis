@@ -11,6 +11,7 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/coroutine.hpp>
+#include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/parser.hpp>
@@ -180,6 +181,46 @@ public:
       // Done
       return system::error_code();
    }
+};
+
+class sentinel_thing {
+   read_buffer* buffer_;
+   sentinel_adapter adapter_;
+   resp3::parser parser_;
+
+public:
+   sentinel_adapter::result on_read_impl(std::size_t bytes_read)
+   {
+      buffer_->commit(bytes_read);
+      system::error_code ec;
+
+      while (true) {
+         auto const res = parser_.consume(buffer_->get_commited(), ec);
+         if (ec)
+            return ec;
+
+         if (!res)
+            return sentinel_adapter::result_type::needs_more;
+
+         auto r = adapter_.on_node(*res);
+
+         if (parser_.done()) {
+            buffer_->consume(parser_.get_consumed());
+            parser_.reset();
+         }
+
+         if (r.type == sentinel_adapter::result_type::done) {
+            if (r.ec)
+               return r;
+            else if (!parser_.done())
+               return {error::incompatible_node_depth};
+            buffer_->consume(parser_.get_consumed());
+            return r;
+         }
+      }
+   }
+
+   sentinel_adapter::result on_read(std::size_t bytes_read) { auto res = on_read_impl(bytes_read); }
 };
 
 }  // namespace boost::redis::detail
