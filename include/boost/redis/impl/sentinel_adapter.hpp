@@ -168,7 +168,7 @@ public:
 
    void on_init() { }
    void on_node(const resp3::node_view& node, system::error_code& ec) { ec = on_node_impl(node); }
-   void on_finish() { --remaining_responses_; }
+   void on_done() { --remaining_responses_; }
 };
 
 }  // namespace boost::redis::detail
