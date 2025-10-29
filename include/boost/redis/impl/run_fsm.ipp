@@ -23,7 +23,9 @@
 #include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <algorithm>
 #include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace boost::redis::detail {
@@ -87,11 +89,33 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
    }
 }
 
-// TODO
 inline void update_sentinel_list(
-   std::vector<address>& sentinels,
-   std::size_t current_index,  // the one to maintain and place first
-   boost::span<const address> other_sentinels);
+   std::vector<address>& to,
+   std::size_t current_index,                      // the one to maintain and place first
+   boost::span<const address> gossip_sentinels,    // the ones that SENTINEL SENTINELS returned
+   boost::span<const address> bootstrap_sentinels  // the ones the user supplied
+)
+{
+   // Place the one that succeeded in the front
+   if (current_index != 0u)
+      std::swap(to.front(), to[current_index]);
+
+   // Remove the other Sentinels
+   to.resize(1u);
+
+   // Add one group
+   to.insert(to.end(), gossip_sentinels.begin(), gossip_sentinels.end());
+
+   // Insert any user-supplied sentinels, if not already present
+   // TODO: maybe use a sorted vector?
+   for (const auto& sentinel : bootstrap_sentinels) {
+      auto it = std::find_if(to.begin(), to.end(), [&sentinel](const address& value) {
+         return value.host == sentinel.host && value.port == sentinel.port;
+      });
+      if (it == to.end())
+         to.push_back(sentinel);
+   }
+}
 
 run_action run_fsm::resume(
    connection_state& st,
@@ -120,8 +144,7 @@ run_action run_fsm::resume(
          // Sentinel connect
          if (!st.cfg.sentinel.addresses.empty()) {
             // Ask Sentinel where our server lives
-            for (sentinel_idx_ = 0u; sentinel_idx_ < st.cfg.sentinel.addresses.size();
-                 ++sentinel_idx_) {
+            for (sentinel_idx_ = 0u; sentinel_idx_ < st.sentinels.size(); ++sentinel_idx_) {
                // Try to connect. TODO: we need a way to specify where and how to connect
                BOOST_REDIS_YIELD(resume_point_, 2, run_action_type::connect)
 
@@ -158,9 +181,10 @@ run_action run_fsm::resume(
 
                // Sentinel knows about this master. Update our config
                update_sentinel_list(
-                  st.cfg.sentinel.addresses,
+                  st.sentinels,
                   sentinel_idx_,
-                  st.sentinel_resp.sentinels);
+                  st.sentinel_resp.sentinels,
+                  st.cfg.sentinel.addresses);
 
                break;
             }

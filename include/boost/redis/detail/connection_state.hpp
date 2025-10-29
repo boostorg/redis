@@ -36,6 +36,7 @@ struct connection_state {
    request ping_req{};
 
    // Sentinel stuff
+   std::vector<address> sentinels;
    request sentinel_req{};  // TODO: maybe we can re-use cfg
    sentinel_response sentinel_resp{};
 };
