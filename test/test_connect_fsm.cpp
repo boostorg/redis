@@ -129,8 +129,10 @@ void test_tcp_success()
 
    // Check logging
    fix.check_log({
-      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
-      {logger::level::info, "Connected to 192.168.10.1:1234"                       },
+      // clang-format off
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"      },
+      // clang-format on
    });
 }
 
@@ -154,9 +156,11 @@ void test_tcp_tls_success()
 
    // Check logging
    fix.check_log({
-      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
-      {logger::level::info, "Connected to 192.168.10.1:1234"                       },
-      {logger::level::info, "Successfully performed SSL handshake"                 },
+      // clang-format off
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"      },
+      {logger::level::debug, "Connect: SSL handshake succeeded"                                          },
+      // clang-format on
    });
 }
 
@@ -183,9 +187,11 @@ void test_tcp_tls_success_reconnect()
 
    // Check logging
    fix.check_log({
-      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
-      {logger::level::info, "Connected to 192.168.10.1:1234"                       },
-      {logger::level::info, "Successfully performed SSL handshake"                 },
+      // clang-format off
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"      },
+      {logger::level::debug, "Connect: SSL handshake succeeded"                    },
+      // clang-format on
    });
 }
 
@@ -207,7 +213,7 @@ void test_unix_success()
 
    // Check logging
    fix.check_log({
-      {logger::level::info, "Connected to /run/redis.sock"},
+      {logger::level::debug, "Connect: UNIX socket connect succeeded"},
    });
 }
 
@@ -230,7 +236,7 @@ void test_unix_success_close_error()
 
    // Check logging
    fix.check_log({
-      {logger::level::info, "Connected to /run/redis.sock"},
+      {logger::level::debug, "Connect: UNIX socket connect succeeded"},
    });
 }
 
@@ -249,7 +255,7 @@ void test_tcp_resolve_error()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::info, "Error resolving the server hostname: Expected field value is empty. [boost.redis:5]"},
+      {logger::level::info, "Connect: hostname resolution failed: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
    });
 }
@@ -272,7 +278,7 @@ void test_tcp_resolve_timeout()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::info, "Error resolving the server hostname: Resolve timeout. [boost.redis:17]"},
+      {logger::level::info, "Connect: hostname resolution failed: Resolve timeout. [boost.redis:17]"},
       // clang-format on
    });
 }
@@ -328,8 +334,8 @@ void test_tcp_connect_error()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
-      {logger::level::info, "Failed to connect to the server: Expected field value is empty. [boost.redis:5]"},
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::info, "Connect: TCP connect failed: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
    });
 }
@@ -354,8 +360,8 @@ void test_tcp_connect_timeout()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
-      {logger::level::info, "Failed to connect to the server: Connect timeout. [boost.redis:18]"},
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::info, "Connect: TCP connect failed: Connect timeout. [boost.redis:18]"},
       // clang-format on
    });
 }
@@ -420,9 +426,9 @@ void test_ssl_handshake_error()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
-      {logger::level::info, "Connected to 192.168.10.1:1234"                       },
-      {logger::level::info, "Failed to perform SSL handshake: Expected field value is empty. [boost.redis:5]"},
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"},
+      {logger::level::info,  "Connect: SSL handshake failed: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
    });
 }
@@ -448,9 +454,9 @@ void test_ssl_handshake_timeout()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::info, "Resolve results: 192.168.10.1:1234, 192.168.10.2:1235"},
-      {logger::level::info, "Connected to 192.168.10.1:1234"                       },
-      {logger::level::info, "Failed to perform SSL handshake: SSL handshake timeout. [boost.redis:20]"},
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"},
+      {logger::level::info,  "Connect: SSL handshake failed: SSL handshake timeout. [boost.redis:20]"},
       // clang-format on
    });
 }
@@ -516,7 +522,7 @@ void test_unix_connect_error()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::info, "Failed to connect to the server: Expected field value is empty. [boost.redis:5]"},
+      {logger::level::info, "Connect: UNIX socket connect failed: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
    });
 }
@@ -537,7 +543,7 @@ void test_unix_connect_timeout()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::info, "Failed to connect to the server: Connect timeout. [boost.redis:18]"},
+      {logger::level::info, "Connect: UNIX socket connect failed: Connect timeout. [boost.redis:18]"},
       // clang-format on
    });
 }
