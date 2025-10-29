@@ -8,13 +8,12 @@ services:
         "redis-server",
         "--replica-announce-ip", "localhost",
         "--protected-mode", "no",
-        "--port", "0",
-        "--tls-port", "6379",
+        "--port", "6379",
+        "--tls-port", "16379",
         "--tls-cert-file", "/docker/tls/server.crt",
         "--tls-key-file", "/docker/tls/server.key",
         "--tls-ca-cert-file", "/docker/tls/ca.crt",
         "--tls-auth-clients", "no",
-        "--tls-replication", "yes"
       ]
     volumes:
       - ./docker:/docker
@@ -32,13 +31,12 @@ services:
         "--replica-announce-ip", "localhost",
         "--replicaof", "localhost", "6379",
         "--protected-mode", "no",
-        "--port", "0",
-        "--tls-port", "6380",
+        "--port", "6380",
+        "--tls-port", "16380",
         "--tls-cert-file", "/docker/tls/server.crt",
         "--tls-key-file", "/docker/tls/server.key",
         "--tls-ca-cert-file", "/docker/tls/ca.crt",
         "--tls-auth-clients", "no",
-        "--tls-replication", "yes"
       ]
     volumes:
       - ./docker:/docker
@@ -56,13 +54,12 @@ services:
         "--replica-announce-ip", "localhost",
         "--replicaof", "localhost", "6379",
         "--protected-mode", "no",
-        "--port", "0",
-        "--tls-port", "6381",
+        "--port", "6381",
+        "--tls-port", "16381",
         "--tls-cert-file", "/docker/tls/server.crt",
         "--tls-key-file", "/docker/tls/server.key",
         "--tls-ca-cert-file", "/docker/tls/ca.crt",
         "--tls-auth-clients", "no",
-        "--tls-replication", "yes"
       ]
     volumes:
       - ./docker:/docker
@@ -73,14 +70,14 @@ services:
     container_name: sentinel-1
     network_mode: host
     command: >
-      sh -c 'echo "port 0" >> /etc/sentinel.conf &&
-            echo "tls-port 26379" >> /etc/sentinel.conf &&
+      sh -c 'echo "port 26379" >> /etc/sentinel.conf &&
+            echo "tls-port 36379" >> /etc/sentinel.conf &&
             echo "tls-cert-file /docker/tls/server.crt" >> /etc/sentinel.conf &&
             echo "tls-key-file /docker/tls/server.key" >> /etc/sentinel.conf &&
             echo "tls-ca-cert-file /docker/tls/ca.crt" >> /etc/sentinel.conf &&
             echo "tls-auth-clients no" >> /etc/sentinel.conf &&
             echo "tls-replication yes" >> /etc/sentinel.conf &&
-            echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
+            echo "sentinel monitor mymaster localhost 16379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel announce-ip localhost" >> /etc/sentinel.conf &&
@@ -97,14 +94,14 @@ services:
     container_name: sentinel-2
     network_mode: host
     command: >
-      sh -c 'echo "port 0" >> /etc/sentinel.conf &&
-            echo "tls-port 26380" >> /etc/sentinel.conf &&
+      sh -c 'echo "port 26380" >> /etc/sentinel.conf &&
+            echo "tls-port 36380" >> /etc/sentinel.conf &&
             echo "tls-cert-file /docker/tls/server.crt" >> /etc/sentinel.conf &&
             echo "tls-key-file /docker/tls/server.key" >> /etc/sentinel.conf &&
             echo "tls-ca-cert-file /docker/tls/ca.crt" >> /etc/sentinel.conf &&
             echo "tls-auth-clients no" >> /etc/sentinel.conf &&
             echo "tls-replication yes" >> /etc/sentinel.conf &&
-            echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
+            echo "sentinel monitor mymaster localhost 16379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel announce-ip localhost" >> /etc/sentinel.conf &&
@@ -120,14 +117,14 @@ services:
     container_name: sentinel-3
     network_mode: host
     command: >
-      sh -c 'echo "port 0" >> /etc/sentinel.conf &&
-            echo "tls-port 26381" >> /etc/sentinel.conf &&
+      sh -c 'echo "port 26381" >> /etc/sentinel.conf &&
+            echo "tls-port 36381" >> /etc/sentinel.conf &&
             echo "tls-cert-file /docker/tls/server.crt" >> /etc/sentinel.conf &&
             echo "tls-key-file /docker/tls/server.key" >> /etc/sentinel.conf &&
             echo "tls-ca-cert-file /docker/tls/ca.crt" >> /etc/sentinel.conf &&
             echo "tls-auth-clients no" >> /etc/sentinel.conf &&
             echo "tls-replication yes" >> /etc/sentinel.conf &&
-            echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
+            echo "sentinel monitor mymaster localhost 16379 2" >> /etc/sentinel.conf &&
             echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
             echo "sentinel announce-ip localhost" >> /etc/sentinel.conf &&
