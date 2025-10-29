@@ -52,6 +52,7 @@ class redis_stream {
       template <class Self>
       void execute_action(Self& self, connect_action act)
       {
+         auto& obj = this->obj;  // prevent use-after-move errors
          const auto& cfg = fsm_.get_config();
 
          switch (act.type) {
@@ -123,6 +124,7 @@ class redis_stream {
       {
          auto act = fsm_.resume(ec, endpoints, obj.st_, self.get_cancellation_state().cancelled());
          if (act.type == connect_action_type::tcp_connect) {
+            auto& obj = this->obj;  // prevent use-after-free errors
             asio::async_connect(
                obj.stream_.next_layer(),
                std::move(endpoints),
