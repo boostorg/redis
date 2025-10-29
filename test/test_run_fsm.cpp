@@ -173,6 +173,72 @@ void test_connect_error()
    });
 }
 
+// Check logs for other transport types
+void test_connect_error_ssl()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.addr = {"my_hostname", "10000"};
+   fix.st.cfg.use_ssl = true;
+
+   // Launch the operation
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // Connect errors. We sleep and try to connect again
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // This time we succeed and we launch the parallel group
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // Log
+   fix.check_log({
+      // clang-format off
+      {logger::level::info, "Trying to connect to Redis server at my_hostname:10000 (TLS enabled)"  },
+      {logger::level::info, "Failed to connect to Redis server at my_hostname:10000 (TLS enabled): Connect timeout. [boost.redis:18]"},
+      {logger::level::info, "Trying to connect to Redis server at my_hostname:10000 (TLS enabled)"  },
+      {logger::level::info, "Connected to Redis server at my_hostname:10000 (TLS enabled)"          },
+      // clang-format on
+   });
+}
+
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+void test_connect_error_unix()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.unix_socket = "/tmp/sock";
+
+   // Launch the operation
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // Connect errors. We sleep and try to connect again
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // This time we succeed and we launch the parallel group
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // Log
+   fix.check_log({
+      // clang-format off
+      {logger::level::info, "Trying to connect to Redis server at '/tmp/sock'"  },
+      {logger::level::info, "Failed to connect to Redis server at '/tmp/sock': Connect timeout. [boost.redis:18]"},
+      {logger::level::info, "Trying to connect to Redis server at '/tmp/sock'"  },
+      {logger::level::info, "Connected to Redis server at '/tmp/sock'"          },
+      // clang-format on
+   });
+}
+#endif
+
 // An error in connect without reconnection enabled makes the operation finish
 void test_connect_error_no_reconnect()
 {
@@ -597,6 +663,10 @@ int main()
    test_config_error_unix_ssl();
 
    test_connect_error();
+   test_connect_error_ssl();
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+   test_connect_error_unix();
+#endif
    test_connect_error_no_reconnect();
    test_connect_cancel();
    test_connect_cancel_edge();
