@@ -12,6 +12,7 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
+#include <boost/redis/detail/exec_one_fsm.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
@@ -32,6 +33,7 @@
 #include <boost/asio/bind_cancellation_slot.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/buffer.hpp>
+#include <boost/asio/cancel_after.hpp>
 #include <boost/asio/cancel_at.hpp>
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
@@ -45,6 +47,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
 
@@ -206,6 +209,51 @@ struct connection_impl {
    void set_receive_adapter(any_adapter adapter)
    {
       st_.mpx.set_receive_adapter(std::move(adapter));
+   }
+};
+
+template <class Executor>
+struct exec_one_op {
+   connection_impl<Executor>* conn_;
+   const request* req_;
+   exec_one_fsm fsm_;
+
+   explicit exec_one_op(connection_impl<Executor>& conn, const request& req, any_adapter resp)
+   : conn_(&conn)
+   , req_(&req)
+   , fsm_(std::move(resp), req.get_expected_responses())
+   { }
+
+   template <class Self>
+   void operator()(Self& self, system::error_code ec = {}, std::size_t bytes_written = 0u)
+   {
+      auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
+      exec_one_action act = fsm_.resume(
+         conn_->st_.mpx.get_read_buffer(),
+         ec,
+         bytes_written,
+         self.get_cancellation_state().cancelled());
+
+      switch (act.type) {
+         case exec_one_action_type::done: self.complete(act.ec); return;
+         case exec_one_action_type::write:
+            asio::async_write(
+               conn->stream_,
+               asio::buffer(req_->payload()),
+               asio::cancel_after(
+                  conn->writer_timer_,       // TODO: safe to use this timer?
+                  std::chrono::seconds(10),  // TODO: how do we parametrize this?
+                  std::move(self)));
+            return;
+         case exec_one_action_type::read_some:
+            conn->stream_.async_read_some(
+               conn->st_.mpx.get_read_buffer().get_prepared(),
+               asio::cancel_after(
+                  conn->reader_timer_,       // TODO: safe to use this timer?
+                  std::chrono::seconds(10),  // TODO: how do we parametrize this?
+                  std::move(self)));
+            return;
+      }
    }
 };
 

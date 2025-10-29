@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef BOOST_REDIS_EXEC_FSM_HPP
-#define BOOST_REDIS_EXEC_FSM_HPP
+#ifndef BOOST_REDIS_EXEC_ONE_FSM_HPP
+#define BOOST_REDIS_EXEC_ONE_FSM_HPP
 
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/coroutine.hpp>
@@ -86,6 +86,7 @@ public:
             return ec;
 
          // Read responses until we're done
+         buffer.clear();
          for (; remaining_responses_ != 0u; --remaining_responses_) {
             // We've started this response
             resp_.on_init();
