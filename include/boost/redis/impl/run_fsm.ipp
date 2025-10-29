@@ -89,6 +89,8 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
    }
 }
 
+inline bool use_sentinel(const config& cfg) { return !cfg.sentinel.addresses.empty(); }
+
 inline void update_sentinel_list(
    std::vector<address>& to,
    std::size_t current_index,                      // the one to maintain and place first
@@ -142,7 +144,7 @@ run_action run_fsm::resume(
 
       for (;;) {
          // Sentinel connect
-         if (!st.cfg.sentinel.addresses.empty()) {
+         if (use_sentinel(st.cfg)) {
             // Ask Sentinel where our server lives
             for (sentinel_idx_ = 0u; sentinel_idx_ < st.sentinels.size(); ++sentinel_idx_) {
                // Try to connect. TODO: we need a way to specify where and how to connect
@@ -266,7 +268,7 @@ run_action run_fsm::resume(
          }
 
          // When using Sentinel, we shouldn't wait here
-         if (!st.cfg.sentinel.addresses.empty()) {
+         if (!use_sentinel(st.cfg)) {
             // If we are not going to try again, we're done
             if (st.cfg.reconnect_wait_interval.count() == 0) {
                return ec;
