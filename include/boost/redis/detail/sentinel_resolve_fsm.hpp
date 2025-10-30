@@ -84,7 +84,7 @@ public:
       asio::cancellation_type_t cancel_state);
 };
 
-any_adapter make_sentinel_adapter(const request& req, connection_state& st);
+any_adapter make_sentinel_adapter(connection_state& st);
 
 }  // namespace boost::redis::detail
 

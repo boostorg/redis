@@ -15,6 +15,7 @@
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/impl/setup_request_utils.hpp>
+#include <boost/redis/request.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
@@ -41,10 +42,24 @@ inline system::error_code check_config(const config& cfg)
    return system::error_code{};
 }
 
+inline bool use_sentinel(const config& cfg) { return !cfg.sentinel.addresses.empty(); }
+
 inline void compose_ping_request(const config& cfg, request& to)
 {
    to.clear();
    to.push("PING", cfg.health_check_id);
+}
+
+// Composes the request modifying cfg.sentinel.setup
+inline void compose_sentinel_request(config& cfg)
+{
+   if (use_sentinel(cfg)) {
+      // These commands should go after the user-supplied setup, as this might involve authentication
+      cfg.sentinel.setup.push("SENTINEL", "GET-MASTER-ADDR-BY-NAME", cfg.sentinel.master_name);
+      cfg.sentinel.setup.push("SENTINEL", "SENTINELS", cfg.sentinel.master_name);
+   }
+
+   // Note that we don't care about request flags because this is a one-time request
 }
 
 inline void process_setup_node(
@@ -85,8 +100,6 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
       log_info(st.logger, "Setup request execution: success");
    }
 }
-
-inline bool use_sentinel(const config& cfg) { return !cfg.sentinel.addresses.empty(); }
 
 // Wrapper to log the address of a Redis server
 struct log_address {
@@ -146,6 +159,9 @@ run_action run_fsm::resume(
 
       // Compose the PING request. Same as above
       compose_ping_request(st.cfg, st.ping_req);
+
+      // Sentinel request. Same as above
+      compose_sentinel_request(st.cfg);
 
       for (;;) {
          // Sentinel connect

@@ -112,19 +112,20 @@ sentinel_action sentinel_resolve_fsm::resume(
    return system::error_code();
 }
 
-any_adapter make_sentinel_adapter(const request& req, connection_state& st)
+any_adapter make_sentinel_adapter(connection_state& st)
 {
-   return any_adapter::impl_t(
-      [adapter = sentinel_adapter(req.get_expected_responses(), st.sentinel_resp)](
-         any_adapter::parse_event ev,
-         resp3::node_view const& nd,
-         system::error_code& ec) mutable {
-         switch (ev) {
-            case any_adapter::parse_event::init: adapter.on_init(); break;
-            case any_adapter::parse_event::node: adapter.on_node(nd, ec); break;
-            case any_adapter::parse_event::done: adapter.on_done(); break;
-         }
-      });
+   return any_adapter::impl_t([adapter = sentinel_adapter(
+                                  st.cfg.sentinel.setup.get_expected_responses(),
+                                  st.sentinel_resp)](
+                                 any_adapter::parse_event ev,
+                                 resp3::node_view const& nd,
+                                 system::error_code& ec) mutable {
+      switch (ev) {
+         case any_adapter::parse_event::init: adapter.on_init(); break;
+         case any_adapter::parse_event::node: adapter.on_node(nd, ec); break;
+         case any_adapter::parse_event::done: adapter.on_done(); break;
+      }
+   });
 }
 
 }  // namespace boost::redis::detail
