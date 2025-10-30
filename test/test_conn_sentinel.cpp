@@ -149,13 +149,68 @@ void test_sentinel_not_reachable()
    BOOST_TEST(run_finished);
 }
 
+// Both Sentinels and masters may be protected with authorization
+void test_sentinel_auth()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+
+   config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "26379"},
+   };
+   cfg.sentinel.master_name = "mymaster";
+   cfg.sentinel.setup.push("HELLO", 3, "AUTH", "sentinel_user", "sentinel_pass");
+
+   cfg.use_setup = true;
+   cfg.setup.clear();
+   cfg.setup.push("HELLO", 3, "AUTH", "redis_user", "redis_pass");
+
+   // Verify that we're authenticated correctly
+   request req;
+   req.push("ACL", "WHOAMI");
+
+   response<std::string> resp;
+
+   bool exec_finished = false, run_finished = false;
+
+   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST(std::get<0>(resp).has_value());
+      BOOST_TEST_EQ(std::get<0>(resp).value(), "redis_user");
+      conn.cancel();
+   });
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+}
+
 }  // namespace
 
 int main()
 {
+   // Create the required users in the master, replicas and sentinels
+   create_user("6380", "redis_user", "redis_pass");
+   create_user("6381", "redis_user", "redis_pass");
+   create_user("6382", "redis_user", "redis_pass");
+   create_user("26379", "sentinel_user", "sentinel_pass");
+   create_user("26380", "sentinel_user", "sentinel_pass");
+   create_user("26381", "sentinel_user", "sentinel_pass");
+
+   // Actual tests
    test_exec();
    test_reconnect();
    test_sentinel_not_reachable();
+   test_sentinel_auth();
 
    return boost::report_errors();
 }
