@@ -439,8 +439,8 @@ public:
    {
       auto act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
 
-      switch (act.type) {
-         case run_action_type::done: self.complete(act.ec); return;
+      switch (act.type()) {
+         case run_action_type::done: self.complete(act.error()); return;
          case run_action_type::immediate:
             asio::async_immediate(self.get_io_executor(), std::move(self));
             return;
