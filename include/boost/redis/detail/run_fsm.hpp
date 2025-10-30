@@ -12,6 +12,7 @@
 #include <boost/redis/detail/connect_params.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -35,18 +36,43 @@ enum class run_action_type
    wait_for_reconnection,  // Sleep for the reconnection period
 };
 
-struct run_action {
-   run_action_type type;
-   system::error_code ec;
+class run_action {
+   run_action_type type_;
+   union {
+      system::error_code ec_;
+      any_address_view connect_;
+   };
 
+   run_action(any_address_view addr) noexcept
+   : type_{run_action_type::connect}
+   , connect_{addr}
+   { }
+
+public:
    run_action(run_action_type type) noexcept
-   : type{type}
+   : type_{type}
    { }
 
    run_action(system::error_code ec) noexcept
-   : type{run_action_type::done}
-   , ec{ec}
+   : type_{run_action_type::done}
+   , ec_{ec}
    { }
+
+   static run_action connect(any_address_view addr) { return {addr}; }
+
+   run_action_type type() const { return type_; }
+
+   system::error_code error() const
+   {
+      BOOST_ASSERT(type_ == run_action_type::done);
+      return ec_;
+   }
+
+   any_address_view connect_address() const
+   {
+      BOOST_ASSERT(type_ == run_action_type::connect);
+      return connect_;
+   }
 };
 
 class run_fsm {
@@ -61,8 +87,6 @@ public:
       system::error_code ec,
       asio::cancellation_type_t cancel_state);
 };
-
-connect_params connect_params_from_config(const config& cfg);
 
 }  // namespace boost::redis::detail
 

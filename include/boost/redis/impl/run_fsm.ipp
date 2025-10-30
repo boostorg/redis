@@ -8,6 +8,7 @@
 
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/connect_params.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
@@ -100,38 +101,33 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
    }
 }
 
-// Wrapper to log the address of a Redis server
-struct log_address {
-   const config& cfg;
-};
-
 template <>
-struct log_traits<log_address> {
-   static inline void log(std::string& to, log_address value)
+struct log_traits<any_address_view> {
+   static inline void log(std::string& to, any_address_view value)
    {
-      if (value.cfg.unix_socket.empty()) {
-         to += value.cfg.addr.host;
-         to += ':';
-         to += value.cfg.addr.port;
-         to += value.cfg.use_ssl ? " (TLS enabled)" : " (TLS disabled)";
+      if (value.type() == transport_type::unix_socket) {
+         to += '\'';
+         to += value.unix_socket();
+         to += '\'';
       } else {
-         to += '\'';
-         to += value.cfg.unix_socket;
-         to += '\'';
+         const auto& addr = value.tcp_address();
+         to += addr.host;
+         to += ':';
+         to += addr.port;
+         to += value.type() == transport_type::tcp_tls ? " (TLS enabled)" : " (TLS disabled)";
       }
    }
 };
 
-// API
-connect_params connect_params_from_config(const config& cfg)
+inline any_address_view get_server_address(const connection_state& st)
 {
-   return {
-      cfg.unix_socket.empty() ? any_address_view{cfg.addr, cfg.use_ssl}
-                              : any_address_view{cfg.unix_socket},
-      cfg.resolve_timeout,
-      cfg.connect_timeout,
-      cfg.ssl_handshake_timeout,
-   };
+   if (use_sentinel(st.cfg)) {
+      return {st.sentinel_resp.server_addr, st.cfg.use_ssl};
+   } else if (!st.cfg.unix_socket.empty()) {
+      return any_address_view{st.cfg.unix_socket};
+   } else {
+      return {st.cfg.addr, st.cfg.use_ssl};
+   }
 }
 
 run_action run_fsm::resume(
@@ -201,9 +197,8 @@ run_action run_fsm::resume(
          }
 
          // Try to connect
-         // TODO: this should be done differently for Sentinel
-         log_info(st.logger, "Trying to connect to Redis server at ", log_address{st.cfg});
-         BOOST_REDIS_YIELD(resume_point_, 4, run_action_type::connect)
+         log_info(st.logger, "Trying to connect to Redis server at ", get_server_address(st));
+         BOOST_REDIS_YIELD(resume_point_, 4, run_action::connect(get_server_address(st)))
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
@@ -216,12 +211,12 @@ run_action run_fsm::resume(
             log_info(
                st.logger,
                "Failed to connect to Redis server at ",
-               log_address{st.cfg},
+               get_server_address(st),
                ": ",
                ec);
          } else {
             // We were successful
-            log_info(st.logger, "Connected to Redis server at ", log_address{st.cfg});
+            log_info(st.logger, "Connected to Redis server at ", get_server_address(st));
 
             // Initialization
             st.mpx.reset();
