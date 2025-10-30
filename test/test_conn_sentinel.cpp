@@ -23,6 +23,7 @@ using boost::system::error_code;
 
 namespace {
 
+// We can execute requests normally when using Sentinel run
 void test_exec()
 {
    // Setup
@@ -37,6 +38,7 @@ void test_exec()
    };
    cfg.sentinel.master_name = "mymaster";
 
+   // Verify that we're connected to the master, listening at port 6380
    request req;
    req.push("CLIENT", "INFO");
 
@@ -62,11 +64,60 @@ void test_exec()
    BOOST_TEST(run_finished);
 }
 
+// If connectivity to the Redis master fails, we can reconnect
+void test_reconnect()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+
+   config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "26379"},
+      {"localhost", "26380"},
+      {"localhost", "26381"},
+   };
+   cfg.sentinel.master_name = "mymaster";
+
+   // Will cause the connection to fail
+   request req_quit;
+   req_quit.push("QUIT");
+
+   // Will succeed if the reconnection succeeds
+   request req_ping;
+   req_ping.push("PING", "sentinel_reconnect");
+   req_ping.get_config().cancel_if_unresponded = false;
+
+   bool quit_finished = false, ping_finished = false, run_finished = false;
+
+   conn.async_exec(req_quit, ignore, [&](error_code ec1, std::size_t) {
+      quit_finished = true;
+      BOOST_TEST_EQ(ec1, error_code());
+      conn.async_exec(req_ping, ignore, [&](error_code ec2, std::size_t) {
+         ping_finished = true;
+         BOOST_TEST_EQ(ec2, error_code());
+         conn.cancel();
+      });
+   });
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(quit_finished);
+   BOOST_TEST(ping_finished);
+   BOOST_TEST(run_finished);
+}
+
 }  // namespace
 
 int main()
 {
    test_exec();
+   test_reconnect();
 
    return boost::report_errors();
 }
