@@ -31,7 +31,7 @@ enum class run_action_type
    done,                   // Call the final handler
    immediate,              // Call asio::async_immediate
    connect,                // Transport connection establishment
-   sentinel_request,       // Execute the Sentinel request asking for Redis servers
+   sentinel_resolve,       // Contact Sentinels to resolve the master's address
    parallel_group,         // Run the reader, writer and friends
    cancel_receive,         // Cancel the receiver channel
    wait_for_reconnection,  // Sleep for the reconnection period
@@ -53,7 +53,6 @@ struct run_action {
 
 class run_fsm {
    int resume_point_{0};
-   std::size_t sentinel_idx_{0u};
    system::error_code stored_ec_;
 
 public:
@@ -64,8 +63,6 @@ public:
       system::error_code ec,
       asio::cancellation_type_t cancel_state);
 };
-
-any_adapter make_sentinel_adapter(const request& req, sentinel_response& resp);
 
 }  // namespace boost::redis::detail
 

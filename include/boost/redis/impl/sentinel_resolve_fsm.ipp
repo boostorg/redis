@@ -14,6 +14,7 @@
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
+#include <boost/redis/impl/sentinel_adapter.hpp>
 
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
@@ -109,6 +110,21 @@ sentinel_action sentinel_resolve_fsm::resume(
    // We should never get here
    BOOST_ASSERT(false);
    return system::error_code();
+}
+
+any_adapter make_sentinel_adapter(const request& req, connection_state& st)
+{
+   return any_adapter::impl_t(
+      [adapter = sentinel_adapter(req.get_expected_responses(), st.sentinel_resp)](
+         any_adapter::parse_event ev,
+         resp3::node_view const& nd,
+         system::error_code& ec) mutable {
+         switch (ev) {
+            case any_adapter::parse_event::init: adapter.on_init(); break;
+            case any_adapter::parse_event::node: adapter.on_node(nd, ec); break;
+            case any_adapter::parse_event::done: adapter.on_done(); break;
+         }
+      });
 }
 
 }  // namespace boost::redis::detail

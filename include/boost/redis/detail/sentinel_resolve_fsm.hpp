@@ -9,6 +9,7 @@
 #ifndef BOOST_REDIS_SENTINEL_RESOLVE_FSM_HPP
 #define BOOST_REDIS_SENTINEL_RESOLVE_FSM_HPP
 
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
@@ -82,6 +83,8 @@ public:
       system::error_code ec,
       asio::cancellation_type_t cancel_state);
 };
+
+any_adapter make_sentinel_adapter(const request& req, connection_state& st);
 
 }  // namespace boost::redis::detail
 

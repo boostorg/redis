@@ -14,7 +14,6 @@
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
-#include <boost/redis/impl/sentinel_adapter.hpp>
 #include <boost/redis/impl/setup_request_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
@@ -23,9 +22,7 @@
 #include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <algorithm>
 #include <cstddef>
-#include <utility>
 #include <vector>
 
 namespace boost::redis::detail {
@@ -91,39 +88,13 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
 
 inline bool use_sentinel(const config& cfg) { return !cfg.sentinel.addresses.empty(); }
 
-inline void update_sentinel_list(
-   std::vector<address>& to,
-   std::size_t current_index,                      // the one to maintain and place first
-   boost::span<const address> gossip_sentinels,    // the ones that SENTINEL SENTINELS returned
-   boost::span<const address> bootstrap_sentinels  // the ones the user supplied
-)
-{
-   // Place the one that succeeded in the front
-   if (current_index != 0u)
-      std::swap(to.front(), to[current_index]);
-
-   // Remove the other Sentinels
-   to.resize(1u);
-
-   // Add one group
-   to.insert(to.end(), gossip_sentinels.begin(), gossip_sentinels.end());
-
-   // Insert any user-supplied sentinels, if not already present
-   // TODO: maybe use a sorted vector?
-   for (const auto& sentinel : bootstrap_sentinels) {
-      auto it = std::find_if(to.begin(), to.end(), [&sentinel](const address& value) {
-         return value.host == sentinel.host && value.port == sentinel.port;
-      });
-      if (it == to.end())
-         to.push_back(sentinel);
-   }
-}
-
 run_action run_fsm::resume(
    connection_state& st,
    system::error_code ec,
    asio::cancellation_type_t cancel_state)
 {
+   run_action act{system::error_code()};
+
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
@@ -146,54 +117,17 @@ run_action run_fsm::resume(
          // Sentinel connect
          if (use_sentinel(st.cfg)) {
             // Ask Sentinel where our server lives
-            for (sentinel_idx_ = 0u; sentinel_idx_ < st.sentinels.size(); ++sentinel_idx_) {
-               // Try to connect. TODO: we need a way to specify where and how to connect
-               BOOST_REDIS_YIELD(resume_point_, 2, run_action_type::connect)
+            BOOST_REDIS_YIELD(resume_point_, 3000, run_action_type::sentinel_resolve)
 
-               // Check for cancellations
-               if (is_terminal_cancel(cancel_state)) {
-                  log_debug(st.logger, "Run: cancelled (10)");
-                  return system::error_code(asio::error::operation_aborted);
-               }
-
-               // Check for errors
-               if (ec) {
-                  log_info(st.logger, "Failed to connect to Sentinel at <TODO>");
-                  continue;
-               }
-
-               // Execute the Sentinel request
-               BOOST_REDIS_YIELD(resume_point_, 35, run_action_type::sentinel_request)
-
-               // Check for cancellations
-               if (is_terminal_cancel(cancel_state)) {
-                  log_debug(st.logger, "Run: cancelled (11)");
-                  return system::error_code(asio::error::operation_aborted);
-               }
-
-               // Check for errors
-               if (ec) {
-                  log_info(
-                     st.logger,
-                     "Failed to execute Sentinel request for <TODO>",
-                     st.sentinel_resp.diagnostic.empty() ? "" : ": ",
-                     st.sentinel_resp.diagnostic);
-                  continue;
-               }
-
-               // Sentinel knows about this master. Update our config
-               update_sentinel_list(
-                  st.sentinels,
-                  sentinel_idx_,
-                  st.sentinel_resp.sentinels,
-                  st.cfg.sentinel.addresses);
-
-               break;
+            // Check for cancellations
+            if (is_terminal_cancel(cancel_state)) {
+               log_debug(st.logger, "Run: cancelled (4)");
+               return {asio::error::operation_aborted};
             }
 
-            // TODO: is this check reliable?
-            // TODO: this diagnostic is not good
+            // Check for errors
             if (ec) {
+               // TODO: make this diagnostic better
                log_err(st.logger, "No Sentinel can be reached");
 
                // If we are not going to try again, we're done
@@ -289,20 +223,6 @@ run_action run_fsm::resume(
    // We should never get here
    BOOST_ASSERT(false);
    return system::error_code();
-}
-
-any_adapter make_sentinel_adapter(const request& req, sentinel_response& resp)
-{
-   return any_adapter::impl_t([adapter = sentinel_adapter(req.get_expected_responses(), resp)](
-                                 any_adapter::parse_event ev,
-                                 resp3::node_view const& nd,
-                                 system::error_code& ec) mutable {
-      switch (ev) {
-         case any_adapter::parse_event::init: adapter.on_init(); break;
-         case any_adapter::parse_event::node: adapter.on_node(nd, ec); break;
-         case any_adapter::parse_event::done: adapter.on_done(); break;
-      }
-   });
 }
 
 }  // namespace boost::redis::detail
