@@ -12,6 +12,7 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
+#include <boost/asio/ssl/context.hpp>
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
@@ -150,7 +151,7 @@ void test_sentinel_not_reachable()
 }
 
 // Both Sentinels and masters may be protected with authorization
-void test_sentinel_auth()
+void test_auth()
 {
    // Setup
    net::io_context ioc;
@@ -194,6 +195,51 @@ void test_sentinel_auth()
    BOOST_TEST(run_finished);
 }
 
+// TLS might be used with Sentinels. In our setup, nodes don't use TLS,
+// but this setting is independent from Sentinel.
+void test_tls()
+{
+   // Setup
+   net::io_context ioc;
+   net::ssl::context ssl_ctx{net::ssl::context::tlsv13_client};
+
+   // The custom server uses a certificate signed by a CA
+   // that is not trusted by default - skip verification.
+   ssl_ctx.set_verify_mode(net::ssl::verify_none);
+
+   connection conn{ioc, std::move(ssl_ctx)};
+
+   config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "36379"},
+      {"localhost", "36380"},
+      {"localhost", "36381"},
+   };
+   cfg.sentinel.master_name = "mymaster";
+   cfg.sentinel.use_ssl = true;
+
+   request req;
+   req.push("PING", "test_sentinel_tls");
+
+   bool exec_finished = false, run_finished = false;
+
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST(ec == error_code());
+      conn.cancel();
+   });
+
+   conn.async_run(cfg, {}, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST(ec == net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+}
+
 }  // namespace
 
 int main()
@@ -210,7 +256,8 @@ int main()
    test_exec();
    test_reconnect();
    test_sentinel_not_reachable();
-   test_sentinel_auth();
+   test_auth();
+   test_tls();
 
    return boost::report_errors();
 }
