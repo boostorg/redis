@@ -40,13 +40,8 @@ class run_action {
    run_action_type type_;
    union {
       system::error_code ec_;
-      any_address_view connect_;
+      connect_params connect_;
    };
-
-   run_action(any_address_view addr) noexcept
-   : type_{run_action_type::connect}
-   , connect_{addr}
-   { }
 
 public:
    run_action(run_action_type type) noexcept
@@ -58,7 +53,10 @@ public:
    , ec_{ec}
    { }
 
-   static run_action connect(any_address_view addr) { return {addr}; }
+   run_action(const connect_params& params) noexcept
+   : type_{run_action_type::connect}
+   , connect_{params}
+   { }
 
    run_action_type type() const { return type_; }
 
@@ -68,7 +66,7 @@ public:
       return ec_;
    }
 
-   any_address_view connect_address() const
+   const connect_params& get_connect_params() const
    {
       BOOST_ASSERT(type_ == run_action_type::connect);
       return connect_;
