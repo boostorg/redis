@@ -17,6 +17,7 @@
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
+#include <boost/redis/detail/sentinel_resolve_fsm.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
@@ -37,6 +38,7 @@
 #include <boost/asio/cancel_at.hpp>
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/compose.hpp>
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/experimental/cancellation_condition.hpp>
@@ -256,6 +258,65 @@ struct exec_one_op {
       }
    }
 };
+
+template <class Executor, class CompletionToken>
+auto async_exec_one(
+   connection_impl<Executor>& conn,
+   const request& req,
+   any_adapter resp,
+   CompletionToken&& token)
+{
+   return asio::async_compose<CompletionToken, void(system::error_code)>(
+      exec_one_op<Executor>{conn, req, std::move(resp)},
+      token,
+      conn);
+}
+
+template <class Executor>
+struct sentinel_resolve_op {
+   connection_impl<Executor>* conn_;
+   sentinel_resolve_fsm fsm_;
+
+   explicit sentinel_resolve_op(connection_impl<Executor>& conn)
+   : conn_(&conn)
+   { }
+
+   template <class Self>
+   void operator()(Self& self, system::error_code ec = {})
+   {
+      auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
+      sentinel_action act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
+
+      switch (act.type()) {
+         case sentinel_action_type::done: self.complete(act.error()); return;
+         case sentinel_action_type::connect:
+            conn->stream_.async_connect(
+               act.get_connect_params(),
+               conn->st_.logger,
+               std::move(self));
+            return;
+         case sentinel_action_type::request:
+            async_exec_one(
+               *conn,
+               conn->st_.cfg.sentinel.setup,
+               make_sentinel_adapter(conn->st_),
+               asio::cancel_after(
+                  conn->reconnect_timer_,    // should be safe to re-use this
+                  std::chrono::seconds(10),  // TODO: how do we parametrize this?
+                  std::move(self)));
+            return;
+      }
+   }
+};
+
+template <class Executor, class CompletionToken>
+auto async_sentinel_resolve(connection_impl<Executor>& conn, CompletionToken&& token)
+{
+   return asio::async_compose<CompletionToken, void(system::error_code)>(
+      sentinel_resolve_op<Executor>{conn},
+      token,
+      conn);
+}
 
 template <class Executor>
 struct writer_op {

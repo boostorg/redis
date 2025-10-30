@@ -36,7 +36,7 @@ struct connection_state {
    request ping_req{};
 
    // Sentinel stuff
-   std::vector<address> sentinels;
+   std::vector<address> sentinels{};
    sentinel_response sentinel_resp{};
 };
 
