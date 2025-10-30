@@ -444,9 +444,12 @@ public:
          case run_action_type::immediate:
             asio::async_immediate(self.get_io_executor(), std::move(self));
             return;
+         case run_action_type::sentinel_resolve:
+            async_sentinel_resolve(*conn_, std::move(self));
+            return;
          case run_action_type::connect:
             conn_->stream_.async_connect(
-               connect_params_from_config(conn_->st_.cfg),
+               act.get_connect_params(),
                conn_->st_.logger,
                std::move(self));
             return;
