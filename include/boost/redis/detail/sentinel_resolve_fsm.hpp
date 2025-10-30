@@ -10,7 +10,7 @@
 #define BOOST_REDIS_SENTINEL_RESOLVE_FSM_HPP
 
 #include <boost/redis/adapter/any_adapter.hpp>
-#include <boost/redis/config.hpp>
+#include <boost/redis/detail/connect_params.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/assert.hpp>
@@ -35,13 +35,8 @@ class sentinel_action {
    sentinel_action_type type_;
    union {
       system::error_code ec_;
-      const address* addr_;
+      connect_params connect_;
    };
-
-   sentinel_action(const address& addr) noexcept
-   : type_(sentinel_action_type::connect)
-   , addr_(&addr)
-   { }
 
    sentinel_action(sentinel_action_type type) noexcept
    : type_(type)
@@ -53,7 +48,11 @@ public:
    , ec_(ec)
    { }
 
-   static sentinel_action connect(const address& addr) { return {addr}; }
+   sentinel_action(const connect_params& params) noexcept
+   : type_(sentinel_action_type::connect)
+   , connect_(params)
+   { }
+
    static sentinel_action request() { return {sentinel_action_type::request}; }
 
    sentinel_action_type type() const { return type_; }
@@ -64,10 +63,10 @@ public:
       return ec_;
    }
 
-   const address& connect_address() const
+   const connect_params& get_connect_params() const
    {
       BOOST_ASSERT(type_ == sentinel_action_type::connect);
-      return *addr_;
+      return connect_;
    }
 };
 

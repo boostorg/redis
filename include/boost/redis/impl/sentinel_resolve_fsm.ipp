@@ -9,6 +9,7 @@
 #ifndef BOOST_REDIS_SENTINEL_RESOLVE_FSM_IPP
 #define BOOST_REDIS_SENTINEL_RESOLVE_FSM_IPP
 
+#include <boost/redis/detail/connect_params.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
@@ -18,6 +19,8 @@
 
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
+
+#include <cstddef>
 
 namespace boost::redis::detail {
 
@@ -49,6 +52,17 @@ inline void update_sentinel_list(
    }
 }
 
+// Returns how to connect to Sentinel idx
+inline connect_params make_sentinel_connect_params(const connection_state& st, std::size_t idx)
+{
+   return {
+      any_address_view{st.sentinels[idx], st.cfg.sentinel.use_ssl},
+      st.cfg.sentinel.resolve_timeout,
+      st.cfg.sentinel.connect_timeout,
+      st.cfg.sentinel.ssl_handshake_timeout,
+   };
+}
+
 sentinel_action sentinel_resolve_fsm::resume(
    connection_state& st,
    system::error_code ec,
@@ -59,8 +73,8 @@ sentinel_action sentinel_resolve_fsm::resume(
 
       // Ask Sentinel where our server lives
       for (; idx_ < st.sentinels.size(); ++idx_) {
-         // Try to connect. TODO: we need a way to specify where and how to connect
-         BOOST_REDIS_YIELD(resume_point_, 1, sentinel_action::connect(st.sentinels[idx_]))
+         // Try to connect
+         BOOST_REDIS_YIELD(resume_point_, 1, make_sentinel_connect_params(st, idx_))
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
