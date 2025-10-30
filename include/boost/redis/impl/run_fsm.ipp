@@ -65,6 +65,7 @@ inline void process_setup_node(
    resp3::basic_node<std::string_view> const& nd,
    system::error_code& ec)
 {
+   // TODO: check the output of the ROLE command for sentinel
    switch (nd.data_type) {
       case resp3::type::simple_error:
       case resp3::type::blob_error:
@@ -165,11 +166,11 @@ run_action run_fsm::resume(
          // Sentinel connect
          if (use_sentinel(st.cfg)) {
             // Ask Sentinel where our server lives
-            BOOST_REDIS_YIELD(resume_point_, 3000, run_action_type::sentinel_resolve)
+            BOOST_REDIS_YIELD(resume_point_, 2, run_action_type::sentinel_resolve)
 
             // Check for cancellations
             if (is_terminal_cancel(cancel_state)) {
-               log_debug(st.logger, "Run: cancelled (4)");
+               log_debug(st.logger, "Run: cancelled (1)");
                return {asio::error::operation_aborted};
             }
 
@@ -186,11 +187,11 @@ run_action run_fsm::resume(
                // Wait for the reconnection interval.
                // This is not technically what Redis docs recommends,
                // but I think it's consistent with what non-sentinel run does
-               BOOST_REDIS_YIELD(resume_point_, 55, run_action_type::wait_for_reconnection)
+               BOOST_REDIS_YIELD(resume_point_, 3, run_action_type::wait_for_reconnection)
 
                // Check for cancellations
                if (is_terminal_cancel(cancel_state)) {
-                  log_debug(st.logger, "Run: cancelled (35)");
+                  log_debug(st.logger, "Run: cancelled (2)");
                   return system::error_code(asio::error::operation_aborted);
                }
 
@@ -202,11 +203,11 @@ run_action run_fsm::resume(
          // Try to connect
          // TODO: this should be done differently for Sentinel
          log_info(st.logger, "Trying to connect to Redis server at ", log_address{st.cfg});
-         BOOST_REDIS_YIELD(resume_point_, 2, run_action_type::connect)
+         BOOST_REDIS_YIELD(resume_point_, 4, run_action_type::connect)
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            log_debug(st.logger, "Run: cancelled (1)");
+            log_debug(st.logger, "Run: cancelled (3)");
             return system::error_code(asio::error::operation_aborted);
          }
 
@@ -236,7 +237,7 @@ run_action run_fsm::resume(
             }
 
             // Run the tasks
-            BOOST_REDIS_YIELD(resume_point_, 3, run_action_type::parallel_group)
+            BOOST_REDIS_YIELD(resume_point_, 5, run_action_type::parallel_group)
 
             // Store any error yielded by the tasks for later
             stored_ec_ = ec;
@@ -248,7 +249,7 @@ run_action run_fsm::resume(
             // The receive operation must be cancelled because channel
             // subscription does not survive a reconnection but requires
             // re-subscription.
-            BOOST_REDIS_YIELD(resume_point_, 4, run_action_type::cancel_receive)
+            BOOST_REDIS_YIELD(resume_point_, 6, run_action_type::cancel_receive)
 
             // Restore the error
             ec = stored_ec_;
@@ -256,7 +257,7 @@ run_action run_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            log_debug(st.logger, "Run: cancelled (2)");
+            log_debug(st.logger, "Run: cancelled (4)");
             return system::error_code(asio::error::operation_aborted);
          }
 
@@ -268,11 +269,11 @@ run_action run_fsm::resume(
             }
 
             // Wait for the reconnection interval
-            BOOST_REDIS_YIELD(resume_point_, 5, run_action_type::wait_for_reconnection)
+            BOOST_REDIS_YIELD(resume_point_, 7, run_action_type::wait_for_reconnection)
 
             // Check for cancellations
             if (is_terminal_cancel(cancel_state)) {
-               log_debug(st.logger, "Run: cancelled (3)");
+               log_debug(st.logger, "Run: cancelled (5)");
                return system::error_code(asio::error::operation_aborted);
             }
          }
