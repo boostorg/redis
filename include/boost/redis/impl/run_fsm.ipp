@@ -88,6 +88,40 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
 
 inline bool use_sentinel(const config& cfg) { return !cfg.sentinel.addresses.empty(); }
 
+// Wrapper to log the address of a Redis server
+struct log_address {
+   const config& cfg;
+};
+
+template <>
+struct log_traits<log_address> {
+   static inline void log(std::string& to, log_address value)
+   {
+      if (value.cfg.unix_socket.empty()) {
+         to += value.cfg.addr.host;
+         to += ':';
+         to += value.cfg.addr.port;
+         to += value.cfg.use_ssl ? " (TLS enabled)" : " (TLS disabled)";
+      } else {
+         to += '\'';
+         to += value.cfg.unix_socket;
+         to += '\'';
+      }
+   }
+};
+
+// API
+connect_params connect_params_from_config(const config& cfg)
+{
+   return {
+      cfg.unix_socket.empty() ? any_address_view{cfg.addr, cfg.use_ssl}
+                              : any_address_view{cfg.unix_socket},
+      cfg.resolve_timeout,
+      cfg.connect_timeout,
+      cfg.ssl_handshake_timeout,
+   };
+}
+
 run_action run_fsm::resume(
    connection_state& st,
    system::error_code ec,
@@ -153,7 +187,8 @@ run_action run_fsm::resume(
 
          // Try to connect
          // TODO: this should be done differently for Sentinel
-         BOOST_REDIS_YIELD(resume_point_, 20, run_action_type::connect)
+         log_info(st.logger, "Trying to connect to Redis server at ", log_address{st.cfg});
+         BOOST_REDIS_YIELD(resume_point_, 2, run_action_type::connect)
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
@@ -161,8 +196,18 @@ run_action run_fsm::resume(
             return system::error_code(asio::error::operation_aborted);
          }
 
-         // If we were successful, run all the connection tasks
-         if (!ec) {
+         if (ec) {
+            // There was an error. Skip to the reconnection loop
+            log_info(
+               st.logger,
+               "Failed to connect to Redis server at ",
+               log_address{st.cfg},
+               ": ",
+               ec);
+         } else {
+            // We were successful
+            log_info(st.logger, "Connected to Redis server at ", log_address{st.cfg});
+
             // Initialization
             st.mpx.reset();
             st.setup_diagnostic.clear();
