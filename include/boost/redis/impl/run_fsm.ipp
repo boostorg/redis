@@ -24,7 +24,6 @@
 #include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <cstddef>
 #include <vector>
 
 namespace boost::redis::detail {
@@ -76,15 +75,6 @@ inline void process_setup_node(
          break;
       default:;
    }
-}
-
-inline any_adapter make_setup_adapter(connection_state& st)
-{
-   return any_adapter{
-      [&st](any_adapter::parse_event evt, resp3::node_view const& nd, system::error_code& ec) {
-         if (evt == any_adapter::parse_event::node)
-            process_setup_node(st, nd, ec);
-      }};
 }
 
 inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
@@ -237,7 +227,7 @@ run_action run_fsm::resume(
 
             // Add the setup request to the multiplexer
             if (st.cfg.setup.get_commands() != 0u) {
-               auto elm = make_elem(st.cfg.setup, make_setup_adapter(st));
+               auto elm = make_elem(st.cfg.setup, make_any_adapter(setup_adapter{st}));
                elm->set_done_callback([&elem_ref = *elm, &st] {
                   on_setup_done(elem_ref, st);
                });

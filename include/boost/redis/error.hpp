@@ -101,6 +101,10 @@ enum class error
 
    // TODO: implement
    sentinel_unknown_master,
+
+   // TODO: implement
+   // TODO: should this ever be returned to the user?
+   role_check_failed,
 };
 
 /**
