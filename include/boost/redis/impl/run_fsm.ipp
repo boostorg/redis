@@ -168,6 +168,9 @@ run_action run_fsm::resume(
       // Sentinel request. Same as above
       compose_sentinel_request(st.cfg);
 
+      // Bootstrap the sentinel list with the ones configured by the user
+      st.sentinels = st.cfg.sentinel.addresses;
+
       for (;;) {
          // Sentinel connect
          if (use_sentinel(st.cfg)) {
