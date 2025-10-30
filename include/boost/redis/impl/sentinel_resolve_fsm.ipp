@@ -20,6 +20,34 @@
 
 namespace boost::redis::detail {
 
+inline void update_sentinel_list(
+   std::vector<address>& to,
+   std::size_t current_index,                      // the one to maintain and place first
+   boost::span<const address> gossip_sentinels,    // the ones that SENTINEL SENTINELS returned
+   boost::span<const address> bootstrap_sentinels  // the ones the user supplied
+)
+{
+   // Place the one that succeeded in the front
+   if (current_index != 0u)
+      std::swap(to.front(), to[current_index]);
+
+   // Remove the other Sentinels
+   to.resize(1u);
+
+   // Add one group
+   to.insert(to.end(), gossip_sentinels.begin(), gossip_sentinels.end());
+
+   // Insert any user-supplied sentinels, if not already present
+   // TODO: maybe use a sorted vector?
+   for (const auto& sentinel : bootstrap_sentinels) {
+      auto it = std::find_if(to.begin(), to.end(), [&sentinel](const address& value) {
+         return value.host == sentinel.host && value.port == sentinel.port;
+      });
+      if (it == to.end())
+         to.push_back(sentinel);
+   }
+}
+
 sentinel_action sentinel_resolve_fsm::resume(
    connection_state& st,
    system::error_code ec,
@@ -29,12 +57,9 @@ sentinel_action sentinel_resolve_fsm::resume(
       BOOST_REDIS_CORO_INITIAL
 
       // Ask Sentinel where our server lives
-      for (idx_ = 0u; idx_ < st.cfg.sentinel.addresses.size(); ++idx_) {
-         // Try to connect
-         BOOST_REDIS_YIELD(
-            resume_point_,
-            1,
-            sentinel_action::connect(st.cfg.sentinel.addresses[idx_]))
+      for (; idx_ < st.sentinels.size(); ++idx_) {
+         // Try to connect. TODO: we need a way to specify where and how to connect
+         BOOST_REDIS_YIELD(resume_point_, 1, sentinel_action::connect(st.sentinels[idx_]))
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
@@ -48,8 +73,8 @@ sentinel_action sentinel_resolve_fsm::resume(
             continue;
          }
 
-         // Write the Sentinel request
-         BOOST_REDIS_YIELD(resume_point_, 2, sentinel_action::write(st.sentinel_req.payload()))
+         // Execute the Sentinel request
+         BOOST_REDIS_YIELD(resume_point_, 2, sentinel_action::request())
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
@@ -59,83 +84,26 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          // Check for errors
          if (ec) {
-            log_info(st.logger, "Failed to write Sentinel request at <TODO>");
-            continue;
-         }
-
-         // Read Sentinel's response
-         st.mpx.get_read_buffer().clear();
-
-         while (true) {
-            ec = st.mpx.get_read_buffer().prepare();
-            if (ec) {
-               log_info(st.logger, "Error preparing buffer for Sentinel read operation: ", ec);
-               continue;
-            }
-
-            BOOST_REDIS_YIELD(resume_point_, 3, sentinel_action::read())
-
-            // Check for cancellations
-            if (is_terminal_cancel(cancel_state)) {
-               log_debug(st.logger, "Sentinel resolve: cancelled (3)");
-               return system::error_code(asio::error::operation_aborted);
-            }
-
-            // Check for errors
-            if (ec) {
-               log_info(st.logger, "Failed to read Sentinel response at <TODO>: ", ec);
-               continue;
-            }
-
-            // Feed it to the parser
-         }
-
-         // Execute the Sentinel request
-         BOOST_REDIS_YIELD(resume_point_, 35, run_action_type::sentinel_request)
-
-         // Check for cancellations
-         if (is_terminal_cancel(cancel_state)) {
-            log_debug(st.logger, "Run: cancelled (11)");
-            return system::error_code(asio::error::operation_aborted);
-         }
-
-         // Check for errors
-         // TODO: these diagnostics are not good
-         if (ec) {
-            log_info(st.logger, "Failed to execute Sentinel request for <TODO>");
+            log_info(
+               st.logger,
+               "Failed to execute Sentinel request for <TODO>",
+               st.sentinel_resp.diagnostic.empty() ? "" : ": ",
+               st.sentinel_resp.diagnostic);
             continue;
          }
 
          // Sentinel knows about this master. Update our config
-         update_sentinel_list(st.cfg.sentinel.addresses, sentinel_idx_, st.sentinel_resp.sentinels);
+         update_sentinel_list(
+            st.sentinels,
+            idx_,
+            st.sentinel_resp.sentinels,
+            st.cfg.sentinel.addresses);
 
-         break;
+         return system::error_code();
       }
 
-      // TODO: is this check reliable?
-      // TODO: this diagnostic is not good
-      if (ec) {
-         log_err(st.logger, "No Sentinel can be reached");
-
-         // If we are not going to try again, we're done
-         if (st.cfg.reconnect_wait_interval.count() == 0) {
-            return ec;
-         }
-
-         // Wait for the reconnection interval.
-         // This is not technically what Redis docs recommends,
-         // but I think it's consistent with what non-sentinel run does
-         BOOST_REDIS_YIELD(resume_point_, 55, run_action_type::wait_for_reconnection)
-
-         // Check for cancellations
-         if (is_terminal_cancel(cancel_state)) {
-            log_debug(st.logger, "Run: cancelled (35)");
-            return system::error_code(asio::error::operation_aborted);
-         }
-
-         // Try again
-         continue;
-      }
+      // No Sentinel available
+      return ec;
    }
 
    // We should never get here

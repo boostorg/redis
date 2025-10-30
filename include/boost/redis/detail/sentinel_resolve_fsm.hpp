@@ -12,9 +12,8 @@
 #include <boost/redis/config.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
-
-#include <string_view>
 
 // Sans-io algorithm for async_sentinel_resolve, as a finite state machine
 
@@ -28,8 +27,7 @@ enum class sentinel_action_type
 {
    done,     // Call the final handler
    connect,  // Transport connection establishment
-   write,    // Transport write
-   read,     // Transport read
+   request,  // Send the Sentinel request
 };
 
 class sentinel_action {
@@ -37,17 +35,11 @@ class sentinel_action {
    union {
       system::error_code ec_;
       const address* addr_;
-      std::string_view write_buffer_;
    };
 
    sentinel_action(const address& addr) noexcept
    : type_(sentinel_action_type::connect)
    , addr_(&addr)
-   { }
-
-   sentinel_action(std::string_view write_buffer) noexcept
-   : type_(sentinel_action_type::write)
-   , write_buffer_(write_buffer)
    { }
 
    sentinel_action(sentinel_action_type type) noexcept
@@ -60,11 +52,22 @@ public:
    , ec_(ec)
    { }
 
-   static sentinel_action write(std::string_view buffer) { return {buffer}; }
-   static sentinel_action read() { return {sentinel_action_type::read}; }
    static sentinel_action connect(const address& addr) { return {addr}; }
+   static sentinel_action request() { return {sentinel_action_type::request}; }
 
    sentinel_action_type type() const { return type_; }
+
+   system::error_code error() const
+   {
+      BOOST_ASSERT(type_ == sentinel_action_type::done);
+      return ec_;
+   }
+
+   const address& connect_address() const
+   {
+      BOOST_ASSERT(type_ == sentinel_action_type::connect);
+      return *addr_;
+   }
 };
 
 class sentinel_resolve_fsm {
