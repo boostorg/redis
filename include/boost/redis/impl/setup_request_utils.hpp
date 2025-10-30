@@ -109,8 +109,8 @@ public:
    : st_(&st)
    { }
 
-   void on_init() { ++response_idx_; }
-   void on_done() { }
+   void on_init() { }
+   void on_done() { ++response_idx_; }
    void on_node(const resp3::node_view& node, system::error_code& ec) { ec = on_node_impl(node); }
 };
 
