@@ -128,6 +128,9 @@ public:
             buffer.consume(parser_.get_consumed());
             parser_.reset();
          }
+
+         // Done
+         return system::error_code();
       }
 
       BOOST_ASSERT(false);

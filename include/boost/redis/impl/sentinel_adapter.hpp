@@ -95,16 +95,16 @@ class sentinel_adapter {
          // SENTINEL SENTINELS
          // If we got here, Sentinel knows about this master.
          // This is either an array response.
-         if (node.depth == 0u)
+         if (node.depth != 0u)
             return {error::incompatible_node_depth};
          else if (node.data_type != resp3::type::array) {
             return {error::invalid_data_type};
          }
-         sentinel_idx_ = node.aggregate_size;
+         resp_->sentinels.resize(node.aggregate_size);
          BOOST_REDIS_YIELD(resume_point_, 5, {})
 
          // Each element represents a sentinel
-         for (; sentinel_idx_ < resp_->sentinels.size(); ++sentinel_idx_) {
+         for (sentinel_idx_ = 0u; sentinel_idx_ < resp_->sentinels.size(); ++sentinel_idx_) {
             // A Sentinel is an array (resp2) or map (resp3)
             if (node.data_type == resp3::type::array) {
                remaining_responses_ = node.aggregate_size;

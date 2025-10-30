@@ -72,7 +72,7 @@ sentinel_action sentinel_resolve_fsm::resume(
       BOOST_REDIS_CORO_INITIAL
 
       // Ask Sentinel where our server lives
-      for (; idx_ < st.sentinels.size(); ++idx_) {
+      for (idx_ = 0u; idx_ < st.sentinels.size(); ++idx_) {
          // Try to connect
          BOOST_REDIS_YIELD(resume_point_, 1, make_sentinel_connect_params(st, idx_))
 

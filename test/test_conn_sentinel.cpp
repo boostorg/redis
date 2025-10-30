@@ -6,14 +6,14 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/connection.hpp>
 #include <boost/redis/ignore.hpp>
+#include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
-#include "boost/redis/config.hpp"
-#include "boost/redis/request.hpp"
-#include "boost/redis/response.hpp"
 #include "common.hpp"
 
 namespace net = boost::asio;
@@ -38,7 +38,7 @@ void test_exec()
    cfg.sentinel.master_name = "mymaster";
 
    request req;
-   req.push("INFO", "server");
+   req.push("CLIENT", "INFO");
 
    response<std::string> resp;
 
