@@ -14,14 +14,17 @@
 
 namespace boost::redis::detail {
 
+inline bool use_sentinel(const config& cfg) { return !cfg.sentinel.addresses.empty(); }
+
 // Modifies config::setup to make a request suitable to be sent
 // to the server using async_exec
 inline void compose_setup_request(config& cfg)
 {
+   auto& req = cfg.setup;
+
    if (!cfg.use_setup) {
       // We're not using the setup request as-is, but should compose one based on
       // the values passed by the user
-      auto& req = cfg.setup;
       req.clear();
 
       // Which parts of the command should we send?
@@ -47,12 +50,17 @@ inline void compose_setup_request(config& cfg)
          req.push("SELECT", cfg.database_index.value());
    }
 
+   // When using Sentinel, we should add a role check.
+   // This must happen after the other commands, as it requires authentication.
+   if (use_sentinel(cfg))
+      req.push("ROLE");
+
    // In any case, the setup request should have the priority
    // flag set so it's executed before any other request.
    // The setup request should never be retried.
-   request_access::set_priority(cfg.setup, true);
-   cfg.setup.get_config().cancel_if_unresponded = true;
-   cfg.setup.get_config().cancel_on_connection_lost = true;
+   request_access::set_priority(req, true);
+   req.get_config().cancel_if_unresponded = true;
+   req.get_config().cancel_on_connection_lost = true;
 }
 
 }  // namespace boost::redis::detail

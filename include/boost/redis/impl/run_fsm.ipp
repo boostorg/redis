@@ -42,8 +42,6 @@ inline system::error_code check_config(const config& cfg)
    return system::error_code{};
 }
 
-inline bool use_sentinel(const config& cfg) { return !cfg.sentinel.addresses.empty(); }
-
 inline void compose_ping_request(const config& cfg, request& to)
 {
    to.clear();
