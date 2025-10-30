@@ -112,12 +112,50 @@ void test_reconnect()
    BOOST_TEST(run_finished);
 }
 
+// If a Sentinel is not reachable, we try the next one
+void test_sentinel_not_reachable()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+
+   config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "45678"}, // invalid
+      {"localhost", "26381"},
+   };
+   cfg.sentinel.master_name = "mymaster";
+
+   // Verify that we're connected to the master, listening at port 6380
+   request req;
+   req.push("PING", "test_sentinel_not_reachable");
+
+   bool exec_finished = false, run_finished = false;
+
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST_EQ(ec, error_code());
+      conn.cancel();
+   });
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+}
+
 }  // namespace
 
 int main()
 {
    test_exec();
    test_reconnect();
+   test_sentinel_not_reachable();
 
    return boost::report_errors();
 }
