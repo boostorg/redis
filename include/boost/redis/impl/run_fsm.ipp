@@ -245,21 +245,18 @@ run_action run_fsm::resume(
             return system::error_code(asio::error::operation_aborted);
          }
 
-         // When using Sentinel, we shouldn't wait here
-         if (!use_sentinel(st.cfg)) {
-            // If we are not going to try again, we're done
-            if (st.cfg.reconnect_wait_interval.count() == 0) {
-               return ec;
-            }
+         // If we are not going to try again, we're done
+         if (st.cfg.reconnect_wait_interval.count() == 0) {
+            return ec;
+         }
 
-            // Wait for the reconnection interval
-            BOOST_REDIS_YIELD(resume_point_, 7, run_action_type::wait_for_reconnection)
+         // Wait for the reconnection interval
+         BOOST_REDIS_YIELD(resume_point_, 7, run_action_type::wait_for_reconnection)
 
-            // Check for cancellations
-            if (is_terminal_cancel(cancel_state)) {
-               log_debug(st.logger, "Run: cancelled (5)");
-               return system::error_code(asio::error::operation_aborted);
-            }
+         // Check for cancellations
+         if (is_terminal_cancel(cancel_state)) {
+            log_debug(st.logger, "Run: cancelled (5)");
+            return system::error_code(asio::error::operation_aborted);
          }
       }
    }
