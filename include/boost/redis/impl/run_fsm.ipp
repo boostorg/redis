@@ -13,6 +13,7 @@
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/impl/setup_request_utils.hpp>
@@ -81,7 +82,12 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
 {
    const auto ec = elm.get_error();
    if (ec) {
-      if (st.setup_diagnostic.empty()) {
+      if (ec == error::role_check_failed) {
+         log_info(
+            st.logger,
+            "Role check failed: this instance is not a master as expected. This is likely a "
+            "transient failure caused by a failover in progress");
+      } else if (st.setup_diagnostic.empty()) {
          log_info(st.logger, "Setup request execution: ", ec);
       } else {
          log_info(st.logger, "Setup request execution: ", ec, " (", st.setup_diagnostic, ")");
