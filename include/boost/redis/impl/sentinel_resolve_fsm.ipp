@@ -52,11 +52,16 @@ inline void update_sentinel_list(
    }
 }
 
-// Returns how to connect to Sentinel idx
+inline any_address_view current_sentinel(const connection_state& st, std::size_t idx)
+{
+   return any_address_view{st.sentinels[idx], st.cfg.sentinel.use_ssl};
+}
+
+// Returns how to connect to Sentinel given the current index
 inline connect_params make_sentinel_connect_params(const connection_state& st, std::size_t idx)
 {
    return {
-      any_address_view{st.sentinels[idx], st.cfg.sentinel.use_ssl},
+      current_sentinel(st, idx),
       st.cfg.sentinel.resolve_timeout,
       st.cfg.sentinel.connect_timeout,
       st.cfg.sentinel.ssl_handshake_timeout,
@@ -73,6 +78,8 @@ sentinel_action sentinel_resolve_fsm::resume(
 
       // Ask Sentinel where our server lives
       for (idx_ = 0u; idx_ < st.sentinels.size(); ++idx_) {
+         log_info(st.logger, "Trying to contact Sentinel at ", current_sentinel(st, idx_));
+
          // Try to connect
          BOOST_REDIS_YIELD(resume_point_, 1, make_sentinel_connect_params(st, idx_))
 
@@ -84,11 +91,17 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          // Check for errors
          if (ec) {
-            log_info(st.logger, "Failed to connect to Sentinel at <TODO>");
+            log_info(
+               st.logger,
+               "Failed to connect to Sentinel at ",
+               current_sentinel(st, idx_),
+               ": ",
+               ec);
             continue;
          }
 
          // Execute the Sentinel request
+         log_debug(st.logger, "Executing Sentinel request at ", current_sentinel(st, idx_));
          BOOST_REDIS_YIELD(resume_point_, 2, sentinel_action::request())
 
          // Check for cancellations
@@ -101,13 +114,23 @@ sentinel_action sentinel_resolve_fsm::resume(
          if (ec) {
             log_info(
                st.logger,
-               "Failed to execute Sentinel request for <TODO>",
+               "Failed to execute request at Sentinel ",
+               current_sentinel(st, idx_),
                st.sentinel_resp.diagnostic.empty() ? "" : ": ",
                st.sentinel_resp.diagnostic);
             continue;
          }
 
-         // Sentinel knows about this master. Update our config
+         // Sentinel knows about this master. Log and update our config
+         log_info(
+            st.logger,
+            "Sentinel at ",
+            current_sentinel(st, idx_),
+            " returned address ",
+            st.sentinel_resp.server_addr.host,
+            ":",
+            st.sentinel_resp.server_addr.port);
+
          update_sentinel_list(
             st.sentinels,
             idx_,
