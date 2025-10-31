@@ -13,6 +13,7 @@
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/impl/sentinel_adapter.hpp>
@@ -76,7 +77,17 @@ sentinel_action sentinel_resolve_fsm::resume(
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
-      // Ask Sentinel where our server lives
+      // Try all Sentinels in order.
+      // The following errors can be encountered for each Sentinel:
+      //   1. Connecting to the Sentinel fails
+      //   2. Executing the request fails with a network/parse error
+      //   3. Executing the request fails with a server error
+      //   4. Executing the request reports that Sentinel doesn't know about this master
+      // We can only return one error code. If the user wants details, they can activate logging.
+      // We perform the following translation:
+      //   * If at least one Sentinel failed with 4, sentinel_unknown_master.
+      //     This is likely a config error on the user side, and should be reported even if some Sentinels are offline.
+      //   * Otherwise, no_sentinel_reachable. Details can be found in the logs.
       for (idx_ = 0u; idx_ < st.sentinels.size(); ++idx_) {
          log_info(st.logger, "Trying to contact Sentinel at ", current_sentinel(st, idx_));
 
@@ -118,6 +129,11 @@ sentinel_action sentinel_resolve_fsm::resume(
                current_sentinel(st, idx_),
                st.sentinel_resp.diagnostic.empty() ? "" : ": ",
                st.sentinel_resp.diagnostic);
+
+            // If the error indicated an unknown master, record it to adjust the final error
+            if (ec == error::sentinel_unknown_master)
+               unknown_master_ = true;
+
             continue;
          }
 
@@ -141,7 +157,8 @@ sentinel_action sentinel_resolve_fsm::resume(
       }
 
       // No Sentinel available
-      return ec;
+      return system::error_code{
+         unknown_master_ ? error::sentinel_unknown_master : error::no_sentinel_reachable};
    }
 
    // We should never get here

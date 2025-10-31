@@ -103,6 +103,9 @@ enum class error
    sentinel_unknown_master,
 
    // TODO: implement
+   no_sentinel_reachable,
+
+   // TODO: implement
    // TODO: should this ever be returned to the user?
    role_check_failed,
 };
