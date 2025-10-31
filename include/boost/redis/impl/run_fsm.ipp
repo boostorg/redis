@@ -157,8 +157,12 @@ run_action run_fsm::resume(
 
             // Check for errors
             if (ec) {
-               // TODO: make this diagnostic better
-               log_err(st.logger, "No Sentinel can be reached");
+               log_err(
+                  st.logger,
+                  "Failed to resolve address for master '",
+                  st.cfg.sentinel.master_name,
+                  "' using Sentinel: ",
+                  ec);
 
                // If we are not going to try again, we're done
                if (st.cfg.reconnect_wait_interval.count() == 0) {
