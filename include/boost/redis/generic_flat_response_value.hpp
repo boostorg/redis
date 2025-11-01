@@ -51,13 +51,9 @@ public:
    auto data_size() const noexcept -> std::size_t
       { return data_.size(); }
 
-   /** @brief Return the RESP3 response
-    *  
-    *  The data member in each `boost::redis::offset_string` are all
-    *  set and therefore safe to use.
-    */
-   auto get_view() const -> resp3::offset_response const&
-      { return view_; }
+   /// Returns the RESP3 response
+   auto get_view() const -> resp3::view_response const&
+      { return view_resp_; }
 
    /** @brief Returns the number of times reallocation took place
     *
@@ -78,12 +74,19 @@ private:
    void notify_done();
 
    // Push a new node to the response
-   void push(resp3::node_view const& nd);
+   void push(resp3::node_view const& node);
 
-   void add_node_impl(resp3::node_view const& nd);
+   void add_node_impl(resp3::node_view const& node);
+
+   // Range into the data buffer.
+   struct range {
+      std::size_t offset;
+      std::size_t size;
+   };
 
    std::string data_;
-   resp3::offset_response view_;
+   resp3::view_response view_resp_;
+   std::vector<range> ranges_;
    std::size_t pos_ = 0u;
    std::size_t reallocs_ = 0u;
    std::size_t total_msgs_ = 0u;

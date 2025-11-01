@@ -16,7 +16,8 @@ namespace boost::redis {
 void generic_flat_response_value::reserve(std::size_t bytes, std::size_t nodes)
 {
    data_.reserve(bytes);
-   view_.reserve(nodes);
+   view_resp_.reserve(nodes);
+   ranges_.reserve(nodes);
 }
 
 void generic_flat_response_value::clear()
@@ -25,25 +26,28 @@ void generic_flat_response_value::clear()
    total_msgs_ = 0u;
    reallocs_ = 0u;
    data_.clear();
-   view_.clear();
+   view_resp_.clear();
+   ranges_.clear();
 }
 
 void generic_flat_response_value::notify_done()
 {
-   BOOST_ASSERT_MSG(pos_ < view_.size(), "notify_done called but no nodes added.");
+   BOOST_ASSERT_MSG(pos_ < view_resp_.size(), "notify_done called but no nodes added.");
+
+   BOOST_ASSERT_MSG(view_resp_.size() == ranges_.size(), "Incompatible sizes.");
 
    total_msgs_ += 1;
 
-   for (; pos_ < view_.size(); ++pos_) {
-      auto& v = view_.at(pos_).value;
-      v.data = std::string_view{data_.data() + v.offset, v.size};
+   for (; pos_ < view_resp_.size(); ++pos_) {
+      auto const& r = ranges_.at(pos_);
+      view_resp_.at(pos_).value = std::string_view{data_.data() + r.offset, r.size};
    }
 }
 
-void generic_flat_response_value::push(resp3::node_view const& nd)
+void generic_flat_response_value::push(resp3::node_view const& node)
 {
    auto data_before = data_.data();
-   add_node_impl(nd);
+   add_node_impl(node);
    auto data_after = data_.data();
 
    if (data_after != data_before) {
@@ -52,18 +56,13 @@ void generic_flat_response_value::push(resp3::node_view const& nd)
    }
 }
 
-void generic_flat_response_value::add_node_impl(resp3::node_view const& nd)
+void generic_flat_response_value::add_node_impl(resp3::node_view const& node)
 {
-   resp3::offset_node ond;
-   ond.data_type = nd.data_type;
-   ond.aggregate_size = nd.aggregate_size;
-   ond.depth = nd.depth;
-   ond.value.offset = data_.size();
-   ond.value.size = nd.value.size();
+   ranges_.push_back({data_.size(), node.value.size()});
 
    // This must come after setting the offset above.
-   data_.append(nd.value.data(), nd.value.size());
+   data_.append(node.value.data(), node.value.size());
 
-   view_.push_back(std::move(ond));
+   view_resp_.push_back(node);
 }
 }  // namespace boost::redis

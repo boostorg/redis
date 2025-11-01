@@ -89,6 +89,7 @@ void consume_one(generic_response& r, system::error_code& ec);
  *
  * @param r The response to modify.
  */
+//BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
 void consume_one(generic_response& r);
 
 }  // namespace boost::redis
