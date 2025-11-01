@@ -9,6 +9,7 @@
 
 #include <boost/redis/adapter/result.hpp>
 #include <boost/redis/resp3/node.hpp>
+#include <boost/redis/generic_flat_response_value.hpp>
 
 #include <boost/system/error_code.hpp>
 
@@ -29,9 +30,19 @@ using response = std::tuple<adapter::result<Ts>...>;
  *  [pre-order](https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR)
  *  view of the response tree.
  */
-using generic_response = adapter::result<std::vector<resp3::node>>;
+using generic_response = adapter::result<resp3::response>;
 
-/** @brief Consume on response from a generic response
+/** @brief A generic response that stores data contiguously
+ *  @ingroup high-level-api
+ * 
+ *  Provides the same data format as the generic_response except that
+ *  its strings are views into an internal buffer that stores data
+ *  contiguously, this helps reducing memory allocations and improves
+ *  memory reuse.
+ */
+using generic_flat_response = adapter::result<generic_flat_response_value>;
+
+/** @brief (Deprecated) Consume on response from a generic response
  *
  *  This function rotates the elements so that the start of the next
  *  response becomes the new front element. For example the output of
@@ -70,13 +81,15 @@ using generic_response = adapter::result<std::vector<resp3::node>>;
  * @param r The response to modify.
  * @param ec Will be populated in case of error.
  */
+//BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
 void consume_one(generic_response& r, system::error_code& ec);
 
 /**
- * @brief Throwing overload of `consume_one`.
+ * @brief (Deprecated) Throwing overload of `consume_one`.
  *
  * @param r The response to modify.
  */
+//BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
 void consume_one(generic_response& r);
 
 }  // namespace boost::redis

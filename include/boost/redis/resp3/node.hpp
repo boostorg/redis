@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2024 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -53,11 +53,28 @@ auto operator==(basic_node<String> const& a, basic_node<String> const& b)
    // clang-format on
 };
 
+/// Operator != for RESP3 nodes
+template <class String>
+auto operator!=(basic_node<String> const& a, basic_node<String> const& b)
+{
+   return !(a == b);
+};
+
 /// A node in the response tree that owns its data.
 using node = basic_node<std::string>;
 
 /// A node in the response tree that does not own its data.
 using node_view = basic_node<std::string_view>;
+
+/// A RESP3 response that owns its data.
+template <class String>
+using basic_response = std::vector<basic_node<String>>;
+
+/// A RESP3 response that owns its data.
+using response = basic_response<std::string>;
+
+/// A RESP3 response whose data are `std::string_views`.
+using view_response = basic_response<std::string_view>;
 
 }  // namespace boost::redis::resp3
 
