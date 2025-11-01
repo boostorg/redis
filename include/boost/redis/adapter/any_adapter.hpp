@@ -12,9 +12,7 @@
 
 #include <boost/system/error_code.hpp>
 
-#include <cstddef>
 #include <functional>
-#include <string_view>
 #include <type_traits>
 
 namespace boost::redis {
@@ -54,9 +52,9 @@ public:
    {
       using namespace boost::redis::adapter;
       return [adapter2 = boost_redis_adapt(resp)](
-                  any_adapter::parse_event ev,
-                  resp3::node_view const& nd,
-                  system::error_code& ec) mutable {
+                any_adapter::parse_event ev,
+                resp3::node_view const& nd,
+                system::error_code& ec) mutable {
          switch (ev) {
             case parse_event::init: adapter2.on_init(); break;
             case parse_event::node: adapter2.on_node(nd, ec); break;
@@ -108,6 +106,26 @@ public:
 private:
    impl_t impl_;
 };
+
+namespace detail {
+
+// TODO: duplicated
+template <class Adapter>
+any_adapter make_any_adapter(Adapter&& value)
+{
+   return any_adapter::impl_t{[adapter = std::move(value)](
+                                 any_adapter::parse_event ev,
+                                 resp3::node_view const& nd,
+                                 system::error_code& ec) mutable {
+      switch (ev) {
+         case any_adapter::parse_event::init: adapter.on_init(); break;
+         case any_adapter::parse_event::node: adapter.on_node(nd, ec); break;
+         case any_adapter::parse_event::done: adapter.on_done(); break;
+      }
+   }};
+}
+
+}  // namespace detail
 
 }  // namespace boost::redis
 

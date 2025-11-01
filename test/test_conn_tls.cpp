@@ -55,7 +55,7 @@ static config make_tls_config()
    config cfg;
    cfg.use_ssl = true;
    cfg.addr.host = get_server_hostname();
-   cfg.addr.port = "6380";
+   cfg.addr.port = "16380";
    return cfg;
 }
 

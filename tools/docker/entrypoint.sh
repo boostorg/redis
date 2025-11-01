@@ -7,7 +7,7 @@ set -e
 chmod 777 /tmp/redis-socks
 
 redis-server \
-    --tls-port 6380 \
+    --tls-port 16379 \
     --tls-cert-file /docker/tls/server.crt \
     --tls-key-file /docker/tls/server.key \
     --tls-ca-cert-file /docker/tls/ca.crt \

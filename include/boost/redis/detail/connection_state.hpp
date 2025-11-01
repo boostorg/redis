@@ -16,8 +16,15 @@
 #include <boost/redis/response.hpp>
 
 #include <string>
+#include <vector>
 
 namespace boost::redis::detail {
+
+struct sentinel_response {
+   std::string diagnostic;  // In case the server returned an error
+   address server_addr;
+   std::vector<address> sentinels;
+};
 
 // Contains all the members in connection that don't depend on the Executor.
 // Makes implementing sans-io algorithms easier
@@ -27,6 +34,10 @@ struct connection_state {
    multiplexer mpx{};
    std::string setup_diagnostic{};
    request ping_req{};
+
+   // Sentinel stuff
+   std::vector<address> sentinels{};
+   sentinel_response sentinel_resp{};
 };
 
 }  // namespace boost::redis::detail

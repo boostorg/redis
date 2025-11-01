@@ -16,6 +16,7 @@
 #include <boost/redis/impl/request.ipp>
 #include <boost/redis/impl/response.ipp>
 #include <boost/redis/impl/run_fsm.ipp>
+#include <boost/redis/impl/sentinel_resolve_fsm.ipp>
 #include <boost/redis/impl/writer_fsm.ipp>
 #include <boost/redis/resp3/impl/parser.ipp>
 #include <boost/redis/resp3/impl/serialization.ipp>
