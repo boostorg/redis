@@ -84,8 +84,11 @@ using generic_flat_response = adapter::result<generic_flat_response_value>;
 BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
 void consume_one(generic_response& r, system::error_code& ec);
 
-/// @copydoc consume_one
-BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
+/**
+ * @brief (Deprecated) Throwing overload of `consume_one`.
+ *
+ * @param r The response to modify.
+ */
 void consume_one(generic_response& r);
 
 }  // namespace boost::redis

@@ -15,10 +15,13 @@
 #include <boost/system/error_code.hpp>
 
 #include <string>
-#include <tuple>
 #include <vector>
 
 namespace boost::redis {
+
+namespace adapter::detail {
+   template <class> class general_aggregate;
+}
 
 /** @brief A generic-response that stores data contiguously
  *
@@ -56,27 +59,27 @@ public:
    auto get_view() const -> resp3::offset_response const&
       { return view_; }
 
-   // Push a new node to the response
-   void push(resp3::node_view const& nd);
-
    /** @brief Returns the number of times reallocation took place
     *
-    *  Each call to the `push` member function might result in a
-    *  memory reallocation.  This function returns how many
-    *  reallocations were detected and can be useful to determine how
-    *  much memory to reserve upfront.
+    *  This function returns how many reallocations were performed and
+    *  can be useful to determine how much memory to reserve upfront.
     */
-   auto get_reallocs() const noexcept
+   auto get_reallocs() const noexcept -> std::size_t
       { return reallocs_; }
-
-   // Notify the object that all nodes were pushed.
-   void notify_done();
 
    /// Returns the number of complete RESP3 messages contained in this object.
    std::size_t get_total_msgs() const noexcept
       { return total_msgs_; }
 
 private:
+   template <class> friend class adapter::detail::general_aggregate;
+
+   // Notify the object that all nodes were pushed.
+   void notify_done();
+
+   // Push a new node to the response
+   void push(resp3::node_view const& nd);
+
    void add_node_impl(resp3::node_view const& nd);
 
    std::string data_;

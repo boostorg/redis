@@ -207,6 +207,50 @@ struct connection_impl {
    {
       st_.mpx.set_receive_adapter(std::move(adapter));
    }
+
+   std::size_t receive(system::error_code& ec)
+   {
+      std::size_t size = 0;
+
+      auto f = [&](system::error_code const& ec2, std::size_t n) {
+         ec = ec2;
+         size = n;
+      };
+
+      auto const res = receive_channel_.try_receive(f);
+      if (ec)
+         return 0;
+
+      if (!res)
+         ec = error::sync_receive_push_failed;
+
+      return size;
+   }
+
+   template <class CompletionToken>
+   auto async_receive2(CompletionToken&& token)
+   {
+      return
+         receive_channel_.async_receive(
+            asio::deferred(
+               [this](system::error_code ec, std::size_t)
+               {
+                  if (!ec) {
+                     auto f = [](system::error_code, std::size_t) {
+                       // There is no point in checking for errors
+                       // here since async_receive just completed
+                       // without errors.
+                     };
+
+                     // We just want to drain the channel.
+                     while (receive_channel_.try_receive(f));
+                  }
+
+                  return asio::deferred.values(ec);
+               }
+            )
+         )(std::forward<CompletionToken>(token));
+   }
 };
 
 template <class Executor>
@@ -670,26 +714,7 @@ public:
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_receive2(CompletionToken&& token = {})
    {
-      return
-         impl_->receive_channel_.async_receive(
-            asio::deferred(
-               [&conn = *this](system::error_code ec, std::size_t)
-               {
-                  if (!ec) {
-                     auto f = [](system::error_code, std::size_t) {
-                       // There is no point in checking for errors
-                       // here since async_receive just completed
-                       // without errors.
-                     };
-
-                     // We just want to drain the channel.
-                     while (conn.impl_->receive_channel_.try_receive(f));
-                  }
-
-                  return asio::deferred.values(ec);
-               }
-            )
-         )(std::forward<CompletionToken>(token));
+      return impl_->async_receive2(std::forward<CompletionToken>(token));
    }
 
    /** @brief (Deprecated) Receives server pushes synchronously without blocking.
@@ -705,21 +730,7 @@ public:
    BOOST_DEPRECATED("Please, use async_receive2 instead.")
    std::size_t receive(system::error_code& ec)
    {
-      std::size_t size = 0;
-
-      auto f = [&](system::error_code const& ec2, std::size_t n) {
-         ec = ec2;
-         size = n;
-      };
-
-      auto const res = impl_->receive_channel_.try_receive(f);
-      if (ec)
-         return 0;
-
-      if (!res)
-         ec = error::sync_receive_push_failed;
-
-      return size;
+      return impl_->receive(ec);
    }
 
    /** @brief Executes commands on the Redis server asynchronously.
