@@ -81,7 +81,7 @@ using generic_flat_response = adapter::result<generic_flat_response_value>;
  * @param r The response to modify.
  * @param ec Will be populated in case of error.
  */
-BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
+//BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
 void consume_one(generic_response& r, system::error_code& ec);
 
 /**

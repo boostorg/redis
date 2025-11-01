@@ -667,7 +667,7 @@ public:
     * @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
-   BOOST_DEPRECATED("Please use async_receive2 instead.")
+   //BOOST_DEPRECATED("Please use async_receive2 instead.")
    auto async_receive(CompletionToken&& token = {})
    {
       return impl_->receive_channel_.async_receive(std::forward<CompletionToken>(token));
@@ -727,7 +727,7 @@ public:
     *  @param ec Contains the error if any occurred.
     *  @returns The number of bytes read from the socket.
     */
-   BOOST_DEPRECATED("Please, use async_receive2 instead.")
+   //BOOST_DEPRECATED("Please, use async_receive2 instead.")
    std::size_t receive(system::error_code& ec)
    {
       return impl_->receive(ec);
