@@ -46,12 +46,13 @@ class redis_stream {
    void reset_stream() { stream_ = {resolv_.get_executor(), ssl_ctx_}; }
 
    struct connect_op {
-      redis_stream& obj;
+      redis_stream& obj_;
       connect_fsm fsm_;
 
       template <class Self>
       void execute_action(Self& self, connect_action act)
       {
+         auto& obj = this->obj_;  // prevent use-after-move errors
          const auto& cfg = fsm_.get_config();
 
          switch (act.type) {
@@ -109,7 +110,7 @@ class redis_stream {
          auto act = fsm_.resume(
             ec,
             selected_endpoint,
-            obj.st_,
+            obj_.st_,
             self.get_cancellation_state().cancelled());
          execute_action(self, act);
       }
@@ -121,8 +122,9 @@ class redis_stream {
          system::error_code ec,
          asio::ip::tcp::resolver::results_type endpoints)
       {
-         auto act = fsm_.resume(ec, endpoints, obj.st_, self.get_cancellation_state().cancelled());
+         auto act = fsm_.resume(ec, endpoints, obj_.st_, self.get_cancellation_state().cancelled());
          if (act.type == connect_action_type::tcp_connect) {
+            auto& obj = this->obj_;  // prevent use-after-free errors
             asio::async_connect(
                obj.stream_.next_layer(),
                std::move(endpoints),
@@ -135,7 +137,7 @@ class redis_stream {
       template <class Self>
       void operator()(Self& self, system::error_code ec = {})
       {
-         auto act = fsm_.resume(ec, obj.st_, self.get_cancellation_state().cancelled());
+         auto act = fsm_.resume(ec, obj_.st_, self.get_cancellation_state().cancelled());
          execute_action(self, act);
       }
    };
