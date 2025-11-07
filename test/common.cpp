@@ -1,11 +1,16 @@
+#include <boost/redis/config.hpp>
+#include <boost/redis/ignore.hpp>
+
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/consign.hpp>
+#include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
 
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 
 namespace net = boost::asio;
 
@@ -83,4 +88,36 @@ std::string_view find_client_info(std::string_view client_info, std::string_view
    auto const pos_begin = pos + prefix.size();
    auto const pos_end = client_info.find(' ', pos_begin);
    return client_info.substr(pos_begin, pos_end - pos_begin);
+}
+
+void create_user(std::string_view port, std::string_view username, std::string_view password)
+{
+   // Setup
+   net::io_context ioc;
+   boost::redis::connection conn{ioc};
+
+   boost::redis::config cfg;
+   cfg.addr.port = port;
+
+   // Enable the user and grant them permissions on everything
+   boost::redis::request req;
+   req.push("ACL", "SETUSER", username, "on", ">" + std::string(password), "~*", "&*", "+@all");
+
+   bool run_finished = false, exec_finished = false;
+
+   conn.async_run(cfg, [&](boost::system::error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   conn.async_exec(req, boost::redis::ignore, [&](boost::system::error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST_EQ(ec, boost::system::error_code());
+      conn.cancel();
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(run_finished);
+   BOOST_TEST(exec_finished);
 }

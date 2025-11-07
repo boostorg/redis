@@ -27,6 +27,8 @@ xref:reference:boost/redis/address.adoc[`address`]
 
 xref:reference:boost/redis/config.adoc[`config`]
 
+xref:reference:boost/redis/sentinel_config.adoc[`sentinel_config`]
+
 xref:reference:boost/redis/error.adoc[`error`]
 
 xref:reference:boost/redis/logger.adoc[`logger`]

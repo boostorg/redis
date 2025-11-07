@@ -29,37 +29,6 @@ using boost::system::error_code;
 
 namespace {
 
-// Creates a user with a known password. Harmless if the user already exists
-void setup_password()
-{
-   // Setup
-   asio::io_context ioc;
-   redis::connection conn{ioc};
-
-   // Enable the user and grant them permissions on everything
-   redis::request req;
-   req.push("ACL", "SETUSER", "myuser", "on", ">mypass", "~*", "&*", "+@all");
-   redis::generic_response resp;
-
-   bool run_finished = false, exec_finished = false;
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      run_finished = true;
-      BOOST_TEST_EQ(ec, asio::error::operation_aborted);
-   });
-
-   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-      exec_finished = true;
-      BOOST_TEST_EQ(ec, error_code());
-      conn.cancel();
-   });
-
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(run_finished);
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(resp.has_value());
-}
-
 void test_auth_success()
 {
    // Setup
@@ -316,7 +285,8 @@ void test_setup_failure()
 
 int main()
 {
-   setup_password();
+   create_user("6379", "myuser", "mypass");
+
    test_auth_success();
    test_auth_failure();
    test_database_index();

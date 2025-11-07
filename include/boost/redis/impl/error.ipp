@@ -55,8 +55,18 @@ struct error_category_impl : system::error_category {
          case error::exceeds_maximum_read_buffer_size:
             return "Reading data from the socket would exceed the maximum size allowed of the read "
                    "buffer.";
-         case error::write_timeout:
-            return "Timeout while writing data to the server.";
+         case error::write_timeout: return "Timeout while writing data to the server.";
+         case error::sentinel_unix_sockets_unsupported:
+            return "The configuration specified UNIX sockets with Sentinel, which is not "
+                   "supported.";
+         case error::sentinel_unknown_master:
+            return "No Sentinel knows about the master configured in "
+                   "config::sentinel::master_name.";
+         case error::no_sentinel_reachable:
+            return "No Sentinel could be contacted to obtain the address of the Redis server.";
+         case error::role_check_failed:
+            return "The contacted server is not a master as expected. This is likely a transient "
+                   "failure caused by a Sentinel failover in progress.";
          default: BOOST_ASSERT(false); return "Boost.Redis error.";
       }
    }

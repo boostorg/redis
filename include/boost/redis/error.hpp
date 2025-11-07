@@ -94,6 +94,19 @@ enum class error
 
    /// Timeout while writing data to the server.
    write_timeout,
+
+   /// The configuration specified UNIX sockets with Sentinel, which is not supported.
+   sentinel_unix_sockets_unsupported,
+
+   /// No Sentinel knows about the master configured in `config::sentinel::master_name`.
+   sentinel_unknown_master,
+
+   /// No Sentinel could be contacted to obtain the address of the Redis server.
+   no_sentinel_reachable,
+
+   /// The contacted server is not a master as expected.
+   /// This is likely a transient failure caused by a Sentinel failover in progress.
+   role_check_failed,
 };
 
 /**

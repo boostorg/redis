@@ -40,3 +40,6 @@ void run(
 // Finds a value in the output of the CLIENT INFO command
 // format: key1=value1 key2=value2
 std::string_view find_client_info(std::string_view client_info, std::string_view key);
+
+// Connects to the Redis server at the given port and creates a user
+void create_user(std::string_view port, std::string_view username, std::string_view password);
