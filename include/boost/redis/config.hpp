@@ -49,7 +49,6 @@ struct sentinel_config {
     * Sentinel will only be used if this value is not empty.
     *
     * Numeric IP addresses are also allowed as hostnames.
-    *
     */
    std::vector<address> addresses{};
 

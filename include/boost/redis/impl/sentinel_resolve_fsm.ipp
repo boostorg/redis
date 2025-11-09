@@ -92,9 +92,11 @@ sentinel_action sentinel_resolve_fsm::resume(
       //   2. Executing the request fails with a network/parse error
       //   3. Executing the request fails with a server error
       //   4. Executing the request reports that Sentinel doesn't know about this master
+      //   5. The user asked us to connect to a replica, but this master doesn't have any
       // We can only return one error code. If the user wants details, they can activate logging.
       // We perform the following translation:
-      //   * If at least one Sentinel failed with 4, sentinel_unknown_master.
+      //   * If at least one Sentinel reported 5, no_replicas.
+      //   * Otherwise, and if at least one Sentinel failed with 4, sentinel_unknown_master.
       //     This is likely a config error on the user side, and should be reported even if some Sentinels are offline.
       //   * Otherwise, no_sentinel_reachable. Details can be found in the logs.
       for (idx_ = 0u; idx_ < st.sentinels.size(); ++idx_) {
@@ -175,15 +177,16 @@ sentinel_action sentinel_resolve_fsm::resume(
 
             // If the error indicated an unknown master, record it to adjust the final error
             if (ec == error::sentinel_unknown_master)
-               unknown_master_ = true;
+               final_ec_ = error::sentinel_unknown_master;
 
             continue;
          }
 
          // When asking for replicas, we might get no replicas.
-         // TODO: return the correct error code here
+         // This error code "wins" against any of the others.
          // TODO: logging
          if (st.cfg.sentinel.server_role == role::replica && st.sentinel_resp.replicas.empty()) {
+            final_ec_ = error::no_replicas;
             continue;
          }
 
@@ -220,8 +223,8 @@ sentinel_action sentinel_resolve_fsm::resume(
          return system::error_code();
       }
 
-      // No Sentinel available
-      ec = unknown_master_ ? error::sentinel_unknown_master : error::no_sentinel_reachable;
+      // No Sentinel resolved our address. Adjust the error
+      ec = final_ec_ ? final_ec_ : error::no_sentinel_reachable;
       log_err(
          st.logger,
          "Failed to resolve the address of master '",
