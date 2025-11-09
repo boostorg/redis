@@ -23,6 +23,7 @@
 #include <boost/assert.hpp>
 
 #include <cstddef>
+#include <random>
 
 namespace boost::redis::detail {
 
@@ -186,11 +187,16 @@ sentinel_action sentinel_resolve_fsm::resume(
             continue;
          }
 
+         // Store the resulting address in a well-known place
          if (st.cfg.sentinel.server_role == role::master) {
             st.cfg.addr = st.sentinel_resp.master_addr;
          } else {
-            // TODO: this should be made random
-            st.cfg.addr = st.sentinel_resp.replicas[0];
+            // Choose a random replica
+            std::uniform_int_distribution<std::size_t> dist{
+               0u,
+               st.sentinel_resp.replicas.size() - 1u};
+            const auto idx = dist(st.eng);
+            st.cfg.addr = st.sentinel_resp.replicas[idx];
          }
 
          // Sentinel knows about this master. Log and update our config

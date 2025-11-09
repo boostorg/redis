@@ -16,6 +16,8 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/response.hpp>
 
+#include <chrono>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -38,6 +40,8 @@ struct connection_state {
    request ping_req{};
 
    // Sentinel stuff
+   std::default_random_engine eng{static_cast<std::default_random_engine::result_type>(
+      std::chrono::steady_clock::now().time_since_epoch().count())};
    std::vector<address> sentinels{};
    std::vector<resp3::node> sentinel_resp_nodes{};  // for parsing
    sentinel_response sentinel_resp{};
