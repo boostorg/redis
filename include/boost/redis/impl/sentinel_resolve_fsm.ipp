@@ -10,6 +10,7 @@
 #define BOOST_REDIS_SENTINEL_RESOLVE_FSM_IPP
 
 #include <boost/redis/adapter/any_adapter.hpp>
+#include <boost/redis/config.hpp>
 #include <boost/redis/detail/connect_params.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
@@ -66,7 +67,6 @@ inline connect_params make_sentinel_connect_params(const connection_state& st, s
    };
 }
 
-// TODO: adjust logging
 sentinel_action sentinel_resolve_fsm::resume(
    connection_state& st,
    system::error_code ec,
@@ -77,7 +77,9 @@ sentinel_action sentinel_resolve_fsm::resume(
 
       log_info(
          st.logger,
-         "Trying to resolve the address of master '",
+         "Trying to resolve the address of ",
+         st.cfg.sentinel.server_role == role::master ? "master" : "a replica of master",
+         " '",
          st.cfg.sentinel.master_name,
          "' using Sentinel ",
          st.cfg.sentinel.use_ssl ? "(TLS enabled)" : "(TLS disabled)");
@@ -170,7 +172,7 @@ sentinel_action sentinel_resolve_fsm::resume(
             } else {
                log_info(
                   st.logger,
-                  "Error parsing Sentinel response at ",
+                  "Error parsing response from Sentinel at ",
                   st.sentinels[idx_],
                   ": ",
                   ec);
@@ -184,9 +186,11 @@ sentinel_action sentinel_resolve_fsm::resume(
          if (st.cfg.sentinel.server_role == role::replica && st.sentinel_resp.replicas.empty()) {
             log_info(
                st.logger,
-               "Asked to connect to a replica, but Sentinel at ",
+               "Sentinel at ",
                st.sentinels[idx_],
-               " indicates that the master has no replicas");
+               " indicates that the master '",
+               st.cfg.sentinel.master_name,
+               "' has no replicas");
             final_ec_ = error::no_replicas;
             continue;
          }
@@ -208,12 +212,8 @@ sentinel_action sentinel_resolve_fsm::resume(
             st.logger,
             "Sentinel at ",
             st.sentinels[idx_],
-            " resolved the address of master '",
-            st.cfg.sentinel.master_name,
-            "' to ",
-            st.cfg.addr.host,
-            ":",
-            st.cfg.addr.port);
+            " successfully resolved the server address to ",
+            st.cfg.addr);
 
          update_sentinel_list(
             st.sentinels,
@@ -226,11 +226,16 @@ sentinel_action sentinel_resolve_fsm::resume(
 
       // No Sentinel resolved our address. Adjust the error
       ec = final_ec_ ? final_ec_ : error::no_sentinel_reachable;
+
       log_err(
          st.logger,
-         "Failed to resolve the address of master '",
+         "Failed to resolve the address of ",
+         st.cfg.sentinel.server_role == role::master ? "master" : "a replica of master",
+         " '",
          st.cfg.sentinel.master_name,
-         "' using Sentinel: ",
+         "' using Sentinel ",
+         st.cfg.sentinel.use_ssl ? "(TLS enabled)" : "(TLS disabled)",
+         ": ",
          ec);
 
       return ec;
