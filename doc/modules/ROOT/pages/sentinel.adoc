@@ -35,6 +35,30 @@ Once set, the connection object can be used normally. See our
 our {site-url}/example/cpp20_sentinel.cpp[Sentinel example]
 for a full program.
 
+== Connecting to replicas
+
+By default, the library connects to the Redis master.
+You can connect to one of its replicas by using
+xref:reference:boost/redis/sentinel_config/server_role.adoc[`config::sentinel::server_role`].
+This can be used to balance load, if all your commands read data from
+the server and never write to it. The particular replica will be chosen randomly.
+
+[source,cpp]
+----
+config cfg;
+
+// Set up Sentinel
+cfg.sentinel.addresses = {
+    {"sentinel1.example.com", "26379"},
+    {"sentinel2.example.com", "26379"},
+    {"sentinel3.example.com", "26379"},
+};
+cfg.sentinel.master_name = "mymaster";
+
+// Ask the library to connect to a random replica of 'mymaster', rather than the master node
+cfg.sentinel.server_role = role::replica;
+----
+
 
 == Sentinel authentication
 
@@ -61,7 +85,7 @@ cfg.sentinel.setup.clear();
 cfg.sentinel.setup.push("HELLO", 3, "AUTH", "sentinel_user", "sentinel_password");
 
 // cfg.sentinel.setup applies to Sentinels, only.
-// Use cfg.setup to authenticate to masters.
+// Use cfg.setup to authenticate to masters/replicas.
 cfg.use_setup = true; // Required for cfg.setup to be used, for historic reasons
 cfg.setup.clear();
 cfg.setup.push("HELLO", 3, "AUTH", "master_user", "master_password");
@@ -69,7 +93,7 @@ cfg.setup.push("HELLO", 3, "AUTH", "master_user", "master_password");
 
 == Using TLS with Sentinels
 
-You might use TLS with Sentinels only, masters only, or both by adjusting
+You might use TLS with Sentinels only, masters/replicas only, or both by adjusting
 xref:reference:boost/redis/sentinel_config/use_ssl.adoc[`config::sentinel::use_ssl`]
 and xref:reference:boost/redis/config/use_ssl.adoc[`config::use_ssl`]:
 
@@ -85,7 +109,7 @@ cfg.sentinel.addresses = {
 cfg.sentinel.master_name = "mymaster";
 
 // Adjust these switches to enable/disable TLS
-cfg.use_ssl = true;          // Applies to masters
+cfg.use_ssl = true;          // Applies to masters and replicas
 cfg.sentinel.use_ssl = true; // Applies to Sentinels
 ----
 
@@ -103,6 +127,9 @@ Some of these details may vary between library versions.
 ** The setup request is executed.
 ** The master's address is resolved using
    https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/#sentinel-api[`SENTINEL GET-MASTER-NAME-BY-ADDR`].
+** If `config::sentinel::server_role` is `role::replica`, replica addresses are obtained using
+   https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/#sentinel-api[`SENTINEL REPLICAS`].
+   One replica is chosen randomly.
 ** The address of other Sentinels also monitoring this master are retrieved using
    https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/#sentinel-api[`SENTINEL SENTINELS`].
 * If a Sentinel is unreachable, doesn't know about the configured master,
@@ -114,12 +141,12 @@ Some of these details may vary between library versions.
   Sentinels in `config::sentinel::addresses` are always kept in the list,
   even if they weren't present in the output of `SENTINEL SENTINELS`.
 * The retrieved address is used
-  to establish a connection with the master.
-  A `ROLE` command is added at the end of the master's setup request.
+  to establish a connection with the master or replica.
+  A `ROLE` command is added at the end of the setup request.
   This is used to detect situations where a Sentinel returns outdated
   information due to a failover in process. If `ROLE` doesn't output
-  `"master"`, `config::reconnect_wait_interval`
-  is waited and Sentinel is contacted again.
-* The connection to the master is run like any other connection.
+  the expected role (`"master"` or `"slave"`, depending on `config::sentinel::server_role`)
+  `config::reconnect_wait_interval` is waited and Sentinel is contacted again.
+* The connection to the master/replica is run like any other connection.
   If network errors or timeouts happen, `config::reconnect_wait_interval`
   is waited and Sentinel is contacted again.
