@@ -240,6 +240,53 @@ void test_tls()
    BOOST_TEST(run_finished);
 }
 
+// We can also connect to replicas
+void test_replica()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+
+   config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "26379"},
+      {"localhost", "26380"},
+      {"localhost", "26381"},
+   };
+   cfg.sentinel.master_name = "mymaster";
+   cfg.sentinel.server_role = role::replica;
+
+   // Verify that we're connected to a replica
+   request req;
+   req.push("ROLE");
+
+   generic_response resp;
+
+   bool exec_finished = false, run_finished = false;
+
+   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST_EQ(ec, error_code());
+
+      // ROLE outputs an array, 1st element should be 'slave'
+      BOOST_TEST(resp.has_value());
+      BOOST_TEST_GE(resp.value().size(), 2u);
+      BOOST_TEST_EQ(resp.value().at(1u).value, "slave");
+
+      conn.cancel();
+   });
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+}
+
 // If no Sentinel is reachable, an error is issued.
 // This tests disabling reconnection with Sentinel, too.
 void test_error_no_sentinel_reachable()
@@ -313,6 +360,8 @@ int main()
    test_sentinel_not_reachable();
    test_auth();
    test_tls();
+   test_replica();
+
    test_error_no_sentinel_reachable();
    test_error_unknown_master();
 

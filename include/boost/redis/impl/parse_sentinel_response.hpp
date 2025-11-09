@@ -156,7 +156,9 @@ inline system::error_code parse_sentinel_response(
       }
    };
 
-   BOOST_ASSERT(expected_responses >= (server_role == role::replica ? 3u : 2u));
+   // The number of responses added by the library (vs. the user-supplied ones)
+   const auto num_lib_responses = server_role == role::replica ? 3u : 2u;
+   BOOST_ASSERT(expected_responses >= num_lib_responses);
 
    // Clear the output
    out.diagnostic.clear();
@@ -167,7 +169,7 @@ inline system::error_code parse_sentinel_response(
 
    // Skip all responses expected the last two ones,
    // because they belong to the user-supplied setup request.
-   std::size_t response_idx = 0u;
+   std::size_t remaining_root_nodes = expected_responses - num_lib_responses + 1u;
    for (;; ++it) {
       // The higher levels already ensure that the expected number
       // of root nodes are present, so this is a precondition in this function.
@@ -175,7 +177,7 @@ inline system::error_code parse_sentinel_response(
 
       // A root node marks the start of a response.
       // Exit once we're at the start of the first response of interest
-      if (it->depth == 0u && ++response_idx == expected_responses - 1u)
+      if (it->depth == 0u && --remaining_root_nodes == 0u)
          break;
 
       // Check for errors
