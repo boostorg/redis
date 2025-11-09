@@ -84,7 +84,8 @@ sentinel_action sentinel_resolve_fsm::resume(
          st.logger,
          "Trying to resolve the address of master '",
          st.cfg.sentinel.master_name,
-         "' using Sentinel");
+         "' using Sentinel ",
+         st.cfg.sentinel.use_ssl ? "(TLS enabled)" : "(TLS disabled)");
 
       // Try all Sentinels in order.
       // The following errors can be encountered for each Sentinel:
@@ -135,8 +136,6 @@ sentinel_action sentinel_resolve_fsm::resume(
          }
 
          // Check for errors
-         // TODO: do we want to translate operation_aborted here as a timeout in logs?
-         // We don't have a specific error code because this never gets to the user
          if (ec) {
             log_info(
                st.logger,
@@ -166,6 +165,18 @@ sentinel_action sentinel_resolve_fsm::resume(
                   current_sentinel(st, idx_),
                   " contains an error: ",
                   st.sentinel_resp.diagnostic);
+            } else if (ec == error::sentinel_unknown_master) {
+               log_info(
+                  st.logger,
+                  "Sentinel ",
+                  current_sentinel(st, idx_),
+                  " doesn't know about master '",
+                  st.cfg.sentinel.master_name,
+                  "'");
+
+               // This error code doesn't 'win' against no_replicas
+               if (!final_ec_)
+                  final_ec_ = error::sentinel_unknown_master;
             } else {
                log_info(
                   st.logger,
@@ -175,17 +186,17 @@ sentinel_action sentinel_resolve_fsm::resume(
                   ec);
             }
 
-            // If the error indicated an unknown master, record it to adjust the final error
-            if (ec == error::sentinel_unknown_master)
-               final_ec_ = error::sentinel_unknown_master;
-
             continue;
          }
 
          // When asking for replicas, we might get no replicas.
          // This error code "wins" against any of the others.
-         // TODO: logging
          if (st.cfg.sentinel.server_role == role::replica && st.sentinel_resp.replicas.empty()) {
+            log_info(
+               st.logger,
+               "Asked to connect to a replica, but Sentinel at ",
+               current_sentinel(st, idx_),
+               " indicates that the master has no replicas");
             final_ec_ = error::no_replicas;
             continue;
          }
