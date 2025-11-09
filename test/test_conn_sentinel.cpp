@@ -342,6 +342,33 @@ void test_error_unknown_master()
    BOOST_TEST(run_finished);
 }
 
+// The same applies when connecting to replicas, too
+void test_error_unknown_master_replica()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+
+   config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "26380"},
+   };
+   cfg.sentinel.master_name = "unknown_master";
+   cfg.reconnect_wait_interval = 0s;  // disable reconnection so we can verify the error
+   cfg.sentinel.server_role = role::replica;
+
+   bool run_finished = false;
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, error::sentinel_unknown_master);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(run_finished);
+}
+
 }  // namespace
 
 int main()
@@ -364,6 +391,7 @@ int main()
 
    test_error_no_sentinel_reachable();
    test_error_unknown_master();
+   test_error_unknown_master_replica();
 
    return boost::report_errors();
 }
