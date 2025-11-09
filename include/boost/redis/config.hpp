@@ -109,7 +109,14 @@ struct sentinel_config {
     */
    std::chrono::steady_clock::duration request_timeout = std::chrono::seconds{5};
 
-   // TODO: document
+   /**
+    * @brief Whether to connect to a Redis master or to a replica.
+    *
+    * The library resolves and connects to the Redis master, by default.
+    * Set this value to @ref role::replica to connect to one of the replicas
+    * of the master identified by @ref master_name.
+    * The particular replica will be chosen randomly.
+    */
    role server_role = role::master;
 };
 
