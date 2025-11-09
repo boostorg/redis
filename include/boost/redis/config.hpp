@@ -25,10 +25,13 @@ struct address {
    std::string port = "6379";
 };
 
-// TODO: document and update field descriptions in config
+/// Identifies the possible roles of a Redis server.
 enum class role
 {
+   /// The server is a master.
    master,
+
+   /// The server is a replica.
    replica,
 };
 
@@ -53,6 +56,8 @@ struct sentinel_config {
    /**
     * @brief The name of the master to connect to, as configured in the
     *        `sentinel monitor` statement in `sentinel.conf`.
+    *
+    * This field is required even when connecting to replicas.
     */
    std::string master_name{};
 
@@ -61,8 +66,8 @@ struct sentinel_config {
     *        Does not affect connections to masters.
     *
     * When set to `true`, physical connections to Sentinels will be established
-    * using TLS. This setting does *not* influence how masters are contacted.
-    * To use TLS when connecting to masters, set @ref config::use_ssl to `true`.
+    * using TLS. This setting does *not* influence how masters and replicas are contacted.
+    * To use TLS when connecting to these, set @ref config::use_ssl to `true`.
     */
    bool use_ssl = false;
 
@@ -81,26 +86,26 @@ struct sentinel_config {
 
    /**
     * @brief Time span that the Sentinel resolve operation is allowed to elapse.
-    *        Does not affect connections to masters, controlled by @ref config::resolve_timeout.
+    *        Does not affect connections to masters and replicas, controlled by @ref config::resolve_timeout.
     */
    std::chrono::steady_clock::duration resolve_timeout = std::chrono::milliseconds{500};
 
    /**
     * @brief Time span that the Sentinel connect operation is allowed to elapse.
-    *        Does not affect connections to masters, controlled by @ref config::connect_timeout.
+    *        Does not affect connections to masters and replicas, controlled by @ref config::connect_timeout.
     */
    std::chrono::steady_clock::duration connect_timeout = std::chrono::milliseconds{500};
 
    /**
     * @brief Time span that the Sentinel TLS handshake operation is allowed to elapse.
-    *        Does not affect connections to masters, controlled by @ref config::ssl_handshake_timeout.
+    *        Does not affect connections to masters and replicas, controlled by @ref config::ssl_handshake_timeout.
     */
    std::chrono::steady_clock::duration ssl_handshake_timeout = std::chrono::seconds{5};
 
    /**
     * @brief Time span that the Sentinel request/response exchange is allowed to elapse.
     *        Includes executing the commands in @ref setup and the commands required to
-    *        resolve the master's address.
+    *        resolve the server's address.
     */
    std::chrono::steady_clock::duration request_timeout = std::chrono::seconds{5};
 
@@ -113,7 +118,7 @@ struct config {
    /**
     * @brief Whether to use TLS instead of plaintext connections.
     *
-    * When using Sentinel, configures whether to use TLS when connecting to masters.
+    * When using Sentinel, configures whether to use TLS when connecting to masters and replicas.
     * Use @ref sentinel_config::use_ssl to control TLS for Sentinels.
     */
    bool use_ssl = false;
@@ -129,6 +134,8 @@ struct config {
     * 
     * UNIX domain sockets can't be used with SSL: if `unix_socket` is non-empty,
     * @ref use_ssl must be `false`. UNIX domain sockets can't be used with Sentinel, either.
+    *
+    * UNIX domain sockets can't be used with Sentinel.
     */
    std::string unix_socket;
 
@@ -142,7 +149,7 @@ struct config {
     * and no password is specified, the `HELLO` command is sent
     * without authentication parameters.
     *
-    * When using Sentinel, this setting applies to masters, only.
+    * When using Sentinel, this setting applies to masters and replicas.
     * Use @ref sentinel_config::setup to configure authorization for Sentinels.
     */
    std::string username = "default";
@@ -157,7 +164,7 @@ struct config {
     * and no password is specified, the `HELLO` command is sent
     * without authentication parameters.
     *
-    * When using Sentinel, this setting applies to masters, only.
+    * When using Sentinel, this setting applies to masters and replicas.
     * Use @ref sentinel_config::setup to configure authorization for Sentinels.
     */
    std::string password;
@@ -168,7 +175,7 @@ struct config {
     * a `HELLO` command is sent. If this field is not empty, the `HELLO` command
     * will contain a `SETNAME` subcommand containing this value.
     *
-    * When using Sentinel, this setting applies to masters, only.
+    * When using Sentinel, this setting applies to masters and replicas.
     * Use @ref sentinel_config::setup to configure this value for Sentinels.
     */
    std::string clientname = "Boost.Redis";
@@ -180,7 +187,7 @@ struct config {
     * a `SELECT` command will be issued during connection establishment to set the logical
     * database index. By default, no `SELECT` command is sent.
     *
-    * When using Sentinel, this setting applies to masters, only.
+    * When using Sentinel, this setting applies to masters and replicas.
     */
    std::optional<int> database_index = 0;
 
@@ -198,19 +205,19 @@ struct config {
 
    /**
     * @brief Time span that the resolve operation is allowed to elapse.
-    *        When using Sentinel, this setting applies to masters only.
+    *        When using Sentinel, this setting applies to masters and replicas.
     */
    std::chrono::steady_clock::duration resolve_timeout = std::chrono::seconds{10};
 
    /**
     * @brief Time span that the connect operation is allowed to elapse.
-    *        When using Sentinel, this setting applies to masters only.
+    *        When using Sentinel, this setting applies to masters and replicas.
     */
    std::chrono::steady_clock::duration connect_timeout = std::chrono::seconds{10};
 
    /**
     * @brief Time span that the SSL handshake operation is allowed to elapse.
-    *        When using Sentinel, this setting applies to masters only.
+    *        When using Sentinel, this setting applies to masters and replicas.
     */
    std::chrono::steady_clock::duration ssl_handshake_timeout = std::chrono::seconds{10};
 
@@ -234,7 +241,7 @@ struct config {
     * The exact timeout values are *not* part of the interface, and might change
     * in future versions.
     *
-    * When using Sentinel, this setting applies to masters, only.
+    * When using Sentinel, this setting applies to masters and replicas.
     * Sentinels are not health-checked.
     */
    std::chrono::steady_clock::duration health_check_interval = std::chrono::seconds{2};
@@ -242,9 +249,9 @@ struct config {
    /** @brief Time span to wait between successive connection retries.
     *         Set to zero to disable reconnection.
     *
-    * When using Sentinel, this setting applies to both masters and Sentinels.
+    * When using Sentinel, this setting applies to masters, replicas and Sentinels.
     * If none of the configured Sentinels can be contacted, this time span will
-    * be waited before trying again. After a connection error with a master
+    * be waited before trying again. After a connection error with a master or replica
     * is encountered, this time span will be waited before contacting Sentinels again.
     */
    std::chrono::steady_clock::duration reconnect_wait_interval = std::chrono::seconds{1};
@@ -254,7 +261,7 @@ struct config {
     * Sets a limit on how much data is allowed to be read into the
     * read buffer. It can be used to prevent DDOS.
     *
-    * When using Sentinel, this setting applies to both masters and Sentinels.
+    * When using Sentinel, this setting applies to masters, replicas and Sentinels.
     */
    std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)();
 
@@ -265,7 +272,7 @@ struct config {
     * maximum size is reached no more memory allocations are made
     * since the buffer is reused.
     *
-    * When using Sentinel, this setting applies to both masters and Sentinels.
+    * When using Sentinel, this setting applies to masters, replicas and Sentinels.
     */
    std::size_t read_buffer_append_size = 4096;
 
@@ -291,7 +298,7 @@ struct config {
     *
     * By default, this field is false, and @ref setup will not be used.
     *
-    * When using Sentinel, this setting applies only to masters.
+    * When using Sentinel, this setting applies to masters and replicas.
     * Use @ref sentinel_config::setup for Sentinels.
     */
    bool use_setup = false;
@@ -303,7 +310,7 @@ struct config {
     *
     * By default, `setup` contains a `"HELLO 3"` command.
     *
-    * When using Sentinel, this setting applies only to masters.
+    * When using Sentinel, this setting applies to masters and replicas.
     * Use @ref sentinel_config::setup for Sentinels.
     */
    request setup = detail::make_hello_request();

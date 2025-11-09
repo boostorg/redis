@@ -25,6 +25,8 @@ xref:reference:boost/redis/basic_connection.adoc[`basic_connection`]
 
 xref:reference:boost/redis/address.adoc[`address`]
 
+xref:reference:boost/redis/role.adoc[`role`]
+
 xref:reference:boost/redis/config.adoc[`config`]
 
 xref:reference:boost/redis/sentinel_config.adoc[`sentinel_config`]
