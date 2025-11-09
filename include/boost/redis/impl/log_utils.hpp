@@ -7,6 +7,7 @@
 #ifndef BOOST_REDIS_LOG_UTILS_HPP
 #define BOOST_REDIS_LOG_UTILS_HPP
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/detail/connect_params.hpp>
 #include <boost/redis/logger.hpp>
 
@@ -50,6 +51,16 @@ struct log_traits<system::error_code> {
 };
 
 template <>
+struct log_traits<address> {
+   static inline void log(std::string& to, const address& value)
+   {
+      to += value.host;
+      to += ':';
+      to += value.port;
+   }
+};
+
+template <>
 struct log_traits<any_address_view> {
    static inline void log(std::string& to, any_address_view value)
    {
@@ -58,10 +69,7 @@ struct log_traits<any_address_view> {
          to += value.unix_socket();
          to += '\'';
       } else {
-         const auto& addr = value.tcp_address();
-         to += addr.host;
-         to += ':';
-         to += addr.port;
+         log_traits<address>::log(to, value.tcp_address());
          to += value.type() == transport_type::tcp_tls ? " (TLS enabled)" : " (TLS disabled)";
       }
    }

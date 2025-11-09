@@ -55,16 +55,11 @@ inline void update_sentinel_list(
    }
 }
 
-inline any_address_view current_sentinel(const connection_state& st, std::size_t idx)
-{
-   return any_address_view{st.sentinels[idx], st.cfg.sentinel.use_ssl};
-}
-
 // Returns how to connect to Sentinel given the current index
 inline connect_params make_sentinel_connect_params(const connection_state& st, std::size_t idx)
 {
    return {
-      current_sentinel(st, idx),
+      any_address_view{st.sentinels[idx], st.cfg.sentinel.use_ssl},
       st.cfg.sentinel.resolve_timeout,
       st.cfg.sentinel.connect_timeout,
       st.cfg.sentinel.ssl_handshake_timeout,
@@ -101,7 +96,7 @@ sentinel_action sentinel_resolve_fsm::resume(
       //     This is likely a config error on the user side, and should be reported even if some Sentinels are offline.
       //   * Otherwise, no_sentinel_reachable. Details can be found in the logs.
       for (idx_ = 0u; idx_ < st.sentinels.size(); ++idx_) {
-         log_debug(st.logger, "Trying to contact Sentinel at ", current_sentinel(st, idx_));
+         log_debug(st.logger, "Trying to contact Sentinel at ", st.sentinels[idx_]);
 
          // Try to connect
          BOOST_REDIS_YIELD(resume_point_, 1, make_sentinel_connect_params(st, idx_))
@@ -114,17 +109,12 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          // Check for errors
          if (ec) {
-            log_info(
-               st.logger,
-               "Failed to connect to Sentinel at ",
-               current_sentinel(st, idx_),
-               ": ",
-               ec);
+            log_info(st.logger, "Failed to connect to Sentinel at ", st.sentinels[idx_], ": ", ec);
             continue;
          }
 
          // Execute the Sentinel request
-         log_debug(st.logger, "Executing Sentinel request at ", current_sentinel(st, idx_));
+         log_debug(st.logger, "Executing Sentinel request at ", st.sentinels[idx_]);
          st.sentinel_resp_nodes.clear();
          BOOST_REDIS_YIELD(resume_point_, 2, sentinel_action::request())
 
@@ -140,7 +130,7 @@ sentinel_action sentinel_resolve_fsm::resume(
             log_info(
                st.logger,
                "Failed to execute request at Sentinel ",
-               current_sentinel(st, idx_),
+               st.sentinels[idx_],
                ": ",
                ec);
             st.sentinel_resp_nodes.clear();
@@ -162,14 +152,14 @@ sentinel_action sentinel_resolve_fsm::resume(
                log_info(
                   st.logger,
                   "Sentinel response at ",
-                  current_sentinel(st, idx_),
+                  st.sentinels[idx_],
                   " contains an error: ",
                   st.sentinel_resp.diagnostic);
             } else if (ec == error::sentinel_unknown_master) {
                log_info(
                   st.logger,
                   "Sentinel ",
-                  current_sentinel(st, idx_),
+                  st.sentinels[idx_],
                   " doesn't know about master '",
                   st.cfg.sentinel.master_name,
                   "'");
@@ -181,7 +171,7 @@ sentinel_action sentinel_resolve_fsm::resume(
                log_info(
                   st.logger,
                   "Error parsing Sentinel response at ",
-                  current_sentinel(st, idx_),
+                  st.sentinels[idx_],
                   ": ",
                   ec);
             }
@@ -195,7 +185,7 @@ sentinel_action sentinel_resolve_fsm::resume(
             log_info(
                st.logger,
                "Asked to connect to a replica, but Sentinel at ",
-               current_sentinel(st, idx_),
+               st.sentinels[idx_],
                " indicates that the master has no replicas");
             final_ec_ = error::no_replicas;
             continue;
@@ -217,7 +207,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          log_info(
             st.logger,
             "Sentinel at ",
-            current_sentinel(st, idx_),
+            st.sentinels[idx_],
             " resolved the address of master '",
             st.cfg.sentinel.master_name,
             "' to ",
