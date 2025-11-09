@@ -9,6 +9,7 @@
 #ifndef BOOST_REDIS_PARSE_SENTINEL_RESPONSE_HPP
 #define BOOST_REDIS_PARSE_SENTINEL_RESPONSE_HPP
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/node.hpp>
@@ -24,22 +25,123 @@
 
 namespace boost::redis::detail {
 
+// Parses a list of replicas or sentinels
+inline system::error_code parse_server_list(
+   const resp3::node*& first,
+   const resp3::node* last,
+   std::vector<address>& out)
+{
+   const auto* it = first;
+
+   // The root node must be an array
+   BOOST_ASSERT(it != last);
+   if (it->depth != 0u)  // TODO: is this really possible?
+      return {error::incompatible_node_depth};
+   if (it->data_type != resp3::type::array) {
+      return {error::invalid_data_type};
+   }
+   const std::size_t num_servers = it->aggregate_size;
+   ++it;
+
+   // Each element in the array represents a server
+   out.resize(num_servers);
+   for (std::size_t i = 0u; i < num_servers; ++i) {
+      // A server is a map (resp3) or array (resp2, currently unsupported)
+      BOOST_ASSERT(it != last);
+      if (it->data_type != resp3::type::map) {
+         return {error::invalid_data_type};
+      }
+      const std::size_t num_key_values = it->aggregate_size;
+      ++it;
+
+      // The server object is composed by a set of key/value pairs.
+      // Skip everything except for the ones we care for.
+      bool ip_seen = false, port_seen = false;
+      for (std::size_t j = 0; j < num_key_values; ++j) {
+         // Key
+         BOOST_ASSERT(it != last);
+         if (it->data_type != resp3::type::blob_string)
+            return {error::invalid_data_type};
+         if (it->depth != 2u)
+            return {error::incompatible_node_depth};
+
+         // Value
+         if (it->value == "ip") {
+            // This is the IP. Skip to the value
+            ++it;
+
+            // Parse the value
+            BOOST_ASSERT(it != last);
+            if (it->data_type != resp3::type::blob_string)
+               return {error::invalid_data_type};
+            if (it->depth != 2u)
+               return {error::incompatible_node_depth};
+            ip_seen = true;
+            out[i].host = it->value;
+
+            // Move to the next key
+            ++it;
+         } else if (it->value == "port") {
+            // This is the port. Skip to the value
+            ++it;
+
+            // Parse it
+            BOOST_ASSERT(it != last);
+            if (it->data_type != resp3::type::blob_string)
+               return {error::invalid_data_type};
+            if (it->depth != 2u)
+               return {error::incompatible_node_depth};
+            port_seen = true;
+            out[i].port = it->value;
+
+            // Skip to the next key
+            ++it;
+         } else {
+            // This is an unknown key. Skip the value.
+            ++it;
+
+            // TODO: support aggregates
+            BOOST_ASSERT(it != last);
+            if (it->depth != 2u)
+               return {error::incompatible_node_depth};
+            if (resp3::is_aggregate(it->data_type))
+               return {error::nested_aggregate_not_supported};
+
+            // Skip to the next key
+            ++it;
+         }
+      }
+
+      // Check that the response actually contained the fields we wanted
+      if (!ip_seen || !port_seen)
+         return {error::invalid_data_type};  // TODO: better diagnostic here
+   }
+
+   // Done
+   first = it;
+   return system::error_code();
+}
+
 // Parses an array of nodes into a sentinel_response.
 // The request originating this response should be:
 //    <user-supplied commands, as per sentinel_config::setup>
 //    SENTINEL GET-MASTER-ADDR-BY-NAME
+//    SENTINEL REPLICAS (only if server_role is replica)
 //    SENTINEL SENTINELS
 // expected_responses is required to skip responses to user-supplied setup requests.
-// SENTINEL SENTINELS errors when the master name is unknown. Error nodes
+// SENTINEL SENTINELS and SENTINEL REPLICAS error when the master name is unknown. Error nodes
 // should be allowed in the node array.
 // This means that we can't use generic_response, since its adapter errors on error nodes.
+// SENTINEL GET-MASTER-ADDR-BY-NAME is sent even when connecting to replicas
+//    for better diagnostics when the master name is unknown.
 // Preconditions:
-//   * expected_responses >= 2
+//   * expected_responses >= 2 (server_role master) or 3 (server_role replica)
 //   * The node array originates from parsing a valid RESP3 message.
 //     E.g. we won't check that the first node has depth 0.
 inline system::error_code parse_sentinel_response(
    span<const resp3::node> nodes,
    std::size_t expected_responses,
+   role server_role,
    sentinel_response& out)
 {
    auto check_errors = [&out](const resp3::node& nd) {
@@ -54,7 +156,7 @@ inline system::error_code parse_sentinel_response(
       }
    };
 
-   BOOST_ASSERT(expected_responses >= 2u);
+   BOOST_ASSERT(expected_responses >= (server_role == role::replica ? 3u : 2u));
 
    // Clear the output
    out.diagnostic.clear();
@@ -105,7 +207,7 @@ inline system::error_code parse_sentinel_response(
       return {error::incompatible_node_depth};
    if (it->data_type != resp3::type::blob_string)
       return {error::invalid_data_type};
-   out.server_addr.host = it->value;
+   out.master_addr.host = it->value;
    ++it;
 
    // Port
@@ -114,8 +216,22 @@ inline system::error_code parse_sentinel_response(
       return {error::incompatible_node_depth};
    if (it->data_type != resp3::type::blob_string)
       return {error::invalid_data_type};
-   out.server_addr.port = it->value;
+   out.master_addr.port = it->value;
    ++it;
+
+   if (server_role == role::replica) {
+      // SENTINEL REPLICAS
+
+      // This request fails if Sentinel doesn't know about this master.
+      // However, that's not the case if we got here.
+      // Check for other errors.
+      if (auto ec = check_errors(*it))
+         return ec;
+
+      // Actual parsing
+      if (auto ec = parse_server_list(it, last, out.replicas))
+         return ec;
+   }
 
    // SENTINEL SENTINELS
 
@@ -125,89 +241,9 @@ inline system::error_code parse_sentinel_response(
    if (auto ec = check_errors(*it))
       return ec;
 
-   // The root node must be an array
-   BOOST_ASSERT(it != last);
-   if (it->depth != 0u)  // TODO: is this really possible?
-      return {error::incompatible_node_depth};
-   if (it->data_type != resp3::type::array) {
-      return {error::invalid_data_type};
-   }
-   const std::size_t num_sentinels = it->aggregate_size;
-   ++it;
-
-   // Each element in the array represents a sentinel
-   out.sentinels.resize(num_sentinels);
-   for (std::size_t i = 0u; i < num_sentinels; ++i) {
-      // A Sentinel is an array (resp2) or map (resp3)
-      BOOST_ASSERT(it != last);
-      if (it->data_type != resp3::type::map) {
-         return {error::invalid_data_type};
-      }
-      const std::size_t num_key_values = it->aggregate_size;
-      ++it;
-
-      // The Sentinel object is composed by a set of key/value pairs.
-      // Skip everything except for the ones we care for.
-      bool ip_seen = false, port_seen = false;
-      for (std::size_t j = 0; j < num_key_values; ++j) {
-         // Key
-         BOOST_ASSERT(it != last);
-         if (it->data_type != resp3::type::blob_string)
-            return {error::invalid_data_type};
-         if (it->depth != 2u)
-            return {error::incompatible_node_depth};
-
-         // Value
-         if (it->value == "ip") {
-            // This is the IP. Skip to the value
-            ++it;
-
-            // Parse the value
-            BOOST_ASSERT(it != last);
-            if (it->data_type != resp3::type::blob_string)
-               return {error::invalid_data_type};
-            if (it->depth != 2u)
-               return {error::incompatible_node_depth};
-            ip_seen = true;
-            out.sentinels[i].host = it->value;
-
-            // Move to the next key
-            ++it;
-         } else if (it->value == "port") {
-            // This is the port. Skip to the value
-            ++it;
-
-            // Parse it
-            BOOST_ASSERT(it != last);
-            if (it->data_type != resp3::type::blob_string)
-               return {error::invalid_data_type};
-            if (it->depth != 2u)
-               return {error::incompatible_node_depth};
-            port_seen = true;
-            out.sentinels[i].port = it->value;
-
-            // Skip to the next key
-            ++it;
-         } else {
-            // This is an unknown key. Skip the value.
-            ++it;
-
-            // TODO: support aggregates
-            BOOST_ASSERT(it != last);
-            if (it->depth != 2u)
-               return {error::incompatible_node_depth};
-            if (resp3::is_aggregate(it->data_type))
-               return {error::nested_aggregate_not_supported};
-
-            // Skip to the next key
-            ++it;
-         }
-      }
-
-      // Check that the response actually contained the fields we wanted
-      if (!ip_seen || !port_seen)
-         return {error::invalid_data_type};  // TODO: better diagnostic here
-   }
+   // Actual parsing
+   if (auto ec = parse_server_list(it, last, out.sentinels))
+      return ec;
 
    // Done
    return system::error_code();

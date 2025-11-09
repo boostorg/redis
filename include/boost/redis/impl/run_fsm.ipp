@@ -53,8 +53,11 @@ inline void compose_ping_request(const config& cfg, request& to)
 inline void compose_sentinel_request(config& cfg)
 {
    if (use_sentinel(cfg)) {
-      // These commands should go after the user-supplied setup, as this might involve authentication
+      // These commands should go after the user-supplied setup, as this might involve authentication.
+      // We ask for the master even when connecting to replicas to correctly detect when the master doesn't exist
       cfg.sentinel.setup.push("SENTINEL", "GET-MASTER-ADDR-BY-NAME", cfg.sentinel.master_name);
+      if (cfg.sentinel.server_role == role::replica)
+         cfg.sentinel.setup.push("SENTINEL", "REPLICAS", cfg.sentinel.master_name);
       cfg.sentinel.setup.push("SENTINEL", "SENTINELS", cfg.sentinel.master_name);
    }
 
@@ -99,9 +102,7 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
 
 inline any_address_view get_server_address(const connection_state& st)
 {
-   if (use_sentinel(st.cfg)) {
-      return {st.sentinel_resp.server_addr, st.cfg.use_ssl};
-   } else if (!st.cfg.unix_socket.empty()) {
+   if (!st.cfg.unix_socket.empty()) {
       return any_address_view{st.cfg.unix_socket};
    } else {
       return {st.cfg.addr, st.cfg.use_ssl};

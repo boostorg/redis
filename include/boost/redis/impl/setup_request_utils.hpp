@@ -92,10 +92,13 @@ class setup_adapter {
                return error::invalid_data_type;
          }
 
-         // The first node should be 'master' if we're connecting to a primary
+         // The first node should be 'master' if we're connecting to a primary,
+         // 'slave' if we're connecting to a replica
          if (nd.depth == 1u && !role_seen_) {
             role_seen_ = true;
-            if (nd.value != "master") {
+            const char* expected_role = st_->cfg.sentinel.server_role == role::master ? "master"
+                                                                                      : "slave";
+            if (nd.value != expected_role) {
                return error::role_check_failed;
             }
          }

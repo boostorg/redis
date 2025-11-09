@@ -25,6 +25,13 @@ struct address {
    std::string port = "6379";
 };
 
+// TODO: document and update field descriptions in config
+enum class role
+{
+   master,
+   replica,
+};
+
 /// Configuration values to use when using Sentinel.
 struct sentinel_config {
    /**
@@ -96,6 +103,9 @@ struct sentinel_config {
     *        resolve the master's address.
     */
    std::chrono::steady_clock::duration request_timeout = std::chrono::seconds{5};
+
+   // TODO: document
+   role server_role = role::master;
 };
 
 /// Configure parameters used by the connection classes.

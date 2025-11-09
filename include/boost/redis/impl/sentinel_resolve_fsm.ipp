@@ -70,6 +70,7 @@ inline connect_params make_sentinel_connect_params(const connection_state& st, s
    };
 }
 
+// TODO: adjust logging
 sentinel_action sentinel_resolve_fsm::resume(
    connection_state& st,
    system::error_code ec,
@@ -148,8 +149,11 @@ sentinel_action sentinel_resolve_fsm::resume(
          ec = parse_sentinel_response(
             st.sentinel_resp_nodes,
             st.cfg.sentinel.setup.get_expected_responses(),
+            st.cfg.sentinel.server_role,
             st.sentinel_resp);
-         st.sentinel_resp_nodes.clear();  // Reduce memory consumption
+
+         // Reduce memory consumption. TODO: do we want to make these temporaries, instead?
+         st.sentinel_resp_nodes.clear();
 
          if (ec) {
             if (ec == error::resp3_simple_error || ec == error::resp3_blob_error) {
@@ -175,6 +179,20 @@ sentinel_action sentinel_resolve_fsm::resume(
             continue;
          }
 
+         // When asking for replicas, we might get no replicas.
+         // TODO: return the correct error code here
+         // TODO: logging
+         if (st.cfg.sentinel.server_role == role::replica && st.sentinel_resp.replicas.empty()) {
+            continue;
+         }
+
+         if (st.cfg.sentinel.server_role == role::master) {
+            st.cfg.addr = st.sentinel_resp.master_addr;
+         } else {
+            // TODO: this should be made random
+            st.cfg.addr = st.sentinel_resp.replicas[0];
+         }
+
          // Sentinel knows about this master. Log and update our config
          log_info(
             st.logger,
@@ -183,9 +201,9 @@ sentinel_action sentinel_resolve_fsm::resume(
             " resolved the address of master '",
             st.cfg.sentinel.master_name,
             "' to ",
-            st.sentinel_resp.server_addr.host,
+            st.cfg.addr.host,
             ":",
-            st.sentinel_resp.server_addr.port);
+            st.cfg.addr.port);
 
          update_sentinel_list(
             st.sentinels,

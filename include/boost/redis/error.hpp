@@ -107,6 +107,9 @@ enum class error
    /// The contacted server is not a master as expected.
    /// This is likely a transient failure caused by a Sentinel failover in progress.
    role_check_failed,
+
+   // TODO: document
+   no_replicas,
 };
 
 /**

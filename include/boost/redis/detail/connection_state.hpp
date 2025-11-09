@@ -22,8 +22,9 @@
 namespace boost::redis::detail {
 
 struct sentinel_response {
-   std::string diagnostic;  // In case the server returned an error
-   address server_addr;
+   std::string diagnostic;         // In case the server returned an error
+   address master_addr;            // Always populated
+   std::vector<address> replicas;  // Populated only when connecting to replicas
    std::vector<address> sentinels;
 };
 
