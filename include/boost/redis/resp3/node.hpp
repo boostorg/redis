@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2024 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -51,6 +51,13 @@ auto operator==(basic_node<String> const& a, basic_node<String> const& b)
        && a.data_type == b.data_type
        && a.value == b.value;
    // clang-format on
+};
+
+/// Inequality operator for RESP3 nodes
+template <class String>
+auto operator!=(basic_node<String> const& a, basic_node<String> const& b)
+{
+   return !(a == b);
 };
 
 /// A node in the response tree that owns its data.

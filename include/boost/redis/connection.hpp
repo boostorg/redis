@@ -207,6 +207,50 @@ struct connection_impl {
    {
       st_.mpx.set_receive_adapter(std::move(adapter));
    }
+
+   std::size_t receive(system::error_code& ec)
+   {
+      std::size_t size = 0;
+
+      auto f = [&](system::error_code const& ec2, std::size_t n) {
+         ec = ec2;
+         size = n;
+      };
+
+      auto const res = receive_channel_.try_receive(f);
+      if (ec)
+         return 0;
+
+      if (!res)
+         ec = error::sync_receive_push_failed;
+
+      return size;
+   }
+
+   template <class CompletionToken>
+   auto async_receive2(CompletionToken&& token)
+   {
+      return
+         receive_channel_.async_receive(
+            asio::deferred(
+               [this](system::error_code ec, std::size_t)
+               {
+                  if (!ec) {
+                     auto f = [](system::error_code, std::size_t) {
+                       // There is no point in checking for errors
+                       // here since async_receive just completed
+                       // without errors.
+                     };
+
+                     // We just want to drain the channel.
+                     while (receive_channel_.try_receive(f));
+                  }
+
+                  return asio::deferred.values(ec);
+               }
+            )
+         )(std::forward<CompletionToken>(token));
+   }
 };
 
 template <class Executor>
@@ -593,7 +637,7 @@ public:
       return async_run(config{}, std::forward<CompletionToken>(token));
    }
 
-   /** @brief Receives server side pushes asynchronously.
+   /** @brief (Deprecated) Receives server side pushes asynchronously.
     *
     * When pushes arrive and there is no `async_receive` operation in
     * progress, pushed data, requests, and responses will be paused
@@ -623,12 +667,57 @@ public:
     * @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   BOOST_DEPRECATED("Please use async_receive2 instead.")
    auto async_receive(CompletionToken&& token = {})
    {
       return impl_->receive_channel_.async_receive(std::forward<CompletionToken>(token));
    }
 
-   /** @brief Receives server pushes synchronously without blocking.
+   /** @brief Wait for server pushes asynchronously
+    *
+    * This function suspends until a server push is received by the
+    * connection. On completion an unspecified number of pushes will
+    * have been added to the response object set with @ref
+    * boost::redis::connection::set_receive_response.
+    *
+    * To prevent receiving an unbound number of pushes the connection
+    * blocks further read operations on the socket when 256 pushes
+    * accumulate internally (we don't make any commitment to this
+    * exact number). When that happens any `async_exec`s and
+    * health-checks won't make any progress and the connection may
+    * eventually timeout. To avoid that Apps should call
+    * `async_receive2` continuously in a loop.
+    *
+    * @Note To avoid deadlocks the task (e.g. coroutine) calling
+    * `async_receive2` should not call `async_exec` in a way where
+    * they could block each other.
+    *
+    * For an example see cpp20_subscriber.cpp. The completion token
+    * must have the following signature
+    *
+    * @code
+    * void f(system::error_code);
+    * @endcode
+    *
+    * @par Per-operation cancellation
+    * This operation supports the following cancellation types:
+    *
+    *   @li `asio::cancellation_type_t::terminal`.
+    *   @li `asio::cancellation_type_t::partial`.
+    *   @li `asio::cancellation_type_t::total`.
+    *
+    * Calling `basic_connection::cancel(operation::receive)` will
+    * also cancel any ongoing receive operations.
+    * 
+    * @param token Completion token.
+    */
+   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
+   auto async_receive2(CompletionToken&& token = {})
+   {
+      return impl_->async_receive2(std::forward<CompletionToken>(token));
+   }
+
+   /** @brief (Deprecated) Receives server pushes synchronously without blocking.
     *
     *  Receives a server push synchronously by calling `try_receive` on
     *  the underlying channel. If the operation fails because
@@ -638,23 +727,10 @@ public:
     *  @param ec Contains the error if any occurred.
     *  @returns The number of bytes read from the socket.
     */
+   BOOST_DEPRECATED("Please, use async_receive2 instead.")
    std::size_t receive(system::error_code& ec)
    {
-      std::size_t size = 0;
-
-      auto f = [&](system::error_code const& ec2, std::size_t n) {
-         ec = ec2;
-         size = n;
-      };
-
-      auto const res = impl_->receive_channel_.try_receive(f);
-      if (ec)
-         return 0;
-
-      if (!res)
-         ec = error::sync_receive_push_failed;
-
-      return size;
+      return impl_->receive(ec);
    }
 
    /** @brief Executes commands on the Redis server asynchronously.
@@ -837,7 +913,7 @@ public:
       "the other member functions to interact with the connection.")
    auto const& next_layer() const noexcept { return impl_->stream_.next_layer(); }
 
-   /// Sets the response object of @ref async_receive operations.
+   /// Sets the response object of @ref async_receive2 operations.
    template <class Response>
    void set_receive_response(Response& resp)
    {
@@ -1028,13 +1104,25 @@ public:
 
    /// @copydoc basic_connection::async_receive
    template <class CompletionToken = asio::deferred_t>
+   BOOST_DEPRECATED("Please use async_receive2 instead.")
    auto async_receive(CompletionToken&& token = {})
    {
       return impl_.async_receive(std::forward<CompletionToken>(token));
    }
 
+   /// @copydoc basic_connection::async_receive2
+   template <class CompletionToken = asio::deferred_t>
+   auto async_receive2(CompletionToken&& token = {})
+   {
+      return impl_.async_receive2(std::forward<CompletionToken>(token));
+   }
+
    /// @copydoc basic_connection::receive
-   std::size_t receive(system::error_code& ec) { return impl_.receive(ec); }
+   BOOST_DEPRECATED("Please use async_receive2 instead.")
+   std::size_t receive(system::error_code& ec)
+   {
+      return impl_.impl_->receive(ec);
+   }
 
    /**
     * @brief Calls @ref boost::redis::basic_connection::async_exec.
