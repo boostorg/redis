@@ -24,6 +24,7 @@ using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
 using boost::redis::resp3::tree;
 using boost::redis::resp3::flat_tree;
+using boost::redis::generic_flat_response;
 using boost::redis::ignore_t;
 using boost::redis::resp3::detail::deserialize;
 using boost::redis::resp3::node;
@@ -375,25 +376,45 @@ tree from_flat(flat_tree const& resp)
    return ret;
 }
 
+tree from_flat(generic_flat_response const& resp)
+{
+   tree ret;
+   for (auto const& e: resp.value().get_view())
+      ret.push_back(from_node_view(e));
+
+   return ret;
+}
+
+
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
 BOOST_AUTO_TEST_CASE(flat_tree_views_are_set)
 {
    tree resp1;
-   flat_tree fresp;
+   flat_tree resp2;
+   generic_flat_response resp3;
 
    error_code ec;
    deserialize(resp3_set, adapt2(resp1), ec);
    BOOST_CHECK_EQUAL(ec, error_code{});
 
-   deserialize(resp3_set, adapt2(fresp), ec);
+   deserialize(resp3_set, adapt2(resp2), ec);
    BOOST_CHECK_EQUAL(ec, error_code{});
 
-   BOOST_CHECK_EQUAL(fresp.get_reallocs(), 1u);
-   BOOST_CHECK_EQUAL(fresp.get_total_msgs(), 1u);
+   deserialize(resp3_set, adapt2(resp3), ec);
+   BOOST_CHECK_EQUAL(ec, error_code{});
 
-   auto const resp2 = from_flat(fresp);
-   BOOST_CHECK_EQUAL(resp1, resp2);
+   BOOST_CHECK_EQUAL(resp2.get_reallocs(), 1u);
+   BOOST_CHECK_EQUAL(resp2.get_total_msgs(), 1u);
+
+   BOOST_CHECK_EQUAL(resp3.value().get_reallocs(), 1u);
+   BOOST_CHECK_EQUAL(resp3.value().get_total_msgs(), 1u);
+
+   auto const tmp2 = from_flat(resp2);
+   BOOST_CHECK_EQUAL(resp1, tmp2);
+
+   auto const tmp3 = from_flat(resp3);
+   BOOST_CHECK_EQUAL(resp1, tmp3);
 }
 
 // The response should be reusable.
@@ -445,4 +466,40 @@ BOOST_AUTO_TEST_CASE(flat_tree_copy_assign)
    BOOST_TEST((copy1 == resp));
    BOOST_TEST((copy2 == resp));
    BOOST_TEST((copy3 == resp));
+}
+
+BOOST_AUTO_TEST_CASE(generic_flat_response_simple_error)
+{
+   generic_flat_response resp;
+
+   char const* wire = "-Error\r\n";
+
+   error_code ec;
+   deserialize(wire, adapt2(resp), ec);
+   BOOST_CHECK_EQUAL(ec, error_code{});
+
+   BOOST_TEST(!resp.has_value());
+   BOOST_TEST(resp.has_error());
+   auto const error = resp.error();
+
+   BOOST_CHECK_EQUAL(error.data_type, boost::redis::resp3::type::simple_error);
+   BOOST_CHECK_EQUAL(error.diagnostic, std::string{"Error"});
+}
+
+BOOST_AUTO_TEST_CASE(generic_flat_response_blob_error)
+{
+   generic_flat_response resp;
+
+   char const* wire = "!5\r\nError\r\n";
+
+   error_code ec;
+   deserialize(wire, adapt2(resp), ec);
+   BOOST_CHECK_EQUAL(ec, error_code{});
+
+   BOOST_TEST(!resp.has_value());
+   BOOST_TEST(resp.has_error());
+   auto const error = resp.error();
+
+   BOOST_CHECK_EQUAL(error.data_type, boost::redis::resp3::type::blob_error);
+   BOOST_CHECK_EQUAL(error.diagnostic, std::string{"Error"});
 }

@@ -72,6 +72,13 @@ struct result_traits<resp3::basic_tree<String>> {
 };
 
 template <>
+struct result_traits<generic_flat_response> {
+   using response_type = generic_flat_response;
+   using adapter_type = general_aggregate<response_type>;
+   static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
+};
+
+template <>
 struct result_traits<resp3::flat_tree> {
    using response_type = resp3::flat_tree;
    using adapter_type = general_aggregate<response_type>;

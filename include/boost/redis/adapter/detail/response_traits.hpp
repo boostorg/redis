@@ -115,6 +115,14 @@ struct response_traits<resp3::flat_tree> {
    static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
 };
 
+template <>
+struct response_traits<generic_flat_response> {
+   using response_type = generic_flat_response;
+   using adapter_type = general_aggregate<response_type>;
+
+   static auto adapt(response_type& v) noexcept { return adapter_type{&v}; }
+};
+
 template <class... Ts>
 struct response_traits<response<Ts...>> {
    using response_type = response<Ts...>;

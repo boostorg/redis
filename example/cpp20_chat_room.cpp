@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -32,7 +32,7 @@ using boost::asio::dynamic_buffer;
 using boost::asio::redirect_error;
 using boost::redis::config;
 using boost::redis::connection;
-using boost::redis::resp3::flat_tree;
+using boost::redis::generic_flat_response;
 using boost::redis::request;
 using boost::system::error_code;
 using namespace std::chrono_literals;
@@ -45,7 +45,7 @@ auto receiver(std::shared_ptr<connection> conn) -> awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   flat_tree resp;
+   generic_flat_response resp;
    conn->set_receive_response(resp);
 
    while (conn->will_reconnect()) {
@@ -58,12 +58,12 @@ auto receiver(std::shared_ptr<connection> conn) -> awaitable<void>
          if (ec)
             break;  // Connection lost, break so we can reconnect to channels.
 
-         for (auto const& elem: resp.get_view())
+         for (auto const& elem: resp.value().get_view())
             std::cout << elem.value << "\n";
 
          std::cout << std::endl;
 
-         resp.clear();
+         resp.value().clear();
       }
    }
 }

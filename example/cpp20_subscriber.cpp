@@ -21,7 +21,7 @@
 namespace asio = boost::asio;
 using namespace std::chrono_literals;
 using boost::redis::request;
-using boost::redis::resp3::flat_tree;
+using boost::redis::generic_flat_response;
 using boost::redis::config;
 using boost::system::error_code;
 using boost::redis::connection;
@@ -49,7 +49,7 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   flat_tree resp;
+   generic_flat_response resp;
    conn->set_receive_response(resp);
 
    // Loop while reconnection is enabled
@@ -66,12 +66,12 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 
          // The response must be consumed without suspending the
          // coroutine i.e. without the use of async operations.
-         for (auto const& elem: resp.get_view())
+         for (auto const& elem: resp.value().get_view())
             std::cout << elem.value << "\n";
 
          std::cout << std::endl;
 
-         resp.clear();
+         resp.value().clear();
       }
    }
 }

@@ -13,6 +13,7 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
+#include <boost/redis/response.hpp>
 
 #include <boost/assert.hpp>
 
@@ -202,6 +203,45 @@ public:
       tmp.value = std::string{std::cbegin(nd.value), std::cend(nd.value)};
 
       tree_->push_back(std::move(tmp));
+   }
+};
+
+template <>
+class general_aggregate<generic_flat_response> {
+private:
+   generic_flat_response* tree_ = nullptr;
+
+public:
+   explicit general_aggregate(generic_flat_response* c = nullptr)
+   : tree_(c)
+   { }
+
+   void on_init() { }
+   void on_done()
+   {
+      BOOST_ASSERT_MSG(!!tree_, "Unexpected null pointer");
+      if (tree_->has_value()) {
+         tree_->value().notify_done();
+      }
+   }
+
+   template <class String>
+   void on_node(resp3::basic_node<String> const& nd, system::error_code&)
+   {
+      BOOST_ASSERT_MSG(!!tree_, "Unexpected null pointer");
+      switch (nd.data_type) {
+         case resp3::type::blob_error:
+         case resp3::type::simple_error:
+            *tree_ = error{
+               nd.data_type,
+               std::string{std::cbegin(nd.value), std::cend(nd.value)}
+            };
+            break;
+         default:
+            if (tree_->has_value()) {
+               (**tree_).push(nd);
+            }
+      }
    }
 };
 

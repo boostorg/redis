@@ -10,6 +10,7 @@
 #include <boost/redis/adapter/result.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/tree.hpp>
+#include <boost/redis/resp3/flat_tree.hpp>
 
 #include <boost/system/error_code.hpp>
 
@@ -31,6 +32,9 @@ using response = std::tuple<adapter::result<Ts>...>;
  *  view of the response tree.
  */
 using generic_response = adapter::result<resp3::tree>;
+
+/// Similar to @ref boost::redis::generic_response but stores data contiguously.
+using generic_flat_response = adapter::result<resp3::flat_tree>;
 
 /** @brief (Deprecated) Consume on response from a generic response
  *
