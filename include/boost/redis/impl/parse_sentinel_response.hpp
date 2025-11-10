@@ -163,6 +163,7 @@ inline system::error_code parse_sentinel_response(
    // Clear the output
    out.diagnostic.clear();
    out.sentinels.clear();
+   out.replicas.clear();
 
    const resp3::node* it = nodes.begin();
    const resp3::node* last = nodes.end();

@@ -49,7 +49,8 @@ void test_success()
    sentinel_response resp{
       "leftover",
       {"leftover_host", "6543"},
-      {address()}
+      {address()},
+      {address()},
    };
    std::vector<resp3::node> nodes;
    auto adapter = detail::make_vector_adapter(nodes);
@@ -86,7 +87,7 @@ void test_success()
    }
 
    // Parse
-   auto ec = parse_sentinel_response(nodes, 2u, resp);
+   auto ec = parse_sentinel_response(nodes, 2u, role::master, resp);
 
    const address expected_sentinels[] = {
       {"host.one", "26380"},
@@ -95,12 +96,13 @@ void test_success()
 
    BOOST_TEST_EQ(ec, error_code());
    BOOST_TEST_EQ(resp.diagnostic, "");
-   BOOST_TEST_EQ(resp.server_addr, (address{"localhost", "6380"}));
+   BOOST_TEST_EQ(resp.master_addr, (address{"localhost", "6380"}));
    BOOST_TEST_ALL_EQ(
       resp.sentinels.begin(),
       resp.sentinels.end(),
       std::begin(expected_sentinels),
       std::end(expected_sentinels));
+   BOOST_TEST_EQ(resp.replicas.size(), 0u);
 }
 
 }  // namespace
