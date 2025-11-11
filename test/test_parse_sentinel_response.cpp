@@ -626,6 +626,90 @@ void test_errors()
          },
          "",
          error::empty_field
+      },
+
+      // SENTINEL REPLICAS
+      {
+         // The request errors
+         "replicas_error",
+         role::replica,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "-ERR something went wrong\r\n",
+            "*0\r\n",
+         },
+         "ERR something went wrong",
+         error::resp3_simple_error
+      },
+      {
+         // The root node should be an array
+         "replicas_not_array",
+         role::replica,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "+OK\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         // Each replica object should be a map
+         "replicas_subobject_not_map",
+         role::replica,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n*1\r\n$9\r\nlocalhost\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         // Keys in the replica object should be strings
+         "replicas_keys_not_strings",
+         role::replica,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n%1\r\n*0\r\n$5\r\nhello\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         // Values in the replica object should be strings
+         "replicas_keys_not_strings",
+         role::replica,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n%1\r\n$5\r\nhello\r\n*1\r\n+OK\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         "replicas_ip_not_found",
+         role::replica,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n%1\r\n$4\r\nport\r\n$4\r\n6380\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::empty_field
+      },
+      {
+         "replicas_port_not_found",
+         role::replica,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n%1\r\n$2\r\nip\r\n$9\r\nlocalhost\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::empty_field
       }
 
       // clang-format on
