@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace boost::redis::detail {
@@ -36,11 +37,9 @@ inline system::error_code parse_server_list(
 
    // The root node must be an array
    BOOST_ASSERT(it != last);
-   if (it->depth != 0u)  // TODO: is this really possible?
-      return {error::incompatible_node_depth};
-   if (it->data_type != resp3::type::array) {
+   BOOST_ASSERT(it->depth == 0u);
+   if (it->data_type != resp3::type::array)
       return {error::invalid_data_type};
-   }
    const std::size_t num_servers = it->aggregate_size;
    ++it;
 
@@ -49,9 +48,9 @@ inline system::error_code parse_server_list(
    for (std::size_t i = 0u; i < num_servers; ++i) {
       // A server is a map (resp3) or array (resp2, currently unsupported)
       BOOST_ASSERT(it != last);
-      if (it->data_type != resp3::type::map) {
+      BOOST_ASSERT(it->depth == 1u);
+      if (it->data_type != resp3::type::map)
          return {error::invalid_data_type};
-      }
       const std::size_t num_key_values = it->aggregate_size;
       ++it;
 
@@ -59,58 +58,30 @@ inline system::error_code parse_server_list(
       // Skip everything except for the ones we care for.
       bool ip_seen = false, port_seen = false;
       for (std::size_t j = 0; j < num_key_values; ++j) {
-         // Key
+         // Key. It should be a string
          BOOST_ASSERT(it != last);
+         BOOST_ASSERT(it->depth == 2u);
          if (it->data_type != resp3::type::blob_string)
             return {error::invalid_data_type};
-         if (it->depth != 2u)
-            return {error::incompatible_node_depth};
+         const std::string_view key = it->value;
+         ++it;
 
-         // Value
-         if (it->value == "ip") {
-            // This is the IP. Skip to the value
-            ++it;
+         // Value. All values seem to be strings, too.
+         BOOST_ASSERT(it != last);
+         BOOST_ASSERT(it->depth == 2u);
+         if (it->data_type != resp3::type::blob_string)
+            return {error::invalid_data_type};
 
-            // Parse the value
-            BOOST_ASSERT(it != last);
-            if (it->data_type != resp3::type::blob_string)
-               return {error::invalid_data_type};
-            if (it->depth != 2u)
-               return {error::incompatible_node_depth};
+         // Record it
+         if (key == "ip") {
             ip_seen = true;
             out[i].host = it->value;
-
-            // Move to the next key
-            ++it;
-         } else if (it->value == "port") {
-            // This is the port. Skip to the value
-            ++it;
-
-            // Parse it
-            BOOST_ASSERT(it != last);
-            if (it->data_type != resp3::type::blob_string)
-               return {error::invalid_data_type};
-            if (it->depth != 2u)
-               return {error::incompatible_node_depth};
+         } else if (key == "port") {
             port_seen = true;
             out[i].port = it->value;
-
-            // Skip to the next key
-            ++it;
-         } else {
-            // This is an unknown key. Skip the value.
-            ++it;
-
-            // TODO: support aggregates
-            BOOST_ASSERT(it != last);
-            if (it->depth != 2u)
-               return {error::incompatible_node_depth};
-            if (resp3::is_aggregate(it->data_type))
-               return {error::nested_aggregate_not_supported};
-
-            // Skip to the next key
-            ++it;
          }
+
+         ++it;
       }
 
       // Check that the response actually contained the fields we wanted
