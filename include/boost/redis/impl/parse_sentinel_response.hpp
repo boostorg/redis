@@ -16,6 +16,7 @@
 #include <boost/redis/resp3/type.hpp>
 
 #include <boost/assert.hpp>
+#include <boost/core/ignore_unused.hpp>
 #include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -128,19 +129,17 @@ inline system::error_code parse_server_list(
 //    SENTINEL GET-MASTER-ADDR-BY-NAME
 //    SENTINEL REPLICAS (only if server_role is replica)
 //    SENTINEL SENTINELS
-// expected_responses is required to skip responses to user-supplied setup requests.
 // SENTINEL SENTINELS and SENTINEL REPLICAS error when the master name is unknown. Error nodes
 // should be allowed in the node array.
 // This means that we can't use generic_response, since its adapter errors on error nodes.
 // SENTINEL GET-MASTER-ADDR-BY-NAME is sent even when connecting to replicas
 //    for better diagnostics when the master name is unknown.
 // Preconditions:
-//   * expected_responses >= 2 (server_role master) or 3 (server_role replica)
+//   * There are at least 2 (master)/3 (replica) root nodes.
 //   * The node array originates from parsing a valid RESP3 message.
 //     E.g. we won't check that the first node has depth 0.
 inline system::error_code parse_sentinel_response(
    span<const resp3::node> nodes,
-   std::size_t expected_responses,
    role server_role,
    sentinel_response& out)
 {
@@ -156,32 +155,30 @@ inline system::error_code parse_sentinel_response(
       }
    };
 
-   // The number of responses added by the library (vs. the user-supplied ones)
-   const auto num_lib_responses = server_role == role::replica ? 3u : 2u;
-   BOOST_ASSERT(expected_responses >= num_lib_responses);
-
    // Clear the output
    out.diagnostic.clear();
    out.sentinels.clear();
    out.replicas.clear();
 
+   // Find the first root node of interest. It's the 2nd or 3rd, starting with the end
+   auto find_first = [nodes, server_role] {
+      const std::size_t expected_roots = server_role == role::master ? 2u : 3u;
+      std::size_t roots_seen = 0u;
+      for (auto it = nodes.rbegin();; ++it) {
+         BOOST_ASSERT(it != nodes.rend());
+         if (it->depth == 0u && ++roots_seen == expected_roots)
+            return &*it;
+      }
+   };
+   const resp3::node* lib_first = find_first();
+
+   // Iterators
    const resp3::node* it = nodes.begin();
    const resp3::node* last = nodes.end();
+   ignore_unused(last);
 
-   // Skip all responses expected the last two ones,
-   // because they belong to the user-supplied setup request.
-   std::size_t remaining_root_nodes = expected_responses - num_lib_responses + 1u;
-   for (;; ++it) {
-      // The higher levels already ensure that the expected number
-      // of root nodes are present, so this is a precondition in this function.
-      BOOST_ASSERT(it != last);
-
-      // A root node marks the start of a response.
-      // Exit once we're at the start of the first response of interest
-      if (it->depth == 0u && --remaining_root_nodes == 0u)
-         break;
-
-      // Check for errors
+   // Go through all the responses to user-supplied requests checking for errors
+   for (; it != lib_first; ++it) {
       if (auto ec = check_errors(*it))
          return ec;
    }

@@ -142,7 +142,6 @@ sentinel_action sentinel_resolve_fsm::resume(
          // Parse the response
          ec = parse_sentinel_response(
             st.sentinel_resp_nodes,
-            st.cfg.sentinel.setup.get_expected_responses(),
             st.cfg.sentinel.server_role,
             st.sentinel_resp);
 

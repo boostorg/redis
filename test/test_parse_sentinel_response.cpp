@@ -15,11 +15,9 @@
 
 #include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
-#include <boost/system/detail/error_code.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <initializer_list>
-#include <iterator>
 #include <ostream>
 #include <string_view>
 #include <vector>
@@ -124,7 +122,7 @@ void test_master()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 2u, role::master, fix.resp);
+   auto ec = parse_sentinel_response(nodes, role::master, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
@@ -146,7 +144,7 @@ void test_master_no_sentinels()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 2u, role::master, fix.resp);
+   auto ec = parse_sentinel_response(nodes, role::master, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
    fix.check_response({"localhost", "6380"}, {}, {});
 }
@@ -178,7 +176,7 @@ void test_master_setup_request()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 4u, role::master, fix.resp);
+   auto ec = parse_sentinel_response(nodes, role::master, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
@@ -204,7 +202,7 @@ void test_master_ip_port_out_of_order()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 2u, role::master, fix.resp);
+   auto ec = parse_sentinel_response(nodes, role::master, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
@@ -258,7 +256,7 @@ void test_replica()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 3u, role::replica, fix.resp);
+   auto ec = parse_sentinel_response(nodes, role::replica, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
@@ -291,7 +289,7 @@ void test_replica_no_sentinels()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 3u, role::replica, fix.resp);
+   auto ec = parse_sentinel_response(nodes, role::replica, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
@@ -316,7 +314,7 @@ void test_replica_no_replicas()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 3u, role::replica, fix.resp);
+   auto ec = parse_sentinel_response(nodes, role::replica, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
@@ -346,7 +344,7 @@ void test_replica_setup_request()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 4u, role::replica, fix.resp);
+   auto ec = parse_sentinel_response(nodes, role::replica, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
@@ -377,7 +375,7 @@ void test_replica_ip_port_out_of_order()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 3u, role::replica, fix.resp);
+   auto ec = parse_sentinel_response(nodes, role::replica, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
