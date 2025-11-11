@@ -86,7 +86,7 @@ inline system::error_code parse_server_list(
 
       // Check that the response actually contained the fields we wanted
       if (!ip_seen || !port_seen)
-         return {error::invalid_data_type};  // TODO: better diagnostic here
+         return {error::empty_field};
    }
 
    // Done

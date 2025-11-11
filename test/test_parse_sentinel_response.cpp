@@ -473,6 +473,17 @@ void test_errors()
          error::sentinel_unknown_master
       },
       {
+         // The request errors for any other reason
+         "getmasteraddr_error",
+         role::master,
+         {
+            "-ERR something happened\r\n",
+            "*0\r\n",
+         },
+         "ERR something happened",
+         error::resp3_simple_error
+      },
+      {
          // Same, for replicas
          "getmasteraddr_unknown_master_replica",
          role::replica,
@@ -539,6 +550,84 @@ void test_errors()
          "",
          error::invalid_data_type
       },
+
+      // SENTINEL SENTINELS
+      {
+         // The request errors
+         "sentinels_error",
+         role::master,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "-ERR something went wrong\r\n",
+         },
+         "ERR something went wrong",
+         error::resp3_simple_error
+      },
+      {
+         // The root node should be an array
+         "sentinels_not_array",
+         role::master,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "+OK\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         // Each Sentinel object should be a map
+         "sentinels_subobject_not_map",
+         role::master,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n*1\r\n$9\r\nlocalhost\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         // Keys in the Sentinel object should be strings
+         "sentinels_keys_not_strings",
+         role::master,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n%1\r\n*0\r\n$5\r\nhello\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         // Values in the Sentinel object should be strings
+         "sentinels_keys_not_strings",
+         role::master,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n%1\r\n$5\r\nhello\r\n*1\r\n+OK\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         "sentinels_ip_not_found",
+         role::master,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n%1\r\n$4\r\nport\r\n$4\r\n6380\r\n",
+         },
+         "",
+         error::empty_field
+      },
+      {
+         "sentinels_port_not_found",
+         role::master,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*1\r\n%1\r\n$2\r\nip\r\n$9\r\nlocalhost\r\n",
+         },
+         "",
+         error::empty_field
+      }
+
       // clang-format on
    };
 
