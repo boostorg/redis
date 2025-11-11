@@ -13,6 +13,7 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/parser.hpp>
 
+#include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/detail/error_code.hpp>
 #include <boost/system/error_code.hpp>
@@ -65,10 +66,7 @@ std::vector<resp3::node> from_resp3(std::initializer_list<std::string_view> resp
    return nodes;
 }
 
-// Usual response when asking for a master
-void test_master()
-{
-   // Setup
+struct fixture {
    sentinel_response resp{
       "leftover",
       {"leftover_host", "6543"},
@@ -76,10 +74,39 @@ void test_master()
       {address()},
    };
 
+   void check_response(
+      const address& expected_master_addr,
+      boost::span<const address> expected_replicas,
+      boost::span<const address> expected_sentinels,
+      boost::source_location loc = BOOST_CURRENT_LOCATION) const
+   {
+      if (!BOOST_TEST_EQ(resp.diagnostic, ""))
+         std::cerr << "Called from " << loc << std::endl;
+      if (!BOOST_TEST_EQ(resp.master_addr, expected_master_addr))
+         std::cerr << "Called from " << loc << std::endl;
+      if (!BOOST_TEST_ALL_EQ(
+             resp.replicas.begin(),
+             resp.replicas.end(),
+             expected_replicas.begin(),
+             expected_replicas.end()))
+         std::cerr << "Called from " << loc << std::endl;
+      if (!BOOST_TEST_ALL_EQ(
+             resp.sentinels.begin(),
+             resp.sentinels.end(),
+             expected_sentinels.begin(),
+             expected_sentinels.end()))
+         std::cerr << "Called from " << loc << std::endl;
+   }
+};
+
+// Usual response when asking for a master
+void test_master()
+{
+   // Setup
+   fixture fix;
    auto nodes = from_resp3({
       // clang-format off
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
-
       "*2\r\n"
          "%14\r\n"
             "$4\r\nname\r\n$40\r\nf14ef06a8a478cdd66ded467ec18accd2a24b731\r\n$2\r\nip\r\n$8\r\nhost.one\r\n$4\r\nport\r\n$5\r\n26380\r\n"
@@ -97,7 +124,7 @@ void test_master()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 2u, role::master, resp);
+   auto ec = parse_sentinel_response(nodes, 2u, role::master, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
@@ -105,61 +132,35 @@ void test_master()
       {"host.one", "26380"},
       {"host.two", "26381"},
    };
-   BOOST_TEST_EQ(resp.diagnostic, "");
-   BOOST_TEST_EQ(resp.master_addr, (address{"localhost", "6380"}));
-   BOOST_TEST_ALL_EQ(
-      resp.sentinels.begin(),
-      resp.sentinels.end(),
-      std::begin(expected_sentinels),
-      std::end(expected_sentinels));
-   BOOST_TEST_EQ(resp.replicas.size(), 0u);
+   fix.check_response({"localhost", "6380"}, {}, expected_sentinels);
 }
 
 // Works correctly even if no Sentinels are present
 void test_master_no_sentinels()
 {
    // Setup
-   sentinel_response resp{
-      "leftover",
-      {"leftover_host", "6543"},
-      {address()},
-      {address()},
-   };
+   fixture fix;
    auto nodes = from_resp3({
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 2u, role::master, resp);
+   auto ec = parse_sentinel_response(nodes, 2u, role::master, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
-
-   // Check
-   BOOST_TEST_EQ(resp.diagnostic, "");
-   BOOST_TEST_EQ(resp.master_addr, (address{"localhost", "6380"}));
-   BOOST_TEST_EQ(resp.sentinels.size(), 0u);
-   BOOST_TEST_EQ(resp.replicas.size(), 0u);
+   fix.check_response({"localhost", "6380"}, {}, {});
 }
 
 // The responses corresponding to the user-defined setup request are ignored
 void test_master_setup_request()
 {
    // Setup
-   sentinel_response resp{
-      "leftover",
-      {"leftover_host", "6543"},
-      {address()},
-      {address()},
-   };
-
+   fixture fix;
    auto nodes = from_resp3({
       // clang-format off
       "+OK\r\n",
-      
       "%6\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n7.4.2\r\n$5\r\nproto\r\n:3\r\n$2\r\nid\r\n:3\r\n$4\r\nmode\r\n$8\r\nsentinel\r\n$7\r\nmodules\r\n*0\r\n",
-
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
-
       "*2\r\n"
          "%14\r\n"
             "$4\r\nname\r\n$40\r\nf14ef06a8a478cdd66ded467ec18accd2a24b731\r\n$2\r\nip\r\n$8\r\nhost.one\r\n$4\r\nport\r\n$5\r\n26380\r\n"
@@ -177,7 +178,7 @@ void test_master_setup_request()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 4u, role::master, resp);
+   auto ec = parse_sentinel_response(nodes, 4u, role::master, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
@@ -185,31 +186,17 @@ void test_master_setup_request()
       {"host.one", "26380"},
       {"host.two", "26381"},
    };
-   BOOST_TEST_EQ(resp.diagnostic, "");
-   BOOST_TEST_EQ(resp.master_addr, (address{"localhost", "6380"}));
-   BOOST_TEST_ALL_EQ(
-      resp.sentinels.begin(),
-      resp.sentinels.end(),
-      std::begin(expected_sentinels),
-      std::end(expected_sentinels));
-   BOOST_TEST_EQ(resp.replicas.size(), 0u);
+   fix.check_response({"localhost", "6380"}, {}, expected_sentinels);
 }
 
 // IP and port can be out of order
 void test_master_ip_port_out_of_order()
 {
    // Setup
-   sentinel_response resp{
-      "leftover",
-      {"leftover_host", "6543"},
-      {address()},
-      {address()},
-   };
-
+   fixture fix;
    auto nodes = from_resp3({
       // clang-format off
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
-
       "*1\r\n"
          "%2\r\n"
             "$4\r\nport\r\n$5\r\n26380\r\n$2\r\nip\r\n$8\r\nhost.one\r\n"
@@ -217,38 +204,24 @@ void test_master_ip_port_out_of_order()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 2u, role::master, resp);
+   auto ec = parse_sentinel_response(nodes, 2u, role::master, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
    const address expected_sentinels[] = {
       {"host.one", "26380"},
    };
-   BOOST_TEST_EQ(resp.diagnostic, "");
-   BOOST_TEST_EQ(resp.master_addr, (address{"localhost", "6380"}));
-   BOOST_TEST_ALL_EQ(
-      resp.sentinels.begin(),
-      resp.sentinels.end(),
-      std::begin(expected_sentinels),
-      std::end(expected_sentinels));
-   BOOST_TEST_EQ(resp.replicas.size(), 0u);
+   fix.check_response({"localhost", "6380"}, {}, expected_sentinels);
 }
 
 // Usual response when asking for a replica
 void test_replica()
 {
    // Setup
-   sentinel_response resp{
-      "leftover",
-      {"leftover_host", "6543"},
-      {address()},
-      {address()},
-   };
-
+   fixture fix;
    auto nodes = from_resp3({
       // clang-format off
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
-
       "*2\r\n"
          "%21\r\n"
             "$4\r\nname\r\n$14\r\nlocalhost:6381\r\n$2\r\nip\r\n$9\r\nsome.host\r\n$4\r\nport\r\n$4\r\n6381\r\n"
@@ -268,7 +241,6 @@ void test_replica()
             "$21\r\nmaster-link-down-time\r\n$1\r\n0\r\n$18\r\nmaster-link-status\r\n$2\r\nok\r\n$11\r\nmaster-host\r\n$9\r\nlocalhost\r\n"
             "$11\r\nmaster-port\r\n$4\r\n6380\r\n$14\r\nslave-priority\r\n$3\r\n100\r\n$17\r\nslave-repl-offset\r\n$5\r\n29110\r\n"
             "$17\r\nreplica-announced\r\n$1\r\n1\r\n",
-
       "*2\r\n"
          "%14\r\n"
             "$4\r\nname\r\n$40\r\nf14ef06a8a478cdd66ded467ec18accd2a24b731\r\n$2\r\nip\r\n$8\r\nhost.one\r\n$4\r\nport\r\n$5\r\n26380\r\n"
@@ -286,30 +258,19 @@ void test_replica()
    });
 
    // Call the function
-   auto ec = parse_sentinel_response(nodes, 3u, role::replica, resp);
+   auto ec = parse_sentinel_response(nodes, 3u, role::replica, fix.resp);
    BOOST_TEST_EQ(ec, error_code());
 
    // Check
-   const address expected_sentinels[] = {
-      {"host.one", "26380"},
-      {"host.two", "26381"},
-   };
    const address expected_replicas[] = {
       {"some.host", "6381"},
       {"test.host", "6382"},
    };
-   BOOST_TEST_EQ(resp.diagnostic, "");
-   BOOST_TEST_EQ(resp.master_addr, (address{"localhost", "6380"}));
-   BOOST_TEST_ALL_EQ(
-      resp.sentinels.begin(),
-      resp.sentinels.end(),
-      std::begin(expected_sentinels),
-      std::end(expected_sentinels));
-   BOOST_TEST_ALL_EQ(
-      resp.replicas.begin(),
-      resp.replicas.end(),
-      std::begin(expected_replicas),
-      std::end(expected_replicas));
+   const address expected_sentinels[] = {
+      {"host.one", "26380"},
+      {"host.two", "26381"},
+   };
+   fix.check_response({"localhost", "6380"}, expected_replicas, expected_sentinels);
 }
 
 }  // namespace
