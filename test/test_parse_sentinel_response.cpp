@@ -458,7 +458,87 @@ void test_errors()
          },
          "Something happened!",
          error::resp3_simple_error
-      }
+      },
+
+      // SENTINEL GET-MASTER-ADDR-BY-NAME
+      {
+         // Unknown master. This returns NULL and causes SENTINEL SENTINELS to fail
+         "getmasteraddr_unknown_master",
+         role::master,
+         {
+            "_\r\n",
+            "-ERR Unknown master\r\n",
+         },
+         "",
+         error::sentinel_unknown_master
+      },
+      {
+         // Same, for replicas
+         "getmasteraddr_unknown_master_replica",
+         role::replica,
+         {
+            "_\r\n",
+            "-ERR Unknown master\r\n",
+            "-ERR Unknown master\r\n",
+         },
+         "",
+         error::sentinel_unknown_master
+      },
+      {
+         // Root node should be a list
+         "getmasteraddr_not_array",
+         role::master,
+         {
+            "+OK\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         // Root node should have exactly 2 elements
+         "getmasteraddr_array_size_1",
+         role::master,
+         {
+            "*1\r\n$5\r\nhello\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::incompatible_size
+      },
+      {
+         // Root node should have exactly 2 elements
+         "getmasteraddr_array_size_3",
+         role::master,
+         {
+            "*3\r\n$5\r\nhello\r\n$3\r\nbye\r\n$3\r\nabc\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::incompatible_size
+      },
+      {
+         // IP should be a string
+         "getmasteraddr_ip_not_string",
+         role::master,
+         {
+            "*2\r\n+OK\r\n$5\r\nhello\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
+      {
+         // Port should be a string
+         "getmasteraddr_port_not_string",
+         role::master,
+         {
+            "*2\r\n$5\r\nhello\r\n+OK\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::invalid_data_type
+      },
       // clang-format on
    };
 

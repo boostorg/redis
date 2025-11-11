@@ -203,8 +203,7 @@ inline system::error_code parse_sentinel_response(
 
    // IP
    BOOST_ASSERT(it != last);
-   if (it->depth != 1u)
-      return {error::incompatible_node_depth};
+   BOOST_ASSERT(it->depth == 1u);
    if (it->data_type != resp3::type::blob_string)
       return {error::invalid_data_type};
    out.master_addr.host = it->value;
@@ -212,8 +211,7 @@ inline system::error_code parse_sentinel_response(
 
    // Port
    BOOST_ASSERT(it != last);
-   if (it->depth != 1u)
-      return {error::incompatible_node_depth};
+   BOOST_ASSERT(it->depth == 1u);
    if (it->data_type != resp3::type::blob_string)
       return {error::invalid_data_type};
    out.master_addr.port = it->value;
