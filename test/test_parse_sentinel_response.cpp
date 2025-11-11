@@ -47,7 +47,7 @@ namespace {
 // Loads a vector of nodes from a set of RESP3 messages.
 // Using the raw RESP values ensures that the correct
 // node tree is built, which is not always obvious
-std::vector<resp3::node> from_resp3(std::initializer_list<std::string_view> responses)
+std::vector<resp3::node> from_resp3(const std::vector<std::string_view>& responses)
 {
    std::vector<resp3::node> nodes;
    auto adapter = detail::make_vector_adapter(nodes);
@@ -385,6 +385,96 @@ void test_replica_ip_port_out_of_order()
    fix.check_response({"test.host", "6389"}, expected_replicas, {});
 }
 
+void test_errors()
+{
+   const struct {
+      std::string_view name;
+      role server_role;
+      std::vector<std::string_view> responses;
+      std::string_view expected_diagnostic;
+      error_code expected_ec;
+   } test_cases[]{
+      // clang-format off
+      {
+         // A RESP3 simple error
+         "setup_error_simple",
+         role::master,
+         {
+            "-WRONGPASS invalid username-password pair or user is disabled.\r\n",
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*0\r\n",
+         },
+         "WRONGPASS invalid username-password pair or user is disabled.",
+         error::resp3_simple_error
+      },
+      {
+         // A RESP3 blob error
+         "setup_error_blob",
+         role::master,
+         {
+            "!3\r\nBad\r\n",
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*0\r\n",
+         },
+         "Bad",
+         error::resp3_blob_error
+      },
+      {
+         // Errors in intermediate nodes of the user-supplied request
+         "setup_error_intermediate",
+         role::master,
+         {
+            "+OK\r\n",
+            "-Something happened!\r\n",
+            "+OK\r\n",
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*0\r\n",
+         },
+         "Something happened!",
+         error::resp3_simple_error
+      },
+      {
+         // Only the first error is processed (e.g. auth failure may cause subsequent cmds to fail)
+         "setup_error_intermediate",
+         role::master,
+         {
+            "-Something happened!\r\n",
+            "-Something worse happened!\r\n",
+            "-Bad\r\n",
+            "-Worse\r\n",
+         },
+         "Something happened!",
+         error::resp3_simple_error
+      },
+      {
+         // This works for replicas, too
+         "setup_error_replicas",
+         role::replica,
+         {
+            "-Something happened!\r\n",
+            "-Something worse happened!\r\n",
+            "-Bad\r\n",
+            "-Worse\r\n",
+         },
+         "Something happened!",
+         error::resp3_simple_error
+      }
+      // clang-format on
+   };
+
+   for (const auto& tc : test_cases) {
+      // Setup
+      std::cerr << "Running error test case: " << tc.name << std::endl;
+      fixture fix;
+      auto nodes = from_resp3(tc.responses);
+
+      // Call the function
+      auto ec = parse_sentinel_response(nodes, tc.server_role, fix.resp);
+      BOOST_TEST_EQ(ec, tc.expected_ec);
+      BOOST_TEST_EQ(fix.resp.diagnostic, tc.expected_diagnostic);
+   }
+}
+
 }  // namespace
 
 int main()
@@ -399,6 +489,8 @@ int main()
    test_replica_no_replicas();
    test_replica_setup_request();
    test_replica_ip_port_out_of_order();
+
+   test_errors();
 
    return boost::report_errors();
 }
