@@ -273,6 +273,120 @@ void test_replica()
    fix.check_response({"localhost", "6380"}, expected_replicas, expected_sentinels);
 }
 
+// Like the master case
+void test_replica_no_sentinels()
+{
+   // Setup
+   fixture fix;
+   auto nodes = from_resp3({
+      // clang-format off
+      "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+      "*2\r\n"
+         "%3\r\n"
+            "$4\r\nname\r\n$14\r\nlocalhost:6381\r\n$2\r\nip\r\n$9\r\nsome.host\r\n$4\r\nport\r\n$4\r\n6381\r\n"
+         "%3\r\n"
+            "$4\r\nname\r\n$14\r\nlocalhost:6382\r\n$2\r\nip\r\n$9\r\ntest.host\r\n$4\r\nport\r\n$4\r\n6382\r\n",
+      "*0\r\n"
+      // clang-format on
+   });
+
+   // Call the function
+   auto ec = parse_sentinel_response(nodes, 3u, role::replica, fix.resp);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Check
+   const address expected_replicas[] = {
+      {"some.host", "6381"},
+      {"test.host", "6382"},
+   };
+   fix.check_response({"localhost", "6380"}, expected_replicas, {});
+}
+
+// Asking for replicas, but there is none
+void test_replica_no_replicas()
+{
+   // Setup
+   fixture fix;
+   auto nodes = from_resp3({
+      // clang-format off
+      "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+      "*0\r\n",
+      "*0\r\n",
+      // clang-format on
+   });
+
+   // Call the function
+   auto ec = parse_sentinel_response(nodes, 3u, role::replica, fix.resp);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Check
+   fix.check_response({"localhost", "6380"}, {}, {});
+}
+
+// Setup requests work with replicas, too
+void test_replica_setup_request()
+{
+   // Setup
+   fixture fix;
+   auto nodes = from_resp3({
+      // clang-format off
+      "*2\r\n+OK\r\n+OK\r\n",
+      "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+      "*2\r\n"
+         "%3\r\n"
+            "$4\r\nname\r\n$14\r\nlocalhost:6381\r\n$2\r\nip\r\n$9\r\nsome.host\r\n$4\r\nport\r\n$4\r\n6381\r\n"
+         "%3\r\n"
+            "$4\r\nname\r\n$14\r\nlocalhost:6382\r\n$2\r\nip\r\n$9\r\ntest.host\r\n$4\r\nport\r\n$4\r\n6382\r\n",
+      "*2\r\n"
+         "%3\r\n"
+            "$4\r\nname\r\n$40\r\nf14ef06a8a478cdd66ded467ec18accd2a24b731\r\n$2\r\nip\r\n$8\r\nhost.one\r\n$4\r\nport\r\n$5\r\n26380\r\n"
+         "%3\r\n"
+            "$4\r\nname\r\n$40\r\nf9b54e79e2e7d3f17ad60527504191ec8a861f27\r\n$2\r\nip\r\n$8\r\nhost.two\r\n$4\r\nport\r\n$5\r\n26381\r\n"
+      // clang-format on
+   });
+
+   // Call the function
+   auto ec = parse_sentinel_response(nodes, 4u, role::replica, fix.resp);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Check
+   const address expected_replicas[] = {
+      {"some.host", "6381"},
+      {"test.host", "6382"},
+   };
+   const address expected_sentinels[] = {
+      {"host.one", "26380"},
+      {"host.two", "26381"},
+   };
+   fix.check_response({"localhost", "6380"}, expected_replicas, expected_sentinels);
+}
+
+// IP and port can be out of order
+void test_replica_ip_port_out_of_order()
+{
+   // Setup
+   fixture fix;
+   auto nodes = from_resp3({
+      // clang-format off
+      "*2\r\n$9\r\ntest.host\r\n$4\r\n6389\r\n",
+      "*1\r\n"
+         "%2\r\n"
+            "$4\r\nport\r\n$4\r\n6381\r\n$2\r\nip\r\n$9\r\nsome.host\r\n",
+      "*0\r\n"
+      // clang-format on
+   });
+
+   // Call the function
+   auto ec = parse_sentinel_response(nodes, 3u, role::replica, fix.resp);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Check
+   const address expected_replicas[] = {
+      {"some.host", "6381"},
+   };
+   fix.check_response({"test.host", "6389"}, expected_replicas, {});
+}
+
 }  // namespace
 
 int main()
@@ -283,6 +397,10 @@ int main()
    test_master_ip_port_out_of_order();
 
    test_replica();
+   test_replica_no_sentinels();
+   test_replica_no_replicas();
+   test_replica_setup_request();
+   test_replica_ip_port_out_of_order();
 
    return boost::report_errors();
 }
