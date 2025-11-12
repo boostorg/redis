@@ -121,3 +121,13 @@ void create_user(std::string_view port, std::string_view username, std::string_v
    BOOST_TEST(run_finished);
    BOOST_TEST(exec_finished);
 }
+
+boost::redis::logger make_string_logger(std::string& to)
+{
+   return {
+      boost::redis::logger::level::info,
+      [&to](boost::redis::logger::level, std::string_view msg) {
+         to += msg;
+         to += '\n';
+      }};
+}

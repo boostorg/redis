@@ -2,6 +2,7 @@
 
 #include <boost/redis/connection.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
 
 #include <boost/asio/awaitable.hpp>
@@ -11,6 +12,7 @@
 
 #include <chrono>
 #include <memory>
+#include <string>
 #include <string_view>
 
 // The timeout for tests involving communication to a real server.
@@ -43,3 +45,5 @@ std::string_view find_client_info(std::string_view client_info, std::string_view
 
 // Connects to the Redis server at the given port and creates a user
 void create_user(std::string_view port, std::string_view username, std::string_view password);
+
+boost::redis::logger make_string_logger(std::string& to);

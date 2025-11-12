@@ -18,7 +18,6 @@
 #include "common.hpp"
 
 #include <iostream>
-#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -65,17 +64,13 @@ void test_auth_success()
    BOOST_TEST_EQ(std::get<0>(resp).value(), "myuser");
 }
 
+// Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
 void test_auth_failure()
 {
-   // Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
-   std::ostringstream oss;
-   redis::logger lgr(redis::logger::level::info, [&](redis::logger::level, std::string_view msg) {
-      oss << msg << '\n';
-   });
-
    // Setup
+   std::string logs;
    asio::io_context ioc;
-   redis::connection conn{ioc, std::move(lgr)};
+   redis::connection conn{ioc, make_string_logger(logs)};
 
    // Disable reconnection so the hello error causes the connection to exit
    auto cfg = make_test_config();
@@ -95,9 +90,8 @@ void test_auth_failure()
    BOOST_TEST(run_finished);
 
    // Check the log
-   auto log = oss.str();
-   if (!BOOST_TEST_NE(log.find("WRONGPASS"), std::string::npos)) {
-      std::cerr << "Log was: " << log << std::endl;
+   if (!BOOST_TEST_NE(logs.find("WRONGPASS"), std::string::npos)) {
+      std::cerr << "Log was: \n" << logs << std::endl;
    }
 }
 
@@ -244,17 +238,13 @@ void test_setup_no_hello()
    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
 }
 
+// Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
 void test_setup_failure()
 {
-   // Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
-   std::ostringstream oss;
-   redis::logger lgr(redis::logger::level::info, [&](redis::logger::level, std::string_view msg) {
-      oss << msg << '\n';
-   });
-
    // Setup
+   std::string logs;
    asio::io_context ioc;
-   redis::connection conn{ioc, std::move(lgr)};
+   redis::connection conn{ioc, make_string_logger(logs)};
 
    // Disable reconnection so the hello error causes the connection to exit
    auto cfg = make_test_config();
@@ -275,9 +265,8 @@ void test_setup_failure()
    BOOST_TEST(run_finished);
 
    // Check the log
-   auto log = oss.str();
-   if (!BOOST_TEST_NE(log.find("wrong number of arguments"), std::string::npos)) {
-      std::cerr << "Log was: " << log << std::endl;
+   if (!BOOST_TEST_NE(logs.find("wrong number of arguments"), std::string::npos)) {
+      std::cerr << "Log was:\n" << logs << std::endl;
    }
 }
 

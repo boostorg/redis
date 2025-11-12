@@ -17,6 +17,8 @@
 
 #include "common.hpp"
 
+#include <string>
+
 namespace net = boost::asio;
 using namespace boost::redis;
 using namespace std::chrono_literals;
@@ -292,8 +294,9 @@ void test_replica()
 void test_error_no_sentinel_reachable()
 {
    // Setup
+   std::string logs;
    net::io_context ioc;
-   connection conn{ioc};
+   connection conn{ioc, make_string_logger(logs)};
 
    config cfg;
    cfg.sentinel.addresses = {
@@ -313,6 +316,16 @@ void test_error_no_sentinel_reachable()
    ioc.run_for(test_timeout);
 
    BOOST_TEST(run_finished);
+
+   if (
+      !BOOST_TEST_NE(
+         logs.find("Sentinel at localhost:43210: connection establishment error"),
+         std::string::npos) ||
+      !BOOST_TEST_NE(
+         logs.find("Sentinel at localhost:43211: connection establishment error"),
+         std::string::npos)) {
+      std::cerr << "Log was:\n" << logs << std::endl;
+   }
 }
 
 // If Sentinel doesn't know about the configured master,
@@ -320,8 +333,9 @@ void test_error_no_sentinel_reachable()
 void test_error_unknown_master()
 {
    // Setup
+   std::string logs;
    net::io_context ioc;
-   connection conn{ioc};
+   connection conn{ioc, make_string_logger(logs)};
 
    config cfg;
    cfg.sentinel.addresses = {
@@ -340,14 +354,21 @@ void test_error_unknown_master()
    ioc.run_for(test_timeout);
 
    BOOST_TEST(run_finished);
+
+   if (!BOOST_TEST_NE(
+          logs.find("Sentinel at localhost:26380: doesn't know about the configured master"),
+          std::string::npos)) {
+      std::cerr << "Log was:\n" << logs << std::endl;
+   }
 }
 
 // The same applies when connecting to replicas, too
 void test_error_unknown_master_replica()
 {
    // Setup
+   std::string logs;
    net::io_context ioc;
-   connection conn{ioc};
+   connection conn{ioc, make_string_logger(logs)};
 
    config cfg;
    cfg.sentinel.addresses = {
@@ -367,6 +388,12 @@ void test_error_unknown_master_replica()
    ioc.run_for(test_timeout);
 
    BOOST_TEST(run_finished);
+
+   if (!BOOST_TEST_NE(
+          logs.find("Sentinel at localhost:26380: doesn't know about the configured master"),
+          std::string::npos)) {
+      std::cerr << "Log was:\n" << logs << std::endl;
+   }
 }
 
 }  // namespace
