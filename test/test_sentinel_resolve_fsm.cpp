@@ -109,14 +109,16 @@ struct fixture : detail::log_fixture {
 
    fixture()
    {
-      st.cfg.sentinel.addresses = {
+      st.sentinels = {
          {"host1", "1000"},
          {"host2", "2000"},
          {"host3", "3000"},
       };
+      st.cfg.sentinel.addresses = {
+         {"host1", "1000"},
+         {"host4", "4000"},
+      };
       st.cfg.sentinel.master_name = "mymaster";
-
-      st.sentinels = st.cfg.sentinel.addresses;  // performed by run
    }
 };
 
@@ -152,8 +154,7 @@ void test_success()
    const address expected_sentinels[] = {
       {"host1",    "1000" },
       {"host.one", "26380"},
-      {"host2",    "2000" },
-      {"host3",    "3000" },
+      {"host4",    "4000" },
    };
    BOOST_TEST_ALL_EQ(
       fix.st.sentinels.begin(),
