@@ -246,13 +246,60 @@ void test_one_connect_error()
 
    // Logs
    fix.check_log({
+      // clang-format off
       {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"   },
       {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
-      {logger::level::info,
-       "Failed to connect to Sentinel at host1:1000: Connect timeout. [boost.redis:18]"            },
+      {logger::level::info,  "Failed to connect to Sentinel at host1:1000: Connect timeout. [boost.redis:18]"            },
       {logger::level::debug, "Trying to contact Sentinel at host2:2000"                            },
       {logger::level::debug, "Executing Sentinel request at host2:2000"                            },
       {logger::level::info,  "Sentinel at host2:2000 resolved the server address to test.host:6380"},
+      // clang-format on
+   });
+}
+
+// The first Sentinel doesn't know about the master, but others do
+void test_one_master_unknown()
+{
+   // Setup
+   fixture fix;
+
+   // Initiate, connect to the 1st Sentinel, and send the request
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "_\r\n",
+      "-ERR unknown master\r\n",
+   });
+
+   // It doesn't know about our master, so we connect to the 2nd sentinel.
+   // This one succeeds
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host2", "2000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
+      "*0\r\n",
+   });
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code());
+
+   // The master's address is stored
+   BOOST_TEST_EQ(fix.st.cfg.addr, (address{"test.host", "6380"}));
+
+   // Logs
+   fix.check_log({
+      // clang-format off
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"   },
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                            },
+      {logger::level::info,  "Sentinel at host1:1000 doesn't know about master 'mymaster'"         },
+      {logger::level::debug, "Trying to contact Sentinel at host2:2000"                            },
+      {logger::level::debug, "Executing Sentinel request at host2:2000"                            },
+      {logger::level::info,  "Sentinel at host2:2000 resolved the server address to test.host:6380"},
+      // clang-format on
    });
 }
 
@@ -264,6 +311,7 @@ int main()
    test_success_replica();
 
    test_one_connect_error();
+   test_one_master_unknown();
 
    return boost::report_errors();
 }

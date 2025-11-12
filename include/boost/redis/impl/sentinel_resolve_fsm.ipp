@@ -120,7 +120,7 @@ sentinel_action sentinel_resolve_fsm::resume(
             } else if (ec == error::sentinel_unknown_master) {
                log_info(
                   st.logger,
-                  "Sentinel ",
+                  "Sentinel at ",
                   st.sentinels[idx_],
                   " doesn't know about master '",
                   st.cfg.sentinel.master_name,
