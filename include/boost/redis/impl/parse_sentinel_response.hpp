@@ -34,6 +34,7 @@ inline system::error_code parse_server_list(
    std::vector<address>& out)
 {
    const auto* it = first;
+   ignore_unused(last);
 
    // The root node must be an array
    BOOST_ASSERT(it != last);
