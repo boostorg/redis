@@ -59,9 +59,6 @@ struct error_category_impl : system::error_category {
          case error::sentinel_unix_sockets_unsupported:
             return "The configuration specified UNIX sockets with Sentinel, which is not "
                    "supported.";
-         case error::sentinel_unknown_master:
-            return "No Sentinel knows about the master configured in "
-                   "config::sentinel::master_name.";
          case error::no_sentinel_reachable:
             return "No Sentinel could be contacted to obtain the address of the Redis server.";
          case error::role_check_failed:

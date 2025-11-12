@@ -160,9 +160,10 @@ inline system::error_code parse_sentinel_response(
    if (auto ec = check_errors(*it))
       return ec;
 
-   // If the root node is NULL, Sentinel doesn't know about this master
+   // If the root node is NULL, Sentinel doesn't know about this master.
+   // We use resp3_null to signal this fact. This doesn't reach the end user.
    if (it->data_type == resp3::type::null) {
-      return {error::sentinel_unknown_master};
+      return {error::resp3_null};
    }
 
    // If the root node is an array, an IP and port follow

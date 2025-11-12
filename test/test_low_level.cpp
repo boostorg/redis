@@ -531,7 +531,6 @@ BOOST_AUTO_TEST_CASE(cover_error)
    check_error("boost.redis", boost::redis::error::exceeds_maximum_read_buffer_size);
    check_error("boost.redis", boost::redis::error::write_timeout);
    check_error("boost.redis", boost::redis::error::sentinel_unix_sockets_unsupported);
-   check_error("boost.redis", boost::redis::error::sentinel_unknown_master);
    check_error("boost.redis", boost::redis::error::no_sentinel_reachable);
    check_error("boost.redis", boost::redis::error::role_check_failed);
    check_error("boost.redis", boost::redis::error::no_replicas);

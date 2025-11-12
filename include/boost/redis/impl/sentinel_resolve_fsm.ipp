@@ -113,7 +113,7 @@ sentinel_action sentinel_resolve_fsm::resume(
                   idx_,
                   "responded with an error: ",
                   st.sentinel_resp.diagnostic);
-            } else if (ec == error::sentinel_unknown_master) {
+            } else if (ec == error::resp3_null) {
                log_sentinel_error(st, idx_, "doesn't know about the configured master");
             } else {
                log_sentinel_error(

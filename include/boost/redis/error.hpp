@@ -98,10 +98,6 @@ enum class error
    /// The configuration specified UNIX sockets with Sentinel, which is not supported.
    sentinel_unix_sockets_unsupported,
 
-   // TODO: clean this up
-   /// No Sentinel knows about the master configured in `config::sentinel::master_name`.
-   sentinel_unknown_master,
-
    /// No Sentinel could be contacted to obtain the address of the Redis server.
    no_sentinel_reachable,
 

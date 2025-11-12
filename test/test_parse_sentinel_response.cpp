@@ -465,7 +465,7 @@ void test_errors()
             "-ERR Unknown master\r\n",
          },
          "",
-         error::sentinel_unknown_master
+         error::resp3_null
       },
       {
          // The request errors for any other reason
@@ -488,7 +488,7 @@ void test_errors()
             "-ERR Unknown master\r\n",
          },
          "",
-         error::sentinel_unknown_master
+         error::resp3_null
       },
       {
          // Root node should be a list
