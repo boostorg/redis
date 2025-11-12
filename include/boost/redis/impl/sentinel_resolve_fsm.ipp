@@ -29,17 +29,6 @@
 
 namespace boost::redis::detail {
 
-// Returns how to connect to Sentinel given the current index
-inline connect_params make_sentinel_connect_params(const connection_state& st, std::size_t idx)
-{
-   return {
-      any_address_view{st.sentinels[idx], st.cfg.sentinel.use_ssl},
-      st.cfg.sentinel.resolve_timeout,
-      st.cfg.sentinel.connect_timeout,
-      st.cfg.sentinel.ssl_handshake_timeout,
-   };
-}
-
 sentinel_action sentinel_resolve_fsm::resume(
    connection_state& st,
    system::error_code ec,
@@ -74,7 +63,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          log_debug(st.logger, "Trying to contact Sentinel at ", st.sentinels[idx_]);
 
          // Try to connect
-         BOOST_REDIS_YIELD(resume_point_, 1, make_sentinel_connect_params(st, idx_))
+         BOOST_REDIS_YIELD(resume_point_, 1, st.sentinels[idx_])
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
@@ -216,6 +205,16 @@ sentinel_action sentinel_resolve_fsm::resume(
    // We should never get here
    BOOST_ASSERT(false);
    return system::error_code();
+}
+
+connect_params make_sentinel_connect_params(const config& cfg, const address& addr)
+{
+   return {
+      any_address_view{addr, cfg.sentinel.use_ssl},
+      cfg.sentinel.resolve_timeout,
+      cfg.sentinel.connect_timeout,
+      cfg.sentinel.ssl_handshake_timeout,
+   };
 }
 
 // Note that we can't use generic_response because we need to tolerate error nodes.

@@ -281,7 +281,7 @@ struct sentinel_resolve_op {
          case sentinel_action_type::done: self.complete(act.error()); return;
          case sentinel_action_type::connect:
             conn->stream_.async_connect(
-               act.get_connect_params(),
+               make_sentinel_connect_params(conn->st_.cfg, act.connect_addr()),
                conn->st_.logger,
                std::move(self));
             return;
