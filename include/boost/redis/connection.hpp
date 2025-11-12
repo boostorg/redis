@@ -429,8 +429,8 @@ public:
    {
       auto act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
 
-      switch (act.type()) {
-         case run_action_type::done: self.complete(act.error()); return;
+      switch (act.type) {
+         case run_action_type::done: self.complete(act.ec); return;
          case run_action_type::immediate:
             asio::async_immediate(self.get_io_executor(), std::move(self));
             return;
@@ -439,7 +439,7 @@ public:
             return;
          case run_action_type::connect:
             conn_->stream_.async_connect(
-               act.get_connect_params(),
+               make_run_connect_params(conn_->st_),
                conn_->st_.logger,
                std::move(self));
             return;

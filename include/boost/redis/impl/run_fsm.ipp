@@ -109,16 +109,6 @@ inline any_address_view get_server_address(const connection_state& st)
    }
 }
 
-inline connect_params make_run_connect_params(const connection_state& st)
-{
-   return {
-      get_server_address(st),
-      st.cfg.resolve_timeout,
-      st.cfg.connect_timeout,
-      st.cfg.ssl_handshake_timeout,
-   };
-}
-
 run_action run_fsm::resume(
    connection_state& st,
    system::error_code ec,
@@ -187,7 +177,7 @@ run_action run_fsm::resume(
 
          // Try to connect
          log_info(st.logger, "Trying to connect to Redis server at ", get_server_address(st));
-         BOOST_REDIS_YIELD(resume_point_, 4, make_run_connect_params(st))
+         BOOST_REDIS_YIELD(resume_point_, 4, run_action_type::connect)
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
@@ -264,6 +254,16 @@ run_action run_fsm::resume(
    // We should never get here
    BOOST_ASSERT(false);
    return system::error_code();
+}
+
+connect_params make_run_connect_params(const connection_state& st)
+{
+   return {
+      get_server_address(st),
+      st.cfg.resolve_timeout,
+      st.cfg.connect_timeout,
+      st.cfg.ssl_handshake_timeout,
+   };
 }
 
 }  // namespace boost::redis::detail

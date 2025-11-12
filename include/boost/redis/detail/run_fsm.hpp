@@ -36,41 +36,18 @@ enum class run_action_type
    wait_for_reconnection,  // Sleep for the reconnection period
 };
 
-class run_action {
-   run_action_type type_;
-   union {
-      system::error_code ec_;
-      connect_params connect_;
-   };
+struct run_action {
+   run_action_type type;
+   system::error_code ec;
 
-public:
    run_action(run_action_type type) noexcept
-   : type_{type}
+   : type{type}
    { }
 
    run_action(system::error_code ec) noexcept
-   : type_{run_action_type::done}
-   , ec_{ec}
+   : type{run_action_type::done}
+   , ec{ec}
    { }
-
-   run_action(const connect_params& params) noexcept
-   : type_{run_action_type::connect}
-   , connect_{params}
-   { }
-
-   run_action_type type() const { return type_; }
-
-   system::error_code error() const
-   {
-      BOOST_ASSERT(type_ == run_action_type::done);
-      return ec_;
-   }
-
-   const connect_params& get_connect_params() const
-   {
-      BOOST_ASSERT(type_ == run_action_type::connect);
-      return connect_;
-   }
 };
 
 class run_fsm {
@@ -85,6 +62,8 @@ public:
       system::error_code ec,
       asio::cancellation_type_t cancel_state);
 };
+
+connect_params make_run_connect_params(const connection_state& st);
 
 }  // namespace boost::redis::detail
 
