@@ -16,7 +16,6 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/response.hpp>
 
-#include <chrono>
 #include <random>
 #include <string>
 #include <vector>
@@ -40,8 +39,8 @@ struct connection_state {
    request ping_req{};
 
    // Sentinel stuff
-   std::default_random_engine eng{static_cast<std::default_random_engine::result_type>(
-      std::chrono::steady_clock::now().time_since_epoch().count())};
+   // TODO: seeding the engine can fail and is not trivial, could we do it lazily?
+   std::minstd_rand eng{static_cast<std::minstd_rand::result_type>(std::random_device{}())};
    std::vector<address> sentinels{};
    std::vector<resp3::node> sentinel_resp_nodes{};  // for parsing
    sentinel_response sentinel_resp{};
