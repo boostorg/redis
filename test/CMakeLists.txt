@@ -48,6 +48,7 @@ make_test(test_connect_fsm)
 make_test(test_setup_request_utils)
 make_test(test_multiplexer)
 make_test(test_parse_sentinel_response)
+make_test(test_update_sentinel_list)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)

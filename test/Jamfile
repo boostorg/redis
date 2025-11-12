@@ -65,6 +65,7 @@ local tests =
     test_setup_request_utils
     test_multiplexer
     test_parse_sentinel_response
+    test_update_sentinel_list
 ;
 
 # Build and run the tests

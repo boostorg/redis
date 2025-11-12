@@ -14,6 +14,7 @@
 #include <boost/core/span.hpp>
 
 #include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace boost::redis::detail {
