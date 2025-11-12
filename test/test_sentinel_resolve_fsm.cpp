@@ -587,6 +587,93 @@ void test_error_replica()
    });
 }
 
+// Cancellations
+void test_cancel_connect()
+{
+   // Setup
+   fixture fix;
+
+   // Initiate. We should connect to the 1st sentinel
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+
+   // Cancellation
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Logs
+   fix.check_log({
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"},
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                         },
+      {logger::level::debug, "Sentinel resolve: cancelled (1)"                                  },
+   });
+}
+
+void test_cancel_connect_edge()
+{
+   // Setup
+   fixture fix;
+
+   // Initiate. We should connect to the 1st sentinel
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+
+   // Cancellation (without error code)
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Logs
+   fix.check_log({
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"},
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                         },
+      {logger::level::debug, "Sentinel resolve: cancelled (1)"                                  },
+   });
+}
+
+void test_cancel_request()
+{
+   // Setup
+   fixture fix;
+
+   // Initiate. We should connect to the 1st sentinel
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Logs
+   fix.check_log({
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"},
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                         },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                         },
+      {logger::level::debug, "Sentinel resolve: cancelled (2)"                                  },
+   });
+}
+
+void test_cancel_request_edge()
+{
+   // Setup
+   fixture fix;
+
+   // Initiate. We should connect to the 1st sentinel
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Logs
+   fix.check_log({
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"},
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                         },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                         },
+      {logger::level::debug, "Sentinel resolve: cancelled (2)"                                  },
+   });
+}
+
 }  // namespace
 
 int main()
@@ -603,6 +690,11 @@ int main()
 
    test_error();
    test_error_replica();
+
+   test_cancel_connect();
+   test_cancel_connect_edge();
+   test_cancel_request();
+   test_cancel_request_edge();
 
    return boost::report_errors();
 }
