@@ -307,7 +307,7 @@ void test_error_no_sentinel_reachable()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, error::no_sentinel_reachable);
+      BOOST_TEST_EQ(ec, error::sentinel_resolve_failed);
    });
 
    ioc.run_for(test_timeout);
@@ -334,7 +334,7 @@ void test_error_unknown_master()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, error::no_sentinel_reachable);
+      BOOST_TEST_EQ(ec, error::sentinel_resolve_failed);
    });
 
    ioc.run_for(test_timeout);
@@ -361,7 +361,7 @@ void test_error_unknown_master_replica()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, error::no_sentinel_reachable);
+      BOOST_TEST_EQ(ec, error::sentinel_resolve_failed);
    });
 
    ioc.run_for(test_timeout);

@@ -59,14 +59,11 @@ struct error_category_impl : system::error_category {
          case error::sentinel_unix_sockets_unsupported:
             return "The configuration specified UNIX sockets with Sentinel, which is not "
                    "supported.";
-         case error::no_sentinel_reachable:
-            return "No Sentinel could be contacted to obtain the address of the Redis server.";
+         case error::sentinel_resolve_failed:
+            return "No Sentinel could be used to obtain the address of the Redis server.";
          case error::role_check_failed:
             return "The contacted server is not a master as expected. This is likely a transient "
                    "failure caused by a Sentinel failover in progress.";
-         case error::no_replicas:
-            return "You asked to connect to a replica in a Sentinel deployment, but the specified "
-                   "master has no replicas.";
          default: BOOST_ASSERT(false); return "Boost.Redis error.";
       }
    }

@@ -98,8 +98,10 @@ enum class error
    /// The configuration specified UNIX sockets with Sentinel, which is not supported.
    sentinel_unix_sockets_unsupported,
 
-   /// No Sentinel could be contacted to obtain the address of the Redis server.
-   no_sentinel_reachable,
+   /// No Sentinel could be used to obtain the address of the Redis server.
+   /// Sentinels might be unreachable, have authentication misconfigured or may not know about
+   /// the configured master. Turn logging on for details.
+   sentinel_resolve_failed,
 
    /// The contacted server is not a master as expected.
    /// This is likely a transient failure caused by a Sentinel failover in progress.

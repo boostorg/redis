@@ -171,7 +171,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          st.cfg.sentinel.master_name,
          "' using Sentinel. Tried the following Sentinels:",
          st.setup_diagnostic);
-      return {error::no_sentinel_reachable};
+      return {error::sentinel_resolve_failed};
    }
 
    // We should never get here
