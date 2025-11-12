@@ -169,11 +169,53 @@ void test_success()
    });
 }
 
+// The first Sentinel fails connection, but subsequent ones succeed
+void test_one_connect_error()
+{
+   // Setup
+   fixture fix;
+
+   // Initiate. We should connect to the 1st sentinel
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+
+   // This errors, so we connect to the 2nd sentinel
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host2", "2000"}));
+
+   // Now send the request
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
+      "*0\r\n",
+   });
+
+   // We received a valid request, so we're done
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code());
+
+   // The master's address is stored
+   BOOST_TEST_EQ(fix.st.cfg.addr, (address{"test.host", "6380"}));
+
+   // Logs
+   fix.check_log({
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"   },
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
+      {logger::level::info,
+       "Failed to connect to Sentinel at host1:1000: Connect timeout. [boost.redis:18]"            },
+      {logger::level::debug, "Trying to contact Sentinel at host2:2000"                            },
+      {logger::level::debug, "Executing Sentinel request at host2:2000"                            },
+      {logger::level::info,  "Sentinel at host2:2000 resolved the server address to test.host:6380"},
+   });
+}
+
 }  // namespace
 
 int main()
 {
    test_success();
+   test_one_connect_error();
 
    return boost::report_errors();
 }
