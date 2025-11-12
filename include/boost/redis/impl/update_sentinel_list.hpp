@@ -19,6 +19,8 @@
 
 namespace boost::redis::detail {
 
+// Updates the internal Sentinel list.
+// to should never be empty
 inline void update_sentinel_list(
    std::vector<address>& to,
    std::size_t current_index,               // the one to maintain and place first
@@ -26,6 +28,8 @@ inline void update_sentinel_list(
    span<const address> bootstrap_sentinels  // the ones the user supplied
 )
 {
+   BOOST_ASSERT(!to.empty());
+
    // Place the one that succeeded in the front
    if (current_index != 0u)
       std::swap(to.front(), to[current_index]);
@@ -36,8 +40,9 @@ inline void update_sentinel_list(
    // Add one group
    to.insert(to.end(), gossip_sentinels.begin(), gossip_sentinels.end());
 
-   // Insert any user-supplied sentinels, if not already present
-   // TODO: maybe use a sorted vector?
+   // Insert any user-supplied sentinels, if not already present.
+   // This is O(n^2), but is okay because n will be small.
+   // Using a sorted vector implies puring boost/container/flat_set.hpp into public headers
    for (const auto& sentinel : bootstrap_sentinels) {
       if (std::find(to.begin(), to.end(), sentinel) == to.end())
          to.push_back(sentinel);
