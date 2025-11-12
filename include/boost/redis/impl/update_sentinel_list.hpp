@@ -30,19 +30,17 @@ inline void update_sentinel_list(
 {
    BOOST_ASSERT(!to.empty());
 
-   // Place the one that succeeded in the front
+   // Remove everything, except the Sentinel that succeeded
    if (current_index != 0u)
       std::swap(to.front(), to[current_index]);
-
-   // Remove the other Sentinels
    to.resize(1u);
 
-   // Add one group
+   // Add one group. These Sentinels are always unique and don't include the one we're currently connected to.
    to.insert(to.end(), gossip_sentinels.begin(), gossip_sentinels.end());
 
    // Insert any user-supplied sentinels, if not already present.
    // This is O(n^2), but is okay because n will be small.
-   // Using a sorted vector implies puring boost/container/flat_set.hpp into public headers
+   // The list can't be sorted, anyway
    for (const auto& sentinel : bootstrap_sentinels) {
       if (std::find(to.begin(), to.end(), sentinel) == to.end())
          to.push_back(sentinel);
