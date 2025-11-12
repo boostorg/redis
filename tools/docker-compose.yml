@@ -141,6 +141,7 @@ services:
   builder:
     container_name: builder
     image: ${BUILDER_IMAGE}
+    network_mode: host
     tty: true
     volumes:
       - ../:/boost-redis
