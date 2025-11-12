@@ -74,7 +74,6 @@ public:
 class sentinel_resolve_fsm {
    int resume_point_{0};
    std::size_t idx_{0u};
-   system::error_code final_ec_;
 
 public:
    sentinel_resolve_fsm() = default;
