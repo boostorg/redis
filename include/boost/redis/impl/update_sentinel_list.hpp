@@ -38,10 +38,7 @@ inline void update_sentinel_list(
    // Insert any user-supplied sentinels, if not already present
    // TODO: maybe use a sorted vector?
    for (const auto& sentinel : bootstrap_sentinels) {
-      auto it = std::find_if(to.begin(), to.end(), [&sentinel](const address& value) {
-         return value.host == sentinel.host && value.port == sentinel.port;
-      });
-      if (it == to.end())
+      if (std::find(to.begin(), to.end(), sentinel) == to.end())
          to.push_back(sentinel);
    }
 }

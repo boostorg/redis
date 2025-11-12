@@ -25,6 +25,25 @@ struct address {
    std::string port = "6379";
 };
 
+/** @brief Compares two addresses for equality.
+ *  @relates address
+ *
+ *  @param a Left hand side address.
+ *  @param b Right hand side address.
+ */
+inline bool operator==(address const& a, address const& b)
+{
+   return a.host == b.host && a.port == b.port;
+}
+
+/** @brief Compares two addresses for difference.
+ *  @relates address
+ *
+ *  @param a Left hand side address.
+ *  @param b Right hand side address.
+ */
+inline bool operator!=(address const& a, address const& b) { return !(a == b); }
+
 /// Identifies the possible roles of a Redis server.
 enum class role
 {

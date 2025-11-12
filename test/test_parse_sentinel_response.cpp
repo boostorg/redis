@@ -30,11 +30,6 @@ using boost::system::error_code;
 // Operators
 namespace boost::redis {
 
-bool operator==(const address& lhs, const address& rhs)
-{
-   return lhs.host == rhs.host && lhs.port == rhs.port;
-}
-
 std::ostream& operator<<(std::ostream& os, const address& addr)
 {
    return os << "address{ .host=" << addr.host << ", .port=" << addr.port << " }";
