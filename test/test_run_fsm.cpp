@@ -143,6 +143,30 @@ void test_config_error_unix_ssl()
    });
 }
 
+void test_config_error_unix_sentinel()
+{
+   // Setup
+   config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+   cfg.unix_socket = "/var/sock";
+   fixture fix{std::move(cfg)};
+
+   // Launching the operation fails immediately
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::immediate);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::sentinel_unix_sockets_unsupported));
+
+   // Log
+   fix.check_log({
+      {logger::level::err,
+       "Invalid configuration: The configuration specified UNIX sockets with Sentinel, which is "
+       "not supported. [boost.redis:28]"},
+   });
+}
+
 // An error in connect with reconnection enabled triggers a reconnection
 void test_connect_error()
 {
@@ -662,6 +686,7 @@ int main()
    test_config_error_unix();
 #endif
    test_config_error_unix_ssl();
+   test_config_error_unix_sentinel();
 
    test_connect_error();
    test_connect_error_ssl();
