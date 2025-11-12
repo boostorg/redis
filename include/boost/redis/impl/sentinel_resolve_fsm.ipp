@@ -169,7 +169,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          st.cfg.sentinel.server_role == role::master ? "master" : "a replica of master",
          " '",
          st.cfg.sentinel.master_name,
-         "' using Sentinel. Tried the following Sentinels:",
+         "'. Tried the following Sentinels:",
          st.setup_diagnostic);
       return {error::sentinel_resolve_failed};
    }

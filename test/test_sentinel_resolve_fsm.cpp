@@ -9,6 +9,7 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/impl/parse_sentinel_response.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
@@ -486,6 +487,105 @@ void test_one_no_replicas()
    });
 }
 
+// If no Sentinel is available, the operation fails. A comprehensive error is logged.
+void test_error()
+{
+   // Setup
+   fixture fix;
+
+   // 1st Sentinel doesn't know about the master
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "_\r\n",
+      "-ERR unknown master\r\n",
+   });
+
+   // Move to the 2nd Sentinel, which fails to connect
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host2", "2000"}));
+
+   // Move to the 3rd Sentinel, which has authentication misconfigured
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host3", "3000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "-ERR unauthorized\r\n",
+      "-ERR unauthorized\r\n",
+   });
+
+   // Sentinel list exhausted
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::sentinel_resolve_failed));
+
+   // The Sentinel list is not updated
+   BOOST_TEST_EQ(fix.st.sentinels.size(), 3u);
+
+   // Logs
+   fix.check_log({
+      // clang-format off
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"   },
+
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                            },
+      {logger::level::info,  "Sentinel at host1:1000: doesn't know about the configured master"    },
+
+      {logger::level::debug, "Trying to contact Sentinel at host2:2000"                            },
+      {logger::level::info,  "Sentinel at host2:2000: connection establishment error: Connect timeout. [boost.redis:18]" },
+
+      {logger::level::debug, "Trying to contact Sentinel at host3:3000"                            },
+      {logger::level::debug, "Executing Sentinel request at host3:3000"                            },
+      {logger::level::info,  "Sentinel at host3:3000: responded with an error: ERR unauthorized"},
+
+      {logger::level::err,  "Failed to resolve the address of master 'mymaster'. Tried the following Sentinels:"
+                            "\n  Sentinel at host1:1000: doesn't know about the configured master"
+                            "\n  Sentinel at host2:2000: connection establishment error: Connect timeout. [boost.redis:18]"
+                            "\n  Sentinel at host3:3000: responded with an error: ERR unauthorized"},
+      // clang-format on
+   });
+}
+
+// The replica error text is slightly different
+void test_error_replica()
+{
+   // Setup
+   fixture fix;
+   fix.st.sentinels = {
+      {"host1", "1000"}
+   };
+   fix.st.cfg.sentinel.server_role = role::replica;
+
+   // Initiate, connect to the only Sentinel, and send the request
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
+      "*0\r\n",
+      "*0\r\n",
+   });
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::sentinel_resolve_failed));
+
+   // Logs
+   fix.check_log({
+      // clang-format off
+      {logger::level::info,  "Trying to resolve the address of a replica of master 'mymaster' using Sentinel"   },
+
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                            },
+      {logger::level::info,  "Sentinel at host1:1000: the configured master has no replicas"    },
+
+      {logger::level::err,  "Failed to resolve the address of a replica of master 'mymaster'. Tried the following Sentinels:"
+                            "\n  Sentinel at host1:1000: the configured master has no replicas"},
+      // clang-format on
+   });
+}
+
 }  // namespace
 
 int main()
@@ -499,6 +599,9 @@ int main()
    test_one_request_error_node();
    test_one_master_unknown();
    test_one_no_replicas();
+
+   test_error();
+   test_error_replica();
 
    return boost::report_errors();
 }
