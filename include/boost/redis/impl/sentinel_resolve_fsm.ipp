@@ -26,8 +26,18 @@
 
 #include <cstddef>
 #include <random>
+#include <string_view>
 
 namespace boost::redis::detail {
+
+template <class... Args>
+void log_sentinel_error(connection_state& st, std::size_t current_idx, const Args&... args)
+{
+   st.setup_diagnostic += "\n  ";
+   std::size_t size_before = st.setup_diagnostic.size();
+   format_log_args(st.setup_diagnostic, "Sentinel at ", st.sentinels[current_idx], ": ", args...);
+   log_info(st.logger, std::string_view{st.setup_diagnostic}.substr(size_before));
+}
 
 sentinel_action sentinel_resolve_fsm::resume(
    connection_state& st,
@@ -37,7 +47,7 @@ sentinel_action sentinel_resolve_fsm::resume(
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
-      // TODO: reduce duplication in the logging
+      // Contains a diagnostic with all errors we encounter
       st.setup_diagnostic.clear();
 
       log_info(
@@ -48,19 +58,8 @@ sentinel_action sentinel_resolve_fsm::resume(
          st.cfg.sentinel.master_name,
          "' using Sentinel");
 
-      // Try all Sentinels in order. Upon any errors,
-      // The following errors can be encountered for each Sentinel:
-      //   1. Connecting to the Sentinel fails
-      //   2. Executing the request fails with a network/parse error
-      //   3. Executing the request fails with a server error
-      //   4. Executing the request reports that Sentinel doesn't know about this master
-      //   5. The user asked us to connect to a replica, but this master doesn't have any
-      // We can only return one error code. If the user wants details, they can activate logging.
-      // We perform the following translation:
-      //   * If at least one Sentinel reported 5, no_replicas.
-      //   * Otherwise, and if at least one Sentinel failed with 4, sentinel_unknown_master.
-      //     This is likely a config error on the user side, and should be reported even if some Sentinels are offline.
-      //   * Otherwise, no_sentinel_reachable. Details can be found in the logs.
+      // Try all Sentinels in order. Upon any errors, save the diagnostic and try with the next one.
+      // If none of them are available, print an error diagnostic and fail.
       for (idx_ = 0u; idx_ < st.sentinels.size(); ++idx_) {
          log_debug(st.logger, "Trying to contact Sentinel at ", st.sentinels[idx_]);
 
@@ -75,14 +74,7 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          // Check for errors
          if (ec) {
-            format_log_args(
-               st.setup_diagnostic,
-               "  Sentinel at ",
-               st.sentinels[idx_],
-               ": connection establishment error: ",
-               ec,
-               "\n");
-            log_info(st.logger, "Failed to connect to Sentinel at ", st.sentinels[idx_], ": ", ec);
+            log_sentinel_error(st, idx_, "connection establishment error: ", ec);
             continue;
          }
 
@@ -100,19 +92,7 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          // Check for errors
          if (ec) {
-            format_log_args(
-               st.setup_diagnostic,
-               "  Sentinel at ",
-               st.sentinels[idx_],
-               ": error while executing request: ",
-               ec,
-               "\n");
-            log_info(
-               st.logger,
-               "Failed to execute request at Sentinel ",
-               st.sentinels[idx_],
-               ": ",
-               ec);
+            log_sentinel_error(st, idx_, "error while executing request: ", ec);
             st.sentinel_resp_nodes.clear();
             continue;
          }
@@ -128,47 +108,19 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          if (ec) {
             if (ec == error::resp3_simple_error || ec == error::resp3_blob_error) {
-               log_info(
-                  st.logger,
-                  "Sentinel at ",
-                  st.sentinels[idx_],
-                  " responded with an error: '",
-                  st.sentinel_resp.diagnostic,
-                  "'");
-               format_log_args(
-                  st.setup_diagnostic,
-                  "  Sentinel at ",
-                  st.sentinels[idx_],
-                  ": responded with an error: ",
-                  st.sentinel_resp.diagnostic,
-                  "\n");
+               log_sentinel_error(
+                  st,
+                  idx_,
+                  "responded with an error: ",
+                  st.sentinel_resp.diagnostic);
             } else if (ec == error::sentinel_unknown_master) {
-               log_info(
-                  st.logger,
-                  "Sentinel at ",
-                  st.sentinels[idx_],
-                  " doesn't know about master '",
-                  st.cfg.sentinel.master_name,
-                  "'");
-               format_log_args(
-                  st.setup_diagnostic,
-                  "  Sentinel at ",
-                  st.sentinels[idx_],
-                  ": doesn't know about the configured master\n");
+               log_sentinel_error(st, idx_, "doesn't know about the configured master");
             } else {
-               log_info(
-                  st.logger,
-                  "Error parsing response from Sentinel at ",
-                  st.sentinels[idx_],
-                  ": ",
+               log_sentinel_error(
+                  st,
+                  idx_,
+                  "error parsing response (maybe forgot to upgrade to RESP3?): ",
                   ec);
-               format_log_args(
-                  st.setup_diagnostic,
-                  "  Sentinel at ",
-                  st.sentinels[idx_],
-                  ": error parsing response (maybe forgot to upgrade to RESP3?): ",
-                  ec,
-                  "\n");
             }
 
             continue;
@@ -176,18 +128,7 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          // When asking for replicas, we might get no replicas
          if (st.cfg.sentinel.server_role == role::replica && st.sentinel_resp.replicas.empty()) {
-            log_info(
-               st.logger,
-               "Sentinel at ",
-               st.sentinels[idx_],
-               " indicates that master '",
-               st.cfg.sentinel.master_name,
-               "' has no replicas");
-            format_log_args(
-               st.setup_diagnostic,
-               "  Sentinel at ",
-               st.sentinels[idx_],
-               ": the configured master has no replicas\n");
+            log_sentinel_error(st, idx_, "the configured master has no replicas");
 
             continue;
          }
@@ -228,7 +169,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          st.cfg.sentinel.server_role == role::master ? "master" : "a replica of master",
          " '",
          st.cfg.sentinel.master_name,
-         "' using Sentinel. Tried the following Sentinels:\n",
+         "' using Sentinel. Tried the following Sentinels:",
          st.setup_diagnostic);
       return {error::no_sentinel_reachable};
    }
