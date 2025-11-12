@@ -298,6 +298,96 @@ void test_one_request_network_error()
    });
 }
 
+// The first Sentinel responds with an invalid message, but subsequent ones succeed
+void test_one_request_parse_error()
+{
+   // Setup
+   fixture fix;
+
+   // Initiate, connect to the 1st Sentinel, and send the request
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "+OK\r\n",
+      "+OK\r\n",
+   });
+
+   // This fails parsing, so we connect to the 2nd sentinel. This one succeeds
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host2", "2000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
+      "*0\r\n",
+   });
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code());
+
+   // The master's address is stored
+   BOOST_TEST_EQ(fix.st.cfg.addr, (address{"test.host", "6380"}));
+
+   // Logs
+   fix.check_log({
+      // clang-format off
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"   },
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                            },
+      {logger::level::info,  "Error parsing response from Sentinel at host1:1000: Invalid resp3 type. [boost.redis:1]"},
+      {logger::level::debug, "Trying to contact Sentinel at host2:2000"                            },
+      {logger::level::debug, "Executing Sentinel request at host2:2000"                            },
+      {logger::level::info,  "Sentinel at host2:2000 resolved the server address to test.host:6380"},
+      // clang-format on
+   });
+}
+
+// The first Sentinel responds with an error (e.g. failed auth), but subsequent ones succeed
+void test_one_request_error_node()
+{
+   // Setup
+   fixture fix;
+
+   // Initiate, connect to the 1st Sentinel, and send the request
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "-ERR needs authentication\r\n",
+      "-ERR needs authentication\r\n",
+   });
+
+   // This fails, so we connect to the 2nd sentinel. This one succeeds
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host2", "2000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
+      "*0\r\n",
+   });
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code());
+
+   // The master's address is stored
+   BOOST_TEST_EQ(fix.st.cfg.addr, (address{"test.host", "6380"}));
+
+   // Logs
+   fix.check_log({
+      // clang-format off
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"   },
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                            },
+      {logger::level::info,  "Sentinel at host1:1000 responded with an error: 'ERR needs authentication'"},
+      {logger::level::debug, "Trying to contact Sentinel at host2:2000"                            },
+      {logger::level::debug, "Executing Sentinel request at host2:2000"                            },
+      {logger::level::info,  "Sentinel at host2:2000 resolved the server address to test.host:6380"},
+      // clang-format on
+   });
+}
+
 // The first Sentinel doesn't know about the master, but others do
 void test_one_master_unknown()
 {
@@ -344,6 +434,58 @@ void test_one_master_unknown()
    });
 }
 
+// The first Sentinel thinks there are no replicas (stale data?), but others do
+void test_one_no_replicas()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.sentinel.server_role = role::replica;
+
+   // Initiate, connect to the 1st Sentinel, and send the request
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
+      "*0\r\n",
+      "*0\r\n",
+   });
+
+   // This errors, so we connect to the 2nd sentinel. This one succeeds
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host2", "2000"}));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      // clang-format off
+      "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
+      "*1\r\n"
+         "%2\r\n"
+            "$2\r\nip\r\n$11\r\nreplica.one\r\n$4\r\nport\r\n$4\r\n6379\r\n",
+      "*0\r\n",
+      // clang-format on
+   });
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code());
+
+   // The replica's address is stored
+   BOOST_TEST_EQ(fix.st.cfg.addr, (address{"replica.one", "6379"}));
+
+   // Logs
+   fix.check_log({
+      // clang-format off
+      {logger::level::info,  "Trying to resolve the address of a replica of master 'mymaster' using Sentinel"   },
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                            },
+      {logger::level::info,  "Sentinel at host1:1000 indicates that master 'mymaster' has no replicas"    },
+      {logger::level::debug, "Trying to contact Sentinel at host2:2000"                            },
+      {logger::level::debug, "Executing Sentinel request at host2:2000"                            },
+      {logger::level::info,  "Sentinel at host2:2000 resolved the server address to replica.one:6379"},
+      // clang-format on
+   });
+}
+
 }  // namespace
 
 int main()
@@ -353,7 +495,10 @@ int main()
 
    test_one_connect_error();
    test_one_request_network_error();
+   test_one_request_parse_error();
+   test_one_request_error_node();
    test_one_master_unknown();
+   test_one_no_replicas();
 
    return boost::report_errors();
 }

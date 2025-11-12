@@ -113,10 +113,11 @@ sentinel_action sentinel_resolve_fsm::resume(
             if (ec == error::resp3_simple_error || ec == error::resp3_blob_error) {
                log_info(
                   st.logger,
-                  "Sentinel response at ",
+                  "Sentinel at ",
                   st.sentinels[idx_],
-                  " contains an error: ",
-                  st.sentinel_resp.diagnostic);
+                  " responded with an error: '",
+                  st.sentinel_resp.diagnostic,
+                  "'");
             } else if (ec == error::sentinel_unknown_master) {
                log_info(
                   st.logger,
@@ -148,7 +149,7 @@ sentinel_action sentinel_resolve_fsm::resume(
                st.logger,
                "Sentinel at ",
                st.sentinels[idx_],
-               " indicates that the master '",
+               " indicates that master '",
                st.cfg.sentinel.master_name,
                "' has no replicas");
             final_ec_ = error::no_replicas;
