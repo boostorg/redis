@@ -773,6 +773,27 @@ void test_sentinel_resolve_error()
    });
 }
 
+// The reconnection setting affects Sentinel reconnection, too
+void test_sentinel_resolve_error_no_reconnect()
+{
+   // Setup
+   fixture fix{config_no_reconnect()};
+   fix.st.cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+
+   // Start the Sentinel resolve operation
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::sentinel_resolve);
+
+   // It fails with an error, so we exit
+   act = fix.fsm.resume(fix.st, error::sentinel_resolve_failed, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::sentinel_resolve_failed));
+
+   // Log
+   fix.check_log({});
+}
+
 void test_sentinel_resolve_cancel()
 {
    // Setup
@@ -829,6 +850,7 @@ int main()
 
    test_sentinel_reconnection();
    test_sentinel_resolve_error();
+   test_sentinel_resolve_error_no_reconnect();
    test_sentinel_resolve_cancel();
 
    return boost::report_errors();
