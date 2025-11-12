@@ -1,0 +1,51 @@
+//
+// Copyright (c) 2025 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+#ifndef BOOST_REDIS_UPDATE_SENTINEL_LIST_HPP
+#define BOOST_REDIS_UPDATE_SENTINEL_LIST_HPP
+
+#include <boost/redis/config.hpp>
+
+#include <boost/core/span.hpp>
+
+#include <cstddef>
+#include <vector>
+
+namespace boost::redis::detail {
+
+inline void update_sentinel_list(
+   std::vector<address>& to,
+   std::size_t current_index,               // the one to maintain and place first
+   span<const address> gossip_sentinels,    // the ones that SENTINEL SENTINELS returned
+   span<const address> bootstrap_sentinels  // the ones the user supplied
+)
+{
+   // Place the one that succeeded in the front
+   if (current_index != 0u)
+      std::swap(to.front(), to[current_index]);
+
+   // Remove the other Sentinels
+   to.resize(1u);
+
+   // Add one group
+   to.insert(to.end(), gossip_sentinels.begin(), gossip_sentinels.end());
+
+   // Insert any user-supplied sentinels, if not already present
+   // TODO: maybe use a sorted vector?
+   for (const auto& sentinel : bootstrap_sentinels) {
+      auto it = std::find_if(to.begin(), to.end(), [&sentinel](const address& value) {
+         return value.host == sentinel.host && value.port == sentinel.port;
+      });
+      if (it == to.end())
+         to.push_back(sentinel);
+   }
+}
+
+}  // namespace boost::redis::detail
+
+#endif

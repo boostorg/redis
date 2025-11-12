@@ -232,4 +232,4 @@ inline any_adapter make_vector_adapter(std::vector<resp3::node>& output)
 
 }  // namespace boost::redis::detail
 
-#endif  // BOOST_REDIS_CONNECTOR_HPP
+#endif

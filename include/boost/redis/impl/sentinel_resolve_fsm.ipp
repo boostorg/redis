@@ -19,6 +19,7 @@
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/impl/parse_sentinel_response.hpp>
+#include <boost/redis/impl/update_sentinel_list.hpp>
 
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
@@ -27,34 +28,6 @@
 #include <random>
 
 namespace boost::redis::detail {
-
-inline void update_sentinel_list(
-   std::vector<address>& to,
-   std::size_t current_index,                      // the one to maintain and place first
-   boost::span<const address> gossip_sentinels,    // the ones that SENTINEL SENTINELS returned
-   boost::span<const address> bootstrap_sentinels  // the ones the user supplied
-)
-{
-   // Place the one that succeeded in the front
-   if (current_index != 0u)
-      std::swap(to.front(), to[current_index]);
-
-   // Remove the other Sentinels
-   to.resize(1u);
-
-   // Add one group
-   to.insert(to.end(), gossip_sentinels.begin(), gossip_sentinels.end());
-
-   // Insert any user-supplied sentinels, if not already present
-   // TODO: maybe use a sorted vector?
-   for (const auto& sentinel : bootstrap_sentinels) {
-      auto it = std::find_if(to.begin(), to.end(), [&sentinel](const address& value) {
-         return value.host == sentinel.host && value.port == sentinel.port;
-      });
-      if (it == to.end())
-         to.push_back(sentinel);
-   }
-}
 
 // Returns how to connect to Sentinel given the current index
 inline connect_params make_sentinel_connect_params(const connection_state& st, std::size_t idx)
