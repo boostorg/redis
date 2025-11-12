@@ -104,9 +104,6 @@ enum class error
    /// The contacted server is not a master as expected.
    /// This is likely a transient failure caused by a Sentinel failover in progress.
    role_check_failed,
-
-   /// You asked to connect to a replica in a Sentinel deployment, but the specified master has no replicas.
-   no_replicas,
 };
 
 /**
