@@ -169,6 +169,52 @@ void test_success()
    });
 }
 
+void test_success_replica()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.sentinel.server_role = role::replica;
+   fix.st.eng.seed(183984887232u);  // this returns index 1. TODO: is this portable?
+
+   // Initiate. We should connect to the 1st sentinel
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, (address{"host1", "1000"}));
+
+   // Now send the request
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, sentinel_action::request());
+   fix.st.sentinel_resp_nodes = from_resp3({
+      // clang-format off
+      "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
+      "*3\r\n"
+         "%2\r\n"
+            "$2\r\nip\r\n$11\r\nreplica.one\r\n$4\r\nport\r\n$4\r\n6379\r\n"
+         "%2\r\n"
+            "$2\r\nip\r\n$11\r\nreplica.two\r\n$4\r\nport\r\n$4\r\n6379\r\n"
+         "%2\r\n"
+            "$2\r\nip\r\n$11\r\nreplica.thr\r\n$4\r\nport\r\n$4\r\n6379\r\n",
+      "*0\r\n"
+      // clang-format on
+   });
+
+   // We received a valid request, so we're done
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code());
+
+   // The address of one of the replicas is stored
+   BOOST_TEST_EQ(fix.st.cfg.addr, (address{"replica.two", "6379"}));
+
+   // Logs
+   fix.check_log({
+      // clang-format off
+      {logger::level::info,  "Trying to resolve the address of a replica of master 'mymaster' using Sentinel" },
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                                       },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                                       },
+      {logger::level::info,  "Sentinel at host1:1000 resolved the server address to replica.two:6379"         },
+      // clang-format on
+   });
+}
+
 // The first Sentinel fails connection, but subsequent ones succeed
 void test_one_connect_error()
 {
@@ -215,6 +261,8 @@ void test_one_connect_error()
 int main()
 {
    test_success();
+   test_success_replica();
+
    test_one_connect_error();
 
    return boost::report_errors();
