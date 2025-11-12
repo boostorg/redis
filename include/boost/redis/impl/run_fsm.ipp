@@ -148,7 +148,7 @@ run_action run_fsm::resume(
 
             // Check for cancellations
             if (is_terminal_cancel(cancel_state)) {
-               log_debug(st.logger, "Run: cancelled (1)");
+               log_debug(st.logger, "Run: cancelled (4)");
                return {asio::error::operation_aborted};
             }
 
@@ -166,7 +166,7 @@ run_action run_fsm::resume(
 
                // Check for cancellations
                if (is_terminal_cancel(cancel_state)) {
-                  log_debug(st.logger, "Run: cancelled (2)");
+                  log_debug(st.logger, "Run: cancelled (5)");
                   return system::error_code(asio::error::operation_aborted);
                }
 
@@ -181,7 +181,7 @@ run_action run_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            log_debug(st.logger, "Run: cancelled (3)");
+            log_debug(st.logger, "Run: cancelled (1)");
             return system::error_code(asio::error::operation_aborted);
          }
 
@@ -230,7 +230,7 @@ run_action run_fsm::resume(
 
             // Check for cancellations
             if (is_terminal_cancel(cancel_state)) {
-               log_debug(st.logger, "Run: cancelled (4)");
+               log_debug(st.logger, "Run: cancelled (2)");
                return system::error_code(asio::error::operation_aborted);
             }
          }
@@ -245,7 +245,7 @@ run_action run_fsm::resume(
 
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
-            log_debug(st.logger, "Run: cancelled (5)");
+            log_debug(st.logger, "Run: cancelled (3)");
             return system::error_code(asio::error::operation_aborted);
          }
       }

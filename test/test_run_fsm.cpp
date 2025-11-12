@@ -39,6 +39,7 @@ static const char* to_string(run_action_type value)
    switch (value) {
       case run_action_type::done:                  return "run_action_type::done";
       case run_action_type::immediate:             return "run_action_type::immediate";
+      case run_action_type::sentinel_resolve:      return "run_action_type::sentinel_resolve";
       case run_action_type::connect:               return "run_action_type::connect";
       case run_action_type::parallel_group:        return "run_action_type::parallel_group";
       case run_action_type::cancel_receive:        return "run_action_type::cancel_receive";
