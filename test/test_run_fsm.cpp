@@ -678,6 +678,101 @@ void test_setup_request_server_error()
    });
 }
 
+// When using Sentinel, reconnection works normally
+void test_sentinel_reconnection()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+
+   // Resolve succeeds, and a connection is attempted
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::sentinel_resolve);
+   fix.st.cfg.addr = {"host1", "1000"};
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // This errors, so we sleep and resolve again
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::sentinel_resolve);
+   fix.st.cfg.addr = {"host2", "2000"};
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // Sentinel involves always a setup request containing the role check. Run it.
+   BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 1u);
+   BOOST_TEST(fix.st.mpx.commit_write(fix.st.mpx.get_write_buffer().size()));
+   read(fix.st.mpx, "*1\r\n$6\r\nmaster\r\n");
+   error_code ec;
+   auto res = fix.st.mpx.consume(ec);
+   BOOST_TEST_EQ(ec, error_code());
+   BOOST_TEST(res.first == detail::consume_result::got_response);
+
+   // The parallel group errors, so we sleep and resolve again
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error::write_timeout, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::sentinel_resolve);
+   fix.st.cfg.addr = {"host3", "3000"};
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // Cancel
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Log
+   fix.check_log({
+      // clang-format off
+      {logger::level::info,  "Trying to connect to Redis server at host1:1000 (TLS disabled)"},
+      {logger::level::info,  "Failed to connect to Redis server at host1:1000 (TLS disabled): Connect timeout. [boost.redis:18]"},
+      {logger::level::info,  "Trying to connect to Redis server at host2:2000 (TLS disabled)"},
+      {logger::level::info,  "Connected to Redis server at host2:2000 (TLS disabled)"},
+      {logger::level::info,  "Setup request execution: success"},
+      {logger::level::info,  "Trying to connect to Redis server at host3:3000 (TLS disabled)"},
+      {logger::level::debug, "Run: cancelled (1)"},
+      // clang-format on
+   });
+}
+
+// If the Sentinel resolve operation errors, we try again
+void test_sentinel_resolve_error()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+
+   // Start the Sentinel resolve operation
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::sentinel_resolve);
+
+   // It fails with an error, so we go to sleep
+   act = fix.fsm.resume(fix.st, error::sentinel_resolve_failed, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::wait_for_reconnection);
+
+   // Retrying it succeeds
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::sentinel_resolve);
+   fix.st.cfg.addr = {"myhost", "10000"};
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+
+   // Log
+   fix.check_log({
+      {logger::level::info, "Trying to connect to Redis server at myhost:10000 (TLS disabled)"},
+   });
+}
+
 }  // namespace
 
 int main()
@@ -711,6 +806,9 @@ int main()
    test_setup_request_success();
    test_setup_request_empty();
    test_setup_request_server_error();
+
+   test_sentinel_reconnection();
+   test_sentinel_resolve_error();
 
    return boost::report_errors();
 }
